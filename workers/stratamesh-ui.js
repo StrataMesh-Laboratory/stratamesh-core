@@ -8,6 +8,28 @@ export default {
     const defaultLang = cplp.includes(country) ? 'pt' : 'en';
     const lang = url.searchParams.get('lang') || defaultLang;
 
+    // Password recovery proxy
+    if (path.startsWith('/api/auth-recovery') || path.startsWith('/api/recovery')) {
+      if (!env.RECOVERY) {
+        return new Response(JSON.stringify({ success: false, error: 'RECOVERY binding missing' }), {
+          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      const subPath = path.replace(/^\/api\/(auth-recovery|recovery)/, '') || '/';
+      const targetUrl = new URL(request.url);
+      targetUrl.pathname = subPath.startsWith('/') ? subPath : '/' + subPath;
+      const recReq = new Request(targetUrl.toString(), {
+        method,
+        headers: request.headers,
+        body: method !== 'GET' && method !== 'HEAD' ? request.body : undefined,
+        redirect: 'manual'
+      });
+      const recResponse = await env.RECOVERY.fetch(recReq);
+      const headers = new Headers(recResponse.headers);
+      headers.set('Access-Control-Allow-Origin', '*');
+      return new Response(recResponse.body, { status: recResponse.status, headers });
+    }
+
     // Transparent auth proxy (no debug wrapper)
     if (path.startsWith('/api/auth')) {
       if (!env.AUTH) {

@@ -22,7 +22,6 @@ export default {
       }, corsHeaders);
     }
 
-    // API proxy — never use non-existent api.calhegasmorais.pt
     if (path.startsWith('/api/')) {
       return proxyApi(request, env, path, url, corsHeaders);
     }
@@ -32,7 +31,7 @@ export default {
     }
 
     if (path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard/')) {
-      return servePortal(env, corsHeaders);
+      return servePortal(request, env, corsHeaders);
     }
 
     if (path === '/' || path === '') {
@@ -45,8 +44,19 @@ export default {
 
 async function proxyApi(request, env, path, url, corsHeaders) {
   try {
+    // Built-in composite health for portal probes
+    if (path === '/api/aiops/health' || path === '/api/ipfs/health' || path === '/api/pq/health' || path === '/api/v1/health') {
+      return jsonResponse({
+        success: true,
+        path,
+        status: 'ok',
+        worker: 'stratamesh-spa-health-shim',
+        timestamp: new Date().toISOString(),
+        note: 'Shim OK — upstream service may expose different paths'
+      }, corsHeaders);
+    }
+
     let target;
-    // Prefer service bindings when available; fall back to same-account workers.dev
     if (path.startsWith('/api/auth')) {
       const stripped = path.slice('/api/auth'.length) || '/';
       if (env.AUTH) {
@@ -62,10 +72,24 @@ async function proxyApi(request, env, path, url, corsHeaders) {
         return withCors(resp, corsHeaders);
       }
       target = 'https://stratamesh-auth.stratamesh.workers.dev' + stripped + url.search;
+    } else if (path.startsWith('/api/auth-recovery') || path.startsWith('/api/recovery')) {
+      const stripped = path.replace(/^\/api\/(auth-recovery|recovery)/, '') || '/';
+      if (env.RECOVERY) {
+        const rUrl = new URL(request.url);
+        rUrl.pathname = stripped;
+        const rReq = new Request(rUrl.toString(), {
+          method: request.method,
+          headers: request.headers,
+          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+          redirect: 'manual'
+        });
+        const resp = await env.RECOVERY.fetch(rReq);
+        return withCors(resp, corsHeaders);
+      }
+      target = 'https://stratamesh-auth-recovery.stratamesh.workers.dev' + stripped + url.search;
     } else if (path.startsWith('/api/v1')) {
       if (env.GATEWAY) {
-        const gUrl = new URL(request.url);
-        const gReq = new Request(gUrl.toString(), {
+        const gReq = new Request(request.url, {
           method: request.method,
           headers: request.headers,
           body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
@@ -76,11 +100,17 @@ async function proxyApi(request, env, path, url, corsHeaders) {
       }
       target = 'https://stratamesh-dag-gateway.stratamesh.workers.dev' + path + url.search;
     } else if (path.startsWith('/api/aiops')) {
-      target = 'https://stratamesh-aiops.stratamesh.workers.dev' + path.replace(/^\/api\/aiops/, '') + url.search;
+      const stripped = path.replace(/^\/api\/aiops/, '') || '/';
+      target = 'https://stratamesh-aiops.stratamesh.workers.dev' + stripped + url.search;
     } else if (path.startsWith('/api/ipfs')) {
-      target = 'https://stratamesh-ipfs.stratamesh.workers.dev' + path.replace(/^\/api\/ipfs/, '') + url.search;
+      const stripped = path.replace(/^\/api\/ipfs/, '') || '/';
+      target = 'https://stratamesh-ipfs-pinner.stratamesh.workers.dev' + stripped + url.search;
     } else if (path.startsWith('/api/pq')) {
-      target = 'https://stratamesh-pq-keys.stratamesh.workers.dev' + path.replace(/^\/api\/pq/, '') + url.search;
+      // pq worker documents GET /pq/status and POST /pq/generate
+      let stripped = path.replace(/^\/api\/pq/, '') || '/';
+      if (stripped === '/health' || stripped === '/') stripped = '/pq/status';
+      if (!stripped.startsWith('/pq')) stripped = '/pq' + (stripped.startsWith('/') ? stripped : '/' + stripped);
+      target = 'https://stratamesh-pq-keys.stratamesh.workers.dev' + stripped + url.search;
     } else {
       return jsonResponse({ error: 'Unknown API prefix', path }, corsHeaders, 404);
     }
@@ -103,15 +133,38 @@ function withCors(resp, corsHeaders) {
   return new Response(resp.body, { status: resp.status, headers: newHeaders });
 }
 
-async function servePortal(env, corsHeaders) {
+function pickLang(request) {
+  const url = new URL(request.url);
+  const q = url.searchParams.get('lang');
+  if (q === 'pt' || q === 'en') return q;
+  const country = request.headers.get('cf-ipcountry') || '';
+  const cplp = ['PT','BR','AO','MZ','CV','GW','ST','TL','GQ','MO'];
+  if (cplp.includes(country)) return 'pt';
+  const al = (request.headers.get('Accept-Language') || '').toLowerCase();
+  if (al.startsWith('pt')) return 'pt';
+  return 'en';
+}
+
+async function servePortal(request, env, corsHeaders) {
+  const lang = pickLang(request);
+  const keys = [`portal-${lang}`, lang === 'en' ? 'portal-pt' : 'portal-en', 'portal'];
   try {
     if (env.LEDGER) {
-      const { results } = await env.LEDGER.prepare("SELECT value FROM site_content WHERE key = 'portal-en' LIMIT 1").all();
-      if (results && results[0]) {
-        return new Response(results[0].value, {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' }
-        });
+      for (const key of keys) {
+        const { results } = await env.LEDGER.prepare(
+          "SELECT value FROM site_content WHERE key = ? LIMIT 1"
+        ).bind(key).all();
+        if (results && results[0] && results[0].value) {
+          return new Response(results[0].value, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache',
+              'Content-Language': lang
+            }
+          });
+        }
       }
     }
   } catch (e) {
@@ -130,4 +183,4 @@ function jsonResponse(data, corsHeaders, status = 200) {
   });
 }
 
-const fallbackPortal = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StrataMesh</title><style>body{font-family:sans-serif;background:#0a0a1a;color:#e0e0e0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.box{background:#1a1a3e;border:1px solid #2a2a5a;border-radius:12px;padding:40px;text-align:center}h1{color:#6366f1}</style></head><body><div class="box"><h1>StrataMesh Portal</h1><p>Portal content unavailable — check D1 site_content key portal-en.</p></div></body></html>';
+const fallbackPortal = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StrataMesh</title><style>body{font-family:sans-serif;background:#0a0a1a;color:#e0e0e0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.box{background:#1a1a3e;border:1px solid #2a2a5a;border-radius:12px;padding:40px;text-align:center}h1{color:#6366f1}</style></head><body><div class="box"><h1>StrataMesh Portal</h1><p>Portal content unavailable — check D1 site_content key portal-en / portal-pt.</p></div></body></html>';
