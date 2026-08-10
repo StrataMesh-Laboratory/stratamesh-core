@@ -172,6 +172,7 @@ Unchanged in spirit from v0.1; now tied to measurable lab→prod signals:
 | B2 meta-finality modules | **done** |
 | B3 ACB resource meters | **done** |
 | B4 PQ pilot hooks | **lab only** (not real PQ) |
+| SPA opt-out | **lab** (immediate deactivate; grace TBD) |
 
 Production host + external peers remain operator actions.
 

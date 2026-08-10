@@ -10,6 +10,8 @@ from typing import Any, Dict, Optional
 import time
 
 
+OPERATOR_NAME = "André Manuel Calhegas Morais"
+
 def build_status_payload(
     *,
     node_id: str = "FOG-NODE-PT-CM-001",
@@ -24,6 +26,7 @@ def build_status_payload(
     payload = {
         "node_id": node_id,
         "name": "Calhegas Morais",
+        "operator": OPERATOR_NAME,
         "location": {"lat": 38.7169, "lon": -9.1427, "label": "Lisbon, Portugal"},
         "version": "0.2.0-dev",
         "phase": phase,

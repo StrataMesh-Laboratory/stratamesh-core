@@ -421,6 +421,16 @@ class Handler(BaseHTTPRequestHandler):
                     n += 1
             self._json(200, {"imported": n})
 
+        elif path == "/spa/opt-out":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.spas.request_opt_out(str(data.get("spa_id", "")), str(data.get("reason", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
         elif path == "/spa/register":
             try:
                 data = json.loads(raw.decode() or "{}")

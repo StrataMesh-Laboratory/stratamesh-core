@@ -154,6 +154,26 @@ class SPARegistry:
         self.spas[spa_id] = rec
         return True
 
+
+    def request_opt_out(self, spa_id: str, reason: str = "") -> dict:
+        """Begin opt-out; active until grace period elapses (lab: immediate deactivate flag + timestamp)."""
+        rec = self.spas.get(spa_id)
+        if not rec:
+            raise KeyError("spa not found")
+        rec.active = False
+        meta = {
+            "spa_id": spa_id,
+            "provider_id": rec.provider_id,
+            "opt_out_days": rec.opt_out_days,
+            "reason": reason,
+            "status": "opted_out",
+            "at": time.time(),
+        }
+        return meta
+
+    def list_by_provider(self, provider_id: str) -> list:
+        return [r for r in self.spas.values() if r.provider_id == provider_id]
+
     def summary(self) -> dict:
         return {
             "total": len(self.spas),
