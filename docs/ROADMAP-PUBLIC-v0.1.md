@@ -1,7 +1,7 @@
 # StrataMesh DLT — Public Roadmap v0.1
 **Fog Node:** Calhegas Morais (FOG-NODE-PT-CM-001)  
 **Location:** 38.7169° N, 9.1427° W — Lisbon, Portugal  
-**Status:** Phase 1 complete (scaffold) · Phase 2 SPA scaffold · 10 August 2026  
+**Status:** Phase 1 complete (scaffold) · Phase 2 SPA + Phase 3 token/Agora scaffold · 10 August 2026  
 **Motto:** Intelligentia · Vigilantia · Veritas
 
 ---

@@ -25,6 +25,8 @@ from contribution import ContributionLedger
 from metrics_bridge import build_status_payload
 from subsistence.runtime import SubsistenceRuntime
 from spa_pin_policy import enforce_or_warn
+from strata_token import StrataTokenLedger
+from agora import Agora
 
 
 class PersistentFogNode:
@@ -35,6 +37,8 @@ class PersistentFogNode:
         self.pinner = IPFSClient()  # mode from IPFS_API_URL / stub
         self.spas = SPARegistry(self.dag)
         self.poc = ContributionLedger()
+        self.token = StrataTokenLedger()
+        self.agora = Agora()
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.started_at = time.time()
@@ -88,6 +92,31 @@ class PersistentFogNode:
                 "pin_policy": policy,
             }
 
+
+    def mint_poc(self) -> dict:
+        with self.lock:
+            credit = self.poc.balance(self.node_id)
+            if credit <= 0:
+                return {"minted": 0, "reason": "no poc credit"}
+            # mint only unminted delta vs token balance (simple: mint full credit once tracked)
+            already = self.token.balance(self.node_id)
+            delta = max(0.0, credit - already)
+            if delta <= 0:
+                return {"minted": 0, "balance": already, "reason": "already minted to poc level"}
+            ev = self.token.mint_from_poc(self.node_id, delta, rate=1.0)
+            return {"minted": ev.amount, "mint_id": ev.mint_id, "balance": self.token.balance(self.node_id)}
+
+    def agora_place(self, side: str, amount: float, price: float) -> dict:
+        with self.lock:
+            o = self.agora.place(self.node_id, side, amount, price)
+            return {
+                "order_id": o.order_id,
+                "side": o.side.value,
+                "amount": o.amount,
+                "price": o.price,
+                "book": self.agora.book(),
+            }
+
     def handle_gossip(self, raw: bytes) -> list:
         with self.lock:
             replies = self.gossip.handle_message(raw)
@@ -116,6 +145,8 @@ class PersistentFogNode:
                     "storage": {"backend": "sqlite", "path": self.db_path},
                     "finality_tips": tip_set_report(self.dag, limit=8),
                     "contribution": self.poc.summary(),
+                    "token": self.token.summary(),
+                    "agora": self.agora.book(),
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -156,6 +187,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, {"tips": tip_set_report(NODE.dag)})
         elif path == "/contribution":
             self._json(200, NODE.poc.summary())
+        elif path == "/token":
+            self._json(200, NODE.token.summary())
+        elif path == "/agora":
+            self._json(200, NODE.agora.book())
         else:
             self._json(404, {"error": "not found"})
 
@@ -186,6 +221,23 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
+        elif path == "/token/mint":
+            self._json(200, NODE.mint_poc())
+
+        elif path == "/agora/order":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.agora_place(
+                    str(data.get("side", "sell")),
+                    float(data.get("amount", 0)),
+                    float(data.get("price", 0)),
+                ))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
         elif path == "/gossip":
             import base64
             replies = NODE.handle_gossip(raw)
@@ -210,8 +262,8 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /spa /finality /contribution /inv")
-    print("  POST /submit /spa/register /gossip")
+    print("  GET /status /spa /finality /contribution /token /agora /inv")
+    print("  POST /submit /spa/register /token/mint /agora/order /gossip")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
