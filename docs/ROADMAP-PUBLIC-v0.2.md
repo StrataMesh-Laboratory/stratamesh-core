@@ -116,7 +116,7 @@ Legacy phase numbers remain for continuity with v0.1 docs and status payloads:
 ## 5. Near-term plan (recommended sequence)
 
 **Horizon 1 — Mesh foundations (next)**  
-1. Deploy always-on Fog process (A0) with `publish_loop` → public status  
+1. Deploy always-on Fog process (A0) with `publish_loop` → public status *(tooling landed: systemd units, docker-compose, healthcheck — host still operator-provided)*  
 2. Attach Kubo; set SPA pinner role to **strict api mode**  
 3. Stand up second/third private nodes; document join procedure (A1)
 

@@ -1,0 +1,39 @@
+# StrataMesh Fog Node — A0 lab/production-style single host
+services:
+  fog:
+    image: python:3.12-slim
+    working_dir: /app/src
+    volumes:
+      - ../:/app
+      - fog-data:/var/lib/stratamesh
+    environment:
+      NODE_ID: FOG-NODE-PT-CM-001
+      # IPFS_API_URL: http://ipfs:5001
+    command: ["python3", "node_persistent.py", "--port", "8787", "--db", "/var/lib/stratamesh/fog.db", "--id", "FOG-NODE-PT-CM-001"]
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  publish:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - ../:/app
+    environment:
+      NODE_STATUS_URL: http://fog:8787/status
+      INTERVAL: "60"
+      STATUS_TOKEN: strata-status-ingest-fe2b24ed992ccd30
+      STATUS_INGEST_URL: https://stratamesh-status.stratamesh.workers.dev/ingest
+    command: ["bash", "scripts/publish_loop.sh"]
+    depends_on:
+      fog:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  fog-data:

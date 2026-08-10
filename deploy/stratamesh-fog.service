@@ -1,0 +1,21 @@
+[Unit]
+Description=StrataMesh Fog Node (Calhegas Morais reference)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stratamesh
+Group=stratamesh
+WorkingDirectory=/opt/stratamesh-core/src
+Environment=NODE_ID=FOG-NODE-PT-CM-001
+Environment=PORT=8787
+Environment=DB=/var/lib/stratamesh/fog.db
+# Optional: Environment=IPFS_API_URL=http://127.0.0.1:5001
+ExecStart=/usr/bin/python3 /opt/stratamesh-core/src/node_persistent.py --port ${PORT} --db ${DB} --id ${NODE_ID}
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

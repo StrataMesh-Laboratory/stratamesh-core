@@ -1,0 +1,20 @@
+[Unit]
+Description=StrataMesh status publish loop
+After=stratamesh-fog.service
+Requires=stratamesh-fog.service
+
+[Service]
+Type=simple
+User=stratamesh
+Group=stratamesh
+WorkingDirectory=/opt/stratamesh-core
+Environment=NODE_STATUS_URL=http://127.0.0.1:8787/status
+Environment=INTERVAL=60
+Environment=STATUS_TOKEN=strata-status-ingest-fe2b24ed992ccd30
+Environment=STATUS_INGEST_URL=https://stratamesh-status.stratamesh.workers.dev/ingest
+ExecStart=/opt/stratamesh-core/scripts/publish_loop.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
