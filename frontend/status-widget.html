@@ -3,71 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>StrataMesh · Live Mesh Status</title>
+<title>StrataMesh · Live · v0.2.1-lab</title>
 <style>
 :root{--bg:#0b0f14;--card:#141a22;--text:#e6edf3;--muted:#8b9bb4;--accent:#3b82f6;--ok:#22c55e;--warn:#fbbf24}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:1.5rem}
-.c{max-width:900px;margin:0 auto}
-h1{font-size:1.25rem;margin-bottom:.25rem}
-.sub{color:var(--muted);font-size:.8rem;margin-bottom:1rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem}
-.card{background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:1rem}
-.label{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.stat{font-size:1.35rem;font-weight:600;margin-top:.2rem}
-.ok{color:var(--ok)}.warn{color:var(--warn)}
-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.5rem}
-th,td{text-align:left;padding:.35rem .25rem;border-bottom:1px solid #1e293b;color:var(--muted)}
-th{color:#93c5fd;font-weight:500}
-a{color:var(--accent)}
-#error{color:#f87171;font-size:.85rem}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:1.25rem}
+.c{max-width:960px;margin:0 auto}
+h1{font-size:1.2rem} .sub{color:var(--muted);font-size:.8rem;margin:.25rem 0 1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.65rem}
+.card{background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:.9rem}
+.label{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stat{font-size:1.25rem;font-weight:600;margin-top:.15rem}
+.ok{color:var(--ok)} table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:.4rem}
+th,td{text-align:left;padding:.3rem .2rem;border-bottom:1px solid #1e293b;color:var(--muted)}
+th{color:#93c5fd} a{color:var(--accent)} pre{font-size:.72rem;color:var(--muted);overflow:auto;max-height:160px}
+.pill{display:inline-block;background:#14532d;color:var(--ok);padding:.15rem .5rem;border-radius:999px;font-size:.72rem}
+tracks span{display:inline-block;margin:.15rem .25rem 0 0;padding:.15rem .45rem;border-radius:6px;background:#1e293b;font-size:.7rem;color:#94a3b8}
 </style>
 </head>
 <body>
 <div class="c">
-  <h1>StrataMesh live status · v0.2.0-lab</h1>
-  <p class="sub">Source: <a id="src" href="https://stratamesh-status.stratamesh.workers.dev/status">status Worker</a> · auto-refresh 30s</p>
-  <div id="error"></div>
+  <h1>StrataMesh live status</h1>
+  <p class="sub"><span class="pill">v0.2.1-lab</span> · FOG-NODE-PT-CM-001 · auto-refresh 30s ·
+    <a href="/status">JSON</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a> ·
+    <a href="https://calhegasmorais.pt/">Site</a></p>
+  <div id="error" style="color:#f87171;font-size:.85rem"></div>
   <div class="grid" id="cards"></div>
   <div class="card" style="margin-top:.75rem">
-    <div class="label">Finality tips</div>
-    <table><thead><tr><th>tx</th><th>confidence</th><th>weight</th><th>type</th></tr></thead>
-    <tbody id="tips"></tbody></table>
+    <div class="label">Lab tracks</div>
+    <div class="tracks" id="tracks"></div>
   </div>
   <div class="card" style="margin-top:.75rem">
-    <div class="label">SPA roles</div>
-    <pre id="spa" style="color:var(--muted);font-size:.8rem;margin-top:.4rem"></pre>
+    <div class="label">Finality tips</div>
+    <table><thead><tr><th>tx</th><th>conf</th><th>weight</th><th>type</th></tr></thead><tbody id="tips"></tbody></table>
   </div>
+  <div class="card" style="margin-top:.75rem"><div class="label">SPA / token / SVC</div><pre id="extra"></pre></div>
 </div>
 <script>
-const STATUS_URL = 'https://stratamesh-status.stratamesh.workers.dev/status';
+const URL = location.origin + '/status';
+const TRACKS = ['A0 ops','A1 mesh sync','A2 multi-SPA','A3 join doc','B0 emission','B1 dual Agora','B2 finality','B3 ACB meters','B4 PQ hooks'];
+document.getElementById('tracks').innerHTML = TRACKS.map(t=>'<span>'+t+'</span>').join('');
 async function load(){
   try{
-    const r = await fetch(STATUS_URL+'?t='+Date.now());
-    const s = await r.json();
+    const s = await fetch(URL+'?t='+Date.now()).then(r=>r.json());
     document.getElementById('error').textContent = '';
     const cards = [
-      ['Phase', (s.phase||'?')+' — '+(s.phase_name||''), ''],
+      ['Version', s.version || '—', ''],
+      ['Phase', (s.phase||'?')+' '+(s.phase_name||''), ''],
       ['DAG txs', s.dag?.transaction_count ?? '—', ''],
       ['Tips', s.dag?.tip_count ?? '—', ''],
-      ['SPAs active', s.spa?.active ?? '—', ''],
-      ['PoC minted', (s.contribution?.total_minted ?? '—'), ''],
-      ['Solvent', s.subsistence?.solvent ? 'yes' : 'no', s.subsistence?.solvent ? 'ok' : 'warn'],
+      ['SPAs', s.spa?.active ?? '—', ''],
+      ['STRATA', s.token?.total_supply ?? s.contribution?.total_minted ?? '—', ''],
+      ['Uptime s', s.uptime_seconds ?? '—', ''],
+      ['Solvent', s.subsistence?.solvent ? 'yes' : 'check', s.subsistence?.solvent ? 'ok' : ''],
     ];
     document.getElementById('cards').innerHTML = cards.map(([l,v,c])=>
-      `<div class="card"><div class="label">${l}</div><div class="stat ${c}">${v}</div></div>`
-    ).join('');
+      `<div class="card"><div class="label">${l}</div><div class="stat ${c}">${v}</div></div>`).join('');
     const tips = s.finality_tips || [];
     document.getElementById('tips').innerHTML = tips.length ? tips.map(t=>
       `<tr><td><code>${t.tx_id}</code></td><td>${((t.confidence||0)*100).toFixed(1)}%</td><td>${t.cumulative_weight}</td><td>${t.type||''}</td></tr>`
     ).join('') : '<tr><td colspan="4">none</td></tr>';
-    document.getElementById('spa').textContent = JSON.stringify(s.spa||{}, null, 2);
-  }catch(e){
-    document.getElementById('error').textContent = 'Failed to load status: '+e.message;
-  }
+    document.getElementById('extra').textContent = JSON.stringify({
+      spa: s.spa, token: s.token, service_credit: s.service_credit,
+      acbs: s.acbs, pq_keys: s.pq_keys, source: s.source
+    }, null, 2);
+  }catch(e){ document.getElementById('error').textContent = String(e); }
 }
-load();
-setInterval(load, 30000);
+load(); setInterval(load, 30000);
 </script>
 </body>
 </html>
