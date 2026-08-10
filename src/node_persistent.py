@@ -28,6 +28,8 @@ from spa_pin_policy import enforce_or_warn
 from strata_token import StrataTokenLedger
 from agora import Agora
 from nft import NFTRegistry
+from governance import Governance
+from sandbox import UGCSandbox
 
 
 class PersistentFogNode:
@@ -42,6 +44,8 @@ class PersistentFogNode:
         self.agora = Agora(token_ledger=self.token)
         self._agora_anchored = 0
         self.nfts = NFTRegistry()
+        self.gov = Governance()
+        self.sandbox = UGCSandbox()
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.started_at = time.time()
@@ -173,6 +177,60 @@ class PersistentFogNode:
             a = self.nfts.transfer(asset_id, new_owner)
             return {"asset_id": a.asset_id, "owner": a.owner, "cid": a.cid}
 
+
+    def gov_propose(self, title: str, body: str = "") -> dict:
+        with self.lock:
+            pr = self.gov.propose(self.node_id, title, body)
+            parents = self.dag.select_tips(k=2) or ["genesis"]
+            tx = Transaction(
+                tx_id=Transaction.make_id(pr.proposal_id, str(time.time())),
+                tx_type=TxType.STANDARD,
+                parents=parents,
+                weight=1.0,
+                sender=self.node_id,
+            )
+            self.dag.attach(tx)
+            pr.dag_tx = tx.tx_id
+            return {"proposal_id": pr.proposal_id, "title": pr.title, "status": pr.status.value, "dag_tx": pr.dag_tx}
+
+    def gov_vote(self, proposal_id: str, choice: str, weight: float = 1.0) -> dict:
+        with self.lock:
+            pr = self.gov.vote(proposal_id, self.node_id, choice, weight)
+            return {
+                "proposal_id": pr.proposal_id,
+                "status": pr.status.value,
+                "yes": pr.yes,
+                "no": pr.no,
+            }
+
+    def sandbox_create(self, cid: str, label: str = "") -> dict:
+        with self.lock:
+            it = self.sandbox.create(self.node_id, cid, label)
+            if cid:
+                self.pinner.request_pin(cid)
+            return {"item_id": it.item_id, "cid": it.cid, "label": it.label}
+
+    def sandbox_publish(self, item_id: str, as_nft: bool = False) -> dict:
+        with self.lock:
+            nft_id = None
+            if as_nft:
+                it0 = self.sandbox.items[item_id]
+                a = self.nfts.mint(self.node_id, it0.cid, title=it0.label)
+                parents = self.dag.select_tips(k=2) or ["genesis"]
+                tx = Transaction(
+                    tx_id=Transaction.make_id(a.asset_id, str(time.time())),
+                    tx_type=TxType.STANDARD,
+                    parents=parents,
+                    weight=1.0,
+                    cid=it0.cid,
+                    sender=self.node_id,
+                )
+                self.dag.attach(tx)
+                a.dag_tx = tx.tx_id
+                nft_id = a.asset_id
+            it = self.sandbox.publish(item_id, nft_asset_id=nft_id)
+            return {"item_id": it.item_id, "published": it.published, "nft_asset_id": it.nft_asset_id}
+
     def handle_gossip(self, raw: bytes) -> list:
         with self.lock:
             replies = self.gossip.handle_message(raw)
@@ -204,6 +262,8 @@ class PersistentFogNode:
                     "token": self.token.summary(),
                     "agora": self.agora.book(),
                     "nfts": self.nfts.summary(),
+                    "governance": self.gov.summary(),
+                    "sandbox": self.sandbox.summary(),
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -250,6 +310,10 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.agora.book())
         elif path == "/nft":
             self._json(200, NODE.nfts.summary())
+        elif path == "/gov":
+            self._json(200, NODE.gov.summary())
+        elif path == "/sandbox":
+            self._json(200, NODE.sandbox.summary())
         else:
             self._json(404, {"error": "not found"})
 
@@ -277,6 +341,46 @@ class Handler(BaseHTTPRequestHandler):
                     cid=data.get("cid"),
                 )
                 self._json(200, result)
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/gov/propose":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.gov_propose(str(data.get("title", "untitled")), str(data.get("body", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/gov/vote":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.gov_vote(str(data.get("proposal_id", "")), str(data.get("choice", "yes")), float(data.get("weight", 1))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/sandbox/create":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.sandbox_create(str(data.get("cid", "")), str(data.get("label", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/sandbox/publish":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.sandbox_publish(str(data.get("item_id", "")), bool(data.get("as_nft", False))))
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
