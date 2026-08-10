@@ -27,6 +27,7 @@ from subsistence.runtime import SubsistenceRuntime
 from spa_pin_policy import enforce_or_warn
 from strata_token import StrataTokenLedger
 from agora import Agora
+from service_credit import ServiceCreditLedger
 from nft import NFTRegistry
 from governance import Governance
 from sandbox import UGCSandbox
@@ -43,7 +44,9 @@ class PersistentFogNode:
         self.spas = SPARegistry(self.dag)
         self.poc = ContributionLedger()
         self.token = StrataTokenLedger()
-        self.agora = Agora(token_ledger=self.token)
+        self.svc = ServiceCreditLedger()
+        self.svc.credit(node_id, 100.0)  # lab bootstrap SVC
+        self.agora = Agora(token_ledger=self.token, service_ledger=self.svc)
         self._agora_anchored = 0
         self.nfts = NFTRegistry()
         self.gov = Governance()
@@ -300,6 +303,7 @@ class PersistentFogNode:
                     "finality_tips": tip_set_report(self.dag, limit=8),
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
+                    "service_credit": self.svc.summary(),
                     "agora": self.agora.book(),
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
@@ -366,6 +370,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.poc.summary())
         elif path == "/token":
             self._json(200, NODE.token.summary())
+        elif path == "/svc":
+            self._json(200, NODE.svc.summary())
         elif path == "/agora":
             self._json(200, NODE.agora.book())
         elif path == "/nft":
@@ -511,6 +517,19 @@ class Handler(BaseHTTPRequestHandler):
                 data = {}
             try:
                 self._json(200, NODE.nft_transfer(str(data.get("asset_id", "")), str(data.get("to", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/svc/credit":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            agent = str(data.get("agent_id") or NODE.node_id)
+            amt = float(data.get("amount", 0))
+            try:
+                bal = NODE.svc.credit(agent, amt)
+                self._json(200, {"agent_id": agent, "balance": bal, "symbol": "SVC"})
             except Exception as e:
                 self._json(400, {"error": str(e)})
 

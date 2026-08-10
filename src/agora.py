@@ -1,7 +1,12 @@
 """
-Strata Agora — Phase 3 scaffold
-===============================
-Minimal order book for STRATA ↔ service credits (lab only).
+Strata Agora — Track B1 dual-asset
+==================================
+Order book: STRATA base ↔ SVC (service credit) quote.
+price = SVC per 1 STRATA.
+
+Settlement on match:
+  seller → buyer: qty STRATA
+  buyer  → seller: qty * price SVC
 """
 
 from __future__ import annotations
@@ -22,8 +27,8 @@ class Order:
     order_id: str
     agent_id: str
     side: Side
-    amount: float
-    price: float  # quote per STRATA
+    amount: float  # STRATA
+    price: float  # SVC per STRATA
     filled: float = 0.0
     active: bool = True
     ts: float = field(default_factory=time.time)
@@ -44,11 +49,13 @@ class Trade:
 
 
 class Agora:
-    def __init__(self, token_ledger=None):
+    def __init__(self, token_ledger=None, service_ledger=None):
         self.orders: Dict[str, Order] = {}
         self.trades: List[Trade] = []
-        self.token_ledger = token_ledger  # optional StrataTokenLedger
+        self.token_ledger = token_ledger  # STRATA
+        self.service_ledger = service_ledger  # SVC
         self.settlement_log: List[dict] = []
+        self.market = {"base": "STRATA", "quote": "SVC"}
 
     def _oid(self, agent_id: str, side: str) -> str:
         raw = f"{agent_id}|{side}|{time.time()}|{len(self.orders)}"
@@ -58,6 +65,14 @@ class Agora:
         if amount <= 0 or price <= 0:
             raise ValueError("amount and price must be positive")
         s = Side.BUY if side.lower() == "buy" else Side.SELL
+        # Pre-checks (locks soft: reject if clearly underfunded)
+        if self.token_ledger is not None and s == Side.SELL:
+            if self.token_ledger.balance(agent_id) < amount:
+                raise ValueError("insufficient STRATA to sell")
+        if self.service_ledger is not None and s == Side.BUY:
+            need = amount * price
+            if self.service_ledger.balance(agent_id) < need:
+                raise ValueError("insufficient SVC to buy")
         o = Order(
             order_id=self._oid(agent_id, s.value),
             agent_id=agent_id,
@@ -84,24 +99,44 @@ class Agora:
             if b.price < s.price:
                 break
             qty = min(b.remaining, s.remaining)
-            px = s.price  # maker sell price
-            # Settlement: seller must hold STRATA; buyer receives STRATA (lab: no external quote asset)
+            px = s.price
+            quote = qty * px
+            seller, buyer = s.agent_id, b.agent_id
+
             if self.token_ledger is not None:
-                seller = s.agent_id
-                buyer = b.agent_id
                 if self.token_ledger.balance(seller) < qty:
-                    # skip this sell order until funded
                     s.active = False
                     j += 1
                     continue
-                ok = self.token_ledger.transfer(seller, buyer, qty)
-                if not ok:
+            if self.service_ledger is not None:
+                if self.service_ledger.balance(buyer) < quote:
+                    b.active = False
+                    i += 1
+                    continue
+
+            if self.token_ledger is not None:
+                if not self.token_ledger.transfer(seller, buyer, qty):
                     s.active = False
                     j += 1
                     continue
-                self.settlement_log.append({
-                    "buyer": buyer, "seller": seller, "amount": qty, "price": px
-                })
+            if self.service_ledger is not None:
+                if not self.service_ledger.transfer(buyer, seller, quote):
+                    # rollback STRATA if needed
+                    if self.token_ledger is not None:
+                        self.token_ledger.transfer(buyer, seller, qty)
+                    b.active = False
+                    i += 1
+                    continue
+
+            self.settlement_log.append({
+                "buyer": buyer,
+                "seller": seller,
+                "base_amount": qty,
+                "quote_amount": quote,
+                "price": px,
+                "base": "STRATA",
+                "quote": "SVC",
+            })
             tid = "tr_" + hashlib.sha256(f"{b.order_id}|{s.order_id}|{time.time()}".encode()).hexdigest()[:10]
             self.trades.append(Trade(tid, b.order_id, s.order_id, qty, px))
             b.filled += qty
@@ -115,6 +150,7 @@ class Agora:
 
     def book(self) -> dict:
         return {
+            "market": self.market,
             "bids": [
                 {"id": o.order_id, "agent": o.agent_id, "amount": o.remaining, "price": o.price}
                 for o in sorted(
@@ -136,13 +172,22 @@ class Agora:
 
 
 def demo():
-    a = Agora()
-    a.place("FOG-NODE-PT-CM-001", "sell", 10, 1.0)
-    a.place("EDGE-01", "buy", 4, 1.05)
-    a.place("EDGE-02", "buy", 10, 0.9)
+    from strata_token import StrataTokenLedger
+    from service_credit import ServiceCreditLedger
+
+    tok = StrataTokenLedger()
+    svc = ServiceCreditLedger()
+    tok.mint_from_poc("SELLER", 10.0)
+    svc.credit("BUYER", 50.0)
+    a = Agora(token_ledger=tok, service_ledger=svc)
+    a.place("SELLER", "sell", 4.0, 2.0)  # 2 SVC per STRATA
+    a.place("BUYER", "buy", 4.0, 2.5)
+    print("seller STRATA", tok.balance("SELLER"), "SVC", svc.balance("SELLER"))
+    print("buyer  STRATA", tok.balance("BUYER"), "SVC", svc.balance("BUYER"))
     print(a.book())
-    print("trades", [(t.amount, t.price) for t in a.trades])
-    print("agora demo OK")
+    assert abs(tok.balance("BUYER") - 4.0) < 1e-9
+    assert abs(svc.balance("SELLER") - 8.0) < 1e-9
+    print("agora dual-asset demo OK")
 
 
 if __name__ == "__main__":
