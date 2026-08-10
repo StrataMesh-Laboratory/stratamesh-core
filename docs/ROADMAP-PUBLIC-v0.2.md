@@ -120,7 +120,7 @@ Legacy phase numbers remain for continuity with v0.1 docs and status payloads:
 2. Attach Kubo; set SPA pinner role to **strict api mode**  
 3. Stand up second/third private nodes; document join procedure (A1)
 
-**Horizon 2 — Network effects**  
+**Horizon 2 — Network effects** *(A3 join draft + B0 emission policy landed in-repo)*  
 4. Second operator SPA (A2)  
 5. Emission policy doc + mint audit script (B0)  
 6. Portal panels: live `/status`, `/token`, `/spa` (not static only)
