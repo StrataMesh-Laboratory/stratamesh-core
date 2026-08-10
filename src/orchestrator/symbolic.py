@@ -70,6 +70,15 @@ class SymbolicLobe:
                 )
             return None
 
+
+        def solvency_for_network_policy(p: Proposal, mem: Dict) -> Optional[str]:
+            # Phase 2: network-wide policies require solvent proposer when tracked
+            if p.kind == ProposalKind.POLICY and p.action.startswith("network_wide_"):
+                solvency = mem.get("proposer_solvent")
+                if solvency is False:
+                    return "proposer insolvent under Proof of Subsistence"
+            return None
+
         def substrate_neutrality(p: Proposal, mem: Dict) -> Optional[str]:
             # Reject proposals that explicitly deny standing by substrate
             args = p.args or {}
@@ -86,6 +95,7 @@ class SymbolicLobe:
             Constraint("spa_aware_policy", "Network policies need SPA context", spa_aware_policy, hard=True),
             Constraint("irreversible_guard", "Irreversible acts need designated escalator class", irreversible_guard, hard=True),
             Constraint("substrate_neutrality", "No standing denial by substrate", substrate_neutrality, hard=True),
+            Constraint("solvency_for_network_policy", "Network policies need solvent proposer", solvency_for_network_policy, hard=True),
         ])
 
     def add_constraint(self, c: Constraint):
