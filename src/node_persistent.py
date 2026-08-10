@@ -256,9 +256,9 @@ class PersistentFogNode:
             a.dag_tx = tx.tx_id
             return {"acb_id": a.acb_id, "label": a.label, "state": a.state.value, "dag_tx": a.dag_tx}
 
-    def acb_heartbeat(self, acb_id: str, consume: float = 0.5, earn: float = 0.0) -> dict:
+    def acb_heartbeat(self, acb_id: str, consume: float | None = None, earn: float = 0.0, auto_meter: bool = True) -> dict:
         with self.lock:
-            return self.acbs.heartbeat(acb_id, consume=consume, earn=earn)
+            return self.acbs.heartbeat(acb_id, consume=consume, earn=earn, auto_meter=auto_meter)
 
 
     def pq_generate(self, algorithm: str = "Kyber768-lab", purpose: str = "node-identity") -> dict:
@@ -462,10 +462,14 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 data = {}
             try:
+                consume = data.get("consume", None)
+                consume_f = float(consume) if consume is not None else None
+                auto = bool(data.get("auto_meter", True))
                 self._json(200, NODE.acb_heartbeat(
                     str(data.get("acb_id", "")),
-                    float(data.get("consume", 0.5)),
+                    consume_f,
                     float(data.get("earn", 0.0)),
+                    auto_meter=auto,
                 ))
             except Exception as e:
                 self._json(400, {"error": str(e)})

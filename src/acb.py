@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 from enum import Enum
 import time
 import hashlib
+from resource_meter import sample as resource_sample, estimate_consume
 
 
 class ACBState(Enum):
@@ -60,12 +61,30 @@ class ACBRegistry:
             self.subsistence.register(acb.acb_id, reserve=reserve, tau=0.0)
         return acb
 
-    def heartbeat(self, acb_id: str, consume: float = 0.5, earn: float = 0.0) -> dict:
+    def heartbeat(
+        self,
+        acb_id: str,
+        consume: float | None = None,
+        earn: float = 0.0,
+        auto_meter: bool = True,
+    ) -> dict:
         acb = self.acbs[acb_id]
         if acb.state == ACBState.EXITED:
             raise ValueError("ACB exited")
         acb.last_heartbeat = time.time()
         report = {"acb_id": acb_id, "state": acb.state.value}
+        meter = None
+        if auto_meter and consume is None:
+            meter = resource_sample()
+            consume = estimate_consume(meter)
+            report["meter"] = {
+                "cpu_percent": meter.cpu_percent,
+                "mem_rss_mb": round(meter.mem_rss_mb, 2),
+                "source": meter.source,
+                "consume_est": consume,
+            }
+        elif consume is None:
+            consume = 0.5
         if self.subsistence:
             if consume > 0:
                 self.subsistence.consume(acb_id, compute=consume)
@@ -82,7 +101,6 @@ class ACBRegistry:
                     "action": t.get("action"),
                     "status": t.get("status"),
                 })
-                # map PoSbs pressure to ACB state
                 action = t.get("action")
                 if action == "hibernate":
                     acb.state = ACBState.HIBERNATING
