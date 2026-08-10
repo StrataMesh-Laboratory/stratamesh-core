@@ -27,6 +27,7 @@ from subsistence.runtime import SubsistenceRuntime
 from spa_pin_policy import enforce_or_warn
 from strata_token import StrataTokenLedger
 from agora import Agora
+from nft import NFTRegistry
 
 
 class PersistentFogNode:
@@ -38,8 +39,9 @@ class PersistentFogNode:
         self.spas = SPARegistry(self.dag)
         self.poc = ContributionLedger()
         self.token = StrataTokenLedger()
-        self.agora = Agora()
+        self.agora = Agora(token_ledger=self.token)
         self._agora_anchored = 0
+        self.nfts = NFTRegistry()
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.started_at = time.time()
@@ -147,6 +149,30 @@ class PersistentFogNode:
                 "dag_trades": trade_txs,
             }
 
+
+    def nft_mint(self, cid: str, title: str = "") -> dict:
+        with self.lock:
+            a = self.nfts.mint(self.node_id, cid, title=title)
+            parents = self.dag.select_tips(k=2) or ["genesis"]
+            tx = Transaction(
+                tx_id=Transaction.make_id(a.asset_id, str(time.time())),
+                tx_type=TxType.STANDARD,
+                parents=parents,
+                weight=1.0,
+                cid=cid,
+                sender=self.node_id,
+            )
+            self.dag.attach(tx)
+            a.dag_tx = tx.tx_id
+            if cid:
+                self.pinner.request_pin(cid)
+            return {"asset_id": a.asset_id, "cid": a.cid, "owner": a.owner, "dag_tx": a.dag_tx}
+
+    def nft_transfer(self, asset_id: str, new_owner: str) -> dict:
+        with self.lock:
+            a = self.nfts.transfer(asset_id, new_owner)
+            return {"asset_id": a.asset_id, "owner": a.owner, "cid": a.cid}
+
     def handle_gossip(self, raw: bytes) -> list:
         with self.lock:
             replies = self.gossip.handle_message(raw)
@@ -177,6 +203,7 @@ class PersistentFogNode:
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
                     "agora": self.agora.book(),
+                    "nfts": self.nfts.summary(),
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -221,6 +248,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.token.summary())
         elif path == "/agora":
             self._json(200, NODE.agora.book())
+        elif path == "/nft":
+            self._json(200, NODE.nfts.summary())
         else:
             self._json(404, {"error": "not found"})
 
@@ -248,6 +277,26 @@ class Handler(BaseHTTPRequestHandler):
                     cid=data.get("cid"),
                 )
                 self._json(200, result)
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/nft/mint":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.nft_mint(str(data.get("cid", "")), str(data.get("title", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/nft/transfer":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.nft_transfer(str(data.get("asset_id", "")), str(data.get("to", ""))))
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
@@ -292,8 +341,8 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /spa /finality /contribution /token /agora /inv")
-    print("  POST /submit /spa/register /token/mint /agora/order /gossip")
+    print("  GET /status /spa /finality /contribution /token /agora /nft /inv")
+    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

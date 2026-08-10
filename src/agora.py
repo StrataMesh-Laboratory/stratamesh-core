@@ -44,9 +44,11 @@ class Trade:
 
 
 class Agora:
-    def __init__(self):
+    def __init__(self, token_ledger=None):
         self.orders: Dict[str, Order] = {}
         self.trades: List[Trade] = []
+        self.token_ledger = token_ledger  # optional StrataTokenLedger
+        self.settlement_log: List[dict] = []
 
     def _oid(self, agent_id: str, side: str) -> str:
         raw = f"{agent_id}|{side}|{time.time()}|{len(self.orders)}"
@@ -83,6 +85,23 @@ class Agora:
                 break
             qty = min(b.remaining, s.remaining)
             px = s.price  # maker sell price
+            # Settlement: seller must hold STRATA; buyer receives STRATA (lab: no external quote asset)
+            if self.token_ledger is not None:
+                seller = s.agent_id
+                buyer = b.agent_id
+                if self.token_ledger.balance(seller) < qty:
+                    # skip this sell order until funded
+                    s.active = False
+                    j += 1
+                    continue
+                ok = self.token_ledger.transfer(seller, buyer, qty)
+                if not ok:
+                    s.active = False
+                    j += 1
+                    continue
+                self.settlement_log.append({
+                    "buyer": buyer, "seller": seller, "amount": qty, "price": px
+                })
             tid = "tr_" + hashlib.sha256(f"{b.order_id}|{s.order_id}|{time.time()}".encode()).hexdigest()[:10]
             self.trades.append(Trade(tid, b.order_id, s.order_id, qty, px))
             b.filled += qty
@@ -112,6 +131,7 @@ class Agora:
             ],
             "trades": len(self.trades),
             "last_price": self.trades[-1].price if self.trades else None,
+            "settlements": len(self.settlement_log),
         }
 
 
