@@ -139,16 +139,30 @@ def demo():
         print(f"  {d['proposal']}: verdict={d['verdict']} committed={d['committed']} conf={d['confidence']:.2f}")
         if d["reasons"]:
             print(f"    reasons: {d['reasons'][:2]}")
-    # Irreversible proposal → must escalate
+    # Irreversible proposal → requires designated escalator class (substrate-neutral)
     from .bilateral import Proposal, ProposalKind
     bad = Proposal.create(ProposalKind.PARAM, "token_emission_change", confidence=0.9, args={})
     out2 = ctrl.tick(extra_proposals=[bad])
-    print("\nIrreversible action test:")
+    print("\nIrreversible action test (no escalator_class set):")
     for d in out2["decisions"]:
         if d["proposal"] == "token_emission_change":
             print(f"  verdict={d['verdict']} escalate={d['escalate']} committed={d['committed']}")
             print(f"  reasons={d['reasons']}")
-    print("\nHybrid Orchestrator demo OK.")
+
+    # Chauvinist proposal must fail under epistemic ontology
+    chauvinist = Proposal.create(
+        ProposalKind.POLICY,
+        "restrict_agents",
+        confidence=0.9,
+        args={"deny_computational_agents": True},
+    )
+    out3 = ctrl.tick(extra_proposals=[chauvinist])
+    print("\nSubstrate-chauvinism test:")
+    for d in out3["decisions"]:
+        if d["proposal"] == "restrict_agents":
+            print(f"  verdict={d['verdict']} committed={d['committed']}")
+            print(f"  reasons={d['reasons']}")
+    print("\nHybrid Orchestrator demo OK (ontology-aligned).")
 
 
 if __name__ == "__main__":

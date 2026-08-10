@@ -123,6 +123,12 @@ Collapsed (measured) individuals become candidate policies for tip selection, pi
 
 ---
 
+## 5.1 Epistemic ontology
+
+Default symbolic constraints are governed by `docs/EPISTEMIC-ONTOLOGY.md`:
+substrate-neutral standing, function over pedigree, no anthropocentric privilege
+as a global axiom. Escalation authority is SPA/DAO-defined, not substrate-defined.
+
 ## 6. Mapping to Existing AIOps Agents
 
 | Agent (whitepaper) | Primary lobe affinity | Role under hybrid Orchestrator |

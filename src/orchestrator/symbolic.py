@@ -54,9 +54,29 @@ class SymbolicLobe:
             return None
 
         def irreversible_guard(p: Proposal, mem: Dict) -> Optional[str]:
+            # Substrate-neutral: irreversible acts require a constitutionally
+            # designated escalator class (any qualified agents), not a human.
             irreversible = {"genesis_param_change", "token_emission_change", "dao_constitution_edit"}
             if p.action in irreversible:
-                return f"irreversible action '{p.action}' requires human escalation"
+                escalators = mem.get("escalator_class") or []
+                if not escalators:
+                    return (
+                        f"irreversible action '{p.action}' requires a designated "
+                        "escalator class in working memory (SPA/DAO-defined; substrate-neutral)"
+                    )
+                # If escalators exist, still force escalation path rather than auto-commit
+                return (
+                    f"irreversible action '{p.action}' must be approved by escalator_class={escalators}"
+                )
+            return None
+
+        def substrate_neutrality(p: Proposal, mem: Dict) -> Optional[str]:
+            # Reject proposals that explicitly deny standing by substrate
+            args = p.args or {}
+            if args.get("require_biological") is True:
+                return "substrate chauvinism: require_biological is not an admissible global constraint"
+            if args.get("deny_computational_agents") is True:
+                return "substrate chauvinism: deny_computational_agents violates epistemic ontology"
             return None
 
         self.constraints.extend([
@@ -64,7 +84,8 @@ class SymbolicLobe:
             Constraint("confidence_floor", "Minimum confidence for auto-commit", confidence_floor, hard=True),
             Constraint("high_risk_escalation", "High risk must escalate", high_risk_escalation, hard=False),
             Constraint("spa_aware_policy", "Network policies need SPA context", spa_aware_policy, hard=True),
-            Constraint("irreversible_guard", "Irreversible acts need human", irreversible_guard, hard=True),
+            Constraint("irreversible_guard", "Irreversible acts need designated escalator class", irreversible_guard, hard=True),
+            Constraint("substrate_neutrality", "No standing denial by substrate", substrate_neutrality, hard=True),
         ])
 
     def add_constraint(self, c: Constraint):
@@ -87,7 +108,11 @@ class SymbolicLobe:
                     required.append(c.name)
 
         if hard_fail:
-            escalate = any("escalation" in r or "irreversible" in r or "human" in r for r in reasons)
+            escalate = any(
+                key in r
+                for r in reasons
+                for key in ("escalation", "irreversible", "escalator_class")
+            )
             return Admissibility(
                 proposal_id=proposal.id,
                 verdict=AdmissibilityVerdict.FAIL,
