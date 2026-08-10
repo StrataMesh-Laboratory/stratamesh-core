@@ -39,6 +39,7 @@ class PersistentFogNode:
         self.poc = ContributionLedger()
         self.token = StrataTokenLedger()
         self.agora = Agora()
+        self._agora_anchored = 0
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.started_at = time.time()
@@ -104,17 +105,46 @@ class PersistentFogNode:
             if delta <= 0:
                 return {"minted": 0, "balance": already, "reason": "already minted to poc level"}
             ev = self.token.mint_from_poc(self.node_id, delta, rate=1.0)
-            return {"minted": ev.amount, "mint_id": ev.mint_id, "balance": self.token.balance(self.node_id)}
+            parents = self.dag.select_tips(k=2) or ["genesis"]
+            tx = Transaction(
+                tx_id=Transaction.make_id(ev.mint_id, str(time.time())),
+                tx_type=TxType.MINT,
+                parents=parents,
+                weight=1.0,
+                sender=self.node_id,
+            )
+            self.dag.attach(tx)
+            return {
+                "minted": ev.amount,
+                "mint_id": ev.mint_id,
+                "balance": self.token.balance(self.node_id),
+                "dag_tx": tx.tx_id,
+            }
 
     def agora_place(self, side: str, amount: float, price: float) -> dict:
         with self.lock:
             o = self.agora.place(self.node_id, side, amount, price)
+            trade_txs = []
+            while self._agora_anchored < len(self.agora.trades):
+                tr = self.agora.trades[self._agora_anchored]
+                parents = self.dag.select_tips(k=2) or ["genesis"]
+                tx = Transaction(
+                    tx_id=Transaction.make_id(tr.trade_id, str(time.time())),
+                    tx_type=TxType.TRADE,
+                    parents=parents,
+                    weight=1.0,
+                    sender=self.node_id,
+                )
+                if self.dag.attach(tx):
+                    trade_txs.append({"trade_id": tr.trade_id, "dag_tx": tx.tx_id, "amount": tr.amount, "price": tr.price})
+                self._agora_anchored += 1
             return {
                 "order_id": o.order_id,
                 "side": o.side.value,
                 "amount": o.amount,
                 "price": o.price,
                 "book": self.agora.book(),
+                "dag_trades": trade_txs,
             }
 
     def handle_gossip(self, raw: bytes) -> list:

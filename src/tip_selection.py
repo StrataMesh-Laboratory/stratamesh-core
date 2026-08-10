@@ -25,6 +25,8 @@ class TxType(Enum):
     LIGHTWEIGHT = "lightweight"
     SPA = "spa"
     FINALITY = "finality"
+    MINT = "mint"
+    TRADE = "trade"
 
 
 @dataclass

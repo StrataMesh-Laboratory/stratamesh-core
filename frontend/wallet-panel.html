@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StrataMesh Wallet · Lab</title>
+<style>
+:root{--bg:#0b0f14;--card:#141a22;--text:#e6edf3;--muted:#8b9bb4;--accent:#3b82f6;--ok:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:1.5rem}
+.c{max-width:640px;margin:0 auto}
+h1{font-size:1.2rem}.sub{color:var(--muted);font-size:.8rem;margin:.25rem 0 1rem}
+.card{background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.label{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stat{font-size:1.5rem;font-weight:600;margin-top:.2rem}
+input,select,button{width:100%;padding:.55rem .7rem;margin-top:.4rem;border-radius:8px;border:1px solid #334155;background:#0f172a;color:var(--text)}
+button{background:#1d4ed8;border-color:#1d4ed8;cursor:pointer;font-weight:600}
+button:hover{background:#2563eb}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+pre{font-size:.75rem;color:var(--muted);overflow:auto;max-height:180px;margin-top:.4rem}
+a{color:var(--accent)}
+#msg{font-size:.85rem;color:var(--ok);min-height:1.2em}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>STRATA wallet (lab)</h1>
+  <p class="sub">Talks to local Fog node · set base URL · <a href="https://stratamesh-status.stratamesh.workers.dev/live">live status</a></p>
+  <div class="card">
+    <div class="label">Node base URL</div>
+    <input id="base" value="http://127.0.0.1:8787" />
+    <button onclick="refresh()">Refresh balances</button>
+  </div>
+  <div class="row">
+    <div class="card"><div class="label">STRATA</div><div class="stat" id="bal">—</div></div>
+    <div class="card"><div class="label">PoC credit</div><div class="stat" id="poc">—</div></div>
+  </div>
+  <div class="card">
+    <div class="label">Mint from PoC</div>
+    <button onclick="mint()">POST /token/mint</button>
+  </div>
+  <div class="card">
+    <div class="label">Agora order</div>
+    <div class="row">
+      <select id="side"><option>sell</option><option>buy</option></select>
+      <input id="amount" type="number" step="0.1" value="0.5" />
+    </div>
+    <input id="price" type="number" step="0.01" value="1.0" placeholder="price" />
+    <button onclick="order()">POST /agora/order</button>
+  </div>
+  <div class="card"><div class="label">Book</div><pre id="book"></pre></div>
+  <div id="msg"></div>
+</div>
+<script>
+const base = () => document.getElementById('base').value.replace(/\/$/,'');
+async function refresh(){
+  try{
+    const [t,c,a] = await Promise.all([
+      fetch(base()+'/token').then(r=>r.json()),
+      fetch(base()+'/contribution').then(r=>r.json()),
+      fetch(base()+'/agora').then(r=>r.json()),
+    ]);
+    const id = Object.keys(t.balances||{})[0];
+    document.getElementById('bal').textContent = id ? (t.balances[id]).toFixed(4) : '0';
+    document.getElementById('poc').textContent = (c.total_minted ?? Object.values(c.balances||{})[0] ?? 0);
+    document.getElementById('book').textContent = JSON.stringify(a,null,2);
+    document.getElementById('msg').textContent = 'ok · supply '+t.total_supply;
+  }catch(e){ document.getElementById('msg').textContent = 'error: '+e.message; }
+}
+async function mint(){
+  const r = await fetch(base()+'/token/mint',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  const j = await r.json();
+  document.getElementById('msg').textContent = JSON.stringify(j);
+  refresh();
+}
+async function order(){
+  const body = {side:side.value, amount:parseFloat(amount.value), price:parseFloat(price.value)};
+  const r = await fetch(base()+'/agora/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j = await r.json();
+  document.getElementById('msg').textContent = JSON.stringify(j);
+  refresh();
+}
+</script>
+</body>
+</html>

@@ -22,6 +22,13 @@ POST /token/mint
 POST /agora/order  { "side": "buy"|"sell", "amount": 1, "price": 1.0 }
 ```
 
+## On-graph anchors
+- `TxType.MINT` attached on `POST /token/mint` → response `dag_tx`
+- `TxType.TRADE` attached for each new Agora match → response `dag_trades`
+
+## Wallet UI
+Open `frontend/wallet-panel.html` in a browser (node must allow CORS; node already sends `Access-Control-Allow-Origin: *`).
+
 ## Non-goals (this scaffold)
 - No mainnet issuance
 - No KYC / legal listing
