@@ -339,6 +339,22 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
+        elif path.startswith("/tx/"):
+            tid = path[len("/tx/"):]
+            with NODE.lock:
+                tx = NODE.dag.txs.get(tid)
+                if not tx:
+                    self._json(404, {"error": "not found"})
+                else:
+                    self._json(200, {
+                        "tx_id": tx.tx_id,
+                        "tx_type": tx.tx_type.value,
+                        "parents": tx.parents,
+                        "weight": tx.weight,
+                        "cid": tx.cid,
+                        "sender": getattr(tx, "sender", None),
+                        "timestamp": getattr(tx, "timestamp", None),
+                    })
         elif path == "/spa":
             self._json(200, NODE.spas.summary())
         elif path == "/finality":
@@ -500,6 +516,28 @@ class Handler(BaseHTTPRequestHandler):
                 ))
             except Exception as e:
                 self._json(400, {"error": str(e)})
+
+        elif path == "/tx/ingest":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            with NODE.lock:
+                from tip_selection import Transaction, TxType
+                try:
+                    tt = TxType(data.get("tx_type", "standard"))
+                except Exception:
+                    tt = TxType.STANDARD
+                tx = Transaction(
+                    tx_id=str(data["tx_id"]),
+                    tx_type=tt,
+                    parents=list(data.get("parents") or ["genesis"]),
+                    weight=float(data.get("weight") or 1.0),
+                    cid=data.get("cid"),
+                    sender=data.get("sender"),
+                )
+                ok = NODE.dag.attach(tx)
+                self._json(200, {"accepted": bool(ok), "tx_id": tx.tx_id})
 
         elif path == "/gossip":
             import base64

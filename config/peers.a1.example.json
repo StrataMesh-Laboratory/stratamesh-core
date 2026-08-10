@@ -1,0 +1,9 @@
+{
+  "mesh": "private-a1",
+  "peers": [
+    {"id": "FOG-A1-00", "url": "http://127.0.0.1:8790"},
+    {"id": "FOG-A1-01", "url": "http://127.0.0.1:8791"},
+    {"id": "FOG-A1-02", "url": "http://127.0.0.1:8792"}
+  ],
+  "sync_interval_seconds": 15
+}
