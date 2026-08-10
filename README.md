@@ -6,6 +6,17 @@ Open-source foundational components of **StrataMesh DLT** — a DAG + IPFS distr
 **Reference node:** Calhegas Morais Fog Node (`FOG-NODE-PT-CM-001`)  
 **Motto:** Intelligentia · Vigilantia · Veritas
 
+## Proof of Subsistence
+
+Substrate-neutral resource accounting for agents (ACBs, operators, hybrids):
+consume / earn / reserve → solvency → optimize · hibernate · migrate · evolve · exit.
+
+```bash
+cd src && python3 -m subsistence.runtime
+```
+
+See `docs/PROOF-OF-SUBSISTENCE.md`.
+
 ## Hybrid Orchestrator
 
 Federated meta-learning controller with co-foundational **probabilistic** and **symbolic** lobes, integrated via a bilateral bus and evolved by a quantum-inspired genetic algorithm (QIGA).
