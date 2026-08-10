@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StrataMesh · Live Mesh Status</title>
+<style>
+:root{--bg:#0b0f14;--card:#141a22;--text:#e6edf3;--muted:#8b9bb4;--accent:#3b82f6;--ok:#22c55e;--warn:#fbbf24}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:1.5rem}
+.c{max-width:900px;margin:0 auto}
+h1{font-size:1.25rem;margin-bottom:.25rem}
+.sub{color:var(--muted);font-size:.8rem;margin-bottom:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem}
+.card{background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:1rem}
+.label{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stat{font-size:1.35rem;font-weight:600;margin-top:.2rem}
+.ok{color:var(--ok)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.5rem}
+th,td{text-align:left;padding:.35rem .25rem;border-bottom:1px solid #1e293b;color:var(--muted)}
+th{color:#93c5fd;font-weight:500}
+a{color:var(--accent)}
+#error{color:#f87171;font-size:.85rem}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>StrataMesh live status</h1>
+  <p class="sub">Source: <a id="src" href="https://stratamesh-status.stratamesh.workers.dev/status">status Worker</a> · auto-refresh 30s</p>
+  <div id="error"></div>
+  <div class="grid" id="cards"></div>
+  <div class="card" style="margin-top:.75rem">
+    <div class="label">Finality tips</div>
+    <table><thead><tr><th>tx</th><th>confidence</th><th>weight</th><th>type</th></tr></thead>
+    <tbody id="tips"></tbody></table>
+  </div>
+  <div class="card" style="margin-top:.75rem">
+    <div class="label">SPA roles</div>
+    <pre id="spa" style="color:var(--muted);font-size:.8rem;margin-top:.4rem"></pre>
+  </div>
+</div>
+<script>
+const STATUS_URL = 'https://stratamesh-status.stratamesh.workers.dev/status';
+async function load(){
+  try{
+    const r = await fetch(STATUS_URL+'?t='+Date.now());
+    const s = await r.json();
+    document.getElementById('error').textContent = '';
+    const cards = [
+      ['Phase', (s.phase||'?')+' — '+(s.phase_name||''), ''],
+      ['DAG txs', s.dag?.transaction_count ?? '—', ''],
+      ['Tips', s.dag?.tip_count ?? '—', ''],
+      ['SPAs active', s.spa?.active ?? '—', ''],
+      ['PoC minted', (s.contribution?.total_minted ?? '—'), ''],
+      ['Solvent', s.subsistence?.solvent ? 'yes' : 'no', s.subsistence?.solvent ? 'ok' : 'warn'],
+    ];
+    document.getElementById('cards').innerHTML = cards.map(([l,v,c])=>
+      `<div class="card"><div class="label">${l}</div><div class="stat ${c}">${v}</div></div>`
+    ).join('');
+    const tips = s.finality_tips || [];
+    document.getElementById('tips').innerHTML = tips.length ? tips.map(t=>
+      `<tr><td><code>${t.tx_id}</code></td><td>${((t.confidence||0)*100).toFixed(1)}%</td><td>${t.cumulative_weight}</td><td>${t.type||''}</td></tr>`
+    ).join('') : '<tr><td colspan="4">none</td></tr>';
+    document.getElementById('spa').textContent = JSON.stringify(s.spa||{}, null, 2);
+  }catch(e){
+    document.getElementById('error').textContent = 'Failed to load status: '+e.message;
+  }
+}
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

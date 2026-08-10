@@ -24,6 +24,7 @@ from finality import tip_set_report, tip_confidence
 from contribution import ContributionLedger
 from metrics_bridge import build_status_payload
 from subsistence.runtime import SubsistenceRuntime
+from spa_pin_policy import enforce_or_warn
 
 
 class PersistentFogNode:
@@ -78,11 +79,13 @@ class PersistentFogNode:
                 cid=cid,
             )
             self.poc.record(self.node_id, "spa_uptime", units=5.0, spa_id=rec.spa_id)
+            policy = enforce_or_warn(rec.roles, self.pinner.mode, strict=False)
             return {
                 "spa_id": rec.spa_id,
                 "tx_id": rec.tx_id,
                 "roles": rec.roles,
                 "active": rec.active,
+                "pin_policy": policy,
             }
 
     def handle_gossip(self, raw: bytes) -> list:
