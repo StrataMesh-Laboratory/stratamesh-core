@@ -176,6 +176,8 @@ Unchanged in spirit from v0.1; now tied to measurable lab→prod signals:
 
 Production host + external peers remain operator actions.
 
+**Recommended zero-cost host path:** Oracle Always Free VM + Cloudflare Tunnel + OSS middleware — see `docs/HYBRID-ORACLE-CF-TUNNEL.md`.
+
 ## 8. Document control
 
 | Version | Date | Notes |

@@ -1,0 +1,19 @@
+[Unit]
+Description=StrataMesh Fog Node (Oracle Free hybrid)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/stratamesh-core/src
+Environment=NODE_ID=FOG-NODE-PT-CM-001
+Environment=PORT=8787
+Environment=DB=/var/lib/stratamesh/fog.db
+# Environment=IPFS_API_URL=http://127.0.0.1:5001
+ExecStart=/usr/bin/python3 /opt/stratamesh-core/src/node_persistent.py --port 8787 --db /var/lib/stratamesh/fog.db --id FOG-NODE-PT-CM-001
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# Copy to /etc/cloudflared/config.yml after: cloudflared tunnel create stratamesh-fog
+tunnel: REPLACE_TUNNEL_ID
+credentials-file: /etc/cloudflared/REPLACE_TUNNEL_ID.json
+
+ingress:
+  - hostname: fog.calhegasmorais.pt
+    service: http://127.0.0.1:8787
+  # Optional: Caddy in front
+  # - hostname: fog.calhegasmorais.pt
+  #   service: http://127.0.0.1:8788
+  - service: http_status:404

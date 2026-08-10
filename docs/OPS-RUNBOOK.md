@@ -55,3 +55,10 @@ cd deploy && docker compose up -d
 ```
 
 Rotate `STATUS_TOKEN` in Worker bindings and service env for production.
+
+
+## Hybrid: Oracle Always Free + Cloudflare Tunnel
+
+See **[HYBRID-ORACLE-CF-TUNNEL.md](HYBRID-ORACLE-CF-TUNNEL.md)** and `deploy/oracle-free/`.
+
+Zero public port for Fog API; `cloudflared` terminates TLS at Cloudflare; VM runs systemd fog + publish.
