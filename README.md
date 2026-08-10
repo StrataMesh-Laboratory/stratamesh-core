@@ -6,6 +6,17 @@ Open-source foundational components of **StrataMesh DLT** — a DAG + IPFS distr
 **Reference node:** Calhegas Morais Fog Node (`FOG-NODE-PT-CM-001`)  
 **Motto:** Intelligentia · Vigilantia · Veritas
 
+## Hybrid Orchestrator
+
+Federated meta-learning controller with co-foundational **probabilistic** and **symbolic** lobes, integrated via a bilateral bus and evolved by a quantum-inspired genetic algorithm (QIGA).
+
+```bash
+cd src
+python3 -m orchestrator.meta_controller
+```
+
+Architecture: `docs/ORCHESTRATOR-HYBRID-ARCHITECTURE.md`
+
 ## Quick start
 
 ```bash
