@@ -1,6 +1,6 @@
 # StrataMesh Core
 
-**Release:** [v0.2.0-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.0-lab) — reference Fog node (**not mainnet**)
+**Release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) — reference Fog node (**not mainnet**)
 
 Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
@@ -30,10 +30,10 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 | 6 | ACB + Proof of Subsistence |
 | 7 | PQ key **placeholders** (not real crypto) |
 
-Docs: [`ROADMAP-PUBLIC-v0.2.md`](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.0-lab.md` · `docs/OPS-RUNBOOK.md`
+Docs: [`ROADMAP-PUBLIC-v0.2.md`](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.1-lab.md` · `docs/OPS-RUNBOOK.md`
 
 ## Roadmap (summary)
-Lab freeze **v0.2.0-lab** exercises whitepaper pillars in-process. Production splits into:
+Lab freeze **v0.2.1-lab** exercises whitepaper pillars in-process. Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 

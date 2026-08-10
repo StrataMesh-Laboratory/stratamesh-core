@@ -436,6 +436,24 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
+        elif path == "/pq/sign":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.pq.lab_sign(str(data.get("key_id", "")), str(data.get("message", ""))))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/pq/verify":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            ok = NODE.pq.lab_verify(str(data.get("key_id", "")), str(data.get("message", "")), str(data.get("lab_sig", "")))
+            self._json(200, {"valid": ok})
+
         elif path == "/pq/generate":
             try:
                 data = json.loads(raw.decode() or "{}")

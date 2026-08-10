@@ -71,7 +71,41 @@ class PQKeyRegistry:
                 }
                 for k in list(self.keys.values())[-30:]
             ],
+            "liboqs": self.try_liboqs_info(),
         }
+
+    def lab_sign(self, key_id: str, message: str) -> dict:
+        """Lab-only signature: HMAC-like hash over hint+message. NOT cryptographic PQ security."""
+        rec = self.keys.get(key_id)
+        if not rec:
+            raise KeyError("unknown key_id")
+        material = f"{rec.public_hint}|{rec.algorithm}|{message}".encode()
+        sig = hashlib.sha256(material).hexdigest()
+        return {
+            "key_id": key_id,
+            "algorithm": rec.algorithm,
+            "message_sha256": hashlib.sha256(message.encode()).hexdigest(),
+            "lab_sig": sig,
+            "warning": "lab placeholder — not post-quantum secure",
+        }
+
+    def lab_verify(self, key_id: str, message: str, lab_sig: str) -> bool:
+        try:
+            return self.lab_sign(key_id, message)["lab_sig"] == lab_sig
+        except Exception:
+            return False
+
+    def try_liboqs_info(self) -> dict:
+        """Detect liboqs if installed; do not fail if absent."""
+        try:
+            import oqs  # type: ignore
+            return {
+                "available": True,
+                "kems": list(oqs.get_enabled_KEM_mechanisms())[:8],
+                "sigs": list(oqs.get_enabled_sig_mechanisms())[:8],
+            }
+        except Exception as e:
+            return {"available": False, "reason": str(e)}
 
 
 def demo():
