@@ -31,6 +31,7 @@ from nft import NFTRegistry
 from governance import Governance
 from sandbox import UGCSandbox
 from acb import ACBRegistry
+from pq_keys import PQKeyRegistry
 
 
 class PersistentFogNode:
@@ -50,6 +51,7 @@ class PersistentFogNode:
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.acbs = ACBRegistry(self.subsistence, self.poc)
+        self.pq = PQKeyRegistry()
         self.started_at = time.time()
         self.lock = threading.Lock()
         self.db_path = db_path
@@ -253,6 +255,22 @@ class PersistentFogNode:
         with self.lock:
             return self.acbs.heartbeat(acb_id, consume=consume, earn=earn)
 
+
+    def pq_generate(self, algorithm: str = "Kyber768-lab", purpose: str = "node-identity") -> dict:
+        with self.lock:
+            k = self.pq.generate(self.node_id, algorithm, purpose)
+            parents = self.dag.select_tips(k=2) or ["genesis"]
+            tx = Transaction(
+                tx_id=Transaction.make_id(k.key_id, str(time.time())),
+                tx_type=TxType.STANDARD,
+                parents=parents,
+                weight=1.0,
+                sender=self.node_id,
+            )
+            self.dag.attach(tx)
+            k.dag_tx = tx.tx_id
+            return {"key_id": k.key_id, "algorithm": k.algorithm, "purpose": k.purpose, "dag_tx": k.dag_tx}
+
     def handle_gossip(self, raw: bytes) -> list:
         with self.lock:
             replies = self.gossip.handle_message(raw)
@@ -287,6 +305,7 @@ class PersistentFogNode:
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
                     "acbs": self.acbs.summary(),
+                    "pq_keys": self.pq.summary(),
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -339,6 +358,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.sandbox.summary())
         elif path == "/acb":
             self._json(200, NODE.acbs.summary())
+        elif path == "/pq":
+            self._json(200, NODE.pq.summary())
         else:
             self._json(404, {"error": "not found"})
 
@@ -366,6 +387,16 @@ class Handler(BaseHTTPRequestHandler):
                     cid=data.get("cid"),
                 )
                 self._json(200, result)
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/pq/generate":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.pq_generate(str(data.get("algorithm", "Kyber768-lab")), str(data.get("purpose", "node-identity"))))
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
