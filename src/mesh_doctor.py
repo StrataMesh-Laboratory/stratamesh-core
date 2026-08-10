@@ -36,13 +36,28 @@ def run() -> dict:
     step("sandbox_pub", n.sandbox_publish(iid, as_nft=False))
     step("acb", n.acb_register("Doctor-ACB", ["compute"]))
     aid = list(n.acbs.acbs.keys())[0]
-    step("acb_hb", n.acb_heartbeat(aid, consume=0.2, earn=0.5))
+    step("acb_hb", n.acb_heartbeat(aid, earn=0.5))  # auto_meter
+
+    # B1 dual agora needs SVC + STRATA
+    step("svc_credit", {"buyer_svc": n.svc.credit("BUYER", 20.0)})
+    if n.token.balance(n.node_id) >= 0.05:
+        step("agora_sell", n.agora_place("sell", 0.05, 1.5))
+        try:
+            # external buyer places buy → dual settlement
+            n.agora.place("BUYER", "buy", 0.05, 1.5)
+            step("agora_buy_match", {"settlements": len(n.agora.settlement_log), "book": n.agora.book()})
+        except Exception as e:
+            step("agora_buy_match", {"error": str(e)})
+
+    # B2 finality modules
+    from finality import tip_set_report
+    tips = tip_set_report(n.dag, limit=8)
+    step("finality_modules", n.finality_engine.run(n.dag, tips))
 
     # PQ
-    from pq_keys import PQKeyRegistry
-    n.pq = PQKeyRegistry()
     k = n.pq.generate(n.node_id, "Kyber768-lab")
-    step("pq_key", {"key_id": k.key_id, "alg": k.algorithm})
+    sig = n.pq.lab_sign(k.key_id, "mesh-doctor")
+    step("pq_key", {"key_id": k.key_id, "alg": k.algorithm, "lab_sig_ok": n.pq.lab_verify(k.key_id, "mesh-doctor", sig["lab_sig"])})
 
     st = n.status()
     report["status_summary"] = {
@@ -55,6 +70,9 @@ def run() -> dict:
         "sandbox": st.get("sandbox", {}).get("total"),
         "acbs": st.get("acbs", {}).get("total"),
         "contribution": st.get("contribution", {}).get("total_minted"),
+        "service_credit": st.get("service_credit"),
+        "pq_keys": (st.get("pq_keys") or {}).get("total"),
+        "release": "v0.2.1-lab",
     }
     n.dag.close()
     try:

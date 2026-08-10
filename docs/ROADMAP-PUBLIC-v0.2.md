@@ -4,7 +4,7 @@
 **Location:** 38.7169° N, 9.1427° W — Lisbon, Portugal  
 **Domain:** [calhegasmorais.pt](https://calhegasmorais.pt/)  
 **Core repo:** [amcmorais/stratamesh-core](https://github.com/amcmorais/stratamesh-core)  
-**Lab release:** [v0.2.0-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.0-lab) (2026-08-10)  
+**Lab release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) (2026-08-10; supersedes v0.2.0-lab)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
 
 ---
@@ -158,6 +158,22 @@ Unchanged in spirit from v0.1; now tied to measurable lab→prod signals:
 - Replacing SPA/DAO consent with Orchestrator unilateral action  
 
 ---
+
+## 9. Lab track completion (v0.2.1-lab)
+
+| Track | Status |
+|-------|--------|
+| A0 always-on tooling | **done** (systemd / compose / healthcheck) |
+| A1 multi-node tx sync | **done** (0% spread in lab) |
+| A2 multi-operator SPA | **done** |
+| A3 public join draft | **done** (doc) |
+| B0 emission + audit | **done** |
+| B1 dual-asset Agora | **done** (STRATA ↔ SVC) |
+| B2 meta-finality modules | **done** |
+| B3 ACB resource meters | **done** |
+| B4 PQ pilot hooks | **lab only** (not real PQ) |
+
+Production host + external peers remain operator actions.
 
 ## 8. Document control
 
