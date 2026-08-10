@@ -30,6 +30,7 @@ from agora import Agora
 from nft import NFTRegistry
 from governance import Governance
 from sandbox import UGCSandbox
+from acb import ACBRegistry
 
 
 class PersistentFogNode:
@@ -48,6 +49,7 @@ class PersistentFogNode:
         self.sandbox = UGCSandbox()
         self.subsistence = SubsistenceRuntime()
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
+        self.acbs = ACBRegistry(self.subsistence, self.poc)
         self.started_at = time.time()
         self.lock = threading.Lock()
         self.db_path = db_path
@@ -231,6 +233,26 @@ class PersistentFogNode:
             it = self.sandbox.publish(item_id, nft_asset_id=nft_id)
             return {"item_id": it.item_id, "published": it.published, "nft_asset_id": it.nft_asset_id}
 
+
+    def acb_register(self, label: str = "", capabilities: list | None = None) -> dict:
+        with self.lock:
+            a = self.acbs.register(self.node_id, label, capabilities)
+            parents = self.dag.select_tips(k=2) or ["genesis"]
+            tx = Transaction(
+                tx_id=Transaction.make_id(a.acb_id, str(time.time())),
+                tx_type=TxType.STANDARD,
+                parents=parents,
+                weight=1.0,
+                sender=self.node_id,
+            )
+            self.dag.attach(tx)
+            a.dag_tx = tx.tx_id
+            return {"acb_id": a.acb_id, "label": a.label, "state": a.state.value, "dag_tx": a.dag_tx}
+
+    def acb_heartbeat(self, acb_id: str, consume: float = 0.5, earn: float = 0.0) -> dict:
+        with self.lock:
+            return self.acbs.heartbeat(acb_id, consume=consume, earn=earn)
+
     def handle_gossip(self, raw: bytes) -> list:
         with self.lock:
             replies = self.gossip.handle_message(raw)
@@ -264,6 +286,7 @@ class PersistentFogNode:
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
+                    "acbs": self.acbs.summary(),
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -314,6 +337,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.gov.summary())
         elif path == "/sandbox":
             self._json(200, NODE.sandbox.summary())
+        elif path == "/acb":
+            self._json(200, NODE.acbs.summary())
         else:
             self._json(404, {"error": "not found"})
 
@@ -341,6 +366,30 @@ class Handler(BaseHTTPRequestHandler):
                     cid=data.get("cid"),
                 )
                 self._json(200, result)
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/acb/register":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.acb_register(str(data.get("label", "ACB")), data.get("capabilities")))
+            except Exception as e:
+                self._json(400, {"error": str(e)})
+
+        elif path == "/acb/heartbeat":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            try:
+                self._json(200, NODE.acb_heartbeat(
+                    str(data.get("acb_id", "")),
+                    float(data.get("consume", 0.5)),
+                    float(data.get("earn", 0.0)),
+                ))
             except Exception as e:
                 self._json(400, {"error": str(e)})
 
