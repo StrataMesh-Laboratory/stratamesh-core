@@ -1,3 +1,5 @@
+> **Superseded by [ROADMAP-PUBLIC-v0.2.md](ROADMAP-PUBLIC-v0.2.md)** for post–v0.2.0-lab planning.
+
 # StrataMesh DLT — Public Roadmap v0.1
 **Fog Node:** Calhegas Morais (FOG-NODE-PT-CM-001)  
 **Location:** 38.7169° N, 9.1427° W — Lisbon, Portugal  
