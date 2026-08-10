@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 from persistent_dag import PersistentDAG
 from tip_selection import Transaction, TxType
 from gossip import GossipNode
-from cid_pin_stub import PinStub
+from ipfs_client import IPFSClient
 from spa_registry import SPARegistry
 from finality import tip_set_report, tip_confidence
 from contribution import ContributionLedger
@@ -31,7 +31,7 @@ class PersistentFogNode:
         self.node_id = node_id
         self.dag = PersistentDAG(db_path)
         self.gossip = GossipNode(self.dag)
-        self.pinner = PinStub()
+        self.pinner = IPFSClient()  # mode from IPFS_API_URL / stub
         self.spas = SPARegistry(self.dag)
         self.poc = ContributionLedger()
         self.subsistence = SubsistenceRuntime()
