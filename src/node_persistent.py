@@ -21,6 +21,7 @@ from gossip import GossipNode
 from ipfs_client import IPFSClient
 from spa_registry import SPARegistry
 from finality import tip_set_report, tip_confidence
+from finality_modules import FinalityEngine
 from contribution import ContributionLedger
 from metrics_bridge import build_status_payload
 from subsistence.runtime import SubsistenceRuntime
@@ -55,6 +56,7 @@ class PersistentFogNode:
         self.subsistence.register(node_id, reserve=10.0, tau=0.0)
         self.acbs = ACBRegistry(self.subsistence, self.poc)
         self.pq = PQKeyRegistry()
+        self.finality_engine = FinalityEngine()
         self.started_at = time.time()
         self.lock = threading.Lock()
         self.db_path = db_path
@@ -365,7 +367,15 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"spas": NODE.spas.export_records()})
         elif path == "/finality":
             with NODE.lock:
-                self._json(200, {"tips": tip_set_report(NODE.dag)})
+                tips = tip_set_report(NODE.dag)
+                self._json(200, {
+                    "tips": tips,
+                    "modules": NODE.finality_engine.run(NODE.dag, tips),
+                })
+        elif path == "/finality/modules":
+            with NODE.lock:
+                tips = tip_set_report(NODE.dag, limit=16)
+                self._json(200, NODE.finality_engine.run(NODE.dag, tips))
         elif path == "/contribution":
             self._json(200, NODE.poc.summary())
         elif path == "/token":
