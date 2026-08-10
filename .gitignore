@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.dist/
+.env
+.venv/
+node_modules/
+.wrangler/
+.DS_Store
+*.log

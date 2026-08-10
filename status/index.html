@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StrataMesh · Calhegas Morais Fog Node Status</title>
+  <style>
+    :root { --bg: #0b0f14; --card: #141a22; --text: #e6edf3; --muted: #8b9bb4; --accent: #3b82f6; --ok: #22c55e; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 2rem 1rem; }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .motto { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .card { background: var(--card); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; border: 1px solid #1e293b; }
+    .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .value { font-size: 1.25rem; font-weight: 600; margin-top: 0.25rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .status-pill { display: inline-block; background: #1e3a5f; color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; }
+    footer { margin-top: 2rem; color: var(--muted); font-size: 0.8rem; text-align: center; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calhegas Morais Fog Node</h1>
+    <p class="motto">Intelligentia · Vigilantia · Veritas &nbsp;·&nbsp; FOG-NODE-PT-CM-001</p>
+
+    <div class="card">
+      <div class="label">Status</div>
+      <div class="value"><span class="status-pill">Phase 0 — Operational Baseline</span></div>
+      <p style="margin-top:0.75rem;color:var(--muted);font-size:0.9rem;">
+        Node is under active instrumentation. Public metrics will appear here as Phase 0 completes.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Location</div>
+        <div class="value" style="font-size:1rem;">38.7169° N, 9.1427° W</div>
+        <div style="color:var(--muted);font-size:0.85rem;">Lisbon, Portugal</div>
+      </div>
+      <div class="card">
+        <div class="label">Network Role</div>
+        <div class="value" style="font-size:1rem;">Fog Node</div>
+        <div style="color:var(--muted);font-size:0.85rem;">DAG + IPFS pinning</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Roadmap</div>
+      <p style="margin-top:0.5rem;">
+        <a href="/docs/ROADMAP-PUBLIC-v0.1.md">Public Roadmap v0.1</a> · 
+        Core DAG (Phase 1) → SPAs (Phase 2) → Tokenomics & Agora (Phase 3)
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="label">Quick Metrics (placeholder)</div>
+      <div class="grid" style="margin-top:0.75rem;">
+        <div><span class="label">DAG Tips</span><div class="value">—</div></div>
+        <div><span class="label">Active SPAs</span><div class="value">—</div></div>
+        <div><span class="label">IPFS Pins</span><div class="value">—</div></div>
+        <div><span class="label">Uptime</span><div class="value">—</div></div>
+      </div>
+    </div>
+
+    <footer>
+      UNCLASSIFIED // FOG-NODE-PT-CM-001<br>
+      © 2026 Calhegas Morais · StrataMesh DLT<br>
+      Managed by Orchestrator · AIOps Dev Team
+    </footer>
+  </div>
+</body>
+</html>

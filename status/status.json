@@ -1,0 +1,36 @@
+{
+  "node_id": "FOG-NODE-PT-CM-001",
+  "name": "Calhegas Morais",
+  "location": {
+    "lat": 38.7169,
+    "lon": -9.1427,
+    "label": "Lisbon, Portugal"
+  },
+  "version": "0.1.0-dev",
+  "phase": "0",
+  "phase_name": "Operational Baseline",
+  "status": "instrumenting",
+  "timestamp": "2026-08-10T16:50:00Z",
+  "dag": {
+    "height_approx": 0,
+    "tip_count": 0,
+    "transaction_count": 0
+  },
+  "ipfs": {
+    "pins_total": 0,
+    "pins_active": 0,
+    "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi"
+  },
+  "spa": {
+    "active_spas": 0,
+    "roles": ["fog"]
+  },
+  "aiops": {
+    "orchestrator": "active",
+    "agents": ["security", "devops", "analysis"]
+  },
+  "links": {
+    "roadmap": "/docs/ROADMAP-PUBLIC-v0.1.md",
+    "spa_template": "/contracts/SPA-FogNode-v0.1-draft.md"
+  }
+}
