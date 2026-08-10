@@ -106,8 +106,8 @@ def demo():
     p = g.propose("FOG-NODE-PT-CM-001", "Raise pin SLA", "Increase pin success target to 99.5%")
     g.vote(p.proposal_id, "FOG-NODE-PT-CM-001", "yes", 2.0)
     g.vote(p.proposal_id, "EDGE-02", "no", 1.0)
-    g.vote(p.proposal_id, "EDGE-01", "yes", 1.0)
     print(g.summary())
+    assert g.proposals[p.proposal_id].status.value == "passed"
     print("governance demo OK")
 
 
