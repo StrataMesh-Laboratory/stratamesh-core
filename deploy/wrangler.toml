@@ -1,0 +1,8 @@
+name = "stratamesh-status"
+main = "cloudflare-worker-status.js"
+compatibility_date = "2026-08-01"
+
+# Uncomment and set after creating the Worker / route
+# routes = [
+#   { pattern = "status.calhegasmorais.pt/*", zone_name = "calhegasmorais.pt" }
+# ]
