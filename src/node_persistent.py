@@ -357,6 +357,8 @@ class Handler(BaseHTTPRequestHandler):
                     })
         elif path == "/spa":
             self._json(200, NODE.spas.summary())
+        elif path == "/spa/export":
+            self._json(200, {"spas": NODE.spas.export_records()})
         elif path == "/finality":
             with NODE.lock:
                 self._json(200, {"tips": tip_set_report(NODE.dag)})
@@ -390,6 +392,18 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 data = {}
             self._json(200, NODE.submit(data.get("type", "standard"), data.get("cid")))
+
+        elif path == "/spa/import":
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            items = data.get("spas") or ([data] if data.get("spa_id") else [])
+            n = 0
+            for it in items:
+                if NODE.spas.import_record(it):
+                    n += 1
+            self._json(200, {"imported": n})
 
         elif path == "/spa/register":
             try:

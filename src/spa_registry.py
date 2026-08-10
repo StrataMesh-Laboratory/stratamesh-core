@@ -116,6 +116,44 @@ class SPARegistry:
     def all_active(self) -> List[SPARecord]:
         return [s for s in self.spas.values() if s.active]
 
+
+    def export_records(self) -> list:
+        return [
+            {
+                "spa_id": r.spa_id,
+                "provider_id": r.provider_id,
+                "roles": list(r.roles),
+                "service_level": r.service_level,
+                "opt_out_days": r.opt_out_days,
+                "cid": r.cid,
+                "tx_id": r.tx_id,
+                "active": r.active,
+            }
+            for r in self.spas.values()
+        ]
+
+    def import_record(self, data: dict) -> bool:
+        """Accept SPA metadata from a peer (does not re-mine DAG tx)."""
+        spa_id = data.get("spa_id")
+        if not spa_id:
+            return False
+        if spa_id in self.spas:
+            # refresh active flag
+            self.spas[spa_id].active = bool(data.get("active", True))
+            return True
+        rec = SPARecord(
+            spa_id=spa_id,
+            provider_id=str(data.get("provider_id") or "unknown"),
+            roles=list(data.get("roles") or []),
+            service_level=data.get("service_level") or {},
+            opt_out_days=int(data.get("opt_out_days") or 14),
+            cid=data.get("cid"),
+            active=bool(data.get("active", True)),
+        )
+        rec.tx_id = data.get("tx_id")
+        self.spas[spa_id] = rec
+        return True
+
     def summary(self) -> dict:
         return {
             "total": len(self.spas),

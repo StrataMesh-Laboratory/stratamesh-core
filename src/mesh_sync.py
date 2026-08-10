@@ -106,3 +106,24 @@ def mesh_report(bases: List[str]) -> dict:
         except Exception as e:
             nodes.append({"base": b, "error": str(e)})
     return {"nodes": nodes}
+
+
+def sync_spas(bases: List[str]) -> dict:
+    """Exchange SPA registries across peers."""
+    all_recs = []
+    for b in bases:
+        try:
+            data = get_json(f"{b.rstrip('/')}/spa/export")
+            all_recs.extend(data.get("spas") or [])
+        except Exception:
+            pass
+    # dedupe by spa_id
+    by_id = {r["spa_id"]: r for r in all_recs if r.get("spa_id")}
+    payload = {"spas": list(by_id.values())}
+    results = {}
+    for b in bases:
+        try:
+            results[b] = post_json(f"{b.rstrip('/')}/spa/import", payload)
+        except Exception as e:
+            results[b] = {"error": str(e)}
+    return {"unique_spas": len(by_id), "results": results}
