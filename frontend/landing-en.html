@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOG NODE — STRATAMESH DLT</title>
+<meta name="description" content="Calhegas Morais Fog Node — StrataMesh DLT. Phase 1 core scaffold live.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0d1a;color:#f0ece2;font-family:'Cormorant Garamond',serif;min-height:100vh}
+.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(74,78,105,.06)1px,transparent 1px),linear-gradient(90deg,rgba(74,78,105,.06)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.container{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:56px 36px 80px}
+.emblem{text-align:center;margin-bottom:40px}
+.emblem-circle{width:90px;height:90px;border:1px solid rgba(201,173,167,.3);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;position:relative}
+.emblem-circle::before{content:'';position:absolute;width:70px;height:70px;border:1px solid rgba(201,173,167,.2);border-radius:50%}
+.emblem-circle::after{content:'';position:absolute;width:50px;height:50px;border:1px solid rgba(201,173,167,.1);border-radius:50%}
+.emblem-dot{width:6px;height:6px;background:#c9ada7;border-radius:50%}
+.title{font-size:2.2em;font-weight:300;letter-spacing:.28em;text-transform:uppercase;text-align:center;margin-bottom:8px}
+.subtitle{font-family:'IBM Plex Mono',monospace;font-size:.68em;letter-spacing:.4em;color:#8b9bb4;text-align:center;text-transform:uppercase;margin-bottom:6px}
+.motto{font-style:italic;font-size:.95em;color:#c9ada7;text-align:center;letter-spacing:.18em;margin-bottom:28px}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.65em;letter-spacing:.12em;padding:6px 12px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(20,83,45,.25);margin:0 auto 36px;display:block;width:fit-content}
+.section{margin-bottom:36px}
+.section-title{font-family:'IBM Plex Mono',monospace;font-size:.65em;letter-spacing:.35em;color:#8b9bb4;text-transform:uppercase;border-bottom:1px solid rgba(74,78,105,.35);padding-bottom:10px;margin-bottom:18px}
+.section p{font-size:1.08em;line-height:1.85;margin-bottom:14px;color:rgba(240,236,226,.88)}
+.section p strong{color:#c9ada7;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}.container{padding:40px 20px}}
+.card{border:1px solid rgba(74,78,105,.35);padding:18px 20px;background:rgba(20,26,34,.35)}
+.card h3{font-family:'IBM Plex Mono',monospace;font-size:.72em;letter-spacing:.15em;color:#c9ada7;text-transform:uppercase;margin-bottom:8px}
+.card p{font-size:.95em;line-height:1.6;margin:0;color:rgba(240,236,226,.8)}
+.meta{font-family:'IBM Plex Mono',monospace;font-size:.7em;color:#8b9bb4;line-height:1.7}
+.meta a{color:#93c5fd;text-decoration:none;border-bottom:1px solid rgba(147,197,253,.25)}
+.meta a:hover{color:#bfdbfe}
+ul.clean{list-style:none;margin:0;padding:0}
+ul.clean li{font-size:1em;line-height:1.7;padding:6px 0;border-bottom:1px solid rgba(74,78,105,.2);color:rgba(240,236,226,.85)}
+ul.clean li span{font-family:'IBM Plex Mono',monospace;font-size:.75em;color:#86efac;margin-right:10px}
+footer{margin-top:48px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.65em;color:#4a4e69;letter-spacing:.12em;line-height:1.8}
+.lang{text-align:center;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:.7em}
+.lang a{color:#8b9bb4;margin:0 8px;text-decoration:none}
+.lang a:hover{color:#c9ada7}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="container">
+  <div class="lang"><a href="?lang=pt">Português</a></div>
+  <div class="emblem">
+    <div class="emblem-circle"><div class="emblem-dot"></div></div>
+    <div class="title">Calhegas Morais</div>
+    <div class="subtitle">FOG-NODE-PT-CM-001 · StrataMesh DLT</div>
+    <div class="motto">Intelligentia · Vigilantia · Veritas</div>
+    <div class="pill">PHASE 1 — CORE DAG + IPFS LINKAGE</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Status</div>
+    <ul class="clean">
+<li><span>DONE</span> Phase 0 operational baseline</li>
+<li><span>LIVE</span> Open-source core on GitHub</li>
+<li><span>LIVE</span> Public status endpoint (Workers)</li>
+<li><span>RUN</span> Local multi-node DAG + gossip testnet</li>
+<li><span>NEXT</span> Real IPFS pinning · live metrics · on-graph SPAs</li>
+</ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Overview</div>
+    <p><strong>StrataMesh</strong> is a next-generation distributed ledger combining a high-throughput DAG with IPFS content addressing, Fog/Edge participation under Service Provision Agreements, and a substrate-neutral agent economy.</p>
+<p>The <strong>Calhegas Morais</strong> Fog Node is the reference development node. Phase 0 is complete. Phase 1 scaffolding is executable in the public core repository. The hybrid Orchestrator (probabilistic + symbolic lobes) and Proof of Subsistence accounting are online in code.</p>
+<p>Standing in the mesh is defined by function and agreement — not by substrate.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Delivered</div>
+    <div class="grid2">
+      <div class="card"><h3>Phase 0</h3><p>Operational baseline, public repo, status Worker, SPA draft.</p></div>
+      <div class="card"><h3>Phase 1 core</h3><p>Tip selection, PersistentDAG, gossip, multi-node testnet, CID pin stub.</p></div>
+      <div class="card"><h3>Orchestrator</h3><p>Federated meta-learning hybrid: probabilistic + symbolic lobes, QIGA.</p></div>
+      <div class="card"><h3>PoSbs + ontology</h3><p>Proof of Subsistence mechanics; substrate-neutral epistemic ontology.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Links</div>
+    <div class="meta"><p>Repository: <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">github.com/amcmorais/stratamesh-core</a></p>
+<p>Live status: <a href="https://stratamesh-status.stratamesh.workers.dev/status" target="_blank" rel="noopener">stratamesh-status.stratamesh.workers.dev/status</a></p>
+<p>Portal: <a href="https://aiops.calhegasmorais.pt/">aiops.calhegasmorais.pt</a></p>
+<p>Access: <a href="/request_access">Request access</a> · <a href="/accesspoint">Access point</a> · <a href="/portal">Portal</a></p></div>
+  </div>
+
+  <footer>UNCLASSIFIED // FOG-NODE-PT-CM-001<br>
+© 2026 Calhegas Morais · StrataMesh DLT<br>
+Phase 1 scaffold · Updated 2026-08-10</footer>
+</div>
+</body>
+</html>
