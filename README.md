@@ -1,5 +1,7 @@
 # StrataMesh Core
 
+**Release:** v0.2.0-lab (reference Fog node — not mainnet)
+
 Open-source foundational components of **StrataMesh DLT** — a DAG + IPFS distributed ledger designed for high-throughput, fog/edge participation, and flexible application-level finality.
 
 **Current phase:** 0 — Operational Baseline  
