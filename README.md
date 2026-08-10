@@ -28,6 +28,16 @@ python3 -m orchestrator.meta_controller
 
 Architecture: `docs/ORCHESTRATOR-HYBRID-ARCHITECTURE.md`
 
+## Ops (lab)
+
+```bash
+./scripts/run_fog_node.sh
+./scripts/publish_loop.sh   # separate terminal
+cd src && python3 mesh_doctor.py
+```
+
+Runbook: `docs/OPS-RUNBOOK.md`
+
 ## Quick start
 
 ```bash
