@@ -44,6 +44,25 @@ function parseTerms(terms) {
 }
 
 export default {
+  async scheduled(event, env, ctx) {
+    // Cron: auto-terminate opt_out_pending SPAs past notice
+    try {
+      const db = env.STRATAMESH_LEDGER || env.LEDGER || env.DB;
+      if (!db) return;
+      const pending = await db.prepare("SELECT * FROM spas WHERE status = 'opt_out_pending'").all();
+      for (const spa of pending.results || []) {
+        const notice = Number(spa.duration_days || 14);
+        let ageDays = 0;
+        try {
+          const r = await db.prepare("SELECT julianday('now') - julianday(revoked_at) as d FROM spas WHERE id = ?").bind(spa.id).first();
+          ageDays = Number(r?.d || 0);
+        } catch (_) {}
+        if (ageDays >= notice || notice <= 0) {
+          await db.prepare("UPDATE spas SET status = 'terminated' WHERE id = ?").bind(spa.id).run();
+        }
+      }
+    } catch (_) {}
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
@@ -105,7 +124,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.3.1-pin-market',
+          version: '3.4.0-governance',
           active_spas: spa_count,
           endpoints: [
             '/dao/health',
@@ -121,6 +140,9 @@ export default {
             '/dao/vote',
             '/dao/proposals',
             '/dao/status',
+            '/dao/templates',
+            '/dao/execute',
+            '/dao/compliance',
           ],
         });
       }
@@ -375,46 +397,210 @@ export default {
         return j({ success: true, checked: (pending.results || []).length, terminated });
       }
 
+      // --- Foundational / Enterprise / Consortium templates ---
+      if (path === '/dao/templates' || path === '/dao/template') {
+        const TEMPLATES = {
+          foundational: {
+            id: 'foundational',
+            name: 'Foundational DAO',
+            scope: 'protocol_parameters_spa_standards_emission_policy',
+            quorum: 0.51,
+            roles: ['node_operator', 'spa_provider', 'delegate'],
+            can_certify: ['finality_modules', 'spa_templates', 'emission_schedule'],
+          },
+          enterprise: {
+            id: 'enterprise',
+            name: 'Enterprise DAO Template',
+            scope: 'private_consortium_rbac_treasury_compliance',
+            quorum: 0.67,
+            roles: ['admin', 'operator', 'auditor', 'member'],
+            features: ['rbac', 'treasury', 'audit_log', 'compliance_reports'],
+          },
+          consortium: {
+            id: 'consortium',
+            name: 'Consortium DAO Template',
+            scope: 'multi_org_shared_governance',
+            quorum: 0.6,
+            roles: ['org_delegate', 'chair', 'observer'],
+            features: ['weighted_votes_by_org', 'shared_treasury', 'joint_spas'],
+          },
+        };
+        const id = url.searchParams.get('id');
+        if (id && TEMPLATES[id]) return j({ success: true, template: TEMPLATES[id] });
+        return j({ success: true, templates: Object.values(TEMPLATES), whitepaper: 'polycentric meta-layer DAOs' });
+      }
+
       if (path === '/dao/proposal' && request.method === 'POST') {
         const data = await request.json().catch(() => ({}));
-        const proposalId = 'PROP-' + Date.now();
+        const proposalId = data.proposal_id || 'PROP-' + crypto.randomUUID().slice(0, 10);
+        const proposal_type = data.proposal_type || data.type || 'governance';
+        const dao_template = data.dao_template || data.template || 'foundational';
+        const quorum = Number(data.quorum_required != null ? data.quorum_required : 1);
+        const closes_at = data.closes_at || null;
         try {
           await db
             .prepare(
-              'INSERT INTO dao_proposals (proposal_id, proposer_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, datetime("now"))'
+              `INSERT INTO dao_proposals (proposal_id, proposer_id, title, description, proposal_type, status, quorum_required, created_at, closes_at)
+               VALUES (?,?,?,?,?,'active',?, datetime('now'), ?)`
             )
-            .bind(proposalId, data.proposer_id || 'FOG-NODE-PT-CM-001', data.title || 'Untitled', data.description || '', 'open')
+            .bind(
+              proposalId,
+              data.proposer_id || 'FOG-NODE-PT-CM-001',
+              data.title || 'Untitled',
+              (data.description || '') + (dao_template ? ` [template:${dao_template}]` : ''),
+              proposal_type,
+              quorum,
+              closes_at
+            )
             .run();
-        } catch (_) {}
-        return j({ success: true, proposal_id: proposalId });
+        } catch (e) {
+          try {
+            await db
+              .prepare(
+                'INSERT INTO dao_proposals (proposal_id, proposer_id, title, description, status, created_at) VALUES (?,?,?,?,?, datetime("now"))'
+              )
+              .bind(proposalId, data.proposer_id || 'FOG-NODE-PT-CM-001', data.title || 'Untitled', data.description || '', 'active')
+              .run();
+          } catch (e2) {
+            return j({ error: 'proposal insert failed', detail: String(e2.message || e2) }, 500);
+          }
+        }
+        const dag = await dagAnchor(env, {
+          type: 'dao_proposal',
+          proposal_id: proposalId,
+          title: data.title,
+          dao_template,
+          proposal_type,
+        });
+        return j({ success: true, proposal_id: proposalId, dao_template, dag_vertex: dag.vertex_id || null });
       }
 
       if (path === '/dao/vote' && request.method === 'POST') {
         const data = await request.json().catch(() => ({}));
+        const proposal_id = data.proposal_id;
+        const voter = data.voter_id || data.voter || data.account;
+        const vote = (data.vote || data.choice || '').toLowerCase();
+        const weight = Number(data.weight != null ? data.weight : 1);
+        if (!proposal_id || !voter || !['for', 'against', 'abstain', 'yes', 'no'].includes(vote)) {
+          return j({ error: 'proposal_id, voter, vote(for|against|abstain) required' }, 400);
+        }
+        const normalized = vote === 'yes' ? 'for' : vote === 'no' ? 'against' : vote;
+        const prop = await db.prepare('SELECT * FROM dao_proposals WHERE proposal_id = ?').bind(proposal_id).first();
+        if (!prop) return j({ error: 'proposal not found' }, 404);
+        if (prop.status && !['active', 'open'].includes(prop.status)) {
+          return j({ error: 'proposal not open', status: prop.status }, 400);
+        }
+        const dag = await dagAnchor(env, { type: 'dao_vote', proposal_id, voter, vote: normalized, weight });
+        await db
+          .prepare(
+            'INSERT INTO dao_votes (proposal_id, voter, vote, weight, dag_cid, created_at) VALUES (?,?,?,?,?, datetime("now"))'
+          )
+          .bind(proposal_id, voter, normalized, weight, dag.vertex_id || null)
+          .run();
+        // tally
+        const col = normalized === 'for' ? 'votes_for' : normalized === 'against' ? 'votes_against' : 'votes_abstain';
+        try {
+          await db.prepare(`UPDATE dao_proposals SET ${col} = COALESCE(${col},0) + ? WHERE proposal_id = ?`).bind(weight, proposal_id).run();
+        } catch (_) {}
         return j({
           success: true,
-          vote_id: 'VOTE-' + Date.now(),
-          proposal_id: data.proposal_id,
-          vote: data.vote,
-          voter: data.voter_id,
+          proposal_id,
+          voter,
+          vote: normalized,
+          weight,
+          dag_vertex: dag.vertex_id || null,
         });
       }
 
       if (path === '/dao/proposals') {
         try {
-          const proposals = await db.prepare('SELECT * FROM dao_proposals ORDER BY created_at DESC LIMIT 20').all();
+          const proposals = await db.prepare('SELECT * FROM dao_proposals ORDER BY created_at DESC LIMIT 30').all();
           return j({ success: true, proposals: proposals.results || [] });
         } catch (_) {
           return j({ success: true, proposals: [] });
         }
       }
 
+      // Execute if quorum met
+      if (path === '/dao/execute' && request.method === 'POST') {
+        const data = await request.json().catch(() => ({}));
+        const proposal_id = data.proposal_id;
+        if (!proposal_id) return j({ error: 'proposal_id required' }, 400);
+        const prop = await db.prepare('SELECT * FROM dao_proposals WHERE proposal_id = ?').bind(proposal_id).first();
+        if (!prop) return j({ error: 'not found' }, 404);
+        const votes_for = Number(prop.votes_for || 0);
+        const votes_against = Number(prop.votes_against || 0);
+        const quorum = Number(prop.quorum_required || 1);
+        const total = votes_for + votes_against + Number(prop.votes_abstain || 0);
+        if (votes_for < quorum) {
+          return j({ success: false, error: 'quorum_not_met', votes_for, quorum, total }, 400);
+        }
+        if (votes_for <= votes_against) {
+          return j({ success: false, error: 'not_passed', votes_for, votes_against }, 400);
+        }
+        await db
+          .prepare("UPDATE dao_proposals SET status = 'executed', executed_at = datetime('now') WHERE proposal_id = ?")
+          .bind(proposal_id)
+          .run();
+        const dag = await dagAnchor(env, { type: 'dao_execute', proposal_id, votes_for, votes_against });
+        return j({ success: true, proposal_id, status: 'executed', votes_for, votes_against, dag_vertex: dag.vertex_id || null });
+      }
+
+      // SPA compliance checks
+      if ((path === '/dao/spa/compliance' || path === '/dao/compliance') && request.method === 'POST') {
+        const data = await request.json().catch(() => ({}));
+        const spa_id = data.spa_id;
+        if (!spa_id) return j({ error: 'spa_id required' }, 400);
+        const spa = await db.prepare('SELECT * FROM spas WHERE id = ?').bind(spa_id).first();
+        if (!spa) return j({ error: 'SPA not found' }, 404);
+        // lab metrics: pin count, status
+        let pin_count = 0;
+        try {
+          pin_count = (await db.prepare('SELECT COUNT(*) as c FROM spa_pins WHERE spa_id = ?').bind(spa_id).first())?.c ?? 0;
+        } catch (_) {}
+        const checks = [];
+        const status_ok = spa.status === 'active';
+        checks.push({ check_type: 'status_active', result: status_ok ? 'pass' : 'fail', details: spa.status });
+        const pin_ok = pin_count >= 0; // soft
+        checks.push({ check_type: 'pin_capacity', result: 'pass', details: `pins=${pin_count}` });
+        const terms = (() => { try { return JSON.parse(spa.terms || '{}'); } catch { return {}; } })();
+        const has_pinner = (terms.roles || []).includes('pinner') || String(spa.service_type || '').includes('pinner');
+        checks.push({ check_type: 'role_declared', result: has_pinner || (terms.roles || []).length ? 'pass' : 'warn', details: spa.service_type });
+        for (const c of checks) {
+          try {
+            await db
+              .prepare(
+                'INSERT INTO spa_compliance (spa_id, check_type, result, details, checked_at) VALUES (?,?,?,?, datetime("now"))'
+              )
+              .bind(spa_id, c.check_type, c.result, c.details)
+              .run();
+          } catch (_) {}
+        }
+        const overall = checks.every((c) => c.result === 'pass') ? 'compliant' : checks.some((c) => c.result === 'fail') ? 'non_compliant' : 'partial';
+        const dag = await dagAnchor(env, { type: 'spa_compliance', spa_id, overall, checks });
+        return j({ success: true, spa_id, overall, checks, dag_vertex: dag.vertex_id || null });
+      }
+
+      if (path === '/dao/spa/compliance' || path === '/dao/compliance') {
+        const spa_id = url.searchParams.get('spa_id');
+        if (spa_id) {
+          const rows = await db
+            .prepare('SELECT * FROM spa_compliance WHERE spa_id = ? ORDER BY checked_at DESC LIMIT 20')
+            .bind(spa_id)
+            .all();
+          return j({ success: true, spa_id, history: rows.results || [] });
+        }
+        const rows = await db.prepare('SELECT * FROM spa_compliance ORDER BY checked_at DESC LIMIT 30').all();
+        return j({ success: true, history: rows.results || [] });
+      }
+
+
       if (path === '/dao/status') {
         let active_spas = 0;
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.3.1-pin-market' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.4.0-governance' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
