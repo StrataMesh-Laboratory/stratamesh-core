@@ -8,7 +8,7 @@ export default {
       if (path === '/status') path = '/agora/status';
 
       if (path === '/agora/health') {
-        return new Response(JSON.stringify({ status: 'active', version: '2.0.0', endpoints: ['/agora/health', '/agora/listing', '/agora/order', '/agora/trade', '/agora/book', '/agora/balance', '/agora/auction', '/agora/status'] }), { headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ status: 'active', version: '2.1.0-whitepaper', role: 'P2P exchange where contributors list STRATA for external value (crypto/stable/fiat); not a protocol mint', external_value_exchange: true, endpoints: ['/agora/health', '/agora/listing', '/agora/order', '/agora/trade', '/agora/book', '/agora/balance', '/agora/auction', '/agora/status'] }), { headers: { 'Content-Type': 'application/json' } });
       }
 
       if (path === '/agora/listing' && request.method === 'POST') {

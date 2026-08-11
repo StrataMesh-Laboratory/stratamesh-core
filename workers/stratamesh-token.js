@@ -96,6 +96,21 @@ export default {
 
     const db = env.STRATAMESH_LEDGER || env.LEDGER || env.DB;
 
+
+    // WHITEPAPLE: base STRATA is minted ONLY via Proof of Contribution (stratamesh-poc).
+    // This worker tokenises assets (NFT) and tracks balances — it does NOT emit STRATA.
+    if ((path === '/mint-strata' || path === '/mint/strata' || path === '/emit') && request.method === 'POST') {
+      return json({
+        success: false,
+        error: 'STRATA emission forbidden here',
+        whitepaper: 'Mint only via Proof of Contribution when nodes contribute resources to the DLT. Acquire STRATA on Strata Agora (P2P) against external value.',
+        use: {
+          mint: 'POST https://stratamesh-poc.stratamesh.workers.dev/mint',
+          acquire: 'POST /agora listing or auction',
+        },
+      }, 403);
+    }
+
     // --- supply / health ---
     let supply = 0,
       holders = 0;
@@ -120,11 +135,12 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.2.0-real-ipfs',
+        version: '2.3.0-poc-only-emission',
         total_supply: supply,
         holders,
         nft_count: nfts,
-        engines: ['fungible_STRATA', 'nft_ugc', 'nft_import', 'dag_anchor', 'ipfs_metadata'],
+        engines: ['fungible_STRATA_balances', 'nft_ugc', 'nft_import', 'dag_anchor', 'ipfs_metadata'],
+        emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });
     }

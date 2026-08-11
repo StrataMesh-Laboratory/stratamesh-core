@@ -16,7 +16,7 @@ export default {
       try {
         // Health check
         if (path === '/health') {
-          return Response.json({ status: 'healthy', service: 'stratamesh-poc', version: '3.2.0', timestamp: new Date().toISOString() }, { headers: corsHeaders });
+          return Response.json({ status: 'healthy', service: 'stratamesh-poc', version: '3.3.0-whitepaper', sole_mint_path: true, policy: 'STRATA minted only for verified contribution of compute/storage to the DLT. No free mint. Non-contributors acquire STRATA only on Strata Agora vs external value.', timestamp: new Date().toISOString() }, { headers: corsHeaders });
         }
 
         // Mint Strata from contribution
@@ -42,7 +42,7 @@ export default {
           const prevHash = lastProof ? lastProof.current_hash : 'genesis';
           const newHash = proof_hash || 'poc-' + Date.now();
           await env.LEDGER.prepare('INSERT INTO proof_chain (previous_hash, current_hash, action, actor) VALUES (?, ?, ?, ?)').bind(prevHash, newHash, 'mint', node_id).run();
-          return Response.json({ success: true, minting_event_id: mintResult.meta.last_row_id, node_id, contribution_type, contribution_points, minting_rate: rate, amount_minted: amount, new_hash: newHash, message: 'Every Strata is earned. No exceptions.' }, { headers: corsHeaders });
+          return Response.json({ success: true, minting_event_id: mintResult.meta.last_row_id, node_id, contribution_type, contribution_points, minting_rate: rate, amount_minted: amount, new_hash: newHash, message: 'Every STRATA is earned via Proof of Contribution. No free mint. Trade only on Strata Agora for external value.' }, { headers: corsHeaders });
         }
 
         // Get balance
@@ -70,7 +70,7 @@ export default {
           // Mint reward via contribution
           const mintResult = await env.LEDGER.prepare('INSERT INTO minting_events (node_id, contribution_type, contribution_score, amount, proof_hash, status) VALUES (?, ?, ?, ?, ?)').bind(node_id, 'starter_task', task.reward_amount, task.reward_amount, 'starter-' + task_id + '-' + Date.now(), 'confirmed').run();
           await env.LEDGER.prepare('INSERT INTO token_balances (account, token_type, balance) VALUES (?, ?, ?) ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + ?').bind(node_id, 'STRATA', task.reward_amount, task.reward_amount).run();
-          return Response.json({ success: true, task_name: task.name, reward: task.reward_amount, message: 'Starter contribution earned. Every Strata is earned.' }, { headers: corsHeaders });
+          return Response.json({ success: true, task_name: task.name, reward: task.reward_amount, message: 'Starter contribution (lab onboarding task) counted as PoC. Base emission remains contribution-only — not a faucet.' }, { headers: corsHeaders });
         }
 
         // Contribution types
