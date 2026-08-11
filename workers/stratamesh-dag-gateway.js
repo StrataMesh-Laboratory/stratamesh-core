@@ -21,6 +21,9 @@ export default {
       });
       
       // POST /api/v1/submit — full DAG+IPFS pipeline (proxy to stratamesh-dag)
+      if (path === '/health' || path === '/api/v1/health' || path === '/') {
+        return json({ status: 'ok', service: 'stratamesh-dag-gateway', version: '1.1.0', endpoints: ['/api/v1/status','/api/v1/submit','/api/v1/tips','/api/v1/vertices'] });
+      }
       if ((path === '/api/v1/submit' || path === '/api/v1/dag/submit') && request.method === 'POST') {
         try {
           const body = await request.text();
