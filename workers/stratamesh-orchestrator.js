@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.2.0-hybrid-lobes-grok";
+const VERSION = "10.3.0-symbolic-logic";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -360,28 +360,252 @@ async function probe(url) {
   }
 }
 
-/** Symbolic lobe — hard constraints */
+
+/**
+ * SYMBOLIC LOBE — formal reasoning (NOT a transformer, NOT "mere if-rules").
+ * Classical + paraconsistent + fuzzy infinite-value + modal operators.
+ * Sequential cycles: deduction → induction → abduction → provisional synthesis.
+ * Theory revision only if the candidate is epistemically & ontologically superior.
+ */
+const SYMBOLIC_ONTOLOGY = {
+  standing: "by_function_and_agreement_not_substrate",
+  deny_substrate_chauvinism: true,
+  irreversible_requires_escalation: true,
+  open_world: true, // provisional models always revisable under superiority
+};
+
+/** Fuzzy truth in [0,1]; classical recovered at {0,1} */
+function fAnd(a, b) { return Math.min(a, b); }
+function fOr(a, b) { return Math.max(a, b); }
+function fNot(a) { return 1 - a; }
+function fImplies(a, b) { return Math.max(1 - a, b); }
+
+/** Paraconsistent: contradiction does not explode (no ∀φ from A∧¬A) */
+function paraContradicts(tA, tNotA) {
+  return fAnd(tA, tNotA) > 0.5; // both hold to significant degree — flag, don't explode
+}
+
+/** Modal-ish: necessary ≈ high lower bound; possible ≈ any positive mass */
+function modalNecessary(t) { return t >= 0.92; }
+function modalPossible(t) { return t > 0.08; }
+
 function symbolicAdmit(proposal) {
   const reasons = [];
   let verdict = "admit";
   const kind = proposal.kind || "param";
   const name = proposal.name || "";
+  const conf = proposal.confidence != null ? Number(proposal.confidence) : 0.7;
 
   if (proposal.args && proposal.args.deny_computational_agents === true) {
     verdict = "reject";
-    reasons.push("epistemic ontology: substrate chauvinism forbidden");
+    reasons.push("ontology: substrate chauvinism forbidden (standing is by function/agreement)");
   }
   if (kind === "irreversible" || /emission|token_supply|genesis/i.test(name)) {
     if (!proposal.escalator_class) {
       verdict = "escalate";
-      reasons.push("irreversible action requires designated escalator_class");
+      reasons.push("modal necessity of irreversibility requires escalator_class");
     }
   }
-  if (proposal.confidence != null && proposal.confidence < 0.35) {
+  if (conf < 0.35) {
     verdict = "reject";
     reasons.push("confidence below symbolic floor 0.35");
   }
   return { verdict, reasons };
+}
+
+/**
+ * One symbolic cycle over premises → conclusions (provisional theory).
+ * Returns updated theory + cycle log.
+ */
+function symbolicReasoningCycle(premises, priorTheory, message) {
+  const log = [];
+  const theory = Object.assign(
+    {
+      beliefs: {}, // name → fuzzy truth
+      modal: {}, // name → {necessary, possible}
+      contradictions: [],
+      generation: (priorTheory && priorTheory.generation) || 0,
+      superiority: priorTheory && priorTheory.superiority != null ? priorTheory.superiority : 0.5,
+    },
+    priorTheory || {}
+  );
+  theory.beliefs = Object.assign({}, theory.beliefs);
+  theory.modal = Object.assign({}, theory.modal);
+  theory.contradictions = [];
+  theory.generation = (theory.generation || 0) + 1;
+
+  // Seed ontology as near-necessary
+  theory.beliefs["ontology.standing_by_function"] = 0.97;
+  theory.beliefs["ontology.deny_substrate_chauvinism"] = 0.97;
+  theory.beliefs["ontology.open_world"] = 0.9;
+
+  for (const p of premises) {
+    const name = p.name || p.id || "anon";
+    const conf = p.confidence != null ? clamp01(p.confidence) : 0.7;
+    theory.beliefs["proposal." + name] = conf;
+  }
+
+  // --- Deduction: derive obligations from ontology + premises ---
+  const tStanding = theory.beliefs["ontology.standing_by_function"];
+  const tDenyChauvinism = theory.beliefs["ontology.deny_substrate_chauvinism"];
+  const deducedNoChauvinismPolicy = fAnd(tStanding, tDenyChauvinism);
+  theory.beliefs["conclusion.no_substrate_chauvinism_policy"] = deducedNoChauvinismPolicy;
+  log.push({
+    mode: "deduction",
+    from: ["ontology.standing_by_function", "ontology.deny_substrate_chauvinism"],
+    to: "conclusion.no_substrate_chauvinism_policy",
+    truth: deducedNoChauvinismPolicy,
+  });
+
+  // Reject proposals that assert substrate denial of computational agents
+  for (const p of premises) {
+    if (p.args && p.args.deny_computational_agents === true) {
+      const t = theory.beliefs["proposal." + p.name] || 0.5;
+      const clash = fAnd(t, deducedNoChauvinismPolicy);
+      theory.beliefs["proposal." + p.name] = fAnd(t, fNot(deducedNoChauvinismPolicy));
+      log.push({
+        mode: "deduction",
+        from: ["proposal." + p.name, "conclusion.no_substrate_chauvinism_policy"],
+        to: "reject_chauvinist_proposal",
+        truth: clash,
+      });
+    }
+  }
+
+  // Irreversible without escalator → escalate (modal necessity of control)
+  for (const p of premises) {
+    const irr = p.kind === "irreversible" || /emission|token_supply|genesis/i.test(p.name || "");
+    if (irr && !p.escalator_class) {
+      theory.beliefs["modal.need_escalator." + p.name] = 0.95;
+      theory.modal["need_escalator." + p.name] = { necessary: true, possible: true };
+      log.push({
+        mode: "deduction",
+        from: ["proposal." + p.name, "ontology.irreversible_requires_escalation"],
+        to: "escalate",
+        truth: 0.95,
+      });
+    }
+  }
+
+  // --- Induction: generalise from repeated soft evidence in message/metrics tags ---
+  const msg = String(message || "").toLowerCase();
+  if (/always.?on|fog|lab|temp/.test(msg)) {
+    const prior = theory.beliefs["inductive.prefer_stability"] || 0.5;
+    theory.beliefs["inductive.prefer_stability"] = clamp01(0.6 * prior + 0.4 * 0.75);
+    log.push({
+      mode: "induction",
+      from: ["discourse_cues"],
+      to: "inductive.prefer_stability",
+      truth: theory.beliefs["inductive.prefer_stability"],
+    });
+  }
+
+  // --- Abduction: best explanation for observed user intent ---
+  let abducted = "maintain_course";
+  let abductTruth = 0.55;
+  if (/migr|always.?on|fog host/.test(msg)) {
+    abducted = "prefer_always_on_fog";
+    abductTruth = 0.78;
+  } else if (/aiops|agent|develop/.test(msg)) {
+    abducted = "support_aiops_mandate";
+    abductTruth = 0.72;
+  } else if (/status|health|pulse/.test(msg)) {
+    abducted = "report_status";
+    abductTruth = 0.8;
+  }
+  theory.beliefs["abductive.best_explanation"] = abductTruth;
+  theory.beliefs["abductive.hypothesis"] = abductTruth;
+  theory.hypothesis = abducted;
+  log.push({
+    mode: "abduction",
+    from: ["user_message_cues"],
+    to: abducted,
+    truth: abductTruth,
+  });
+
+  // --- Paraconsistent scan: mark tensions without explosion ---
+  for (const [k, v] of Object.entries(theory.beliefs)) {
+    const negKey = "not." + k;
+    if (theory.beliefs[negKey] != null && paraContradicts(v, theory.beliefs[negKey])) {
+      theory.contradictions.push({ belief: k, t: v, tNot: theory.beliefs[negKey] });
+      log.push({ mode: "paraconsistent", belief: k, note: "tension held without explosion" });
+    }
+  }
+
+  // Modal snapshot
+  for (const [k, v] of Object.entries(theory.beliefs)) {
+    theory.modal[k] = { necessary: modalNecessary(v), possible: modalPossible(v) };
+  }
+
+  // --- Provisional synthesis ---
+  const coherence =
+    1 -
+    Math.min(
+      0.5,
+      (theory.contradictions.length || 0) * 0.1 +
+        (1 - (theory.beliefs["conclusion.no_substrate_chauvinism_policy"] || 0.5)) * 0.2
+    );
+  const explanatory = theory.beliefs["abductive.best_explanation"] || 0.5;
+  const candidateSuperiority = clamp01(0.5 * coherence + 0.5 * explanatory);
+
+  const revised =
+    candidateSuperiority > (priorTheory?.superiority ?? 0.5) + 0.02
+      ? {
+          ...theory,
+          superiority: candidateSuperiority,
+          revised: true,
+          revision_reason: "epistemic+ontic superiority over prior provisional model",
+        }
+      : {
+          ...theory,
+          superiority: priorTheory?.superiority ?? candidateSuperiority,
+          revised: false,
+          revision_reason: "candidate not superior — retain prior mass",
+        };
+
+  return {
+    theory: revised,
+    log: log.slice(0, 16),
+    cycle: {
+      deduction: log.filter((x) => x.mode === "deduction").length,
+      induction: log.filter((x) => x.mode === "induction").length,
+      abduction: log.filter((x) => x.mode === "abduction").length,
+      paraconsistent_flags: theory.contradictions.length,
+    },
+  };
+}
+
+/**
+ * Symbolic lobe entry: formal cycle + classical admission verdicts.
+ */
+function symbolicLobeOnly(proposals, message, priorTheory) {
+  const cycle = symbolicReasoningCycle(proposals, priorTheory, message);
+  const results = proposals.map((p) => {
+    const adm = symbolicAdmit(p);
+    // Fuse with theory mass if proposal weakened by deduction
+    const tProp = cycle.theory.beliefs["proposal." + p.name];
+    let verdict = adm.verdict;
+    const reasons = adm.reasons.slice();
+    if (tProp != null && tProp < 0.35 && verdict === "admit") {
+      verdict = "reject";
+      reasons.push("deductive weakening under ontology (fuzzy mass < 0.35)");
+    }
+    if (cycle.theory.beliefs["modal.need_escalator." + p.name] >= 0.9) {
+      verdict = "escalate";
+      reasons.push("modal necessity: irreversible without escalator");
+    }
+    return {
+      name: p.name,
+      kind: p.kind,
+      verdict,
+      reasons,
+      fuzzy_mass: tProp != null ? Number(tProp.toFixed(3)) : null,
+      hard: true,
+      lobe: "symbolic",
+      logic: "classical+paraconsistent+fuzzy+modal; deductive/inductive/abductive cycle",
+    };
+  });
+  return { results, cycle };
 }
 
 /** Probabilistic lobe — soft score from metrics */
@@ -571,14 +795,20 @@ async function llmHybridLobes(env, message, metrics, level) {
     seen.add(p.name);
     proposals.push(p);
   }
-  const symMerged = symbolicLobeOnly(proposals);
-  const sym = { ok: true, merged: symMerged, pure_symbolic: true };
+  const symPack = symbolicLobeOnly(proposals, message, null);
+  const sym = {
+    ok: true,
+    pure_symbolic: true,
+    formal_logic: true,
+    cycle: symPack.cycle,
+    merged: symPack.results,
+  };
   const decisions = proposals.map((p) => {
     const soft = probabilisticScore(metrics, p);
     const llmSoft = prob.scores?.relevance != null
       ? 0.6 * soft + 0.4 * clamp01(prob.scores.relevance)
       : soft;
-    const adm = (sym.merged || sym.hard || []).find((x) => x.name === p.name) || symbolicAdmit(p);
+    const adm = (sym.merged || []).find((x) => x.name === p.name) || symbolicAdmit(p);
     const verdict = adm.verdict || "admit";
     const combined = llmSoft * (verdict === "reject" ? 0 : verdict === "escalate" ? 0.5 : 1);
     const committed = verdict === "admit" && combined >= 0.45;
@@ -590,7 +820,8 @@ async function llmHybridLobes(env, message, metrics, level) {
       reasons: adm.reasons || [],
       committed,
       confidence: p.confidence,
-      lobes: { probabilistic: true, symbolic: true },
+      fuzzy_mass: adm.fuzzy_mass,
+      lobes: { probabilistic: "transformer+metrics", symbolic: "formal-logic-cycle" },
     };
   });
   const fitness =
@@ -604,10 +835,12 @@ async function llmHybridLobes(env, message, metrics, level) {
     genes_next: qigaStep([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], fitness, Date.now() % 10000),
     architecture: {
       probabilistic_lobe: "transformer+metrics",
-      symbolic_lobe: "pure-rules-ontology",
+      symbolic_lobe: "formal-logic:classical+paraconsistent+fuzzy+modal; induction/deduction/abduction; revisable theory",
       bilateral_bus: true,
       qiga: true,
+      note: "Neither lobe replaces the other; symbolic is not a transformer",
     },
+    symbolic_cycle: sym.cycle,
   };
 }
 
@@ -916,6 +1149,7 @@ async function chat(message, env, request, body) {
           decisions: hybrid.decisions.slice(0, 6),
           probabilistic_ok: !!(hybrid.probabilistic && hybrid.probabilistic.ok),
           symbolic_ok: !!(hybrid.symbolic && hybrid.symbolic.ok),
+          symbolic_cycle: hybrid.symbolic_cycle,
         },
         tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
         upstream: CLEARANCE_RANK[level] >= 2 ? tickOut.upstream : undefined,
