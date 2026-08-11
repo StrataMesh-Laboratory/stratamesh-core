@@ -115,6 +115,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   <div class="nav" id="userNav">
     <button class="active" onclick="showPanel('wallet',this)">Wallet</button>
     <button onclick="showPanel('agora',this)">Agora</button>
+    <button onclick="showPanel('economy',this)">Economy</button>
     <button onclick="showPanel('sandbox',this)">Sandbox</button>
     <button onclick="showPanel('dao',this)">DAO</button>
     <button onclick="showPanel('spa',this)">SPA</button>
@@ -155,6 +156,30 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <div class="order-side"><h4 class="bid">Bids</h4><div id="bidList">No bids</div></div>
       <div class="order-side"><h4 class="ask">Asks</h4><div id="askList">No asks</div></div>
     </div>
+  </div>
+
+
+  <div class="panel" id="panel-economy">
+    <h3>Economy · PoC · Labour · DAOs</h3>
+    <p class="lead">Live CMN meters — market-priced PoC, ACB labour, associative vs corporate DAOs. No faucets.</p>
+    <div style="margin-bottom:1rem">
+      <button type="button" onclick="loadEconomy()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase">Refresh</button>
+      <span id="ecoStatus" style="margin-left:.75rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted)"></span>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="value" id="ecoFogBal">--</div><div class="label">FOG STRATA</div></div>
+      <div class="stat-card"><div class="value" id="ecoAgoraRate">--</div><div class="label">Agora STRATA/EUR</div></div>
+      <div class="stat-card"><div class="value" id="ecoPins">--</div><div class="label">On-chain IPFS pins</div></div>
+      <div class="stat-card"><div class="value" id="ecoListings">--</div><div class="label">ACB listings open</div></div>
+    </div>
+    <h3 style="margin-top:1.5rem;font-size:1.15rem">PoC measurement</h3>
+    <pre id="ecoPoc" style="background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;overflow:auto;max-height:220px;color:var(--muted)">—</pre>
+    <h3 style="margin-top:1.25rem;font-size:1.15rem">Global resource averages (EUR)</h3>
+    <table class="tx-list"><thead><tr><th>Resource</th><th>Avg / unit</th><th>Source</th></tr></thead><tbody id="ecoAvgBody"><tr><td colspan="3" style="color:var(--muted)">—</td></tr></tbody></table>
+    <h3 style="margin-top:1.25rem;font-size:1.15rem">ACB labour market (CMN team)</h3>
+    <table class="tx-list"><thead><tr><th>ACB</th><th>Rate</th><th>Avail</th><th>Jobs</th><th>Rating</th></tr></thead><tbody id="ecoAcbBody"><tr><td colspan="5" style="color:var(--muted)">—</td></tr></tbody></table>
+    <h3 style="margin-top:1.25rem;font-size:1.15rem">DAOs</h3>
+    <table class="tx-list"><thead><tr><th>DAO</th><th>Kind</th><th>Quorum</th><th>Rules</th></tr></thead><tbody id="ecoDaoBody"><tr><td colspan="4" style="color:var(--muted)">—</td></tr></tbody></table>
   </div>
 
   <div class="panel" id="panel-sandbox">
@@ -612,6 +637,84 @@ async function staffAuth(){
     if (btn) btn.disabled = false;
   }
 }
+
+
+const ECO = {
+  token: 'https://stratamesh-token.stratamesh.workers.dev',
+  poc: 'https://stratamesh-poc.stratamesh.workers.dev',
+  agora: 'https://stratamesh-agora.stratamesh.workers.dev',
+  acb: 'https://stratamesh-acb.stratamesh.workers.dev',
+  dao: 'https://stratamesh-dao.stratamesh.workers.dev',
+};
+async function loadEconomy(){
+  const st = document.getElementById('ecoStatus');
+  if(st) st.textContent = 'loading…';
+  try {
+    const [bal, onchain, avg, rate, mkt, daos, infoA, infoC] = await Promise.all([
+      fetch(ECO.token + '/balance?account=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.poc + '/onchain?node_id=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.poc + '/global-avg').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.agora + '/agora/rate?quote=EUR').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.acb + '/acb/marketplace').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.dao + '/dao/list').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.dao + '/dao/info?dao_id=DAO-CMN-ASSOCIATIVE').then(r=>r.json()).catch(()=>({})),
+      fetch(ECO.dao + '/dao/info?dao_id=DAO-CMN-CORPORATE').then(r=>r.json()).catch(()=>({})),
+    ]);
+    const strata = (bal.balances && bal.balances[0] && bal.balances[0].balance) || bal.balance || 0;
+    const el = (id,v)=>{ const n=document.getElementById(id); if(n) n.textContent = v; };
+    el('ecoFogBal', typeof strata==='number' ? strata.toFixed(5) : strata);
+    el('ecoAgoraRate', rate.strata_per_quote != null ? Number(rate.strata_per_quote).toFixed(4) : '—');
+    const pins = onchain.measurement && onchain.measurement.sources && onchain.measurement.sources.ipfs_pins;
+    el('ecoPins', pins ? (pins.count + ' / ' + Number(pins.mb||0).toFixed(4) + ' MB') : '—');
+    const listings = (mkt.listings||[]).filter(x => /AIOPS|ORCH/.test(x.acb_id||''));
+    el('ecoListings', listings.length || (mkt.listings||[]).length || 0);
+    const pocEl = document.getElementById('ecoPoc');
+    if(pocEl) pocEl.textContent = JSON.stringify(onchain.measurement || onchain, null, 2);
+    const avgBody = document.getElementById('ecoAvgBody');
+    if(avgBody){
+      const rows = avg.averages || [];
+      avgBody.innerHTML = rows.length ? rows.map(a =>
+        '<tr><td>'+a.resource_class+'</td><td>'+a.avg_per_unit+' '+a.quote_asset+'</td><td style="font-size:.65rem">'+((a.source||'').slice(0,48))+'</td></tr>'
+      ).join('') : '<tr><td colspan="3">—</td></tr>';
+    }
+    const acbBody = document.getElementById('ecoAcbBody');
+    if(acbBody){
+      const rows = listings.length ? listings : (mkt.listings||[]).slice(0,8);
+      acbBody.innerHTML = rows.length ? rows.map(x =>
+        '<tr><td>'+x.acb_id+'</td><td>'+x.hourly_rate+'</td><td>'+x.availability+'</td><td>'+(x.completed_jobs||0)+'</td><td>'+(x.rating||0)+'</td></tr>'
+      ).join('') : '<tr><td colspan="5">—</td></tr>';
+    }
+    const daoBody = document.getElementById('ecoDaoBody');
+    if(daoBody){
+      const pack = [];
+      for (const info of [infoA, infoC]) {
+        if(info && info.dao){
+          const r = info.rules || {};
+          pack.push('<tr><td>'+info.dao.dao_id+'</td><td>'+info.dao.kind+'</td><td>'+info.dao.quorum+'</td><td style="font-size:.65rem">quotas='+(r.quotas||'?')+'; profit='+r.profit_distribution+'</td></tr>');
+        }
+      }
+      if(!pack.length && daos.daos){
+        daos.daos.forEach(d => pack.push('<tr><td>'+d.dao_id+'</td><td>'+d.kind+'</td><td>'+d.quorum+'</td><td>—</td></tr>'));
+      }
+      daoBody.innerHTML = pack.length ? pack.join('') : '<tr><td colspan="4">—</td></tr>';
+    }
+    if(st) st.textContent = 'updated ' + new Date().toISOString().slice(11,19) + 'Z';
+  } catch(e) {
+    if(st) st.textContent = 'error: ' + (e.message||e);
+  }
+}
+const _showPanel = window.showPanel;
+window.showPanel = function(name, btn){
+  if(typeof _showPanel === 'function') _showPanel(name, btn);
+  else {
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    const panel = document.getElementById('panel-'+name);
+    if(panel) panel.classList.add('active');
+    if(btn) btn.classList.add('active');
+  }
+  if(name==='economy') loadEconomy();
+};
 
 </script>
 <script>

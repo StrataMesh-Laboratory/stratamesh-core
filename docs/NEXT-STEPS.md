@@ -8,6 +8,8 @@
 - Hourly cron: network demand meter sync on `stratamesh-poc`
 
 ## Immediate next
+0. **DONE (lab):** Portal Economy panel + B0 emission policy draft + `scripts/b0_emission_audit.sh`
+
 1. **Portal economy panel** — on-chain measure, Agora rate, labour book, PoC quote
 2. **AIOps tick** — FOG node periodic `/poc/onchain` + optional claim when quality proofs ready
 3. **Global avg feeds** — replace lab proxies with scheduled external resource market averages

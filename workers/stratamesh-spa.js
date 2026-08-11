@@ -204,9 +204,30 @@ function pickLang(request) {
 async function servePortal(request, env, corsHeaders) {
   const lang = pickLang(request);
   const keys = [`portal-${lang}`, lang === 'en' ? 'portal-pt' : 'portal-en', 'portal'];
+  // Prefer chunked site_content (economy portal), then monolithic, then portal worker, then fallback
   try {
     if (env.LEDGER) {
       for (const key of keys) {
+        try {
+          const { results: chunks } = await env.LEDGER.prepare(
+            "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+          ).bind(key).all();
+          if (chunks && chunks.length) {
+            const html = chunks.map((c) => c.value || "").join("");
+            if (html) {
+              return new Response(html, {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  "Content-Type": "text/html; charset=utf-8",
+                  "Cache-Control": "no-cache",
+                  "Content-Language": lang,
+                  "X-Portal-Source": "site_content_chunks",
+                },
+              });
+            }
+          }
+        } catch (_) {}
         const { results } = await env.LEDGER.prepare(
           "SELECT value FROM site_content WHERE key = ? LIMIT 1"
         ).bind(key).all();
@@ -215,20 +236,36 @@ async function servePortal(request, env, corsHeaders) {
             status: 200,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'text/html; charset=utf-8',
-              'Cache-Control': 'no-cache',
-              'Content-Language': lang
-            }
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-cache",
+              "Content-Language": lang,
+              "X-Portal-Source": "site_content",
+            },
           });
         }
       }
     }
   } catch (e) {
-    console.error('LEDGER error:', e);
+    console.error("LEDGER error:", e);
   }
+  try {
+    const pr = await fetch("https://stratamesh-portal.stratamesh.workers.dev/");
+    if (pr.ok) {
+      const html = await pr.text();
+      return new Response(html, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "X-Portal-Source": "stratamesh-portal",
+        },
+      });
+    }
+  } catch (_) {}
   return new Response(fallbackPortal, {
     status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' }
+    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
   });
 }
 

@@ -1,42 +1,40 @@
-# Track B0 — STRATA emission policy (lab)
+# B0 — Emission policy (lab → production freeze path)
 
-**Scope:** Lab / testnet only. Not a securities offering. Not mainnet.
+**Status:** Lab-active, production freeze **pending**  
+**Node:** FOG-NODE-PT-CM-001 · StrataMesh DLT  
 
-## Principles
-1. **Contribution first** — STRATA is minted only from recorded Proof of Contribution credits.
-2. **1:1 lab rate** — default `mint_from_poc(..., rate=1.0)` until governance changes it.
-3. **No free mint** — `POST /token/mint` converts unminted PoC balance only (delta vs current STRATA).
-4. **On-graph** — each mint attaches a `TxType.MINT` DAG transaction.
-5. **Auditability** — balances and mint events are queryable via `/contribution` and `/token`.
+## Sole mint path
+STRATA is minted **only** via Proof of Contribution (PoC):
 
-## PoC credit sources (current lab weights)
-| Action | Typical units | Notes |
-|--------|---------------|--------|
-| validation / submit | 1.0 | per accepted tx path |
-| gossip | 0.2 | per successful gossip reply batch |
-| spa_uptime | 5.0 | on SPA register |
-| pin / acb_work | variable | when wired |
-
-Exact weights live in call sites (`node_persistent`, `acb`) and may be adjusted by DAO proposal later.
-
-## Caps (lab recommendations)
-| Cap | Lab default | Rationale |
-|-----|-------------|-----------|
-| Per-mint rate | 1.0 STRATA / PoC unit | Simple audit |
-| Daily mint per agent | *none enforced* | Add soft cap in B1 |
-| Total supply | *unbounded lab* | Policy freeze before public testnet economics |
-
-## Agora interaction
-- Sells require STRATA balance ≥ order size (settlement).
-- Trades attach `TxType.TRADE` on-graph.
-- Dual-asset markets (STRATA ↔ service credit) deferred to **B1**.
-
-## Audit procedure
-```bash
-cd src
-python3 emission_audit.py --db /path/to/fog.db
-# or against running node:
-python3 emission_audit.py --url http://127.0.0.1:8787
+```
+units_billable (on-graph, incremental)
+  × global_avg_EUR(resource)     // exogenous market average
+  × quality_factor               // audited from evidence, or explicit proof dimensions
+  × agora_strata_per_EUR         // P2P book VWAP — not protocol-set
+  = STRATA credited to contributing node(s)
 ```
 
-Exit criteria for B0: this document + reproducible audit script matching `/token` and `/contribution`.
+## What does **not** mint
+| Mechanism | Role |
+|-----------|------|
+| ACB labour hire | **Transfer** holder → ACB |
+| ACB subsistence | **Debit** ACB balance |
+| Agora trade | Transfer / settlement between parties |
+| DAO treasury deposit/payout | Transfer |
+| Corporate profit distribute | Transfer treasury → partners by capital share |
+| Associative DAO | **Never** distributes profits in STRATA |
+
+## Incremental anti-double-claim
+`poc_rewarded_units` tracks gross billable units already rewarded per `(node_id, contribution_type)`. Re-claims with no new on-graph contribution mint **0**.
+
+## Quality
+- Default: on-chain audit (reliability, usefulness, availability, verifiability)
+- Explicit `quality` or proof dimensions allowed within bounds
+- Premium/discount around par = 1
+
+## Global averages
+Stored in ledger; updated via `POST /poc/global-avg`. Lab uses 2026 market proxies (e.g. object storage EUR/MB-month). Production: scheduled external feeds.
+
+## Audit
+Run `scripts/b0_emission_audit.sh` (or `.mjs`) against live Workers + optional D1 export.  
+Exit criteria for B0 freeze: policy published + reproducible audit shows mint events only from PoC path.
