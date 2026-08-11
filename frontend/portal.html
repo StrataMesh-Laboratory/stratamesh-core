@@ -620,19 +620,30 @@ try{
 async function sendOrchChat(){
   const input=document.getElementById('orchInput');
   const box=document.getElementById('orchChat');
+  const btn=document.getElementById('orchSend');
   if(!input||!box)return;
   const msg=input.value.trim();
   if(!msg)return;
   input.value='';
-  const add=(who,t)=>{const d=document.createElement('div');d.style.marginBottom='10px';d.innerHTML='<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8780;margin-bottom:4px">'+who+'</div><div style="white-space:pre-wrap">'+String(t).replace(/</g,'&lt;')+'</div>';box.appendChild(d);box.scrollTop=box.scrollHeight;};
+  const add=(who,text)=>{const d=document.createElement('div');d.style.marginBottom='10px';d.innerHTML='<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8780;margin-bottom:4px">'+who+'</div><div style="white-space:pre-wrap">'+String(text).replace(/</g,'&lt;')+'</div>';box.appendChild(d);box.scrollTop=box.scrollHeight;};
   add('You',msg);
+  if(btn){btn.disabled=true;btn.textContent='…';}
   try{
-    const t=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
-    const r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({message:msg,token:t})});
-    const j=await r.json();
-    add('Orchestrator', j.reply||j.error||JSON.stringify(j));
-  }catch(e){add('System', String(e.message||e));}
+    const tok=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
+    const ctrl=new AbortController();
+    const timer=setTimeout(function(){ctrl.abort();},25000);
+    const r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:msg,token:tok}),signal:ctrl.signal});
+    clearTimeout(timer);
+    const j=await r.json().catch(function(){return {};});
+    if(!r.ok && !j.reply) add('System', j.error||('HTTP '+r.status));
+    else add('Orchestrator', j.reply||j.error||JSON.stringify(j));
+  }catch(e){
+    add('System', (e&&e.name==='AbortError')?'Timeout — Orchestrator did not answer in time. Try status or open full chat.':String(e.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Send';}
+  }
 }
+window.sendOrchChat=sendOrchChat;
 
 </script>
 <script>

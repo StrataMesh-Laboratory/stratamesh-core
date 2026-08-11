@@ -670,75 +670,67 @@ function federatedMetaUpdate(meta, fitness, symbolicSuperiority) {
  * else XAI_API_KEY → https://api.x.ai/v1/chat/completions;
  * else Workers AI open models as last-resort probabilistic soft scorer only.
  */
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error((label || "op") + " timeout " + ms + "ms")), ms)),
+  ]);
+}
+
 async function runGrokOrFallback(env, messages, opts = {}) {
-  const max_tokens = opts.max_tokens || 400;
+  const max_tokens = opts.max_tokens || 280;
   const temperature = opts.temperature ?? 0.25;
-  const grokModels = [
-    env.GROK_MODEL || "xai/grok-4",
-    "xai/grok-3",
-    "xai/grok-3-mini",
-  ];
-  // Cloudflare Workers AI / AI Gateway unified catalog
-  if (env.AI && typeof env.AI.run === "function") {
-    for (const model of grokModels) {
-      try {
-        const result = await env.AI.run(model, { messages, max_tokens, temperature });
-        const reply =
-          (result && (result.response || result.result || result.text)) ||
-          (typeof result === "string" ? result : null);
-        if (reply && String(reply).trim()) {
-          return { ok: true, text: String(reply).trim(), model, provider: "workers-ai-gateway" };
-        }
-      } catch (_) { /* try next */ }
-    }
-  }
-  // Direct xAI API
+  const perTry = opts.timeout_ms || 4500;
+
+  // 1) Direct xAI API first (fast fail if no key / error)
   const key = env.XAI_API_KEY || env.GROK_API_KEY;
   if (key) {
     try {
-      const model = env.GROK_MODEL || "grok-4";
-      const r = await fetch("https://api.x.ai/v1/chat/completions", {
+      const model = String(env.GROK_MODEL || "grok-3-mini").replace(/^xai\//, "");
+      const r = await withTimeout(fetch("https://api.x.ai/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + key,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: String(model).replace(/^xai\//, ""),
-          messages,
-          max_tokens,
-          temperature,
-        }),
-      });
+        body: JSON.stringify({ model, messages, max_tokens, temperature }),
+      }), perTry, "xai");
       const data = await r.json();
       const text = data?.choices?.[0]?.message?.content;
       if (r.ok && text) {
         return { ok: true, text: String(text).trim(), model, provider: "xai-api" };
       }
-      return { ok: false, error: data?.error?.message || ("xAI HTTP " + r.status) };
     } catch (e) {
-      return { ok: false, error: String(e.message || e) };
+      /* fall through */
     }
   }
-  // Last resort: open CF models (probabilistic soft path only — not symbolic)
+
+  // 2) Workers AI — only open models (xai/* catalog often hangs when unbound)
   if (env.AI && typeof env.AI.run === "function") {
-    for (const model of ["@cf/meta/llama-3.2-3b-instruct", "@cf/mistral/mistral-7b-instruct-v0.2"]) {
+    const models = [
+      "@cf/meta/llama-3.1-8b-instruct",
+      "@cf/meta/llama-3.2-3b-instruct",
+      "@cf/mistral/mistral-7b-instruct-v0.2",
+    ];
+    for (const model of models) {
       try {
-        const result = await env.AI.run(model, { messages, max_tokens, temperature });
+        const result = await withTimeout(
+          env.AI.run(model, { messages, max_tokens, temperature }),
+          perTry,
+          model
+        );
         const reply =
           (result && (result.response || result.result || result.text)) ||
           (typeof result === "string" ? result : null);
         if (reply && String(reply).trim()) {
-          return { ok: true, text: String(reply).trim(), model, provider: "workers-ai-fallback" };
+          return { ok: true, text: String(reply).trim(), model, provider: "workers-ai" };
         }
-      } catch (_) {}
+      } catch (_) { /* next */ }
     }
   }
-  return { ok: false, error: "No Grok/xAI path and no Workers AI fallback" };
+
+  return { ok: false, error: "No LLM path available within timeout (xAI key / Workers AI)" };
 }
-
-
-const LOBE_STATE_KEY = "cmn_orchestrator_lobe_state_v1";
 
 async function ensureLobeStateTable(env) {
   if (!env.AUTH_DB) return false;
@@ -1295,7 +1287,13 @@ async function chat(message, env, request, body) {
 
   const cleared = await resolveAccountClearance(request, env, body || {});
   const level = cleared.level;
-  const tickOut = await tick(env);
+  let tickOut;
+  try {
+    tickOut = await withTimeout(tick(env), 5000, "tick");
+  } catch (e) {
+    tickOut = { tick: { fitness: 0, metrics: {}, error: String(e.message || e) }, upstream: {} };
+  }
+
 
 
   // Soft aliases: natural language must not fake gated run
@@ -1333,14 +1331,25 @@ async function chat(message, env, request, body) {
   }
 
   const preferDeterministic =
-    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim()) ||
-    /\b(acb|aiops|spa)\b/i.test(text) ||
+    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|ol[aá]|hello|hi|hey|bom dia|boa tarde|boa noite)$/i.test(text.trim()) ||
+    /\b(acb|aiops|spa|strata|stramesh|stratamesh|poc|agora|n[oó])\b/i.test(text) ||
     /seres? computacion|autonomous computational|o que (são|sao|é|e) os? (acb|aiops)/i.test(text) ||
-    /what (are|is) (an? )?(acb|aiops|spa)/i.test(text);
+    /what (are|is) (an? )?(acb|aiops|spa)/i.test(text) ||
+    text.trim().split(/\s+/).length <= 3;
 
   if (!preferDeterministic) {
-    const hybrid = await llmHybridLobes(env, text, tickOut.tick.metrics, level);
-    const ai = await chatWithAI(text, tickOut, env, level, hybrid);
+    let hybrid = { architecture: "hybrid", fitness: 0, decisions: [], probabilistic: { ok: false }, symbolic: { ok: false } };
+    let ai = { ok: false, error: "skipped" };
+    try {
+      hybrid = await withTimeout(llmHybridLobes(env, text, tickOut.tick.metrics, level), 6000, "hybrid");
+    } catch (e) {
+      hybrid = { architecture: "hybrid-timeout", fitness: (tickOut.tick && tickOut.tick.fitness) || 0, decisions: [], probabilistic: { ok: false }, symbolic: { ok: false }, error: String(e.message || e) };
+    }
+    try {
+      ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid), 8000, "chatWithAI");
+    } catch (e) {
+      ai = { ok: false, error: String(e.message || e) };
+    }
     if (ai.ok) {
       return {
         reply: ai.reply,
