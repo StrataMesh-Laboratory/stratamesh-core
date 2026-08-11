@@ -95,22 +95,55 @@ async function gatherMetrics(env) {
   const authUrl = env.AUTH_URL || "https://stratamesh-auth.stratamesh.workers.dev/health";
   const aiopsUrl = env.AIOPS_URL || "https://stratamesh-aiops.stratamesh.workers.dev/cycle";
 
-  const [status, auth, aiops] = await Promise.all([
-    probe(statusUrl),
-    probe(authUrl),
-    probe(aiopsUrl),
-  ]);
+  async function viaBinding(binding, url) {
+    if (!binding || typeof binding.fetch !== "function") return null;
+    try {
+      const r = await binding.fetch(new Request(url, { method: "GET", headers: { Accept: "application/json" } }));
+      const text = await r.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 200) }; }
+      return { ok: r.ok, status: r.status, data };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  let status = await viaBinding(env.STATUS, statusUrl);
+  let auth = await viaBinding(env.AUTH, authUrl);
+  let aiops = await viaBinding(env.AIOPS, aiopsUrl);
+
+  if (!status) status = await probe(statusUrl);
+  if (!auth) auth = await probe(authUrl);
+  if (!aiops) aiops = await probe(aiopsUrl);
+
+  // Status worker sometimes nests under different shapes
+  const sd = status.data || {};
+  const dag = sd.dag || sd.DAG || {};
+  const spa = sd.spa || {};
+  const token = sd.token || {};
+  const agora = sd.agora || {};
 
   const metrics = {
     task_success_rate: status.ok ? 0.78 : 0.4,
     task_cost: 0.18,
     explore_rate: 0.32,
-    dag_txs: status.data?.dag?.transaction_count ?? 0,
-    spa_active: status.data?.spa?.active ?? 0,
-    auth_ok: auth.ok,
-    aiops_ok: aiops.ok && aiops.data?.ok !== false,
-    version: status.data?.version || null,
-    phase: status.data?.phase || null,
+    dag_txs: dag.transaction_count ?? dag.txs ?? 0,
+    spa_active: spa.active ?? 0,
+    spa_total: spa.total ?? 0,
+    token_supply: token.total_supply ?? token.balance ?? 0,
+    agora_trades: agora.trades ?? 0,
+    auth_ok: !!(auth && auth.ok),
+    auth_users: auth?.data?.checks?.database?.users ?? null,
+    auth_sessions: auth?.data?.checks?.sessions?.active ?? null,
+    aiops_ok: !!(aiops && aiops.ok && aiops.data?.ok !== false),
+    aiops_critical: aiops?.data?.summary?.critical ?? null,
+    version: sd.version || sd.node_version || null,
+    phase: sd.phase || null,
+    phase_name: sd.phase_name || null,
+    node_id: sd.node_id || "FOG-NODE-PT-CM-001",
+    operator: sd.operator || "André Manuel Calhegas Morais",
+    temp_mode: !!(sd.temp_mode || (sd.version && String(sd.version).includes("temp"))),
+    source: sd.source || null,
   };
 
   return { metrics, status, auth, aiops };
@@ -192,35 +225,85 @@ async function chat(message, env) {
   const lower = text.toLowerCase();
   const lines = [];
 
-  lines.push(`Orchestrator ${VERSION} · bilateral bus`);
+  lines.push("Orchestrator " + VERSION + " · bilateral bus (edge twin)");
   lines.push(
-    `Fitness ${tickOut.tick.fitness} · phase=${m.phase} · version=${m.version} · DAG txs=${m.dag_txs}`
+    "Node " + (m.node_id || "?") +
+    " · phase " + (m.phase ?? "?") +
+    (m.phase_name ? " (" + m.phase_name + ")" : "") +
+    " · " + (m.version || "version unknown")
   );
 
-  if (/status|estado|health|tick/.test(lower)) {
+  if (/status|estado|health|tick|métrica|metrica|pulse|pulso/.test(lower)) {
+    lines.push(
+      "Upstream: status=" + (tickOut.upstream.status.ok ? "ok" : "down") +
+      " auth=" + (tickOut.upstream.auth.ok ? "ok" : "down") +
+      " aiops=" + (tickOut.upstream.aiops.ok ? "ok" : "down")
+    );
+    lines.push(
+      "DAG txs=" + m.dag_txs +
+      " · SPA active/total=" + m.spa_active + "/" + m.spa_total +
+      " · STRATA supply=" + m.token_supply +
+      " · Agora trades=" + m.agora_trades
+    );
+    if (m.auth_users != null) {
+      lines.push("Auth users=" + m.auth_users + " · sessions=" + m.auth_sessions);
+    }
+    if (m.temp_mode) lines.push("Mode: TEMP pulse — promote to always-on Fog when ready.");
+    if (m.source) lines.push("Status source: " + String(m.source).slice(0, 120));
+    lines.push("Tick fitness=" + tickOut.tick.fitness);
     for (const d of tickOut.tick.decisions) {
       lines.push(
-        `${d.proposal}: ${d.verdict} soft=${d.soft_score} committed=${d.committed}`
+        "  " + d.proposal + ": " + d.verdict +
+        " soft=" + d.soft_score +
+        " committed=" + d.committed
       );
     }
-  } else if (/next|próxim|roadmap|action/.test(lower)) {
-    lines.push(
-      m.version && String(m.version).includes("temp")
-        ? "Priority: migrate Fog temp → always-on host + publish_loop"
-        : "Priority: multi-host gossip + Kubo pins"
-    );
-    lines.push("Secondary: SPA fog/pinner registration if active=0");
-  } else if (/ontol|substrat|chauvin|função|funcao/.test(lower)) {
-    lines.push(`Standing: ${ONTOLOGY.standing}`);
-    lines.push("Symbolic lobe rejects deny_computational_agents proposals.");
-  } else if (/qiga|gene|evolv/.test(lower)) {
-    lines.push(`Genes: ${tickOut.tick.genes_next.join(", ")}`);
-  } else {
-    lines.push("Tick complete. Committed proposals:");
-    for (const d of tickOut.tick.decisions.filter((x) => x.committed)) {
-      lines.push(`· ${d.proposal}`);
+  } else if (/next|próxim|proxim|roadmap|fazer|todo|priorid/.test(lower)) {
+    if (m.temp_mode) {
+      lines.push("P1 DevOps: migrate Fog from TEMP session → MacBook/Oracle always-on + publish_loop.");
+    } else {
+      lines.push("P1 DevOps: keep publish_loop + AIOps continuous loop healthy.");
     }
-    lines.push('Ask "status", "next", "ontology", or "qiga" for detail.');
+    if ((m.spa_active || 0) < 1) {
+      lines.push("P2 Mesh: register fog/pinner SPA — active SPAs is currently " + m.spa_active + ".");
+    }
+    lines.push("P3 Mesh: real Kubo pins + multi-host gossip.");
+    lines.push("P4 Economy: lab emission remains capped until B0 production freeze.");
+  } else if (/ontol|substrat|chauvin|função|funcao|standing/.test(lower)) {
+    lines.push("Symbolic lobe rule (Orchestrator only — not a node motto):");
+    lines.push("  Standing by function and agreement, not substrate.");
+    lines.push("Proposals that deny computational agents are rejected.");
+    lines.push("Irreversible actions require escalator_class.");
+  } else if (/qiga|gene|evolv|aiga/.test(lower)) {
+    lines.push("QIGA genes (edge step): " + tickOut.tick.genes_next.join(", "));
+    lines.push("Fitness this tick: " + tickOut.tick.fitness);
+  } else if (/aiops|equipa|team|agent/.test(lower)) {
+    lines.push(
+      "AIOps cycle reachable: " + (m.aiops_ok ? "yes" : "no") +
+      (m.aiops_critical != null ? (" · critical=" + m.aiops_critical) : "")
+    );
+    lines.push("Agents: devops, security, analysis, mesh, economy (continuous mandate).");
+  } else if (/agora|token|strata|econom/.test(lower)) {
+    lines.push("STRATA supply=" + m.token_supply + " · Agora trades=" + m.agora_trades);
+    lines.push("Emission policy: lab-capped until production freeze.");
+  } else if (/help|ajuda|\?/.test(lower)) {
+    lines.push("Commands: status · next · ontology · qiga · aiops · agora");
+    lines.push("Or ask freely — replies use the latest bilateral tick + live probes.");
+  } else {
+    // Default: short briefing, not the empty "tick complete" loop
+    lines.push(
+      "Live: DAG=" + m.dag_txs +
+      " SPA=" + m.spa_active +
+      " auth=" + (m.auth_ok ? "ok" : "down") +
+      (m.temp_mode ? " · TEMP mode" : "")
+    );
+    const committed = tickOut.tick.decisions.filter((d) => d.committed).map((d) => d.proposal);
+    lines.push("Committed this tick: " + (committed.join(", ") || "none"));
+    if (m.temp_mode) {
+      lines.push('Suggestion: ask "next" for ordered actions toward always-on Fog.');
+    } else {
+      lines.push('Suggestion: ask "status" for full metrics or "aiops" for team cycle.');
+    }
   }
 
   return {
@@ -229,88 +312,9 @@ async function chat(message, env) {
     version: VERSION,
     source: "hybrid-edge-tick",
     tick: tickOut.tick,
+    upstream: tickOut.upstream,
   };
 }
-
-
-const CHAT_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Orchestrator · StrataMesh</title>
-<style>
-:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--accent:#c4b5a0;--card:#111113;--ok:#9caf88}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;display:flex;flex-direction:column}
-header{padding:1rem 1.25rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
-header h1{font-size:1rem;font-weight:500;letter-spacing:.04em}
-header span{font-size:.7rem;color:var(--muted);font-family:ui-monospace,monospace}
-#log{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;max-width:720px;width:100%;margin:0 auto}
-.msg{font-size:.9rem;line-height:1.5;white-space:pre-wrap}
-.msg .who{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.25rem;font-family:ui-monospace,monospace}
-.msg.user .who{color:#93c5fd}
-.msg.orch .who{color:var(--ok)}
-.msg.sys{color:var(--muted);font-size:.8rem}
-footer{border-top:1px solid var(--line);padding:1rem 1.25rem;max-width:720px;width:100%;margin:0 auto}
-form{display:flex;gap:.5rem}
-input{flex:1;background:var(--card);border:1px solid var(--line);color:var(--fg);padding:.75rem 1rem;border-radius:4px;font-size:.9rem}
-input:focus{outline:none;border-color:var(--accent)}
-button{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:.75rem 1.1rem;border-radius:4px;cursor:pointer;font-size:.8rem;letter-spacing:.06em}
-button:hover{background:rgba(196,181,160,.08)}
-button:disabled{opacity:.4;cursor:wait}
-a{color:var(--accent);font-size:.7rem}
-</style>
-</head>
-<body>
-<header>
-  <h1>Orchestrator</h1>
-  <span id="ver">hybrid-edge</span>
-</header>
-<div id="log">
-  <div class="msg sys">Hybrid Orchestrator chat — Calhegas Morais Fog Node. Try: status · next · ontology · qiga</div>
-</div>
-<footer>
-  <form id="f">
-    <input id="q" autocomplete="off" placeholder="Message the Orchestrator…" autofocus>
-    <button type="submit" id="go">Send</button>
-  </form>
-  <p style="margin-top:.75rem"><a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard">← Portal</a></p>
-</footer>
-<script>
-const log=document.getElementById('log');
-const q=document.getElementById('q');
-const go=document.getElementById('go');
-function add(role,text){
-  const d=document.createElement('div');
-  d.className='msg '+role;
-  const who=role==='user'?'You':role==='orch'?'Orchestrator':'';
-  d.innerHTML=(who?'<div class="who">'+who+'</div>':'')+String(text).replace(/</g,'&lt;');
-  log.appendChild(d);
-  log.scrollTop=log.scrollHeight;
-}
-document.getElementById('f').onsubmit=async(e)=>{
-  e.preventDefault();
-  const msg=q.value.trim();
-  if(!msg)return;
-  q.value='';
-  add('user',msg);
-  go.disabled=true;
-  try{
-    const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
-    const j=await r.json();
-    if(j.version) document.getElementById('ver').textContent=j.version;
-    add('orch', j.reply||j.error||JSON.stringify(j));
-  }catch(err){
-    add('sys','Error: '+(err.message||err));
-  }finally{
-    go.disabled=false;
-    q.focus();
-  }
-};
-</script>
-</body>
-</html>`;
 
 export default {
   async fetch(request, env) {
