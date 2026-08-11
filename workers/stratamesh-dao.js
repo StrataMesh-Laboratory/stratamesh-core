@@ -193,7 +193,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.5.2-pin-consume',
+          version: '4.0.0-associative-corporate',
           clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
@@ -492,27 +492,90 @@ export default {
         return j({ success: true, template: 'enterprise', roles, actor: { clearance: actor.clearance, authenticated: actor.authenticated, email: actor.email }, note: 'Clearance from session; cannot self-elevate' });
       }
 
+
+      // ensure DAO registry schema
+      try {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS daos (
+          dao_id TEXT PRIMARY KEY,
+          kind TEXT NOT NULL,
+          name TEXT NOT NULL,
+          template TEXT,
+          quorum REAL,
+          treasury_account TEXT,
+          status TEXT DEFAULT 'active',
+          meta TEXT,
+          created_at TEXT
+        )`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS dao_members (
+          dao_id TEXT,
+          member_id TEXT,
+          role TEXT DEFAULT 'member',
+          weight REAL DEFAULT 1,
+          status TEXT DEFAULT 'active',
+          joined_at TEXT,
+          PRIMARY KEY (dao_id, member_id)
+        )`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS dao_treasury_events (
+          id TEXT PRIMARY KEY,
+          dao_id TEXT,
+          kind TEXT,
+          account TEXT,
+          amount REAL,
+          meta TEXT,
+          created_at TEXT
+        )`).run();
+      } catch (_) {}
+
       // --- Foundational / Enterprise / Consortium templates ---
       if (path === '/dao/templates' || path === '/dao/template') {
         const TEMPLATES = {
+          associative: {
+            id: 'associative',
+            kind: 'associative',
+            name: 'Associative DAO',
+            scope: 'member_cooperative_open_or_curated_membership',
+            quorum: 0.51,
+            vote: 'one_member_one_vote',
+            roles: ['member', 'delegate', 'secretary'],
+            features: ['open_join', 'equal_vote', 'spa_collective', 'republic_compatible'],
+            membership: 'associative_join',
+            whitepaper: 'polycentric community / ACB republic style governance',
+          },
+          corporate: {
+            id: 'corporate',
+            kind: 'corporate',
+            name: 'Corporate DAO',
+            scope: 'enterprise_rbac_treasury_compliance',
+            quorum: 0.67,
+            vote: 'role_weighted_or_share_class',
+            roles: ['admin', 'operator', 'auditor', 'member'],
+            features: ['rbac', 'treasury', 'audit_log', 'compliance_reports', 'clearance_gates'],
+            membership: 'invite_or_clearance',
+            whitepaper: 'enterprise private governance with treasury controls',
+          },
           foundational: {
             id: 'foundational',
+            kind: 'associative',
             name: 'Foundational DAO',
             scope: 'protocol_parameters_spa_standards_emission_policy',
             quorum: 0.51,
             roles: ['node_operator', 'spa_provider', 'delegate'],
             can_certify: ['finality_modules', 'spa_templates', 'emission_schedule'],
+            alias_of: 'associative',
           },
           enterprise: {
             id: 'enterprise',
+            kind: 'corporate',
             name: 'Enterprise DAO Template',
             scope: 'private_consortium_rbac_treasury_compliance',
             quorum: 0.67,
             roles: ['admin', 'operator', 'auditor', 'member'],
             features: ['rbac', 'treasury', 'audit_log', 'compliance_reports'],
+            alias_of: 'corporate',
           },
           consortium: {
             id: 'consortium',
+            kind: 'corporate',
             name: 'Consortium DAO Template',
             scope: 'multi_org_shared_governance',
             quorum: 0.6,
@@ -524,6 +587,255 @@ export default {
         if (id && TEMPLATES[id]) return j({ success: true, template: TEMPLATES[id] });
         return j({ success: true, templates: Object.values(TEMPLATES), whitepaper: 'polycentric meta-layer DAOs' });
       }
+
+
+      // --- Associative & Corporate DAO instances ---
+      if ((path === '/dao/create' || path === '/dao/register') && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
+        const data = await request.json().catch(() => ({}));
+        let kind = (data.kind || data.type || 'associative').toLowerCase();
+        if (kind === 'foundational' || kind === 'community' || kind === 'republic') kind = 'associative';
+        if (kind === 'enterprise' || kind === 'company') kind = 'corporate';
+        if (!['associative', 'corporate', 'consortium'].includes(kind)) {
+          return j({ error: 'kind must be associative|corporate|consortium' }, 400);
+        }
+        const dao_id = data.dao_id || data.id || 'DAO-' + crypto.randomUUID().slice(0, 10);
+        const name = data.name || (kind + ' DAO');
+        const template = data.template || kind;
+        const quorum = Number(data.quorum != null ? data.quorum : kind === 'associative' ? 0.51 : 0.67);
+        const treasury_account = data.treasury_account || ('treasury:' + dao_id);
+        const founder = (actor.authenticated && actor.user_id) || data.founder || data.member_id || 'FOG-NODE-PT-CM-001';
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO daos (dao_id, kind, name, template, quorum, treasury_account, status, meta, created_at)
+             VALUES (?,?,?,?,?,?,'active',?, datetime('now'))`
+          )
+          .bind(dao_id, kind, name, template, quorum, treasury_account, JSON.stringify(data.meta || {}))
+          .run();
+        const founder_role = kind === 'associative' ? 'member' : 'admin';
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+             VALUES (?,?,?,?, 'active', datetime('now'))`
+          )
+          .bind(dao_id, founder, founder_role, kind === 'corporate' ? 1 : 1)
+          .run();
+        try {
+          await db
+            .prepare(
+              "INSERT OR IGNORE INTO token_balances (account, token_type, balance, total_minted, total_burned) VALUES (?, 'STRATA', 0, 0, 0)"
+            )
+            .bind(treasury_account)
+            .run();
+        } catch (_) {}
+        const dag = await dagAnchor(env, { type: 'dao_create', dao_id, kind, name, founder });
+        return j({
+          success: true,
+          dao: { dao_id, kind, name, template, quorum, treasury_account, founder, founder_role },
+          dag_vertex: dag.vertex_id || null,
+        });
+      }
+
+      if (path === '/dao/list' || path === '/dao/daos') {
+        const kind = url.searchParams.get('kind');
+        let rows;
+        if (kind) {
+          rows = await db.prepare('SELECT * FROM daos WHERE kind = ? ORDER BY created_at DESC LIMIT 50').bind(kind).all();
+        } else {
+          rows = await db.prepare('SELECT * FROM daos ORDER BY created_at DESC LIMIT 50').all();
+        }
+        return j({ success: true, daos: rows.results || [] });
+      }
+
+      if (path === '/dao/get' || (path.startsWith('/dao/') && path.split('/').length === 3 && !['health','spa','proposal','vote','proposals','status','templates','template','execute','compliance','rbac','roles','create','register','list','daos','join','members','treasury','bootstrap'].includes(path.split('/')[2]))) {
+        // optional - skip fragile path
+      }
+
+      if (path === '/dao/info' && request.method === 'GET') {
+        const dao_id = url.searchParams.get('dao_id') || url.searchParams.get('id');
+        if (!dao_id) return j({ error: 'dao_id required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'not found' }, 404);
+        const members = await db.prepare('SELECT * FROM dao_members WHERE dao_id = ? AND status = ?').bind(dao_id, 'active').all();
+        let treasury = 0;
+        try {
+          const tr = await db
+            .prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+            .bind(dao.treasury_account)
+            .first();
+          treasury = tr ? Number(tr.balance) : 0;
+        } catch (_) {}
+        return j({ success: true, dao, members: members.results || [], treasury_strata: treasury });
+      }
+
+      // Associative open join / corporate invite
+      if (path === '/dao/join' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        const data = await request.json().catch(() => ({}));
+        const dao_id = data.dao_id;
+        const member_id = (actor.authenticated && actor.user_id) || data.member_id || data.account;
+        if (!dao_id || !member_id) return j({ error: 'dao_id and member_id required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'dao not found' }, 404);
+        if (dao.kind === 'associative') {
+          // open join for associative (lab: any authenticated or named member)
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+               VALUES (?,?, 'member', 1, 'active', datetime('now'))`
+            )
+            .bind(dao_id, member_id)
+            .run();
+          const dag = await dagAnchor(env, { type: 'dao_join', dao_id, member_id, kind: 'associative' });
+          return j({ success: true, dao_id, member_id, role: 'member', kind: 'associative', dag_vertex: dag.vertex_id || null });
+        }
+        // corporate: requires clearance internal+ and optional inviter admin
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
+        const role = data.role || 'member';
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+             VALUES (?,?,?,?, 'active', datetime('now'))`
+          )
+          .bind(dao_id, member_id, role, Number(data.weight || 1))
+          .run();
+        const dag = await dagAnchor(env, { type: 'dao_join', dao_id, member_id, kind: 'corporate', role });
+        return j({ success: true, dao_id, member_id, role, kind: 'corporate', dag_vertex: dag.vertex_id || null });
+      }
+
+      if (path === '/dao/members') {
+        const dao_id = url.searchParams.get('dao_id');
+        if (!dao_id) return j({ error: 'dao_id required' }, 400);
+        const rows = await db.prepare('SELECT * FROM dao_members WHERE dao_id = ?').bind(dao_id).all();
+        return j({ success: true, dao_id, members: rows.results || [] });
+      }
+
+      // Corporate treasury: deposit (transfer in) / payout (admin)
+      if (path === '/dao/treasury' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        const data = await request.json().catch(() => ({}));
+        const dao_id = data.dao_id;
+        const action = (data.action || 'deposit').toLowerCase();
+        const amount = Number(data.amount || 0);
+        if (!dao_id || !(amount > 0)) return j({ error: 'dao_id and amount > 0 required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'dao not found' }, 404);
+        if (dao.kind === 'associative' && action === 'payout' && !requireRank(actor, 'confidential')) {
+          return j(deny(actor, 'confidential'), 403);
+        }
+        if (dao.kind === 'corporate' && !requireRank(actor, action === 'payout' ? 'secret' : 'internal')) {
+          return j(deny(actor, action === 'payout' ? 'secret' : 'internal'), 403);
+        }
+        const from = data.from || data.account || (actor.authenticated && actor.user_id) || 'FOG-NODE-PT-CM-001';
+        const to = action === 'deposit' ? dao.treasury_account : data.to || from;
+        const payer = action === 'deposit' ? from : dao.treasury_account;
+        const payee = action === 'deposit' ? dao.treasury_account : to;
+        // transfer via balance update
+        try {
+          const bal = await db
+            .prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+            .bind(payer)
+            .first();
+          if (!bal || Number(bal.balance) < amount) {
+            return j({ error: 'insufficient_STRATA', account: payer, needed: amount }, 402);
+          }
+          await db
+            .prepare(`UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')`)
+            .bind(amount, payer)
+            .run();
+          await db
+            .prepare(
+              `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+               VALUES (?, 'STRATA', ?, 0, 0)
+               ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+            )
+            .bind(payee, amount)
+            .run();
+        } catch (e) {
+          return j({ error: String(e.message || e) }, 500);
+        }
+        await db
+          .prepare(
+            `INSERT INTO dao_treasury_events (id, dao_id, kind, account, amount, meta, created_at)
+             VALUES (?,?,?,?,?,?, datetime('now'))`
+          )
+          .bind(crypto.randomUUID(), dao_id, action, payee, amount, JSON.stringify({ from: payer, to: payee }))
+          .run();
+        const dag = await dagAnchor(env, { type: 'dao_treasury', dao_id, action, amount, payer, payee });
+        return j({ success: true, dao_id, action, amount, dag_vertex: dag.vertex_id || null });
+      }
+
+      if (path === '/dao/bootstrap' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        // Create CMN associative (AIOps/community) + corporate (node ops) if missing
+        const created = [];
+        for (const spec of [
+          {
+            dao_id: 'DAO-CMN-ASSOCIATIVE',
+            kind: 'associative',
+            name: 'Calhegas Morais Associative DAO',
+            meta: { team: 'aiops-dev', realm: 'realm_1f20890b' },
+          },
+          {
+            dao_id: 'DAO-CMN-CORPORATE',
+            kind: 'corporate',
+            name: 'Calhegas Morais Corporate DAO',
+            meta: { host_node: 'FOG-NODE-PT-CM-001', clearance: true },
+          },
+        ]) {
+          const exists = await db.prepare('SELECT dao_id FROM daos WHERE dao_id = ?').bind(spec.dao_id).first();
+          if (exists) {
+            created.push({ dao_id: spec.dao_id, existed: true });
+            continue;
+          }
+          const treasury = 'treasury:' + spec.dao_id;
+          await db
+            .prepare(
+              `INSERT INTO daos (dao_id, kind, name, template, quorum, treasury_account, status, meta, created_at)
+               VALUES (?,?,?,?,?,?,'active',?, datetime('now'))`
+            )
+            .bind(
+              spec.dao_id,
+              spec.kind,
+              spec.name,
+              spec.kind,
+              spec.kind === 'associative' ? 0.51 : 0.67,
+              treasury,
+              JSON.stringify(spec.meta)
+            )
+            .run();
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+               VALUES (?,?,?,?, 'active', datetime('now'))`
+            )
+            .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', spec.kind === 'associative' ? 'member' : 'admin', 1)
+            .run();
+          // seed associative with ACB team as members
+          if (spec.kind === 'associative') {
+            for (const m of [
+              'ACB-ORCH-CMN-001',
+              'ACB-AIOPS-devops',
+              'ACB-AIOPS-security',
+              'ACB-AIOPS-analysis',
+              'ACB-AIOPS-mesh',
+              'ACB-AIOPS-economy',
+            ]) {
+              await db
+                .prepare(
+                  `INSERT OR IGNORE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+                   VALUES (?,?, 'member', 1, 'active', datetime('now'))`
+                )
+                .bind(spec.dao_id, m)
+                .run();
+            }
+          }
+          created.push({ dao_id: spec.dao_id, kind: spec.kind, created: true });
+        }
+        return j({ success: true, bootstrapped: created });
+      }
+
 
       if (path === '/dao/proposal' && request.method === 'POST') {
         const actor = await resolveActor(request, env);
@@ -703,7 +1015,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.5.2-pin-consume' });
+        return j({ success: true, status: 'operational', active_spas, version: '4.0.0-associative-corporate' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);

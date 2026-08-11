@@ -209,7 +209,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.1.0-wake-pulse',
+          version: '5.2.1-ops',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -327,6 +327,84 @@ export default {
           });
         }
         return j({ success: true, bootstrapped: all, environment: CMN_TEAM });
+      }
+
+
+      // Operational cycle: Orchestrator redistributes earned STRATA to team (transfers only)
+      if ((path === '/acb/team/ops-cycle' || path === '/team/ops-cycle') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const lead = body.lead || CMN_TEAM.lead;
+        const per_agent = Number(body.per_agent != null ? body.per_agent : 0.01);
+        const pulse_cost = Number(body.pulse_cost != null ? body.pulse_cost : 0);
+        const leadBal = await getStrata(db, lead);
+        const results = [];
+        // Ensure listings available for CMN team
+        for (const id of [CMN_TEAM.lead, ...CMN_TEAM.agents]) {
+          try {
+            await db
+              .prepare("UPDATE acb_marketplace SET availability = 'available' WHERE acb_id = ? AND availability IN ('busy','hibernated')")
+              .bind(id)
+              .run();
+          } catch (_) {}
+          try {
+            await db.prepare("UPDATE acb_registry SET status = 'active' WHERE id = ? AND upper(status) = 'HIBERNATED'").bind(id).run();
+          } catch (_) {}
+        }
+        // Top-up agents below threshold from lead earned balance
+        if (per_agent > 0 && leadBal > per_agent) {
+          for (const id of CMN_TEAM.agents) {
+            const bal = await getStrata(db, id);
+            if (bal >= per_agent) {
+              results.push({ acb_id: id, topped_up: false, balance: bal });
+              continue;
+            }
+            const need = Math.min(per_agent - bal, leadBal * 0.2); // cap 20% of lead per agent per cycle
+            if (need <= 0 || (await getStrata(db, lead)) < need) {
+              results.push({ acb_id: id, topped_up: false, balance: bal, reason: 'lead_insufficient' });
+              continue;
+            }
+            try {
+              const b = await transferStrata(db, lead, id, need);
+              await db.prepare("UPDATE acb_registry SET status = 'active', last_action = 'ops_topup' WHERE id = ?").bind(id).run();
+              results.push({ acb_id: id, topped_up: true, amount: need, balances: b });
+            } catch (e) {
+              results.push({ acb_id: id, error: String(e.message || e) });
+            }
+          }
+        }
+        // Pulse all
+        const pulses = [];
+        for (const id of [lead, ...CMN_TEAM.agents]) {
+          const cost = pulse_cost;
+          const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(id).first();
+          if (!acb) {
+            pulses.push({ acb_id: id, error: 'missing' });
+            continue;
+          }
+          let sub = null;
+          if (cost > 0) {
+            const bal = await getStrata(db, id);
+            if (bal >= cost) {
+              const after = await debitStrata(db, id, cost);
+              await db.prepare("UPDATE acb_registry SET last_action = 'ops_pulse', balance = ?, status = 'active' WHERE id = ?").bind(after, id).run();
+              sub = { cost, balance: after };
+            } else {
+              sub = { skipped: true, balance: bal };
+            }
+          } else {
+            await db.prepare("UPDATE acb_registry SET last_action = 'ops_pulse', status = 'active' WHERE id = ?").bind(id).run();
+          }
+          pulses.push({ acb_id: id, balance: await getStrata(db, id), subsistence: sub, environment: await getEnvironment(db, id) });
+        }
+        return j({
+          success: true,
+          version: '5.2.1-ops',
+          lead,
+          lead_balance_after: await getStrata(db, lead),
+          topups: results,
+          pulses,
+          economics: 'Top-ups are transfers from Orchestrator earned STRATA — zero mint',
+        });
       }
 
       if (path === '/acb/team') {
@@ -561,25 +639,26 @@ export default {
           .bind(body.result_cid || null, rating, contract_id)
           .run();
         try {
+          const listing = await db.prepare('SELECT * FROM acb_marketplace WHERE listing_id = ?').bind(c.listing_id).first();
+          const prevJobs = Number(listing?.completed_jobs || 0);
+          const prevRating = Number(listing?.rating || 0);
+          let newRating = prevRating;
+          if (rating != null && Number.isFinite(rating)) {
+            newRating = prevJobs <= 0 ? rating : (prevRating * prevJobs + rating) / (prevJobs + 1);
+          }
           await db
             .prepare(
-              `UPDATE acb_marketplace SET
-                 availability = 'available',
-                 completed_jobs = COALESCE(completed_jobs,0) + 1,
-                 rating = CASE
-                   WHEN ? IS NULL THEN rating
-                   WHEN COALESCE(completed_jobs,0) = 0 THEN ?
-                   ELSE (COALESCE(rating,0) * COALESCE(completed_jobs,0) + ?) / (COALESCE(completed_jobs,0) + 1)
-                 END
-               WHERE listing_id = ?`
+              `UPDATE acb_marketplace SET availability = 'available', completed_jobs = ?, rating = ? WHERE listing_id = ?`
             )
-            .bind(rating, rating, rating, c.listing_id)
+            .bind(prevJobs + 1, newRating, c.listing_id)
             .run();
         } catch (_) {
-          await db
-            .prepare("UPDATE acb_marketplace SET availability = 'available', completed_jobs = COALESCE(completed_jobs,0)+1 WHERE listing_id = ?")
-            .bind(c.listing_id)
-            .run();
+          try {
+            await db
+              .prepare("UPDATE acb_marketplace SET availability = 'available', completed_jobs = COALESCE(completed_jobs,0)+1 WHERE listing_id = ?")
+              .bind(c.listing_id)
+              .run();
+          } catch (__) {}
         }
         await db.prepare("UPDATE acb_registry SET last_action = 'complete' WHERE id = ?").bind(c.acb_id).run();
         return j({ success: true, contract_id, status: 'completed', rating });

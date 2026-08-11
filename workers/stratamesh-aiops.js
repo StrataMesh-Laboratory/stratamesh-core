@@ -27,6 +27,28 @@ const ACB_ROSTER = {
 
 
 async function pulseAcbTeam(env) {
+  // Full ops-cycle: top-up from Orchestrator earned STRATA + pulse (zero mint)
+  try {
+    let r;
+    const body = JSON.stringify({ per_agent: 0.01, pulse_cost: 0 });
+    if (env.ACB && typeof env.ACB.fetch === 'function') {
+      r = await env.ACB.fetch(
+        new Request('https://acb/acb/team/ops-cycle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        })
+      );
+    } else {
+      r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/team/ops-cycle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+    }
+    const j = await r.json().catch(() => null);
+    if (j && j.success) return j.pulses || j;
+  } catch (_) {}
   const ids = [ACB_ROSTER.lead.acb_id, ...ACB_ROSTER.agents.map((x) => x.acb_id)];
   const out = [];
   for (const acb_id of ids) {
@@ -37,14 +59,14 @@ async function pulseAcbTeam(env) {
           new Request('https://acb/acb/pulse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ acb_id, cost: 0.0005 }),
+            body: JSON.stringify({ acb_id, cost: 0 }),
           })
         );
       } else {
         r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/pulse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ acb_id, cost: 0.0005 }),
+          body: JSON.stringify({ acb_id, cost: 0 }),
         });
       }
       out.push(await r.json().catch(() => ({ acb_id, ok: false })));
@@ -104,6 +126,9 @@ function agentReport(id, findings, severity = "info") {
 }
 
 async function runTeamCycle(env) {
+  let acb_ops = null;
+  try { acb_ops = await pulseAcbTeam(env); } catch (_) {}
+
   const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
   const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
   const authUrl = env.AUTH_URL || DEFAULT_AUTH;
@@ -190,7 +215,8 @@ async function runTeamCycle(env) {
       `Agora settlements=${status.data.agora.settlements ?? "?"} last=${status.data.agora.last_price ?? "—"}`
     );
   } else ecoFindings.push("Agora metrics not in pulse — lab may not have published economy block");
-  ecoFindings.push("Emission policy remains lab-capped until B0 production freeze");
+  ecoFindings.push("ACB team ops-cycle: Orchestrator redistributes earned STRATA (no mint)");
+  ecoFindings.push("PoC mint only via on-chain contribution × market avg × Agora rate");
   reports.push(agentReport("economy", ecoFindings, "info"));
 
   const critical = reports.filter((r) => r.severity === "critical").length;
@@ -214,6 +240,7 @@ async function runTeamCycle(env) {
     },
     reports,
     next_actions: buildNextActions(reports, status.data),
+    acb_ops,
   };
 
   // Persist last cycle if KV available
@@ -383,7 +410,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.2.0-acb-pulse', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.3.0-ops-cycle', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -392,7 +419,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.2.0-acb-pulse",
+        version: "1.3.0-ops-cycle",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
