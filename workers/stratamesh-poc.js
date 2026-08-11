@@ -184,6 +184,19 @@ async function ensure(db) {
       )`
     )
     .run();
+  
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS poc_rewarded_units (
+        node_id TEXT,
+        contribution_type TEXT,
+        units_rewarded REAL DEFAULT 0,
+        updated_at TEXT,
+        PRIMARY KEY (node_id, contribution_type)
+      )`
+    )
+    .run();
+
   for (const [k, v] of Object.entries(GLOBAL_RESOURCE_AVG)) {
     await db
       .prepare(
@@ -482,7 +495,7 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.6.0-incremental-audit',
+          version: '5.6.1-incremental-audit',
           sole_mint_path: true,
           process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
@@ -659,21 +672,20 @@ export default {
         let baseline = 0;
         try {
           const prev = await db
-            .prepare(
-              `SELECT COALESCE(SUM(contribution_score),0) as s FROM minting_events
-               WHERE node_id = ? AND contribution_type = ? AND status = 'confirmed'`
-            )
+            .prepare('SELECT units_rewarded as s FROM poc_rewarded_units WHERE node_id = ? AND contribution_type = ?')
             .bind(node_id, contribution_type)
             .first();
           baseline = Number(prev?.s) || 0;
         } catch (_) {}
         const gross_units = units;
-        units = Math.max(0, units - baseline);
+        const delta = Math.max(0, gross_units - baseline);
+        units = delta;
         if (!(units > 0)) {
           return j({
             success: true,
             amount_minted_total: 0,
             incremental: true,
+            version: '5.6.1-incremental-audit',
             gross_units,
             baseline_already_rewarded: baseline,
             message: 'No new on-chain contribution since last confirmed PoC for this class',
@@ -704,6 +716,19 @@ export default {
 
         const priced = priceContribution({ units, avg, quality, strata_per_quote });
         const shares = buildShares(body, node_id, quality, priced.strata, units);
+
+        try {
+          await db
+            .prepare(
+              `INSERT INTO poc_rewarded_units (node_id, contribution_type, units_rewarded, updated_at)
+               VALUES (?,?,?,datetime('now'))
+               ON CONFLICT(node_id, contribution_type) DO UPDATE SET
+                 units_rewarded = excluded.units_rewarded,
+                 updated_at = excluded.updated_at`
+            )
+            .bind(node_id, contribution_type, gross_units)
+            .run();
+        } catch (_) {}
 
         for (const s of shares) {
           await credit(db, s.node_id, s.amount, {
