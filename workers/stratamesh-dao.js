@@ -124,7 +124,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.4.0-governance',
+          version: '3.4.1-rbac',
           active_spas: spa_count,
           endpoints: [
             '/dao/health',
@@ -397,6 +397,18 @@ export default {
         return j({ success: true, checked: (pending.results || []).length, terminated });
       }
 
+
+      // Enterprise RBAC skeleton
+      if (path === '/dao/rbac' || path === '/dao/roles') {
+        const roles = {
+          admin: { permissions: ['proposal.create','proposal.execute','spa.manage','compliance.run','treasury.read'] },
+          operator: { permissions: ['spa.manage','compliance.run','pin.offer'] },
+          auditor: { permissions: ['compliance.run','proposal.read','spa.read'] },
+          member: { permissions: ['proposal.create','vote','spa.read'] },
+        };
+        return j({ success: true, template: 'enterprise', roles, note: 'Lab RBAC map — enforce at meta-layer apps' });
+      }
+
       // --- Foundational / Enterprise / Consortium templates ---
       if (path === '/dao/templates' || path === '/dao/template') {
         const TEMPLATES = {
@@ -600,7 +612,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.4.0-governance' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.4.1-rbac' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
