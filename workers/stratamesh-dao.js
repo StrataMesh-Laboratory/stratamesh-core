@@ -75,6 +75,27 @@ export default {
             )`
           )
           .run();
+
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_offers (
+          offer_id TEXT PRIMARY KEY,
+          spa_id TEXT,
+          node_id TEXT,
+          capacity_gb REAL,
+          price_strata_per_gb REAL,
+          status TEXT,
+          created_at TEXT
+        )`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_requests (
+          request_id TEXT PRIMARY KEY,
+          cid TEXT,
+          requester TEXT,
+          size_gb REAL,
+          offer_id TEXT,
+          spa_id TEXT,
+          status TEXT,
+          created_at TEXT
+        )`).run();
+
       }
 
       if (path === '/dao/health') {
@@ -84,7 +105,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.1.0-spa-executable',
+          version: '3.2.1-pin-market',
           active_spas: spa_count,
           endpoints: [
             '/dao/health',
@@ -92,6 +113,10 @@ export default {
             '/dao/spa/list',
             '/dao/spa/opt-out',
             '/dao/spa/pinner',
+            '/dao/spa/pin-offer',
+            '/dao/spa/pin-request',
+            '/dao/spa/pin-market',
+            '/dao/spa/tick',
             '/dao/proposal',
             '/dao/vote',
             '/dao/proposals',
@@ -310,7 +335,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.1.0-spa-executable' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.2.1-pin-market' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner'] }, 404);
