@@ -585,6 +585,31 @@ async function chatDeterministic(text, tickOut, level) {
   const brief = contextForClearance(tickOut, level);
   const m = tickOut.tick.metrics;
   const lines = [];
+  const lower = text.toLowerCase();
+  const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|são|faz|inicia)\b/i.test(text);
+
+  if (/\bacb\b|computational being|seres? computacion/i.test(text)) {
+    lines.push(pt
+      ? "ACB = Autonomous Computational Being (Ser Computacional Autónomo) — agente de software com standing por função e acordo, contabilidade de subsistência, e pistas DAO/república no roteiro do whitepaper. Não é «atomic contract» nem token de dívida."
+      : KNOWLEDGE.public.acb);
+    return lines.join("\n");
+  }
+  if (/\bspa\b|service participation|agente de participação/i.test(text)) {
+    lines.push(pt
+      ? "SPA = Service Participation Agent — participante Fog/Edge na malha (registo e deveres), não uma «single-page app» web neste contexto."
+      : KNOWLEDGE.public.spa);
+    return lines.join("\n");
+  }
+  if (/aiops/i.test(text)) {
+    lines.push(pt
+      ? "AIOps Dev Team = agentes de software contínuos (devops, security, analysis, mesh, economy) sob o Orchestrator. Não são humanos nem um produto genérico «Analytics and Operations Platform»."
+      : KNOWLEDGE.public.aiops);
+    if (level !== "public") {
+      lines.push("Probe AIOps (edge): " + (m.aiops_ok ? "ok" : "down"));
+    }
+    return lines.join("\n");
+  }
+
   lines.push("Orchestrator " + VERSION + " · clearance=" + level);
   lines.push("perms read/edit/run = " + CLEARANCE_PERMS[level].read + "/" + CLEARANCE_PERMS[level].edit + "/" + CLEARANCE_PERMS[level].run);
   lines.push(KNOWLEDGE.public.cmn);
@@ -601,7 +626,6 @@ async function chatDeterministic(text, tickOut, level) {
     " · " + (m.version || "?") + (m.temp_mode ? " · TEMP" : "")
   );
 
-  const lower = text.toLowerCase();
   if (/status|estado|health|pulse|status_prob/.test(lower)) {
     lines.push(
       "DAG txs=" + m.dag_txs + " SPA=" + m.spa_active + "/" + m.spa_total +
@@ -667,7 +691,11 @@ async function chat(message, env, request, body) {
     };
   }
 
-  const preferDeterministic = /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim());
+  const preferDeterministic =
+    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim()) ||
+    /\b(acb|aiops|spa)\b/i.test(text) ||
+    /seres? computacion|autonomous computational|o que (são|sao|é|e) os? (acb|aiops)/i.test(text) ||
+    /what (are|is) (an? )?(acb|aiops|spa)/i.test(text);
 
   if (!preferDeterministic) {
     const ai = await chatWithAI(text, tickOut, env, level);
