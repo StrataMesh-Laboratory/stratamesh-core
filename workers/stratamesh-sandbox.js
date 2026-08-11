@@ -154,26 +154,38 @@ export default {
           return j({ error: 'publish before integrate', status: row.status }, 400);
         }
         await db.prepare('UPDATE ugc_sandbox SET world_id = ?, status = ? WHERE id = ?').bind(world_id, 'integrated', item_id).run();
-        // notify worlds layer (best-effort)
-        try {
-          await fetch('https://stratamesh-worlds.stratamesh.workers.dev/attach', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              world_id,
-              sandbox_id: item_id,
-              cid: row.cid,
-              nft_id: row.nft_id,
-              owner: row.owner,
-              label: row.label,
-            }),
-          });
-        } catch (_) {}
+        const fresh = await db.prepare('SELECT * FROM ugc_sandbox WHERE id = ?').bind(item_id).first();
+        let attached = false;
+        const attachBody = JSON.stringify({
+          world_id,
+          sandbox_id: item_id,
+          cid: (fresh && fresh.cid) || row.cid,
+          nft_id: (fresh && fresh.nft_id) || row.nft_id,
+          owner: row.owner,
+          label: row.label,
+        });
+        for (let i = 0; i < 2 && !attached; i++) {
+          try {
+            let ar;
+            if (env.WORLDS && typeof env.WORLDS.fetch === 'function') {
+              ar = await env.WORLDS.fetch(new Request('https://worlds/attach', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: attachBody,
+              }));
+            } else {
+              ar = await fetch('https://stratamesh-worlds.stratamesh.workers.dev/attach', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: attachBody,
+              });
+            }
+            const aj = await ar.json();
+            attached = !!(aj && aj.success);
+          } catch (_) {}
+        }
         return j({
           success: true,
           item_id,
           world_id,
           status: 'integrated',
+          attached,
           holon_flow: 'sandbox → open_world',
           note: 'Open-World must reside in a Virtual Realm hypervisor',
         });
