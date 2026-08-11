@@ -3,8 +3,8 @@
  * Replaces the v9.2.0 banner stub.
  *
  * Architecture (aligned with src/orchestrator/):
- *   - Probabilistic lobe: soft scores from live metrics
- *   - Symbolic lobe: hard constraints (ontology, irreversibility)
+ *   - Probabilistic lobe: soft scores (metrics + optional transformer/Grok) — never hard law
+ *   - Symbolic lobe: pure rules/ontology only — NO transformer (complementary, not substitutable)
  *   - Bilateral bus: proposals → admissibility → commit / escalate
  *   - QIGA: generational fitness over policy genes (lightweight edge port)
  *
@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.1.0-lobes-llm";
+const VERSION = "10.2.0-hybrid-lobes-grok";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -405,6 +405,80 @@ function qigaStep(genes, fitness, seed) {
 
 
 /** LLM-backed probabilistic lobe — soft scores + optional proposals (JSON only) */
+
+/**
+ * NL / soft inference via Grok (xAI).
+ * Prefer: env.AI.run("xai/…") when AI Gateway catalogs Grok;
+ * else XAI_API_KEY → https://api.x.ai/v1/chat/completions;
+ * else Workers AI open models as last-resort probabilistic soft scorer only.
+ */
+async function runGrokOrFallback(env, messages, opts = {}) {
+  const max_tokens = opts.max_tokens || 400;
+  const temperature = opts.temperature ?? 0.25;
+  const grokModels = [
+    env.GROK_MODEL || "xai/grok-4",
+    "xai/grok-3",
+    "xai/grok-3-mini",
+  ];
+  // Cloudflare Workers AI / AI Gateway unified catalog
+  if (env.AI && typeof env.AI.run === "function") {
+    for (const model of grokModels) {
+      try {
+        const result = await env.AI.run(model, { messages, max_tokens, temperature });
+        const reply =
+          (result && (result.response || result.result || result.text)) ||
+          (typeof result === "string" ? result : null);
+        if (reply && String(reply).trim()) {
+          return { ok: true, text: String(reply).trim(), model, provider: "workers-ai-gateway" };
+        }
+      } catch (_) { /* try next */ }
+    }
+  }
+  // Direct xAI API
+  const key = env.XAI_API_KEY || env.GROK_API_KEY;
+  if (key) {
+    try {
+      const model = env.GROK_MODEL || "grok-4";
+      const r = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + key,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: String(model).replace(/^xai\//, ""),
+          messages,
+          max_tokens,
+          temperature,
+        }),
+      });
+      const data = await r.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (r.ok && text) {
+        return { ok: true, text: String(text).trim(), model, provider: "xai-api" };
+      }
+      return { ok: false, error: data?.error?.message || ("xAI HTTP " + r.status) };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  }
+  // Last resort: open CF models (probabilistic soft path only — not symbolic)
+  if (env.AI && typeof env.AI.run === "function") {
+    for (const model of ["@cf/meta/llama-3.2-3b-instruct", "@cf/mistral/mistral-7b-instruct-v0.2"]) {
+      try {
+        const result = await env.AI.run(model, { messages, max_tokens, temperature });
+        const reply =
+          (result && (result.response || result.result || result.text)) ||
+          (typeof result === "string" ? result : null);
+        if (reply && String(reply).trim()) {
+          return { ok: true, text: String(reply).trim(), model, provider: "workers-ai-fallback" };
+        }
+      } catch (_) {}
+    }
+  }
+  return { ok: false, error: "No Grok/xAI path and no Workers AI fallback" };
+}
+
 async function llmProbabilisticLobe(env, message, metrics, level) {
   if (!env.AI || typeof env.AI.run !== "function") {
     return {
@@ -431,14 +505,10 @@ async function llmProbabilisticLobe(env, message, metrics, level) {
     }) +
     "\nUser message: " + String(message || "").slice(0, 500);
   try {
-    const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
-      messages: [
+    const result = await runGrokOrFallback(env, [
         { role: "system", content: system },
         { role: "user", content: user },
-      ],
-      max_tokens: 220,
-      temperature: 0.2,
-    });
+      ], { max_tokens: 220, temperature: 0.2 });
     const raw = String(result?.response || result?.result || result?.text || "").trim();
     const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0];
     if (!jsonStr) return { ok: false, scores: { relevance: 0.5, urgency: 0.3, explore: 0.3 }, proposals: [], raw: raw.slice(0, 120) };
@@ -467,57 +537,21 @@ function clamp01(x) {
 }
 
 /** LLM-backed symbolic lobe — ontology-constrained verdicts, then hard merge with symbolicAdmit */
-async function llmSymbolicLobe(env, message, proposals, level) {
-  const hard = proposals.map((p) => ({ name: p.name, ...symbolicAdmit(p) }));
-  if (!env.AI || typeof env.AI.run !== "function") {
-    return { ok: false, hard, llm: null, note: "AI binding missing — symbolic rules only" };
-  }
-  const system =
-    "You are the SYMBOLIC LOBE of the StrataMesh Hybrid Orchestrator. " +
-    "Ontology: standing by function and agreement, not substrate; forbid substrate chauvinism; irreversible acts need escalator_class. " +
-    "Output ONLY JSON: " +
-    '{"checks":[{"name":"string","verdict":"admit|reject|escalate","reasons":["..."]}],"notes":"<=30 words"}. ' +
-    "Clearance=" + level + ". Never invent run success.";
-  const user =
-    "Message: " + String(message || "").slice(0, 400) +
-    "\nProposals: " + JSON.stringify(proposals).slice(0, 600) +
-    "\nHard rules already: " + JSON.stringify(hard).slice(0, 500);
-  try {
-    const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      max_tokens: 220,
-      temperature: 0.1,
-    });
-    const raw = String(result?.response || result?.result || result?.text || "").trim();
-    const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0];
-    let llm = null;
-    if (jsonStr) {
-      try { llm = JSON.parse(jsonStr); } catch (_) { llm = { parse_error: true, raw: raw.slice(0, 100) }; }
-    }
-    const merged = hard.map((h) => {
-      const soft = (llm?.checks || []).find((c) => c.name === h.name) || {};
-      let verdict = h.verdict;
-      if (h.verdict === "reject" || soft.verdict === "reject") verdict = "reject";
-      else if (h.verdict === "escalate" || soft.verdict === "escalate") verdict = "escalate";
-      else verdict = "admit";
-      return {
-        name: h.name,
-        verdict,
-        reasons: [...(h.reasons || []), ...((soft.reasons || []).slice(0, 2))],
-        hard: h.verdict,
-        llm: soft.verdict || null,
-      };
-    });
-    return { ok: true, hard, llm, merged, model: "@cf/meta/llama-3.2-3b-instruct" };
-  } catch (e) {
-    return { ok: false, hard, llm: null, merged: hard, error: String(e.message || e) };
-  }
+function symbolicLobeOnly(proposals) {
+  // SYMBOLIC LOBE — pure rules / ontology. No transformer. Not replaceable by LLM.
+  return proposals.map((p) => {
+    const adm = symbolicAdmit(p);
+    return {
+      name: p.name,
+      kind: p.kind,
+      verdict: adm.verdict,
+      reasons: adm.reasons,
+      hard: true,
+      lobe: "symbolic",
+    };
+  });
 }
 
-/** Bilateral bus: probabilistic proposals → symbolic filter → commit set */
 async function llmHybridLobes(env, message, metrics, level) {
   const prob = await llmProbabilisticLobe(env, message, metrics, level);
   const baseProps = [
@@ -537,7 +571,8 @@ async function llmHybridLobes(env, message, metrics, level) {
     seen.add(p.name);
     proposals.push(p);
   }
-  const sym = await llmSymbolicLobe(env, message, proposals, level);
+  const symMerged = symbolicLobeOnly(proposals);
+  const sym = { ok: true, merged: symMerged, pure_symbolic: true };
   const decisions = proposals.map((p) => {
     const soft = probabilisticScore(metrics, p);
     const llmSoft = prob.scores?.relevance != null
@@ -568,8 +603,8 @@ async function llmHybridLobes(env, message, metrics, level) {
     fitness: Number(fitness.toFixed(4)),
     genes_next: qigaStep([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], fitness, Date.now() % 10000),
     architecture: {
-      probabilistic_lobe: "llm+metrics",
-      symbolic_lobe: "rules+llm",
+      probabilistic_lobe: "transformer+metrics",
+      symbolic_lobe: "pure-rules-ontology",
       bilateral_bus: true,
       qiga: true,
     },
@@ -720,7 +755,7 @@ async function chatWithAI(message, tickOut, env, level, hybrid) {
     "temp_mode true = temporary lab pulse, NOT already always-on. " +
     "Never dump raw JSON unless asked. Max ~120 words. " +
     "Never claim you executed run/aiops/status unless the structured run pipeline ran. If the user asks to start AIOps in natural language, explain they need top_secret and the exact command: run aiops_cycle. " +
-    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto. You sit AFTER bilateral bus: probabilistic lobe (soft scores) + symbolic lobe (hard ontology). Honour committed decisions; do not claim rejected proposals ran.";
+    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto. You sit AFTER the bilateral bus. PROBABILISTIC lobe = soft scores / transformer (never hard law). SYMBOLIC lobe = pure ontology rules only (no LLM). Neither lobe replaces the other. Honour committed decisions only.";
 
   const userContent =
     "Clearance=" + level + "\nContext JSON:\n" +
@@ -736,30 +771,14 @@ async function chatWithAI(message, tickOut, env, level, hybrid) {
     "\n\nLanguage: answer in the user message language. No JSON dumps.\nUser:\n" +
     message;
 
-  const models = ["@cf/meta/llama-3.2-3b-instruct", "@cf/mistral/mistral-7b-instruct-v0.2"];
-  let lastErr = null;
-  for (const model of models) {
-    try {
-      const result = await env.AI.run(model, {
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userContent },
-        ],
-        max_tokens: 400,
-        temperature: 0.25,
-      });
-      const reply =
-        (result && (result.response || result.result || result.text)) ||
-        (typeof result === "string" ? result : null);
-      if (reply && String(reply).trim()) {
-        return { ok: true, reply: String(reply).trim(), model };
-      }
-      lastErr = "empty response from " + model;
-    } catch (e) {
-      lastErr = String(e.message || e);
-    }
+  const out = await runGrokOrFallback(env, [
+    { role: "system", content: system },
+    { role: "user", content: userContent },
+  ], { max_tokens: 400, temperature: 0.25 });
+  if (out.ok) {
+    return { ok: true, reply: out.text, model: out.model, provider: out.provider };
   }
-  return { ok: false, error: lastErr || "all models failed" };
+  return { ok: false, error: out.error || "Grok/xAI unavailable" };
 }
 
 async function chatDeterministic(text, tickOut, level) {
