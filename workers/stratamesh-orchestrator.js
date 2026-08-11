@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.4.0-federated-qiga";
+const VERSION = "10.5.0-mesh-integrated";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -969,10 +969,10 @@ async function gatherMetrics(env) {
   const authUrl = env.AUTH_URL || "https://stratamesh-auth.stratamesh.workers.dev/health";
   const aiopsUrl = env.AIOPS_URL || "https://stratamesh-aiops.stratamesh.workers.dev/cycle";
 
-  async function viaBinding(binding, url) {
+  async function viaBinding(binding, path) {
     if (!binding || typeof binding.fetch !== "function") return null;
     try {
-      const r = await binding.fetch(new Request(url, { method: "GET", headers: { Accept: "application/json" } }));
+      const r = await binding.fetch(new Request("https://service" + path, { method: "GET", headers: { Accept: "application/json" } }));
       const text = await r.text();
       let data = null;
       try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 200) }; }
@@ -982,49 +982,88 @@ async function gatherMetrics(env) {
     }
   }
 
-  let status = await viaBinding(env.STATUS, statusUrl);
-  let auth = await viaBinding(env.AUTH, authUrl);
-  let aiops = await viaBinding(env.AIOPS, aiopsUrl);
+  async function viaUrl(url) {
+    return probe(url);
+  }
 
-  if (!status) status = await probe(statusUrl);
-  if (!auth) auth = await probe(authUrl);
-  if (!aiops) aiops = await probe(aiopsUrl);
+  let status = await viaBinding(env.STATUS, "/status");
+  let auth = await viaBinding(env.AUTH, "/health");
+  let aiops = await viaBinding(env.AIOPS, "/cycle");
+  if (!status) status = await viaUrl(statusUrl);
+  if (!auth) auth = await viaUrl(authUrl);
+  if (!aiops) aiops = await viaUrl(aiopsUrl);
 
-  // Status worker sometimes nests under different shapes
-  const sd = status.data || {};
-  const dag = sd.dag || sd.DAG || {};
+  // Mesh economy + nodal services (bindings preferred, workers.dev fallback)
+  const meshTargets = [
+    ["acb", env.ACB, "https://stratamesh-acb.stratamesh.workers.dev/acb/status", "/acb/status"],
+    ["agora", env.AGORA, "https://stratamesh-agora.stratamesh.workers.dev/agora/status", "/agora/status"],
+    ["dao", env.DAO, "https://stratamesh-dao.stratamesh.workers.dev/dao/status", "/dao/status"],
+    ["poc", env.POC, "https://stratamesh-poc.stratamesh.workers.dev/health", "/health"],
+    ["token", env.TOKEN, "https://stratamesh-token.stratamesh.workers.dev/health", "/health"],
+    ["scout", env.SCOUT, "https://stratamesh-scout.stratamesh.workers.dev/", "/"],
+    ["crypto", env.CRYPTO, "https://stratamesh-crypto.stratamesh.workers.dev/health", "/health"],
+    ["dag", env.DAG, "https://stratamesh-dag.stratamesh.workers.dev/", "/"],
+  ];
+  const mesh = {};
+  for (const [name, binding, url, bpath] of meshTargets) {
+    let r = await viaBinding(binding, bpath);
+    if (!r) r = await viaUrl(url);
+    mesh[name] = r || { ok: false };
+  }
+
+  const sd = (status && status.data) || {};
+  const dag = sd.dag || sd.DAG || (mesh.dag && mesh.dag.data) || {};
   const spa = sd.spa || {};
-  const token = sd.token || {};
-  const agora = sd.agora || {};
+  const acbData = (mesh.acb && mesh.acb.data) || {};
+  const agoraData = (mesh.agora && mesh.agora.data) || {};
+  const daoData = (mesh.dao && mesh.dao.data) || {};
+  const tokenData = (mesh.token && mesh.token.data) || {};
+  const acbList = acbData.acbs || acbData.list || [];
+  const acbCount = Array.isArray(acbList) ? acbList.length : (acbData.count ?? 0);
 
   const metrics = {
-    task_success_rate: status.ok ? 0.78 : 0.4,
+    task_success_rate: status && status.ok ? 0.78 : 0.4,
     task_cost: 0.18,
     explore_rate: 0.32,
     dag_txs: dag.transaction_count ?? dag.txs ?? 0,
-    spa_active: spa.active ?? 0,
+    spa_active: spa.active ?? (daoData.total_members ?? 0),
     spa_total: spa.total ?? 0,
-    token_supply: token.total_supply ?? token.balance ?? 0,
-    agora_trades: agora.trades ?? 0,
+    token_supply: tokenData.total_supply ?? tokenData.balance ?? 0,
+    agora_trades: agoraData.total_trades ?? agoraData.trades ?? 0,
+    agora_listings: agoraData.total_listings ?? 0,
+    acb_count: acbCount,
+    acb_active: Array.isArray(acbList) ? acbList.filter((a) => a.status === "active").length : acbCount,
+    dao_proposals: daoData.active_proposals ?? 0,
+    dao_members: daoData.total_members ?? 0,
+    mesh_scout_ok: !!(mesh.scout && mesh.scout.ok),
+    mesh_crypto_ok: !!(mesh.crypto && mesh.crypto.ok),
+    mesh_dag_ok: !!(mesh.dag && mesh.dag.ok),
+    mesh_acb_ok: !!(mesh.acb && mesh.acb.ok),
+    mesh_agora_ok: !!(mesh.agora && mesh.agora.ok),
+    mesh_dao_ok: !!(mesh.dao && mesh.dao.ok),
+    mesh_poc_ok: !!(mesh.poc && mesh.poc.ok),
+    mesh_token_ok: !!(mesh.token && mesh.token.ok),
     auth_ok: !!(auth && auth.ok),
     auth_users: auth?.data?.checks?.database?.users ?? null,
     auth_sessions: auth?.data?.checks?.sessions?.active ?? null,
     aiops_ok: !!(aiops && aiops.ok && aiops.data?.ok !== false),
     aiops_critical: aiops?.data?.summary?.critical ?? null,
     version: sd.version || sd.node_version || null,
-    phase: sd.phase || null,
-    phase_name: sd.phase_name || null,
+    phase: sd.phase || "2",
+    phase_name: sd.phase_name || "Nodal Hierarchy & SPAs",
     node_id: sd.node_id || "FOG-NODE-PT-CM-001",
     operator: sd.operator || "André Manuel Calhegas Morais",
     temp_mode: !!(sd.temp_mode || (sd.version && String(sd.version).includes("temp"))),
-    source: sd.source || null,
+    source: sd.source || "mesh-integrated",
   };
 
-  return { metrics, status, auth, aiops };
+  return { metrics, status, auth, aiops, mesh };
 }
 
 async function tick(env, extraProposals = []) {
-  const { metrics, status, auth, aiops } = await gatherMetrics(env);
+  const gathered = await gatherMetrics(env);
+  const { metrics, status, auth, aiops } = gathered;
+  const mesh = gathered.mesh || {};
   const state = await loadLobeState(env);
   const genes = state.genes || [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
   const proposals = [
@@ -1099,10 +1138,19 @@ async function tick(env, extraProposals = []) {
       genes_next: nextGenes.map((g) => Number(g.toFixed(4))),
     },
     upstream: {
-      status: { ok: status.ok, http: status.status },
-      auth: { ok: auth.ok, http: auth.status },
-      aiops: { ok: aiops.ok, http: aiops.status },
+      status: { ok: !!(status && status.ok), http: status && status.status },
+      auth: { ok: !!(auth && auth.ok), http: auth && auth.status },
+      aiops: { ok: !!(aiops && aiops.ok), http: aiops && aiops.status },
+      acb: { ok: !!(mesh && mesh.acb && mesh.acb.ok) },
+      agora: { ok: !!(mesh && mesh.agora && mesh.agora.ok) },
+      dao: { ok: !!(mesh && mesh.dao && mesh.dao.ok) },
+      poc: { ok: !!(mesh && mesh.poc && mesh.poc.ok) },
+      token: { ok: !!(mesh && mesh.token && mesh.token.ok) },
+      scout: { ok: !!(mesh && mesh.scout && mesh.scout.ok) },
+      crypto: { ok: !!(mesh && mesh.crypto && mesh.crypto.ok) },
+      dag: { ok: !!(mesh && mesh.dag && mesh.dag.ok) },
     },
+    mesh: mesh || {},
   };
 }
 

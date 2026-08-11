@@ -73,6 +73,41 @@ async function proxyApi(request, env, path, url, corsHeaders) {
   try {
 
     let target;
+    // Mesh economy — dashboard expects /api/v1/{agora,dao,acb,token,poc}/...
+    const meshMap = [
+      ['/api/v1/agora', 'AGORA', 'https://stratamesh-agora.stratamesh.workers.dev', '/agora'],
+      ['/api/v1/dao', 'DAO', 'https://stratamesh-dao.stratamesh.workers.dev', '/dao'],
+      ['/api/v1/acb', 'ACB', 'https://stratamesh-acb.stratamesh.workers.dev', '/acb'],
+      ['/api/v1/token', 'TOKEN', 'https://stratamesh-token.stratamesh.workers.dev', ''],
+      ['/api/v1/poc', 'POC', 'https://stratamesh-poc.stratamesh.workers.dev', ''],
+      ['/api/v1/scout', 'SCOUT', 'https://stratamesh-scout.stratamesh.workers.dev', ''],
+    ];
+    for (const [prefix, bindName, base, pathPrefix] of meshMap) {
+      if (path === prefix || path.startsWith(prefix + '/')) {
+        const rest = path.slice(prefix.length) || '';
+        const upstreamPath = (pathPrefix + rest) || '/';
+        const binding = env[bindName];
+        if (binding && typeof binding.fetch === 'function') {
+          const u = new URL(request.url);
+          u.pathname = upstreamPath;
+          const resp = await binding.fetch(new Request(u.toString(), {
+            method: request.method,
+            headers: request.headers,
+            body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+            redirect: 'manual'
+          }));
+          return withCors(resp, corsHeaders);
+        }
+        target = base + upstreamPath + url.search;
+        const apiResponse = await fetch(new Request(target, {
+          method: request.method,
+          headers: request.headers,
+          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+          redirect: 'manual'
+        }));
+        return withCors(apiResponse, corsHeaders);
+      }
+    }
     if (path.startsWith('/api/auth')) {
       const stripped = path.slice('/api/auth'.length) || '/';
       if (env.AUTH) {
