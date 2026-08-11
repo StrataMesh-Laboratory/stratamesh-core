@@ -21,7 +21,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.3.0-staff-2fa',
+          version: '2.4.0-social-oauth',
           checks: {}
         };
         try {
@@ -350,20 +350,29 @@ export default {
       if ((path === '/auth/methods' || path === '/methods') && request.method === 'GET') {
         const cmdOn = env.AUTH_CMD_ENABLED === '1' && env.CMD_CLIENT_ID;
         const eudiOn = env.AUTH_EUDI_ENABLED === '1';
+        const googleOn = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+        const appleOn = !!(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY);
+        const msOn = !!(env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET);
         return new Response(JSON.stringify({
           success: true,
           methods: [
-            { id: 'password', enabled: true, label: 'Email + password (public users — lab fallback)', register: true, login: true },
-            { id: 'staff', enabled: true, label: 'Staff / Pessoal (internal email + password + 2FA)', register: false, login: true,
-              endpoints: { login: '/staff/login', verify_2fa: '/staff/2fa' }, note: 'Not for public registration' },
+            { id: 'password', enabled: true, label: 'Email + password (lab fallback)', register: true, login: true },
+            { id: 'google', enabled: googleOn, label: 'Google', register: true, login: true,
+              start: '/auth/google/start', note: googleOn ? 'OIDC' : 'Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET' },
+            { id: 'apple', enabled: appleOn, label: 'Apple', register: true, login: true,
+              start: '/auth/apple/start', note: appleOn ? 'Sign in with Apple' : 'Set APPLE_CLIENT_ID, TEAM_ID, KEY_ID, PRIVATE_KEY' },
+            { id: 'microsoft', enabled: msOn, label: 'Microsoft', register: true, login: true,
+              start: '/auth/microsoft/start', note: msOn ? 'OIDC' : 'Set MICROSOFT_CLIENT_ID + MICROSOFT_CLIENT_SECRET' },
+            { id: 'staff', enabled: true, label: 'Staff / Pessoal (email + password + 2FA)', register: false, login: true,
+              endpoints: { login: '/staff/login', verify_2fa: '/staff/2fa' }, note: 'Internal only' },
             { id: 'cmd', enabled: !!cmdOn, label: 'Chave Móvel Digital (Portugal)', register: true, login: true,
-              note: cmdOn ? 'Autenticação.gov OAuth' : 'Pending AMA SP credentials — lab' },
+              note: cmdOn ? 'Autenticação.gov' : 'Pending AMA SP — lab' },
             { id: 'eudi', enabled: !!eudiOn, label: 'EU Digital Identity Wallet', register: true, login: true,
-              note: eudiOn ? 'OpenID4VP' : 'Pending RP registration — lab' },
+              note: eudiOn ? 'OpenID4VP' : 'Pending RP — lab' },
           ],
           default: 'password',
-          staff_2fa: { lab_echo: true, production: 'email or Cloudflare Access OTP' },
-          documentation: 'https://github.com/amcmorais/stratamesh-core/blob/main/docs/AUTH-EU-DIGITAL-ID.md'
+          oauth_redirect_base: env.OAUTH_REDIRECT_BASE || 'https://stratamesh-auth.stratamesh.workers.dev',
+          documentation: 'docs/AUTH-SOCIAL-OAUTH.md'
         }), { headers: corsHeaders });
       }
 
@@ -419,6 +428,190 @@ export default {
         }
         return new Response(JSON.stringify({ success: false, error: 'EUDI flow not yet wired' }), { status: 501, headers: corsHeaders });
       }
+
+      
+      // ========== Social OAuth (Google / Apple / Microsoft) ==========
+      async function issueUserSession(user) {
+        const token = crypto.randomUUID();
+        await env.AUTH_DB.prepare(
+          "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+        ).bind(user.id, token, token).run();
+        return {
+          success: true,
+          type: 'user',
+          token,
+          email: user.email,
+          clearance: user.clearance_level || 'basic',
+          verification_status: user.verification_status,
+          role: 'user',
+          provider: user._provider || 'social',
+        };
+      }
+
+      async function upsertSocialUser(email, provider, subject) {
+        email = String(email || '').trim().toLowerCase();
+        if (!email || !email.includes('@')) throw new Error('Provider did not return email');
+        let user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email).first();
+        const doc_hash = ('oauth_' + provider + '_' + String(subject || email)).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 120);
+        if (!user) {
+          const salt = crypto.randomUUID();
+          const password_hash = salt + ':social_no_password';
+          await env.AUTH_DB.prepare(
+            "INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, NULL, 'verified', ?, ?, 'basic', 1)"
+          ).bind(email, password_hash, 'oauth_' + provider, doc_hash).run();
+          user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email).first();
+        } else {
+          await env.AUTH_DB.prepare(
+            "UPDATE users SET email_confirmed = 1, verification_status = CASE WHEN verification_status = 'pending' THEN 'verified' ELSE verification_status END, updated_at = datetime('now') WHERE id = ?"
+          ).bind(user.id).run();
+          user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first();
+        }
+        user._provider = provider;
+        return user;
+      }
+
+      function oauthRedirectUri(provider, env, url) {
+        const base = (env.OAUTH_REDIRECT_BASE || url.origin).replace(/\/$/, '');
+        return base + '/auth/' + provider + '/callback';
+      }
+
+      if ((path === '/auth/google/start' || path === '/google/start') && request.method === 'GET') {
+        if (!env.GOOGLE_CLIENT_ID) {
+          return new Response(JSON.stringify({ success: false, code: 'GOOGLE_NOT_CONFIGURED', error: 'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET' }), { status: 501, headers: corsHeaders });
+        }
+        const redirect_uri = oauthRedirectUri('google', env, url);
+        const u = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        u.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
+        u.searchParams.set('redirect_uri', redirect_uri);
+        u.searchParams.set('response_type', 'code');
+        u.searchParams.set('scope', 'openid email profile');
+        u.searchParams.set('state', crypto.randomUUID());
+        u.searchParams.set('access_type', 'online');
+        u.searchParams.set('prompt', 'select_account');
+        if (url.searchParams.get('json') === '1') {
+          return new Response(JSON.stringify({ success: true, authorize_url: u.toString(), redirect_uri }), { headers: corsHeaders });
+        }
+        return Response.redirect(u.toString(), 302);
+      }
+
+      if ((path === '/auth/google/callback' || path === '/google/callback') && request.method === 'GET') {
+        try {
+          if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+            return new Response(JSON.stringify({ success: false, error: 'Google not configured' }), { status: 501, headers: corsHeaders });
+          }
+          const code = url.searchParams.get('code');
+          if (!code) return new Response(JSON.stringify({ success: false, error: 'missing code' }), { status: 400, headers: corsHeaders });
+          const redirect_uri = oauthRedirectUri('google', env, url);
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              code,
+              client_id: env.GOOGLE_CLIENT_ID,
+              client_secret: env.GOOGLE_CLIENT_SECRET,
+              redirect_uri,
+              grant_type: 'authorization_code',
+            }),
+          });
+          const tok = await tokenRes.json();
+          if (!tok.access_token) {
+            return new Response(JSON.stringify({ success: false, error: 'token exchange failed', detail: tok }), { status: 400, headers: corsHeaders });
+          }
+          const ui = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+            headers: { Authorization: 'Bearer ' + tok.access_token },
+          }).then((r) => r.json());
+          const user = await upsertSocialUser(ui.email, 'google', ui.sub);
+          const session = await issueUserSession(user);
+          const portal = env.PORTAL_URL || 'https://stratamesh-spa.stratamesh.workers.dev/dashboard';
+          return Response.redirect(portal + (portal.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(session.token) + '&provider=google', 302);
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if ((path === '/auth/microsoft/start' || path === '/microsoft/start') && request.method === 'GET') {
+        if (!env.MICROSOFT_CLIENT_ID) {
+          return new Response(JSON.stringify({ success: false, code: 'MICROSOFT_NOT_CONFIGURED', error: 'Set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET' }), { status: 501, headers: corsHeaders });
+        }
+        const tenant = env.MICROSOFT_TENANT || 'common';
+        const redirect_uri = oauthRedirectUri('microsoft', env, url);
+        const u = new URL('https://login.microsoftonline.com/' + tenant + '/oauth2/v2.0/authorize');
+        u.searchParams.set('client_id', env.MICROSOFT_CLIENT_ID);
+        u.searchParams.set('response_type', 'code');
+        u.searchParams.set('redirect_uri', redirect_uri);
+        u.searchParams.set('response_mode', 'query');
+        u.searchParams.set('scope', 'openid email profile User.Read');
+        u.searchParams.set('state', crypto.randomUUID());
+        if (url.searchParams.get('json') === '1') {
+          return new Response(JSON.stringify({ success: true, authorize_url: u.toString(), redirect_uri }), { headers: corsHeaders });
+        }
+        return Response.redirect(u.toString(), 302);
+      }
+
+      if ((path === '/auth/microsoft/callback' || path === '/microsoft/callback') && request.method === 'GET') {
+        try {
+          if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
+            return new Response(JSON.stringify({ success: false, error: 'Microsoft not configured' }), { status: 501, headers: corsHeaders });
+          }
+          const code = url.searchParams.get('code');
+          if (!code) return new Response(JSON.stringify({ success: false, error: 'missing code' }), { status: 400, headers: corsHeaders });
+          const tenant = env.MICROSOFT_TENANT || 'common';
+          const redirect_uri = oauthRedirectUri('microsoft', env, url);
+          const tokenRes = await fetch('https://login.microsoftonline.com/' + tenant + '/oauth2/v2.0/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              code,
+              client_id: env.MICROSOFT_CLIENT_ID,
+              client_secret: env.MICROSOFT_CLIENT_SECRET,
+              redirect_uri,
+              grant_type: 'authorization_code',
+              scope: 'openid email profile User.Read',
+            }),
+          });
+          const tok = await tokenRes.json();
+          if (!tok.access_token) {
+            return new Response(JSON.stringify({ success: false, error: 'token exchange failed', detail: tok }), { status: 400, headers: corsHeaders });
+          }
+          const ui = await fetch('https://graph.microsoft.com/v1.0/me', {
+            headers: { Authorization: 'Bearer ' + tok.access_token },
+          }).then((r) => r.json());
+          const email = ui.mail || ui.userPrincipalName;
+          const user = await upsertSocialUser(email, 'microsoft', ui.id);
+          const session = await issueUserSession(user);
+          const portal = env.PORTAL_URL || 'https://stratamesh-spa.stratamesh.workers.dev/dashboard';
+          return Response.redirect(portal + (portal.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(session.token) + '&provider=microsoft', 302);
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if ((path === '/auth/apple/start' || path === '/apple/start') && request.method === 'GET') {
+        if (!env.APPLE_CLIENT_ID) {
+          return new Response(JSON.stringify({ success: false, code: 'APPLE_NOT_CONFIGURED', error: 'Set APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY' }), { status: 501, headers: corsHeaders });
+        }
+        const redirect_uri = oauthRedirectUri('apple', env, url);
+        const u = new URL('https://appleid.apple.com/auth/authorize');
+        u.searchParams.set('client_id', env.APPLE_CLIENT_ID);
+        u.searchParams.set('redirect_uri', redirect_uri);
+        u.searchParams.set('response_type', 'code');
+        u.searchParams.set('response_mode', 'form_post');
+        u.searchParams.set('scope', 'name email');
+        u.searchParams.set('state', crypto.randomUUID());
+        if (url.searchParams.get('json') === '1') {
+          return new Response(JSON.stringify({ success: true, authorize_url: u.toString(), redirect_uri }), { headers: corsHeaders });
+        }
+        return Response.redirect(u.toString(), 302);
+      }
+
+      if ((path === '/auth/apple/callback' || path === '/apple/callback') && (request.method === 'POST' || request.method === 'GET')) {
+        return new Response(JSON.stringify({
+          success: false,
+          code: 'APPLE_CALLBACK_PARTIAL',
+          error: 'Apple token exchange needs APPLE_* key material for client_secret JWT',
+        }), { status: 501, headers: corsHeaders });
+      }
+
 
       return new Response(JSON.stringify({ error: 'Not Found', path }), { status: 404, headers: corsHeaders });
     }
