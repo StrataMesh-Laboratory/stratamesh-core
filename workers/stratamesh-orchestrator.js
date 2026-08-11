@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.11.1-team-publish";
+const VERSION = "10.11.2-cid";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1422,18 +1422,30 @@ async function publishScaRegistryToGraph(env) {
   const body = JSON.stringify(snapshot, null, 2);
   let cid = null;
   let pin = null;
-  try {
-    const ipfsUrl = (env.IPFS_URL || "https://stratamesh-ipfs.stratamesh.workers.dev") + "/pin";
-    const r = await fetch(ipfsUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
-    });
-    const j = await r.json().catch(() => ({}));
-    cid = j.cid || j.CID || j.hash || null;
-    pin = j;
-  } catch (e) {
-    pin = { error: String(e.message || e) };
+  const ipfsBase = (env.IPFS_URL || "https://stratamesh-ipfs.stratamesh.workers.dev").replace(/\/$/, "");
+  for (const path of ["/pin", "/add"]) {
+    try {
+      let r;
+      if (env.IPFS && typeof env.IPFS.fetch === "function") {
+        r = await env.IPFS.fetch(new Request("https://ipfs" + path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
+        }));
+      } else {
+        r = await fetch(ipfsBase + path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
+        });
+      }
+      const j = await r.json().catch(() => ({ parse_error: true, status: r.status }));
+      pin = j;
+      cid = j.cid || j.CID || j.hash || null;
+      if (cid) break;
+    } catch (e) {
+      pin = { error: String(e.message || e), path };
+    }
   }
   // Also try DAG vertex if binding exists
   let dag = null;
