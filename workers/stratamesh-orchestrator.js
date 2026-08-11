@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.11.0-aiops-sca-team";
+const VERSION = "10.11.1-team-publish";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1794,6 +1794,27 @@ async function chat(message, env, request, body) {
   await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous");
   // Orchestrator writes its own context window continuously
   try { await writeOwnContextWindow(env, tickOut, { last_intent: intent, last_user_excerpt: text.slice(0, 160) }); } catch (_) {}
+
+  const lowCmd = text.trim().toLowerCase();
+  if (lowCmd === "equipa" || lowCmd === "team") {
+    const team = await listScaTeam(env);
+    const pt = isPt(text);
+    const lines = team.map((m) =>
+      (m.display_name || "?") + " · id=" + m.sca_id + " · função_nó=" + m.node_function + " · estado=" + m.vital_status +
+      (m.legacy_acb_id ? " · legacy=" + m.legacy_acb_id : "")
+    );
+    return {
+      reply: (pt ? "Equipa SCA no CMN (identidade pessoal ≠ função no nó):\n" : "SCA team:\n") + lines.join("\n"),
+      role: "orchestrator", version: VERSION, clearance: level, source: "sca-team", intent: "ops",
+    };
+  }
+  if (lowCmd === "publicar_registo" || lowCmd === "publish_registry") {
+    const pub = await publishScaRegistryToGraph(env);
+    return {
+      reply: JSON.stringify({ ok: true, action: "publish_sca_registry", cid: pub.cid, members: pub.members, pin: pub.pin, dag: pub.dag }, null, 2).slice(0, 1500),
+      role: "orchestrator", version: VERSION, clearance: level, source: "sca-registry-publish", intent: "ops",
+    };
+  }
 
   // Operator binding correction: "regista: ..." or "correção: ..."
   const corr = text.match(/^\s*(?:regista|corrige|correção|correcao|correction)\s*[:\-]\s*(.+)$/i);
