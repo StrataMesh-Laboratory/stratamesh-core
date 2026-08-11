@@ -139,7 +139,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.6.0-lightweight',
+          version: '2.6.1-poc-consume',
           anti_double_spend: true,
           cumulative_weight: true,
           vertices: count,
@@ -325,6 +325,13 @@ export default {
             )`).run();
             await db.prepare('INSERT INTO subsidy_events (id, vertex_id, node_id, reason, created_at) VALUES (?,?,?,?,?)')
               .bind(crypto.randomUUID(), vid, node_id, isLightweight ? 'lightweight_tx' : 'fog_subsidy', new Date().toISOString()).run();
+            try {
+              await fetch('https://stratamesh-poc.stratamesh.workers.dev/consume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resource_class: isLightweight ? 'validate' : 'fog_uptime', units: 1, source: 'dag_subsidy', ref: vid }),
+              });
+            } catch (_) {}
           } catch (_) {}
         }
         await bumpWeights(db, tipIds, 1);
@@ -385,7 +392,7 @@ export default {
           lightweight: isLightweight,
           subsidy_requested: subsidyRequested,
           confidence: confidenceFromWeight(1),
-          version: '2.6.0-lightweight',
+          version: '2.6.1-poc-consume',
         });
       }
 
@@ -447,7 +454,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.6.0-lightweight',
+        version: '2.6.1-poc-consume',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {

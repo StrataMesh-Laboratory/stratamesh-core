@@ -193,7 +193,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.5.1-clearance-rbac',
+          version: '3.5.2-pin-consume',
           clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
@@ -436,6 +436,14 @@ export default {
         await db.prepare('INSERT OR REPLACE INTO spa_pins (spa_id, cid, status, created_at) VALUES (?,?,?,?)')
           .bind(offer.spa_id, cid, 'pinned', new Date().toISOString()).run();
         const dag = await dagAnchor(env, { type: 'pin_market_match', request_id, cid, spa_id: offer.spa_id, cost_strata: cost });
+        try {
+          await fetch('https://stratamesh-poc.stratamesh.workers.dev/consume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resource_class: 'ipfs_pin', units: Math.max(size_gb, 0.001) * 1000, source: 'pin_market', ref: cid }),
+          });
+        } catch (_) {}
+
         return j({ success: true, request_id, cid, matched_offer: offer.offer_id, spa_id: offer.spa_id, node_id: offer.node_id, cost_strata: cost, dag_vertex: dag.vertex_id || null });
       }
 
@@ -695,7 +703,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.5.1-clearance-rbac' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.5.2-pin-consume' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
