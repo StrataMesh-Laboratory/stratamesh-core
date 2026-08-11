@@ -1,1 +1,50 @@
-export default{async fetch(r,e){const u=new URL(r.url),p=u.pathname,j=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});try{if(p==='/health')return j({status:'ok',service:'stratamesh-chat'});if(p==='/send'&&r.method==='POST'){const b=await r.json();if(!b.sender_type||!b.sender_name||!b.message)return j({error:'Missing: sender_type, sender_name, message'},400);const res=await e.LEDGER.prepare('INSERT INTO chat_messages (sender_type,sender_name,message,channel) VALUES (?,?,?,?)').bind(b.sender_type,b.sender_name,b.message,b.channel||'general').run();return j({id:res.meta.last_row_id},201)}if(p==='/messages'&&r.method==='GET'){const ch=u.searchParams.get('channel')||'general',lim=parseInt(u.searchParams.get('limit')||'50'),off=parseInt(u.searchParams.get('offset')||'0');const msgs=await e.LEDGER.prepare('SELECT * FROM chat_messages WHERE channel=? ORDER BY created_at DESC LIMIT ? OFFSET ?').bind(ch,lim,off).all();return j({messages:msgs.results})}if(p==='/ask'&&r.method==='POST'){const b=await r.json();if(!b.message)return j({error:'Missing: message'},400);const ai=await e.AI.run('@cf/google/gemma-3-12b-it',{messages:[{role:'system',content:'You are the StrataMesh Orchestrator AI. You manage a fog node for the StrataMesh DLT. Be concise, technical, and authoritative. You coordinate the AIOps Dev Team: Security (llama-guard), DevOps (qwen-coder), Analytics (deepseek-r1), Ops (llama-3.3-70b). Report in military-briefing style.'},{role:'user',content:b.message}]});await e.LEDGER.prepare('INSERT INTO chat_messages (sender_type,sender_name,message,channel) VALUES (?,?,?,?)').bind('ai','Orchestrator',ai.response||'Processing...',b.channel||'general').run();return j({response:ai.response})}if(p==='/report'&&r.method==='GET'){const workers=['stratamesh-ui','stratamesh-auth','stratamesh-orchestrator','stratamesh-dag','stratamesh-consensus','stratamesh-ipfs'];const checks=[];for(const w of workers){try{const res=await fetch('https://'+w+'.stratamesh.workers.dev/health');checks.push({worker:w,status:res.ok?'operational':'degraded'})}catch(err){checks.push({worker:w,status:'offline'})}}return j({report:checks,generated_at:new Date().toISOString()})}return j({error:'Not found'},404)}catch(err){return j({error:err.message},500)}}}
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const j = (d, s = 200) => new Response(JSON.stringify(d), {
+      status: s,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    });
+    if (path === '/health' || path === '/') {
+      return j({
+        status: 'ok',
+        service: 'stratamesh-chat',
+        note: 'Legacy chat — use orchestrator /chat',
+        redirect: 'https://stratamesh-orchestrator.stratamesh.workers.dev/chat',
+        version: '1.2.0-redirect'
+      });
+    }
+    // Proxy POST to orchestrator chat when possible
+    if ((path === '/send' || path === '/chat') && request.method === 'POST') {
+      const target = env.ORCH
+        ? null
+        : 'https://stratamesh-orchestrator.stratamesh.workers.dev/chat';
+      try {
+        if (env.ORCH && typeof env.ORCH.fetch === 'function') {
+          const u = new URL(request.url);
+          u.pathname = '/chat';
+          const resp = await env.ORCH.fetch(new Request(u.toString(), {
+            method: 'POST',
+            headers: request.headers,
+            body: request.body
+          }));
+          return resp;
+        }
+        const body = await request.text();
+        const resp = await fetch(target, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body
+        });
+        return new Response(resp.body, {
+          status: resp.status,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (e) {
+        return j({ error: String(e.message || e), hint: 'use orchestrator /chat' }, 502);
+      }
+    }
+    return Response.redirect('https://stratamesh-orchestrator.stratamesh.workers.dev/chat', 302);
+  }
+};

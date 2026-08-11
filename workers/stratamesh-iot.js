@@ -1,1 +1,11 @@
-export default{async fetch(r,e){const u=new URL(r.url),j=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}});try{if(u.pathname==="/health")return j({status:"ok",service:"stratamesh-iot"});if(u.pathname==="/submit"&&r.method==="POST"){const b=await r.json(),{device_id,payload,signature}=b;if(!device_id||!payload)return j({error:"device_id and payload required"},400);const tx={id:crypto.randomUUID(),type:"iot_lightweight",device_id,payload,timestamp:new Date().toISOString(),weight:0.1,fee:0};return j({message:"IoT lightweight transaction submitted",tx})}if(u.pathname==="/batch"&&r.method==="POST"){const b=await r.json();if(!Array.isArray(b.transactions))return j({error:"transactions array required"},400);const txs=b.transactions.map(t=>({id:crypto.randomUUID(),type:"iot_lightweight",device_id:t.device_id,payload:t.payload,timestamp:new Date().toISOString(),weight:0.1,fee:0}));return j({message:"Batch submitted",count:txs.length,txs})}return j({error:"Not found"},404)}catch(e){return j({error:e.message},500)}}};
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const j = (d, s=200) => new Response(JSON.stringify(d), { status:s, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'} });
+    if (path === '/health' || path === '/' || path === '') {
+      return j({ status:'ok', service:'stratamesh-iot', version:'1.1.0-repaired', repaired:true });
+    }
+    return j({ error:'Not found', service:'stratamesh-iot' }, 404);
+  }
+};

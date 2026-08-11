@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.6.0-mesh-repaired";
+const VERSION = "10.7.0-priority-c";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1010,6 +1010,11 @@ async function gatherMetrics(env) {
     ["consensus", env.CONSENSUS, "https://stratamesh-consensus.stratamesh.workers.dev/health", "/health"],
     ["registry", env.REGISTRY, "https://stratamesh-registry.stratamesh.workers.dev/health", "/health"],
     ["gate", env.GATE, "https://stratamesh-gate.stratamesh.workers.dev/health", "/health"],
+    ["ipfs", env.IPFS, "https://stratamesh-ipfs.stratamesh.workers.dev/health", "/health"],
+    ["iot", env.IOT, "https://stratamesh-iot.stratamesh.workers.dev/health", "/health"],
+    ["turnstile", env.TURNSTILE, "https://stratamesh-turnstile.stratamesh.workers.dev/health", "/health"],
+    ["chat", env.CHAT, "https://stratamesh-chat.stratamesh.workers.dev/health", "/health"],
+    ["dag_workflow", env.DAG_WORKFLOW, "https://stratamesh-dag-workflow.stratamesh.workers.dev/health", "/health"],
   ];
   const mesh = {};
   for (const [name, binding, url, bpath] of meshTargets) {
@@ -1057,6 +1062,11 @@ async function gatherMetrics(env) {
     mesh_consensus_ok: !!(mesh.consensus && mesh.consensus.ok),
     mesh_registry_ok: !!(mesh.registry && mesh.registry.ok),
     mesh_gate_ok: !!(mesh.gate && mesh.gate.ok),
+    mesh_ipfs_ok: !!(mesh.ipfs && mesh.ipfs.ok),
+    mesh_iot_ok: !!(mesh.iot && mesh.iot.ok),
+    mesh_turnstile_ok: !!(mesh.turnstile && mesh.turnstile.ok),
+    mesh_chat_ok: !!(mesh.chat && mesh.chat.ok),
+    mesh_dag_workflow_ok: !!(mesh.dag_workflow && mesh.dag_workflow.ok),
     auth_ok: !!(auth && auth.ok),
     auth_users: auth?.data?.checks?.database?.users ?? null,
     auth_sessions: auth?.data?.checks?.sessions?.active ?? null,
