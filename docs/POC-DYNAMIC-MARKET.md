@@ -31,3 +31,6 @@ STRATA_i = (units_total × global_avg × Q_event) × agora_rate × (w_i / Σw)
 
 ## Not
 Protocol-fixed STRATA-per-unit rates · admin rate-setter · ACB wages (transfers)
+
+## Resource ≠ function
+PoC prices **resource classes** (storage, compute, bandwidth, availability) only. Function/purpose of use does not define rate. Quality premiums/discounts apply within a resource class. See `docs/POC-RESOURCE-VS-FUNCTION.md`.

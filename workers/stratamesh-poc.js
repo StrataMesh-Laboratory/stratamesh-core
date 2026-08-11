@@ -5,7 +5,7 @@
  * ---------
  * 1. MEASURE  — contribution units + proof metadata for a resource class on the DLT
  * 2. VALUE    — units × global market average for that resource (exogenous)
- * 3. QUALITY  — premium / discount from scored quality (par = 1)
+ * 3. QUALITY  — premium / discount within the same resource (par = 1); function/purpose never prices
  * 4. FX       — convert quote value → STRATA at Agora open-book rate
  * 5. ALLOCATE — mint attributed proportionally to quality-weighted shares
  * 6. SETTLE   — balances + minting_events + optional epoch rollup
@@ -24,52 +24,95 @@ function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors() });
 }
 
+/**
+ * Resource classes = physical/measurable capacity ONLY.
+ * Function (what capacity is used for) NEVER defines price.
+ * Only: quantity × market avg × quality(premium|discount) × Agora FX → STRATA.
+ */
 const GLOBAL_RESOURCE_AVG = {
-  ipfs_pin: { quote_asset: 'EUR', avg_per_unit: 0.00002, unit: 'MB-month storage capacity equivalent' },
-  validate: { quote_asset: 'EUR', avg_per_unit: 0.00001, unit: 'DAG validation work unit' },
-  gossip: { quote_asset: 'EUR', avg_per_unit: 0.000005, unit: 'propagation bandwidth unit' },
-  fog_uptime: { quote_asset: 'EUR', avg_per_unit: 0.0001, unit: 'fog always-on capacity slice' },
-  starter_task: { quote_asset: 'EUR', avg_per_unit: 0.000001, unit: 'onboarding micro-contribution' },
+  storage: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.000014,
+    unit: 'MB-month',
+    note: 'Capacity — independent of which object or app uses it',
+  },
+  compute: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.00002,
+    unit: 'work-unit',
+    note: 'Work capacity — not priced by task purpose',
+  },
+  bandwidth: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.000008,
+    unit: 'propagation-unit',
+    note: 'Transfer capacity — not priced by message type',
+  },
+  availability: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.00015,
+    unit: 'uptime-slice',
+    note: 'Always-on capacity — not priced by service name',
+  },
 };
+
+/** Legacy labels → resource class (compat only; not separate prices) */
+const RESOURCE_ALIASES = {
+  ipfs_pin: 'storage',
+  pin: 'storage',
+  storage_mb: 'storage',
+  validate: 'compute',
+  validation: 'compute',
+  starter_task: 'compute',
+  gossip: 'bandwidth',
+  fog_uptime: 'availability',
+  uptime: 'availability',
+};
+
+function normalizeResourceClass(name) {
+  if (!name) return null;
+  const k = String(name).toLowerCase().trim();
+  if (GLOBAL_RESOURCE_AVG[k]) return k;
+  return RESOURCE_ALIASES[k] || null;
+}
 
 const QUALITY_BOUNDS = { min: 0.1, max: 2.5, par: 1.0 };
 
-/** Composite quality from explicit factor and/or proof dimensions */
-
-/** Audited quality from on-graph evidence (not self-declared). Conservative. */
+/** Audited quality of the contributed *resource capacity* (not of its function/purpose). */
 function auditQualityFromMeasurement(m) {
   if (!m) return scoreQuality({});
   const pins = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.count) || 0;
   const mb = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.mb) || 0;
-  const validate = m.validate || 0;
-  const demandPins = (m.demand && m.demand.ipfs_pin) || 0;
-  // reliability: evidence density, saturates slowly
-  const reliability = clamp(0.35 + Math.log10(1 + pins + validate) / 4, 0, 1);
-  // usefulness: contribution relative to mesh demand (not vanity pin spam)
+  const computeU = Number(m.compute || m.validate || 0);
+  const demandStorage = (m.demand && (m.demand.storage || m.demand.ipfs_pin)) || 0;
+  const reliability = clamp(0.35 + Math.log10(1 + pins + computeU) / 4, 0, 1);
   const usefulness =
-    demandPins > 0
-      ? clamp(0.35 + Math.min(pins + mb, demandPins) / Math.max(demandPins, 1e-9) * 0.55, 0, 1)
+    demandStorage > 0
+      ? clamp(0.35 + Math.min(pins + mb, demandStorage) / Math.max(demandStorage, 1e-9) * 0.55, 0, 1)
       : clamp(0.25 + Math.min(pins, 20) / 40, 0, 0.55);
-  // availability: real bytes beat empty pin rows
-  const availability = mb >= 1 ? 0.9 : mb > 0.01 ? 0.7 : pins > 0 ? 0.5 : 0.2;
-  // verifiability: subsidy/DAG linkage
-  const verifiability = validate > 0 ? 0.85 : pins > 0 ? 0.55 : 0.3;
-  return scoreQuality({ reliability, usefulness, availability, verifiability });
+  const availability_dim = mb >= 1 ? 0.9 : mb > 0.01 ? 0.7 : pins > 0 ? 0.5 : 0.2;
+  const verifiability = computeU > 0 ? 0.85 : pins > 0 ? 0.55 : 0.3;
+  return scoreQuality({
+    reliability,
+    usefulness,
+    availability: availability_dim,
+    verifiability,
+  });
 }
 
-/** Billable on-chain units by resource class (market-aligned). */
-function billableUnits(contribution_type, onchain) {
+/** Billable units by resource class (capacity), never by function. */
+function billableUnits(resource_class, onchain) {
   if (!onchain) return 0;
-  if (contribution_type === 'ipfs_pin') {
-    const mb = Number(onchain.sources?.ipfs_pins?.mb) || 0;
+  const rc = normalizeResourceClass(resource_class) || resource_class;
+  if (rc === 'storage') {
+    const mb = Number(onchain.sources?.ipfs_pins?.mb) || Number(onchain.storage) || 0;
     const cnt = Number(onchain.sources?.ipfs_pins?.count) || 0;
-    // Storage: MB-month capacity. Pin objects with unknown size: 4KB floor each (not 1KB vanity).
     return Math.max(mb, cnt * (4 / 1024));
   }
-  if (contribution_type === 'validate') return Number(onchain.validate) || 0;
-  if (contribution_type === 'fog_uptime') return Number(onchain.fog_uptime) || 0;
-  if (contribution_type === 'gossip') return Number(onchain.gossip) || 0;
-  return Number(onchain[contribution_type]) || 0;
+  if (rc === 'compute') return Number(onchain.compute ?? onchain.validate) || 0;
+  if (rc === 'availability') return Number(onchain.availability ?? onchain.fog_uptime) || 0;
+  if (rc === 'bandwidth') return Number(onchain.bandwidth ?? onchain.gossip) || 0;
+  return Number(onchain[rc]) || 0;
 }
 
 function scoreQuality(body) {
@@ -219,11 +262,18 @@ async function ensure(db) {
 async function measureOnchain(db, node_id) {
   const out = {
     node_id,
+    // Resource quantities (price by resource, never by function)
+    storage: 0,
+    compute: 0,
+    bandwidth: 0,
+    availability: 0,
+    // Legacy aliases (same numbers — measurement evidence labels)
     validate: 0,
     fog_uptime: 0,
     ipfs_pin: 0,
     gossip: 0,
     sources: {},
+    demand: {},
   };
   // DAG subsidy / lightweight work
   try {
@@ -235,9 +285,11 @@ async function measureOnchain(db, node_id) {
       const c = Number(r.c) || 0;
       if (String(r.reason).includes('lightweight') || String(r.reason).includes('valid')) {
         out.validate += c;
+        out.compute += c;
         out.sources.validate_subsidy = (out.sources.validate_subsidy || 0) + c;
       } else {
         out.fog_uptime += c;
+        out.availability += c;
         out.sources.fog_subsidy = (out.sources.fog_subsidy || 0) + c;
       }
     }
@@ -251,6 +303,7 @@ async function measureOnchain(db, node_id) {
     const c = Number(verts?.c) || 0;
     if (c) {
       out.validate += c;
+      out.compute += c;
       out.sources.dag_vertices_payload = c;
     }
   } catch (_) {}
@@ -266,6 +319,7 @@ async function measureOnchain(db, node_id) {
     const u = c + mb;
     if (u > 0) {
       out.ipfs_pin += u;
+      out.storage += u;
       out.sources.ipfs_pins = { count: c, mb };
     }
   } catch (_) {}
@@ -282,6 +336,7 @@ async function measureOnchain(db, node_id) {
     const c = Number(spa?.c) || 0;
     if (c) {
       out.ipfs_pin += c;
+      out.storage += c;
       out.sources.spa_pins = c;
     }
   } catch (_) {
@@ -291,20 +346,23 @@ async function measureOnchain(db, node_id) {
     } catch (__) {}
   }
   // Mesh demand (consumption) from pin_requests matched
-  let demand = { ipfs_pin: 0, validate: 0 };
+  let demand = { storage: 0, compute: 0, bandwidth: 0, availability: 0 };
   try {
     const req = await db
       .prepare("SELECT COALESCE(SUM(size_gb),0) as gb, COUNT(*) as c FROM pin_requests WHERE status IN ('matched','filled','active','completed')")
       .first();
-    demand.ipfs_pin = (Number(req?.gb) || 0) * 1024 + (Number(req?.c) || 0); // MB-ish + count
+    // Mesh demand for storage capacity (not "demand for function X")
+    demand.storage = (Number(req?.gb) || 0) * 1024 + (Number(req?.c) || 0);
   } catch (_) {}
   try {
     const n = await db.prepare('SELECT COUNT(*) as c FROM subsidy_events').first();
-    demand.validate = Number(n?.c) || 0;
+    demand.compute = Number(n?.c) || 0;
   } catch (_) {}
   out.demand = demand;
-  out.total_units =
-    out.validate + out.fog_uptime + out.ipfs_pin + out.gossip;
+  // Compat mirrors
+  out.demand.ipfs_pin = demand.storage;
+  out.demand.validate = demand.compute;
+  out.total_units = out.storage + out.compute + out.bandwidth + out.availability;
   return out;
 }
 
@@ -349,6 +407,7 @@ async function agoraRate(env, quote = 'EUR') {
 }
 
 async function globalAvg(db, resource_class) {
+  resource_class = normalizeResourceClass(resource_class) || resource_class;
   try {
     const row = await db.prepare('SELECT * FROM global_resource_avgs WHERE resource_class = ?').bind(resource_class).first();
     if (row) {
@@ -495,15 +554,19 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.6.1-incremental-audit',
+          version: '5.7.0-resource-not-function',
           sole_mint_path: true,
-          process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
+          resource_vs_function: 'Price by resource class only; function/purpose never defines rate; quality is the only intra-resource premium/discount',
+          resource_classes: Object.keys(GLOBAL_RESOURCE_AVG),
+          process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount_within_resource', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
       }
 
       if (path === '/emission-policy' || path === '/process') {
         return j({
           sole_mint_path: true,
+          resource_vs_function: 'Price by resource class only; function/purpose never defines rate; quality is the only intra-resource premium/discount',
+          resource_classes: Object.keys(GLOBAL_RESOURCE_AVG),
           process: {
             measure: 'units + proof for a DLT resource class',
             value: 'units × global market average (exogenous resource markets)',
@@ -566,7 +629,7 @@ export default {
       // Preview pricing without settling
       if (path === '/quote' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const contribution_type = body.contribution_type || body.resource_class;
+        const contribution_type = normalizeResourceClass(body.contribution_type || body.resource_class || body.resource);
         const units = Number(body.contribution_points || body.units || 0);
         const quality = scoreQuality(body);
         if (!contribution_type || !(units > 0)) return j({ error: 'contribution_type and units required' }, 400);
@@ -625,7 +688,7 @@ export default {
       if (path === '/mint' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const node_id = body.node_id;
-        let contribution_type = body.contribution_type || body.resource_class;
+        let contribution_type = normalizeResourceClass(body.contribution_type || body.resource_class || body.resource);
         let units = Number(body.contribution_points || body.units || 0);
         let onchain = null;
         const proof_hash = body.proof_hash || body.proof || null;
@@ -636,7 +699,7 @@ export default {
           onchain = await measureOnchain(db, node_id);
           if (!contribution_type) {
             // pick class with max measured units
-            const classes = ['ipfs_pin', 'validate', 'fog_uptime', 'gossip'];
+            const classes = ['storage', 'compute', 'availability', 'bandwidth'];
             contribution_type = classes.sort((a, b) => (onchain[b] || 0) - (onchain[a] || 0))[0];
           }
           if (!(units > 0)) {
@@ -671,11 +734,17 @@ export default {
         // Incremental only: subtract units already rewarded for this node+class (anti double-claim)
         let baseline = 0;
         try {
-          const prev = await db
-            .prepare('SELECT units_rewarded as s FROM poc_rewarded_units WHERE node_id = ? AND contribution_type = ?')
-            .bind(node_id, contribution_type)
-            .first();
-          baseline = Number(prev?.s) || 0;
+          const keys = [contribution_type];
+          for (const [alias, canon] of Object.entries(RESOURCE_ALIASES)) {
+            if (canon === contribution_type) keys.push(alias);
+          }
+          for (const k of keys) {
+            const prev = await db
+              .prepare('SELECT units_rewarded as s FROM poc_rewarded_units WHERE node_id = ? AND contribution_type = ?')
+              .bind(node_id, k)
+              .first();
+            baseline = Math.max(baseline, Number(prev?.s) || 0);
+          }
         } catch (_) {}
         const gross_units = units;
         const delta = Math.max(0, gross_units - baseline);
@@ -685,7 +754,7 @@ export default {
             success: true,
             amount_minted_total: 0,
             incremental: true,
-            version: '5.6.1-incremental-audit',
+            version: '5.7.0-resource-not-function',
             gross_units,
             baseline_already_rewarded: baseline,
             message: 'No new on-chain contribution since last confirmed PoC for this class',
@@ -694,7 +763,7 @@ export default {
         }
 
         if (!GLOBAL_RESOURCE_AVG[contribution_type]) {
-          return j({ error: 'unknown contribution_type', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
+          return j({ error: 'unknown resource_class', known: Object.keys(GLOBAL_RESOURCE_AVG), aliases: RESOURCE_ALIASES, note: 'Price by resource (storage/compute/bandwidth/availability), never by function' }, 400);
         }
 
         const avg = await globalAvg(db, contribution_type);

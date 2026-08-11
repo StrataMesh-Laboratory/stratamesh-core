@@ -60,3 +60,6 @@ Buyer holds STRATA → spends on network / tokenisation / subsistence
 | Pre-policy genesis balances | tagged `lab_genesis_pre_policy` (treasury / domain); test dust zeroed |
 
 **UNCLASSIFIED // FOG-NODE-PT-CM-001**
+
+## Resource ≠ function
+PoC prices **resource classes** (storage, compute, bandwidth, availability) only. Function/purpose of use does not define rate. Quality premiums/discounts apply within a resource class. See `docs/POC-RESOURCE-VS-FUNCTION.md`.

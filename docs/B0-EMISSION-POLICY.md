@@ -38,3 +38,6 @@ Stored in ledger; updated via `POST /poc/global-avg`. Lab uses 2026 market proxi
 ## Audit
 Run `scripts/b0_emission_audit.sh` (or `.mjs`) against live Workers + optional D1 export.  
 Exit criteria for B0 freeze: policy published + reproducible audit shows mint events only from PoC path.
+
+## Resource ≠ function
+PoC prices **resource classes** (storage, compute, bandwidth, availability) only. Function/purpose of use does not define rate. Quality premiums/discounts apply within a resource class. See `docs/POC-RESOURCE-VS-FUNCTION.md`.
