@@ -3,6 +3,26 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+    // Explicit language landings (path-based)
+    if (path === '/pt' || path === '/pt/') {
+      try {
+        const row = await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind('landing-pt').first();
+        const html = row?.value || '<h1>PT landing missing in D1</h1>';
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } });
+      } catch (e) {
+        return new Response('<h1>PT error</h1><pre>' + String(e.message || e) + '</pre>', { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+    }
+    if (path === '/en' || path === '/en/') {
+      try {
+        const row = await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind('landing-en').first();
+        const html = row?.value || '<h1>EN landing missing in D1</h1>';
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } });
+      } catch (e) {
+        return new Response('<h1>EN error</h1><pre>' + String(e.message || e) + '</pre>', { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+    }
+
     const country = request.headers.get('cf-ipcountry') || 'PT';
     const cplp = ['PT','BR','AO','MZ','CV','GW','ST','TL','GQ','MO'];
     const defaultLang = cplp.includes(country) ? 'pt' : 'en';
