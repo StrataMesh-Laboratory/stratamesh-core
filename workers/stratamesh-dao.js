@@ -105,7 +105,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.2.1-pin-market',
+          version: '3.3.1-pin-market',
           active_spas: spa_count,
           endpoints: [
             '/dao/health',
@@ -296,6 +296,85 @@ export default {
         return j({ success: true, spa_id, cid, status: 'pinned', dag_vertex: dag.vertex_id || null });
       }
 
+
+      // Pin market under SPA
+      if ((path === '/dao/spa/pin-offer' || path === '/dao/pin-offer') && request.method === 'POST') {
+        const data = await request.json().catch(() => ({}));
+        const spa_id = data.spa_id;
+        const capacity_gb = Number(data.capacity_gb || 1);
+        const price = Number(data.price_strata_per_gb != null ? data.price_strata_per_gb : 0.1);
+        if (!spa_id) return j({ error: 'spa_id required' }, 400);
+        const spa = await db.prepare('SELECT * FROM spas WHERE id = ?').bind(spa_id).first();
+        if (!spa || spa.status !== 'active') return j({ error: 'active SPA required', status: spa && spa.status }, 400);
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_offers (
+          offer_id TEXT PRIMARY KEY, spa_id TEXT, node_id TEXT, capacity_gb REAL,
+          price_strata_per_gb REAL, status TEXT, created_at TEXT)`).run();
+        const offer_id = 'POF-' + crypto.randomUUID().slice(0, 8);
+        await db.prepare(
+          `INSERT INTO pin_offers (offer_id, spa_id, node_id, capacity_gb, price_strata_per_gb, status, created_at)
+           VALUES (?,?,?,?,?,'open', datetime('now'))`
+        ).bind(offer_id, spa_id, spa.provider, capacity_gb, price).run();
+        return j({ success: true, offer: { offer_id, spa_id, node_id: spa.provider, capacity_gb, price_strata_per_gb: price } });
+      }
+
+      if ((path === '/dao/spa/pin-request' || path === '/dao/pin-request') && request.method === 'POST') {
+        const data = await request.json().catch(() => ({}));
+        const cid = data.cid;
+        const requester = data.requester || data.account || 'anonymous';
+        const size_gb = Number(data.size_gb || 0.001);
+        if (!cid) return j({ error: 'cid required' }, 400);
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_offers (
+          offer_id TEXT PRIMARY KEY, spa_id TEXT, node_id TEXT, capacity_gb REAL,
+          price_strata_per_gb REAL, status TEXT, created_at TEXT)`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_requests (
+          request_id TEXT PRIMARY KEY, cid TEXT, requester TEXT, size_gb REAL,
+          offer_id TEXT, spa_id TEXT, status TEXT, created_at TEXT)`).run();
+        const offer = await db.prepare("SELECT * FROM pin_offers WHERE status = 'open' ORDER BY price_strata_per_gb ASC LIMIT 1").first();
+        if (!offer) return j({ error: 'no_pin_offers' }, 404);
+        const cost = size_gb * Number(offer.price_strata_per_gb);
+        const request_id = 'PREQ-' + crypto.randomUUID().slice(0, 8);
+        await db.prepare(
+          `INSERT INTO pin_requests (request_id, cid, requester, size_gb, offer_id, spa_id, status, created_at)
+           VALUES (?,?,?,?,?,?,'matched', datetime('now'))`
+        ).bind(request_id, cid, requester, size_gb, offer.offer_id, offer.spa_id).run();
+        await db.prepare('INSERT OR REPLACE INTO spa_pins (spa_id, cid, status, created_at) VALUES (?,?,?,?)')
+          .bind(offer.spa_id, cid, 'pinned', new Date().toISOString()).run();
+        const dag = await dagAnchor(env, { type: 'pin_market_match', request_id, cid, spa_id: offer.spa_id, cost_strata: cost });
+        return j({ success: true, request_id, cid, matched_offer: offer.offer_id, spa_id: offer.spa_id, node_id: offer.node_id, cost_strata: cost, dag_vertex: dag.vertex_id || null });
+      }
+
+      if (path === '/dao/spa/pin-market' || path === '/dao/pin-market') {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_offers (
+          offer_id TEXT PRIMARY KEY, spa_id TEXT, node_id TEXT, capacity_gb REAL,
+          price_strata_per_gb REAL, status TEXT, created_at TEXT)`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS pin_requests (
+          request_id TEXT PRIMARY KEY, cid TEXT, requester TEXT, size_gb REAL,
+          offer_id TEXT, spa_id TEXT, status TEXT, created_at TEXT)`).run();
+        const offers = await db.prepare("SELECT * FROM pin_offers WHERE status = 'open' ORDER BY price_strata_per_gb ASC LIMIT 50").all();
+        const reqs = await db.prepare('SELECT * FROM pin_requests ORDER BY created_at DESC LIMIT 20').all();
+        return j({ success: true, offers: offers.results || [], recent_requests: reqs.results || [] });
+      }
+
+      if ((path === '/dao/spa/tick' || path === '/dao/tick') && (request.method === 'POST' || request.method === 'GET')) {
+        const pending = await db.prepare("SELECT * FROM spas WHERE status = 'opt_out_pending'").all();
+        const terminated = [];
+        for (const spa of pending.results || []) {
+          const notice = Number(spa.duration_days || 14);
+          let ageDays = 0;
+          try {
+            const r = await db.prepare("SELECT julianday('now') - julianday(revoked_at) as d FROM spas WHERE id = ?").bind(spa.id).first();
+            ageDays = Number(r?.d || 0);
+          } catch (_) {}
+          const force = url.searchParams.get('force') === '1';
+          if (force || ageDays >= notice || notice <= 0) {
+            await db.prepare("UPDATE spas SET status = 'terminated' WHERE id = ?").bind(spa.id).run();
+            const dag = await dagAnchor(env, { type: 'spa_terminated', spa_id: spa.id, node_id: spa.provider, after_notice_days: notice });
+            terminated.push({ spa_id: spa.id, age_days: ageDays, dag_vertex: dag.vertex_id || null });
+          }
+        }
+        return j({ success: true, checked: (pending.results || []).length, terminated });
+      }
+
       if (path === '/dao/proposal' && request.method === 'POST') {
         const data = await request.json().catch(() => ({}));
         const proposalId = 'PROP-' + Date.now();
@@ -335,10 +414,10 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.2.1-pin-market' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.3.1-pin-market' });
       }
 
-      return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner'] }, 404);
+      return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
     } catch (e) {
       return j({ error: String(e.message || e) }, 500);
     }
