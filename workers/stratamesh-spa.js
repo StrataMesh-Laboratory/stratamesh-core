@@ -82,6 +82,9 @@ async function proxyApi(request, env, path, url, corsHeaders) {
       ['/api/v1/nft', 'TOKEN', 'https://stratamesh-token.stratamesh.workers.dev', ''],
       ['/api/v1/poc', 'POC', 'https://stratamesh-poc.stratamesh.workers.dev', ''],
       ['/api/v1/scout', 'SCOUT', 'https://stratamesh-scout.stratamesh.workers.dev', ''],
+      ['/api/v1/sandbox', 'SANDBOX', 'https://stratamesh-sandbox.stratamesh.workers.dev', ''],
+      ['/api/v1/worlds', 'WORLDS', 'https://stratamesh-worlds.stratamesh.workers.dev', ''],
+      ['/api/v1/realms', 'REALMS', 'https://stratamesh-realms.stratamesh.workers.dev', ''],
     ];
     for (const [prefix, bindName, base, pathPrefix] of meshMap) {
       if (path === prefix || path.startsWith(prefix + '/')) {

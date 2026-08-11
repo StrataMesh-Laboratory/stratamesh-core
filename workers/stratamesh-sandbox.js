@@ -65,15 +65,27 @@ export default {
         const owner = body.owner || 'FOG-NODE-PT-CM-001';
         const content = body.content || { label, type: 'ugc_draft', owner, holon: 'sandbox' };
         if (!cid) {
-          try {
-            const r = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content, name: label, node_id: owner }),
-            });
-            const ij = await r.json();
-            if (ij.cid) cid = ij.cid;
-          } catch (_) {}
+          const payload = JSON.stringify({ content, name: label, node_id: owner });
+          for (let attempt = 0; attempt < 3 && !cid; attempt++) {
+            try {
+              let r;
+              if (env.IPFS && typeof env.IPFS.fetch === 'function') {
+                r = await env.IPFS.fetch(new Request('https://ipfs/add', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: payload,
+                }));
+              } else {
+                r = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: payload,
+                });
+              }
+              const ij = await r.json();
+              if (ij && ij.cid) cid = ij.cid;
+            } catch (_) {}
+          }
         }
         if (!cid) cid = 'pending';
         const id = 'sbx_' + crypto.randomUUID().slice(0, 12);
