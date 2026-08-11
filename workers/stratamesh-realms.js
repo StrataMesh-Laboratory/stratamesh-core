@@ -75,7 +75,7 @@ export default {
           .run();
         return j({ success: true, realm: { id, name: body.name || id } });
       }
-      if (path === '/ensure-lab') {
+      if (path === '/ensure-lab') // {
         const ex = await db.prepare("SELECT id FROM realms WHERE id = 'cmn-lab'").first().catch(() => null);
         if (!ex) {
           await db

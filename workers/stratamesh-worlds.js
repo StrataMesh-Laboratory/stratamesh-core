@@ -11,16 +11,7 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*' } });
     const db = env.LEDGER || env.DB;
     try {
-      if (db) {
-        await db
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS worlds (
-              id TEXT PRIMARY KEY, title TEXT, owner TEXT, realm_id TEXT,
-              root_cid TEXT, status TEXT, created_at TEXT
-            )`
-          )
-          .run();
-      }
+      // existing schema: worlds(id, data TEXT JSON)
       if (path === '/health' || path === '/' || path === '') {
         let count = 0;
         try {
@@ -34,35 +25,36 @@ export default {
           layer: 2,
           role: 'experience namespaces / multi-user open world containers',
           worlds: count,
-          version: '2.0.0-holonic',
+          version: '2.0.1-holonic',
         });
       }
       if (path === '/list') {
-        const rows = await db.prepare('SELECT * FROM worlds ORDER BY created_at DESC LIMIT 50').all();
-        return j({ worlds: rows.results || [] });
+        const rows = await db.prepare('SELECT id, data FROM worlds LIMIT 50').all();
+        const worlds = (rows.results || []).map((r) => {
+          try {
+            return { id: r.id, ...JSON.parse(r.data || '{}') };
+          } catch {
+            return { id: r.id, data: r.data };
+          }
+        });
+        return j({ worlds, count: worlds.length });
       }
-      if (path === '/create' && request.method === 'POST') {
-        const body = await request.json().catch(() => ({}));
-        const id = body.id || 'world_' + crypto.randomUUID().slice(0, 10);
-        const title = body.title || 'Untitled World';
-        const owner = body.owner || 'FOG-NODE-PT-CM-001';
-        const root = body.root_cid || body.cid || null;
+      if ((path === '/create' || path === '/ensure-lab') && (request.method === 'POST' || path === '/ensure-lab')) {
+        const body = path === '/ensure-lab' ? {} : await request.json().catch(() => ({}));
+        const id = path === '/ensure-lab' ? 'cmn-lab-world' : body.id || 'world_' + crypto.randomUUID().slice(0, 10);
+        const record = {
+          title: body.title || (path === '/ensure-lab' ? 'Calhegas Morais Lab World' : 'Untitled World'),
+          owner: body.owner || 'FOG-NODE-PT-CM-001',
+          realm_id: body.realm_id || 'cmn-lab',
+          root_cid: body.root_cid || body.cid || null,
+          status: 'active',
+          created_at: new Date().toISOString(),
+        };
         await db
-          .prepare('INSERT INTO worlds (id, title, owner, realm_id, root_cid, status, created_at) VALUES (?,?,?,?,?,?,?)')
-          .bind(id, title, owner, body.realm_id || 'cmn-lab', root, 'active', new Date().toISOString())
+          .prepare('INSERT OR REPLACE INTO worlds (id, data) VALUES (?, ?)')
+          .bind(id, JSON.stringify(record))
           .run();
-        return j({ success: true, world: { id, title, owner, root_cid: root, realm_id: body.realm_id || 'cmn-lab' } });
-      }
-      // seed default
-      if (path === '/ensure-lab') {
-        const existing = await db.prepare("SELECT id FROM worlds WHERE id = 'cmn-lab-world'").first();
-        if (!existing) {
-          await db
-            .prepare('INSERT INTO worlds (id, title, owner, realm_id, root_cid, status, created_at) VALUES (?,?,?,?,?,?,?)')
-            .bind('cmn-lab-world', 'Calhegas Morais Lab World', 'FOG-NODE-PT-CM-001', 'cmn-lab', null, 'active', new Date().toISOString())
-            .run();
-        }
-        return j({ success: true, id: 'cmn-lab-world' });
+        return j({ success: true, world: { id, ...record } });
       }
       return j({ error: 'not found', endpoints: ['/health', '/list', '/create', '/ensure-lab'] }, 404);
     } catch (e) {
