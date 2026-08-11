@@ -19,7 +19,6 @@
   --card: #111113;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html { font-size: 16px; }
 body {
   background: var(--bg);
   color: var(--fg);
@@ -29,29 +28,41 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
+.top {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.lang {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+.lang a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.2rem 0.35rem;
+}
+.lang a:hover { color: var(--fg); }
+.lang a.active {
+  color: var(--fg);
+  border-bottom: 1px solid var(--accent);
+}
+.lang .sep { opacity: 0.4; }
 .wrap {
   max-width: 720px;
   margin: 0 auto;
-  padding: 3rem 1.5rem 5rem;
+  padding: 1.5rem 1.5rem 5rem;
 }
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  margin-bottom: 4rem;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-}
-nav a {
-  color: var(--muted);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-nav a:hover { color: var(--fg); }
 header {
-  margin-bottom: 3.5rem;
-  padding-bottom: 2.5rem;
+  margin-bottom: 2.75rem;
+  padding-bottom: 2rem;
   border-bottom: 1px solid var(--line);
 }
 .kicker {
@@ -76,19 +87,13 @@ h1 {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 1rem;
-}
-.motto {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-style: italic;
-  font-size: 1.15rem;
-  color: var(--accent);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 .meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-bottom: 1.75rem;
 }
 .chip {
   font-family: 'IBM Plex Mono', monospace;
@@ -102,6 +107,25 @@ h1 {
 .chip.on {
   border-color: rgba(156, 175, 136, 0.35);
   color: var(--ok);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.actions a {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  color: var(--fg);
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--line2);
+  transition: border-color 0.15s, color 0.15s;
+}
+.actions a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .pulse {
   margin-bottom: 3rem;
@@ -140,7 +164,7 @@ h1 {
   font-weight: 500;
   color: var(--fg);
 }
-.pulse a {
+.pulse .more {
   display: inline-block;
   margin-top: 1.25rem;
   font-family: 'IBM Plex Mono', monospace;
@@ -150,7 +174,7 @@ h1 {
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
-.pulse a:hover { border-color: var(--accent); }
+.pulse .more:hover { border-color: var(--accent); }
 .err {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.7rem;
@@ -248,22 +272,26 @@ footer {
 </style>
 </head>
 <body>
+<div class="top">
+  <div class="lang" aria-label="Language">
+    <a href="/en" class="">EN</a>
+    <span class="sep">/</span>
+    <a href="/pt" class="active">PT</a>
+  </div>
+</div>
 <div class="wrap">
-  <nav>
-    <a href="/en">EN</a>
-    <a href="/pt">PT</a>
-    <a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Live</a>
-    <a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard" target="_blank" rel="noopener">Portal</a>
-    <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">GitHub</a>
-  </nav>
-
   <header>
     <p class="kicker">FOG-NODE-PT-CM-001</p>
     <h1>Calhegas Morais</h1>
     <p class="sub">Nó Fog · StrataMesh DLT</p>
-<div class="meta">
+    <div class="meta">
       <span class="chip on">v0.2.1-lab</span>
       <span class="chip">Laboratório · não mainnet</span>
+    </div>
+    <div class="actions">
+      <a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Live</a>
+      <a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard" target="_blank" rel="noopener">Portal</a>
+      <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">GitHub</a>
     </div>
   </header>
 
@@ -272,7 +300,7 @@ footer {
     <div class="grid" id="live-grid">
       <div><span>—</span><b>…</b></div>
     </div>
-    <a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Dashboard live →</a>
+    <a class="more" href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Dashboard live →</a>
     <p class="err" id="live-err"></p>
   </div>
 
