@@ -21,7 +21,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.4.0-social-oauth',
+          version: '2.5.0-phone-otp',
           checks: {}
         };
         try {
@@ -200,6 +200,228 @@ export default {
       }
 
       
+      
+      // --- Phone OTP (common users): SMS primary, password optional second factor ---
+      async function ensurePhoneTables() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS phone_otp (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          phone TEXT NOT NULL,
+          code TEXT NOT NULL,
+          challenge TEXT NOT NULL,
+          purpose TEXT DEFAULT 'login',
+          expires_at TEXT NOT NULL,
+          used INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        try {
+          await env.AUTH_DB.prepare(`ALTER TABLE users ADD COLUMN phone TEXT`).run();
+        } catch (_) {}
+        try {
+          await env.AUTH_DB.prepare(`ALTER TABLE users ADD COLUMN phone_verified INTEGER DEFAULT 0`).run();
+        } catch (_) {}
+      }
+
+      function normalizePhone(raw) {
+        let s = String(raw || '').replace(/[^\d+]/g, '');
+        if (s.startsWith('00')) s = '+' + s.slice(2);
+        if (/^9\d{8}$/.test(s)) s = '+351' + s; // PT mobile shorthand
+        if (/^3519\d{8}$/.test(s)) s = '+' + s;
+        if (!s.startsWith('+') && /^\d{10,15}$/.test(s)) s = '+' + s;
+        return s;
+      }
+
+      async function sendSmsOtp(phone, code, env) {
+        // Twilio Verify preferred
+        if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_VERIFY_SID) {
+          const url = `https://verify.twilio.com/v2/Services/${env.TWILIO_VERIFY_SID}/Verifications`;
+          const body = new URLSearchParams({ To: phone, Channel: 'sms' });
+          const auth = btoa(env.TWILIO_ACCOUNT_SID + ':' + env.TWILIO_AUTH_TOKEN);
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) return { ok: false, provider: 'twilio_verify', error: data.message || ('HTTP ' + r.status), data };
+          return { ok: true, provider: 'twilio_verify', sid: data.sid, status: data.status };
+        }
+        // Twilio Messages API fallback
+        if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM) {
+          const url = `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`;
+          const body = new URLSearchParams({
+            To: phone,
+            From: env.TWILIO_FROM,
+            Body: 'StrataMesh CMN code: ' + code + ' (valid 10 min)',
+          });
+          const auth = btoa(env.TWILIO_ACCOUNT_SID + ':' + env.TWILIO_AUTH_TOKEN);
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) return { ok: false, provider: 'twilio_sms', error: data.message || ('HTTP ' + r.status), data };
+          return { ok: true, provider: 'twilio_sms', sid: data.sid };
+        }
+        // Lab: no provider — code stored server-side; echo only if LAB_OTP_ECHO !== '0'
+        return { ok: true, provider: 'lab_echo', lab: true };
+      }
+
+      async function checkTwilioVerify(phone, code, env) {
+        if (!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_VERIFY_SID)) return null;
+        const url = `https://verify.twilio.com/v2/Services/${env.TWILIO_VERIFY_SID}/VerificationCheck`;
+        const body = new URLSearchParams({ To: phone, Code: code });
+        const auth = btoa(env.TWILIO_ACCOUNT_SID + ':' + env.TWILIO_AUTH_TOKEN);
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        });
+        const data = await r.json().catch(() => ({}));
+        return { ok: r.ok && data.status === 'approved', status: data.status, data };
+      }
+
+      if ((path === '/auth/phone/start' || path === '/phone/start') && request.method === 'POST') {
+        try {
+          await ensurePhoneTables();
+          const body = await request.json();
+          const phone = normalizePhone(body.phone);
+          if (!/^\+\d{10,15}$/.test(phone)) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid phone. Use E.164 e.g. +3519xxxxxxxx' }), { status: 400, headers: corsHeaders });
+          }
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          const challenge = crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO phone_otp (phone, code, challenge, purpose, expires_at) VALUES (?, ?, ?, 'login', datetime('now', '+10 minutes'))"
+          ).bind(phone, code, challenge).run();
+          const sent = await sendSmsOtp(phone, code, env);
+          if (!sent.ok) {
+            return new Response(JSON.stringify({ success: false, error: sent.error || 'SMS send failed', provider: sent.provider }), { status: 502, headers: corsHeaders });
+          }
+          const echo = env.LAB_OTP_ECHO !== '0' && sent.provider === 'lab_echo';
+          return new Response(JSON.stringify({
+            success: true,
+            challenge,
+            phone_masked: phone.slice(0, 4) + '****' + phone.slice(-3),
+            provider: sent.provider,
+            password_optional: true,
+            message: sent.provider === 'lab_echo'
+              ? 'Lab mode: SMS provider not configured. Use lab_otp.'
+              : 'SMS code sent. Password is optional second factor after verify.',
+            lab_otp: echo ? code : undefined,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if ((path === '/auth/phone/verify' || path === '/phone/verify') && request.method === 'POST') {
+        try {
+          await ensurePhoneTables();
+          const body = await request.json();
+          const phone = normalizePhone(body.phone);
+          const code = String(body.code || '').trim();
+          const challenge = body.challenge;
+          const password = body.password ? String(body.password) : null;
+          if (!phone || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'phone and code required' }), { status: 400, headers: corsHeaders });
+          }
+
+          let verified = false;
+          const tw = await checkTwilioVerify(phone, code, env);
+          if (tw && tw.ok) {
+            verified = true;
+          } else {
+            let row = null;
+            if (challenge) {
+              row = await env.AUTH_DB.prepare(
+                "SELECT * FROM phone_otp WHERE challenge = ? AND phone = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+              ).bind(challenge, phone).first();
+            } else {
+              row = await env.AUTH_DB.prepare(
+                "SELECT * FROM phone_otp WHERE phone = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+              ).bind(phone).first();
+            }
+            if (row && String(row.code) === code) {
+              verified = true;
+              await env.AUTH_DB.prepare('UPDATE phone_otp SET used = 1 WHERE id = ?').bind(row.id).run();
+            }
+          }
+          if (!verified) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid or expired code' }), { status: 401, headers: corsHeaders });
+          }
+
+          // Upsert user by phone
+          let user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE phone = ?').bind(phone).first();
+          if (!user) {
+            const email = 'phone_' + phone.replace(/\D/g, '') + '@id.calhegasmorais.pt';
+            const existing = await env.AUTH_DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email).first();
+            if (existing) {
+              user = existing;
+              await env.AUTH_DB.prepare("UPDATE users SET phone = ?, phone_verified = 1 WHERE id = ?").bind(phone, user.id).run();
+            } else {
+              const salt = crypto.randomUUID();
+              let password_hash = salt + ':phone_no_password';
+              if (password && password.length >= 8) {
+                const enc = new TextEncoder();
+                const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+                const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
+                password_hash = salt + ':' + btoa(String.fromCharCode(...new Uint8Array(bits)));
+              }
+              const doc_hash = 'phone_' + phone.replace(/\D/g, '');
+              await env.AUTH_DB.prepare(
+                `INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed, phone, phone_verified)
+                 VALUES (?, ?, NULL, 'verified', 'phone', ?, 'basic', 1, ?, 1)`
+              ).bind(email, password_hash, doc_hash, phone).run();
+              user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE phone = ?').bind(phone).first();
+            }
+          } else {
+            await env.AUTH_DB.prepare("UPDATE users SET phone_verified = 1, verification_status = 'verified' WHERE id = ?").bind(user.id).run();
+            // Optional password as second factor if account has real password
+            if (password && user.password_hash && !String(user.password_hash).includes('phone_no_password') && !String(user.password_hash).includes('social_no_password')) {
+              const parts = String(user.password_hash).split(':');
+              if (parts.length >= 2) {
+                const [salt, storedHash] = parts;
+                const enc = new TextEncoder();
+                const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+                const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
+                const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
+                if (hash !== storedHash) {
+                  return new Response(JSON.stringify({ success: false, error: 'SMS ok but password second factor failed' }), { status: 401, headers: corsHeaders });
+                }
+              }
+            } else if (password && password.length >= 8) {
+              // Set optional password on first use
+              const salt = crypto.randomUUID();
+              const enc = new TextEncoder();
+              const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+              const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
+              const password_hash = salt + ':' + btoa(String.fromCharCode(...new Uint8Array(bits)));
+              await env.AUTH_DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(password_hash, user.id).run();
+            }
+            user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first();
+          }
+
+          const token = crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+          ).bind(user.id, token, token).run();
+          return new Response(JSON.stringify({
+            success: true,
+            type: 'user',
+            token,
+            email: user.email,
+            phone: phone,
+            clearance: user.clearance_level || 'basic',
+            password_set: !!(user.password_hash && !String(user.password_hash).includes('no_password')),
+            message: 'Phone verified. Session issued. Password remains optional.',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+
       if (path === '/register' && request.method === 'POST') {
         try {
           let body = {};
@@ -356,7 +578,10 @@ export default {
         return new Response(JSON.stringify({
           success: true,
           methods: [
-            { id: 'password', enabled: true, label: 'Email + password (lab fallback)', register: true, login: true },
+            { id: 'phone', enabled: true, label: 'Mobile SMS OTP (primary common users)', register: true, login: true,
+              endpoints: { start: '/auth/phone/start', verify: '/auth/phone/verify' },
+              note: 'Password optional second factor after SMS' },
+            { id: 'password', enabled: true, label: 'Email + password (fallback)', register: true, login: true },
             { id: 'google', enabled: googleOn, label: 'Google', register: true, login: true,
               start: '/auth/google/start', note: googleOn ? 'OIDC' : 'Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET' },
             { id: 'apple', enabled: appleOn, label: 'Apple', register: true, login: true,
