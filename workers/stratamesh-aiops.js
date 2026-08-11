@@ -133,12 +133,15 @@ async function runTeamCycleBudgeted(env) {
   const authUrl = env.AUTH_URL || DEFAULT_AUTH;
 
   async function probe(binding, url) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 4000);
     try {
       let r;
+      const init = { method: "GET", headers: { Accept: "application/json" }, signal: ac.signal };
       if (binding && typeof binding.fetch === "function") {
-        r = await binding.fetch(new Request(url, { method: "GET", headers: { Accept: "application/json" } }));
+        r = await binding.fetch(new Request(url, init));
       } else {
-        r = await fetch(url, { headers: { Accept: "application/json" } });
+        r = await fetch(url, init);
       }
       const text = await r.text();
       let data = null;
@@ -146,6 +149,8 @@ async function runTeamCycleBudgeted(env) {
       return { ok: r.ok, status: r.status, data };
     } catch (e) {
       return { ok: false, error: String(e.message || e) };
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -209,20 +214,8 @@ async function runTeamCycleBudgeted(env) {
   eco.push("PdC mint only via contribution; SCA PdS = resource cost in STRATA");
   reports.push(agentReport("economy", eco, "info"));
 
-  // Single zero-cost team heartbeat (1 request) — not per-agent fan-out
-  let acb_ops = null;
-  try {
-    if (env.ACB && typeof env.ACB.fetch === "function") {
-      const r = await env.ACB.fetch(new Request("https://acb/acb/team/ops-cycle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ per_agent: 0, pulse_cost: 0 }),
-      }));
-      acb_ops = await r.json().catch(() => ({ http: r.status }));
-    }
-  } catch (e) {
-    acb_ops = { error: String(e.message || e) };
-  }
+  // Skip ACB fan-out on budgeted path (ops-cycle can hang); heartbeat is optional via /team-pulse
+  const acb_ops = { skipped: true, reason: "budgeted_path_no_fanout" };
 
   const critical = reports.filter((r) => r.severity === "critical").length;
   const warn = reports.filter((r) => r.severity === "warn").length;
@@ -242,7 +235,7 @@ async function runTeamCycleBudgeted(env) {
     reports,
     next_actions: buildNextActions(reports, status.data),
     acb_ops,
-    version: "1.4.1-bg-budget",
+    version: "1.4.3-bg-timeout",
   };
 
   if (env.AIOPS_KV) {
@@ -563,7 +556,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.4.1-bg-budget', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.4.3-bg-timeout', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -572,7 +565,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.4.1-bg-budget",
+        version: "1.4.3-bg-timeout",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
