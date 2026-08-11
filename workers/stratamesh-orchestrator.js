@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.3.0-symbolic-logic";
+const VERSION = "10.4.0-federated-qiga";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -619,13 +619,47 @@ function probabilisticScore(metrics, proposal) {
 }
 
 /** Tiny QIGA step — evolve gene vector */
-function qigaStep(genes, fitness, seed) {
+function qigaStep(genes, fitness, seed, meta) {
+  // Quantum-inspired: amplitude-like genes, fitness-driven drift, small phase noise
+  const gen = (meta && meta.generation) || 0;
+  const lr = meta && meta.learning_rate != null ? meta.learning_rate : 0.03;
   const next = genes.map((g, i) => {
-    const noise = Math.sin(seed * 12.9898 + i * 78.233) * 0.05;
-    return Math.max(0, Math.min(1, g + (fitness - 0.5) * 0.02 + noise));
+    const phase = Math.sin(seed * 12.9898 + i * 78.233 + gen * 0.17);
+    const drift = (fitness - 0.5) * lr;
+    const explore = (meta && meta.explore) != null ? meta.explore : 0.3;
+    const noise = phase * (0.04 + 0.02 * explore);
+    return Math.max(0, Math.min(1, g + drift + noise));
   });
   return next;
 }
+
+/** Federated meta-learning style update of QIGA hyperparameters from local fitness signal */
+function federatedMetaUpdate(meta, fitness, symbolicSuperiority) {
+  const m = Object.assign(
+    {
+      generation: 0,
+      learning_rate: 0.03,
+      explore: 0.3,
+      fitness_ema: 0.5,
+      clients_simulated: 1,
+    },
+    meta || {}
+  );
+  m.generation = (m.generation || 0) + 1;
+  m.fitness_ema = 0.85 * (m.fitness_ema || 0.5) + 0.15 * fitness;
+  // meta-gradient: raise lr if fitness improving, damp if unstable
+  const delta = fitness - (m.prev_fitness != null ? m.prev_fitness : fitness);
+  m.learning_rate = Math.max(0.005, Math.min(0.08, (m.learning_rate || 0.03) + delta * 0.02));
+  m.explore = Math.max(0.1, Math.min(0.6, (m.explore || 0.3) * (0.98 + 0.04 * (1 - fitness))));
+  if (symbolicSuperiority != null) {
+    m.symbolic_superiority_ema =
+      0.8 * (m.symbolic_superiority_ema || 0.5) + 0.2 * symbolicSuperiority;
+  }
+  m.prev_fitness = fitness;
+  m.updated_at = new Date().toISOString();
+  return m;
+}
+
 
 
 /** LLM-backed probabilistic lobe — soft scores + optional proposals (JSON only) */
@@ -703,6 +737,69 @@ async function runGrokOrFallback(env, messages, opts = {}) {
   return { ok: false, error: "No Grok/xAI path and no Workers AI fallback" };
 }
 
+
+const LOBE_STATE_KEY = "cmn_orchestrator_lobe_state_v1";
+
+async function ensureLobeStateTable(env) {
+  if (!env.AUTH_DB) return false;
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orchestrator_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  return true;
+}
+
+async function loadLobeState(env) {
+  const defaults = {
+    genes: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    meta: { generation: 0, learning_rate: 0.03, explore: 0.3, fitness_ema: 0.5 },
+    theory: null,
+    history: [],
+  };
+  if (!env.AUTH_DB) return defaults;
+  try {
+    await ensureLobeStateTable(env);
+    const row = await env.AUTH_DB.prepare(
+      "SELECT value FROM orchestrator_state WHERE key = ?"
+    ).bind(LOBE_STATE_KEY).first();
+    if (!row || !row.value) return defaults;
+    const parsed = JSON.parse(row.value);
+    return {
+      genes: Array.isArray(parsed.genes) && parsed.genes.length ? parsed.genes : defaults.genes,
+      meta: Object.assign({}, defaults.meta, parsed.meta || {}),
+      theory: parsed.theory || null,
+      history: Array.isArray(parsed.history) ? parsed.history.slice(-32) : [],
+    };
+  } catch (_) {
+    return defaults;
+  }
+}
+
+async function saveLobeState(env, state) {
+  if (!env.AUTH_DB) return false;
+  try {
+    await ensureLobeStateTable(env);
+    const payload = JSON.stringify({
+      genes: state.genes,
+      meta: state.meta,
+      theory: state.theory,
+      history: (state.history || []).slice(-32),
+      transparent: state.transparent,
+      saved_at: new Date().toISOString(),
+    });
+    await env.AUTH_DB.prepare(
+      `INSERT INTO orchestrator_state (key, value, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
+    ).bind(LOBE_STATE_KEY, payload).run();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function llmProbabilisticLobe(env, message, metrics, level) {
   if (!env.AI || typeof env.AI.run !== "function") {
     return {
@@ -763,6 +860,7 @@ function clamp01(x) {
 /** LLM-backed symbolic lobe — ontology-constrained verdicts, then hard merge with symbolicAdmit */
 
 async function llmHybridLobes(env, message, metrics, level) {
+  const state = await loadLobeState(env);
   const prob = await llmProbabilisticLobe(env, message, metrics, level);
   const baseProps = [
     { kind: "param", name: "maintain_lab_pulse", confidence: 0.82, args: {} },
@@ -781,7 +879,7 @@ async function llmHybridLobes(env, message, metrics, level) {
     seen.add(p.name);
     proposals.push(p);
   }
-  const symPack = symbolicLobeOnly(proposals, message, null);
+  const symPack = symbolicLobeOnly(proposals, message, state.theory);
   const sym = {
     ok: true,
     pure_symbolic: true,
@@ -813,18 +911,54 @@ async function llmHybridLobes(env, message, metrics, level) {
   const fitness =
     decisions.reduce((a, d) => a + (d.committed ? d.soft_score : 0), 0) /
     Math.max(1, decisions.length);
+  const superiority = (sym.cycle && sym.cycle.theory && sym.cycle.theory.superiority) || 0.5;
+  const metaNext = federatedMetaUpdate(state.meta, fitness, superiority);
+  const genesNext = qigaStep(state.genes, fitness, Date.now() % 10000, metaNext);
+  const transparent = {
+    self: "orchestrator_interior",
+    generation: metaNext.generation,
+    fitness: Number(fitness.toFixed(4)),
+    fitness_ema: Number((metaNext.fitness_ema || 0).toFixed(4)),
+    learning_rate: Number((metaNext.learning_rate || 0).toFixed(5)),
+    explore: Number((metaNext.explore || 0).toFixed(4)),
+    genes: genesNext.map((g) => Number(g.toFixed(4))),
+    symbolic_superiority: Number(superiority.toFixed(4)),
+    theory_revised: !!(sym.cycle && sym.cycle.theory && sym.cycle.theory.revised),
+    theory_hypothesis: sym.cycle && sym.cycle.theory && sym.cycle.theory.hypothesis,
+    lobes_static: false,
+    evolution: "federated-meta+QIGA continuous",
+  };
+  const history = (state.history || []).concat([{
+    at: new Date().toISOString(),
+    fitness: transparent.fitness,
+    generation: transparent.generation,
+    hypothesis: transparent.theory_hypothesis,
+  }]).slice(-32);
+  await saveLobeState(env, {
+    genes: genesNext,
+    meta: metaNext,
+    theory: (sym.cycle && sym.cycle.theory) || state.theory,
+    history,
+    transparent,
+  });
   return {
     probabilistic: prob,
     symbolic: sym,
     decisions,
     fitness: Number(fitness.toFixed(4)),
-    genes_next: qigaStep([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], fitness, Date.now() % 10000),
+    genes_prev: state.genes.map((g) => Number(Number(g).toFixed(4))),
+    genes_next: genesNext.map((g) => Number(g.toFixed(4))),
+    meta: metaNext,
+    transparent,
     architecture: {
-      probabilistic_lobe: "transformer+metrics",
-      symbolic_lobe: "formal-logic:classical+paraconsistent+fuzzy+modal; induction/deduction/abduction; revisable theory",
+      probabilistic_lobe: "transformer+metrics (evolving genes)",
+      symbolic_lobe: "formal-logic cycle (evolving provisional theory)",
       bilateral_bus: true,
       qiga: true,
-      note: "Neither lobe replaces the other; symbolic is not a transformer",
+      federated_meta_learning: true,
+      static_lobes: false,
+      interior_transparency: true,
+      note: "Neither lobe is static; both evolve; agent can inspect transparent interior state",
     },
     symbolic_cycle: sym.cycle,
   };
@@ -891,7 +1025,8 @@ async function gatherMetrics(env) {
 
 async function tick(env, extraProposals = []) {
   const { metrics, status, auth, aiops } = await gatherMetrics(env);
-  const genes = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+  const state = await loadLobeState(env);
+  const genes = state.genes || [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
   const proposals = [
     {
       kind: "param",
@@ -928,7 +1063,22 @@ async function tick(env, extraProposals = []) {
   const fitness =
     decisions.reduce((a, d) => a + (d.committed ? d.soft_score : 0), 0) /
     Math.max(1, decisions.length);
-  const nextGenes = qigaStep(genes, fitness, Date.now() % 10000);
+  const metaNext = federatedMetaUpdate(state.meta, fitness, state.meta?.symbolic_superiority_ema);
+  const nextGenes = qigaStep(genes, fitness, Date.now() % 10000, metaNext);
+  await saveLobeState(env, {
+    genes: nextGenes,
+    meta: metaNext,
+    theory: state.theory,
+    history: (state.history || []).concat([{ at: new Date().toISOString(), fitness, generation: metaNext.generation, via: "tick" }]).slice(-32),
+    transparent: {
+      self: "orchestrator_interior",
+      generation: metaNext.generation,
+      fitness: Number(fitness.toFixed(4)),
+      genes: nextGenes.map((g) => Number(g.toFixed(4))),
+      lobes_static: false,
+      via: "tick",
+    },
+  });
 
   return {
     service: "stratamesh-orchestrator",
@@ -1136,6 +1286,10 @@ async function chat(message, env, request, body) {
           probabilistic_ok: !!(hybrid.probabilistic && hybrid.probabilistic.ok),
           symbolic_ok: !!(hybrid.symbolic && hybrid.symbolic.ok),
           symbolic_cycle: hybrid.symbolic_cycle,
+          transparent: hybrid.transparent,
+          genes_prev: hybrid.genes_prev,
+          genes_next: hybrid.genes_next,
+          meta: hybrid.meta,
         },
         tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
         upstream: CLEARANCE_RANK[level] >= 2 ? tickOut.upstream : undefined,
@@ -1347,6 +1501,27 @@ export default {
       } catch (_) {}
       const out = await chat(body.message || body.text || body.prompt || "", env, request, body);
       return json(out);
+    }
+
+    if (path === "/state" || path === "/interior" || path === "/api/state") {
+      const st = await loadLobeState(env);
+      return json({
+        version: VERSION,
+        interior: true,
+        lobes_static: false,
+        evolution: "federated-meta-learning + QIGA",
+        genes: st.genes,
+        meta: st.meta,
+        theory_summary: st.theory
+          ? {
+              generation: st.theory.generation,
+              superiority: st.theory.superiority,
+              hypothesis: st.theory.hypothesis,
+              revised: st.theory.revised,
+            }
+          : null,
+        history: st.history,
+      });
     }
 
     if (path === "/ontology") {
