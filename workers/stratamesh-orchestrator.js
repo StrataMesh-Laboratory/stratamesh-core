@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.9.1-grounded-domain";
+const VERSION = "10.9.2-greet";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1226,7 +1226,7 @@ function isOperationalCommand(text) {
 function classifyIntent(text) {
   const t = text.trim();
   if (isOperationalCommand(t)) return "ops";
-  if (/^(ol[aá]|hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
+  if (/^\s*ol[aáà]/i.test(t) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
   if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
   if (/\b(pdc|poc|prova de contribut|proof of contribut)\b/i.test(t)) return "pdc";
   if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobe|probabil|simb[oó]lic)\b/i.test(t)) return "architecture";
