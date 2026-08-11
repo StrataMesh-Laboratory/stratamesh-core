@@ -1,3 +1,23 @@
+
+async function loadSiteHtml(env, keys) {
+  for (const key of keys) {
+    try {
+      const { results: chunks } = await env.SITE.prepare(
+        "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+      ).bind(key).all();
+      if (chunks && chunks.length) {
+        const html = chunks.map((c) => c.value || "").join("");
+        if (html) return html;
+      }
+    } catch (_) {}
+    try {
+      const row = await env.SITE.prepare("SELECT value FROM site_content WHERE key = ?").bind(key).first();
+      if (row && row.value) return row.value;
+    } catch (_) {}
+  }
+  return null;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -6,18 +26,16 @@ export default {
     // Explicit language landings (path-based)
     if (path === '/pt' || path === '/pt/') {
       try {
-        const row = await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind('landing-pt').first();
-        const html = row?.value || '<h1>PT landing missing in D1</h1>';
-        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } });
+        const html = (await loadSiteHtml(env, ['landing-pt', 'home-pt', 'landing'])) || '<h1>PT landing missing in D1</h1>';
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'Content-Language': 'pt-PT' } });
       } catch (e) {
         return new Response('<h1>PT error</h1><pre>' + String(e.message || e) + '</pre>', { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
     }
     if (path === '/en' || path === '/en/') {
       try {
-        const row = await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind('landing-en').first();
-        const html = row?.value || '<h1>EN landing missing in D1</h1>';
-        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } });
+        const html = (await loadSiteHtml(env, ['landing-en', 'home-en', 'landing'])) || '<h1>EN landing missing in D1</h1>';
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'Content-Language': 'en-GB' } });
       } catch (e) {
         return new Response('<h1>EN error</h1><pre>' + String(e.message || e) + '</pre>', { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
@@ -102,10 +120,7 @@ export default {
       const fullKey = pageKey + '-' + lang;
       const fallbackKey = pageKey + '-' + (lang === 'en' ? 'pt' : 'en');
       try {
-        const row = await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind(fullKey).first();
-        const fallback = !row ? await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind(fallbackKey).first() : null;
-        const bare = !row && !fallback ? await env.SITE.prepare('SELECT value FROM site_content WHERE key = ?').bind(pageKey).first() : null;
-        const content = row?.value || fallback?.value || bare?.value || '<h1>Not Found</h1>';
+        const content = (await loadSiteHtml(env, [fullKey, fallbackKey, pageKey, pageKey === 'landing' ? 'home' : pageKey])) || '<h1>Not Found</h1>';
         return new Response(content, {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',

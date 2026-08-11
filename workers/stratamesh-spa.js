@@ -61,7 +61,14 @@ export default {
       return servePortal(request, env, corsHeaders);
     }
 
-    if (path === '/' || path === '' || path === '/home' || path === '/index.html') {
+    if (path === '/' || path === '' || path === '/home' || path === '/index.html' || path === '/pt' || path === '/pt/' || path === '/en' || path === '/en/') {
+      if (path.startsWith('/pt')) {
+        const u = new URL(request.url); u.searchParams.set('lang','pt');
+        request = new Request(u.toString(), request);
+      } else if (path.startsWith('/en')) {
+        const u = new URL(request.url); u.searchParams.set('lang','en');
+        request = new Request(u.toString(), request);
+      }
       return serveHome(request, env, corsHeaders);
     }
 
