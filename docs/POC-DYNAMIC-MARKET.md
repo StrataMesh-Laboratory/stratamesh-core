@@ -1,24 +1,24 @@
-# PoC priced by Agora (external value × quality)
+# PoC pricing: global resource average → Agora → quality
 
-The protocol **does not** set a PoC mint rate.
-
-## Pricing
-
-1. **External global value** of the contributed resource units (storage, validation work, …) and their **quality**.
-2. Convert that value into STRATA using the **Agora P2P rate** (open book VWAP of STRATA listed against EUR/crypto/stable).
+## Chain
+1. **Global market average** for the resource class contributed to the DLT  
+   (mean of external markets for storage, validation compute, bandwidth, fog capacity, …).
+2. **Value in STRATA** at the **Agora** P2P rate  
+   (`STRATA = external_quote_value × agora.strata_per_quote`).
+3. **Attribution** with variable **quality premium or discount**  
+   (`factor = 1` par; `>1` premium; `<1` discount), proportional to the contributor’s share.
 
 ```
-STRATA_minted = external_value(quote_asset) × quality × agora.strata_per_quote
+global_avg_value     = units × global_market_average_per_unit
+value_after_quality  = global_avg_value × quality_factor
+STRATA_minted        = value_after_quality × agora.strata_per_quote
 ```
 
-- `agora.strata_per_quote` comes from active listings (`GET /agora/rate`) — holders discovering price, not a committee.
-- If the Agora book is empty → **cannot mint** (`agora_rate_unavailable`).
-- Lab may supply `external_value` explicitly when an audited resource quote exists; otherwise lab proxies stand in for global resource spots until live feeds.
+## Sources
+| Signal | Source |
+|--------|--------|
+| Resource average | Exogenous global markets (`GET/POST /poc/global-avg`) |
+| STRATA↔external | Agora open book VWAP (`GET /agora/rate`) |
+| Quality | Proof / measured contribution quality |
 
-## Not
-- Fixed `minting_rate` tables as emission authority
-- Admin/DAO-chosen STRATA-per-unit schedules
-- ACB labour (that is a transfer of existing STRATA)
-
-## Acquire without contributing resources
-Trade on Agora for external value only.
+No protocol-fixed mint rate. Empty Agora book → no STRATA price → mint blocked.

@@ -1,11 +1,12 @@
 /**
- * PoC mint priced via Agora:
- *   external value of contributed resources (global market) × quality
- *   → STRATA using Agora P2P rate (STRATA per quote asset)
+ * PoC mint (whitepaper-aligned pricing):
  *
- * Protocol does not set a mint rate. Agora book discovers STRATA↔external.
- * Resource external unit values are inputs from global resource markets (lab refs),
- * quality is proof-derived; final STRATA = f(external, quality, agora_rate).
+ * 1) Global market average value of the resource class being contributed to the DLT
+ * 2) Convert that external value → STRATA at the Agora P2P market rate
+ * 3) Attribute mint with variable quality premium / discount (par = 1.0)
+ *
+ * Protocol does not set STRATA emission rates — Agora discovers STRATA↔external;
+ * global resource averages are exogenous market inputs.
  */
 function cors() {
   return {
@@ -19,18 +20,53 @@ function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors() });
 }
 
-/** Lab references for global resource spot — NOT protocol emission rates */
-const EXTERNAL_RESOURCE_EUR = {
-  ipfs_pin: { eur_per_unit: 0.00002, unit: 'MB-month-equivalent lab proxy' },
-  validate: { eur_per_unit: 0.00001, unit: 'validation-work unit lab proxy' },
-  gossip: { eur_per_unit: 0.000005, unit: 'propagation unit lab proxy' },
-  fog_uptime: { eur_per_unit: 0.0001, unit: 'uptime slice lab proxy' },
-  starter_task: { eur_per_unit: 0.000001, unit: 'onboarding micro unit' },
+/**
+ * Lab stand-ins for "average of global markets" per resource class (quote = EUR).
+ * Replace with live aggregated feeds; not a protocol emission schedule.
+ */
+const GLOBAL_RESOURCE_AVG = {
+  ipfs_pin: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.00002,
+    unit: 'MB-month storage capacity equivalent',
+    markets_note: 'lab proxy for global storage/CDN capacity averages',
+  },
+  validate: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.00001,
+    unit: 'DAG validation work unit',
+    markets_note: 'lab proxy for compute/validation market averages',
+  },
+  gossip: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.000005,
+    unit: 'propagation bandwidth unit',
+    markets_note: 'lab proxy for bandwidth market averages',
+  },
+  fog_uptime: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.0001,
+    unit: 'fog always-on capacity slice',
+    markets_note: 'lab proxy for always-on edge/fog hosting averages',
+  },
+  starter_task: {
+    quote_asset: 'EUR',
+    avg_per_unit: 0.000001,
+    unit: 'onboarding micro-contribution',
+    markets_note: 'lab proxy — negligible external resource value',
+  },
 };
 
-const RESOURCE_CLASSES = Object.fromEntries(
-  Object.entries(EXTERNAL_RESOURCE_EUR).map(([k, v]) => [k, v.unit])
-);
+/** quality: 1.0 = par; >1 premium; <1 discount. Soft bounds. */
+function qualityFactor(q) {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return { factor: 1, tier: 'par' };
+  const factor = Math.min(2.5, Math.max(0.1, n));
+  let tier = 'par';
+  if (factor > 1.05) tier = 'premium';
+  else if (factor < 0.95) tier = 'discount';
+  return { factor, tier };
+}
 
 async function ensure(db) {
   await db
@@ -52,15 +88,6 @@ async function ensure(db) {
     .run();
   await db
     .prepare(
-      `CREATE TABLE IF NOT EXISTS proof_chain (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        previous_hash TEXT, current_hash TEXT, action TEXT, actor TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      )`
-    )
-    .run();
-  await db
-    .prepare(
       `CREATE TABLE IF NOT EXISTS resource_meters (
         resource_class TEXT PRIMARY KEY,
         contributed REAL DEFAULT 0,
@@ -69,10 +96,29 @@ async function ensure(db) {
       )`
     )
     .run();
-  for (const k of Object.keys(RESOURCE_CLASSES)) {
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS global_resource_avgs (
+        resource_class TEXT PRIMARY KEY,
+        quote_asset TEXT,
+        avg_per_unit REAL,
+        source TEXT,
+        updated_at TEXT
+      )`
+    )
+    .run();
+  for (const [k, v] of Object.entries(GLOBAL_RESOURCE_AVG)) {
     await db
       .prepare(
-        `INSERT OR IGNORE INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,0,datetime('now'))`
+        `INSERT OR IGNORE INTO global_resource_avgs (resource_class, quote_asset, avg_per_unit, source, updated_at)
+         VALUES (?,?,?,?, datetime('now'))`
+      )
+      .bind(k, v.quote_asset, v.avg_per_unit, 'lab_global_market_proxy')
+      .run();
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO resource_meters (resource_class, contributed, consumed, updated_at)
+         VALUES (?,0,0,datetime('now'))`
       )
       .bind(k)
       .run();
@@ -85,18 +131,33 @@ async function agoraRate(env, quote = 'EUR') {
       const r = await env.AGORA.fetch(new Request('https://agora/rate?quote=' + encodeURIComponent(quote)));
       return await r.json();
     }
-    const r = await fetch('https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=' + encodeURIComponent(quote));
+    const r = await fetch(
+      'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=' + encodeURIComponent(quote)
+    );
     return await r.json();
   } catch (e) {
-    return { success: false, error: String(e.message || e), strata_per_quote: null };
+    return { success: false, strata_per_quote: null, error: String(e.message || e) };
   }
 }
 
-function clampQuality(q) {
-  const n = Number(q);
-  if (!Number.isFinite(n)) return 1;
-  // quality in (0, 2] — 1 baseline; cannot invent value via absurd quality alone without bound
-  return Math.min(2, Math.max(0.05, n));
+async function globalAvg(db, resource_class) {
+  try {
+    const row = await db
+      .prepare('SELECT * FROM global_resource_avgs WHERE resource_class = ?')
+      .bind(resource_class)
+      .first();
+    if (row) {
+      return {
+        quote_asset: row.quote_asset || 'EUR',
+        avg_per_unit: Number(row.avg_per_unit),
+        source: row.source || 'db',
+        unit: (GLOBAL_RESOURCE_AVG[resource_class] || {}).unit,
+      };
+    }
+  } catch (_) {}
+  const g = GLOBAL_RESOURCE_AVG[resource_class];
+  if (!g) return null;
+  return { quote_asset: g.quote_asset, avg_per_unit: g.avg_per_unit, source: 'lab_proxy', unit: g.unit };
 }
 
 export default {
@@ -115,13 +176,13 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.0.0-agora-priced',
+          version: '5.1.0-global-avg-agora-quality',
           sole_mint_path: true,
           policy: {
-            mint: 'DLT resource contribution only',
-            pricing:
-              'External global value of resources × quality → STRATA via Agora P2P rate (not protocol-set)',
-            acquire_otherwise: 'Agora vs external value',
+            step1: 'Global market average value of the contributed resource',
+            step2: 'Convert to STRATA at Agora market rate',
+            step3: 'Attribute with quality premium or discount (variable)',
+            not: ['protocol-fixed mint rate', 'admin rate-setter'],
           },
         });
       }
@@ -129,39 +190,69 @@ export default {
       if (path === '/emission-policy') {
         return j({
           sole_mint_path: true,
-          formula: 'STRATA = external_value_quote * quality * agora.strata_per_quote',
-          rate_source: 'Agora open-book VWAP',
-          external_value: 'Global resource market value of contributed units (lab proxies until live oracles)',
-          quality: 'Proof-derived multiplier on contribution usefulness/reliability',
-          not: ['fixed minting_rate', 'admin rate-setter', 'pure D/C without Agora'],
+          steps: [
+            'global_avg_value = units × global_market_average_per_unit(resource_class)',
+            'external_after_quality = global_avg_value × quality_factor  (premium if >1, discount if <1)',
+            'STRATA = external_after_quality × agora.strata_per_quote',
+          ],
+          proportional: 'Mint attributed to the contributing node proportional to its quality-adjusted share of that contribution event',
+          rate_source: 'Agora open-book VWAP only',
+          global_avg_source: 'Aggregated external resource markets (lab proxies until live feeds)',
         });
       }
 
-      if (path === '/market' || path === '/scarcity') {
-        const rate = await agoraRate(env, url.searchParams.get('quote') || 'EUR');
-        const meters = await db.prepare('SELECT * FROM resource_meters').all();
-        return j({
-          success: true,
-          agora: rate,
-          meters: meters.results || [],
-          pricing: 'agora_rate_x_external_resource_value_x_quality',
-        });
-      }
-
-      // Optional: still record mesh draw for analytics (does not set mint rate)
-      if (path === '/consume' && request.method === 'POST') {
+      // Update global average from feed (operator/oracle) — still not a mint rate
+      if (path === '/global-avg' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const resource_class = body.resource_class || body.type;
-        const units = Number(body.units || 0);
-        if (!resource_class || !(units > 0)) return j({ error: 'resource_class and units > 0' }, 400);
+        const avg_per_unit = Number(body.avg_per_unit);
+        const quote_asset = (body.quote_asset || 'EUR').toUpperCase();
+        if (!resource_class || !(avg_per_unit > 0)) {
+          return j({ error: 'resource_class and avg_per_unit > 0 required' }, 400);
+        }
+        if (!GLOBAL_RESOURCE_AVG[resource_class]) {
+          return j({ error: 'unknown resource_class', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
+        }
         await db
           .prepare(
-            `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
-             ON CONFLICT(resource_class) DO UPDATE SET consumed = consumed + excluded.consumed, updated_at = excluded.updated_at`
+            `INSERT INTO global_resource_avgs (resource_class, quote_asset, avg_per_unit, source, updated_at)
+             VALUES (?,?,?,?, datetime('now'))
+             ON CONFLICT(resource_class) DO UPDATE SET
+               quote_asset = excluded.quote_asset,
+               avg_per_unit = excluded.avg_per_unit,
+               source = excluded.source,
+               updated_at = excluded.updated_at`
           )
-          .bind(resource_class, units)
+          .bind(resource_class, quote_asset, avg_per_unit, body.source || 'feed')
           .run();
-        return j({ success: true, resource_class, consumed_added: units, note: 'meter only — mint priced via Agora' });
+        return j({
+          success: true,
+          resource_class,
+          avg_per_unit,
+          quote_asset,
+          note: 'Global resource market average updated — mint still uses Agora for STRATA conversion',
+        });
+      }
+
+      if (path === '/global-avg' || path === '/global-avgs') {
+        const rows = await db.prepare('SELECT * FROM global_resource_avgs').all();
+        return j({
+          success: true,
+          averages: rows.results || [],
+          note: 'Averages of global markets for resources contributed to the DLT (exogenous)',
+        });
+      }
+
+      if (path === '/market') {
+        const quote = url.searchParams.get('quote') || 'EUR';
+        const rate = await agoraRate(env, quote);
+        const avgs = await db.prepare('SELECT * FROM global_resource_avgs').all();
+        return j({
+          success: true,
+          agora_rate: rate,
+          global_resource_averages: avgs.results || [],
+          pricing_chain: 'global_avg → quality premium/discount → Agora STRATA rate',
+        });
       }
 
       if (path === '/mint' && request.method === 'POST') {
@@ -169,135 +260,140 @@ export default {
         const node_id = body.node_id;
         const contribution_type = body.contribution_type || body.resource_class;
         const units = Number(body.contribution_points || body.units || 0);
-        const quality = clampQuality(body.quality != null ? body.quality : 1);
-        const quote_asset = (body.quote_asset || 'EUR').toUpperCase();
+        const q = qualityFactor(body.quality);
         const proof_hash = body.proof_hash || null;
         if (!node_id || !contribution_type || !(units > 0)) {
           return j({ error: 'node_id, contribution_type, contribution_points > 0 required' }, 400);
         }
-        if (!EXTERNAL_RESOURCE_EUR[contribution_type]) {
-          return j({ error: 'unknown contribution_type', known: Object.keys(EXTERNAL_RESOURCE_EUR) }, 400);
-        }
 
-        // External value of resources (global), override allowed when caller supplies audited quote
-        let external_quote_value;
-        if (body.external_value != null && Number(body.external_value) > 0) {
-          external_quote_value = Number(body.external_value);
-        } else {
-          const ref = EXTERNAL_RESOURCE_EUR[contribution_type];
-          external_quote_value = units * ref.eur_per_unit * quality;
+        const avg = await globalAvg(db, contribution_type);
+        if (!avg || !(avg.avg_per_unit > 0)) {
+          return j({ error: 'no global market average for resource_class', contribution_type }, 400);
         }
-        // quality already in external if using ref path; if external_value provided, still apply quality once
-        if (body.external_value != null) {
-          external_quote_value = Number(body.external_value) * quality;
-        }
+        const quote_asset = (body.quote_asset || avg.quote_asset || 'EUR').toUpperCase();
 
+        // Step 1: global average value of contributed resource
+        const global_avg_value = units * avg.avg_per_unit;
+        // Step 2: quality premium / discount
+        const value_after_quality = global_avg_value * q.factor;
+        // Step 3: Agora rate → STRATA
         const rate = await agoraRate(env, quote_asset);
-        const strata_per_quote = rate && rate.strata_per_quote != null ? Number(rate.strata_per_quote) : null;
+        const strata_per_quote =
+          rate && rate.strata_per_quote != null ? Number(rate.strata_per_quote) : null;
         if (strata_per_quote == null || !(strata_per_quote > 0)) {
           return j(
             {
               success: false,
               error: 'agora_rate_unavailable',
-              message:
-                'Cannot price PoC in STRATA without Agora book (STRATA listed vs external value). List on Agora or wait for liquidity.',
+              message: 'Need Agora book to express external resource value in STRATA',
+              global_avg_value: { asset: quote_asset, value: global_avg_value },
+              quality: q,
               agora: rate,
-              external_value: { asset: quote_asset, value: external_quote_value, quality },
             },
             503
           );
         }
 
-        let amount = external_quote_value * strata_per_quote;
+        let amount = value_after_quality * strata_per_quote;
         if (!Number.isFinite(amount) || amount < 0) amount = 0;
         amount = Math.floor(amount * 1e8) / 1e8;
 
-        // meters analytics
+        // Proportional attribution: single contributor event → 100% to node_id;
+        // multi-share optional via body.shares [{node_id, weight}]
+        let attributions = [{ node_id, weight: 1, amount }];
+        if (Array.isArray(body.shares) && body.shares.length > 0) {
+          const weights = body.shares.map((s) => ({
+            node_id: s.node_id,
+            weight: Math.max(0, Number(s.weight) || 0) * clampQualityShare(s.quality),
+          }));
+          const wsum = weights.reduce((a, s) => a + s.weight, 0) || 1;
+          attributions = weights.map((s) => ({
+            node_id: s.node_id,
+            weight: s.weight / wsum,
+            amount: Math.floor(amount * (s.weight / wsum) * 1e8) / 1e8,
+          }));
+        }
+
+        function clampQualityShare(qq) {
+          const n = Number(qq);
+          if (!Number.isFinite(n)) return 1;
+          return Math.min(2.5, Math.max(0.1, n));
+        }
+
+        for (const a of attributions) {
+          if (a.amount <= 0 || !a.node_id) continue;
+          await db
+            .prepare(
+              `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+               VALUES (?, 'STRATA', ?, ?, 0)
+               ON CONFLICT(account, token_type) DO UPDATE SET
+                 balance = balance + excluded.balance,
+                 total_minted = COALESCE(token_balances.total_minted,0) + excluded.balance`
+            )
+            .bind(a.node_id, a.amount, a.amount)
+            .run();
+          try {
+            await db
+              .prepare(
+                `INSERT INTO minting_events
+                 (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
+                 VALUES (?,?,?,?,?,'confirmed',?,?,?)`
+              )
+              .bind(
+                a.node_id,
+                contribution_type,
+                units * a.weight,
+                a.amount,
+                proof_hash,
+                q.factor,
+                global_avg_value,
+                value_after_quality
+              )
+              .run();
+          } catch (_) {}
+        }
+
         try {
           await db
             .prepare(
-              `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?, ?, 0, datetime('now'))
+              `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,?,0,datetime('now'))
                ON CONFLICT(resource_class) DO UPDATE SET contributed = contributed + excluded.contributed, updated_at = excluded.updated_at`
             )
             .bind(contribution_type, units)
             .run();
         } catch (_) {}
 
-        if (amount <= 0) {
-          return j({
-            success: true,
-            amount_minted: 0,
-            node_id,
-            contribution_type,
-            external_value: { asset: quote_asset, value: external_quote_value },
-            agora_rate: { strata_per_quote, quote_per_strata: rate.quote_per_strata },
-            message: 'Priced to zero at current Agora rate / external value',
-          });
-        }
-
-        await db
-          .prepare(
-            `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
-             VALUES (?, 'STRATA', ?, ?, 0)
-             ON CONFLICT(account, token_type) DO UPDATE SET
-               balance = balance + excluded.balance,
-               total_minted = COALESCE(token_balances.total_minted,0) + excluded.balance`
-          )
-          .bind(node_id, amount, amount)
-          .run();
-
-        let eventId = null;
-        try {
-          const ins = await db
-            .prepare(
-              `INSERT INTO minting_events (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
-               VALUES (?,?,?,?,?,'confirmed',?,?,?)`
-            )
-            .bind(
-              node_id,
-              contribution_type,
-              units,
-              amount,
-              proof_hash,
-              strata_per_quote,
-              external_quote_value,
-              quality
-            )
-            .run();
-          eventId = ins.meta?.last_row_id ?? null;
-        } catch (_) {
-          try {
-            await db
-              .prepare(
-                `INSERT INTO minting_events (node_id, contribution_type, contribution_score, amount, proof_hash, status)
-                 VALUES (?,?,?,?,?,'confirmed')`
-              )
-              .bind(node_id, contribution_type, units, amount, proof_hash)
-              .run();
-          } catch (__) {}
-        }
-
         return j({
           success: true,
-          minting_event_id: eventId,
-          node_id,
+          amount_minted_total: amount,
+          attributions,
           contribution_type,
-          contribution_points: units,
-          quality,
-          amount_minted: amount,
+          units,
           pricing: {
-            model: 'external_resource_value_x_quality_x_agora_rate',
-            external_value: { asset: quote_asset, value: external_quote_value },
-            agora: {
+            chain: [
+              'global_market_average × units',
+              '× quality premium/discount',
+              '× Agora strata_per_quote',
+            ],
+            global_average: {
+              resource_class: contribution_type,
+              avg_per_unit: avg.avg_per_unit,
               quote_asset,
+              source: avg.source,
+              unit: avg.unit,
+              value: global_avg_value,
+            },
+            quality: { factor: q.factor, tier: q.tier, input: body.quality != null ? body.quality : 1 },
+            value_after_quality: { asset: quote_asset, value: value_after_quality },
+            agora: {
               strata_per_quote,
               quote_per_strata: rate.quote_per_strata,
               liquidity_strata: rate.liquidity_strata,
-              source: rate.source,
+              source: rate.source || 'agora_open_book_vwap',
             },
           },
           message:
-            'PoC STRATA from global resource value × quality, converted at Agora rate — protocol does not set the rate.',
+            'Minted STRATA = global avg resource value × quality premium/discount, converted at Agora market rate. Attributed proportionally to contributor(s).',
         });
       }
 
@@ -313,15 +409,21 @@ export default {
 
       if (path === '/contribution-types') {
         const rate = await agoraRate(env, 'EUR');
-        const types = Object.entries(EXTERNAL_RESOURCE_EUR).map(([name, meta]) => ({
-          name,
-          unit: meta.unit,
-          fixed_protocol_rate: null,
-          external_ref_eur_per_unit_lab: meta.eur_per_unit,
-          note: 'Lab external resource proxy until live global feeds; STRATA via Agora rate',
-          agora_strata_per_eur: rate.strata_per_quote,
-        }));
-        return j({ contribution_types: types, pricing: 'agora_x_external_x_quality' });
+        const types = [];
+        for (const name of Object.keys(GLOBAL_RESOURCE_AVG)) {
+          const avg = await globalAvg(db, name);
+          types.push({
+            name,
+            unit: avg?.unit,
+            global_avg_per_unit: avg?.avg_per_unit,
+            quote_asset: avg?.quote_asset,
+            global_avg_source: avg?.source,
+            fixed_protocol_rate: null,
+            agora_strata_per_quote: rate.strata_per_quote,
+            quality: 'premium if >1, discount if <1, par at 1',
+          });
+        }
+        return j({ contribution_types: types, pricing: 'global_avg_x_quality_x_agora' });
       }
 
       if (path === '/history') {
@@ -332,10 +434,34 @@ export default {
         return j({ events: events.results || [] });
       }
 
+      if (path === '/consume' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const resource_class = body.resource_class || body.type;
+        const units = Number(body.units || 0);
+        if (!resource_class || !(units > 0)) return j({ error: 'resource_class and units > 0' }, 400);
+        await db
+          .prepare(
+            `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
+             ON CONFLICT(resource_class) DO UPDATE SET consumed = consumed + excluded.consumed, updated_at = excluded.updated_at`
+          )
+          .bind(resource_class, units)
+          .run();
+        return j({ success: true, resource_class, consumed_added: units, note: 'analytics meter only' });
+      }
+
       return j(
         {
           error: 'Not found',
-          endpoints: ['/health', '/mint', '/market', '/consume', '/balance', '/contribution-types', '/history', '/emission-policy'],
+          endpoints: [
+            '/health',
+            '/mint',
+            '/market',
+            '/global-avg',
+            '/contribution-types',
+            '/balance',
+            '/history',
+            '/emission-policy',
+          ],
         },
         404
       );
