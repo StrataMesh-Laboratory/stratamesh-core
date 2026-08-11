@@ -1,24 +1,33 @@
-# PoC pricing: global resource average → Agora → quality
+# PoC process (refined)
 
-## Chain
-1. **Global market average** for the resource class contributed to the DLT  
-   (mean of external markets for storage, validation compute, bandwidth, fog capacity, …).
-2. **Value in STRATA** at the **Agora** P2P rate  
-   (`STRATA = external_quote_value × agora.strata_per_quote`).
-3. **Attribution** with variable **quality premium or discount**  
-   (`factor = 1` par; `>1` premium; `<1` discount), proportional to the contributor’s share.
+## Pipeline
+| Step | Name | Mechanism |
+|------|------|-----------|
+| 1 | **Measure** | Contribution units + proof for a DLT resource class |
+| 2 | **Value** | `units × global market average` for that resource (exogenous) |
+| 3 | **Quality** | Premium / discount vs par=1 (explicit or proof dimensions) |
+| 4 | **FX** | × Agora `strata_per_quote` (open-book VWAP) |
+| 5 | **Allocate** | Proportional to quality-weighted shares |
+| 6 | **Settle** | Credit balances + minting_events (+ optional epoch) |
 
 ```
-global_avg_value     = units × global_market_average_per_unit
-value_after_quality  = global_avg_value × quality_factor
-STRATA_minted        = value_after_quality × agora.strata_per_quote
+w_i = units_i × Q_i
+STRATA_i = (units_total × global_avg × Q_event) × agora_rate × (w_i / Σw)
 ```
+(single contributor: full amount to that node)
 
-## Sources
-| Signal | Source |
-|--------|--------|
-| Resource average | Exogenous global markets (`GET/POST /poc/global-avg`) |
-| STRATA↔external | Agora open book VWAP (`GET /agora/rate`) |
-| Quality | Proof / measured contribution quality |
+## Quality
+- Explicit `quality` ∈ [0.1, 2.5]
+- Or dimensions `reliability`, `usefulness`, `availability`, `verifiability` ∈ [0,1] → composite factor
+- Tier: `premium` | `par` | `discount`
 
-No protocol-fixed mint rate. Empty Agora book → no STRATA price → mint blocked.
+## APIs
+- `POST /quote` — dry-run pricing
+- `POST /mint` — settle
+- `GET/POST /global-avg` — exogenous resource averages
+- `GET /agora/rate` — STRATA↔external
+- `POST /mint` + `open_epoch` / `epoch_id` — batch accounting
+- `GET /process` — machine-readable pipeline
+
+## Not
+Protocol-fixed STRATA-per-unit rates · admin rate-setter · ACB wages (transfers)

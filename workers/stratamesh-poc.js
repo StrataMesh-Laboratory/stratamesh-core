@@ -1,12 +1,16 @@
 /**
- * PoC mint (whitepaper-aligned pricing):
+ * PoC refined process pipeline
  *
- * 1) Global market average value of the resource class being contributed to the DLT
- * 2) Convert that external value → STRATA at the Agora P2P market rate
- * 3) Attribute mint with variable quality premium / discount (par = 1.0)
+ * MECHANISM
+ * ---------
+ * 1. MEASURE  — contribution units + proof metadata for a resource class on the DLT
+ * 2. VALUE    — units × global market average for that resource (exogenous)
+ * 3. QUALITY  — premium / discount from scored quality (par = 1)
+ * 4. FX       — convert quote value → STRATA at Agora open-book rate
+ * 5. ALLOCATE — mint attributed proportionally to quality-weighted shares
+ * 6. SETTLE   — balances + minting_events + optional epoch rollup
  *
- * Protocol does not set STRATA emission rates — Agora discovers STRATA↔external;
- * global resource averages are exogenous market inputs.
+ * Protocol never sets a STRATA-per-unit emission rate.
  */
 function cors() {
   return {
@@ -20,52 +24,60 @@ function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors() });
 }
 
-/**
- * Lab stand-ins for "average of global markets" per resource class (quote = EUR).
- * Replace with live aggregated feeds; not a protocol emission schedule.
- */
 const GLOBAL_RESOURCE_AVG = {
-  ipfs_pin: {
-    quote_asset: 'EUR',
-    avg_per_unit: 0.00002,
-    unit: 'MB-month storage capacity equivalent',
-    markets_note: 'lab proxy for global storage/CDN capacity averages',
-  },
-  validate: {
-    quote_asset: 'EUR',
-    avg_per_unit: 0.00001,
-    unit: 'DAG validation work unit',
-    markets_note: 'lab proxy for compute/validation market averages',
-  },
-  gossip: {
-    quote_asset: 'EUR',
-    avg_per_unit: 0.000005,
-    unit: 'propagation bandwidth unit',
-    markets_note: 'lab proxy for bandwidth market averages',
-  },
-  fog_uptime: {
-    quote_asset: 'EUR',
-    avg_per_unit: 0.0001,
-    unit: 'fog always-on capacity slice',
-    markets_note: 'lab proxy for always-on edge/fog hosting averages',
-  },
-  starter_task: {
-    quote_asset: 'EUR',
-    avg_per_unit: 0.000001,
-    unit: 'onboarding micro-contribution',
-    markets_note: 'lab proxy — negligible external resource value',
-  },
+  ipfs_pin: { quote_asset: 'EUR', avg_per_unit: 0.00002, unit: 'MB-month storage capacity equivalent' },
+  validate: { quote_asset: 'EUR', avg_per_unit: 0.00001, unit: 'DAG validation work unit' },
+  gossip: { quote_asset: 'EUR', avg_per_unit: 0.000005, unit: 'propagation bandwidth unit' },
+  fog_uptime: { quote_asset: 'EUR', avg_per_unit: 0.0001, unit: 'fog always-on capacity slice' },
+  starter_task: { quote_asset: 'EUR', avg_per_unit: 0.000001, unit: 'onboarding micro-contribution' },
 };
 
-/** quality: 1.0 = par; >1 premium; <1 discount. Soft bounds. */
-function qualityFactor(q) {
-  const n = Number(q);
-  if (!Number.isFinite(n)) return { factor: 1, tier: 'par' };
-  const factor = Math.min(2.5, Math.max(0.1, n));
-  let tier = 'par';
-  if (factor > 1.05) tier = 'premium';
-  else if (factor < 0.95) tier = 'discount';
-  return { factor, tier };
+const QUALITY_BOUNDS = { min: 0.1, max: 2.5, par: 1.0 };
+
+/** Composite quality from explicit factor and/or proof dimensions */
+function scoreQuality(body) {
+  if (body.quality != null && Number.isFinite(Number(body.quality))) {
+    const f = clamp(Number(body.quality), QUALITY_BOUNDS.min, QUALITY_BOUNDS.max);
+    return {
+      factor: f,
+      tier: tierOf(f),
+      components: { explicit: f },
+      method: 'explicit',
+    };
+  }
+  // proof-derived dimensions (0..1 each) → geometric mean → map to [min,max] around par
+  const dims = {
+    reliability: num01(body.reliability ?? body.proof_reliability),
+    usefulness: num01(body.usefulness ?? body.proof_usefulness),
+    availability: num01(body.availability ?? body.proof_availability),
+    verifiability: num01(body.verifiability ?? body.proof_verifiability),
+  };
+  const present = Object.values(dims).filter((v) => v != null);
+  if (!present.length) {
+    return { factor: QUALITY_BOUNDS.par, tier: 'par', components: dims, method: 'default_par' };
+  }
+  const geo = Math.exp(present.reduce((s, v) => s + Math.log(Math.max(v, 1e-6)), 0) / present.length);
+  // geo in (0,1] → factor in [min, max] with 1.0 at geo≈0.85 baseline
+  const factor = clamp(QUALITY_BOUNDS.min + geo * (QUALITY_BOUNDS.max - QUALITY_BOUNDS.min) * 0.85, QUALITY_BOUNDS.min, QUALITY_BOUNDS.max);
+  return { factor, tier: tierOf(factor), components: dims, method: 'proof_dimensions' };
+}
+
+function num01(v) {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return clamp(n, 0, 1);
+}
+function clamp(n, a, b) {
+  return Math.min(b, Math.max(a, n));
+}
+function tierOf(f) {
+  if (f > 1.05) return 'premium';
+  if (f < 0.95) return 'discount';
+  return 'par';
+}
+function quant8(n) {
+  return Math.floor(Number(n) * 1e8) / 1e8;
 }
 
 async function ensure(db) {
@@ -107,6 +119,34 @@ async function ensure(db) {
       )`
     )
     .run();
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS poc_epochs (
+        epoch_id TEXT PRIMARY KEY,
+        resource_class TEXT,
+        status TEXT,
+        total_units REAL,
+        total_strata REAL,
+        agora_strata_per_quote REAL,
+        quote_asset TEXT,
+        created_at TEXT,
+        closed_at TEXT
+      )`
+    )
+    .run();
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS poc_epoch_shares (
+        epoch_id TEXT,
+        node_id TEXT,
+        units REAL,
+        quality_factor REAL,
+        weight REAL,
+        amount REAL,
+        PRIMARY KEY (epoch_id, node_id)
+      )`
+    )
+    .run();
   for (const [k, v] of Object.entries(GLOBAL_RESOURCE_AVG)) {
     await db
       .prepare(
@@ -142,22 +182,91 @@ async function agoraRate(env, quote = 'EUR') {
 
 async function globalAvg(db, resource_class) {
   try {
-    const row = await db
-      .prepare('SELECT * FROM global_resource_avgs WHERE resource_class = ?')
-      .bind(resource_class)
-      .first();
+    const row = await db.prepare('SELECT * FROM global_resource_avgs WHERE resource_class = ?').bind(resource_class).first();
     if (row) {
       return {
         quote_asset: row.quote_asset || 'EUR',
         avg_per_unit: Number(row.avg_per_unit),
         source: row.source || 'db',
         unit: (GLOBAL_RESOURCE_AVG[resource_class] || {}).unit,
+        updated_at: row.updated_at,
       };
     }
   } catch (_) {}
   const g = GLOBAL_RESOURCE_AVG[resource_class];
   if (!g) return null;
   return { quote_asset: g.quote_asset, avg_per_unit: g.avg_per_unit, source: 'lab_proxy', unit: g.unit };
+}
+
+function priceContribution({ units, avg, quality, strata_per_quote }) {
+  const global_avg_value = units * avg.avg_per_unit;
+  const value_after_quality = global_avg_value * quality.factor;
+  const strata = quant8(value_after_quality * strata_per_quote);
+  return { global_avg_value, value_after_quality, strata };
+}
+
+function buildShares(body, node_id, quality, totalStrata, units) {
+  // Explicit multi-party shares: [{node_id, units?, quality?, weight?}]
+  if (Array.isArray(body.shares) && body.shares.length > 0) {
+    const raw = body.shares.map((s) => {
+      const q = scoreQuality({ quality: s.quality });
+      const u = Number(s.units != null ? s.units : s.weight != null ? s.weight : 0);
+      const weight = Math.max(0, u) * q.factor;
+      return { node_id: s.node_id, units: u, quality: q, weight };
+    });
+    const wsum = raw.reduce((a, s) => a + s.weight, 0) || 1;
+    return raw.map((s) => ({
+      node_id: s.node_id,
+      units: s.units,
+      quality_factor: s.quality.factor,
+      quality_tier: s.quality.tier,
+      weight: s.weight / wsum,
+      amount: quant8(totalStrata * (s.weight / wsum)),
+    }));
+  }
+  return [
+    {
+      node_id,
+      units,
+      quality_factor: quality.factor,
+      quality_tier: quality.tier,
+      weight: 1,
+      amount: totalStrata,
+    },
+  ];
+}
+
+async function credit(db, node_id, amount, meta) {
+  if (!(amount > 0) || !node_id) return;
+  await db
+    .prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', ?, ?, 0)
+       ON CONFLICT(account, token_type) DO UPDATE SET
+         balance = balance + excluded.balance,
+         total_minted = COALESCE(token_balances.total_minted,0) + excluded.balance`
+    )
+    .bind(node_id, amount, amount)
+    .run();
+  try {
+    await db
+      .prepare(
+        `INSERT INTO minting_events
+         (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
+         VALUES (?,?,?,?,?,'confirmed',?,?,?)`
+      )
+      .bind(
+        node_id,
+        meta.contribution_type,
+        meta.units,
+        amount,
+        meta.proof_hash,
+        meta.quality_factor,
+        meta.global_avg_value,
+        meta.value_after_quality
+      )
+      .run();
+  } catch (_) {}
 }
 
 export default {
@@ -176,40 +285,34 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.1.0-global-avg-agora-quality',
+          version: '5.2.0-process-refined',
           sole_mint_path: true,
-          policy: {
-            step1: 'Global market average value of the contributed resource',
-            step2: 'Convert to STRATA at Agora market rate',
-            step3: 'Attribute with quality premium or discount (variable)',
-            not: ['protocol-fixed mint rate', 'admin rate-setter'],
-          },
+          process: ['measure', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle'],
         });
       }
 
-      if (path === '/emission-policy') {
+      if (path === '/emission-policy' || path === '/process') {
         return j({
           sole_mint_path: true,
-          steps: [
-            'global_avg_value = units × global_market_average_per_unit(resource_class)',
-            'external_after_quality = global_avg_value × quality_factor  (premium if >1, discount if <1)',
-            'STRATA = external_after_quality × agora.strata_per_quote',
-          ],
-          proportional: 'Mint attributed to the contributing node proportional to its quality-adjusted share of that contribution event',
-          rate_source: 'Agora open-book VWAP only',
-          global_avg_source: 'Aggregated external resource markets (lab proxies until live feeds)',
+          process: {
+            measure: 'units + proof for a DLT resource class',
+            value: 'units × global market average (exogenous resource markets)',
+            quality: 'premium/discount vs par=1 from explicit quality or proof dimensions',
+            fx: '× Agora strata_per_quote (open-book VWAP)',
+            allocate: 'proportional to quality-weighted shares',
+            settle: 'token_balances + minting_events (+ optional epoch)',
+          },
+          quality_bounds: QUALITY_BOUNDS,
+          formula: 'STRATA_i = (units × global_avg × Q_i) × agora_rate × (w_i / Σw)',
         });
       }
 
-      // Update global average from feed (operator/oracle) — still not a mint rate
       if (path === '/global-avg' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const resource_class = body.resource_class || body.type;
         const avg_per_unit = Number(body.avg_per_unit);
         const quote_asset = (body.quote_asset || 'EUR').toUpperCase();
-        if (!resource_class || !(avg_per_unit > 0)) {
-          return j({ error: 'resource_class and avg_per_unit > 0 required' }, 400);
-        }
+        if (!resource_class || !(avg_per_unit > 0)) return j({ error: 'resource_class and avg_per_unit > 0' }, 400);
         if (!GLOBAL_RESOURCE_AVG[resource_class]) {
           return j({ error: 'unknown resource_class', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
         }
@@ -218,10 +321,8 @@ export default {
             `INSERT INTO global_resource_avgs (resource_class, quote_asset, avg_per_unit, source, updated_at)
              VALUES (?,?,?,?, datetime('now'))
              ON CONFLICT(resource_class) DO UPDATE SET
-               quote_asset = excluded.quote_asset,
-               avg_per_unit = excluded.avg_per_unit,
-               source = excluded.source,
-               updated_at = excluded.updated_at`
+               quote_asset=excluded.quote_asset, avg_per_unit=excluded.avg_per_unit,
+               source=excluded.source, updated_at=excluded.updated_at`
           )
           .bind(resource_class, quote_asset, avg_per_unit, body.source || 'feed')
           .run();
@@ -230,17 +331,14 @@ export default {
           resource_class,
           avg_per_unit,
           quote_asset,
-          note: 'Global resource market average updated — mint still uses Agora for STRATA conversion',
+          source: body.source || 'feed',
+          note: 'Updated exogenous global resource average — not a protocol mint rate',
         });
       }
 
       if (path === '/global-avg' || path === '/global-avgs') {
         const rows = await db.prepare('SELECT * FROM global_resource_avgs').all();
-        return j({
-          success: true,
-          averages: rows.results || [],
-          note: 'Averages of global markets for resources contributed to the DLT (exogenous)',
-        });
+        return j({ success: true, averages: rows.results || [] });
       }
 
       if (path === '/market') {
@@ -251,7 +349,42 @@ export default {
           success: true,
           agora_rate: rate,
           global_resource_averages: avgs.results || [],
-          pricing_chain: 'global_avg → quality premium/discount → Agora STRATA rate',
+          process: 'global_avg → quality → agora_fx → allocate',
+        });
+      }
+
+      // Preview pricing without settling
+      if (path === '/quote' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const contribution_type = body.contribution_type || body.resource_class;
+        const units = Number(body.contribution_points || body.units || 0);
+        const quality = scoreQuality(body);
+        if (!contribution_type || !(units > 0)) return j({ error: 'contribution_type and units required' }, 400);
+        const avg = await globalAvg(db, contribution_type);
+        if (!avg) return j({ error: 'unknown resource' }, 400);
+        const quote_asset = (body.quote_asset || avg.quote_asset || 'EUR').toUpperCase();
+        const rate = await agoraRate(env, quote_asset);
+        if (!(rate.strata_per_quote > 0)) {
+          return j({ success: false, error: 'agora_rate_unavailable', agora: rate }, 503);
+        }
+        const priced = priceContribution({
+          units,
+          avg,
+          quality,
+          strata_per_quote: Number(rate.strata_per_quote),
+        });
+        return j({
+          success: true,
+          preview: true,
+          contribution_type,
+          units,
+          quality,
+          pricing: {
+            global_avg_value: { asset: quote_asset, value: priced.global_avg_value },
+            after_quality: { asset: quote_asset, value: priced.value_after_quality },
+            strata: priced.strata,
+            agora: { strata_per_quote: rate.strata_per_quote, quote_per_strata: rate.quote_per_strata },
+          },
         });
       }
 
@@ -260,97 +393,44 @@ export default {
         const node_id = body.node_id;
         const contribution_type = body.contribution_type || body.resource_class;
         const units = Number(body.contribution_points || body.units || 0);
-        const q = qualityFactor(body.quality);
-        const proof_hash = body.proof_hash || null;
+        const proof_hash = body.proof_hash || body.proof || null;
+        const quality = scoreQuality(body);
         if (!node_id || !contribution_type || !(units > 0)) {
           return j({ error: 'node_id, contribution_type, contribution_points > 0 required' }, 400);
         }
+        if (!GLOBAL_RESOURCE_AVG[contribution_type]) {
+          return j({ error: 'unknown contribution_type', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
+        }
 
         const avg = await globalAvg(db, contribution_type);
-        if (!avg || !(avg.avg_per_unit > 0)) {
-          return j({ error: 'no global market average for resource_class', contribution_type }, 400);
-        }
         const quote_asset = (body.quote_asset || avg.quote_asset || 'EUR').toUpperCase();
-
-        // Step 1: global average value of contributed resource
-        const global_avg_value = units * avg.avg_per_unit;
-        // Step 2: quality premium / discount
-        const value_after_quality = global_avg_value * q.factor;
-        // Step 3: Agora rate → STRATA
         const rate = await agoraRate(env, quote_asset);
-        const strata_per_quote =
-          rate && rate.strata_per_quote != null ? Number(rate.strata_per_quote) : null;
+        const strata_per_quote = rate && rate.strata_per_quote != null ? Number(rate.strata_per_quote) : null;
         if (strata_per_quote == null || !(strata_per_quote > 0)) {
           return j(
             {
               success: false,
               error: 'agora_rate_unavailable',
-              message: 'Need Agora book to express external resource value in STRATA',
-              global_avg_value: { asset: quote_asset, value: global_avg_value },
-              quality: q,
+              step_failed: 'fx',
+              message: 'Agora book required to express global resource value in STRATA',
               agora: rate,
             },
             503
           );
         }
 
-        let amount = value_after_quality * strata_per_quote;
-        if (!Number.isFinite(amount) || amount < 0) amount = 0;
-        amount = Math.floor(amount * 1e8) / 1e8;
+        const priced = priceContribution({ units, avg, quality, strata_per_quote });
+        const shares = buildShares(body, node_id, quality, priced.strata, units);
 
-        // Proportional attribution: single contributor event → 100% to node_id;
-        // multi-share optional via body.shares [{node_id, weight}]
-        let attributions = [{ node_id, weight: 1, amount }];
-        if (Array.isArray(body.shares) && body.shares.length > 0) {
-          const weights = body.shares.map((s) => ({
-            node_id: s.node_id,
-            weight: Math.max(0, Number(s.weight) || 0) * clampQualityShare(s.quality),
-          }));
-          const wsum = weights.reduce((a, s) => a + s.weight, 0) || 1;
-          attributions = weights.map((s) => ({
-            node_id: s.node_id,
-            weight: s.weight / wsum,
-            amount: Math.floor(amount * (s.weight / wsum) * 1e8) / 1e8,
-          }));
-        }
-
-        function clampQualityShare(qq) {
-          const n = Number(qq);
-          if (!Number.isFinite(n)) return 1;
-          return Math.min(2.5, Math.max(0.1, n));
-        }
-
-        for (const a of attributions) {
-          if (a.amount <= 0 || !a.node_id) continue;
-          await db
-            .prepare(
-              `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
-               VALUES (?, 'STRATA', ?, ?, 0)
-               ON CONFLICT(account, token_type) DO UPDATE SET
-                 balance = balance + excluded.balance,
-                 total_minted = COALESCE(token_balances.total_minted,0) + excluded.balance`
-            )
-            .bind(a.node_id, a.amount, a.amount)
-            .run();
-          try {
-            await db
-              .prepare(
-                `INSERT INTO minting_events
-                 (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
-                 VALUES (?,?,?,?,?,'confirmed',?,?,?)`
-              )
-              .bind(
-                a.node_id,
-                contribution_type,
-                units * a.weight,
-                a.amount,
-                proof_hash,
-                q.factor,
-                global_avg_value,
-                value_after_quality
-              )
-              .run();
-          } catch (_) {}
+        for (const s of shares) {
+          await credit(db, s.node_id, s.amount, {
+            contribution_type,
+            units: s.units,
+            proof_hash,
+            quality_factor: s.quality_factor,
+            global_avg_value: priced.global_avg_value,
+            value_after_quality: priced.value_after_quality,
+          });
         }
 
         try {
@@ -363,38 +443,102 @@ export default {
             .run();
         } catch (_) {}
 
+        // Optional epoch registration (batch accounting)
+        let epoch_id = body.epoch_id || null;
+        if (body.open_epoch || epoch_id) {
+          epoch_id = epoch_id || 'EP-' + crypto.randomUUID().slice(0, 10);
+          try {
+            await db
+              .prepare(
+                `INSERT OR IGNORE INTO poc_epochs (epoch_id, resource_class, status, total_units, total_strata, agora_strata_per_quote, quote_asset, created_at)
+                 VALUES (?,?, 'open', 0, 0, ?, ?, datetime('now'))`
+              )
+              .bind(epoch_id, contribution_type, strata_per_quote, quote_asset)
+              .run();
+            await db
+              .prepare(
+                `UPDATE poc_epochs SET total_units = total_units + ?, total_strata = total_strata + ? WHERE epoch_id = ?`
+              )
+              .bind(units, priced.strata, epoch_id)
+              .run();
+            for (const s of shares) {
+              await db
+                .prepare(
+                  `INSERT INTO poc_epoch_shares (epoch_id, node_id, units, quality_factor, weight, amount)
+                   VALUES (?,?,?,?,?,?)
+                   ON CONFLICT(epoch_id, node_id) DO UPDATE SET
+                     units = units + excluded.units,
+                     amount = amount + excluded.amount,
+                     weight = excluded.weight,
+                     quality_factor = excluded.quality_factor`
+                )
+                .bind(epoch_id, s.node_id, s.units, s.quality_factor, s.weight, s.amount)
+                .run();
+            }
+          } catch (_) {}
+        }
+
         return j({
           success: true,
-          amount_minted_total: amount,
-          attributions,
-          contribution_type,
-          units,
-          pricing: {
-            chain: [
-              'global_market_average × units',
-              '× quality premium/discount',
-              '× Agora strata_per_quote',
-            ],
-            global_average: {
-              resource_class: contribution_type,
-              avg_per_unit: avg.avg_per_unit,
-              quote_asset,
-              source: avg.source,
-              unit: avg.unit,
-              value: global_avg_value,
+          amount_minted_total: priced.strata,
+          attributions: shares,
+          epoch_id,
+          process: {
+            measure: { contribution_type, units, proof_hash },
+            value: {
+              global_average: {
+                resource_class: contribution_type,
+                avg_per_unit: avg.avg_per_unit,
+                source: avg.source,
+                unit: avg.unit,
+              },
+              global_avg_value: { asset: quote_asset, value: priced.global_avg_value },
             },
-            quality: { factor: q.factor, tier: q.tier, input: body.quality != null ? body.quality : 1 },
-            value_after_quality: { asset: quote_asset, value: value_after_quality },
-            agora: {
-              strata_per_quote,
-              quote_per_strata: rate.quote_per_strata,
-              liquidity_strata: rate.liquidity_strata,
-              source: rate.source || 'agora_open_book_vwap',
+            quality: {
+              factor: quality.factor,
+              tier: quality.tier,
+              method: quality.method,
+              components: quality.components,
             },
+            fx: {
+              agora: {
+                strata_per_quote,
+                quote_per_strata: rate.quote_per_strata,
+                liquidity_strata: rate.liquidity_strata,
+                source: rate.source || 'agora_open_book_vwap',
+              },
+              value_after_quality: { asset: quote_asset, value: priced.value_after_quality },
+            },
+            allocate: 'quality-weighted proportional shares',
+            settle: 'balances credited',
           },
           message:
-            'Minted STRATA = global avg resource value × quality premium/discount, converted at Agora market rate. Attributed proportionally to contributor(s).',
+            'Settled: global resource average × quality premium/discount × Agora rate; attributed proportionally.',
         });
+      }
+
+      if (path === '/epoch/close' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const epoch_id = body.epoch_id;
+        if (!epoch_id) return j({ error: 'epoch_id required' }, 400);
+        await db
+          .prepare(`UPDATE poc_epochs SET status = 'closed', closed_at = datetime('now') WHERE epoch_id = ?`)
+          .bind(epoch_id)
+          .run();
+        const ep = await db.prepare('SELECT * FROM poc_epochs WHERE epoch_id = ?').bind(epoch_id).first();
+        const shares = await db.prepare('SELECT * FROM poc_epoch_shares WHERE epoch_id = ?').bind(epoch_id).all();
+        return j({ success: true, epoch: ep, shares: shares.results || [] });
+      }
+
+      if (path === '/epoch') {
+        const epoch_id = url.searchParams.get('id');
+        if (epoch_id) {
+          const ep = await db.prepare('SELECT * FROM poc_epochs WHERE epoch_id = ?').bind(epoch_id).first();
+          const shares = await db.prepare('SELECT * FROM poc_epoch_shares WHERE epoch_id = ?').bind(epoch_id).all();
+          return j({ success: true, epoch: ep, shares: shares.results || [] });
+        }
+        const rows = await db.prepare('SELECT * FROM poc_epochs ORDER BY created_at DESC LIMIT 20').all();
+        return j({ success: true, epochs: rows.results || [] });
       }
 
       if (path === '/balance') {
@@ -420,10 +564,10 @@ export default {
             global_avg_source: avg?.source,
             fixed_protocol_rate: null,
             agora_strata_per_quote: rate.strata_per_quote,
-            quality: 'premium if >1, discount if <1, par at 1',
+            quality: 'premium >1 / discount <1 / par =1',
           });
         }
-        return j({ contribution_types: types, pricing: 'global_avg_x_quality_x_agora' });
+        return j({ contribution_types: types });
       }
 
       if (path === '/history') {
@@ -434,33 +578,21 @@ export default {
         return j({ events: events.results || [] });
       }
 
-      if (path === '/consume' && request.method === 'POST') {
-        const body = await request.json().catch(() => ({}));
-        const resource_class = body.resource_class || body.type;
-        const units = Number(body.units || 0);
-        if (!resource_class || !(units > 0)) return j({ error: 'resource_class and units > 0' }, 400);
-        await db
-          .prepare(
-            `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
-             ON CONFLICT(resource_class) DO UPDATE SET consumed = consumed + excluded.consumed, updated_at = excluded.updated_at`
-          )
-          .bind(resource_class, units)
-          .run();
-        return j({ success: true, resource_class, consumed_added: units, note: 'analytics meter only' });
-      }
-
       return j(
         {
           error: 'Not found',
           endpoints: [
             '/health',
+            '/process',
+            '/quote',
             '/mint',
             '/market',
             '/global-avg',
+            '/epoch',
+            '/epoch/close',
             '/contribution-types',
             '/balance',
             '/history',
-            '/emission-policy',
           ],
         },
         404
