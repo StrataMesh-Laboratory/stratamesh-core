@@ -21,7 +21,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.2.0-eid-scaffold',
+          version: '2.3.0-staff-2fa',
           checks: {}
         };
         try {
@@ -105,13 +105,100 @@ export default {
         }
       }
       
-      if (path === '/staff-login' && request.method === 'POST') {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: 'Use /login endpoint. Staff login is now unified.',
-          redirect: '/login'
-        }), { headers: corsHeaders, status: 410 });
+
+      // --- STAFF-only login (separate from public users / future CMD) ---
+      if ((path === '/staff/login' || path === '/staff-login') && request.method === 'POST') {
+        try {
+          const { email, password } = await request.json();
+          if (!email || !password) {
+            return new Response(JSON.stringify({ success: false, error: 'Email and password required' }), { headers: corsHeaders, status: 400 });
+          }
+          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE lower(email) = lower(?)').bind(String(email).trim()).first();
+          if (!staff || !staff.password_hash) {
+            return new Response(JSON.stringify({ success: false, error: 'Staff account not found' }), { headers: corsHeaders, status: 401 });
+          }
+          const parts = String(staff.password_hash).split(':');
+          if (parts.length < 2) {
+            return new Response(JSON.stringify({ success: false, error: 'Staff credentials misconfigured' }), { headers: corsHeaders, status: 500 });
+          }
+          const [salt, storedHash] = parts;
+          const enc = new TextEncoder();
+          const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+          const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
+          const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
+          if (hash !== storedHash) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
+          }
+          // Ensure OTP table
+          await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS staff_otp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_id INTEGER NOT NULL,
+            code TEXT NOT NULL,
+            challenge TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          const challenge = crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
+          ).bind(staff.id, code, challenge).run();
+          // Lab: no mail provider bound — echo OTP when LAB_OTP_ECHO=1 (default true in lab)
+          const echo = env.LAB_OTP_ECHO !== '0';
+          const channel = env.STAFF_2FA_CHANNEL || 'email';
+          return new Response(JSON.stringify({
+            success: true,
+            requires_2fa: true,
+            challenge,
+            channel,
+            message: 'Staff password OK. Enter the 6-digit code (lab 2FA).',
+            // Production: send code via email/SMS provider; never echo.
+            lab_otp: echo ? code : undefined,
+            email: staff.email,
+            role: staff.role,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
       }
+
+      if ((path === '/staff/2fa' || path === '/staff-2fa') && request.method === 'POST') {
+        try {
+          const { challenge, code, email } = await request.json();
+          if (!challenge || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'challenge and code required' }), { headers: corsHeaders, status: 400 });
+          }
+          const row = await env.AUTH_DB.prepare(
+            "SELECT * FROM staff_otp WHERE challenge = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+          ).bind(challenge).first();
+          if (!row || String(row.code) !== String(code).trim()) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid or expired 2FA code' }), { headers: corsHeaders, status: 401 });
+          }
+          await env.AUTH_DB.prepare('UPDATE staff_otp SET used = 1 WHERE id = ?').bind(row.id).run();
+          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE id = ?').bind(row.staff_id).first();
+          if (!staff) {
+            return new Response(JSON.stringify({ success: false, error: 'Staff not found' }), { headers: corsHeaders, status: 401 });
+          }
+          const token = crypto.randomUUID();
+          await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
+          ).bind(-staff.id, token, token).run();
+          return new Response(JSON.stringify({
+            success: true,
+            type: 'staff',
+            token,
+            role: staff.role || 'staff',
+            clearance: staff.clearance_level || 'INTERNAL',
+            email: staff.email,
+            message: 'Staff session issued after 2FA'
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
       
       if (path === '/register' && request.method === 'POST') {
         try {
@@ -266,13 +353,16 @@ export default {
         return new Response(JSON.stringify({
           success: true,
           methods: [
-            { id: 'password', enabled: true, label: 'Email + password', register: true, login: true },
+            { id: 'password', enabled: true, label: 'Email + password (public users — lab fallback)', register: true, login: true },
+            { id: 'staff', enabled: true, label: 'Staff / Pessoal (internal email + password + 2FA)', register: false, login: true,
+              endpoints: { login: '/staff/login', verify_2fa: '/staff/2fa' }, note: 'Not for public registration' },
             { id: 'cmd', enabled: !!cmdOn, label: 'Chave Móvel Digital (Portugal)', register: true, login: true,
-              note: cmdOn ? 'Autenticação.gov OAuth' : 'Requires AMA/Autenticação.gov SP credentials — see docs/AUTH-EU-DIGITAL-ID.md' },
+              note: cmdOn ? 'Autenticação.gov OAuth' : 'Pending AMA SP credentials — lab' },
             { id: 'eudi', enabled: !!eudiOn, label: 'EU Digital Identity Wallet', register: true, login: true,
-              note: eudiOn ? 'OpenID4VP' : 'Requires RP registration / EUDI verifier — see docs/AUTH-EU-DIGITAL-ID.md' },
+              note: eudiOn ? 'OpenID4VP' : 'Pending RP registration — lab' },
           ],
           default: 'password',
+          staff_2fa: { lab_echo: true, production: 'email or Cloudflare Access OTP' },
           documentation: 'https://github.com/amcmorais/stratamesh-core/blob/main/docs/AUTH-EU-DIGITAL-ID.md'
         }), { headers: corsHeaders });
       }
