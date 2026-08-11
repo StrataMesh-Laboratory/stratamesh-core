@@ -404,6 +404,110 @@ async function chat(message, env) {
 }
 
 
+const CHAT_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Orchestrator · StrataMesh</title>
+<style>
+:root{--bg:#0a0a0b;--fg:#f0eeea;--muted:#9a9690;--line:#2a2a2e;--accent:#d4c4a8;--card:#141416;--ok:#9caf88;--user:#93c5fd}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;height:100%}
+header{flex:0 0 auto;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:15px;font-weight:600;letter-spacing:.03em}
+header span{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace}
+#log{flex:1 1 auto;overflow-y:auto;padding:16px;max-width:720px;width:100%;margin:0 auto}
+.msg{margin-bottom:14px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.msg .who{font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;font-family:ui-monospace,monospace}
+.msg.user .who{color:var(--user)}
+.msg.orch .who{color:var(--ok)}
+.msg.sys{color:var(--muted);font-size:13px}
+#composer{flex:0 0 auto;border-top:1px solid var(--line);background:#0e0e10;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+#composer-inner{max-width:720px;margin:0 auto}
+form{display:flex;gap:8px;align-items:center}
+input#q{flex:1;min-height:48px;background:var(--card);border:1px solid var(--line);color:var(--fg);padding:12px 14px;border-radius:8px;font-size:16px}
+input#q:focus{outline:none;border-color:var(--accent)}
+button#go{min-height:48px;padding:0 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#111;font-weight:600;font-size:14px;cursor:pointer}
+button#go:disabled{opacity:.5;cursor:wait}
+.hint{margin-top:8px;font-size:11px;color:var(--muted);font-family:ui-monospace,monospace}
+.hint a{color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Orchestrator</h1>
+  <span id="ver">10.0.0-hybrid-edge</span>
+</header>
+<div id="log">
+  <div class="msg sys">Hybrid Orchestrator + natural language (Workers AI).<br>Ask in PT or EN — or use chips for commands.</div>
+</div>
+<div id="composer">
+  <div id="composer-inner">
+    <div class="chips">
+      <button type="button" data-q="status">status</button>
+      <button type="button" data-q="next">next</button>
+      <button type="button" data-q="ontology">ontology</button>
+      <button type="button" data-q="qiga">qiga</button>
+    </div>
+    <form id="f">
+      <input id="q" name="q" autocomplete="off" placeholder="Ask the Orchestrator…" autofocus>
+      <button type="submit" id="go">Send</button>
+    </form>
+    <p class="hint"><a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard">← Portal</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  const log=document.getElementById('log');
+  const q=document.getElementById('q');
+  const go=document.getElementById('go');
+  const CHAT_API=location.origin+'/chat';
+  function add(role,text){
+    const d=document.createElement('div');
+    d.className='msg '+role;
+    const who=role==='user'?'You':role==='orch'?'Orchestrator':'';
+    d.innerHTML=(who?'<div class="who">'+who+'</div>':'')+String(text).replace(/</g,'&lt;');
+    log.appendChild(d);
+    log.scrollTop=log.scrollHeight;
+  }
+  async function send(msg){
+    msg=String(msg||'').trim();
+    if(!msg)return;
+    add('user',msg);
+    go.disabled=true;
+    try{
+      const r=await fetch(CHAT_API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:msg})});
+      const j=await r.json();
+      if(j.version) document.getElementById('ver').textContent=j.version+(j.source?(' · '+j.source):'');
+      add('orch', j.reply||j.error||('HTTP '+r.status));
+    }catch(err){
+      add('sys','Error: '+(err.message||err));
+    }finally{
+      go.disabled=false;
+      q.focus();
+    }
+  }
+  document.getElementById('f').addEventListener('submit',function(e){
+    e.preventDefault();
+    const msg=q.value;
+    q.value='';
+    send(msg);
+  });
+  document.querySelectorAll('.chips button').forEach(function(b){
+    b.addEventListener('click',function(){ send(b.getAttribute('data-q')); });
+  });
+  q.focus();
+})();
+</script>
+</body>
+</html>`;
+
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
