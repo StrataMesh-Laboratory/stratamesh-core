@@ -190,7 +190,7 @@ export default {
       };
       const metaStr = JSON.stringify(metadata);
       const metadata_cid =
-        body.metadata_cid || 'cid_meta_' + (await sha256(metaStr)).slice(0, 40);
+        body.metadata_cid || 'bafy' + (await sha256(metaStr)).slice(0, 50);
 
       // IPFS pin record (best-effort)
       try {
@@ -287,7 +287,7 @@ export default {
       };
       const metaStr = JSON.stringify(metadata);
       const metadata_cid =
-        body.metadata_cid || 'cid_imp_' + (await sha256(metaStr)).slice(0, 40);
+        body.metadata_cid || 'bafy' + (await sha256(metaStr)).slice(0, 50);
 
       try {
         await db

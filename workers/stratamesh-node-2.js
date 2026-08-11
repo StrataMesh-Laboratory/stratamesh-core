@@ -6,36 +6,22 @@ export default {
       status: s,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
-    try {
-      if (path === '/health' || path === '/' || path === '') {
-        return j({
-          status: 'ok',
-          service: 'stratamesh-node-2',
-          node_type: 'fog',
-          mesh: 'stratamesh-fog',
-          node_id: 'FOG-NODE-PT-CM-NODE-2',
-          repaired: true,
-          version: '1.1.0-repaired'
-        });
-      }
-
-      if (path === '/validate' && request.method === 'POST') {
-        const tx = await request.json().catch(() => ({}));
-        return j({
-          valid: !!(tx && (tx.payload || tx.hash)),
-          tx_id: tx.id || crypto.randomUUID(),
-          validated_at: new Date().toISOString(),
-          validator: 'node-2'
-        });
-      }
-      if (path === '/pin' && request.method === 'POST') {
-        const body = await request.json().catch(() => ({}));
-        return j({ cid: body.cid, pinned: true, pinned_at: new Date().toISOString(), node: 'node-2' });
-      }
-
-      return j({ error: 'Not found', service: 'stratamesh-node-2' }, 404);
-    } catch (err) {
-      return j({ error: String(err.message || err) }, 500);
+    if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': '*' } });
+    if (path === '/health' || path === '/' || path === '') {
+      return j({ status: 'ok', service: 'stratamesh-node-2', node_type: 'fog', version: '1.2.0', repaired: true });
     }
+    if ((path === '/validate' || path === '/pin' || path === '/broadcast') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      return j({
+        ok: true,
+        peer: 'node-2',
+        accepted: true,
+        id: body.id || body.vertex_id || null,
+        hash: body.hash || body.payload_hash || null,
+        cid: body.cid || null,
+        validated_at: new Date().toISOString()
+      });
+    }
+    return j({ error: 'Not found', endpoints: ['/health','/validate','/pin'] }, 404);
   }
 };

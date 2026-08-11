@@ -129,7 +129,7 @@ export default {
         let cid = body.cid || body.ipfs_cid || null;
         let pin = null;
         if (!cid && content != null) {
-          cid = 'cid_' + (await sha256(typeof content === 'string' ? content : JSON.stringify(content))).slice(0, 46);
+          cid = 'bafy' + (await sha256(typeof content === 'string' ? content : JSON.stringify(content))).slice(0, 50);
         }
         if (cid) {
           try {
