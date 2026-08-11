@@ -218,6 +218,110 @@ function json(data, status = 200) {
   });
 }
 
+
+async function orchestratorChat(message, env) {
+  const text = String(message || "").trim().slice(0, 2000);
+  if (!text) {
+    return { reply: "Send a non-empty message.", role: "orchestrator" };
+  }
+
+  const cycle = await runTeamCycle(env);
+  const ctx = {
+    node: "FOG-NODE-PT-CM-001",
+    operator: "André Manuel Calhegas Morais",
+    cycle_ok: cycle.ok,
+    summary: cycle.summary,
+    upstream: cycle.upstream,
+    findings: (cycle.reports || []).map((r) => ({
+      agent: r.agent,
+      severity: r.severity,
+      findings: r.findings,
+    })),
+    next_actions: cycle.next_actions || [],
+  };
+
+  // Optional Workers AI if bound
+  if (env.AI && typeof env.AI.run === "function") {
+    try {
+      const system =
+        "You are the StrataMesh Hybrid Orchestrator assistant for the Calhegas Morais Fog Node. " +
+        "Be concise, technical, substrate-neutral. Use the JSON context. Do not invent mainnet status. " +
+        "Lab reference only. Prefer Portuguese if the user writes in Portuguese.";
+      const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content:
+              "Context:\\n" +
+              JSON.stringify(ctx, null, 2) +
+              "\\n\\nUser:\\n" +
+              text,
+          },
+        ],
+        max_tokens: 512,
+      });
+      const reply =
+        (result && (result.response || result.result || result.text)) ||
+        JSON.stringify(result);
+      return {
+        reply: String(reply),
+        role: "orchestrator",
+        source: "workers-ai",
+        context: ctx,
+      };
+    } catch (e) {
+      // fall through to deterministic
+      ctx.ai_error = String(e.message || e);
+    }
+  }
+
+  // Deterministic orchestrator-style reply (always available)
+  const lower = text.toLowerCase();
+  const lines = [];
+  lines.push("Orchestrator · Calhegas Morais node");
+  lines.push(
+    `Cycle: ${ctx.cycle_ok ? "ok" : "issues"} · critical=${ctx.summary.critical} warn=${ctx.summary.warn}`
+  );
+
+  if (/status|estado|health|saúde|pulse|pulso/.test(lower)) {
+    lines.push(
+      `Upstream: status=${ctx.upstream.status?.ok} orch=${ctx.upstream.orchestrator?.ok} auth=${ctx.upstream.auth?.ok}`
+    );
+    for (const r of ctx.findings) {
+      lines.push(`[${r.severity}] ${r.agent}: ${(r.findings || []).slice(0, 2).join("; ")}`);
+    }
+  } else if (/aiops|equipa|team|agent/.test(lower)) {
+    for (const r of ctx.findings) {
+      lines.push(`${r.agent}: ${(r.findings || []).join("; ")}`);
+    }
+  } else if (/next|próxim|proxim|roadmap|fazer|todo/.test(lower)) {
+    for (const a of ctx.next_actions) {
+      lines.push(`P${a.priority} (${a.agent}) ${a.action}`);
+    }
+  } else if (/spa|mesh|fog/.test(lower)) {
+    const mesh = ctx.findings.find((f) => f.agent === "mesh");
+    lines.push(mesh ? mesh.findings.join("; ") : "Mesh metrics from last cycle above.");
+  } else {
+    lines.push("Understood. Last cycle snapshot:");
+    for (const r of ctx.findings.slice(0, 3)) {
+      lines.push(`[${r.severity}] ${r.agent}: ${(r.findings || [])[0] || "—"}`);
+    }
+    if (ctx.next_actions[0]) {
+      lines.push("Next: " + ctx.next_actions[0].action);
+    }
+    lines.push('Ask: "status", "aiops", "next", or "mesh" for focused briefings.');
+  }
+
+  return {
+    reply: lines.join("\n"),
+    role: "orchestrator",
+    source: "deterministic+cycle",
+    context: ctx,
+  };
+}
+
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -266,6 +370,22 @@ export default {
       // live cycle if no KV
       const cycle = await runTeamCycle(env);
       return json(cycle);
+    }
+
+
+    if (path === "/chat" || path === "/api/chat" || path === "/api/aiops/chat") {
+      if (request.method === "GET") {
+        return json({
+          service: "orchestrator-chat",
+          methods: ["POST"],
+          body: { message: "string" },
+        });
+      }
+      if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+      let body = {};
+      try { body = await request.json(); } catch (_) {}
+      const out = await orchestratorChat(body.message || body.text || body.prompt || "", env);
+      return json(out);
     }
 
     if (path === "/" || path === "/status") {
