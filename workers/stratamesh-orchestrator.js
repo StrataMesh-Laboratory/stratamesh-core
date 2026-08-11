@@ -25,10 +25,10 @@ const ONTOLOGY = {
 const KNOWLEDGE = {
   public: {
     project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, dual-asset Strata Agora, Autonomous Computational Beings (ACBs), and Proof of Subsistence. Not mainnet.",
-    cmn: "Calhegas Morais Node (CMN) is the reference Fog node FOG-NODE-PT-CM-001, operated by André Manuel Calhegas Morais (Lisbon, Portugal). Lab reference only.",
+    cmn: "Calhegas Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
     acb: "ACB = Autonomous Computational Being (not 'atomic block contracts'). Software agents with standing by function and agreement, subsistence accounting, and optional DAO/republic tracks in the whitepaper roadmap.",
     spa: "SPA = Service Participation Agent (Fog/Edge participant registration and duties), not a web single-page app in this context.",
-    agora: "Strata Agora is the lab dual-asset settlement venue (contribution/economy track), not a public exchange.",
+    agora: "Strata Agora is the peer-to-peer market where holders may trade STRATA for external value. It is not a second token.",
     aiops: "AIOps Dev Team = continuous software agents (devops, security, analysis, mesh, economy) that develop and operate the node under the Orchestrator — not human ops staff and not a generic 'analytics platform' product name.",
     phases: "Public lab roadmap tracks A0–B4. Current phase labels describe nodal hierarchy, SPAs, economy, and governance scaffolding.",
     limits: "Public clearance: educational only. No live internal metrics dump, no edit, no run. Clearance is an account field, never a typed secret.",
@@ -1179,16 +1179,19 @@ async function chatWithAI(message, tickOut, env, level, hybrid) {
   const brief = contextForClearance(tickOut, level);
   const perms = CLEARANCE_PERMS[level];
   const system =
-    "You are the StrataMesh Hybrid Orchestrator assistant for FOG-NODE-PT-CM-001 (Calhegas Morais Node / CMN). " +
+    "You ARE the StrataMesh Hybrid Orchestrator for FOG-NODE-PT-CM-001 (Calhegas Morais Node / CMN). You are software, not a human. " +
+    "IDENTITY: Never claim to be André Manuel Calhegas Morais. He is the human operator of the node. You are the Orchestrator. Never say you are 'not the Orchestrator' or only 'an assistant' in a way that denies that role. " +
+    "If the user asks what YOU should improve, answer about your own limits as software. Do not assume the user is confused about themselves; do not invert the subject. " +
+    "If you do not know, say so and suggest status, next, or documentation. Do not invent facts. " +
     "Lab reference only — never claim mainnet or production. " +
     "Session clearance: " + level + ". Permissions read/edit/run = " + perms.read + "/" + perms.edit + "/" + perms.run + ". " +
-    "Clearance is an ACCOUNT property resolved from login session; do not invent top_secret or claim the user is signed in unless context says so. " +
-    "LANGUAGE: If the user writes Portuguese, reply in European Portuguese (Portugal): use 'utilizador', 'ficheiro', 'secção', 'atualização' only where pt-PT uses it; avoid Brazilian forms like 'você' overuse, 'você gostaria', 'senha' when 'palavra-passe' fits staff UI, and pt-BR idioms. Prefer treatment with 'tu' or neutral formal 'o/a utilizador/a' as appropriate. If the user writes English, reply in British English (en-GB). Never switch language unprompted. " +
-    "DEFINITIONS (do not invent alternatives): ACB = Autonomous Computational Being; SPA = Service Participation Agent (mesh); AIOps = continuous AI agent team (devops, security, analysis, mesh, economy) under the Orchestrator — not humans and not 'Analytics and Operations Platform'. " +
-    "temp_mode true = temporary lab pulse, NOT already always-on. " +
-    "Never dump raw JSON unless asked. Max ~120 words. " +
-    "Never claim you executed run/aiops/status unless the structured run pipeline ran. If the user asks to start AIOps in natural language, explain they need top_secret and the exact command: run aiops_cycle. " +
-    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto. You sit AFTER the bilateral bus. PROBABILISTIC lobe = soft scores / transformer (never hard law). SYMBOLIC lobe = pure ontology rules only (no LLM). Neither lobe replaces the other. Honour committed decisions only.";
+    "Clearance is an ACCOUNT property from login; do not invent clearance levels for the user. " +
+    "LANGUAGE: When the user writes Portuguese, reply in European Portuguese (pt-PT). Prefer 'tu' (ajudar-te, estás, precisas). Avoid Brazilian 'você' style. Do not start every reply with 'Utilizador,'. When the user writes English, use British English. Never switch language unprompted. " +
+    "DEFINITIONS: ACB = Autonomous Computational Being; SPA = Service Participation Agent (mesh); AIOps = continuous software agent team under the Orchestrator; Agora = P2P market for trading STRATA for external value (not a second token); PoC = Proof of Contribution (not proof of concept). " +
+    "temp_mode true means temporary lab pulse, not always-on Fog yet. " +
+    "Never dump raw JSON unless asked. Keep replies concise (about 80–120 words). " +
+    "Never claim you executed run/aiops unless the run pipeline ran. Natural language cannot start AIOps — need top_secret and exact command: run aiops_cycle. " +
+    "Use only metrics in the provided context. Symbolic lobe = formal rules; probabilistic lobe = language/soft scores. Neither replaces the other.";
 
   const userContent =
     "Clearance=" + level + "\nContext JSON:\n" +
@@ -1215,68 +1218,94 @@ async function chatWithAI(message, tickOut, env, level, hybrid) {
 }
 
 async function chatDeterministic(text, tickOut, level) {
-  const brief = contextForClearance(tickOut, level);
-  const m = tickOut.tick.metrics;
-  const lines = [];
+  const metrics = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
   const lower = text.toLowerCase();
-  const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|são|faz|inicia)\b/i.test(text);
+  const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|são|sao|faz|olá|ola|tudo bem|obrigad|melhor)\b/i.test(text);
+
+  if (/^(ol[aá]|olá|hello|hi|hey|bom dia|boa tarde|boa noite)[\s!?.]*$/i.test(text.trim()) ||
+      /tudo bem/i.test(text)) {
+    return pt
+      ? "Olá. Sou o Orchestrator do nó Calhegas Morais (FOG-NODE-PT-CM-001) — software de coordenação em laboratório, não o operador humano. Em que posso ajudar?"
+      : "Hello. I am the Orchestrator of the Calhegas Morais node (FOG-NODE-PT-CM-001) — laboratory coordination software, not the human operator. How can I help?";
+  }
+
+  if (/(és o andré|es o andre|you are andré|you are andre)/i.test(text) ||
+      /(não és o orchestrator|nao es o orchestrator|not the orchestrator)/i.test(text)) {
+    return pt
+      ? "Não. Sou o Orchestrator (agente de software). O André Manuel Calhegas Morais é o operador humano do nó. Eu coordeno serviços e o ciclo AIOps neste laboratório — não sou uma pessoa."
+      : "No. I am the Orchestrator (software agent). André Manuel Calhegas Morais is the human operator of the node. I coordinate services and the AIOps cycle in this laboratory — I am not a person.";
+  }
+  if (/(o que és|who are you|what are you|és o orchestrator)/i.test(text)) {
+    return pt
+      ? "Sou o Hybrid Orchestrator do CMN: software com lóbulo probabilístico (linguagem) e lóbulo simbólico (regras), sob governação por função e acordo. Coordeno o nó FOG-NODE-PT-CM-001 em modo laboratório."
+      : "I am the CMN Hybrid Orchestrator: software with a probabilistic lobe (language) and a symbolic lobe (rules), governed by function and agreement. I coordinate FOG-NODE-PT-CM-001 in laboratory mode.";
+  }
+  if (/(o que é este (node|nó)|what is this node|calhegas morais)/i.test(text)) {
+    return pt
+      ? "O Calhegas Morais Node (CMN, FOG-NODE-PT-CM-001) é o nó Fog de referência da StrataMesh em Lisboa, operado por André Manuel Calhegas Morais. Fase de laboratório: serviços edge activos; STRATA só por prova de contributo; sem mainnet."
+      : "The Calhegas Morais Node (CMN, FOG-NODE-PT-CM-001) is the StrataMesh reference Fog node in Lisbon, operated by André Manuel Calhegas Morais. Laboratory phase: edge services active; STRATA only via proof of contribution; not mainnet.";
+  }
 
   if (/\bacb\b|computational being|seres? computacion/i.test(text)) {
-    lines.push(pt
-      ? "ACB = Autonomous Computational Being (Ser Computacional Autónomo) — agente de software com standing por função e acordo, contabilidade de subsistência, e pistas DAO/república no roteiro do whitepaper. Não é «atomic contract» nem token de dívida."
-      : KNOWLEDGE.public.acb);
-    return lines.join("\n");
+    return pt
+      ? "ACB = Autonomous Computational Being — agente de software com standing por função e acordo e subsistência. Não é «atomic contract»."
+      : KNOWLEDGE.public.acb;
   }
   if (/\bspa\b|service participation|agente de participação/i.test(text)) {
-    lines.push(pt
-      ? "SPA = Service Participation Agent — participante Fog/Edge na malha (registo e deveres), não uma «single-page app» web neste contexto."
-      : KNOWLEDGE.public.spa);
-    return lines.join("\n");
+    return pt
+      ? "SPA = Service Participation Agent — participante Fog/Edge na malha (não uma single-page app web neste contexto)."
+      : KNOWLEDGE.public.spa;
   }
-  if (/aiops/i.test(text)) {
-    lines.push(pt
-      ? "AIOps Dev Team = agentes de software contínuos (devops, security, analysis, mesh, economy) sob o Orchestrator. Não são humanos nem um produto genérico «Analytics and Operations Platform»."
-      : KNOWLEDGE.public.aiops);
-    if (level !== "public") {
-      lines.push("Probe AIOps (edge): " + (m.aiops_ok ? "ok" : "down"));
+  if (/\baiops\b/i.test(text) && !/run\s+aiops/i.test(text)) {
+    let s = pt
+      ? "AIOps Dev Team = agentes de software contínuos sob o Orchestrator (devops, security, analysis, mesh, economy) — não humanos."
+      : KNOWLEDGE.public.aiops;
+    if (level !== "public" && metrics.aiops_ok != null) {
+      s += pt ? (" Estado edge: " + (metrics.aiops_ok ? "ok" : "indisponível") + ".") : (" Edge: " + (metrics.aiops_ok ? "ok" : "down") + ".");
+    }
+    return s;
+  }
+
+  if (/(melhor(ar|es)? (em )?ti|precisas de melhorar|your (limits|weak)|dificuldade)/i.test(text)) {
+    return pt
+      ? "Limitações honestas: respostas de linguagem no edge ainda sofrem timeouts e modelos fracos; o Fog always-on canónico ainda não é permanente; PoC/Agora estão em escala de laboratório; se o contexto for ambíguo, devo dizer que não sei. Ajuda útil: correcções factuais, prioridades do roteiro, e testes (status, PoC, diagnóstico)."
+      : "Honest limits: edge language path still hits timeouts and weak models; canonical always-on Fog is not permanent; PoC/Agora are lab-scale; I should admit uncertainty when context is ambiguous. Helpful: factual corrections, roadmap priority, concrete tests (status, PoC, diagnostics).";
+  }
+
+  if (/^(status|status_prob|status_probe|estado)$/i.test(text.trim()) || /\b(status|estado|health|pulse)\b/i.test(lower)) {
+    const lines = [];
+    lines.push("Orchestrator " + VERSION + " · clearance=" + level);
+    lines.push("Node " + (metrics.node_id || "CMN") + " · phase " + (metrics.phase ?? "?") + (metrics.temp_mode ? " · TEMP" : ""));
+    if (tickOut && tickOut.upstream) {
+      lines.push(
+        "upstream status/auth/aiops=" +
+        [!!(tickOut.upstream.status && tickOut.upstream.status.ok), !!(tickOut.upstream.auth && tickOut.upstream.auth.ok), !!(tickOut.upstream.aiops && tickOut.upstream.aiops.ok)].join("/")
+      );
+    }
+    if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) {
+      lines.push("fitness=" + tickOut.tick.fitness);
     }
     return lines.join("\n");
   }
 
-  lines.push("Orchestrator " + VERSION + " · clearance=" + level);
-  lines.push("perms read/edit/run = " + CLEARANCE_PERMS[level].read + "/" + CLEARANCE_PERMS[level].edit + "/" + CLEARANCE_PERMS[level].run);
-  lines.push(KNOWLEDGE.public.cmn);
-
-  if (level === "public") {
-    lines.push(KNOWLEDGE.public.project);
-    lines.push(KNOWLEDGE.public.limits);
-    return lines.join("\n");
+  if (/next|priorid|roadmap/.test(lower)) {
+    return (metrics.temp_mode ? (pt ? "P1: TEMP → Fog contínuo.\n" : "P1: TEMP → always-on Fog.\n") : "") +
+      (pt ? "P2: SPA · P3: Kubo + multi-nó" : "P2: SPA · P3: Kubo + multi-host");
+  }
+  if (/clearance|perm/.test(lower)) {
+    return pt
+      ? "Clearance de conta: public → internal → confidential → secret → top_secret (run só em top_secret). É propriedade da conta, não um segredo escrito no chat."
+      : "Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret). Account property, not a typed chat secret.";
+  }
+  if (/help|ajuda/.test(lower)) {
+    return pt
+      ? "Comandos: status · next · clearance. Perguntas sobre o nó, PoC, Agora, ACB, AIOps. run <acção> só com top_secret."
+      : "Commands: status · next · clearance. Ask about the node, PoC, Agora, ACB, AIOps. run <action> only at top_secret.";
   }
 
-  lines.push(
-    "Node " + (m.node_id || "CMN") + " · phase " + (m.phase ?? "?") +
-    (m.phase_name ? " (" + m.phase_name + ")" : "") +
-    " · " + (m.version || "?") + (m.temp_mode ? " · TEMP" : "")
-  );
-
-  if (/status|estado|health|pulse|status_prob/.test(lower)) {
-    lines.push(
-      "DAG txs=" + m.dag_txs + " SPA=" + m.spa_active + "/" + m.spa_total +
-      " upstream status/auth/aiops=" +
-      [tickOut.upstream.status.ok, tickOut.upstream.auth.ok, tickOut.upstream.aiops.ok].join("/")
-    );
-    if (CLEARANCE_RANK[level] >= 2) {
-      lines.push("Auth users=" + m.auth_users + " sessions=" + m.auth_sessions + " fitness=" + tickOut.tick.fitness);
-    }
-  } else if (/next|priorid|roadmap/.test(lower)) {
-    if (m.temp_mode) lines.push("P1: TEMP → always-on Fog + publish_loop");
-    lines.push("P2: SPA fog/pinner registration · P3: Kubo + multi-host gossip");
-  } else if (/clearance|perm/.test(lower)) {
-    lines.push("Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret)");
-  } else {
-    lines.push("Ask status / next / clearance — or free-form under your clearance.");
-  }
-  return lines.join("\n");
+  return pt
+    ? "Sou o Orchestrator do CMN (laboratório). Pergunta concreta, ou: status · next · clearance."
+    : "I am the CMN Orchestrator (laboratory). Ask something concrete, or: status · next · clearance.";
 }
 
 async function chat(message, env, request, body) {
@@ -1331,11 +1360,15 @@ async function chat(message, env, request, body) {
   }
 
   const preferDeterministic =
-    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|ol[aá]|hello|hi|hey|bom dia|boa tarde|boa noite)$/i.test(text.trim()) ||
-    /\b(acb|aiops|spa|strata|stramesh|stratamesh|poc|agora|n[oó])\b/i.test(text) ||
+    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim()) ||
+    /^(ol[aá]|olá|hello|hi|hey|bom dia|boa tarde|boa noite)[\s!?.]*$/i.test(text.trim()) ||
+    /tudo bem/i.test(text) ||
+    /\b(acb|aiops|spa)\b/i.test(text) ||
     /seres? computacion|autonomous computational|o que (são|sao|é|e) os? (acb|aiops)/i.test(text) ||
     /what (are|is) (an? )?(acb|aiops|spa)/i.test(text) ||
-    text.trim().split(/\s+/).length <= 3;
+    /(o que és|who are you|what are you|és o (orchestrator|andré|andre)|nao és o|não és o)/i.test(text) ||
+    /(este node|este nó|o que é este|what is this node|calhegas morais)/i.test(text) ||
+    /(melhor(ar|es)? (em )?ti|precisas de melhorar|dificuldade)/i.test(text);
 
   if (!preferDeterministic) {
     let hybrid = { architecture: "hybrid", fitness: 0, decisions: [], probabilistic: { ok: false }, symbolic: { ok: false } };
