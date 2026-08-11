@@ -21,7 +21,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.1.0',
+          version: '2.2.0-eid-scaffold',
           checks: {}
         };
         try {
@@ -258,6 +258,78 @@ export default {
         }
       }
       
+      
+      // --- Auth method discovery (UI) ---
+      if ((path === '/auth/methods' || path === '/methods') && request.method === 'GET') {
+        const cmdOn = env.AUTH_CMD_ENABLED === '1' && env.CMD_CLIENT_ID;
+        const eudiOn = env.AUTH_EUDI_ENABLED === '1';
+        return new Response(JSON.stringify({
+          success: true,
+          methods: [
+            { id: 'password', enabled: true, label: 'Email + password', register: true, login: true },
+            { id: 'cmd', enabled: !!cmdOn, label: 'Chave Móvel Digital (Portugal)', register: true, login: true,
+              note: cmdOn ? 'Autenticação.gov OAuth' : 'Requires AMA/Autenticação.gov SP credentials — see docs/AUTH-EU-DIGITAL-ID.md' },
+            { id: 'eudi', enabled: !!eudiOn, label: 'EU Digital Identity Wallet', register: true, login: true,
+              note: eudiOn ? 'OpenID4VP' : 'Requires RP registration / EUDI verifier — see docs/AUTH-EU-DIGITAL-ID.md' },
+          ],
+          default: 'password',
+          documentation: 'https://github.com/amcmorais/stratamesh-core/blob/main/docs/AUTH-EU-DIGITAL-ID.md'
+        }), { headers: corsHeaders });
+      }
+
+      // --- CMD (Portugal) OAuth start ---
+      if ((path === '/auth/cmd/start' || path === '/cmd/start') && request.method === 'GET') {
+        if (env.AUTH_CMD_ENABLED !== '1' || !env.CMD_CLIENT_ID || !env.CMD_AUTH_URL) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'CMD not configured',
+            code: 'CMD_NOT_CONFIGURED',
+            how: 'Register as Service Provider at Autenticação.gov (OAuth), set CMD_* secrets and AUTH_CMD_ENABLED=1',
+            docs: 'https://github.com/amagovpt/doc-AUTENTICACAO',
+            local_docs: 'docs/AUTH-EU-DIGITAL-ID.md'
+          }), { status: 501, headers: corsHeaders });
+        }
+        const state = crypto.randomUUID();
+        const redirect = env.CMD_REDIRECT_URI || (url.origin + '/auth/cmd/callback');
+        const authUrl = new URL(env.CMD_AUTH_URL);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('client_id', env.CMD_CLIENT_ID);
+        authUrl.searchParams.set('redirect_uri', redirect);
+        authUrl.searchParams.set('state', state);
+        if (env.CMD_SCOPE) authUrl.searchParams.set('scope', env.CMD_SCOPE);
+        return new Response(JSON.stringify({
+          success: true,
+          authorize_url: authUrl.toString(),
+          state
+        }), { headers: corsHeaders });
+      }
+
+      if ((path === '/auth/cmd/callback' || path === '/cmd/callback') && request.method === 'GET') {
+        if (env.AUTH_CMD_ENABLED !== '1') {
+          return new Response(JSON.stringify({ success: false, error: 'CMD not configured' }), { status: 501, headers: corsHeaders });
+        }
+        // Token exchange + user upsert implemented after AMA credentials are available
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'CMD callback handler awaiting provider credentials (token URL + attribute mapping)',
+          code: 'CMD_CALLBACK_STUB'
+        }), { status: 501, headers: corsHeaders });
+      }
+
+      // --- EUDI Wallet start ---
+      if ((path === '/auth/eudi/start' || path === '/eudi/start') && request.method === 'GET') {
+        if (env.AUTH_EUDI_ENABLED !== '1') {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'EUDI not configured',
+            code: 'EUDI_NOT_CONFIGURED',
+            how: 'Register as Wallet Relying Party; implement OpenID4VP verifier; set AUTH_EUDI_ENABLED=1',
+            docs: 'https://github.com/eu-digital-identity-wallet'
+          }), { status: 501, headers: corsHeaders });
+        }
+        return new Response(JSON.stringify({ success: false, error: 'EUDI flow not yet wired' }), { status: 501, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: 'Not Found', path }), { status: 404, headers: corsHeaders });
     }
   };
