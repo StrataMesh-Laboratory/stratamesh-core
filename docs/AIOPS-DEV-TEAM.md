@@ -46,3 +46,23 @@ curl -s https://stratamesh-aiops.stratamesh.workers.dev/cycle | jq .
 - Wire cycle output into status Worker (`aiops` block)
 - Cron every 15 minutes in production account
 - Agent-specific auto-tasks (open GitHub issues, mesh_doctor remote trigger) when host is always-on
+
+## Continuous vs interval
+
+| Mode | Where | Continuity |
+|------|--------|------------|
+| **Host loop** | MacBook / Oracle / Fog box | **True continuous** — `scripts/aiops_continuous_loop.sh` (default every 30s) |
+| **Cron Trigger** | Cloudflare Worker | Near-continuous — minimum typically **every 1 minute** (`* * * * *`). Not an infinite loop inside one request. |
+| **On-demand** | `GET /cycle` | Manual or portal Diagnostics |
+
+Cloudflare Workers **must not** run `while (true)` inside `fetch`/`scheduled` (CPU/time limits).  
+Whitepaper “24/7 development” is satisfied by:
+
+1. Always-on Fog host + **aiops_continuous_loop.sh** + **publish_loop.sh**
+2. Optional CF cron every minute as edge complement
+
+```bash
+# True continuous (on the node host)
+export AIOPS_INTERVAL_SEC=30
+./scripts/aiops_continuous_loop.sh
+```

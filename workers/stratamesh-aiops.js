@@ -240,6 +240,11 @@ export default {
         version: "1.0.0-lab",
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
+        continuous: {
+          workers_cron: "min_interval_1_minute_on_CF",
+          host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
+          note: "Workers cannot while(true); host process is the real continuous loop",
+        },
         timestamp: new Date().toISOString(),
       });
     }
