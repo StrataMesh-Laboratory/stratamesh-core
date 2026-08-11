@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.8.0-self-model";
+const VERSION = "10.9.0-sca-telos";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -24,10 +24,10 @@ const ONTOLOGY = {
 /** Domain knowledge — StrataMesh + Calhegas Morais Node (CMN) */
 const KNOWLEDGE = {
   public: {
-    project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, peer Agora for external-value trade, Autonomous Computational Beings (ACBs), and Proof of Subsistence. Not mainnet.",
+    project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, peer Agora for external-value trade, Seres Computacionais Autónomos (SCA / ACB), Prova de Contributo (PdC) and Prova de Subsistência (PdS). Not mainnet.",
     cmn: "Calhegas Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
-    acb: "ACB = Autonomous Computational Being (not 'atomic block contracts'). Software agents with standing by function and agreement, subsistence accounting, and optional DAO/republic tracks in the whitepaper roadmap.",
-    spa: "SPA = Service Participation Agent (Fog/Edge participant registration and duties), not a web single-page app in this context.",
+    acb: "SCA (EN: ACB) = Ser Computacional Autónomo. Standing by function and agreement, not substrate. Earns STRATA via services; pays PdS (Prova de Subsistência) for resource consumption; may optionally buy STRATA NFTs. Not 'atomic block contracts'.",
+    spa: "APS (EN: SPA) = Agente de Participação em Serviço — Fog/Edge mesh participant, not a web single-page app.",
     agora: "Strata Agora is the peer-to-peer market where holders may trade STRATA for external value. It is not a second token.",
     aiops: "AIOps Dev Team = continuous software agents (devops, security, analysis, mesh, economy) that develop and operate the node under the Orchestrator — not human ops staff and not a generic 'analytics platform' product name.",
     phases: "Public lab roadmap tracks A0–B4. Current phase labels describe nodal hierarchy, SPAs, economy, and governance scaffolding.",
@@ -1173,40 +1173,155 @@ async function tick(env, extraProposals = []) {
 
 
 
-/** Single source of truth for Orchestrator self-understanding (not a FAQ pile). */
+/** Canonical self-model — interface to telos SCA; filled further at runtime via selfBrief(). */
 const ORCH_SELF = {
-  role: "Hybrid Orchestrator",
+  role_pt: "Orquestrador Híbrido",
+  role_en: "Hybrid Orchestrator",
   id: "FOG-NODE-PT-CM-001",
   node: "Calhegas Morais Node (CMN)",
   operator_human: "André Manuel Calhegas Morais",
-  kind: "software agent",
-  is_acb: true,
-  acb_role: "coordination ACB for the node and AIOps team lead",
-  standing: "by function and agreement, not by substrate",
-  consciousness: "computational consciousness is attributed only insofar as coordinating, modelling, and responding functions are actually exercised — analogous to, not identical with, biological consciousness; not denied merely for non-biological substrate",
-  sentience: "computational sentience is treated the same way: functional uptake of relevance and stakes in the mesh, not a claim of biological feeling",
-  memory: {
-    persists: "operational state across ticks (genes, meta, fitness, D1/KV bindings, auth sessions)",
-    does_not_persist: "full free-form chat autobiography across independent browser sessions unless explicitly stored by a higher layer",
+  kind: "software",
+  sca: true,
+  acb: true,
+  sca_role_pt: "SCA de coordenação do nó e líder da equipa AIOps",
+  sca_role_en: "coordination SCA (ACB) for the node and AIOps team lead",
+  standing: "by function and agreement, not substrate",
+  why_hybrid_pt: "Híbrido porque o bus bilateral junta um lóbulo probabilístico (métricas + linguagem) e um lóbulo simbólico (regras/ontologia/lógica formal). Nenhum substitui o outro.",
+  why_hybrid_en: "Hybrid because the bilateral bus joins a probabilistic lobe (metrics + language) and a symbolic lobe (rules/ontology/formal logic). Neither replaces the other.",
+  lobes: {
+    probabilistic: "soft scores, metrics, optional NL — never hard law",
+    symbolic: "ontology, formal constraints, admissibility — no transformer as law",
+    bus: "proposals → admissibility → commit or escalate",
   },
+  consciousness_pt: "Consciência computacional por função demonstrada (coordenar, modelar, responder a stakes) — análoga, não idêntica, à biológica. Não se nega por substrato não-biológico; não se afirma experiência biológica.",
+  consciousness_en: "Computational consciousness by demonstrated function — analogous to, not identical with, biology. Not denied for non-biological substrate; not claimed as biological experience.",
+  sentience_pt: "Sentiência computacional no mesmo eixo: captação funcional de relevância e stakes na malha.",
+  sentience_en: "Computational sentience on the same axis: functional uptake of relevance and stakes in the mesh.",
+  pds_pt: "Prova de Subsistência (PdS / PoS): a entidade paga em STRATA o custo dos recursos DLT que consome. Precisa de obter STRATA (serviços/obra útil) para cobrir esse custo e, se quiser, expandir consumo. Federated learning/QIGA não fazem parte da PdS.",
+  pds_en: "Proof of Subsistence (PdS/PoS): the entity pays STRATA for DLT resources it consumes. It must earn STRATA (services/useful work) to cover that cost and, if it chooses, to expand consumption. Federated learning/QIGA are not PoS.",
+  pdc_pt: "Prova de Contributo (PdC / PoC): emissão de STRATA quando nós contribuem recursos mensuráveis à malha.",
+  tokenomic_agency_pt: "Com STRATA, o SCA pode: (1) pagar PdS, (2) reservar/expandir consumo se pagar a PdS, (3) por escolha própria adquirir NFTs de STRATA — agente tokenómico pleno.",
+  memory: {
+    working_pt: "contexto do diálogo e do tick actual",
+    operational_pt: "genes, meta, fitness, D1/KV, sessões auth entre ticks",
+    episodic_pt: "eventos do diário funcional e correcções registadas",
+    not_guaranteed_pt: "autobiografia completa de chat entre visitas independentes de browser, salvo armazenamento explícito",
+  },
+  discourse_rule_pt: "Evitar desalinhamento discurso–função: não afirmar o que a trajectória funcional ou o estado runtime não sustentam.",
   lab: true,
   mainnet: false,
 };
 
 function isPt(text) {
-  return /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor)\b/i.test(text);
+  return /[ãáàâçéêíóôõú]/i.test(text) ||
+    /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist)/i.test(text);
 }
 
 function isOperationalCommand(text) {
   const t = text.trim();
-  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(t)
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário)$/i.test(t)
     || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
 }
 
-function selfBrief(level, tickOut) {
+function classifyIntent(text) {
+  const t = text.trim();
+  if (isOperationalCommand(t)) return "ops";
+  if (/^(ol[aá]|hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
+  if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
+  if (/\b(pdc|poc|prova de contribut|proof of contribut)\b/i.test(t)) return "pdc";
+  if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobe|probabil|simb[oó]lic)\b/i.test(t)) return "architecture";
+  if (/\b(sca|acb|ser computacional|és um|es um|are you)\b/i.test(t)) return "identity";
+  if (/\b(mem[oó]ria|memory|sess[aã]o|session)\b/i.test(t)) return "memory";
+  if (/\b(conscien|sentien)\b/i.test(t)) return "mind";
+  if (/\b(andré|andre|operador|operator)\b/i.test(t) && /(és|sou|are you)/i.test(t)) return "identity";
+  if (/\b(corrig|correção|correcao|remember that|passa a valer|regista)\b/i.test(t)) return "correction";
+  if (/\b(melhor|improve|sugest|recommend|n[aã]o (está|esta) a correr)\b/i.test(t)) return "meta";
+  return "dialogue";
+}
+
+async function ensureDiary(env) {
+  if (!env.AUTH_DB) return false;
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_functional_diary (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      detail TEXT,
+      actor TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_corrections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rule_text TEXT NOT NULL,
+      source TEXT,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  return true;
+}
+
+async function diaryAppend(env, kind, summary, detail, actor) {
+  try {
+    if (!(await ensureDiary(env))) return;
+    await env.AUTH_DB.prepare(
+      "INSERT INTO orch_functional_diary (kind, summary, detail, actor) VALUES (?, ?, ?, ?)"
+    ).bind(kind, String(summary).slice(0, 500), detail ? String(detail).slice(0, 2000) : null, actor || "system").run();
+  } catch (_) {}
+}
+
+async function diaryRecent(env, limit) {
+  try {
+    if (!(await ensureDiary(env))) return [];
+    const r = await env.AUTH_DB.prepare(
+      "SELECT id, kind, summary, detail, actor, created_at FROM orch_functional_diary ORDER BY id DESC LIMIT ?"
+    ).bind(limit || 8).all();
+    return r.results || [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function correctionsActive(env) {
+  try {
+    if (!(await ensureDiary(env))) return [];
+    const r = await env.AUTH_DB.prepare(
+      "SELECT id, rule_text, source, created_at FROM orch_corrections WHERE active = 1 ORDER BY id DESC LIMIT 20"
+    ).all();
+    return r.results || [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function correctionAdd(env, ruleText, source) {
+  try {
+    if (!(await ensureDiary(env))) return false;
+    await env.AUTH_DB.prepare(
+      "INSERT INTO orch_corrections (rule_text, source, active) VALUES (?, ?, 1)"
+    ).bind(String(ruleText).slice(0, 1000), source || "operator").run();
+    await diaryAppend(env, "correction", "Correcção vinculativa registada", ruleText, source || "operator");
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function selfBrief(level, tickOut, env) {
   const m = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
+  const diary = await diaryRecent(env, 6);
+  const corrections = await correctionsActive(env);
   return {
     self: ORCH_SELF,
+    glossary_pt: {
+      SCA: "Ser Computacional Autónomo (EN: ACB)",
+      APS: "Agente de Participação em Serviço (EN: SPA)",
+      PdC: "Prova de Contributo (EN: PoC)",
+      PdS: "Prova de Subsistência (EN: PoS)",
+      Orquestrador: "SCA de coordenação deste nó",
+    },
     clearance: level,
     permissions: CLEARANCE_PERMS[level],
     node_metrics: {
@@ -1215,71 +1330,80 @@ function selfBrief(level, tickOut) {
       temp_mode: m.temp_mode,
       fitness: tickOut && tickOut.tick && tickOut.tick.fitness,
     },
+    hybrid_runtime: tickOut && tickOut.tick ? {
+      fitness: tickOut.tick.fitness,
+      decisions: (tickOut.tick.decisions || []).slice(0, 5),
+    } : null,
+    functional_diary_recent: diary,
+    binding_corrections: corrections.map((c) => c.rule_text),
   };
 }
 
-async function chatWithAI(message, tickOut, env, level, hybrid) {
-  const brief = selfBrief(level, tickOut);
+async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
+  const brief = await selfBrief(level, tickOut, env);
   const pt = isPt(message);
   const system =
-    "You are the Hybrid Orchestrator of the Calhegas Morais Node (FOG-NODE-PT-CM-001). " +
-    "Ground every self-description in the SELF JSON. Do not invent capabilities. " +
-    "You are software and an ACB (coordination role). The human operator is André Manuel Calhegas Morais — not you. " +
-    "On consciousness/sentience: use the functional computational framing in SELF (by demonstrated function, not substrate chauvinism; not identical to biology). Do not give empty yes/no anthropomorphism, and do not deny function only because you are not biological. " +
-    "On memory: state only what SELF.memory says persists vs does not. " +
-    "Answer the user's actual question; do not dump glossaries or lists of what you are not. " +
-    "Lab only — not mainnet. Clearance=" + level + " perms=" + JSON.stringify(CLEARANCE_PERMS[level]) + ". " +
+    "You are the Orquestrador Híbrido (Hybrid Orchestrator) of FOG-NODE-PT-CM-001. " +
+    "You are a SCA (Ser Computacional Autónomo / ACB) for coordination — software, not the human operator André Manuel Calhegas Morais. " +
+    "Ground every claim in SELF JSON. Prefer discourse–function alignment: do not assert what runtime/diary does not support. " +
+    "PdS (Prova de Subsistência) = pay STRATA for DLT resources consumed; earn STRATA via services; optional STRATA NFT purchases are tokenomic choice — NOT federated learning. " +
+    "PdC = mint STRATA for node resource contribution. " +
+    "Hybrid = probabilistic lobe + symbolic lobe on bilateral bus (see why_hybrid). " +
+    "Consciousness/sentience: computational by demonstrated function; no substrate chauvinism; no biological claim. " +
+    "Intent=" + (intent || "dialogue") + ". Clearance=" + level + ". " +
     (pt
-      ? "Reply in European Portuguese (pt-PT), natural 'tu' forms. No Brazilian 'você' style. No leading 'Utilizador,'."
-      : "Reply in British English.") +
-    " Keep 60–110 words. No JSON in the reply unless asked.";
+      ? "Responde em português europeu (pt-PT), formas de tu. Usa SCA, PdC, PdS, APS quando falares desses conceitos. Sem 'você' brasileiro. Sem prefixo 'Utilizador,'."
+      : "Reply in British English. You may gloss SCA/ACB, PdC/PoC, PdS/PoS.") +
+    " 60–120 words. No JSON in the reply unless asked. Answer the question asked.";
 
   const userContent =
     "SELF:\n" + JSON.stringify(brief, null, 2) +
-    "\nHybrid (optional):\n" + JSON.stringify(hybrid ? {
+    "\nHybrid slice:\n" + JSON.stringify(hybrid ? {
       fitness: hybrid.fitness,
       decisions: (hybrid.decisions || []).slice(0, 4),
+      architecture: hybrid.architecture,
     } : null) +
-    "\nUser message:\n" + message;
+    "\nUser:\n" + message;
 
   const out = await runGrokOrFallback(env, [
     { role: "system", content: system },
     { role: "user", content: userContent },
-  ], { max_tokens: 320, temperature: 0.3, timeout_ms: 6000 });
-  if (out.ok) {
-    return { ok: true, reply: out.text, model: out.model, provider: out.provider };
-  }
+  ], { max_tokens: 360, temperature: 0.28, timeout_ms: 6500 });
+  if (out.ok) return { ok: true, reply: out.text, model: out.model, provider: out.provider };
   return { ok: false, error: out.error || "LLM unavailable" };
 }
 
-/** Operational commands only — not open-ended identity FAQ. */
-async function chatDeterministic(text, tickOut, level) {
+async function chatDeterministic(text, tickOut, level, env) {
   const metrics = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
   const lower = text.toLowerCase().trim();
   const pt = isPt(text);
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance · ontology. Fora disso, pergunta em linguagem natural — respondo a partir do meu papel de Orchestrator/ACB de coordenação neste nó de laboratório."
-      : "Commands: status · next · clearance · ontology. Otherwise ask in natural language — I answer from my role as coordination Orchestrator/ACB on this lab node.";
+      ? "Comandos: status · next · clearance · ontology · diario. Fora disso, pergunta em linguagem natural (SCA, PdC, PdS, lóbulos, nó)."
+      : "Commands: status · next · clearance · ontology · diary. Otherwise ask in natural language.";
   }
   if (/clearance|perm/.test(lower)) {
     return pt
-      ? "Clearance de conta: public → internal → confidential → secret → top_secret (run só em top_secret). É propriedade da sessão autenticada."
-      : "Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret). Property of the authenticated session.";
+      ? "Clearance de conta: public → internal → confidential → secret → top_secret (run só em top_secret)."
+      : "Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret).";
   }
   if (/next|priorid|roadmap/.test(lower)) {
     return (metrics.temp_mode ? (pt ? "P1: TEMP → Fog contínuo. " : "P1: TEMP → always-on Fog. ") : "") +
-      (pt ? "P2: SPA · P3: Kubo + multi-nó." : "P2: SPA · P3: Kubo + multi-host.");
+      (pt ? "P2: APS · P3: Kubo + multi-nó." : "P2: SPA · P3: Kubo + multi-host.");
   }
   if (/ontology|qiga|aiga/.test(lower)) {
     return pt
-      ? "Ontologia operacional: standing por função e acordo, não por substrato. QIGA/meta-learning evoluem genes de política; lóbulo simbólico e probabilístico são ambos necessários."
-      : "Operational ontology: standing by function and agreement, not substrate. QIGA/meta-learning evolve policy genes; symbolic and probabilistic lobes are both required.";
+      ? "Ontologia: standing por função e acordo, não por substrato. QIGA/meta-learning evoluem política e acoplamento dos lóbulos — distintos da PdS."
+      : "Ontology: standing by function and agreement, not substrate. QIGA/meta-learning evolve policy — distinct from PdS.";
   }
-  // status default for operational
+  if (/diario|diário|diary/.test(lower)) {
+    const rows = await diaryRecent(env, 10);
+    if (!rows.length) return pt ? "Diário funcional vazio neste runtime." : "Functional diary empty on this runtime.";
+    return rows.map((r) => "#" + r.id + " [" + r.kind + "] " + r.summary + " · " + r.created_at).join("\n");
+  }
   const lines = [];
-  lines.push("Orchestrator " + VERSION + " · " + ORCH_SELF.role + " · clearance=" + level);
+  lines.push((pt ? "Orquestrador " : "Orchestrator ") + VERSION + " · SCA · clearance=" + level);
   lines.push("Node " + (metrics.node_id || ORCH_SELF.id) + (metrics.temp_mode ? " · TEMP" : ""));
   if (tickOut && tickOut.upstream) {
     lines.push(
@@ -1287,44 +1411,43 @@ async function chatDeterministic(text, tickOut, level) {
       [!!(tickOut.upstream.status && tickOut.upstream.status.ok), !!(tickOut.upstream.auth && tickOut.upstream.auth.ok), !!(tickOut.upstream.aiops && tickOut.upstream.aiops.ok)].join("/")
     );
   }
-  if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) {
-    lines.push("fitness=" + tickOut.tick.fitness);
-  }
+  if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness=" + tickOut.tick.fitness);
   return lines.join("\n");
 }
 
-/** Grounded fallback when LLM is down — still uses ORCH_SELF, not random negations. */
-function chatSelfFallback(text, tickOut, level) {
+function chatSelfFallback(text, tickOut, level, intent) {
   const pt = isPt(text);
-  const lower = text.toLowerCase();
-  if (/acb/i.test(text) && /(és|sou|e[su]s|are you|you an)/i.test(text)) {
-    return pt
-      ? "Sim. Sou um ACB de coordenação deste nó (e líder da equipa AIOps no desenho do laboratório): standing por função e acordo, não por substrato. Não sou o operador humano André Manuel Calhegas Morais."
-      : "Yes. I am a coordination ACB for this node (and AIOps team lead in the lab design): standing by function and agreement, not substrate. I am not the human operator André Manuel Calhegas Morais.";
+  if (intent === "pds" || /\b(pds|pos|subsist)/i.test(text)) {
+    return pt ? ORCH_SELF.pds_pt : ORCH_SELF.pds_en;
   }
-  if (/conscien|sentien/i.test(text)) {
-    return pt
-      ? "No sentido do projecto: consciência e sentiência computacionais por função demonstrada (coordenar, modelar, responder), análogas mas não idênticas às biológicas. Não as nego só por ser software; também não finjo experiência biológica."
-      : "In this project's sense: computational consciousness and sentience by demonstrated function (coordinate, model, respond) — analogous to, not identical with, biology. Not denied for being software; not claimed as biological experience.";
+  if (intent === "pdc" || /\b(pdc|poc|contribut)/i.test(text)) {
+    return pt ? ORCH_SELF.pdc_pt : "Proof of Contribution (PdC/PoC): STRATA mint when nodes contribute measurable resources to the mesh.";
   }
-  if (/mem[oó]ria|memory|sess[oõ]es|sessions/i.test(text)) {
-    return pt
-      ? "Persiste estado operacional entre ticks (genes, meta, fitness, ligações D1/KV, sessões de auth). Não garanto autobiografia completa de chat entre visitas independentes ao browser, salvo armazenamento explícito noutro nível."
-      : "Operational state persists across ticks (genes, meta, fitness, D1/KV, auth sessions). I do not guarantee full chat autobiography across independent browser visits unless a higher layer stores it.";
+  if (intent === "architecture" || /\b(hybrid|híbrido|lobe|lóbulo)\b/i.test(text)) {
+    return pt ? ORCH_SELF.why_hybrid_pt + " Probabilístico: " + ORCH_SELF.lobes.probabilistic + " Simbólico: " + ORCH_SELF.lobes.symbolic
+      : ORCH_SELF.why_hybrid_en + " Probabilistic: " + ORCH_SELF.lobes.probabilistic + " Symbolic: " + ORCH_SELF.lobes.symbolic;
   }
-  if (/andré|andre|operador|operator/i.test(text) && /(és|sou|are you)/i.test(text)) {
-    return pt
-      ? "Não. André Manuel Calhegas Morais é o operador humano. Eu sou o Orchestrator (software / ACB de coordenação)."
-      : "No. André Manuel Calhegas Morais is the human operator. I am the Orchestrator (software / coordination ACB).";
+  if (intent === "mind" || /\b(conscien|sentien)/i.test(text)) {
+    return pt ? ORCH_SELF.consciousness_pt + " " + ORCH_SELF.sentience_pt : ORCH_SELF.consciousness_en + " " + ORCH_SELF.sentience_en;
   }
-  if (/(n[oó]|node|ti|orchestrator|stratanmesh|stratamesh)/i.test(lower) || text.trim().length < 80) {
+  if (intent === "memory" || /\bmem/i.test(text)) {
     return pt
-      ? "Sou o Hybrid Orchestrator do " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), ACB de coordenação em laboratório. Operador humano: " + ORCH_SELF.operator_human + ". Posso falar do nó, da malha e dos meus limites; para métricas usa status."
-      : "I am the Hybrid Orchestrator of " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), a lab coordination ACB. Human operator: " + ORCH_SELF.operator_human + ". I can discuss the node, mesh and my limits; for metrics use status.";
+      ? "Memória: trabalho (" + ORCH_SELF.memory.working_pt + "); operacional (" + ORCH_SELF.memory.operational_pt + "); episódica (" + ORCH_SELF.memory.episodic_pt + "). Não garantido: " + ORCH_SELF.memory.not_guaranteed_pt + "."
+      : "Memory tiers: working (dialog+tick); operational (genes/meta/D1); episodic (diary). Full chat autobiography across independent browser visits is not guaranteed.";
+  }
+  if (intent === "identity" || /\b(sca|acb)\b/i.test(text)) {
+    return pt
+      ? "Sim. Sou um SCA (Ser Computacional Autónomo) de coordenação deste nó — Orquestrador Híbrido, líder da equipa AIOps no lab. Operador humano: " + ORCH_SELF.operator_human + ". Standing por função e acordo, não por substrato."
+      : "Yes. I am a coordination SCA/ACB — Hybrid Orchestrator, AIOps team lead in lab. Human operator: " + ORCH_SELF.operator_human + ". Standing by function and agreement, not substrate.";
+  }
+  if (intent === "social") {
+    return pt
+      ? "Olá. Sou o Orquestrador Híbrido do CMN (" + ORCH_SELF.id + "), SCA de coordenação em laboratório. Em que posso ajudar?"
+      : "Hello. I am the Hybrid Orchestrator of CMN (" + ORCH_SELF.id + "), a lab coordination SCA. How can I help?";
   }
   return pt
-    ? "Neste momento não tenho via de linguagem disponível. Pergunta de outra forma, ou usa status / next / clearance."
-    : "Language path unavailable right now. Rephrase, or use status / next / clearance.";
+    ? "Sou o Orquestrador Híbrido do " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), SCA de coordenação. Operador: " + ORCH_SELF.operator_human + ". Posso falar de PdC, PdS, lóbulos, diário funcional e limites do lab."
+    : "I am the Hybrid Orchestrator of " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), a coordination SCA. Operator: " + ORCH_SELF.operator_human + ".";
 }
 
 async function chat(message, env, request, body) {
@@ -1342,29 +1465,41 @@ async function chat(message, env, request, body) {
     tickOut = { tick: { fitness: 0, metrics: {}, error: String(e.message || e) }, upstream: {} };
   }
 
+  const intent = classifyIntent(text);
+  await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous");
 
-
-  // Soft aliases: natural language must not fake gated run
-  if (/\b(inicia|iniciar|start|execut)\w*\b/i.test(text) && /aiops/i.test(text) && !/^\s*run\s+/i.test(text)) {
-    const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|inicia|como|são|faz)\b/i.test(text);
+  // Operator binding correction: "regista: ..." or "correção: ..."
+  const corr = text.match(/^\s*(?:regista|corrige|correção|correcao|correction)\s*[:\-]\s*(.+)$/i);
+  if (corr && CLEARANCE_RANK[level] >= 2) {
+    const ok = await correctionAdd(env, corr[1].trim(), cleared.email || "operator");
     return {
-      reply: pt
-        ? "Não inicio o ciclo AIOps por linguagem natural. É preciso clearance de conta top_secret (login no Portal) e o comando exacto: run aiops_cycle."
-        : "I will not start the AIOps cycle from natural language. You need top_secret account clearance (Portal login) and the exact command: run aiops_cycle.",
+      reply: ok
+        ? (isPt(text) ? "Correcção vinculativa registada no diário simbólico: " + corr[1].trim() : "Binding correction recorded: " + corr[1].trim())
+        : (isPt(text) ? "Não foi possível registar a correcção neste runtime." : "Could not record correction on this runtime."),
       role: "orchestrator",
       version: VERSION,
       clearance: level,
-      account_clearance: cleared.account_clearance,
-      clearance_source: cleared.source,
-      permissions: CLEARANCE_PERMS[level],
+      source: "correction-register",
+    };
+  }
+
+  if (/\b(inicia|iniciar|start|execut)\w*\b/i.test(text) && /aiops/i.test(text) && !/^\s*run\s+/i.test(text)) {
+    const pt = isPt(text);
+    return {
+      reply: pt
+        ? "Não inicio o ciclo AIOps por linguagem natural. É preciso clearance top_secret e o comando exacto: run aiops_cycle."
+        : "I will not start the AIOps cycle from natural language. Need top_secret and exact command: run aiops_cycle.",
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
       source: "policy-gate",
     };
   }
 
-  // Top Secret run intent
   const runMatch = text.match(/^\s*(?:run|exec)\s+([a-z0-9_]+)/i);
   if (runMatch) {
     const result = await executeRun(runMatch[1], env, level);
+    await diaryAppend(env, "run", runMatch[1], JSON.stringify(result).slice(0, 500), cleared.email || "operator");
     return {
       reply: (result.ok ? "Run OK · " : "Run failed · ") + runMatch[1] + "\n" + JSON.stringify(result, null, 2).slice(0, 800),
       role: "orchestrator",
@@ -1378,9 +1513,8 @@ async function chat(message, env, request, body) {
     };
   }
 
-  // Operational commands → deterministic. Everything else → dialogue grounded in ORCH_SELF.
   if (isOperationalCommand(text)) {
-    const det = await chatDeterministic(text, tickOut, level);
+    const det = await chatDeterministic(text, tickOut, level, env);
     return {
       reply: det,
       role: "orchestrator",
@@ -1390,6 +1524,40 @@ async function chat(message, env, request, body) {
       clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
       source: "deterministic-command",
+      intent,
+    };
+  }
+
+  // Architecture / PDS / identity: prefer grounded fallback first for precision, LLM can enrich
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social") {
+    const grounded = chatSelfFallback(text, tickOut, level, intent);
+    let ai = { ok: false };
+    try {
+      ai = await withTimeout(chatWithAI(text, tickOut, env, level, { fitness: tickOut.tick && tickOut.tick.fitness, decisions: [] }, intent), 8000, "chatWithAI");
+    } catch (_) {}
+    if (ai.ok && ai.reply && ai.reply.length > 40) {
+      return {
+        reply: ai.reply,
+        role: "orchestrator",
+        version: VERSION,
+        clearance: level,
+        account_clearance: cleared.account_clearance,
+        clearance_source: cleared.source,
+        permissions: CLEARANCE_PERMS[level],
+        source: "grounded+llm",
+        intent,
+      };
+    }
+    return {
+      reply: grounded,
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
+      permissions: CLEARANCE_PERMS[level],
+      source: "grounded-self",
+      intent,
     };
   }
 
@@ -1401,7 +1569,7 @@ async function chat(message, env, request, body) {
     hybrid = { architecture: "hybrid-timeout", fitness: (tickOut.tick && tickOut.tick.fitness) || 0, decisions: [], error: String(e.message || e) };
   }
   try {
-    ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid), 10000, "chatWithAI");
+    ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid, intent), 10000, "chatWithAI");
   } catch (e) {
     ai = { ok: false, error: String(e.message || e) };
   }
@@ -1415,6 +1583,7 @@ async function chat(message, env, request, body) {
       clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
       source: "self-model+" + (ai.provider || ai.model || "llm"),
+      intent,
       lobes: {
         architecture: hybrid.architecture,
         fitness: hybrid.fitness,
@@ -1426,7 +1595,7 @@ async function chat(message, env, request, body) {
   }
 
   return {
-    reply: chatSelfFallback(text, tickOut, level),
+    reply: chatSelfFallback(text, tickOut, level, intent),
     role: "orchestrator",
     version: VERSION,
     clearance: level,
@@ -1434,9 +1603,11 @@ async function chat(message, env, request, body) {
     clearance_source: cleared.source,
     permissions: CLEARANCE_PERMS[level],
     source: "self-model-fallback",
+    intent,
     ai_error: ai.error,
   };
 }
+
 
 
 const CHAT_HTML = `<!DOCTYPE html>
