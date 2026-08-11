@@ -161,8 +161,10 @@ class SPARegistry:
         if not rec:
             raise KeyError("spa not found")
         now = time.time()
-        # Lab: 1 day → 60s for demos; production would use days * 86400
-        grace_sec = float(rec.opt_out_days) * 60.0  # accelerated lab clock
+        # LAB_CLOCK=1 → 1 day = 60s (demo). LAB_CLOCK=0 or unset production → days * 86400
+        import os
+        lab = os.environ.get("SPA_OPT_OUT_LAB_CLOCK", "1") != "0"
+        grace_sec = float(rec.opt_out_days) * (60.0 if lab else 86400.0)
         if immediate:
             grace_sec = 0.0
         rec._opt_out_at = now  # type: ignore
@@ -178,7 +180,8 @@ class SPARegistry:
             "spa_id": spa_id,
             "provider_id": rec.provider_id,
             "opt_out_days": rec.opt_out_days,
-            "grace_seconds_lab": grace_sec,
+            "grace_seconds": grace_sec,
+            "lab_clock": lab,
             "grace_until": getattr(rec, "_grace_until", None),
             "reason": reason,
             "status": status,
