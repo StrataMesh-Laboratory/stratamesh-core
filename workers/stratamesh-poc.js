@@ -35,6 +35,22 @@ const GLOBAL_RESOURCE_AVG = {
 const QUALITY_BOUNDS = { min: 0.1, max: 2.5, par: 1.0 };
 
 /** Composite quality from explicit factor and/or proof dimensions */
+
+/** Audited quality from on-graph evidence (not self-declared). */
+function auditQualityFromMeasurement(m) {
+  if (!m) return scoreQuality({});
+  const pins = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.count) || 0;
+  const mb = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.mb) || 0;
+  const validate = m.validate || 0;
+  const demand = (m.demand && m.demand.ipfs_pin) || 0;
+  // Dimensions 0..1
+  const reliability = Math.min(1, 0.4 + Math.log10(1 + pins) / 3); // more pins → higher
+  const usefulness = demand > 0 ? Math.min(1, 0.5 + Math.min(pins, demand) / Math.max(demand, 1) * 0.5) : 0.45;
+  const availability = mb > 0 || pins > 0 ? 0.85 : 0.3;
+  const verifiability = validate > 0 ? 0.9 : 0.55;
+  return scoreQuality({ reliability, usefulness, availability, verifiability });
+}
+
 function scoreQuality(body) {
   if (body.quality != null && Number.isFinite(Number(body.quality))) {
     const f = clamp(Number(body.quality), QUALITY_BOUNDS.min, QUALITY_BOUNDS.max);
@@ -445,7 +461,7 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.4.0-onchain-cron',
+          version: '5.5.0-market-audit',
           sole_mint_path: true,
           process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
@@ -579,7 +595,6 @@ export default {
         let units = Number(body.contribution_points || body.units || 0);
         let onchain = null;
         const proof_hash = body.proof_hash || body.proof || null;
-        const quality = scoreQuality(body);
 
         // Integrate on-graph data: derive units from DAG/IPFS/SPA when requested
         if (body.from_onchain || body.onchain) {
@@ -606,6 +621,23 @@ export default {
         if (!node_id || !contribution_type || !(units > 0)) {
           return j({ error: 'node_id, contribution_type, contribution_points > 0 required (or from_onchain:true)' }, 400);
         }
+        let quality;
+        let quality_audit = null;
+        if (onchain && body.audit_quality !== false && body.quality == null) {
+          quality = auditQualityFromMeasurement(onchain);
+          quality_audit = { method: 'onchain_audit', components: quality.components };
+        } else {
+          quality = scoreQuality(body);
+        }
+        // Prefer MB for ipfs_pin pricing when on-chain size known
+        if (onchain && contribution_type === 'ipfs_pin' && onchain.sources && onchain.sources.ipfs_pins) {
+          const mb = Number(onchain.sources.ipfs_pins.mb) || 0;
+          const cnt = Number(onchain.sources.ipfs_pins.count) || 0;
+          // Market unit = MB-month; count alone is not storage capacity — use max(mb, cnt * min_pin_mb)
+          const min_pin_mb = 0.001; // 1KB floor per pin object
+          units = Math.max(mb, cnt * min_pin_mb);
+        }
+
         if (!GLOBAL_RESOURCE_AVG[contribution_type]) {
           return j({ error: 'unknown contribution_type', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
         }
