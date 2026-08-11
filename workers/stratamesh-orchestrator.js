@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.11.4-cid-binding";
+const VERSION = "10.12.0-pds-dag";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1449,20 +1449,30 @@ async function publishScaRegistryToGraph(env) {
       pin = { error: String(e.message || e), path };
     }
   }
-  // Also try DAG vertex if binding exists
+  // DAG /submit pipeline (service binding) — unique payload per publish
   let dag = null;
   try {
     if (env.DAG && typeof env.DAG.fetch === "function") {
-      const resp = await env.DAG.fetch(new Request("https://dag/vertex", {
+      const dagPayload = {
+        type: "sca_registry",
+        tx_class: "registry",
+        node_id: NODE_ID_CMN,
+        cid: cid,
+        written_by: ORCH_SCA_ID,
+        written_at: snapshot.written_at,
+        member_count: members.length,
+        members: snapshot.members,
+        nonce: crypto.randomUUID(),
+      };
+      const resp = await env.DAG.fetch(new Request("https://stratamesh-dag/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "sca_registry",
-          payload: snapshot,
-          cid: cid,
-        }),
+        body: JSON.stringify({ payload: dagPayload, node_id: NODE_ID_CMN }),
       }));
-      dag = await resp.json().catch(() => ({ http: resp.status }));
+      const text = await resp.text();
+      try { dag = JSON.parse(text); } catch (_) { dag = { raw: text.slice(0, 300), status: resp.status }; }
+    } else {
+      dag = { error: "DAG binding missing" };
     }
   } catch (e) {
     dag = { error: String(e.message || e) };
@@ -1530,6 +1540,52 @@ async function readOwnContextWindow(env) {
   } catch (_) {
     return null;
   }
+}
+
+
+/** PdS: charge STRATA for resource/compute use via ACB subsistence (legacy id). */
+async function chargePds(env, cost, reason) {
+  const amt = Math.max(0, Number(cost) || 0);
+  if (amt <= 0) return { skipped: true };
+  const acbId = "ACB-ORCH-CMN-001";
+  try {
+    if (!env.ACB || typeof env.ACB.fetch !== "function") {
+      return { ok: false, error: "ACB binding missing" };
+    }
+    const r = await env.ACB.fetch(new Request("https://stratamesh-acb/acb/subsistence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acb_id: acbId, cost: amt, inference_type: reason || "orchestrator_cycle" }),
+    }));
+    const j = await r.json().catch(() => ({}));
+    await diaryAppend(env, "pds", "PdS debit " + amt, JSON.stringify(j).slice(0, 400), ORCH_SCA_ID);
+    return { ok: r.ok, http: r.status, ...j };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+async function updatePersonalIdentity(env, fields) {
+  if (!(await ensureDiary(env))) return { ok: false, error: "no db" };
+  await ensureOrchestratorSca(env);
+  const allowed = ["display_name", "birth_date", "id_number", "vital_status", "self_description"];
+  const sets = [];
+  const vals = [];
+  for (const k of allowed) {
+    if (fields[k] != null && String(fields[k]).trim()) {
+      sets.push(k + " = ?");
+      vals.push(String(fields[k]).trim().slice(0, 500));
+    }
+  }
+  if (!sets.length) return { ok: false, error: "no fields" };
+  // Never allow changing node_function via personal identity path
+  sets.push("updated_at = datetime('now')");
+  vals.push(ORCH_SCA_ID);
+  await env.AUTH_DB.prepare(
+    "UPDATE sca_registry SET " + sets.join(", ") + " WHERE sca_id = ?"
+  ).bind(...vals).run();
+  await diaryAppend(env, "identity", "personal identity updated", JSON.stringify(fields).slice(0, 300), ORCH_SCA_ID);
+  return { ok: true, personal: (await loadScaIdentity(env)).personal };
 }
 
 async function loadScaIdentity(env) {
@@ -1680,7 +1736,7 @@ async function chatDeterministic(text, tickOut, level, env) {
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto · equipa · publicar_registo. Linguagem natural: SCA, PdC, PdS, lóbulos."
+      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto · equipa · publicar_registo · chamo-me: · registo_pessoal:. Linguagem natural: SCA, PdC, PdS, lóbulos."
       : "Commands: status · next · clearance · ontology · diary · identity · context. Else natural language.";
   }
   if (/identidade|identity|^sca$/i.test(lower)) {
@@ -1750,7 +1806,19 @@ async function chatDeterministic(text, tickOut, level, env) {
       [!!(tickOut.upstream.status && tickOut.upstream.status.ok), !!(tickOut.upstream.auth && tickOut.upstream.auth.ok), !!(tickOut.upstream.aiops && tickOut.upstream.aiops.ok)].join("/")
     );
   }
-  if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness=" + tickOut.tick.fitness);
+    // PdS / balance probe
+  try {
+    if (env.ACB && typeof env.ACB.fetch === "function") {
+      const br = await env.ACB.fetch(new Request("https://stratamesh-acb/acb/status", { method: "GET" }));
+      const bj = await br.json().catch(() => ({}));
+      const members = bj.members || bj.team || [];
+      const me = Array.isArray(members) ? members.find((x) => (x.acb_id || x.id) === "ACB-ORCH-CMN-001") : null;
+      if (me) {
+        lines.push((pt ? "PdS/saldo (legado ACB-ORCH): " : "PdS/balance (legacy ACB-ORCH): ") + (me.balance != null ? me.balance : (me.registry && me.registry.balance)));
+      }
+    }
+  } catch (_) {}
+if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness=" + tickOut.tick.fitness);
   return lines.join("\n");
 }
 
@@ -1808,6 +1876,43 @@ async function chat(message, env, request, body) {
   await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous");
   // Orchestrator writes its own context window continuously
   try { await writeOwnContextWindow(env, tickOut, { last_intent: intent, last_user_excerpt: text.slice(0, 160) }); } catch (_) {}
+  // Lab PdS: dialogue consumes edge resources → STRATA debit on Orchestrator SCA account
+  let pds_receipt = null;
+  try { pds_receipt = await chargePds(env, 0.0001, "chat:" + intent); } catch (_) {}
+
+  // SCA defines personal identity (not node_function): chamo-me: Nome | registo_pessoal: nome=…;estado=active
+  const nameSet = text.match(/^\s*chamo-me\s*:\s*(.+)$/i);
+  if (nameSet) {
+    const up = await updatePersonalIdentity(env, { display_name: nameSet[1].trim() });
+    return {
+      reply: up.ok
+        ? (isPt(text) ? "Identidade pessoal actualizada. Nome: " + up.personal.display_name + " (função no nó continua: orchestrator)." : "Personal identity updated: " + up.personal.display_name)
+        : (up.error || "fail"),
+      role: "orchestrator", version: VERSION, clearance: level, source: "sca-self-identity",
+    };
+  }
+  const regPers = text.match(/^\s*registo_pessoal\s*:\s*(.+)$/i);
+  if (regPers) {
+    const fields = {};
+    for (const part of regPers[1].split(/;+/)) {
+      const m = part.match(/\s*(nome|name|display_name|nascimento|birth|birth_date|id|id_number|estado|status|vital_status|desc|self_description)\s*=\s*(.+)/i);
+      if (!m) continue;
+      const k = m[1].toLowerCase();
+      const v = m[2].trim();
+      if (k === "nome" || k === "name" || k === "display_name") fields.display_name = v;
+      else if (k === "nascimento" || k === "birth" || k === "birth_date") fields.birth_date = v;
+      else if (k === "id" || k === "id_number") fields.id_number = v;
+      else if (k === "estado" || k === "status" || k === "vital_status") fields.vital_status = v;
+      else if (k === "desc" || k === "self_description") fields.self_description = v;
+    }
+    const up = await updatePersonalIdentity(env, fields);
+    return {
+      reply: up.ok
+        ? JSON.stringify({ ok: true, personal: up.personal, node_function: "orchestrator" }, null, 2)
+        : (up.error || "fail"),
+      role: "orchestrator", version: VERSION, clearance: level, source: "sca-self-identity",
+    };
+  }
 
   const lowCmd = text.trim().toLowerCase();
   if (lowCmd === "equipa" || lowCmd === "team") {
