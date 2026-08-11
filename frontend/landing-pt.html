@@ -3,80 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FOG NODE — STRATAMESH DLT · v0.2.1-lab</title>
-<meta name="description" content="Calhegas Morais Fog Node — StrataMesh DLT v0.2.1-lab reference implementation.">
+<title>Calhegas Morais · StrataMesh DLT · v0.2.1-lab</title>
+<meta name="description" content="Calhegas Morais Fog Node — StrataMesh reference lab. André Manuel Calhegas Morais.">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0d0d1a;color:#f0ece2;font-family:'Cormorant Garamond',serif;min-height:100vh}
-.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(74,78,105,.06)1px,transparent 1px),linear-gradient(90deg,rgba(74,78,105,.06)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
-.container{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:56px 36px 80px}
-.emblem{text-align:center;margin-bottom:36px}
-.emblem-circle{width:90px;height:90px;border:1px solid rgba(201,173,167,.3);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;position:relative}
-.emblem-circle::before{content:'';position:absolute;width:70px;height:70px;border:1px solid rgba(201,173,167,.2);border-radius:50%}
-.emblem-circle::after{content:'';position:absolute;width:50px;height:50px;border:1px solid rgba(201,173,167,.1);border-radius:50%}
-.emblem-dot{width:6px;height:6px;background:#c9ada7;border-radius:50%}
-.title{font-size:2.2em;font-weight:300;letter-spacing:.28em;text-transform:uppercase;text-align:center;margin-bottom:8px}
-.subtitle{font-family:'IBM Plex Mono',monospace;font-size:.68em;letter-spacing:.4em;color:#8b9bb4;text-align:center;text-transform:uppercase;margin-bottom:6px}
-.motto{font-style:italic;font-size:.95em;color:#c9ada7;text-align:center;letter-spacing:.18em;margin-bottom:20px}
-.pill{font-family:'IBM Plex Mono',monospace;font-size:.65em;letter-spacing:.12em;padding:6px 12px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(20,83,45,.25);margin:0 auto 28px;display:block;width:fit-content}
-.section{margin-bottom:32px}
-.section-title{font-family:'IBM Plex Mono',monospace;font-size:.65em;letter-spacing:.35em;color:#8b9bb4;text-transform:uppercase;border-bottom:1px solid rgba(74,78,105,.35);padding-bottom:10px;margin-bottom:16px}
-.section p{font-size:1.08em;line-height:1.85;margin-bottom:12px;color:rgba(240,236,226,.88)}
-.section p strong{color:#c9ada7;font-weight:600}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:700px){.grid2{grid-template-columns:1fr}.container{padding:40px 20px}}
-.card{border:1px solid rgba(74,78,105,.35);padding:16px 18px;background:rgba(20,26,34,.35)}
-.card h3{font-family:'IBM Plex Mono',monospace;font-size:.7em;letter-spacing:.12em;color:#c9ada7;text-transform:uppercase;margin-bottom:6px}
-.card p{font-size:.92em;line-height:1.55;margin:0;color:rgba(240,236,226,.8)}
-.meta{font-family:'IBM Plex Mono',monospace;font-size:.72em;color:#8b9bb4;line-height:1.75}
-.meta a{color:#93c5fd;text-decoration:none;border-bottom:1px solid rgba(147,197,253,.25)}
-.meta a:hover{color:#bfdbfe}
-ul.clean{list-style:none;margin:0;padding:0}
-ul.clean li{font-size:.98em;line-height:1.65;padding:6px 0;border-bottom:1px solid rgba(74,78,105,.2);color:rgba(240,236,226,.85)}
-ul.clean li span{font-family:'IBM Plex Mono',monospace;font-size:.72em;color:#86efac;margin-right:10px}
-footer{margin-top:40px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.65em;color:#4a4e69;letter-spacing:.1em;line-height:1.8}
-.lang{text-align:center;margin-bottom:20px;font-family:'IBM Plex Mono',monospace;font-size:.7em}
-.lang a{color:#8b9bb4;margin:0 8px;text-decoration:none}
-.lang a:hover{color:#c9ada7}
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0f14;color:#e8e4dc;font-family:'Cormorant Garamond',serif;min-height:100vh;line-height:1.45}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(59,130,246,.12),transparent),linear-gradient(rgba(74,78,105,.05)1px,transparent 1px),linear-gradient(90deg,rgba(74,78,105,.05)1px,transparent 1px);background-size:auto,48px 48px,48px 48px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:48px 28px 72px}
+.nav{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;margin-bottom:36px;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.08em}
+.nav a{color:#93c5fd;text-decoration:none}
+.hero{text-align:center;margin-bottom:36px}
+.ring{width:88px;height:88px;margin:0 auto 20px;border:1px solid rgba(201,173,167,.35);border-radius:50%;display:grid;place-items:center;position:relative}
+.ring::before{content:'';position:absolute;inset:10px;border:1px solid rgba(201,173,167,.2);border-radius:50%}
+.dot{width:7px;height:7px;background:#c9ada7;border-radius:50%;box-shadow:0 0 12px rgba(201,173,167,.5)}
+h1{font-size:clamp(1.6rem,4vw,2.35rem);font-weight:300;letter-spacing:.22em;text-transform:uppercase;margin-bottom:8px}
+.sub{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.28em;color:#8b9bb4;text-transform:uppercase;margin-bottom:10px}
+.motto{font-style:italic;color:#c9ada7;letter-spacing:.12em;margin-bottom:18px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.1em;padding:5px 12px;border-radius:999px;border:1px solid rgba(34,197,94,.4);color:#86efac;background:rgba(20,83,45,.3)}
+.pill.muted{border-color:#334155;color:#94a3b8;background:rgba(30,41,59,.5)}
+.live{margin:28px 0;padding:16px 18px;background:#121820;border:1px solid #1e293b;border-radius:14px;font-family:'IBM Plex Mono',monospace;font-size:.72rem}
+.live h2{font-size:.65rem;letter-spacing:.14em;color:#64748b;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}
+.live-grid div span{display:block;color:#64748b;font-size:.58rem;margin-bottom:2px}
+.live-grid div b{color:#e2e8f0;font-weight:500}
+.live a{color:#60a5fa}
+.err{color:#f87171;font-size:.7rem}
+section{margin-bottom:32px}
+section h2{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;color:#64748b;text-transform:uppercase;margin-bottom:12px;font-weight:500}
+section p{font-size:1.05rem;color:#cbd5e1;margin-bottom:10px}
+section p strong{color:#f1f5f9;font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:#121820;border:1px solid #1e293b;border-radius:12px;padding:14px 16px}
+.card h3{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.08em;color:#93c5fd;margin-bottom:6px;font-weight:500}
+.card p{font-size:.92rem;color:#94a3b8;margin:0}
+.tracks{display:flex;flex-wrap:wrap;gap:6px}
+.tracks span{font-family:'IBM Plex Mono',monospace;font-size:.62rem;padding:4px 8px;border-radius:6px;background:#1e293b;color:#94a3b8}
+ul.clean{list-style:none}
+ul.clean li{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:#94a3b8;padding:6px 0;border-bottom:1px solid #1e293b;display:flex;gap:12px}
+ul.clean li span{color:#60a5fa;min-width:4.5rem}
+.links a{color:#60a5fa;text-decoration:none}
+.links p{font-family:'IBM Plex Mono',monospace;font-size:.72rem;margin-bottom:6px;color:#94a3b8}
+footer{margin-top:48px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#475569;line-height:1.8}
 </style>
 </head>
 <body>
-<div class="grid"></div>
-<div class="container">
-  <div class="lang"><a href="?lang=en">English</a></div>
-  <div class="emblem">
-    <div class="emblem-circle"><div class="emblem-dot"></div></div>
-    <div class="title">Calhegas Morais</div>
-    <div class="subtitle">FOG-NODE-PT-CM-001 · StrataMesh DLT</div>
-    <div class="motto">Intelligentia · Vigilantia · Veritas</div>
-    <div class="pill">v0.2.1-lab · PHASES 0–7 REFERENCE</div>
-  </div>
-  <div class="section"><div class="section-title">Status</div><ul class="clean">
-<li><span>TAG</span> v0.2.1-lab no GitHub</li>
-<li><span>LIVE</span> Estado público + dashboard live</li>
-<li><span>LAB</span> Stack Fog completo in-process (fases 0–7)</li>
-<li><span>PRÓX</span> Host permanente · Kubo real · mesh multi-nó</li>
-</ul></div>
-  <div class="section"><div class="section-title">Overview</div><p><strong>StrataMesh</strong> é um ledger distribuído DAG + IPFS com SPAs Fog/Edge, agentes neutros quanto ao substrato e economia de contribuição.</p>
-<p>O nó <strong>Calhegas Morais</strong> é a implementação de referência. <strong>v0.2.1-lab</strong> congela o percurso de laboratório do DAG aos ACBs — não é mainnet.</p>
-<p>O estatuto define-se por função e acordo, não pelo substrato.</p></div>
-  <div class="section"><div class="section-title">Lab stack</div>
-    <div class="grid2">
-      <div class="card"><h3>Core</h3><p>DAG, tip selection, gossip, persistent node, finality confidence, IPFS client.</p></div>
-      <div class="card"><h3>Economy</h3><p>PoC → STRATA mint, settled Agora, on-graph mint/trade.</p></div>
-      <div class="card"><h3>Apps & gov</h3><p>NFT/CID, UGC sandbox, DAO proposals & votes.</p></div>
-      <div class="card"><h3>Agents & ops</h3><p>ACB + PoSbs, PQ hooks (lab), mesh_doctor, status pulse.</p></div>
+<div class="bg"></div>
+<div class="wrap">
+  <nav class="nav">
+    <a href="/">EN</a>
+    <a href="/pt">PT</a>
+    <a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Live</a>
+    <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">GitHub</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/portal">Portal</a>
+  </nav>
+  <header class="hero">
+    <div class="ring"><div class="dot"></div></div>
+    <h1>Calhegas Morais</h1>
+    <p class="sub">Nó Fog · StrataMesh DLT</p>
+    <p class="motto">Estatuto por função — não por substrato</p>
+    <div class="pills">
+      <span class="pill">v0.2.1-lab</span>
+      <span class="pill muted">FOG-NODE-PT-CM-001</span>
+      <span class="pill muted">Não é mainnet</span>
     </div>
+  </header>
+  <div class="live">
+    <h2>Pulso da rede</h2>
+    <div class="live-grid" id="live-grid"><div><span>…</span><b>—</b></div></div>
+    <p style="margin-top:12px"><a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">Abrir dashboard live →</a></p>
+    <p class="err" id="live-err"></p>
   </div>
-  <div class="section"><div class="section-title">Links</div><div class="meta"><p>Release: <a href="https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab" target="_blank" rel="noopener">v0.2.1-lab</a></p>
-<p>Roteiro: <a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/ROADMAP-PUBLIC-v0.2.md" target="_blank" rel="noopener">ROADMAP-PUBLIC-v0.2</a></p>
-<p>Repositório: <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">github.com/amcmorais/stratamesh-core</a></p>
-<p>Estado JSON: <a href="https://stratamesh-status.stratamesh.workers.dev/status" target="_blank" rel="noopener">/status</a></p>
-<p>Dashboard live: <a href="https://stratamesh-status.stratamesh.workers.dev/live" target="_blank" rel="noopener">/live</a></p>
-<p>Portal: <a href="/dashboard">/dashboard</a> · <a href="/portal">/portal</a> · <a href="/request_access">Pedir acesso</a></p></div></div>
-  <footer>NÃO CLASSIFICADO // FOG-NODE-PT-CM-001<br>
-© 2026 Calhegas Morais · StrataMesh DLT · v0.2.1-lab<br>
-Não é mainnet — release de laboratório de referência</footer>
+  <section>
+    <h2>Visão geral</h2>
+    <p><strong>StrataMesh</strong> é uma malha DAG + IPFS: SPAs Fog/Edge, STRATA por contribuição, Agora dual (STRATA ↔ SVC), ACBs com Proof of Subsistence e agentes neutros ao substrato.</p>
+    <p>Este nó é a referência de laboratório, operada por <strong>André Manuel Calhegas Morais</strong>. Tracks A0–A3 e B0–B4 no repositório; host always-on é o próximo passo.</p>
+  </section>
+  <section>
+    <h2>Stack de lab</h2>
+    <div class="cards"><div class="card"><h3>Malha</h3><p>DAG, gossip, tips, meta-finalidade.</p></div><div class="card"><h3>Economia</h3><p>PoC → STRATA, Agora dual, auditoria.</p></div><div class="card"><h3>Apps e gov</h3><p>NFT/CID, UGC, DAO ponderada.</p></div><div class="card"><h3>Agentes e ops</h3><p>SPA graça, ACB meters, PQ lab, mesh_doctor.</p></div></div>
+  </section>
+  <section>
+    <h2>Tracks</h2>
+    <div class="tracks" id="tracks"></div>
+  </section>
+  <section>
+    <h2>Estado</h2>
+    <ul class="clean"><li><span>TAG</span> v0.2.1-lab</li><li><span>LIVE</span> Worker de status + Agora</li><li><span>TEMP</span> Pulso sessão/MacBook (Oracle pendente)</li><li><span>NEXT</span> Fog always-on · Kubo · multi-host</li></ul>
+  </section>
+  <section class="links">
+    <h2>Ligações</h2>
+    <p>Release · <a href="https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab" target="_blank" rel="noopener">v0.2.1-lab</a></p>
+    <p>Roadmap · <a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/ROADMAP-PUBLIC-v0.2.md" target="_blank" rel="noopener">ROADMAP-PUBLIC-v0.2</a></p>
+    <p>Hybrid · <a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/HYBRID-ORACLE-CF-TUNNEL.md" target="_blank" rel="noopener">Oracle + Tunnel</a></p>
+    <p>Repo · <a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">stratamesh-core</a></p>
+    <p>JSON · <a href="https://stratamesh-status.stratamesh.workers.dev/status" target="_blank" rel="noopener">/status</a></p>
+  </section>
+  <footer>
+    FOG-NODE-PT-CM-001<br>
+    © 2026 André Manuel Calhegas Morais · StrataMesh DLT · v0.2.1-lab<br>
+    Referência de laboratório — não é mainnet
+  </footer>
 </div>
+<script>
+const TRACKS=["A0 ops","A1 mesh","A2 multi-SPA","A3 join","B0 emission","B1 Agora","B2 finality","B3 meters","B4 PQ"];
+document.getElementById("tracks").innerHTML=TRACKS.map(t=>"<span>"+t+"</span>").join("");
+const LABELS=["Vers\u00e3o", "Fase", "Txs DAG", "SPAs", "STRATA", "Agora"];
+async function pulse(){
+  try{
+    const s=await fetch("https://stratamesh-status.stratamesh.workers.dev/status?t="+Date.now()).then(r=>r.json());
+    document.getElementById("live-err").textContent="";
+    const vals=[s.version||"—",s.phase||"—",s.dag&&s.dag.transaction_count!=null?s.dag.transaction_count:"—",s.spa&&s.spa.active!=null?s.spa.active:"—",s.token&&s.token.total_supply!=null?s.token.total_supply:"—",s.agora&&s.agora.trades!=null?s.agora.trades:"—"];
+    document.getElementById("live-grid").innerHTML=LABELS.map((k,i)=>"<div><span>"+k+"</span><b>"+vals[i]+"</b></div>").join("");
+  }catch(e){ document.getElementById("live-err").textContent=String(e); }
+}
+pulse(); setInterval(pulse,30000);
+</script>
 </body>
 </html>
