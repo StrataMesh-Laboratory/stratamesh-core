@@ -1,27 +1,24 @@
-# PoC refined endogenous market
+# PoC priced by Agora (external value × quality)
 
-Nothing and no one sets a mint rate.
+The protocol **does not** set a PoC mint rate.
 
-## Price path
-Demand mass \(D\) (consumed resource units) and supply mass \(C\) (contributed units):
+## Pricing
 
-\[
-\mathrm{amount}(\Delta u)=\begin{cases}
-0 & D=0\\
-D\cdot\frac{\Delta u}{\Delta u+1} & C=0\\
-D\cdot\ln(1+\Delta u/C) & C>0
-\end{cases}
-\]
+1. **External global value** of the contributed resource units (storage, validation work, …) and their **quality**.
+2. Convert that value into STRATA using the **Agora P2P rate** (open book VWAP of STRATA listed against EUR/crypto/stable).
 
-This is the integral of marginal scarcity \(D/C\) along the supply path — diminishing returns as contribution fills demand.
+```
+STRATA_minted = external_value(quote_asset) × quality × agora.strata_per_quote
+```
 
-## Meter decay
-Effective \(C,D\) decay with half-life **72h** so old glut/famine does not dominate forever (forgetting, not a rate schedule).
+- `agora.strata_per_quote` comes from active listings (`GET /agora/rate`) — holders discovering price, not a committee.
+- If the Agora book is empty → **cannot mint** (`agora_rate_unavailable`).
+- Lab may supply `external_value` explicitly when an audited resource quote exists; otherwise lab proxies stand in for global resource spots until live feeds.
 
-## Demand sources
-- `POST /poc/consume` (explicit)
-- Pin market matches → `ipfs_pin` consumption
-- DAG lightweight / fog subsidy path → `validate` / `fog_uptime` consumption
+## Not
+- Fixed `minting_rate` tables as emission authority
+- Admin/DAO-chosen STRATA-per-unit schedules
+- ACB labour (that is a transfer of existing STRATA)
 
-## Not PoC
-ACB labour pay is a **transfer** of existing STRATA. Agora is acquisition vs external value.
+## Acquire without contributing resources
+Trade on Agora for external value only.

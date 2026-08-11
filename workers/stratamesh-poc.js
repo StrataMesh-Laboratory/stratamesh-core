@@ -1,12 +1,11 @@
 /**
- * PoC — refined endogenous market emission
+ * PoC mint priced via Agora:
+ *   external value of contributed resources (global market) × quality
+ *   → STRATA using Agora P2P rate (STRATA per quote asset)
  *
- * amount is not chosen: it falls out of contribution vs consumption of a resource class.
- * - No demand (consumed = 0) → amount = 0 exactly
- * - More contribution against fixed demand → lower marginal STRATA per unit
- * - Rolling window soft-decays old meters (natural forgetting, not an admin rate)
- *
- * Acquire without contributing: Agora only.
+ * Protocol does not set a mint rate. Agora book discovers STRATA↔external.
+ * Resource external unit values are inputs from global resource markets (lab refs),
+ * quality is proof-derived; final STRATA = f(external, quality, agora_rate).
  */
 function cors() {
   return {
@@ -20,89 +19,20 @@ function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors() });
 }
 
-const RESOURCE_CLASSES = {
-  ipfs_pin: 'Storage / pin capacity the mesh can draw',
-  validate: 'DAG validation / tip selection work',
-  gossip: 'Propagation bandwidth',
-  fog_uptime: 'Fog always-on capacity',
-  starter_task: 'Onboarding micro-contribution (still market-priced)',
+/** Lab references for global resource spot — NOT protocol emission rates */
+const EXTERNAL_RESOURCE_EUR = {
+  ipfs_pin: { eur_per_unit: 0.00002, unit: 'MB-month-equivalent lab proxy' },
+  validate: { eur_per_unit: 0.00001, unit: 'validation-work unit lab proxy' },
+  gossip: { eur_per_unit: 0.000005, unit: 'propagation unit lab proxy' },
+  fog_uptime: { eur_per_unit: 0.0001, unit: 'uptime slice lab proxy' },
+  starter_task: { eur_per_unit: 0.000001, unit: 'onboarding micro unit' },
 };
 
-/** Half-life for meter decay (hours) — old supply/demand loses weight */
-const METER_HALF_LIFE_H = 72;
-
-function decayFactor(updatedAtIso, now = Date.now()) {
-  if (!updatedAtIso) return 1;
-  try {
-    const t = new Date(updatedAtIso).getTime();
-    if (!Number.isFinite(t)) return 1;
-    const hours = Math.max(0, (now - t) / 3600000);
-    // continuous half-life: 0.5^(h/H)
-    return Math.pow(0.5, hours / METER_HALF_LIFE_H);
-  } catch {
-    return 1;
-  }
-}
-
-/**
- * Marginal market clearing for Δu new contribution units.
- *
- * Interpret consumed D as “demand mass” and contributed C as “supply mass”.
- * Average scarcity before = D/C0, after = D/(C0+Δu).
- * Reward = integral of marginal scarcity ≈ D * ln((C0+Δu)/C0)  when C0>0
- *         = D * (Δu / (C0+Δu))  style share when using harmonic form
- *
- * We use the exact integral of  D/(C) dC = D * ln(1 + Δu/C0):
- *   each infinitesimal unit gets D/C at that instant → diminishing returns.
- * If C0 == 0: first supply against demand D gets D * (Δu/(Δu+ε)) capped by D.
- * If D == 0: reward = 0.
- */
-function marketReward(units, C0, D) {
-  const u = Math.max(0, Number(units) || 0);
-  const c0 = Math.max(0, Number(C0) || 0);
-  const d = Math.max(0, Number(D) || 0);
-  if (u <= 0 || d <= 0) {
-    return {
-      amount: 0,
-      scarcity_before: c0 > 0 ? d / c0 : d > 0 ? Infinity : 0,
-      scarcity_after: d / Math.max(c0 + u, 1e-15),
-      contributed_after: c0 + u,
-      consumed: d,
-      model: 'integral_D_over_C',
-    };
-  }
-  let amount;
-  if (c0 <= 1e-15) {
-    // first contributors split demand mass: amount → D as u grows, never exceeds D
-    amount = d * (u / (u + 1)); // +1 unitless regularizer only for empty-supply bootstrap shape
-  } else {
-    amount = d * Math.log(1 + u / c0);
-  }
-  // numerical hygiene
-  if (!Number.isFinite(amount) || amount < 0) amount = 0;
-  amount = Math.floor(amount * 1e8) / 1e8;
-  const c1 = c0 + u;
-  return {
-    amount,
-    scarcity_before: d / c0,
-    scarcity_after: d / c1,
-    contributed_after: c1,
-    consumed: d,
-    model: 'integral_D_over_C',
-  };
-}
+const RESOURCE_CLASSES = Object.fromEntries(
+  Object.entries(EXTERNAL_RESOURCE_EUR).map(([k, v]) => [k, v.unit])
+);
 
 async function ensure(db) {
-  await db
-    .prepare(
-      `CREATE TABLE IF NOT EXISTS resource_meters (
-        resource_class TEXT PRIMARY KEY,
-        contributed REAL DEFAULT 0,
-        consumed REAL DEFAULT 0,
-        updated_at TEXT
-      )`
-    )
-    .run();
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS minting_events (
@@ -131,60 +61,42 @@ async function ensure(db) {
     .run();
   await db
     .prepare(
-      `CREATE TABLE IF NOT EXISTS consumption_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        resource_class TEXT,
-        units REAL,
-        source TEXT,
-        ref TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
+      `CREATE TABLE IF NOT EXISTS resource_meters (
+        resource_class TEXT PRIMARY KEY,
+        contributed REAL DEFAULT 0,
+        consumed REAL DEFAULT 0,
+        updated_at TEXT
       )`
     )
     .run();
   for (const k of Object.keys(RESOURCE_CLASSES)) {
     await db
       .prepare(
-        `INSERT OR IGNORE INTO resource_meters (resource_class, contributed, consumed, updated_at)
-         VALUES (?, 0, 0, datetime('now'))`
+        `INSERT OR IGNORE INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,0,datetime('now'))`
       )
       .bind(k)
       .run();
   }
 }
 
-async function liveMeter(db, resource_class) {
-  let row = await db.prepare('SELECT * FROM resource_meters WHERE resource_class = ?').bind(resource_class).first();
-  if (!row) {
-    await db
-      .prepare(
-        `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?, 0, 0, datetime('now'))`
-      )
-      .bind(resource_class)
-      .run();
-    row = { resource_class, contributed: 0, consumed: 0, updated_at: new Date().toISOString() };
+async function agoraRate(env, quote = 'EUR') {
+  try {
+    if (env.AGORA && typeof env.AGORA.fetch === 'function') {
+      const r = await env.AGORA.fetch(new Request('https://agora/rate?quote=' + encodeURIComponent(quote)));
+      return await r.json();
+    }
+    const r = await fetch('https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=' + encodeURIComponent(quote));
+    return await r.json();
+  } catch (e) {
+    return { success: false, error: String(e.message || e), strata_per_quote: null };
   }
-  const f = decayFactor(row.updated_at);
-  // Apply decay lazily into effective values (persist on write)
-  return {
-    resource_class,
-    contributed: Number(row.contributed || 0) * f,
-    consumed: Number(row.consumed || 0) * f,
-    updated_at: row.updated_at,
-    decay: f,
-  };
 }
 
-async function persistMeter(db, resource_class, contributed, consumed) {
-  await db
-    .prepare(
-      `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?, ?, ?, datetime('now'))
-       ON CONFLICT(resource_class) DO UPDATE SET
-         contributed = excluded.contributed,
-         consumed = excluded.consumed,
-         updated_at = excluded.updated_at`
-    )
-    .bind(resource_class, contributed, consumed)
-    .run();
+function clampQuality(q) {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return 1;
+  // quality in (0, 2] — 1 baseline; cannot invent value via absurd quality alone without bound
+  return Math.min(2, Math.max(0.05, n));
 }
 
 export default {
@@ -194,7 +106,6 @@ export default {
     if (path.startsWith('/api/v1/poc')) path = path.slice('/api/v1/poc'.length) || '/health';
     if (path.startsWith('/api/v1/')) path = path.slice('/api/v1'.length);
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors() });
-
     const db = env.LEDGER || env.STRATAMESH_LEDGER || env.DB;
 
     try {
@@ -204,14 +115,13 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '4.1.0-refined-market',
+          version: '5.0.0-agora-priced',
           sole_mint_path: true,
           policy: {
-            mint: 'Verified DLT resource contribution only',
-            amount: '∫ (D/C) dC = D·ln(1+Δu/C) — zero if D=0; diminishing in supply',
-            decay: `meters half-life ${METER_HALF_LIFE_H}h`,
-            acquire_otherwise: 'Strata Agora vs external value',
-            not: ['fixed rates', 'rate-setter', 'admin schedule', 'ACB wages'],
+            mint: 'DLT resource contribution only',
+            pricing:
+              'External global value of resources × quality → STRATA via Agora P2P rate (not protocol-set)',
+            acquire_otherwise: 'Agora vs external value',
           },
         });
       }
@@ -219,105 +129,109 @@ export default {
       if (path === '/emission-policy') {
         return j({
           sole_mint_path: true,
-          mechanism: 'Proof of Contribution — refined endogenous market',
-          formula: {
-            with_prior_supply: 'amount = consumed * ln(1 + units/contributed)',
-            first_supply: 'amount = consumed * units/(units+1)',
-            no_demand: 'amount = 0',
-          },
-          meter_decay_hours_half_life: METER_HALF_LIFE_H,
-          acquire_path: 'Strata Agora P2P vs external value only',
+          formula: 'STRATA = external_value_quote * quality * agora.strata_per_quote',
+          rate_source: 'Agora open-book VWAP',
+          external_value: 'Global resource market value of contributed units (lab proxies until live oracles)',
+          quality: 'Proof-derived multiplier on contribution usefulness/reliability',
+          not: ['fixed minting_rate', 'admin rate-setter', 'pure D/C without Agora'],
         });
       }
 
       if (path === '/market' || path === '/scarcity') {
-        const out = [];
-        for (const name of Object.keys(RESOURCE_CLASSES)) {
-          const m = await liveMeter(db, name);
-          const scarcity = m.contributed > 0 ? m.consumed / m.contributed : m.consumed > 0 ? null : 0;
-          out.push({
-            resource_class: name,
-            description: RESOURCE_CLASSES[name],
-            contributed_effective: m.contributed,
-            consumed_effective: m.consumed,
-            scarcity: scarcity === null ? 'infinite_demand_no_supply' : scarcity,
-            decay_factor: m.decay,
-            marginal_next_unit:
-              m.consumed <= 0 ? 0 : m.contributed > 0 ? m.consumed / (m.contributed + 1) : m.consumed / 2,
-          });
-        }
+        const rate = await agoraRate(env, url.searchParams.get('quote') || 'EUR');
+        const meters = await db.prepare('SELECT * FROM resource_meters').all();
         return j({
           success: true,
-          market: out,
-          model: 'integral_D_over_C + exponential meter decay',
-          note: 'No preset rates — scarcity is the only price signal',
+          agora: rate,
+          meters: meters.results || [],
+          pricing: 'agora_rate_x_external_resource_value_x_quality',
         });
       }
 
+      // Optional: still record mesh draw for analytics (does not set mint rate)
       if (path === '/consume' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const resource_class = body.resource_class || body.type || body.contribution_type;
-        const units = Number(body.units || body.amount || body.points || 0);
-        const source = body.source || 'api';
-        const ref = body.ref || body.cid || body.vertex_id || null;
-        if (!resource_class || !(units > 0)) return j({ error: 'resource_class and units > 0 required' }, 400);
-        if (!RESOURCE_CLASSES[resource_class]) {
-          return j({ error: 'unknown resource_class', known: Object.keys(RESOURCE_CLASSES) }, 400);
-        }
-        const m = await liveMeter(db, resource_class);
-        const consumed = m.consumed + units;
-        await persistMeter(db, resource_class, m.contributed, consumed);
-        try {
-          await db
-            .prepare(
-              `INSERT INTO consumption_events (resource_class, units, source, ref) VALUES (?,?,?,?)`
-            )
-            .bind(resource_class, units, source, ref)
-            .run();
-        } catch (_) {}
-        return j({
-          success: true,
-          resource_class,
-          consumed_added: units,
-          source,
-          meter: {
-            contributed: m.contributed,
-            consumed,
-            scarcity: m.contributed > 0 ? consumed / m.contributed : null,
-          },
-        });
+        const resource_class = body.resource_class || body.type;
+        const units = Number(body.units || 0);
+        if (!resource_class || !(units > 0)) return j({ error: 'resource_class and units > 0' }, 400);
+        await db
+          .prepare(
+            `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
+             ON CONFLICT(resource_class) DO UPDATE SET consumed = consumed + excluded.consumed, updated_at = excluded.updated_at`
+          )
+          .bind(resource_class, units)
+          .run();
+        return j({ success: true, resource_class, consumed_added: units, note: 'meter only — mint priced via Agora' });
       }
 
       if (path === '/mint' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const node_id = body.node_id;
         const contribution_type = body.contribution_type || body.resource_class;
-        const contribution_points = Number(body.contribution_points || body.units || 0);
-        const proof_hash = body.proof_hash || body.proof || null;
-        if (!node_id || !contribution_type || !(contribution_points > 0)) {
-          return j({ error: 'Missing node_id, contribution_type, contribution_points > 0' }, 400);
+        const units = Number(body.contribution_points || body.units || 0);
+        const quality = clampQuality(body.quality != null ? body.quality : 1);
+        const quote_asset = (body.quote_asset || 'EUR').toUpperCase();
+        const proof_hash = body.proof_hash || null;
+        if (!node_id || !contribution_type || !(units > 0)) {
+          return j({ error: 'node_id, contribution_type, contribution_points > 0 required' }, 400);
         }
-        if (!RESOURCE_CLASSES[contribution_type]) {
-          return j({ error: 'Unknown contribution_type', known: Object.keys(RESOURCE_CLASSES) }, 400);
+        if (!EXTERNAL_RESOURCE_EUR[contribution_type]) {
+          return j({ error: 'unknown contribution_type', known: Object.keys(EXTERNAL_RESOURCE_EUR) }, 400);
         }
 
-        const meter = await liveMeter(db, contribution_type);
-        const reward = marketReward(contribution_points, meter.contributed, meter.consumed);
-        await persistMeter(db, contribution_type, reward.contributed_after, reward.consumed);
+        // External value of resources (global), override allowed when caller supplies audited quote
+        let external_quote_value;
+        if (body.external_value != null && Number(body.external_value) > 0) {
+          external_quote_value = Number(body.external_value);
+        } else {
+          const ref = EXTERNAL_RESOURCE_EUR[contribution_type];
+          external_quote_value = units * ref.eur_per_unit * quality;
+        }
+        // quality already in external if using ref path; if external_value provided, still apply quality once
+        if (body.external_value != null) {
+          external_quote_value = Number(body.external_value) * quality;
+        }
 
-        if (reward.amount <= 0) {
+        const rate = await agoraRate(env, quote_asset);
+        const strata_per_quote = rate && rate.strata_per_quote != null ? Number(rate.strata_per_quote) : null;
+        if (strata_per_quote == null || !(strata_per_quote > 0)) {
+          return j(
+            {
+              success: false,
+              error: 'agora_rate_unavailable',
+              message:
+                'Cannot price PoC in STRATA without Agora book (STRATA listed vs external value). List on Agora or wait for liquidity.',
+              agora: rate,
+              external_value: { asset: quote_asset, value: external_quote_value, quality },
+            },
+            503
+          );
+        }
+
+        let amount = external_quote_value * strata_per_quote;
+        if (!Number.isFinite(amount) || amount < 0) amount = 0;
+        amount = Math.floor(amount * 1e8) / 1e8;
+
+        // meters analytics
+        try {
+          await db
+            .prepare(
+              `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?, ?, 0, datetime('now'))
+               ON CONFLICT(resource_class) DO UPDATE SET contributed = contributed + excluded.contributed, updated_at = excluded.updated_at`
+            )
+            .bind(contribution_type, units)
+            .run();
+        } catch (_) {}
+
+        if (amount <= 0) {
           return j({
             success: true,
             amount_minted: 0,
             node_id,
             contribution_type,
-            contribution_points,
-            scarcity_before: reward.scarcity_before,
-            scarcity_after: reward.scarcity_after,
-            meter: { contributed: reward.contributed_after, consumed: reward.consumed },
-            model: reward.model,
-            message:
-              'Contribution recorded. Zero STRATA because effective demand (consumed) is zero for this class — market has no pull.',
+            external_value: { asset: quote_asset, value: external_quote_value },
+            agora_rate: { strata_per_quote, quote_per_strata: rate.quote_per_strata },
+            message: 'Priced to zero at current Agora rate / external value',
           });
         }
 
@@ -329,26 +243,25 @@ export default {
                balance = balance + excluded.balance,
                total_minted = COALESCE(token_balances.total_minted,0) + excluded.balance`
           )
-          .bind(node_id, reward.amount, reward.amount)
+          .bind(node_id, amount, amount)
           .run();
 
         let eventId = null;
         try {
           const ins = await db
             .prepare(
-              `INSERT INTO minting_events
-               (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
+              `INSERT INTO minting_events (node_id, contribution_type, contribution_score, amount, proof_hash, status, scarcity, contributed_after, consumed_at_mint)
                VALUES (?,?,?,?,?,'confirmed',?,?,?)`
             )
             .bind(
               node_id,
               contribution_type,
-              contribution_points,
-              reward.amount,
+              units,
+              amount,
               proof_hash,
-              reward.scarcity_after,
-              reward.contributed_after,
-              reward.consumed
+              strata_per_quote,
+              external_quote_value,
+              quality
             )
             .run();
           eventId = ins.meta?.last_row_id ?? null;
@@ -359,32 +272,32 @@ export default {
                 `INSERT INTO minting_events (node_id, contribution_type, contribution_score, amount, proof_hash, status)
                  VALUES (?,?,?,?,?,'confirmed')`
               )
-              .bind(node_id, contribution_type, contribution_points, reward.amount, proof_hash)
+              .bind(node_id, contribution_type, units, amount, proof_hash)
               .run();
           } catch (__) {}
         }
-
-        try {
-          await db
-            .prepare(`INSERT INTO proof_chain (previous_hash, current_hash, action, actor) VALUES (?,?,?,?)`)
-            .bind(proof_hash || 'none', proof_hash || 'none', 'poc_mint_refined', node_id)
-            .run();
-        } catch (_) {}
 
         return j({
           success: true,
           minting_event_id: eventId,
           node_id,
           contribution_type,
-          contribution_points,
-          amount_minted: reward.amount,
-          scarcity_before: reward.scarcity_before,
-          scarcity_after: reward.scarcity_after,
-          meter: { contributed: reward.contributed_after, consumed: reward.consumed },
-          model: reward.model,
-          pricing: 'endogenous_integral_market',
+          contribution_points: units,
+          quality,
+          amount_minted: amount,
+          pricing: {
+            model: 'external_resource_value_x_quality_x_agora_rate',
+            external_value: { asset: quote_asset, value: external_quote_value },
+            agora: {
+              quote_asset,
+              strata_per_quote,
+              quote_per_strata: rate.quote_per_strata,
+              liquidity_strata: rate.liquidity_strata,
+              source: rate.source,
+            },
+          },
           message:
-            'STRATA from ∫(D/C)dC over your units. No fixed rate. Non-contributors use Agora only.',
+            'PoC STRATA from global resource value × quality, converted at Agora rate — protocol does not set the rate.',
         });
       }
 
@@ -399,21 +312,16 @@ export default {
       }
 
       if (path === '/contribution-types') {
-        const types = [];
-        for (const [name, description] of Object.entries(RESOURCE_CLASSES)) {
-          const m = await liveMeter(db, name);
-          types.push({
-            name,
-            description,
-            fixed_rate: null,
-            rate_setter: null,
-            contributed_effective: m.contributed,
-            consumed_effective: m.consumed,
-            marginal_next_unit: m.consumed <= 0 ? 0 : m.contributed > 0 ? m.consumed / (m.contributed + 1) : m.consumed / 2,
-            note: 'Price is the market path ∫D/C — not a preset',
-          });
-        }
-        return j({ contribution_types: types, pricing: 'endogenous_integral_market' });
+        const rate = await agoraRate(env, 'EUR');
+        const types = Object.entries(EXTERNAL_RESOURCE_EUR).map(([name, meta]) => ({
+          name,
+          unit: meta.unit,
+          fixed_protocol_rate: null,
+          external_ref_eur_per_unit_lab: meta.eur_per_unit,
+          note: 'Lab external resource proxy until live global feeds; STRATA via Agora rate',
+          agora_strata_per_eur: rate.strata_per_quote,
+        }));
+        return j({ contribution_types: types, pricing: 'agora_x_external_x_quality' });
       }
 
       if (path === '/history') {
@@ -424,49 +332,15 @@ export default {
         return j({ events: events.results || [] });
       }
 
-      if (path === '/consumption-history') {
-        const rows = await db.prepare('SELECT * FROM consumption_events ORDER BY id DESC LIMIT 50').all();
-        return j({ events: rows.results || [] });
-      }
-
-      if (path === '/proof-chain') {
-        const chain = await db.prepare('SELECT * FROM proof_chain ORDER BY id DESC LIMIT 50').all();
-        return j({ chain: chain.results || [] });
-      }
-
-      if (path === '/starter-tasks') {
-        return j({
-          tasks: [
-            { id: 'read_whitepaper', units: 1, resource_class: 'starter_task' },
-            { id: 'run_health', units: 1, resource_class: 'starter_task' },
-          ],
-          note: 'Use POST /mint — reward is 0 unless starter_task has demand via /consume',
-        });
-      }
-
-      if (path === '/starter-claim' && request.method === 'POST') {
-        return j({ success: false, error: 'use_mint', message: 'POST /mint with contribution_type starter_task' }, 400);
-      }
-
       return j(
         {
           error: 'Not found',
-          endpoints: [
-            '/health',
-            '/mint',
-            '/consume',
-            '/market',
-            '/balance',
-            '/contribution-types',
-            '/history',
-            '/consumption-history',
-            '/emission-policy',
-          ],
+          endpoints: ['/health', '/mint', '/market', '/consume', '/balance', '/contribution-types', '/history', '/emission-policy'],
         },
         404
       );
-    } catch (err) {
-      return j({ error: String(err.message || err) }, 500);
+    } catch (e) {
+      return j({ error: String(e.message || e) }, 500);
     }
   },
 };

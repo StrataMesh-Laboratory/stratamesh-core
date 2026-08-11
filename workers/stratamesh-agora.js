@@ -32,10 +32,70 @@ export default {
       if (path === '/agora/health') {
         return j({
           status: 'active',
-          version: '3.1.0-schema-aligned',
+          version: '3.2.0-rate',
           role: 'P2P exchange: STRATA listed for external value (EUR/crypto/stable). Not a mint.',
           external_value_exchange: true,
           settlement: 'lab_intent + agora_payments verification_status',
+        });
+      }
+
+
+      // Market rate from open STRATA listings (external quote) — no admin price
+      if (path === '/agora/rate' || path === '/agora/price' || path === '/rate' || path === '/price') {
+        const asset = (url.searchParams.get('quote') || url.searchParams.get('asset') || 'EUR').toUpperCase();
+        let rows = [];
+        try {
+          rows = (await db.prepare(
+            "SELECT token_amount, price_per_token, reference_currency FROM agora_listings WHERE status = 'active' AND UPPER(COALESCE(reference_currency,'EUR')) = ?"
+          ).bind(asset).all()).results || [];
+        } catch (_) {
+          try {
+            rows = (await db.prepare(
+              "SELECT token_amount, price_per_token, reference_currency FROM agora_listings WHERE status = 'active'"
+            ).all()).results || [];
+            rows = rows.filter(r => (r.reference_currency || 'EUR').toUpperCase() === asset);
+          } catch (__) {}
+        }
+        if (!rows.length) {
+          return j({
+            success: true,
+            quote_asset: asset,
+            strata_per_quote: null,
+            quote_per_strata: null,
+            liquidity: 0,
+            message: 'No active Agora listings — cannot form rate',
+          });
+        }
+        // VWAP: price_per_token is quote per STRATA
+        let vol = 0, pq = 0;
+        const prices = [];
+        for (const r of rows) {
+          const amt = Number(r.token_amount) || 0;
+          const px = Number(r.price_per_token) || 0;
+          if (amt > 0 && px > 0) {
+            vol += amt;
+            pq += px * amt;
+            prices.push(px);
+          }
+        }
+        if (vol <= 0) {
+          return j({ success: true, quote_asset: asset, strata_per_quote: null, quote_per_strata: null, liquidity: 0 });
+        }
+        const quote_per_strata = pq / vol; // e.g. EUR per 1 STRATA
+        const strata_per_quote = 1 / quote_per_strata;
+        prices.sort((a,b)=>a-b);
+        const mid = prices[Math.floor(prices.length/2)];
+        return j({
+          success: true,
+          quote_asset: asset,
+          quote_per_strata,
+          strata_per_quote,
+          vwap_quote_per_strata: quote_per_strata,
+          median_quote_per_strata: mid,
+          liquidity_strata: vol,
+          listings: rows.length,
+          source: 'agora_open_book_vwap',
+          note: 'Rate discovered on Agora P2P book — not set by protocol',
         });
       }
 
@@ -221,7 +281,7 @@ export default {
         return j({
           success: true,
           status: 'operational',
-          version: '3.1.0-schema-aligned',
+          version: '3.2.0-rate',
           total_listings,
           total_trades,
           settlement: 'lab_intent',
