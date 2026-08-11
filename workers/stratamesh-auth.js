@@ -63,7 +63,7 @@ export default {
               return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
             }
             const token = crypto.randomUUID();
-            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+24 hours'))").bind(user.id, token).run();
+            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))").bind(user.id, token, token).run();
             return new Response(JSON.stringify({ 
               success: true, 
               token, 
@@ -88,7 +88,7 @@ export default {
             }
             const token = crypto.randomUUID();
             await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
-            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+24 hours'))").bind(-staff.id, token).run();
+            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))").bind(-staff.id, token, token).run();
             return new Response(JSON.stringify({ 
               success: true, 
               token, 
