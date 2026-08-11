@@ -135,7 +135,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.3.0-poc-only-emission',
+        version: '2.4.1-tokenise-gate',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -147,6 +147,29 @@ export default {
 
     if (path === '/supply' || path === '/status') {
       return json({ success: true, total_supply: supply, holders, status: 'active' });
+    }
+
+
+    if (path === '/emission-audit' || path === '/audit') {
+      let balances = [];
+      let mints = [];
+      try {
+        const b = await db.prepare("SELECT account, balance, total_minted FROM token_balances WHERE token_type IN ('STRATA','strata') ORDER BY balance DESC LIMIT 50").all();
+        balances = b.results || [];
+      } catch (_) {}
+      try {
+        const m = await db.prepare('SELECT * FROM minting_events ORDER BY rowid DESC LIMIT 30').all();
+        mints = m.results || [];
+      } catch (_) {}
+      const pre_policy = balances.filter((x) => !mints.some((m) => m.node_id === x.account) && Number(x.balance) > 0);
+      return json({
+        success: true,
+        policy: 'STRATA mint only via PoC; acquire via Agora P2P external value',
+        balances,
+        recent_poc_mints: mints,
+        pre_policy_or_unattributed: pre_policy.map((x) => x.account),
+        note: 'pre_policy balances are lab genesis/test — not new emission path',
+      });
     }
 
     // --- fungible balance ---
@@ -233,6 +256,48 @@ export default {
         node: 'FOG-NODE-PT-CM-001',
         created_at: new Date().toISOString(),
       };
+
+      // Whitepaper: tokenising assets is funded by STRATA demand — require holding STRATA (earned via PoC or bought on Agora)
+      const TOKENISE_MIN_STRATA = Number(body.min_strata != null ? body.min_strata : 1);
+      const TOKENISE_FEE = Number(body.fee_strata != null ? body.fee_strata : 0.1);
+      let strataBal = 0;
+      try {
+        const br = await db
+          .prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+          .bind(owner)
+          .first();
+        strataBal = Number(br?.balance || 0);
+      } catch (_) {}
+      if (strataBal < TOKENISE_MIN_STRATA) {
+        return json({
+          success: false,
+          error: 'insufficient_STRATA',
+          required: TOKENISE_MIN_STRATA,
+          balance: strataBal,
+          whitepaper:
+            'Asset tokenisation requires STRATA. Earn via Proof of Contribution (node work) or acquire on Strata Agora against external value. No free mint of base STRATA.',
+          acquire: {
+            poc: 'POST /api/v1/poc/mint (contributors only)',
+            agora: 'POST /api/v1/agora/listing or /auction (P2P external value)',
+          },
+        }, 402);
+      }
+      // small fee burn/treasury move (lab): reduces spender balance
+      if (TOKENISE_FEE > 0 && strataBal >= TOKENISE_FEE) {
+        try {
+          await db
+            .prepare("UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')")
+            .bind(TOKENISE_FEE, owner)
+            .run();
+          await db
+            .prepare(
+              "INSERT INTO token_balances (account, token_type, balance) VALUES ('tokenise_fees', 'STRATA', ?) ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + ?"
+            )
+            .bind(TOKENISE_FEE, TOKENISE_FEE)
+            .run();
+        } catch (_) {}
+      }
+
       metadata.lab_signature = await labSign(JSON.stringify({ name, owner, asset_type, attributes }), env.LAB_SIGNING_SECRET);
       const metaStr = JSON.stringify(metadata);
       let metadata_cid = body.metadata_cid || null;
@@ -296,6 +361,8 @@ export default {
       return json({
         success: true,
         mode: 'ugc_mint',
+        strata_fee: TOKENISE_FEE,
+        strata_balance_after: Math.max(0, strataBal - TOKENISE_FEE),
         nft: {
           id,
           owner,

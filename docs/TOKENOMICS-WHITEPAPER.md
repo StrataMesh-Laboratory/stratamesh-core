@@ -47,10 +47,16 @@ Buyer holds STRATA → spends on network / tokenisation / subsistence
 | NFT UGC mint (asset tokenisation) | ✅ | `stratamesh-token` `/mint` — **not** base STRATA emission; may require holding STRATA later |
 | App-token mint | 🔜 | consumes or is gated by STRATA per whitepaper |
 
-## Honest lab gaps
+## Lab status (updated 2026-08-11)
 
-- Agora external settlement is still lab (no real EUR/BTC rails) — listings model the **intent**  
-- Historical lab balances may include pre-policy test mint; new emission is PoC-only  
-- NFT mint does not yet hard-require STRATA balance (planned gate)
+| Item | Status |
+|------|--------|
+| PoC-only STRATA mint | ✅ `stratamesh-poc` |
+| Token worker cannot emit STRATA | ✅ 403 on `/mint-strata` |
+| NFT tokenisation requires STRATA | ✅ HTTP 402 if balance < 1 (+ 0.1 fee) |
+| Agora list with escrow | ✅ external quote (EUR/USDC/…) |
+| Agora trade + payment record | ✅ `agora_payments` lab verification |
+| Real EUR/BTC rails | ❌ still lab intent (`tx_hash` / pending) |
+| Pre-policy genesis balances | tagged `lab_genesis_pre_policy` (treasury / domain); test dust zeroed |
 
 **UNCLASSIFIED // FOG-NODE-PT-CM-001**
