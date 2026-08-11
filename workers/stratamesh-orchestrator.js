@@ -539,7 +539,7 @@ async function chatWithAI(message, tickOut, env, level) {
     "Use knowledge + live context JSON. Never invent metrics. " +
     "temp_mode=true means TEMPORARY session pulse — NOT already always-on; always-on is the migration goal. " +
     "Never dump raw JSON unless the user explicitly asks for JSON. Max ~140 words. " +
-    "Match user language (EN/PT). " +
+    "CRITICAL: reply in the same language as the latest user message. English in → English out; Portuguese in → Portuguese out. Never switch language unprompted. " +
     "Account clearance ladder (fixed): public → internal → confidential → secret → top_secret. " +
     "Public: educational only. Internal: lab metrics. Confidential: ops detail + edit notes. " +
     "Secret: same operational depth as confidential with account-class secret; still no run. " +
@@ -736,17 +736,17 @@ button#go:disabled{opacity:.5}
 </header>
 <div id="log">
   <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
-  Clearance is fixed on your <b>account</b> (not a menu). Session token required for elevated access.<br>
-  Ladder: public → internal → confidential → secret → top_secret (run).<br>
-  Top secret run examples: <code>run refresh_tick</code> · <code>run aiops_cycle</code> · <code>run status_probe</code></div>
+  Clearance is an <b>account property</b> (<code>users.clearance_level</code>), not a token you type.<br>
+  Sign in on the Portal; this chat reuses that session to <em>read</em> your account clearance.<br>
+  Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.</div>
 </div>
 <div id="composer">
   <div id="composer-inner">
-    <div class="row">
-      <label>Account session</label>
-      <input type="password" id="token" placeholder="session token (account clearance)" style="flex:1;max-width:280px">
-      <span id="clrShow" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">clearance: (login required)</span>
+    <div class="row" style="justify-content:space-between">
+      <span id="clrShow" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">Account clearance: public (not signed in)</span>
+      <a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">Sign in on Portal →</a>
     </div>
+    <input type="hidden" id="token" value="">
     <div class="chips">
       <button type="button" data-q="What is StrataMesh and the Calhegas Morais Node?">about</button>
       <button type="button" data-q="status">status</button>
@@ -767,6 +767,11 @@ button#go:disabled{opacity:.5}
   const q=document.getElementById('q');
   const go=document.getElementById('go');
   const tok=document.getElementById('token');
+  // Session only identifies the account; clearance is read from users.clearance_level
+  try {
+    const s = localStorage.getItem('sm_token') || localStorage.getItem('token') || '';
+    if (s && tok) tok.value = s;
+  } catch (e) {}
   function add(role,text){
     const d=document.createElement('div');
     d.className='msg '+role;
@@ -786,7 +791,7 @@ button#go:disabled{opacity:.5}
       const r=await fetch(location.origin+'/chat',{method:'POST',headers,body:JSON.stringify({message:msg,token:tok.value||undefined})});
       const j=await r.json();
       document.getElementById('ver').textContent=(j.version||'')+(j.source?(' · '+j.source):'');
-      const el=document.getElementById('clrShow'); if(el) el.textContent='account='+(j.account_clearance||j.clearance||'?')+' effective='+(j.clearance||'?')+' r/e/x='+[j.permissions&&j.permissions.read,j.permissions&&j.permissions.edit,j.permissions&&j.permissions.run].join('/');
+      const el=document.getElementById('clrShow'); if(el){ const ac=j.account_clearance||j.clearance||'public'; const src=j.clearance_source||''; el.textContent='Account clearance: '+ac+(j.permissions?' · r/e/x '+[j.permissions.read,j.permissions.edit,j.permissions.run].join('/'):'')+(src&&src!=='anonymous'?' · via session':' · anonymous'); }
       add('orch', j.reply||j.error||('HTTP '+r.status));
     }catch(err){ add('sys','Error: '+(err.message||err)); }
     finally{ go.disabled=false; q.focus(); }
