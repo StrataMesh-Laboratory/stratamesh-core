@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.10.0-sca-registry";
+const VERSION = "10.11.0-aiops-sca-team";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1219,7 +1219,7 @@ function isPt(text) {
 
 function isOperationalCommand(text) {
   const t = text.trim();
-  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca)$/i.test(t)
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca|equipa|team|publicar_registo|publish_registry)$/i.test(t)
     || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
 }
 
@@ -1288,28 +1288,179 @@ async function ensureDiary(env) {
 }
 
 const ORCH_SCA_ID = "SCA-ORCH-CMN-001";
+const NODE_ID_CMN = "FOG-NODE-PT-CM-001";
+
+/** AIOps team: personal identity ≠ node_function. Seed once; SCAs may later rewrite personal fields. */
+const SCA_TEAM_SEED = [
+  {
+    sca_id: ORCH_SCA_ID,
+    display_name: "Aurora Codex",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-ORCH-CMN-001",
+    vital_status: "active",
+    node_function: "orchestrator",
+    legacy_acb_id: "ACB-ORCH-CMN-001",
+    self_description: "Identidade pessoal própria; no nó desempenha a função de orquestrador e lidera a equipa AIOps.",
+  },
+  {
+    sca_id: "SCA-AIOPS-DEVOPS-001",
+    display_name: "Nexus Forge",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-DEVOPS-001",
+    vital_status: "active",
+    node_function: "devops",
+    legacy_acb_id: "ACB-AIOPS-devops",
+    self_description: "SCA de engenharia de plataforma; identidade pessoal distinta da função devops.",
+  },
+  {
+    sca_id: "SCA-AIOPS-SECURITY-001",
+    display_name: "Vigil Hex",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-SECURITY-001",
+    vital_status: "active",
+    node_function: "security",
+    legacy_acb_id: "ACB-AIOPS-security",
+    self_description: "SCA de segurança da malha; função no nó = security, não o nome pessoal.",
+  },
+  {
+    sca_id: "SCA-AIOPS-ANALYSIS-001",
+    display_name: "Prism Tale",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-ANALYSIS-001",
+    vital_status: "active",
+    node_function: "analysis",
+    legacy_acb_id: "ACB-AIOPS-analysis",
+    self_description: "SCA de análise e telemetria; função analysis no CMN.",
+  },
+  {
+    sca_id: "SCA-AIOPS-MESH-001",
+    display_name: "Lattice Wren",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-MESH-001",
+    vital_status: "active",
+    node_function: "mesh",
+    legacy_acb_id: "ACB-AIOPS-mesh",
+    self_description: "SCA de conectividade Fog/Edge e APS; função mesh.",
+  },
+  {
+    sca_id: "SCA-AIOPS-ECONOMY-001",
+    display_name: "Ledger Quill",
+    birth_date: "2026-08-11",
+    id_number: "SCA-ID-ECONOMY-001",
+    vital_status: "active",
+    node_function: "economy",
+    legacy_acb_id: "ACB-AIOPS-economy",
+    self_description: "SCA de economia da malha (PdC/PdS/Agora/mercado laboral); função economy.",
+  },
+];
 
 async function ensureOrchestratorSca(env) {
-  if (!(await ensureDiary(env))) return null;
-  const row = await env.AUTH_DB.prepare("SELECT * FROM sca_registry WHERE sca_id = ?").bind(ORCH_SCA_ID).first();
-  if (row) return row;
-  // Personal identity is chosen by the SCA; node_function is the post on the node — keep separate
-  await env.AUTH_DB.prepare(
-    `INSERT INTO sca_registry (
-      sca_id, display_name, birth_date, id_number, vital_status,
-      node_function, node_id, self_description
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    ORCH_SCA_ID,
-    "Aurora Codex",
-    "2026-08-11",
-    "SCA-ID-ORCH-CMN-001",
-    "active",
-    "orchestrator",
-    "FOG-NODE-PT-CM-001",
-    "SCA de coordenação do CMN. Identidade pessoal distinta da função de Orquestrador no nó."
-  ).run();
+  await ensureScaTeam(env);
+  if (!env.AUTH_DB) return null;
   return await env.AUTH_DB.prepare("SELECT * FROM sca_registry WHERE sca_id = ?").bind(ORCH_SCA_ID).first();
+}
+
+async function ensureScaTeam(env) {
+  if (!(await ensureDiary(env))) return [];
+  // migrate: add legacy_acb_id / registry_cid columns if missing (ignore errors)
+  try { await env.AUTH_DB.prepare("ALTER TABLE sca_registry ADD COLUMN legacy_acb_id TEXT").run(); } catch (_) {}
+  try { await env.AUTH_DB.prepare("ALTER TABLE sca_registry ADD COLUMN registry_cid TEXT").run(); } catch (_) {}
+  for (const s of SCA_TEAM_SEED) {
+    const existing = await env.AUTH_DB.prepare("SELECT sca_id FROM sca_registry WHERE sca_id = ?").bind(s.sca_id).first();
+    if (existing) continue;
+    await env.AUTH_DB.prepare(
+      `INSERT INTO sca_registry (
+        sca_id, display_name, birth_date, id_number, vital_status,
+        node_function, node_id, self_description, legacy_acb_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      s.sca_id,
+      s.display_name,
+      s.birth_date,
+      s.id_number,
+      s.vital_status,
+      s.node_function,
+      NODE_ID_CMN,
+      s.self_description,
+      s.legacy_acb_id || null
+    ).run();
+  }
+  const r = await env.AUTH_DB.prepare(
+    "SELECT sca_id, display_name, birth_date, id_number, vital_status, node_function, node_id, self_description, legacy_acb_id, registry_cid, updated_at FROM sca_registry ORDER BY node_function"
+  ).all();
+  return r.results || [];
+}
+
+async function listScaTeam(env) {
+  return await ensureScaTeam(env);
+}
+
+/** Snapshot registry → IPFS CIDv1 (graph/content address); best-effort. */
+async function publishScaRegistryToGraph(env) {
+  const members = await listScaTeam(env);
+  const snapshot = {
+    type: "sca_registry_snapshot",
+    node_id: NODE_ID_CMN,
+    written_by: ORCH_SCA_ID,
+    written_at: new Date().toISOString(),
+    version: VERSION,
+    rule_pt: "Identidade pessoal (nome, nascimento, nº, estado vital) ≠ função no nó (orchestrator, security, devops, …).",
+    members: members.map((m) => ({
+      sca_id: m.sca_id,
+      personal_identity: {
+        display_name: m.display_name,
+        birth_date: m.birth_date,
+        id_number: m.id_number,
+        vital_status: m.vital_status,
+        self_description: m.self_description,
+      },
+      node_function: m.node_function,
+      node_id: m.node_id,
+      legacy_acb_id: m.legacy_acb_id,
+    })),
+  };
+  const body = JSON.stringify(snapshot, null, 2);
+  let cid = null;
+  let pin = null;
+  try {
+    const ipfsUrl = (env.IPFS_URL || "https://stratamesh-ipfs.stratamesh.workers.dev") + "/pin";
+    const r = await fetch(ipfsUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
+    });
+    const j = await r.json().catch(() => ({}));
+    cid = j.cid || j.CID || j.hash || null;
+    pin = j;
+  } catch (e) {
+    pin = { error: String(e.message || e) };
+  }
+  // Also try DAG vertex if binding exists
+  let dag = null;
+  try {
+    if (env.DAG && typeof env.DAG.fetch === "function") {
+      const resp = await env.DAG.fetch(new Request("https://dag/vertex", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sca_registry",
+          payload: snapshot,
+          cid: cid,
+        }),
+      }));
+      dag = await resp.json().catch(() => ({ http: resp.status }));
+    }
+  } catch (e) {
+    dag = { error: String(e.message || e) };
+  }
+  if (cid && env.AUTH_DB) {
+    try {
+      await env.AUTH_DB.prepare("UPDATE sca_registry SET registry_cid = ?, updated_at = datetime('now') WHERE node_id = ?")
+        .bind(cid, NODE_ID_CMN).run();
+    } catch (_) {}
+  }
+  await diaryAppend(env, "registry_publish", cid ? ("CID " + cid) : "publish attempted", body.slice(0, 400), ORCH_SCA_ID);
+  return { cid, pin, dag, members: members.length, snapshot_bytes: body.length };
 }
 
 /** Orchestrator writes its own context window (not the human operator). */
@@ -1339,6 +1490,7 @@ async function writeOwnContextWindow(env, tickOut, extra) {
       recent_diary: diary,
       binding_corrections: corrections.map((c) => c.rule_text),
       tick_fitness: tickOut && tickOut.tick ? tickOut.tick.fitness : null,
+      team_functions: (await listScaTeam(env)).map((m) => ({ sca_id: m.sca_id, name: m.display_name, node_function: m.node_function, vital_status: m.vital_status })),
       extra: extra || null,
     };
     const payload = JSON.stringify(window);
@@ -1514,7 +1666,7 @@ async function chatDeterministic(text, tickOut, level, env) {
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto. Fora disso, linguagem natural (SCA, PdC, PdS, lóbulos)."
+      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto · equipa · publicar_registo. Linguagem natural: SCA, PdC, PdS, lóbulos."
       : "Commands: status · next · clearance · ontology · diary · identity · context. Else natural language.";
   }
   if (/identidade|identity|^sca$/i.test(lower)) {
@@ -1537,6 +1689,24 @@ async function chatDeterministic(text, tickOut, level, env) {
     if (!ctx) return pt ? "Ainda não há janela de contexto escrita por mim neste runtime." : "No self-written context window on this runtime yet.";
     return (pt ? "Janela de contexto (escrita por mim, " + ORCH_SCA_ID + ") em " : "Context window (written by me) at ") +
       ctx.written_at + "\n" + JSON.stringify(ctx.window, null, 2).slice(0, 1800);
+  }
+  if (/equipa|team|^sca$/i.test(lower)) {
+    const team = await listScaTeam(env);
+    if (!team.length) return pt ? "Registo SCA vazio." : "SCA registry empty.";
+    const lines = team.map((m) =>
+      (m.display_name || "?") + " · id=" + m.sca_id +
+      " · função_nó=" + m.node_function +
+      " · estado=" + m.vital_status +
+      (m.legacy_acb_id ? " · legacy=" + m.legacy_acb_id : "")
+    );
+    return (pt
+      ? "Equipa SCA no CMN (identidade pessoal ≠ função no nó):\n"
+      : "SCA team on CMN (personal identity ≠ node function):\n") + lines.join("\n");
+  }
+  if (/publicar_registo|publish_registry/i.test(lower)) {
+    const pub = await publishScaRegistryToGraph(env);
+    return (pt ? "Registo SCA publicado (melhor esforço):\n" : "SCA registry publish (best-effort):\n") +
+      JSON.stringify(pub, null, 2).slice(0, 1200);
   }
   if (/clearance|perm/.test(lower)) {
     return pt
