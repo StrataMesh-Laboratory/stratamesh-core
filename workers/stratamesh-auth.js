@@ -115,15 +115,44 @@ export default {
       
       if (path === '/register' && request.method === 'POST') {
         try {
-          const { email, password, wallet_address } = await request.json();
+          let body = {};
+          const ct = (request.headers.get('Content-Type') || '');
+          if (ct.includes('multipart/form-data') || ct.includes('application/x-www-form-urlencoded')) {
+            const fd = await request.formData();
+            body = Object.fromEntries([...fd.entries()].map(([k,v]) => [k, typeof v === 'string' ? v : (v.name || 'upload')]));
+          } else {
+            try { body = await request.json(); } catch (_) { body = {}; }
+          }
+          const email = String(body.email || '').trim().toLowerCase();
+          const password = String(body.password || '');
+          const wallet_address = body.wallet_address || body.strata_address || null;
+          const doc_type = String(body.doc_type || body.document_type || 'passport').slice(0, 64);
+          if (!email || !email.includes('@')) {
+            return new Response(JSON.stringify({ success: false, error: 'Valid email required' }), { headers: corsHeaders, status: 400 });
+          }
+          if (!password || password.length < 8) {
+            return new Response(JSON.stringify({ success: false, error: 'Password must be at least 8 characters' }), { headers: corsHeaders, status: 400 });
+          }
+          const existing = await env.AUTH_DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+          if (existing) {
+            return new Response(JSON.stringify({ success: false, error: 'Email already registered' }), { headers: corsHeaders, status: 409 });
+          }
           const salt = crypto.randomUUID();
           const enc = new TextEncoder();
           const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
           const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
           const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
           const password_hash = salt + ':' + hash;
-          await env.AUTH_DB.prepare('INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash) VALUES (?, ?, ?, ?, ?, ?)').bind(email, password_hash, wallet_address || null, 'pending', 'passport', 'pending').run();
-          return new Response(JSON.stringify({ success: true, message: 'Registration successful' }), { headers: corsHeaders });
+          const doc_hash = 'pending_' + crypto.randomUUID().replace(/-/g, '');
+          await env.AUTH_DB.prepare(
+            'INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+          ).bind(email, password_hash, wallet_address || null, 'pending', doc_type, doc_hash, 'basic', 0).run();
+          const user = await env.AUTH_DB.prepare('SELECT id, email, verification_status, clearance_level FROM users WHERE email = ?').bind(email).first();
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Registration successful. Verification pending. You can log in; elevated clearance requires review.',
+            user
+          }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 400 });
         }
