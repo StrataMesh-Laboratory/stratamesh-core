@@ -761,20 +761,6 @@ function clamp01(x) {
 }
 
 /** LLM-backed symbolic lobe — ontology-constrained verdicts, then hard merge with symbolicAdmit */
-function symbolicLobeOnly(proposals) {
-  // SYMBOLIC LOBE — pure rules / ontology. No transformer. Not replaceable by LLM.
-  return proposals.map((p) => {
-    const adm = symbolicAdmit(p);
-    return {
-      name: p.name,
-      kind: p.kind,
-      verdict: adm.verdict,
-      reasons: adm.reasons,
-      hard: true,
-      lobe: "symbolic",
-    };
-  });
-}
 
 async function llmHybridLobes(env, message, metrics, level) {
   const prob = await llmProbabilisticLobe(env, message, metrics, level);
