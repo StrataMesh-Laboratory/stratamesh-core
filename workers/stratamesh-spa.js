@@ -71,17 +71,6 @@ export default {
 
 async function proxyApi(request, env, path, url, corsHeaders) {
   try {
-    // Built-in composite health for portal probes
-    if (path === '/api/aiops/health' || path === '/api/ipfs/health' || path === '/api/pq/health' || path === '/api/v1/health') {
-      return jsonResponse({
-        success: true,
-        path,
-        status: 'ok',
-        worker: 'stratamesh-spa-health-shim',
-        timestamp: new Date().toISOString(),
-        note: 'Shim OK — upstream service may expose different paths'
-      }, corsHeaders);
-    }
 
     let target;
     if (path.startsWith('/api/auth')) {
@@ -127,7 +116,8 @@ async function proxyApi(request, env, path, url, corsHeaders) {
       }
       target = 'https://stratamesh-dag-gateway.stratamesh.workers.dev' + path + url.search;
     } else if (path.startsWith('/api/aiops')) {
-      const stripped = path.replace(/^\/api\/aiops/, '') || '/';
+      let stripped = path.replace(/^\/api\/aiops/, '') || '/';
+      if (stripped === '/health' || stripped === '') stripped = '/health';
       target = 'https://stratamesh-aiops.stratamesh.workers.dev' + stripped + url.search;
     } else if (path.startsWith('/api/ipfs')) {
       const stripped = path.replace(/^\/api\/ipfs/, '') || '/';
