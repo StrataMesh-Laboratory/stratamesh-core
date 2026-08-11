@@ -57,38 +57,103 @@ const CLEARANCE_PERMS = {
   top_secret: { read: true, edit: true, run: true },
 };
 
-function normalizeClearance(raw) {
+
+/** Map account clearance_level (DB) → ladder */
+function mapAccountClearance(raw) {
   const s = String(raw || "public").toLowerCase().replace(/[\s-]+/g, "_");
-  if (["public", "pub", "clearance_public", "unclassified"].includes(s)) return "public";
-  if (["internal", "intl", "clearance_internal", "restricted"].includes(s)) return "internal";
-  if (["confidential", "conf", "clearance_confidential"].includes(s)) return "confidential";
-  if (["secret", "clearance_secret", "sec"].includes(s)) return "secret";
-  if (["top_secret", "topsecret", "ts", "clearance_top_secret", "top-secret"].includes(s)) return "top_secret";
+  // Explicit ladder
+  if (["top_secret", "topsecret", "ts", "root", "god"].includes(s)) return "top_secret";
+  if (["secret", "sec", "admin"].includes(s)) return "secret";
+  if (["confidential", "conf", "staff"].includes(s)) return "confidential";
+  if (["internal", "intl", "operator", "lab"].includes(s)) return "internal";
+  if (["public", "pub", "basic", "0", "unclassified", "guest"].includes(s)) return "public";
+  // numeric ranks if ever stored as rank index
+  if (s === "4") return "top_secret";
+  if (s === "3") return "secret";
+  if (s === "2") return "confidential";
+  if (s === "1") return "internal";
   return "public";
 }
 
-function resolveClearance(request, body) {
-  const h =
-    request.headers.get("X-Clearance") ||
-    request.headers.get("X-Strata-Clearance") ||
-    "";
-  const fromBody = body && (body.clearance || body.level);
-  // Token elevates: staff/top tokens map higher (lab heuristic)
+function normalizeClearance(raw) {
+  return mapAccountClearance(raw);
+}
+
+/**
+ * Clearance is an ACCOUNT attribute — not a client-chosen option.
+ * Resolved only from session → users.clearance_level (or staff).
+ * Client-supplied clearance cannot elevate above the account.
+ */
+async function resolveAccountClearance(request, env, body) {
   const token = (
     request.headers.get("Authorization") ||
     request.headers.get("X-Auth-Token") ||
-    (body && body.token) ||
+    (body && (body.token || body.session)) ||
     ""
-  ).replace(/^Bearer\s+/i, "");
-  let level = normalizeClearance(fromBody || h || "public");
-  if (token) {
-    const tk = token.toLowerCase();
-    if (tk.includes("top") || tk.includes("ts-")) level = "top_secret";
-    else if (tk.includes("secret") && !tk.includes("top")) level = rankMax(level, "secret");
-    else if (tk.includes("conf") || tk.includes("staff")) level = rankMax(level, "confidential");
-    else if (tk.includes("internal") || tk.length > 20) level = rankMax(level, "internal");
+  ).replace(/^Bearer\s+/i, "").trim();
+
+  let accountLevel = "public";
+  let email = null;
+  let source = "anonymous";
+
+  if (token && env.AUTH_DB) {
+    try {
+      const sess = await env.AUTH_DB.prepare(
+        "SELECT user_id, token FROM sessions WHERE token = ? OR token_hash = ? LIMIT 1"
+      ).bind(token, token).first();
+      if (sess && sess.user_id) {
+        const user = await env.AUTH_DB.prepare(
+          "SELECT email, clearance_level FROM users WHERE id = ?"
+        ).bind(sess.user_id).first();
+        if (user) {
+          email = user.email;
+          accountLevel = mapAccountClearance(user.clearance_level);
+          source = "session+users.clearance_level";
+        }
+      }
+    } catch (e) {
+      source = "auth_db_error:" + String(e.message || e).slice(0, 80);
+    }
   }
-  return level;
+
+  // Optional AUTH service probe if no D1 binding path worked
+  if (token && source === "anonymous" && env.AUTH && typeof env.AUTH.fetch === "function") {
+    try {
+      const r = await env.AUTH.fetch(
+        new Request("https://auth/me", {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+        })
+      );
+      if (r.ok) {
+        const j = await r.json();
+        email = j.email || j.user?.email || email;
+        const cl = j.clearance_level || j.clearance || j.user?.clearance_level;
+        if (cl) {
+          accountLevel = mapAccountClearance(cl);
+          source = "auth_service_/me";
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Hard rule: body/header cannot elevate above account
+  const claimed = mapAccountClearance(
+    (body && body.clearance) ||
+      request.headers.get("X-Clearance") ||
+      request.headers.get("X-Strata-Clearance") ||
+      accountLevel
+  );
+  const level =
+    CLEARANCE_RANK[claimed] <= CLEARANCE_RANK[accountLevel] ? claimed : accountLevel;
+
+  return {
+    level,
+    account_clearance: accountLevel,
+    email,
+    source,
+    elevated_attempt: CLEARANCE_RANK[claimed] > CLEARANCE_RANK[accountLevel],
+  };
 }
 
 function rankMax(a, b) {
@@ -560,8 +625,10 @@ async function chat(message, env, request, body) {
     return { reply: "Empty message.", role: "orchestrator", version: VERSION, clearance: "public" };
   }
 
-  const level = resolveClearance(request, body || {});
+  const cleared = await resolveAccountClearance(request, env, body || {});
+  const level = cleared.level;
   const tickOut = await tick(env);
+
 
   // Top Secret run intent
   const runMatch = text.match(/^\s*(?:run|exec)\s+([a-z0-9_]+)/i);
@@ -572,6 +639,8 @@ async function chat(message, env, request, body) {
       role: "orchestrator",
       version: VERSION,
       clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
       run: result,
       source: "run-gated",
@@ -588,6 +657,8 @@ async function chat(message, env, request, body) {
         role: "orchestrator",
         version: VERSION,
         clearance: level,
+        account_clearance: cleared.account_clearance,
+        clearance_source: cleared.source,
         permissions: CLEARANCE_PERMS[level],
         source: "workers-ai+" + ai.model,
         tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
@@ -600,6 +671,8 @@ async function chat(message, env, request, body) {
       role: "orchestrator",
       version: VERSION,
       clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
       source: "deterministic-fallback",
       ai_error: ai.error,
@@ -612,6 +685,8 @@ async function chat(message, env, request, body) {
     role: "orchestrator",
     version: VERSION,
     clearance: level,
+    account_clearance: cleared.account_clearance,
+    clearance_source: cleared.source,
     permissions: CLEARANCE_PERMS[level],
     source: "deterministic-command",
   };
@@ -661,22 +736,16 @@ button#go:disabled{opacity:.5}
 </header>
 <div id="log">
   <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
-  Account clearance: <b>public</b> → <b>internal</b> → <b>confidential</b> → <b>secret</b> → <b>top_secret</b> (run).<br>
+  Clearance is fixed on your <b>account</b> (not a menu). Session token required for elevated access.<br>
+  Ladder: public → internal → confidential → secret → top_secret (run).<br>
   Top secret run examples: <code>run refresh_tick</code> · <code>run aiops_cycle</code> · <code>run status_probe</code></div>
 </div>
 <div id="composer">
   <div id="composer-inner">
     <div class="row">
-      <label>Clearance</label>
-      <select id="clearance">
-        <option value="public">public (read / informative)</option>
-        <option value="internal">internal (read / lab)</option>
-        <option value="confidential">confidential (read + edit)</option>
-        <option value="secret">secret (read + edit)</option>
-        <option value="top_secret">top_secret (read + edit + run)</option>
-      </select>
-      <label>Token</label>
-      <input type="password" id="token" placeholder="optional elevation" style="max-width:160px">
+      <label>Account session</label>
+      <input type="password" id="token" placeholder="session token (account clearance)" style="flex:1;max-width:280px">
+      <span id="clrShow" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">clearance: (login required)</span>
     </div>
     <div class="chips">
       <button type="button" data-q="What is StrataMesh and the Calhegas Morais Node?">about</button>
@@ -697,7 +766,6 @@ button#go:disabled{opacity:.5}
   const log=document.getElementById('log');
   const q=document.getElementById('q');
   const go=document.getElementById('go');
-  const clr=document.getElementById('clearance');
   const tok=document.getElementById('token');
   function add(role,text){
     const d=document.createElement('div');
@@ -712,14 +780,13 @@ button#go:disabled{opacity:.5}
     if(!msg)return;
     add('user',msg);
     go.disabled=true;
-    const clearance=clr.value;
-    const headers={'Content-Type':'application/json','Accept':'application/json','X-Clearance':clearance};
+    const headers={'Content-Type':'application/json','Accept':'application/json'};
     if(tok.value) headers['Authorization']='Bearer '+tok.value;
     try{
-      const r=await fetch(location.origin+'/chat',{method:'POST',headers,body:JSON.stringify({message:msg,clearance,token:tok.value||undefined})});
+      const r=await fetch(location.origin+'/chat',{method:'POST',headers,body:JSON.stringify({message:msg,token:tok.value||undefined})});
       const j=await r.json();
       document.getElementById('ver').textContent=(j.version||'')+(j.source?(' · '+j.source):'');
-      document.getElementById('clr').textContent=(j.clearance||clearance)+' r/e/x='+[j.permissions&&j.permissions.read,j.permissions&&j.permissions.edit,j.permissions&&j.permissions.run].join('/');
+      const el=document.getElementById('clrShow'); if(el) el.textContent='account='+(j.account_clearance||j.clearance||'?')+' effective='+(j.clearance||'?')+' r/e/x='+[j.permissions&&j.permissions.read,j.permissions&&j.permissions.edit,j.permissions&&j.permissions.run].join('/');
       add('orch', j.reply||j.error||('HTTP '+r.status));
     }catch(err){ add('sys','Error: '+(err.message||err)); }
     finally{ go.disabled=false; q.focus(); }

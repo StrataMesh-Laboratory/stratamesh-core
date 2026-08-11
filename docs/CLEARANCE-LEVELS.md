@@ -1,16 +1,27 @@
-# Account clearance hierarchy (CMN / Orchestrator chat)
+# Account clearance (not a chat menu)
 
-Canonical ladder (do not collapse levels):
+Clearance is an **attribute of the account** (`users.clearance_level` in Auth D1), resolved via **session token**.  
+It is **not** an optional dropdown the client may choose to escalate.
 
-| Level | Rank | read | edit | run | Intent |
-|-------|------|------|------|-----|--------|
-| **public** | 0 | ✓ | | | Informative StrataMesh / CMN only |
-| **internal** | 1 | ✓ | | | Lab metrics, architecture |
-| **confidential** | 2 | ✓ | ✓ | | Ops detail, edit notes |
-| **secret** | 3 | ✓ | ✓ | | Account-class secret; full ops; **no run** |
-| **top_secret** | 4 | ✓ | ✓ | ✓ | Gated run: `refresh_tick`, `aiops_cycle`, `status_probe` |
+## Ladder
 
-These are **account classifications** (profiles / KV / portal), not cosmetic chat labels.
+| Account values (examples) | Effective level | read | edit | run |
+|---------------------------|-----------------|------|------|-----|
+| `public`, `basic`, `0`, guest | **public** | ✓ | | |
+| `internal`, `lab`, `operator` | **internal** | ✓ | | |
+| `confidential`, `staff` | **confidential** | ✓ | ✓ | |
+| `secret`, `admin` | **secret** | ✓ | ✓ | |
+| `top_secret`, `root`, `ts` | **top_secret** | ✓ | ✓ | ✓ |
 
-Wire: `X-Clearance` header, body `clearance`, or token elevation.  
-Orchestrator chat must preserve **secret** between **confidential** and **top_secret**.
+## Rules
+
+1. Anonymous / no session → **public** only.  
+2. `body.clearance` or `X-Clearance` **cannot elevate** above `users.clearance_level`.  
+3. `run *` only when effective level is **top_secret**.  
+4. UI shows account clearance as **read-only**; session token is how you authenticate.
+
+## Wire
+
+- Session: `Authorization: Bearer <session token>`  
+- Orchestrator loads `sessions` → `users.clearance_level` via `AUTH_DB`  
+- Tables: `users.clearance_level`, `clearance_levels` (legacy grants)
