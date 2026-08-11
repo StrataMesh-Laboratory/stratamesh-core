@@ -125,6 +125,135 @@ function agentReport(id, findings, severity = "info") {
   };
 }
 
+
+/** Hourly cron: real agent findings, hard budget on outbound calls (free-tier). */
+async function runTeamCycleBudgeted(env) {
+  const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
+  const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
+  const authUrl = env.AUTH_URL || DEFAULT_AUTH;
+
+  async function probe(binding, url) {
+    try {
+      let r;
+      if (binding && typeof binding.fetch === "function") {
+        r = await binding.fetch(new Request(url, { method: "GET", headers: { Accept: "application/json" } }));
+      } else {
+        r = await fetch(url, { headers: { Accept: "application/json" } });
+      }
+      const text = await r.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { data = null; }
+      return { ok: r.ok, status: r.status, data };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  }
+
+  const [status, orch, auth] = await Promise.all([
+    probe(env.STATUS, statusUrl),
+    probe(env.ORCH, orchUrl),
+    probe(env.AUTH, authUrl),
+  ]);
+
+  const reports = [];
+  // devops
+  const dev = [];
+  if (!orch.ok) dev.push("Orchestrator unreachable");
+  else dev.push("Orchestrator " + (orch.data && (orch.data.version || orch.data.status) || "ok"));
+  if (!status.ok) dev.push("Status pulse down — Fog publish may be idle");
+  else {
+    const v = (status.data && status.data.version) || "?";
+    dev.push("Status " + v + "; DAG txs=" + ((status.data && status.data.dag && status.data.dag.transaction_count) ?? "n/a"));
+    if (status.data && (status.data.temp_mode || String(v).includes("temp"))) {
+      dev.push("TEMP mode — promote always-on Fog when ready");
+    }
+  }
+  reports.push(agentReport("devops", dev, !orch.ok || !status.ok ? "critical" : "info"));
+
+  // security
+  const sec = [];
+  if (!auth.ok) sec.push("Auth unhealthy");
+  else {
+    const users = auth.data && auth.data.checks && auth.data.checks.database && auth.data.checks.database.users;
+    const sessions = auth.data && auth.data.checks && auth.data.checks.sessions && auth.data.checks.sessions.active;
+    sec.push("Auth ok; users=" + (users ?? "?") + "; sessions=" + (sessions ?? "?"));
+  }
+  reports.push(agentReport("security", sec, auth.ok ? "info" : "critical"));
+
+  // analysis
+  const an = [];
+  if (status.ok && status.data) {
+    const d = status.data;
+    an.push("phase=" + d.phase + " (" + (d.phase_name || "") + ")");
+    an.push("SPA " + ((d.spa && d.spa.active) ?? "?") + "/" + ((d.spa && d.spa.total) ?? "?"));
+    if ((d.dag && d.dag.transaction_count) != null && d.dag.transaction_count < 1) {
+      an.push("DAG idle — seed or peer sync recommended");
+    }
+  } else an.push("No status metrics");
+  reports.push(agentReport("analysis", an, status.ok ? "info" : "warn"));
+
+  // mesh
+  const mesh = [];
+  if (status.ok && status.data && status.data.spa) {
+    const roles = status.data.spa.by_role || {};
+    mesh.push("roles=" + JSON.stringify(roles));
+    if (!roles.fog && !roles.pinner) mesh.push("No fog/pinner SPA — register when host ready");
+  } else mesh.push("SPA metrics missing");
+  reports.push(agentReport("mesh", mesh, "info"));
+
+  // economy
+  const eco = [];
+  if (status.ok && status.data && status.data.agora) {
+    eco.push("Agora settlements=" + (status.data.agora.settlements ?? "?"));
+  } else eco.push("Agora block not in pulse (lab)");
+  eco.push("PdC mint only via contribution; SCA PdS = resource cost in STRATA");
+  reports.push(agentReport("economy", eco, "info"));
+
+  // Single zero-cost team heartbeat (1 request) — not per-agent fan-out
+  let acb_ops = null;
+  try {
+    if (env.ACB && typeof env.ACB.fetch === "function") {
+      const r = await env.ACB.fetch(new Request("https://acb/acb/team/ops-cycle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ per_agent: 0, pulse_cost: 0 }),
+      }));
+      acb_ops = await r.json().catch(() => ({ http: r.status }));
+    }
+  } catch (e) {
+    acb_ops = { error: String(e.message || e) };
+  }
+
+  const critical = reports.filter((r) => r.severity === "critical").length;
+  const warn = reports.filter((r) => r.severity === "warn").length;
+  const cycle = {
+    ok: critical === 0,
+    light: false,
+    budgeted: true,
+    team: "AIOps Dev Team",
+    cycle_id: crypto.randomUUID(),
+    at: new Date().toISOString(),
+    summary: { agents: reports.length, critical, warn, info: reports.length - critical - warn },
+    upstream: {
+      status: { ok: status.ok, http: status.status },
+      orchestrator: { ok: orch.ok, http: orch.status, version: orch.data && orch.data.version },
+      auth: { ok: auth.ok, http: auth.status },
+    },
+    reports,
+    next_actions: buildNextActions(reports, status.data),
+    acb_ops,
+    version: "1.4.1-bg-budget",
+  };
+
+  if (env.AIOPS_KV) {
+    try {
+      await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
+      await env.AIOPS_KV.put("next_actions", JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] }));
+    } catch (_) {}
+  }
+  return cycle;
+}
+
 async function runTeamCycleLight(env) {
   // probes only — max ~3 outbound requests
   const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
@@ -434,7 +563,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.4.0-bg-dev', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.4.1-bg-budget', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -443,7 +572,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.4.0-bg-dev",
+        version: "1.4.1-bg-budget",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
@@ -460,7 +589,13 @@ export default {
       return json({ team: TEAM, standing: "substrate-neutral", source: "whitepaper + Orchestrator mandate" });
     }
 
-    if (path === "/cycle" || path === "/api/aiops/cycle" || path === "/run") {
+    if (path === "/cycle-budgeted" || path === "/cycle" || path === "/api/aiops/cycle" || path === "/run") {
+      // Default HTTP cycle is budgeted (cron-parity). ?full=1 for legacy heavy cycle.
+      if (path === "/cycle-budgeted" || url.searchParams.get("full") !== "1") {
+        const cycle = await runTeamCycleBudgeted(env);
+        return json(cycle);
+      }
+
       const cycle = await runTeamCycle(env);
       return json(cycle);
     }
@@ -506,30 +641,9 @@ export default {
 
   /** Cloudflare Cron Trigger — budgeted development cycle (free-tier safe) */
   async scheduled(event, env, ctx) {
-    // Hourly: full agent reports + zero-cost ACB pulse (no STRATA drain).
-    // Heavy fan-out / paid ops-cycle remains on-demand via POST /cycle with body.full=1.
-    ctx.waitUntil((async () => {
-      try {
-        const cycle = await runTeamCycle(env);
-        // Persist actionable backlog for operator / Orchestrator
-        if (env.AIOPS_KV) {
-          await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
-          await env.AIOPS_KV.put(
-            "next_actions",
-            JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] })
-          );
-        }
-        // Notify Orchestrator diary (best-effort, 1 request)
-        try {
-          if (env.ORCH && typeof env.ORCH.fetch === "function") {
-            await env.ORCH.fetch(new Request("https://orch/tick", { method: "GET", headers: { Accept: "application/json" } }));
-          }
-        } catch (_) {}
-        return cycle;
-      } catch (e) {
-        // Fallback light probe if full cycle fails
-        return runTeamCycleLight(env);
-      }
-    })());
+    // Hourly budgeted development cycle: agent reports + zero-cost team heartbeat.
+    ctx.waitUntil(
+      runTeamCycleBudgeted(env).catch(() => runTeamCycleLight(env))
+    );
   },
 };
