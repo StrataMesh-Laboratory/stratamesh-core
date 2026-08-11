@@ -470,10 +470,15 @@ async function loadDAO(){
     const el=document.getElementById('proposalList');
     if(!props.length){el.innerHTML='<p style="color:var(--muted)">No proposals yet</p>';return;}
     el.innerHTML=props.slice(0,12).map(p=>{
-      const id=p.proposal_id||p.id;
+      const id=String(p.proposal_id||p.id||'');
       const st=p.status||'';
-      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px"><strong style="font-weight:500">'+(p.title||id)+'</strong><br><span style="font-family:IBM Plex Mono,monospace;font-size:.65rem;color:var(--muted)">'+id+' · '+st+' · for='+(p.votes_for||0)+'</span><div style="margin-top:.5rem"><button onclick="voteProposal(\\''+id+'\\',\\'for\\')" style="font-size:.7rem;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">Vote for</button><button onclick="voteProposal(\\''+id+'\\',\\'against\\')" style="font-size:.7rem;padding:.35rem .6rem;cursor:pointer">Against</button></div></div>';
+      const title=String(p.title||id).replace(/</g,'&lt;');
+      const safe=id.replace(/"/g,'');
+      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px"><strong style="font-weight:500">'+title+'</strong><br><span style="font-family:IBM Plex Mono,monospace;font-size:.65rem;color:var(--muted)">'+safe+' · '+st+' · for='+(p.votes_for||0)+'</span><div style="margin-top:.5rem"><button type="button" data-vote="for" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">Vote for</button><button type="button" data-vote="against" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;cursor:pointer">Against</button></div></div>';
     }).join('');
+    el.querySelectorAll('.dao-vote').forEach(function(btn){
+      btn.onclick=function(){ voteProposal(btn.getAttribute('data-id'), btn.getAttribute('data-vote')); };
+    });
   }catch(e){console.warn(e)}
 }
 async function createProposal(){
@@ -520,8 +525,14 @@ async function loadACB(){
       const id=a.acb_id||a.id;
       const st=(a.status||'').toLowerCase();
       const bal=a.balance!=null?a.balance:'—';
-      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px;display:flex;justify-content:space-between;align-items:center"><div><strong>'+id+'</strong><br><span style="font-size:.7rem;color:var(--muted)">bal '+bal+' · '+st+'</span></div><div><button onclick="acbEarn(\\''+id+'\\')" style="font-size:.65rem;padding:.3rem .5rem;margin-right:.25rem;cursor:pointer">Earn</button><button onclick="acbSub(\\''+id+'\\')" style="font-size:.65rem;padding:.3rem .5rem;cursor:pointer">Subsist</button></div></div>';
+      const safe=String(id).replace(/"/g,'');
+      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px;display:flex;justify-content:space-between;align-items:center"><div><strong>'+safe+'</strong><br><span style="font-size:.7rem;color:var(--muted)">bal '+bal+' · '+st+'</span></div><div><button type="button" class="acb-earn" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;margin-right:.25rem;cursor:pointer">Earn</button><button type="button" class="acb-sub" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;cursor:pointer">Subsist</button></div></div>';
     }).join(''):'<p style="color:var(--muted)">No ACBs — register one</p>';
+    var list=document.getElementById('acbList');
+    if(list){
+      list.querySelectorAll('.acb-earn').forEach(function(b){ b.onclick=function(){ acbEarn(b.getAttribute('data-id')); }; });
+      list.querySelectorAll('.acb-sub').forEach(function(b){ b.onclick=function(){ acbSub(b.getAttribute('data-id')); }; });
+    }
   }catch(e){document.getElementById('acbList').innerHTML='<p style="color:var(--muted)">ACB unavailable</p>'}
 }
 async function registerAcb(){
@@ -581,6 +592,17 @@ async function runDiagnostics(){const out=document.getElementById('diagResults')
 function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Root Cause Analysis (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' issue(s) detected:</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Recommended actions:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway')html+='<li>Check DAG vertex connectivity and API route bindings</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">This diagnostic was run at '+new Date().toLocaleString()+' by user <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>All Systems Operational</h4><p style="color:#888">No issues detected across '+results.length+' services.</p></div>'}out.innerHTML=html}
 
 if(token){loadUser()}
+
+window.showPortal = showPortal;
+window.handleAuth = handleAuth;
+window.staffAuth = staffAuth;
+window.logout = logout;
+window.toggleMode = toggleMode;
+window.showToast = showToast;
+window.loadUser = loadUser;
+window.showStaffLogin = typeof showStaffLogin === 'function' ? showStaffLogin : window.showStaffLogin;
+window.hideStaffLogin = typeof hideStaffLogin === 'function' ? hideStaffLogin : window.hideStaffLogin;
+
 try{
   ['email','password'].forEach(function(id){
     var el=document.getElementById(id);
