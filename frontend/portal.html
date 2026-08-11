@@ -10,6 +10,10 @@
 <style>
 :root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4b5a0;--ok:#9caf88;--card:#111113;--danger:#c47a7a}
 *{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:hidden;max-width:100%}
+img,svg,video,canvas,pre,table{max-width:100%}
+p,li,td,th,label,span,div,a,button,input,textarea{word-wrap:break-word;overflow-wrap:anywhere}
+pre,code{white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-width:100%}
 body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:300;line-height:1.55;min-height:100vh;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header{max-width:960px;margin:0 auto;padding:1.1rem 1.5rem;display:flex;align-items:baseline;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line)}
@@ -60,7 +64,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .admin-card h4{font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;color:var(--fg)}
 .diag-run-btn,#orchSend{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;cursor:pointer}
 .diag-run-btn:hover,#orchSend:hover{background:var(--accent);color:#111}
-#orchChat{height:320px;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;margin-bottom:.75rem;font-size:.88rem;line-height:1.55}
+#orchChat{height:320px;overflow-y:auto;overflow-x:hidden;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;margin-bottom:.75rem;font-size:.88rem;line-height:1.55}
 #orchInput{flex:1;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-size:.9rem}
 #orchInput:focus{outline:none;border-color:var(--accent)}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);color:var(--fg);padding:.65rem 1.1rem;border-radius:4px;font-size:.85rem;display:none;z-index:200;max-width:90vw}
@@ -291,7 +295,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Open full chat page</a></p>
     <div id="orchChat" style="height:320px;overflow-y:auto;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5"></div>
     <div style="display:flex;gap:8px">
-      <input id="orchInput" type="text" placeholder="Message the Orchestrator…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
+      <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Message the Orchestrator…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
       <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Send</button>
     </div>
     <p style="color:#555;font-size:11px;margin-top:8px">Try: status · aiops · next · mesh</p>
@@ -625,7 +629,7 @@ async function sendOrchChat(){
   const msg=input.value.trim();
   if(!msg)return;
   input.value='';
-  const add=(who,text)=>{const d=document.createElement('div');d.style.marginBottom='10px';d.innerHTML='<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8780;margin-bottom:4px">'+who+'</div><div style="white-space:pre-wrap">'+String(text).replace(/</g,'&lt;')+'</div>';box.appendChild(d);box.scrollTop=box.scrollHeight;};
+  const add=(who,text)=>{const d=document.createElement('div');d.style.marginBottom='10px';d.innerHTML='<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8780;margin-bottom:4px">'+who+'</div><div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-width:100%">'+String(text).replace(/</g,'&lt;')+'</div>';box.appendChild(d);box.scrollTop=box.scrollHeight;};
   add('You',msg);
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{

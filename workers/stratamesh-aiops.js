@@ -30,7 +30,7 @@ async function pulseAcbTeam(env) {
   // Full ops-cycle: top-up from Orchestrator earned STRATA + pulse (zero mint)
   try {
     let r;
-    const body = JSON.stringify({ per_agent: 0.01, pulse_cost: 0 });
+    const body = JSON.stringify({ per_agent: 0, pulse_cost: 0 }); // free-tier: heartbeat only, no STRATA redistribution pressure
     if (env.ACB && typeof env.ACB.fetch === 'function') {
       r = await env.ACB.fetch(
         new Request('https://acb/acb/team/ops-cycle', {
@@ -434,7 +434,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.3.1-free-tier', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.4.0-bg-dev', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -443,12 +443,12 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.3.1-free-tier",
+        version: "1.4.0-bg-dev",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
         continuous: {
-          workers_cron: "hourly_light_free_tier",
+          workers_cron: "hourly_dev_cycle_budgeted",
           host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
           note: "Workers cannot while(true); host process is the real continuous loop",
         },
@@ -504,9 +504,32 @@ export default {
     return json({ error: "not_found", path }, 404);
   },
 
-  /** Cloudflare Cron Trigger — continuous development tick */
+  /** Cloudflare Cron Trigger — budgeted development cycle (free-tier safe) */
   async scheduled(event, env, ctx) {
-    // Free-tier: light tick only — no ACB ops-cycle fan-out (use POST /team-pulse manually)
-    ctx.waitUntil(runTeamCycleLight(env));
+    // Hourly: full agent reports + zero-cost ACB pulse (no STRATA drain).
+    // Heavy fan-out / paid ops-cycle remains on-demand via POST /cycle with body.full=1.
+    ctx.waitUntil((async () => {
+      try {
+        const cycle = await runTeamCycle(env);
+        // Persist actionable backlog for operator / Orchestrator
+        if (env.AIOPS_KV) {
+          await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
+          await env.AIOPS_KV.put(
+            "next_actions",
+            JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] })
+          );
+        }
+        // Notify Orchestrator diary (best-effort, 1 request)
+        try {
+          if (env.ORCH && typeof env.ORCH.fetch === "function") {
+            await env.ORCH.fetch(new Request("https://orch/tick", { method: "GET", headers: { Accept: "application/json" } }));
+          }
+        } catch (_) {}
+        return cycle;
+      } catch (e) {
+        // Fallback light probe if full cycle fails
+        return runTeamCycleLight(env);
+      }
+    })());
   },
 };
