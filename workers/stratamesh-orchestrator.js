@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.11.2-cid";
+const VERSION = "10.11.4-cid-binding";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1422,24 +1422,26 @@ async function publishScaRegistryToGraph(env) {
   const body = JSON.stringify(snapshot, null, 2);
   let cid = null;
   let pin = null;
-  const ipfsBase = (env.IPFS_URL || "https://stratamesh-ipfs.stratamesh.workers.dev").replace(/\/$/, "");
+  // Worker-to-worker must use service binding (external workers.dev → error 1042)
   for (const path of ["/pin", "/add"]) {
     try {
-      let r;
-      if (env.IPFS && typeof env.IPFS.fetch === "function") {
-        r = await env.IPFS.fetch(new Request("https://ipfs" + path, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
-        }));
-      } else {
-        r = await fetch(ipfsBase + path, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ content: body, name: "sca-registry-" + NODE_ID_CMN + ".json" }),
-        });
+      if (!env.IPFS || typeof env.IPFS.fetch !== "function") {
+        pin = { error: "IPFS service binding missing" };
+        break;
       }
-      const j = await r.json().catch(() => ({ parse_error: true, status: r.status }));
+      const r = await env.IPFS.fetch(new Request("https://stratamesh-ipfs" + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          content: body,
+          name: "sca-registry-" + NODE_ID_CMN + ".json",
+          node_id: NODE_ID_CMN,
+          tier: "contributor",
+        }),
+      }));
+      const text = await r.text();
+      let j = {};
+      try { j = JSON.parse(text); } catch (_) { j = { raw: text.slice(0, 300), status: r.status }; }
       pin = j;
       cid = j.cid || j.CID || j.hash || null;
       if (cid) break;
