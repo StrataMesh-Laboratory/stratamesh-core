@@ -412,6 +412,7 @@ async function loadWallet(){try{const ctrl=new AbortController();const t=setTime
 async function loadAgora(){try{const r=await fetch('/api/v1/agora/status');if(r.ok){const j=await r.json();document.getElementById('agoraPrice').textContent=j.price||'--';document.getElementById('agoraVolume').textContent=j.volume||'0';document.getElementById('agoraOrders').textContent=j.orders||'0'}}catch(e){}}
 
 
+function authHeaders(extra){const h=Object.assign({'Content-Type':'application/json'},extra||{});if(token)h['Authorization']='Bearer '+token;return h;}
 async function loadDAO(){
   try{
     const r=await fetch('/api/v1/dao/proposals');
@@ -431,14 +432,14 @@ async function createProposal(){
   const title=(document.getElementById('propTitle')||{}).value||'Untitled';
   const tmpl=(document.getElementById('propTemplate')||{}).value||'foundational';
   try{
-    const r=await fetch('/api/v1/dao/proposal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,dao_template:tmpl,proposer_id:'portal-user',quorum_required:1})});
+    const r=await fetch('/api/v1/dao/proposal',{method:'POST',headers:{'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})},body:JSON.stringify({title,dao_template:tmpl,proposer_id:(currentUser&&currentUser.id)||'portal-user',quorum_required:1})});
     const j=await r.json();
     if(j.success){if(window.showToast)showToast('Proposal '+j.proposal_id);loadDAO();}
   }catch(e){}
 }
 async function voteProposal(id,vote){
   try{
-    await fetch('/api/v1/dao/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proposal_id:id,voter_id:'portal-user',vote,weight:1})});
+    await fetch('/api/v1/dao/vote',{method:'POST',headers:{'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{})},body:JSON.stringify({proposal_id:id,voter_id:(currentUser&&currentUser.id)||'portal-user',vote,weight:1})});
     loadDAO();
   }catch(e){}
 }

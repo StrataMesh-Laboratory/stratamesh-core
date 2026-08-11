@@ -3,6 +3,75 @@
  * columns: id, provider, consumer, service_type, terms, duration_days, opt_out_clause,
  *          contingency_plan, status, dag_cid, created_at, revoked_at
  */
+
+/** Clearance ladder (users.clearance_level integer) */
+const CLEARANCE = {
+  0: 'public',
+  1: 'internal',
+  2: 'confidential',
+  3: 'secret',
+  4: 'secret',
+  5: 'top_secret',
+};
+const CLEARANCE_RANK = { public: 0, internal: 1, confidential: 2, secret: 3, top_secret: 4 };
+
+async function resolveActor(request, env) {
+  const db = env.STRATAMESH_LEDGER || env.LEDGER || env.DB;
+  const auth = request.headers.get('Authorization') || '';
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  const token = m ? m[1].trim() : null;
+  // body cannot elevate — ignore X-Clearance for escalation
+  if (!token || !db) {
+    return { authenticated: false, clearance: 'public', rank: 0, user_id: null, email: null };
+  }
+  try {
+    const sess = await db.prepare('SELECT * FROM sessions WHERE token = ?').bind(token).first();
+    if (!sess) {
+      return { authenticated: false, clearance: 'public', rank: 0, user_id: null, email: null, reason: 'invalid_session' };
+    }
+    // expiry check soft
+    if (sess.expires) {
+      try {
+        if (new Date(sess.expires).getTime() < Date.now()) {
+          return { authenticated: false, clearance: 'public', rank: 0, user_id: null, email: null, reason: 'session_expired' };
+        }
+      } catch (_) {}
+    }
+    const user = await db.prepare('SELECT id, email, clearance_level FROM users WHERE id = ?').bind(sess.user_id).first();
+    if (!user) {
+      return { authenticated: false, clearance: 'public', rank: 0, user_id: null, email: null, reason: 'user_missing' };
+    }
+    const levelNum = Number(user.clearance_level || 0);
+    const clearance = CLEARANCE[levelNum] || (levelNum >= 5 ? 'top_secret' : levelNum >= 3 ? 'secret' : levelNum >= 2 ? 'confidential' : levelNum >= 1 ? 'internal' : 'public');
+    return {
+      authenticated: true,
+      clearance,
+      rank: CLEARANCE_RANK[clearance] || 0,
+      clearance_level: levelNum,
+      user_id: user.id,
+      email: user.email,
+    };
+  } catch (e) {
+    return { authenticated: false, clearance: 'public', rank: 0, user_id: null, email: null, reason: String(e.message || e) };
+  }
+}
+
+function deny(actor, need) {
+  return {
+    error: 'insufficient_clearance',
+    need,
+    have: actor.clearance,
+    authenticated: actor.authenticated,
+    whitepaper: 'Clearance is an account attribute resolved via session — clients cannot self-elevate',
+  };
+}
+
+function requireRank(actor, minName) {
+  const need = CLEARANCE_RANK[minName] || 0;
+  return actor.rank >= need;
+}
+
+
 function j(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -124,7 +193,8 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '3.4.1-rbac',
+          version: '3.5.1-clearance-rbac',
+          clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
             '/dao/health',
@@ -148,6 +218,8 @@ export default {
       }
 
       if (path === '/dao/spa' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
         const data = await request.json().catch(() => ({}));
         const node_id = data.node_id || data.provider || 'FOG-NODE-PT-CM-001';
         const roles = data.roles || (data.service_type ? [data.service_type] : ['fog', 'pinner']);
@@ -252,6 +324,8 @@ export default {
       }
 
       if (path === '/dao/spa/opt-out' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'confidential')) return j(deny(actor, 'confidential'), 403);
         const data = await request.json().catch(() => ({}));
         const spa_id = data.spa_id || data.id;
         const reason = data.reason || 'provider_opt_out';
@@ -400,13 +474,14 @@ export default {
 
       // Enterprise RBAC skeleton
       if (path === '/dao/rbac' || path === '/dao/roles') {
+        const actor = await resolveActor(request, env);
         const roles = {
           admin: { permissions: ['proposal.create','proposal.execute','spa.manage','compliance.run','treasury.read'] },
           operator: { permissions: ['spa.manage','compliance.run','pin.offer'] },
           auditor: { permissions: ['compliance.run','proposal.read','spa.read'] },
           member: { permissions: ['proposal.create','vote','spa.read'] },
         };
-        return j({ success: true, template: 'enterprise', roles, note: 'Lab RBAC map — enforce at meta-layer apps' });
+        return j({ success: true, template: 'enterprise', roles, actor: { clearance: actor.clearance, authenticated: actor.authenticated, email: actor.email }, note: 'Clearance from session; cannot self-elevate' });
       }
 
       // --- Foundational / Enterprise / Consortium templates ---
@@ -443,6 +518,8 @@ export default {
       }
 
       if (path === '/dao/proposal' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
         const data = await request.json().catch(() => ({}));
         const proposalId = data.proposal_id || 'PROP-' + crypto.randomUUID().slice(0, 10);
         const proposal_type = data.proposal_type || data.type || 'governance';
@@ -457,7 +534,7 @@ export default {
             )
             .bind(
               proposalId,
-              data.proposer_id || 'FOG-NODE-PT-CM-001',
+              (actor.authenticated && actor.user_id) || data.proposer_id || 'FOG-NODE-PT-CM-001',
               data.title || 'Untitled',
               (data.description || '') + (dao_template ? ` [template:${dao_template}]` : ''),
               proposal_type,
@@ -488,9 +565,11 @@ export default {
       }
 
       if (path === '/dao/vote' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
         const data = await request.json().catch(() => ({}));
         const proposal_id = data.proposal_id;
-        const voter = data.voter_id || data.voter || data.account;
+        const voter = (actor.authenticated && actor.user_id) || data.voter_id || data.voter || data.account;
         const vote = (data.vote || data.choice || '').toLowerCase();
         const weight = Number(data.weight != null ? data.weight : 1);
         if (!proposal_id || !voter || !['for', 'against', 'abstain', 'yes', 'no'].includes(vote)) {
@@ -535,6 +614,8 @@ export default {
 
       // Execute if quorum met
       if (path === '/dao/execute' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'secret')) return j(deny(actor, 'secret'), 403);
         const data = await request.json().catch(() => ({}));
         const proposal_id = data.proposal_id;
         if (!proposal_id) return j({ error: 'proposal_id required' }, 400);
@@ -560,6 +641,8 @@ export default {
 
       // SPA compliance checks
       if ((path === '/dao/spa/compliance' || path === '/dao/compliance') && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'confidential')) return j(deny(actor, 'confidential'), 403);
         const data = await request.json().catch(() => ({}));
         const spa_id = data.spa_id;
         if (!spa_id) return j({ error: 'spa_id required' }, 400);
@@ -612,7 +695,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '3.4.1-rbac' });
+        return j({ success: true, status: 'operational', active_spas, version: '3.5.1-clearance-rbac' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
