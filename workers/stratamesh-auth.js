@@ -122,7 +122,7 @@ export default {
           const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
           const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
           const password_hash = salt + ':' + hash;
-          await env.AUTH_DB.prepare('INSERT INTO users (email, password_hash, wallet_address, status, doc_type, doc_hash) VALUES (?, ?, ?, ?, ?, ?)').bind(email, password_hash, wallet_address || null, 'pending', 'passport', 'pending').run();
+          await env.AUTH_DB.prepare('INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash) VALUES (?, ?, ?, ?, ?, ?)').bind(email, password_hash, wallet_address || null, 'pending', 'passport', 'pending').run();
           return new Response(JSON.stringify({ success: true, message: 'Registration successful' }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 400 });
@@ -138,7 +138,7 @@ export default {
           if (!session || (session.clearance_level !== 'INTERNAL' && session.clearance_level !== 'CONFIDENTIAL' && session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
             return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance' }), { headers: corsHeaders, status: 403 });
           }
-          const results = await env.AUTH_DB.prepare("SELECT id, email, wallet_address, created_at, verification_status FROM users WHERE status = ? OR verification_status = ?").bind('pending', 'pending').all();
+          const results = await env.AUTH_DB.prepare("SELECT id, email, strata_address as wallet_address, created_at, verification_status FROM users WHERE verification_status = ?").bind('pending').all();
           return new Response(JSON.stringify({ success: true, pending: results.results }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
@@ -184,7 +184,7 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.wallet_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const session = await env.AUTH_DB.prepare("SELECT s.*, u.strata_address as wallet_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
           if (!session) return new Response(JSON.stringify({ success: false, error: 'Invalid session' }), { headers: corsHeaders, status: 401 });
           return new Response(JSON.stringify({ success: true, wallet: session.wallet_address, balance: session.token_balance || 0 }), { headers: corsHeaders });
         } catch (e) {
