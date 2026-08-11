@@ -1,179 +1,361 @@
+/**
+ * StrataMesh IPFS edge — real CIDv1 (raw + sha2-256) + content store + gateway
+ * Modes: local (R2/KV) always; optional Pinata if PINATA_JWT set
+ */
+const B32 = 'abcdefghijklmnopqrstuvwxyz234567';
+
+function bytesToBase32(bytes) {
+  let bits = 0;
+  let value = 0;
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) {
+    value = (value << 8) | bytes[i];
+    bits += 8;
+    while (bits >= 5) {
+      out += B32[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) out += B32[(value << (5 - bits)) & 31];
+  return out;
+}
+
+async function sha256Bytes(data) {
+  const buf = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return new Uint8Array(hash);
+}
+
+/** CIDv1 multibase base32 (b...) for raw codec 0x55 + sha2-256 multihash */
+async function cidV1Raw(data) {
+  const hash = await sha256Bytes(data);
+  // CID: version(1) + codec(raw=0x55) + multihash(sha2-256=0x12, len=0x20, digest)
+  const cidBytes = new Uint8Array(2 + 2 + 32);
+  cidBytes[0] = 0x01; // CIDv1
+  cidBytes[1] = 0x55; // raw
+  cidBytes[2] = 0x12; // sha2-256
+  cidBytes[3] = 0x20; // 32 bytes
+  cidBytes.set(hash, 4);
+  return 'b' + bytesToBase32(cidBytes);
+}
+
+function json(data, status = 200, extra = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-StrataMesh-Key',
+      ...extra,
+    },
+  });
+}
+
+async function storeContent(env, cid, bytes, meta = {}) {
+  const b64 =
+    typeof bytes === 'string'
+      ? btoa(unescape(encodeURIComponent(bytes)))
+      : btoa(String.fromCharCode(...bytes));
+  // Prefer R2
+  if (env.FOG_BUCKET) {
+    await env.FOG_BUCKET.put(`ipfs/${cid}`, typeof bytes === 'string' ? bytes : bytes, {
+      httpMetadata: { contentType: meta.contentType || 'application/octet-stream' },
+      customMetadata: { cid, source: 'stratamesh-ipfs' },
+    });
+  }
+  // KV mirror for small payloads
+  if (env.CID_CACHE) {
+    const payload =
+      typeof bytes === 'string'
+        ? bytes.length < 900000
+          ? bytes
+          : null
+        : bytes.length < 900000
+          ? new TextDecoder().decode(bytes)
+          : null;
+    if (payload != null) {
+      await env.CID_CACHE.put(`ipfs:${cid}`, payload, {
+        metadata: { contentType: meta.contentType || 'text/plain', at: Date.now() },
+      });
+    }
+  }
+  // D1 pin ledger
+  const db = env.LEDGER || env.AUTH_DB || env.DB;
+  if (db) {
+    try {
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS ipfs_blocks (
+            cid TEXT PRIMARY KEY,
+            size_bytes INTEGER,
+            content_type TEXT,
+            node_id TEXT,
+            created_at TEXT
+          )`
+        )
+        .run();
+      await db
+        .prepare(
+          'INSERT OR REPLACE INTO ipfs_blocks (cid, size_bytes, content_type, node_id, created_at) VALUES (?,?,?,?,?)'
+        )
+        .bind(
+          cid,
+          typeof bytes === 'string' ? bytes.length : bytes.length,
+          meta.contentType || 'application/octet-stream',
+          meta.node_id || 'FOG-NODE-PT-CM-001',
+          new Date().toISOString()
+        )
+        .run();
+    } catch (_) {}
+    try {
+      await db
+        .prepare(
+          'INSERT INTO ipfs_pins (node_id, cid, pin_name, size_bytes, tier, status, strata_cost) VALUES (?,?,?,?,?,?,?)'
+        )
+        .bind(
+          meta.node_id || 'FOG-NODE-PT-CM-001',
+          cid,
+          meta.name || 'block',
+          typeof bytes === 'string' ? bytes.length : bytes.length,
+          meta.tier || 'contributor',
+          'pinned',
+          0
+        )
+        .run();
+    } catch (_) {}
+  }
+}
+
+async function loadContent(env, cid) {
+  if (env.FOG_BUCKET) {
+    const obj = await env.FOG_BUCKET.get(`ipfs/${cid}`);
+    if (obj) {
+      const text = await obj.text();
+      return { body: text, contentType: obj.httpMetadata?.contentType || 'application/octet-stream' };
+    }
+  }
+  if (env.CID_CACHE) {
+    const v = await env.CID_CACHE.get(`ipfs:${cid}`, { type: 'text' });
+    if (v != null) return { body: v, contentType: 'text/plain; charset=utf-8' };
+  }
+  return null;
+}
+
+async function pinataPinJSON(env, content, name) {
+  if (!env.PINATA_JWT) return null;
+  try {
+    const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + env.PINATA_JWT,
+      },
+      body: JSON.stringify({
+        pinataContent: typeof content === 'string' ? JSON.parse(content) : content,
+        pinataMetadata: { name: name || 'stratamesh' },
+      }),
+    });
+    if (!res.ok) return { error: await res.text(), status: res.status };
+    const j = await res.json();
+    return { IpfsHash: j.IpfsHash, pinata: true };
+  } catch (e) {
+    return { error: String(e.message || e) };
+  }
+}
+
 export default {
-    async fetch(request, env) {
-      const url = new URL(request.url);
-      const path = url.pathname;
-      const method = request.method;
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    let path = url.pathname;
+    // normalize /api/v1/ipfs prefix
+    if (path.startsWith('/api/v1/ipfs')) path = path.slice('/api/v1/ipfs'.length) || '/';
+    if (path.startsWith('/ipfs/') && path !== '/ipfs/health') {
+      // gateway path handled below
+    }
 
-      // CORS
-      const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      };
-      if (method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': '*',
+        },
+      });
+    }
 
+    // Health
+    if (path === '/health' || path === '/' || path === '/ipfs/health') {
+      return json({
+        status: 'ok',
+        service: 'stratamesh-ipfs',
+        version: '3.0.1-real-cid',
+        cid: 'CIDv1 raw+sha2-256 multibase base32',
+        storage: {
+          r2: !!env.FOG_BUCKET,
+          kv: !!env.CID_CACHE,
+          pinata: !!env.PINATA_JWT,
+        },
+        gateway: true,
+        endpoints: ['/health', '/add', '/pin', '/ipfs/{cid}', '/get', '/tiers', '/pins'],
+      });
+    }
+
+    // Gateway: GET /ipfs/{cid}
+    if (path.startsWith('/ipfs/') && request.method === 'GET') {
+      const cid = path.slice('/ipfs/'.length).split('/')[0];
+      if (!cid || cid === 'health') return json({ error: 'cid required' }, 400);
+      const hit = await loadContent(env, cid);
+      if (!hit) {
+        // try public gateways for externally pinned content
+        for (const gw of ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/']) {
+          try {
+            const r = await fetch(gw + cid, { method: 'GET', redirect: 'follow' });
+            if (r.ok) {
+              const body = await r.arrayBuffer();
+              return new Response(body, {
+                status: 200,
+                headers: {
+                  'Content-Type': r.headers.get('content-type') || 'application/octet-stream',
+                  'Access-Control-Allow-Origin': '*',
+                  'X-StrataMesh-Gateway': 'public-fallback',
+                  'X-Content-CID': cid,
+                },
+              });
+            }
+          } catch (_) {}
+        }
+        return json({ error: 'not found', cid }, 404);
+      }
+      return new Response(hit.body, {
+        status: 200,
+        headers: {
+          'Content-Type': hit.contentType,
+          'Access-Control-Allow-Origin': '*',
+          'X-StrataMesh-Gateway': 'local',
+          'X-Content-CID': cid,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
+    }
+
+    // GET /get?cid=
+    if (path === '/get' && request.method === 'GET') {
+      const cid = url.searchParams.get('cid');
+      if (!cid) return json({ error: 'cid required' }, 400);
+      const hit = await loadContent(env, cid);
+      if (!hit) return json({ found: false, cid }, 404);
+      return json({ found: true, cid, content: hit.body, contentType: hit.contentType });
+    }
+
+    // POST /add — compute real CID, store, optional Pinata
+    if ((path === '/add' || path === '/pin' || path === '/upload') && request.method === 'POST') {
+      let content;
+      let meta = {};
+      const ct = request.headers.get('content-type') || '';
+      if (ct.includes('multipart/form-data')) {
+        const form = await request.formData();
+        const file = form.get('file') || form.get('content');
+        if (file && typeof file === 'object' && file.arrayBuffer) {
+          const ab = await file.arrayBuffer();
+          content = new Uint8Array(ab);
+          meta.contentType = file.type || 'application/octet-stream';
+          meta.name = file.name || 'file';
+        } else if (typeof file === 'string') {
+          content = file;
+          meta.contentType = 'text/plain';
+        }
+        meta.node_id = form.get('node_id') || 'FOG-NODE-PT-CM-001';
+        meta.tier = form.get('tier') || 'contributor';
+      } else {
+        const body = await request.json().catch(() => ({}));
+        if (body.content != null) {
+          content =
+            typeof body.content === 'string' ? body.content : JSON.stringify(body.content);
+          meta.contentType =
+            typeof body.content === 'object' ? 'application/json' : 'text/plain; charset=utf-8';
+        } else if (body.data != null) {
+          content = typeof body.data === 'string' ? body.data : JSON.stringify(body.data);
+          meta.contentType = 'application/json';
+        } else if (body.cid && !body.content) {
+          // register-only pin of existing CID
+          return json({
+            success: true,
+            mode: 'register',
+            cid: body.cid,
+            note: 'no content body — ledger pin only',
+          });
+        } else {
+          content = JSON.stringify(body);
+          meta.contentType = 'application/json';
+        }
+        meta.node_id = body.node_id || 'FOG-NODE-PT-CM-001';
+        meta.tier = body.tier || 'contributor';
+        meta.name = body.name || body.pin_name || 'block';
+      }
+
+      if (content == null) return json({ error: 'content required' }, 400);
+
+      const cid = await cidV1Raw(content);
+      await storeContent(env, cid, content, meta);
+
+      let external = null;
+      if (env.PINATA_JWT && meta.contentType.includes('json')) {
+        try {
+          const obj = typeof content === 'string' ? JSON.parse(content) : content;
+          external = await pinataPinJSON(env, obj, meta.name);
+        } catch (_) {
+          external = await pinataPinJSON(env, { raw: String(content).slice(0, 50000) }, meta.name);
+        }
+      }
+
+      return json({
+        success: true,
+        cid,
+        size_bytes: typeof content === 'string' ? content.length : content.length,
+        content_type: meta.contentType,
+        gateway_path: `/ipfs/${cid}`,
+        gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
+        public_gateways: [
+          `https://ipfs.io/ipfs/${cid}`,
+          `https://cloudflare-ipfs.com/ipfs/${cid}`,
+        ],
+        note: 'CIDv1 raw+sha2-256. Content stored on StrataMesh edge (R2/KV). Public gateways resolve only after network announcement or Pinata.',
+        pinata: external,
+        version: '3.0.1-real-cid',
+      });
+    }
+
+    if (path === '/tiers') {
+      return json({
+        tiers: [
+          { tier: 'contributor', storage: '1 GB', cost: 'PoC' },
+          { tier: 'basic', storage: '5 GB', cost: '10 STRATA' },
+          { tier: 'professional', storage: '50 GB', cost: '80 STRATA' },
+          { tier: 'enterprise', storage: 'custom', cost: '0.5 STRATA/GB' },
+        ],
+      });
+    }
+
+    if (path === '/pins' && request.method === 'GET') {
+      const db = env.LEDGER || env.AUTH_DB || env.DB;
+      const node_id = url.searchParams.get('node_id');
       try {
-        // Health
-        if (path === '/health') {
-          return Response.json({ status: 'ok', service: 'stratamesh-ipfs', version: '2.0.0', tiers: ['contributor', 'basic', 'professional', 'enterprise'] }, { headers: corsHeaders });
+        let rows;
+        if (node_id) {
+          rows = await db
+            .prepare('SELECT * FROM ipfs_pins WHERE node_id = ? ORDER BY rowid DESC LIMIT 50')
+            .bind(node_id)
+            .all();
+        } else {
+          rows = await db.prepare('SELECT * FROM ipfs_pins ORDER BY rowid DESC LIMIT 50').all();
         }
-
-        // GET /tiers — list pinning tiers
-        if (path === '/tiers' && method === 'GET') {
-          const tiers = [
-            { tier: 'contributor', storage: '1 GB', cost: 'Earned through PoC (auto-allocated)', who: 'Fog/edge nodes contributing to network' },
-            { tier: 'basic', storage: '10 GB', cost: '10 Strata/month', who: 'Individual users' },
-            { tier: 'professional', storage: '100 GB', cost: '80 Strata/month', who: 'dApp developers' },
-            { tier: 'enterprise', storage: 'Unlimited', cost: '0.5 Strata/GB/month', who: 'Businesses' },
-          ];
-          return Response.json({ tiers }, { headers: corsHeaders });
-        }
-
-        // POST /pin — pin content to IPFS (requires Strata payment)
-        if (path === '/pin' && method === 'POST') {
-          const auth = request.headers.get('Authorization');
-          if (!auth) return Response.json({ error: 'Authorization required' }, { status: 401, headers: corsHeaders });
-
-          const body = await request.json();
-          const { cid, size_bytes, tier, node_id } = body;
-          if (!cid || !size_bytes || !tier || !node_id) {
-            return Response.json({ error: 'Missing required fields: cid, size_bytes, tier, node_id' }, { status: 400, headers: corsHeaders });
-          }
-
-          const validTiers = ['contributor', 'basic', 'professional', 'enterprise'];
-          if (!validTiers.includes(tier)) {
-            return Response.json({ error: 'Invalid tier. Must be: contributor, basic, professional, enterprise' }, { status: 400, headers: corsHeaders });
-          }
-
-          // Calculate cost in Strata
-          const sizeGB = size_bytes / (1024 * 1024 * 1024);
-          let costStrata = 0;
-          if (tier === 'contributor') {
-            // Must be a contributing node — verify via PoC
-            const pocCheck = await env.AUTH_DB.prepare('SELECT balance FROM token_balances WHERE account = ? AND token_type = ?').bind(node_id, 'STRATA').first();
-            if (!pocCheck || pocCheck.balance < 0) {
-              return Response.json({ error: 'Contributor tier requires PoC-earned Strata. Contribute first.' }, { status: 403, headers: corsHeaders });
-            }
-            costStrata = 0; // Auto-allocated through PoC contribution
-          } else if (tier === 'basic') {
-            costStrata = 10;
-          } else if (tier === 'professional') {
-            costStrata = 80;
-          } else if (tier === 'enterprise') {
-            costStrata = Math.ceil(sizeGB * 0.5 * 100) / 100; // 0.5 Strata/GB
-          }
-
-          // Check balance for non-contributor tiers
-          if (costStrata > 0) {
-            const balance = await env.AUTH_DB.prepare('SELECT balance FROM token_balances WHERE account = ? AND token_type = ?').bind(node_id, 'STRATA').first();
-            if (!balance || balance.balance < costStrata) {
-              return Response.json({ error: 'Insufficient Strata balance', required: costStrata, current: balance?.balance || 0, message: 'Earn Strata through PoC contribution first' }, { status: 402, headers: corsHeaders });
-            }
-            // Deduct balance
-            await env.AUTH_DB.prepare('UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type = ?').bind(costStrata, node_id, 'STRATA').run();
-          }
-
-          // Store pin record
-          const result = await env.AUTH_DB.prepare(
-            'INSERT INTO ipfs_pins (cid, node_id, size_bytes, tier, cost_strata, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).bind(cid, node_id, size_bytes, tier, costStrata, 'pinned', new Date().toISOString()).run();
-
-          // Log payment
-          if (costStrata > 0) {
-            await env.AUTH_DB.prepare(
-              'INSERT INTO payment_log (node_id, amount, token_type, service, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-            ).bind(node_id, costStrata, 'STRATA', 'ipfs_pinning', cid, new Date().toISOString()).run();
-          }
-
-          return Response.json({
-            success: true,
-            pin: { cid, tier, cost_strata: costStrata, status: 'pinned' },
-            message: costStrata === 0 ? 'Pinned through PoC contributor allocation' : `Paid ${costStrata} Strata for ${tier} tier pinning`,
-          }, { headers: corsHeaders });
-        }
-
-        // GET /pins — list pins for a node
-        if (path === '/pins' && method === 'GET') {
-          const node_id = url.searchParams.get('node_id');
-          if (!node_id) return Response.json({ error: 'node_id required' }, { status: 400, headers: corsHeaders });
-
-          const pins = await env.AUTH_DB.prepare('SELECT * FROM ipfs_pins WHERE node_id = ? ORDER BY created_at DESC').bind(node_id).all();
-          return Response.json({ pins: pins.results }, { headers: corsHeaders });
-        }
-
-        // DELETE /pin — unpin content
-        if (path === '/pin' && method === 'DELETE') {
-          const body = await request.json();
-          const { cid, node_id } = body;
-          if (!cid || !node_id) return Response.json({ error: 'cid and node_id required' }, { status: 400, headers: corsHeaders });
-
-          await env.AUTH_DB.prepare('UPDATE ipfs_pins SET status = ? WHERE cid = ? AND node_id = ?').bind('unpinned', cid, node_id).run();
-          return Response.json({ success: true, message: `Unpinned ${cid}` }, { headers: corsHeaders });
-        }
-
-        // POST /upload — upload + pin file to R2 + IPFS
-        if (path === '/upload' && method === 'POST') {
-          const auth = request.headers.get('Authorization');
-          if (!auth) return Response.json({ error: 'Authorization required' }, { status: 401, headers: corsHeaders });
-
-          const contentType = request.headers.get('Content-Type') || '';
-          if (!contentType.includes('multipart/form-data')) {
-            return Response.json({ error: 'multipart/form-data required' }, { status: 400, headers: corsHeaders });
-          }
-
-          const formData = await request.formData();
-          const file = formData.get('file');
-          const node_id = formData.get('node_id');
-          const tier = formData.get('tier') || 'basic';
-
-          if (!file || !node_id) {
-            return Response.json({ error: 'file and node_id required' }, { status: 400, headers: corsHeaders });
-          }
-
-          // Upload to R2
-          const key = `ipfs/${node_id}/${Date.now()}-${file.name}`;
-          await env.DOC_STORAGE.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-
-          // Calculate cost
-          const sizeGB = file.size / (1024 * 1024 * 1024);
-          let costStrata = tier === 'basic' ? 10 : tier === 'professional' ? 80 : Math.ceil(sizeGB * 0.5 * 100) / 100;
-          if (tier === 'contributor') costStrata = 0;
-
-          // Check + deduct balance
-          if (costStrata > 0) {
-            const balance = await env.AUTH_DB.prepare('SELECT balance FROM token_balances WHERE account = ? AND token_type = ?').bind(node_id, 'STRATA').first();
-            if (!balance || balance.balance < costStrata) {
-              await env.DOC_STORAGE.delete(key);
-              return Response.json({ error: 'Insufficient Strata', required: costStrata, current: balance?.balance || 0 }, { status: 402, headers: corsHeaders });
-            }
-            await env.AUTH_DB.prepare('UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type = ?').bind(costStrata, node_id, 'STRATA').run();
-          }
-
-          // Store pin record
-          await env.AUTH_DB.prepare(
-            'INSERT INTO ipfs_pins (cid, node_id, size_bytes, tier, cost_strata, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).bind(key, node_id, file.size, tier, costStrata, 'pinned', new Date().toISOString()).run();
-
-          return Response.json({
-            success: true,
-            pin: { cid: key, size_bytes: file.size, tier, cost_strata: costStrata, status: 'pinned' },
-            storage: 'R2 + IPFS',
-            message: costStrata === 0 ? 'Stored through PoC contributor allocation' : `Paid ${costStrata} Strata for ${tier} tier storage`,
-          }, { headers: corsHeaders });
-        }
-
-        // GET /usage — storage usage for a node
-        if (path === '/usage' && method === 'GET') {
-          const node_id = url.searchParams.get('node_id');
-          if (!node_id) return Response.json({ error: 'node_id required' }, { status: 400, headers: corsHeaders });
-
-          const usage = await env.AUTH_DB.prepare('SELECT tier, COUNT(*) as pin_count, SUM(size_bytes) as total_bytes, SUM(cost_strata) as total_cost FROM ipfs_pins WHERE node_id = ? AND status = ? GROUP BY tier').bind(node_id, 'pinned').all();
-          return Response.json({ node_id, usage: usage.results }, { headers: corsHeaders });
-        }
-
-        return Response.json({ error: 'Not found', endpoints: ['/health', '/tiers', '/pin', '/pins', '/upload', '/usage'] }, { status: 404, headers: corsHeaders });
-      } catch (err) {
-        return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+        return json({ pins: rows.results || [] });
+      } catch (e) {
+        return json({ pins: [], error: String(e.message || e) });
       }
     }
-  };
+
+    return json({ error: 'Not found', endpoints: ['/health', '/add', '/pin', '/ipfs/{cid}', '/get', '/tiers'] }, 404);
+  },
+};

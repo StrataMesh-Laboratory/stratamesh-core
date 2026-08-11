@@ -120,7 +120,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.1.0-refined',
+        version: '2.2.0-real-ipfs',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -219,9 +219,28 @@ export default {
       };
       metadata.lab_signature = await labSign(JSON.stringify({ name, owner, asset_type, attributes }), env.LAB_SIGNING_SECRET);
       const metaStr = JSON.stringify(metadata);
-      const metadata_cid = body.metadata_cid || (await contentCid(metaStr));
+      let metadata_cid = body.metadata_cid || null;
+      // Real IPFS edge: /add → CIDv1 + store
+      try {
+        let ipfsRes;
+        if (env.IPFS && typeof env.IPFS.fetch === 'function') {
+          ipfsRes = await env.IPFS.fetch(new Request('https://ipfs/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: metadata, name, node_id: owner }),
+          }));
+        } else {
+          ipfsRes = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: metadata, name, node_id: owner }),
+          });
+        }
+        const ij = await ipfsRes.json();
+        if (ij && ij.cid) metadata_cid = ij.cid;
+      } catch (_) {}
+      if (!metadata_cid) metadata_cid = await contentCid(metaStr);
 
-      // IPFS pin record (best-effort)
       try {
         await db
           .prepare(
