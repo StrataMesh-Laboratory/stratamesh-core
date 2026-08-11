@@ -165,6 +165,124 @@ async function ensure(db) {
   }
 }
 
+
+async function measureOnchain(db, node_id) {
+  const out = {
+    node_id,
+    validate: 0,
+    fog_uptime: 0,
+    ipfs_pin: 0,
+    gossip: 0,
+    sources: {},
+  };
+  // DAG subsidy / lightweight work
+  try {
+    const rows = await db
+      .prepare('SELECT reason, COUNT(*) as c FROM subsidy_events WHERE node_id = ? GROUP BY reason')
+      .bind(node_id)
+      .all();
+    for (const r of rows.results || []) {
+      const c = Number(r.c) || 0;
+      if (String(r.reason).includes('lightweight') || String(r.reason).includes('valid')) {
+        out.validate += c;
+        out.sources.validate_subsidy = (out.sources.validate_subsidy || 0) + c;
+      } else {
+        out.fog_uptime += c;
+        out.sources.fog_subsidy = (out.sources.fog_subsidy || 0) + c;
+      }
+    }
+  } catch (_) {}
+  // Vertices referencing node in payload
+  try {
+    const verts = await db
+      .prepare("SELECT COUNT(*) as c FROM dag_vertices WHERE payload LIKE ?")
+      .bind('%' + node_id + '%')
+      .first();
+    const c = Number(verts?.c) || 0;
+    if (c) {
+      out.validate += c;
+      out.sources.dag_vertices_payload = c;
+    }
+  } catch (_) {}
+  // IPFS pins by node
+  try {
+    const pins = await db
+      .prepare("SELECT COUNT(*) as c, COALESCE(SUM(size_bytes),0) as bytes FROM ipfs_pins WHERE node_id = ? AND status IN ('pinned','active','pinning','ok')")
+      .bind(node_id)
+      .first();
+    const c = Number(pins?.c) || 0;
+    const mb = (Number(pins?.bytes) || 0) / (1024 * 1024);
+    // units: count + MB as capacity proxy
+    const u = c + mb;
+    if (u > 0) {
+      out.ipfs_pin += u;
+      out.sources.ipfs_pins = { count: c, mb };
+    }
+  } catch (_) {}
+  // SPA pins linked via spas owned by node (spa_id contains node or spas table)
+  try {
+    const spa = await db
+      .prepare(
+        `SELECT COUNT(*) as c FROM spa_pins sp
+         JOIN spas s ON s.spa_id = sp.spa_id
+         WHERE s.node_id = ? OR s.spa_id LIKE ? OR sp.spa_id LIKE ?`
+      )
+      .bind(node_id, '%' + node_id + '%', '%' + node_id + '%')
+      .first();
+    const c = Number(spa?.c) || 0;
+    if (c) {
+      out.ipfs_pin += c;
+      out.sources.spa_pins = c;
+    }
+  } catch (_) {
+    try {
+      const spa = await db.prepare('SELECT COUNT(*) as c FROM spa_pins').first();
+      // network-wide not attributed — skip
+    } catch (__) {}
+  }
+  // Mesh demand (consumption) from pin_requests matched
+  let demand = { ipfs_pin: 0, validate: 0 };
+  try {
+    const req = await db
+      .prepare("SELECT COALESCE(SUM(size_gb),0) as gb, COUNT(*) as c FROM pin_requests WHERE status IN ('matched','filled','active','completed')")
+      .first();
+    demand.ipfs_pin = (Number(req?.gb) || 0) * 1024 + (Number(req?.c) || 0); // MB-ish + count
+  } catch (_) {}
+  try {
+    const n = await db.prepare('SELECT COUNT(*) as c FROM subsidy_events').first();
+    demand.validate = Number(n?.c) || 0;
+  } catch (_) {}
+  out.demand = demand;
+  out.total_units =
+    out.validate + out.fog_uptime + out.ipfs_pin + out.gossip;
+  return out;
+}
+
+async function dagAnchorMint(env, payload) {
+  try {
+    const body = JSON.stringify({
+      payload: { type: 'poc_mint_settlement', ...payload },
+      node_id: payload.node_id || payload.attributions?.[0]?.node_id || 'poc',
+      lightweight: true,
+    });
+    if (env.DAG && typeof env.DAG.fetch === 'function') {
+      const r = await env.DAG.fetch(
+        new Request('https://dag/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+      );
+      return await r.json().catch(() => ({ ok: false }));
+    }
+    const r = await fetch('https://stratamesh-dag.stratamesh.workers.dev/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    return await r.json().catch(() => ({ ok: false }));
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+
 async function agoraRate(env, quote = 'EUR') {
   try {
     if (env.AGORA && typeof env.AGORA.fetch === 'function') {
@@ -285,9 +403,9 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.2.0-process-refined',
+          version: '5.3.0-onchain',
           sole_mint_path: true,
-          process: ['measure', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle'],
+          process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
       }
 
@@ -388,15 +506,74 @@ export default {
         });
       }
 
+
+      // On-chain / on-graph measurement for a node
+      if (path === '/onchain' || path === '/measure') {
+        const node_id = url.searchParams.get('node_id') || url.searchParams.get('account');
+        if (!node_id) return j({ error: 'node_id required' }, 400);
+        const m = await measureOnchain(db, node_id);
+        return j({
+          success: true,
+          measurement: m,
+          note: 'Units derived from DAG subsidy_events, dag_vertices, ipfs_pins, spa_pins; demand from pin_requests',
+        });
+      }
+
+      // Sync mesh demand into analytics meters (does not set mint rate)
+      if (path === '/sync' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const node_id = body.node_id;
+        if (!node_id) return j({ error: 'node_id required for contribution sync' }, 400);
+        const m = await measureOnchain(db, node_id);
+        // update demand meters network-wide
+        for (const [cls, units] of Object.entries(m.demand || {})) {
+          if (!(units > 0)) continue;
+          try {
+            await db
+              .prepare(
+                `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
+                 ON CONFLICT(resource_class) DO UPDATE SET consumed = excluded.consumed, updated_at = excluded.updated_at`
+              )
+              .bind(cls, units)
+              .run();
+          } catch (_) {}
+        }
+        return j({ success: true, measurement: m, meters_synced: m.demand });
+      }
+
       if (path === '/mint' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const node_id = body.node_id;
-        const contribution_type = body.contribution_type || body.resource_class;
-        const units = Number(body.contribution_points || body.units || 0);
+        let contribution_type = body.contribution_type || body.resource_class;
+        let units = Number(body.contribution_points || body.units || 0);
+        let onchain = null;
         const proof_hash = body.proof_hash || body.proof || null;
         const quality = scoreQuality(body);
+
+        // Integrate on-graph data: derive units from DAG/IPFS/SPA when requested
+        if (body.from_onchain || body.onchain) {
+          if (!node_id) return j({ error: 'node_id required for on-chain mint' }, 400);
+          onchain = await measureOnchain(db, node_id);
+          if (!contribution_type) {
+            // pick class with max measured units
+            const classes = ['ipfs_pin', 'validate', 'fog_uptime', 'gossip'];
+            contribution_type = classes.sort((a, b) => (onchain[b] || 0) - (onchain[a] || 0))[0];
+          }
+          if (!(units > 0)) {
+            units = Number(onchain[contribution_type]) || 0;
+          }
+          if (!(units > 0)) {
+            return j({
+              success: false,
+              error: 'no_onchain_contribution',
+              measurement: onchain,
+              message: 'No measurable DAG/IPFS/SPA contribution for this node and class',
+            }, 400);
+          }
+        }
+
         if (!node_id || !contribution_type || !(units > 0)) {
-          return j({ error: 'node_id, contribution_type, contribution_points > 0 required' }, 400);
+          return j({ error: 'node_id, contribution_type, contribution_points > 0 required (or from_onchain:true)' }, 400);
         }
         if (!GLOBAL_RESOURCE_AVG[contribution_type]) {
           return j({ error: 'unknown contribution_type', known: Object.keys(GLOBAL_RESOURCE_AVG) }, 400);
@@ -478,40 +655,29 @@ export default {
           } catch (_) {}
         }
 
+
+        let graph = null;
+        if (body.anchor !== false) {
+          graph = await dagAnchorMint(env, {
+            node_id,
+            contribution_type,
+            units,
+            amount_minted_total: priced.strata,
+            attributions: shares,
+            quality: quality.factor,
+            agora_strata_per_quote: strata_per_quote,
+            proof_hash,
+            onchain: onchain ? { sources: onchain.sources, total_units: onchain.total_units } : null,
+          });
+        }
+
         return j({
           success: true,
           amount_minted_total: priced.strata,
           attributions: shares,
           epoch_id,
-          process: {
-            measure: { contribution_type, units, proof_hash },
-            value: {
-              global_average: {
-                resource_class: contribution_type,
-                avg_per_unit: avg.avg_per_unit,
-                source: avg.source,
-                unit: avg.unit,
-              },
-              global_avg_value: { asset: quote_asset, value: priced.global_avg_value },
-            },
-            quality: {
-              factor: quality.factor,
-              tier: quality.tier,
-              method: quality.method,
-              components: quality.components,
-            },
-            fx: {
-              agora: {
-                strata_per_quote,
-                quote_per_strata: rate.quote_per_strata,
-                liquidity_strata: rate.liquidity_strata,
-                source: rate.source || 'agora_open_book_vwap',
-              },
-              value_after_quality: { asset: quote_asset, value: priced.value_after_quality },
-            },
-            allocate: 'quality-weighted proportional shares',
-            settle: 'balances credited',
-          },
+          onchain_measurement: onchain,
+          graph_settlement: graph,
           message:
             'Settled: global resource average × quality premium/discount × Agora rate; attributed proportionally.',
         });
@@ -584,6 +750,9 @@ export default {
           endpoints: [
             '/health',
             '/process',
+            '/onchain',
+            '/measure',
+            '/sync',
             '/quote',
             '/mint',
             '/market',
