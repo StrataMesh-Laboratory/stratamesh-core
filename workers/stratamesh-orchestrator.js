@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.0.0-hybrid-edge";
+const VERSION = "10.1.0-lobes-llm";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -403,6 +403,179 @@ function qigaStep(genes, fitness, seed) {
   return next;
 }
 
+
+/** LLM-backed probabilistic lobe — soft scores + optional proposals (JSON only) */
+async function llmProbabilisticLobe(env, message, metrics, level) {
+  if (!env.AI || typeof env.AI.run !== "function") {
+    return {
+      ok: false,
+      scores: { relevance: 0.5, urgency: 0.3, explore: metrics.explore_rate ?? 0.3 },
+      proposals: [],
+      note: "AI binding missing — heuristic fallback",
+    };
+  }
+  const system =
+    "You are the PROBABILISTIC LOBE of the StrataMesh Hybrid Orchestrator. " +
+    "Output ONLY valid JSON (no markdown). Schema: " +
+    '{"scores":{"relevance":0-1,"urgency":0-1,"explore":0-1},"proposals":[{"kind":"param|policy|explore","name":"snake_case","confidence":0-1}],"rationale":"<=40 words"}. ' +
+    "Soft scoring only — never claim irreversible commits. Lab CMN FOG-NODE-PT-CM-001. Clearance=" + level + ".";
+  const user =
+    "Metrics:" + JSON.stringify({
+      task_success_rate: metrics.task_success_rate,
+      task_cost: metrics.task_cost,
+      explore_rate: metrics.explore_rate,
+      dag_txs: metrics.dag_txs,
+      spa_active: metrics.spa_active,
+      aiops_ok: metrics.aiops_ok,
+      temp_mode: metrics.temp_mode,
+    }) +
+    "\nUser message: " + String(message || "").slice(0, 500);
+  try {
+    const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_tokens: 220,
+      temperature: 0.2,
+    });
+    const raw = String(result?.response || result?.result || result?.text || "").trim();
+    const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!jsonStr) return { ok: false, scores: { relevance: 0.5, urgency: 0.3, explore: 0.3 }, proposals: [], raw: raw.slice(0, 120) };
+    const parsed = JSON.parse(jsonStr);
+    const scores = parsed.scores || {};
+    return {
+      ok: true,
+      scores: {
+        relevance: clamp01(scores.relevance),
+        urgency: clamp01(scores.urgency),
+        explore: clamp01(scores.explore),
+      },
+      proposals: Array.isArray(parsed.proposals) ? parsed.proposals.slice(0, 4) : [],
+      rationale: String(parsed.rationale || "").slice(0, 200),
+      model: "@cf/meta/llama-3.2-3b-instruct",
+    };
+  } catch (e) {
+    return { ok: false, scores: { relevance: 0.5, urgency: 0.3, explore: 0.3 }, proposals: [], error: String(e.message || e) };
+  }
+}
+
+function clamp01(x) {
+  const n = Number(x);
+  if (Number.isNaN(n)) return 0.5;
+  return Math.max(0, Math.min(1, n));
+}
+
+/** LLM-backed symbolic lobe — ontology-constrained verdicts, then hard merge with symbolicAdmit */
+async function llmSymbolicLobe(env, message, proposals, level) {
+  const hard = proposals.map((p) => ({ name: p.name, ...symbolicAdmit(p) }));
+  if (!env.AI || typeof env.AI.run !== "function") {
+    return { ok: false, hard, llm: null, note: "AI binding missing — symbolic rules only" };
+  }
+  const system =
+    "You are the SYMBOLIC LOBE of the StrataMesh Hybrid Orchestrator. " +
+    "Ontology: standing by function and agreement, not substrate; forbid substrate chauvinism; irreversible acts need escalator_class. " +
+    "Output ONLY JSON: " +
+    '{"checks":[{"name":"string","verdict":"admit|reject|escalate","reasons":["..."]}],"notes":"<=30 words"}. ' +
+    "Clearance=" + level + ". Never invent run success.";
+  const user =
+    "Message: " + String(message || "").slice(0, 400) +
+    "\nProposals: " + JSON.stringify(proposals).slice(0, 600) +
+    "\nHard rules already: " + JSON.stringify(hard).slice(0, 500);
+  try {
+    const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_tokens: 220,
+      temperature: 0.1,
+    });
+    const raw = String(result?.response || result?.result || result?.text || "").trim();
+    const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0];
+    let llm = null;
+    if (jsonStr) {
+      try { llm = JSON.parse(jsonStr); } catch (_) { llm = { parse_error: true, raw: raw.slice(0, 100) }; }
+    }
+    const merged = hard.map((h) => {
+      const soft = (llm?.checks || []).find((c) => c.name === h.name) || {};
+      let verdict = h.verdict;
+      if (h.verdict === "reject" || soft.verdict === "reject") verdict = "reject";
+      else if (h.verdict === "escalate" || soft.verdict === "escalate") verdict = "escalate";
+      else verdict = "admit";
+      return {
+        name: h.name,
+        verdict,
+        reasons: [...(h.reasons || []), ...((soft.reasons || []).slice(0, 2))],
+        hard: h.verdict,
+        llm: soft.verdict || null,
+      };
+    });
+    return { ok: true, hard, llm, merged, model: "@cf/meta/llama-3.2-3b-instruct" };
+  } catch (e) {
+    return { ok: false, hard, llm: null, merged: hard, error: String(e.message || e) };
+  }
+}
+
+/** Bilateral bus: probabilistic proposals → symbolic filter → commit set */
+async function llmHybridLobes(env, message, metrics, level) {
+  const prob = await llmProbabilisticLobe(env, message, metrics, level);
+  const baseProps = [
+    { kind: "param", name: "maintain_lab_pulse", confidence: 0.82, args: {} },
+    { kind: "policy", name: "prefer_always_on_fog", confidence: 0.75, args: {} },
+    ...(prob.proposals || []).map((p) => ({
+      kind: p.kind || "param",
+      name: String(p.name || "unnamed").slice(0, 48),
+      confidence: clamp01(p.confidence),
+      args: {},
+    })),
+  ];
+  const seen = new Set();
+  const proposals = [];
+  for (const p of baseProps) {
+    if (seen.has(p.name)) continue;
+    seen.add(p.name);
+    proposals.push(p);
+  }
+  const sym = await llmSymbolicLobe(env, message, proposals, level);
+  const decisions = proposals.map((p) => {
+    const soft = probabilisticScore(metrics, p);
+    const llmSoft = prob.scores?.relevance != null
+      ? 0.6 * soft + 0.4 * clamp01(prob.scores.relevance)
+      : soft;
+    const adm = (sym.merged || sym.hard || []).find((x) => x.name === p.name) || symbolicAdmit(p);
+    const verdict = adm.verdict || "admit";
+    const combined = llmSoft * (verdict === "reject" ? 0 : verdict === "escalate" ? 0.5 : 1);
+    const committed = verdict === "admit" && combined >= 0.45;
+    return {
+      proposal: p.name,
+      kind: p.kind,
+      soft_score: Number(llmSoft.toFixed(3)),
+      verdict,
+      reasons: adm.reasons || [],
+      committed,
+      confidence: p.confidence,
+      lobes: { probabilistic: true, symbolic: true },
+    };
+  });
+  const fitness =
+    decisions.reduce((a, d) => a + (d.committed ? d.soft_score : 0), 0) /
+    Math.max(1, decisions.length);
+  return {
+    probabilistic: prob,
+    symbolic: sym,
+    decisions,
+    fitness: Number(fitness.toFixed(4)),
+    genes_next: qigaStep([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], fitness, Date.now() % 10000),
+    architecture: {
+      probabilistic_lobe: "llm+metrics",
+      symbolic_lobe: "rules+llm",
+      bilateral_bus: true,
+      qiga: true,
+    },
+  };
+}
+
 async function gatherMetrics(env) {
   const statusUrl = env.STATUS_URL || "https://stratamesh-status.stratamesh.workers.dev/status";
   const authUrl = env.AUTH_URL || "https://stratamesh-auth.stratamesh.workers.dev/health";
@@ -531,7 +704,7 @@ async function tick(env, extraProposals = []) {
 
 
 
-async function chatWithAI(message, tickOut, env, level) {
+async function chatWithAI(message, tickOut, env, level, hybrid) {
   if (!env.AI || typeof env.AI.run !== "function") {
     return { ok: false, error: "AI binding missing" };
   }
@@ -547,12 +720,20 @@ async function chatWithAI(message, tickOut, env, level) {
     "temp_mode true = temporary lab pulse, NOT already always-on. " +
     "Never dump raw JSON unless asked. Max ~120 words. " +
     "Never claim you executed run/aiops/status unless the structured run pipeline ran. If the user asks to start AIOps in natural language, explain they need top_secret and the exact command: run aiops_cycle. " +
-    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto.";
+    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto. You sit AFTER bilateral bus: probabilistic lobe (soft scores) + symbolic lobe (hard ontology). Honour committed decisions; do not claim rejected proposals ran.";
 
   const userContent =
-    "Clearance=" + level + "\\nContext JSON:\\n" +
+    "Clearance=" + level + "\nContext JSON:\n" +
     JSON.stringify(brief, null, 2) +
-    "\\n\\nLanguage: answer in the user message language. No JSON dumps.\\nUser:\\n" +
+    "\nHybrid lobes:\n" +
+    JSON.stringify(hybrid ? {
+      fitness: hybrid.fitness,
+      architecture: hybrid.architecture,
+      decisions: (hybrid.decisions || []).slice(0, 5),
+      probabilistic_scores: hybrid.probabilistic && hybrid.probabilistic.scores,
+      probabilistic_rationale: hybrid.probabilistic && hybrid.probabilistic.rationale,
+    } : null, null, 2) +
+    "\n\nLanguage: answer in the user message language. No JSON dumps.\nUser:\n" +
     message;
 
   const models = ["@cf/meta/llama-3.2-3b-instruct", "@cf/mistral/mistral-7b-instruct-v0.2"];
@@ -698,7 +879,8 @@ async function chat(message, env, request, body) {
     /what (are|is) (an? )?(acb|aiops|spa)/i.test(text);
 
   if (!preferDeterministic) {
-    const ai = await chatWithAI(text, tickOut, env, level);
+    const hybrid = await llmHybridLobes(env, text, tickOut.tick.metrics, level);
+    const ai = await chatWithAI(text, tickOut, env, level, hybrid);
     if (ai.ok) {
       return {
         reply: ai.reply,
@@ -708,7 +890,14 @@ async function chat(message, env, request, body) {
         account_clearance: cleared.account_clearance,
         clearance_source: cleared.source,
         permissions: CLEARANCE_PERMS[level],
-        source: "workers-ai+" + ai.model,
+        source: "hybrid-lobes+" + ai.model,
+        lobes: {
+          architecture: hybrid.architecture,
+          fitness: hybrid.fitness,
+          decisions: hybrid.decisions.slice(0, 6),
+          probabilistic_ok: !!(hybrid.probabilistic && hybrid.probabilistic.ok),
+          symbolic_ok: !!(hybrid.symbolic && hybrid.symbolic.ok),
+        },
         tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
         upstream: CLEARANCE_RANK[level] >= 2 ? tickOut.upstream : undefined,
       };
