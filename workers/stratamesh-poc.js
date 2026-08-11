@@ -36,19 +36,40 @@ const QUALITY_BOUNDS = { min: 0.1, max: 2.5, par: 1.0 };
 
 /** Composite quality from explicit factor and/or proof dimensions */
 
-/** Audited quality from on-graph evidence (not self-declared). */
+/** Audited quality from on-graph evidence (not self-declared). Conservative. */
 function auditQualityFromMeasurement(m) {
   if (!m) return scoreQuality({});
   const pins = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.count) || 0;
   const mb = (m.sources && m.sources.ipfs_pins && m.sources.ipfs_pins.mb) || 0;
   const validate = m.validate || 0;
-  const demand = (m.demand && m.demand.ipfs_pin) || 0;
-  // Dimensions 0..1
-  const reliability = Math.min(1, 0.4 + Math.log10(1 + pins) / 3); // more pins → higher
-  const usefulness = demand > 0 ? Math.min(1, 0.5 + Math.min(pins, demand) / Math.max(demand, 1) * 0.5) : 0.45;
-  const availability = mb > 0 || pins > 0 ? 0.85 : 0.3;
-  const verifiability = validate > 0 ? 0.9 : 0.55;
+  const demandPins = (m.demand && m.demand.ipfs_pin) || 0;
+  // reliability: evidence density, saturates slowly
+  const reliability = clamp(0.35 + Math.log10(1 + pins + validate) / 4, 0, 1);
+  // usefulness: contribution relative to mesh demand (not vanity pin spam)
+  const usefulness =
+    demandPins > 0
+      ? clamp(0.35 + Math.min(pins + mb, demandPins) / Math.max(demandPins, 1e-9) * 0.55, 0, 1)
+      : clamp(0.25 + Math.min(pins, 20) / 40, 0, 0.55);
+  // availability: real bytes beat empty pin rows
+  const availability = mb >= 1 ? 0.9 : mb > 0.01 ? 0.7 : pins > 0 ? 0.5 : 0.2;
+  // verifiability: subsidy/DAG linkage
+  const verifiability = validate > 0 ? 0.85 : pins > 0 ? 0.55 : 0.3;
   return scoreQuality({ reliability, usefulness, availability, verifiability });
+}
+
+/** Billable on-chain units by resource class (market-aligned). */
+function billableUnits(contribution_type, onchain) {
+  if (!onchain) return 0;
+  if (contribution_type === 'ipfs_pin') {
+    const mb = Number(onchain.sources?.ipfs_pins?.mb) || 0;
+    const cnt = Number(onchain.sources?.ipfs_pins?.count) || 0;
+    // Storage: MB-month capacity. Pin objects with unknown size: 4KB floor each (not 1KB vanity).
+    return Math.max(mb, cnt * (4 / 1024));
+  }
+  if (contribution_type === 'validate') return Number(onchain.validate) || 0;
+  if (contribution_type === 'fog_uptime') return Number(onchain.fog_uptime) || 0;
+  if (contribution_type === 'gossip') return Number(onchain.gossip) || 0;
+  return Number(onchain[contribution_type]) || 0;
 }
 
 function scoreQuality(body) {
@@ -461,7 +482,7 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.5.0-market-audit',
+          version: '5.6.0-incremental-audit',
           sole_mint_path: true,
           process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
@@ -629,13 +650,35 @@ export default {
         } else {
           quality = scoreQuality(body);
         }
-        // Prefer MB for ipfs_pin pricing when on-chain size known
-        if (onchain && contribution_type === 'ipfs_pin' && onchain.sources && onchain.sources.ipfs_pins) {
-          const mb = Number(onchain.sources.ipfs_pins.mb) || 0;
-          const cnt = Number(onchain.sources.ipfs_pins.count) || 0;
-          // Market unit = MB-month; count alone is not storage capacity — use max(mb, cnt * min_pin_mb)
-          const min_pin_mb = 0.001; // 1KB floor per pin object
-          units = Math.max(mb, cnt * min_pin_mb);
+        // Market-aligned billable units from on-chain evidence
+        if (onchain) {
+          const billed = billableUnits(contribution_type, onchain);
+          if (billed > 0) units = billed;
+        }
+        // Incremental only: subtract units already rewarded for this node+class (anti double-claim)
+        let baseline = 0;
+        try {
+          const prev = await db
+            .prepare(
+              `SELECT COALESCE(SUM(contribution_score),0) as s FROM minting_events
+               WHERE node_id = ? AND contribution_type = ? AND status = 'confirmed'`
+            )
+            .bind(node_id, contribution_type)
+            .first();
+          baseline = Number(prev?.s) || 0;
+        } catch (_) {}
+        const gross_units = units;
+        units = Math.max(0, units - baseline);
+        if (!(units > 0)) {
+          return j({
+            success: true,
+            amount_minted_total: 0,
+            incremental: true,
+            gross_units,
+            baseline_already_rewarded: baseline,
+            message: 'No new on-chain contribution since last confirmed PoC for this class',
+            onchain_measurement: onchain,
+          });
         }
 
         if (!GLOBAL_RESOURCE_AVG[contribution_type]) {
