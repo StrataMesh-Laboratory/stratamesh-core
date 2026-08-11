@@ -135,11 +135,11 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.4.1-tokenise-gate',
+        version: '2.5.1-app-token',
         total_supply: supply,
         holders,
         nft_count: nfts,
-        engines: ['fungible_STRATA_balances', 'nft_ugc', 'nft_import', 'dag_anchor', 'ipfs_metadata'],
+        engines: ['fungible_STRATA_balances', 'nft_ugc', 'nft_import', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
         emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });
@@ -227,6 +227,73 @@ export default {
         return json({ success: true, nft: row });
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
+      }
+    }
+
+
+    // --- App-token factory (whitepaper: app tokens rooted in STRATA) ---
+    if ((path === '/app-token' || path === '/mint-app-token') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const issuer = body.issuer || body.owner || body.account || body.node_id;
+      const symbol = (body.symbol || body.ticker || '').toUpperCase().slice(0, 12);
+      const name = body.name || symbol || 'AppToken';
+      const supply = Number(body.supply || body.amount || 0);
+      const lock_strata = Number(body.lock_strata != null ? body.lock_strata : Math.max(1, Math.ceil(supply / 1000)));
+      if (!issuer || !symbol || supply <= 0) {
+        return json({ error: 'issuer, symbol, supply > 0 required' }, 400);
+      }
+      // require STRATA lock (not free emission of base token)
+      let strataBal = 0;
+      try {
+        const br = await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(issuer).first();
+        strataBal = Number(br?.balance || 0);
+      } catch (_) {}
+      if (strataBal < lock_strata) {
+        return json({
+          success: false,
+          error: 'insufficient_STRATA_to_root_app_token',
+          required_lock: lock_strata,
+          balance: strataBal,
+          whitepaper: 'Application-specific tokens are rooted in STRATA demand — lock/burn STRATA earned via PoC or bought on Agora',
+        }, 402);
+      }
+      // lock STRATA into app_token_locks
+      await db.prepare("UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')").bind(lock_strata, issuer).run();
+      try {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS app_tokens (
+          symbol TEXT PRIMARY KEY, name TEXT, issuer TEXT, supply REAL, lock_strata REAL, dag_vertex TEXT, created_at TEXT
+        )`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS app_token_balances (
+          account TEXT, symbol TEXT, balance REAL, PRIMARY KEY (account, symbol)
+        )`).run();
+      } catch (_) {}
+      await db.prepare(
+        "INSERT INTO token_balances (account, token_type, balance) VALUES (?, 'STRATA_LOCKED', ?) ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance"
+      ).bind(issuer + ':app:' + symbol, lock_strata).run().catch(()=>{});
+
+      const dag = await dagSubmit(env, { type: 'app_token_mint', symbol, name, issuer, supply, lock_strata }, JSON.stringify({ symbol, supply }));
+      try {
+        await db.prepare('INSERT OR REPLACE INTO app_tokens (symbol, name, issuer, supply, lock_strata, dag_vertex, created_at) VALUES (?,?,?,?,?,?,?)')
+          .bind(symbol, name, issuer, supply, lock_strata, dag.vertex_id || null, new Date().toISOString()).run();
+        await db.prepare('INSERT INTO app_token_balances (account, symbol, balance) VALUES (?,?,?) ON CONFLICT(account, symbol) DO UPDATE SET balance = balance + excluded.balance')
+          .bind(issuer, symbol, supply).run();
+      } catch (e) {
+        return json({ error: 'app token insert failed', detail: String(e.message || e) }, 500);
+      }
+      return json({
+        success: true,
+        app_token: { symbol, name, issuer, supply, lock_strata, dag_vertex: dag.vertex_id || null },
+        message: 'App token minted; STRATA locked as root collateral (not base STRATA emission)',
+      });
+    }
+
+    if (path === '/app-tokens' && request.method === 'GET') {
+      try {
+        const rows = await db.prepare('SELECT * FROM app_tokens ORDER BY created_at DESC LIMIT 50').all();
+        return json({ success: true, tokens: rows.results || [] });
+      } catch (_) {
+        return json({ success: true, tokens: [] });
       }
     }
 

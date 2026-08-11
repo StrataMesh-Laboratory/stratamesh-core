@@ -139,7 +139,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.5.1-weight-conflict',
+          version: '2.6.0-lightweight',
           anti_double_spend: true,
           cumulative_weight: true,
           vertices: count,
@@ -178,6 +178,10 @@ export default {
         const content = body.content || body.data || null;
         const node_id = body.node_id || 'FOG-NODE-PT-CM-001';
         const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
+        const payloadObj = typeof payload === 'string' ? (() => { try { return JSON.parse(payload); } catch { return {}; } })() : (payload || {});
+        const isLightweight = !!(payloadObj.lightweight || payloadObj.tx_class === 'lightweight' || payloadObj.type === 'iot' || payloadObj.type === 'micro');
+        const subsidyRequested = !!(payloadObj.subsidy || payloadObj.fog_subsidy);
+
         const ph = await sha256(payloadStr);
 
         await ensureConflictTables(db);
@@ -312,7 +316,19 @@ export default {
         }
 
         // Cumulative weight: new vertex weight=1; bump parents (whitepaper confirmation via subsequent references)
+        
+        // Fog subsidy path for lightweight/IoT (whitepaper: DAO/SPA fog batch subsidy)
+        if (isLightweight || subsidyRequested) {
+          try {
+            await db.prepare(`CREATE TABLE IF NOT EXISTS subsidy_events (
+              id TEXT PRIMARY KEY, vertex_id TEXT, node_id TEXT, reason TEXT, created_at TEXT
+            )`).run();
+            await db.prepare('INSERT INTO subsidy_events (id, vertex_id, node_id, reason, created_at) VALUES (?,?,?,?,?)')
+              .bind(crypto.randomUUID(), vid, node_id, isLightweight ? 'lightweight_tx' : 'fog_subsidy', new Date().toISOString()).run();
+          } catch (_) {}
+        }
         await bumpWeights(db, tipIds, 1);
+
         try {
           for (const tip of tipIds) {
             await db
@@ -366,8 +382,10 @@ export default {
           gossip,
           cumulative_weight: 1,
           spend_key: spendKey,
+          lightweight: isLightweight,
+          subsidy_requested: subsidyRequested,
           confidence: confidenceFromWeight(1),
-          version: '2.5.1-weight-conflict',
+          version: '2.6.0-lightweight',
         });
       }
 
@@ -429,7 +447,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.5.1-weight-conflict',
+        version: '2.6.0-lightweight',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {
