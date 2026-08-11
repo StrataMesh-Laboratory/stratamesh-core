@@ -26,3 +26,12 @@
 - CTR Orchestrator active (0.15 STRATA paid)
 
 Further agents remain on the book until holders acquire STRATA via PoC/Agora and hire them.
+
+## Holonic progress (live)
+- Published sandbox `sbx_9bed54e8-880` → integrated into Open-World `world_b787cfe9-c`
+- Hosted in Virtual Realms `realm_1f20890b` and `cmn-lab`
+- Flow: **sandbox → open_world ⊂ virtual_realm**
+- Orchestrator + DevOps contracts completed; DevOps subsistence 0.05 STRATA spent (balance remains active)
+
+## Constraint observed
+FOG-NODE STRATA is scarce (PoC on-chain + Agora only). Further AIOps hires wait on contribution or Agora liquidity — by design, not a faucet.
