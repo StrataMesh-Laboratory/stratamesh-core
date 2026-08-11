@@ -381,7 +381,6 @@ export default {
       });
     }
 
-    if (
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
       return new Response(JSON.stringify({ success: true, version: '1.2.0-acb-pulse', pulses }), {
@@ -389,12 +388,12 @@ export default {
       });
     }
 
-    path === "/health" || path === "/api/health" || path === "/api/aiops/health") {
+    if (path === "/health" || path === "/api/health" || path === "/api/aiops/health") {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
         version: "1.2.0-acb-pulse",
-    acb_roster: ACB_ROSTER,
+        acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
         continuous: {
