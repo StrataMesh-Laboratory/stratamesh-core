@@ -203,10 +203,20 @@ class SPARegistry:
         return [r for r in self.spas.values() if r.provider_id == provider_id]
 
     def summary(self) -> dict:
+        pending = []
+        for r in self.spas.values():
+            until = getattr(r, "_grace_until", None)
+            if until is not None and r.active:
+                pending.append({
+                    "spa_id": r.spa_id,
+                    "grace_until": until,
+                    "reason": getattr(r, "_opt_out_reason", ""),
+                })
         return {
             "total": len(self.spas),
             "active": len(self.all_active()),
             "by_role": _count_roles(self.all_active()),
+            "opt_out_pending": pending,
         }
 
 
