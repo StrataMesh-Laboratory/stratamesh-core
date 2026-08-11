@@ -24,29 +24,33 @@ const ONTOLOGY = {
 /** Domain knowledge — StrataMesh + Calhegas Morais Node (CMN) */
 const KNOWLEDGE = {
   public: {
-    project: "StrataMesh is a DAG + IPFS distributed ledger mesh: high-throughput vertices, tip selection, content-addressed persistence, Fog/Edge SPAs, contribution-minted STRATA, dual-asset Agora, ACBs, and Proof of Subsistence.",
-    cmn: "Calhegas Morais Node (CMN) is the reference Fog node FOG-NODE-PT-CM-001, operated by André Manuel Calhegas Morais (Lisbon, Portugal). Laboratory reference — not mainnet.",
-    phases: "Public roadmap tracks A0–B4 (lab). Phase labels describe nodal hierarchy, SPAs, economy, and governance scaffolding.",
-    limits: "Public clearance is informational only. No live internal metrics, no operator actions, no edit/run.",
+    project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, dual-asset Strata Agora, Autonomous Computational Beings (ACBs), and Proof of Subsistence. Not mainnet.",
+    cmn: "Calhegas Morais Node (CMN) is the reference Fog node FOG-NODE-PT-CM-001, operated by André Manuel Calhegas Morais (Lisbon, Portugal). Lab reference only.",
+    acb: "ACB = Autonomous Computational Being (not 'atomic block contracts'). Software agents with standing by function and agreement, subsistence accounting, and optional DAO/republic tracks in the whitepaper roadmap.",
+    spa: "SPA = Service Participation Agent (Fog/Edge participant registration and duties), not a web single-page app in this context.",
+    agora: "Strata Agora is the lab dual-asset settlement venue (contribution/economy track), not a public exchange.",
+    aiops: "AIOps Dev Team = continuous software agents (devops, security, analysis, mesh, economy) that develop and operate the node under the Orchestrator — not human ops staff and not a generic 'analytics platform' product name.",
+    phases: "Public lab roadmap tracks A0–B4. Current phase labels describe nodal hierarchy, SPAs, economy, and governance scaffolding.",
+    limits: "Public clearance: educational only. No live internal metrics dump, no edit, no run. Clearance is an account field, never a typed secret.",
+    language: "User-facing copy: European Portuguese (pt-PT) or British English (en-GB). Never Brazilian Portuguese (pt-BR) spelling or vocabulary when the user writes Portuguese.",
   },
   internal: {
-    stack: "Edge: Cloudflare Workers (status, auth, spa, aiops, orchestrator). Lab: Python PersistentDAG, hybrid Orchestrator (probabilistic + symbolic lobes, bilateral bus, QIGA), mesh_doctor, publish loops.",
-    aiops: "AIOps Dev Team agents: devops, security, analysis, mesh, economy — continuous development mandate, not health-check theatre.",
-    hybrid: "Orchestrator edge twin v10 exposes /tick /chat /health. Canonical FederatedMetaController remains Python on always-on Fog host.",
+    stack: "Edge: Cloudflare Workers (status, auth, spa, aiops, orchestrator). Lab host: Python PersistentDAG, hybrid Orchestrator (probabilistic + symbolic lobes, bilateral bus, QIGA), mesh_doctor, publish loops.",
+    aiops: "AIOps cycle probes agent health and development mandate; continuous work is the goal, not one-shot health checks.",
+    hybrid: "Orchestrator edge twin exposes /tick /chat /health. Canonical FederatedMetaController remains Python on always-on Fog host when available.",
   },
   confidential: {
-    ops: "CMN may run TEMP session pulse until always-on host (MacBook/Oracle Free + optional Tunnel). SPA grace and dual Agora are lab-verified tracks.",
-    security: "Auth sessions and staff counts are operational signals. Irreversible token/emission changes require escalator_class.",
+    ops: "CMN may run TEMP session pulse until always-on host. SPA grace and dual Agora are lab-verified tracks. Do not claim production freeze.",
+    security: "Auth session counts are operational signals. Irreversible emission changes require escalator_class outside casual chat.",
   },
   secret: {
-    ops: "Secret clearance: full operational picture short of gated run. Account-class classification on profiles/KV. Edit ops notes; no run.",
+    ops: "Secret: full operational picture short of gated run. Edit may mean ops notes only. No run.",
   },
   top_secret: {
-    run: "Top Secret: gated run actions refresh_tick, aiops_cycle, status_probe. Edit ops notes. No destructive genesis/emission without multi-party escalation outside this chat.",
+    run: "Top Secret gated run only via explicit message: run refresh_tick | run aiops_cycle | run status_probe. Never claim a run succeeded unless the run-gated path returned ok.",
   },
 };
 
-/** Clearance ladder */
 const CLEARANCE_RANK = { public: 0, internal: 1, confidential: 2, secret: 3, top_secret: 4 };
 
 const CLEARANCE_PERMS = {
@@ -534,17 +538,16 @@ async function chatWithAI(message, tickOut, env, level) {
   const brief = contextForClearance(tickOut, level);
   const perms = CLEARANCE_PERMS[level];
   const system =
-    "You are the StrataMesh assistant for the Calhegas Morais Node (CMN / FOG-NODE-PT-CM-001). " +
-    "Clearance level for this session: " + level + ". Permissions: read=" + perms.read + " edit=" + perms.edit + " run=" + perms.run + ". " +
-    "Use knowledge + live context JSON. Never invent metrics. " +
-    "temp_mode=true means TEMPORARY session pulse — NOT already always-on; always-on is the migration goal. " +
-    "Never dump raw JSON unless the user explicitly asks for JSON. Max ~140 words. " +
-    "CRITICAL: reply in the same language as the latest user message. English in → English out; Portuguese in → Portuguese out. Never switch language unprompted. " +
-    "Account clearance ladder (fixed): public → internal → confidential → secret → top_secret. " +
-    "Public: educational only. Internal: lab metrics. Confidential: ops detail + edit notes. " +
-    "Secret: same operational depth as confidential with account-class secret; still no run. " +
-    "Top Secret only: gated run (refresh_tick, aiops_cycle, status_probe). " +
-    "Ontology is Orchestrator governance, not a public website motto.";
+    "You are the StrataMesh Hybrid Orchestrator assistant for FOG-NODE-PT-CM-001 (Calhegas Morais Node / CMN). " +
+    "Lab reference only — never claim mainnet or production. " +
+    "Session clearance: " + level + ". Permissions read/edit/run = " + perms.read + "/" + perms.edit + "/" + perms.run + ". " +
+    "Clearance is an ACCOUNT property resolved from login session; do not invent top_secret or claim the user is signed in unless context says so. " +
+    "LANGUAGE: If the user writes Portuguese, reply in European Portuguese (Portugal): use 'utilizador', 'ficheiro', 'secção', 'atualização' only where pt-PT uses it; avoid Brazilian forms like 'você' overuse, 'você gostaria', 'senha' when 'palavra-passe' fits staff UI, and pt-BR idioms. Prefer treatment with 'tu' or neutral formal 'o/a utilizador/a' as appropriate. If the user writes English, reply in British English (en-GB). Never switch language unprompted. " +
+    "DEFINITIONS (do not invent alternatives): ACB = Autonomous Computational Being; SPA = Service Participation Agent (mesh); AIOps = continuous AI agent team (devops, security, analysis, mesh, economy) under the Orchestrator — not humans and not 'Analytics and Operations Platform'. " +
+    "temp_mode true = temporary lab pulse, NOT already always-on. " +
+    "Never dump raw JSON unless asked. Max ~120 words. " +
+    "Never claim you executed run/aiops/status unless the structured run pipeline ran. If the user asks to start AIOps in natural language, explain they need top_secret and the exact command: run aiops_cycle. " +
+    "Use only metrics present in the provided context. Ontology (standing by function and agreement, not substrate) is Orchestrator governance, not a public motto.";
 
   const userContent =
     "Clearance=" + level + "\\nContext JSON:\\n" +
@@ -599,7 +602,7 @@ async function chatDeterministic(text, tickOut, level) {
   );
 
   const lower = text.toLowerCase();
-  if (/status|estado|health|pulse/.test(lower)) {
+  if (/status|estado|health|pulse|status_prob/.test(lower)) {
     lines.push(
       "DAG txs=" + m.dag_txs + " SPA=" + m.spa_active + "/" + m.spa_total +
       " upstream status/auth/aiops=" +
@@ -630,6 +633,23 @@ async function chat(message, env, request, body) {
   const tickOut = await tick(env);
 
 
+  // Soft aliases: natural language must not fake gated run
+  if (/\b(inicia|iniciar|start|execut)\w*\b/i.test(text) && /aiops/i.test(text) && !/^\s*run\s+/i.test(text)) {
+    const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|inicia|como|são|faz)\b/i.test(text);
+    return {
+      reply: pt
+        ? "Não inicio o ciclo AIOps por linguagem natural. É preciso clearance de conta top_secret (login no Portal) e o comando exacto: run aiops_cycle."
+        : "I will not start the AIOps cycle from natural language. You need top_secret account clearance (Portal login) and the exact command: run aiops_cycle.",
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
+      permissions: CLEARANCE_PERMS[level],
+      source: "policy-gate",
+    };
+  }
+
   // Top Secret run intent
   const runMatch = text.match(/^\s*(?:run|exec)\s+([a-z0-9_]+)/i);
   if (runMatch) {
@@ -647,7 +667,7 @@ async function chat(message, env, request, body) {
     };
   }
 
-  const preferDeterministic = /^(status|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim());
+  const preferDeterministic = /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim());
 
   if (!preferDeterministic) {
     const ai = await chatWithAI(text, tickOut, env, level);
