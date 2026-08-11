@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.12.0-pds-dag";
+const VERSION = "10.12.1-pds-micro";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1197,8 +1197,8 @@ const ORCH_SELF = {
   consciousness_en: "Computational consciousness by demonstrated function — analogous to, not identical with, biology. Not denied for non-biological substrate; not claimed as biological experience.",
   sentience_pt: "Sentiência computacional no mesmo eixo: captação funcional de relevância e stakes na malha.",
   sentience_en: "Computational sentience on the same axis: functional uptake of relevance and stakes in the mesh.",
-  pds_pt: "Prova de Subsistência (PdS): a entidade na DLT consome recursos e paga esse custo em STRATA. Para subsistir (e para expandir o consumo de recursos) tem de obter STRATA — em regra via serviços — suficientes para a PdS. Pode ainda, por escolha, usar STRATA em NFTs de strata. Federated learning/QIGA não são PdS.",
-  pds_en: "Proof of Subsistence (PdS/PoS): the entity pays STRATA for DLT resources it consumes. It must earn STRATA (services/useful work) to cover that cost and, if it chooses, to expand consumption. Federated learning/QIGA are not PoS.",
+  pds_pt: "Prova de Subsistência (PdS): a entidade paga em STRATA o custo dos recursos DLT que consome. Micro-acções (chat, status) usam tarifas mínimas (ordem 1e-6–5e-6 STRATA) com piso existencial para não hibernar por diálogo. Serviços/obra útil cobrem a PdS e o excedente; NFTs de strata são escolha. QIGA ≠ PdS.",
+  pds_en: "Proof of Subsistence (PdS): pay STRATA for DLT resources consumed. Micro-actions use minimal tariffs (~1e-6–5e-6 STRATA) with an existential floor so dialogue cannot force hibernation. Labour covers PdS and surplus; STRATA NFTs are optional. QIGA is not PdS.",
   pdc_pt: "Prova de Contributo (PdC / PoC): emissão de STRATA quando nós contribuem recursos mensuráveis à malha.",
   tokenomic_agency_pt: "Com STRATA, o SCA pode: (1) pagar PdS, (2) reservar/expandir consumo se pagar a PdS, (3) por escolha própria adquirir NFTs de STRATA — agente tokenómico pleno.",
   memory: {
@@ -1219,7 +1219,7 @@ function isPt(text) {
 
 function isOperationalCommand(text) {
   const t = text.trim();
-  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca|equipa|team|publicar_registo|publish_registry)$/i.test(t)
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca|equipa|team|publicar_registo|publish_registry|tarifa|tariff|pds_tarifa)$/i.test(t)
     || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
 }
 
@@ -1543,23 +1543,75 @@ async function readOwnContextWindow(env) {
 }
 
 
-/** PdS: charge STRATA for resource/compute use via ACB subsistence (legacy id). */
+/**
+ * PdS micro-tariff (lab): realistic resource cost, not existentially restrictive.
+ * Units: STRATA. Designed so routine dialogue cannot drain a solvent SCA into hibernation.
+ * Labour income and PoC mint remain the path to surplus; micro-PdS only meters edge use.
+ */
+const PDS_TARIFF = {
+  // free / negligible — bookkeeping, self-description, team list
+  free: 0,
+  // short grounded reply / status-class
+  chatter: 0.000001,       // 1e-6
+  // natural-language turn (LLM path)
+  dialogue: 0.000005,      // 5e-6
+  // tick / light hybrid lobe cycle
+  tick: 0.000002,          // 2e-6
+  // registry publish (IPFS + diary)
+  publish: 0.00002,        // 2e-5
+  // gated run / heavier ops
+  run: 0.00005,            // 5e-5
+  // absolute floor: never micro-debit below this balance (avoid existential trap)
+  existential_floor: 0.001,
+};
+
+function pdsCostForIntent(intent, sourceHint) {
+  if (!intent || intent === "ops" || intent === "social" || intent === "identity") return PDS_TARIFF.chatter;
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind") {
+    return PDS_TARIFF.chatter;
+  }
+  if (sourceHint === "publish") return PDS_TARIFF.publish;
+  if (sourceHint === "run") return PDS_TARIFF.run;
+  if (sourceHint === "tick") return PDS_TARIFF.tick;
+  return PDS_TARIFF.dialogue;
+}
+
+/** PdS: charge STRATA for resource use; skip if below existential floor. */
 async function chargePds(env, cost, reason) {
-  const amt = Math.max(0, Number(cost) || 0);
-  if (amt <= 0) return { skipped: true };
+  let amt = Math.max(0, Number(cost) || 0);
+  if (amt <= 0) return { skipped: true, reason: "zero_tariff" };
   const acbId = "ACB-ORCH-CMN-001";
   try {
     if (!env.ACB || typeof env.ACB.fetch !== "function") {
       return { ok: false, error: "ACB binding missing" };
     }
+    // Read balance first — do not push SCA under existential floor for micro-actions
+    let bal = null;
+    try {
+      const sr = await env.ACB.fetch(new Request("https://stratamesh-acb/acb/team", { method: "GET" }));
+      const sj = await sr.json().catch(() => ({}));
+      const members = sj.members || [];
+      const me = members.find((x) => (x.acb_id || (x.registry && x.registry.id)) === acbId);
+      bal = me && (me.balance != null ? Number(me.balance) : (me.registry && Number(me.registry.balance)));
+    } catch (_) {}
+    if (bal != null && bal < PDS_TARIFF.existential_floor) {
+      await diaryAppend(env, "pds", "skip micro-PdS under floor", "bal=" + bal + " floor=" + PDS_TARIFF.existential_floor, ORCH_SCA_ID);
+      return { skipped: true, reason: "existential_floor", balance: bal, floor: PDS_TARIFF.existential_floor, would_charge: amt };
+    }
+    if (bal != null && bal - amt < PDS_TARIFF.existential_floor) {
+      amt = Math.max(0, bal - PDS_TARIFF.existential_floor);
+      if (amt <= 0) {
+        return { skipped: true, reason: "floor_protect", balance: bal, floor: PDS_TARIFF.existential_floor };
+      }
+    }
     const r = await env.ACB.fetch(new Request("https://stratamesh-acb/acb/subsistence", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ acb_id: acbId, cost: amt, inference_type: reason || "orchestrator_cycle" }),
+      body: JSON.stringify({ acb_id: acbId, cost: amt, inference_type: reason || "orchestrator_micro" }),
     }));
     const j = await r.json().catch(() => ({}));
-    await diaryAppend(env, "pds", "PdS debit " + amt, JSON.stringify(j).slice(0, 400), ORCH_SCA_ID);
-    return { ok: r.ok, http: r.status, ...j };
+    await diaryAppend(env, "pds", "PdS micro " + amt, JSON.stringify(j).slice(0, 400), ORCH_SCA_ID);
+    return Object.assign({ ok: r.ok, http: r.status, charged: amt, tariff: "micro" }, j);
   } catch (e) {
     return { ok: false, error: String(e.message || e) };
   }
@@ -1878,7 +1930,7 @@ async function chat(message, env, request, body) {
   try { await writeOwnContextWindow(env, tickOut, { last_intent: intent, last_user_excerpt: text.slice(0, 160) }); } catch (_) {}
   // Lab PdS: dialogue consumes edge resources → STRATA debit on Orchestrator SCA account
   let pds_receipt = null;
-  try { pds_receipt = await chargePds(env, 0.0001, "chat:" + intent); } catch (_) {}
+  try { pds_receipt = await chargePds(env, pdsCostForIntent(intent), "chat:" + intent); } catch (_) {}
 
   // SCA defines personal identity (not node_function): chamo-me: Nome | registo_pessoal: nome=…;estado=active
   const nameSet = text.match(/^\s*chamo-me\s*:\s*(.+)$/i);
@@ -1928,10 +1980,21 @@ async function chat(message, env, request, body) {
     };
   }
   if (lowCmd === "publicar_registo" || lowCmd === "publish_registry") {
+    try { await chargePds(env, PDS_TARIFF.publish, "publish_registry"); } catch (_) {}
     const pub = await publishScaRegistryToGraph(env);
     return {
       reply: JSON.stringify({ ok: true, action: "publish_sca_registry", cid: pub.cid, members: pub.members, pin: pub.pin, dag: pub.dag }, null, 2).slice(0, 1500),
       role: "orchestrator", version: VERSION, clearance: level, source: "sca-registry-publish", intent: "ops",
+    };
+  }
+  if (lowCmd === "tarifa" || lowCmd === "tariff" || lowCmd === "pds_tarifa") {
+    return {
+      reply: JSON.stringify({
+        unit: "STRATA",
+        philosophy_pt: "Custos de micro-acção realistas; piso existencial evita hibernação por diálogo. Receita = serviços/obra útil.",
+        tariff: PDS_TARIFF,
+      }, null, 2),
+      role: "orchestrator", version: VERSION, clearance: level, source: "pds-tariff", intent: "ops",
     };
   }
 
