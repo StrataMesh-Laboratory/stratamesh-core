@@ -125,7 +125,31 @@ function agentReport(id, findings, severity = "info") {
   };
 }
 
+async function runTeamCycleLight(env) {
+  // probes only — max ~3 outbound requests
+  const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
+  const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
+  async function probe(binding, url) {
+    try {
+      if (binding && typeof binding.fetch === "function") {
+        const r = await binding.fetch(new Request(url, { method: "GET", headers: { Accept: "application/json" } }));
+        return { ok: r.ok, status: r.status };
+      }
+      const r = await fetch(url, { headers: { Accept: "application/json" } });
+      return { ok: r.ok, status: r.status };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  }
+  const [status, orch] = await Promise.all([
+    probe(env.STATUS, statusUrl),
+    probe(env.ORCH, orchUrl),
+  ]);
+  return { ok: status.ok && orch.ok, light: true, upstream: { status, orch }, at: new Date().toISOString() };
+}
+
 async function runTeamCycle(env) {
+
   let acb_ops = null;
   try { acb_ops = await pulseAcbTeam(env); } catch (_) {}
 
@@ -410,7 +434,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.3.0-ops-cycle', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.3.1-free-tier', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -419,12 +443,12 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.3.0-ops-cycle",
+        version: "1.3.1-free-tier",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
         continuous: {
-          workers_cron: "min_interval_1_minute_on_CF",
+          workers_cron: "hourly_light_free_tier",
           host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
           note: "Workers cannot while(true); host process is the real continuous loop",
         },
@@ -482,6 +506,7 @@ export default {
 
   /** Cloudflare Cron Trigger — continuous development tick */
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runTeamCycle(env));
+    // Free-tier: light tick only — no ACB ops-cycle fan-out (use POST /team-pulse manually)
+    ctx.waitUntil(runTeamCycleLight(env));
   },
 };

@@ -13,6 +13,27 @@ export default {
       return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Allow-Headers': '*' } });
     }
     const path = url.pathname.replace(/\/+$/, '') || '/';
+    if (path === '/api/economy' || path === '/economy.json') {
+      // Single aggregated read — clients should prefer this over 8 parallel Worker hits
+      const urls = {
+        balance: 'https://stratamesh-token.stratamesh.workers.dev/balance?account=FOG-NODE-PT-CM-001',
+        onchain: 'https://stratamesh-poc.stratamesh.workers.dev/onchain?node_id=FOG-NODE-PT-CM-001',
+        avg: 'https://stratamesh-poc.stratamesh.workers.dev/global-avg',
+        rate: 'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',
+        market: 'https://stratamesh-acb.stratamesh.workers.dev/acb/marketplace',
+        daos: 'https://stratamesh-dao.stratamesh.workers.dev/dao/list',
+      };
+      const out = {};
+      await Promise.all(Object.entries(urls).map(async ([k,u]) => {
+        try {
+          const r = await fetch(u, { cf: { cacheTtl: 60, cacheEverything: true } });
+          out[k] = await r.json();
+        } catch (e) { out[k] = { error: String(e.message||e) }; }
+      }));
+      return new Response(JSON.stringify({ success: true, cached_hint: 'edge_60s', economy: out }), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
     if (path === '/health') {
       return Response.json({ status: 'ok', service: 'stratamesh-portal', version: '1.0.0-economy', size: PORTAL_B64.length });
     }

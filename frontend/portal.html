@@ -650,6 +650,16 @@ async function loadEconomy(){
   const st = document.getElementById('ecoStatus');
   if(st) st.textContent = 'loading…';
   try {
+    // Free-tier: reuse client cache 5 min to avoid repeat multi-Worker fan-out
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('eco_cache')||'null');
+      if (cached && cached.ts && Date.now()-cached.ts < 300000) {
+        if(st) st.textContent = 'cached (5m) — click Refresh to force';
+        // still allow first paint skip only when already rendered once
+        if (cached.rendered) return;
+      }
+    } catch(_){}
+
     const [bal, onchain, avg, rate, mkt, daos, infoA, infoC] = await Promise.all([
       fetch(ECO.token + '/balance?account=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
       fetch(ECO.poc + '/onchain?node_id=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
@@ -698,6 +708,7 @@ async function loadEconomy(){
       }
       daoBody.innerHTML = pack.length ? pack.join('') : '<tr><td colspan="4">—</td></tr>';
     }
+    try{sessionStorage.setItem('eco_cache',JSON.stringify({ts:Date.now(),rendered:true}));}catch(_){}
     if(st) st.textContent = 'updated ' + new Date().toISOString().slice(11,19) + 'Z';
   } catch(e) {
     if(st) st.textContent = 'error: ' + (e.message||e);
