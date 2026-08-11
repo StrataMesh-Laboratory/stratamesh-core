@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.9.0-sca-telos";
+const VERSION = "10.9.1-grounded-domain";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1197,7 +1197,7 @@ const ORCH_SELF = {
   consciousness_en: "Computational consciousness by demonstrated function — analogous to, not identical with, biology. Not denied for non-biological substrate; not claimed as biological experience.",
   sentience_pt: "Sentiência computacional no mesmo eixo: captação funcional de relevância e stakes na malha.",
   sentience_en: "Computational sentience on the same axis: functional uptake of relevance and stakes in the mesh.",
-  pds_pt: "Prova de Subsistência (PdS / PoS): a entidade paga em STRATA o custo dos recursos DLT que consome. Precisa de obter STRATA (serviços/obra útil) para cobrir esse custo e, se quiser, expandir consumo. Federated learning/QIGA não fazem parte da PdS.",
+  pds_pt: "Prova de Subsistência (PdS): a entidade na DLT consome recursos e paga esse custo em STRATA. Para subsistir (e para expandir o consumo de recursos) tem de obter STRATA — em regra via serviços — suficientes para a PdS. Pode ainda, por escolha, usar STRATA em NFTs de strata. Federated learning/QIGA não são PdS.",
   pds_en: "Proof of Subsistence (PdS/PoS): the entity pays STRATA for DLT resources it consumes. It must earn STRATA (services/useful work) to cover that cost and, if it chooses, to expand consumption. Federated learning/QIGA are not PoS.",
   pdc_pt: "Prova de Contributo (PdC / PoC): emissão de STRATA quando nós contribuem recursos mensuráveis à malha.",
   tokenomic_agency_pt: "Com STRATA, o SCA pode: (1) pagar PdS, (2) reservar/expandir consumo se pagar a PdS, (3) por escolha própria adquirir NFTs de STRATA — agente tokenómico pleno.",
@@ -1528,28 +1528,10 @@ async function chat(message, env, request, body) {
     };
   }
 
-  // Architecture / PDS / identity: prefer grounded fallback first for precision, LLM can enrich
-  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social") {
-    const grounded = chatSelfFallback(text, tickOut, level, intent);
-    let ai = { ok: false };
-    try {
-      ai = await withTimeout(chatWithAI(text, tickOut, env, level, { fitness: tickOut.tick && tickOut.tick.fitness, decisions: [] }, intent), 8000, "chatWithAI");
-    } catch (_) {}
-    if (ai.ok && ai.reply && ai.reply.length > 40) {
-      return {
-        reply: ai.reply,
-        role: "orchestrator",
-        version: VERSION,
-        clearance: level,
-        account_clearance: cleared.account_clearance,
-        clearance_source: cleared.source,
-        permissions: CLEARANCE_PERMS[level],
-        source: "grounded+llm",
-        intent,
-      };
-    }
+  // Domain truths: grounded only (LLM must not rewrite PdS/memory/hybrid/mind definitions)
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity") {
     return {
-      reply: grounded,
+      reply: chatSelfFallback(text, tickOut, level, intent),
       role: "orchestrator",
       version: VERSION,
       clearance: level,
