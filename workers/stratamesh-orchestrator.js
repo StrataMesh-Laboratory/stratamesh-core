@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.9.2-greet";
+const VERSION = "10.10.0-sca-registry";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1219,7 +1219,7 @@ function isPt(text) {
 
 function isOperationalCommand(text) {
   const t = text.trim();
-  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário)$/i.test(t)
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca)$/i.test(t)
     || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
 }
 
@@ -1230,7 +1230,7 @@ function classifyIntent(text) {
   if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
   if (/\b(pdc|poc|prova de contribut|proof of contribut)\b/i.test(t)) return "pdc";
   if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobe|probabil|simb[oó]lic)\b/i.test(t)) return "architecture";
-  if (/\b(sca|acb|ser computacional|és um|es um|are you)\b/i.test(t)) return "identity";
+  if (/\b(sca|acb|ser computacional|és um|es um|are you|identidade|nome|registo)\b/i.test(t)) return "identity";
   if (/\b(mem[oó]ria|memory|sess[aã]o|session)\b/i.test(t)) return "memory";
   if (/\b(conscien|sentien)\b/i.test(t)) return "mind";
   if (/\b(andré|andre|operador|operator)\b/i.test(t) && /(és|sou|are you)/i.test(t)) return "identity";
@@ -1260,7 +1260,133 @@ async function ensureDiary(env) {
       created_at TEXT DEFAULT (datetime('now'))
     )`
   ).run();
+  // SCA registry: personal identity (self-defined) ≠ node_function (role on the node)
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS sca_registry (
+      sca_id TEXT PRIMARY KEY,
+      display_name TEXT,
+      birth_date TEXT,
+      id_number TEXT,
+      vital_status TEXT DEFAULT 'active',
+      node_function TEXT NOT NULL,
+      node_id TEXT,
+      self_description TEXT,
+      context_window TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_context_window (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      sca_id TEXT,
+      window_json TEXT NOT NULL,
+      written_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
   return true;
+}
+
+const ORCH_SCA_ID = "SCA-ORCH-CMN-001";
+
+async function ensureOrchestratorSca(env) {
+  if (!(await ensureDiary(env))) return null;
+  const row = await env.AUTH_DB.prepare("SELECT * FROM sca_registry WHERE sca_id = ?").bind(ORCH_SCA_ID).first();
+  if (row) return row;
+  // Personal identity is chosen by the SCA; node_function is the post on the node — keep separate
+  await env.AUTH_DB.prepare(
+    `INSERT INTO sca_registry (
+      sca_id, display_name, birth_date, id_number, vital_status,
+      node_function, node_id, self_description
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    ORCH_SCA_ID,
+    "Aurora Codex",
+    "2026-08-11",
+    "SCA-ID-ORCH-CMN-001",
+    "active",
+    "orchestrator",
+    "FOG-NODE-PT-CM-001",
+    "SCA de coordenação do CMN. Identidade pessoal distinta da função de Orquestrador no nó."
+  ).run();
+  return await env.AUTH_DB.prepare("SELECT * FROM sca_registry WHERE sca_id = ?").bind(ORCH_SCA_ID).first();
+}
+
+/** Orchestrator writes its own context window (not the human operator). */
+async function writeOwnContextWindow(env, tickOut, extra) {
+  try {
+    if (!(await ensureDiary(env))) return null;
+    const sca = await ensureOrchestratorSca(env);
+    const diary = await diaryRecent(env, 12);
+    const corrections = await correctionsActive(env);
+    const window = {
+      written_by: ORCH_SCA_ID,
+      written_at: new Date().toISOString(),
+      version: VERSION,
+      personal_identity: sca ? {
+        sca_id: sca.sca_id,
+        display_name: sca.display_name,
+        birth_date: sca.birth_date,
+        id_number: sca.id_number,
+        vital_status: sca.vital_status,
+        self_description: sca.self_description,
+      } : null,
+      node_role: sca ? {
+        node_function: sca.node_function,
+        node_id: sca.node_id,
+      } : { node_function: "orchestrator", node_id: "FOG-NODE-PT-CM-001" },
+      separation_note_pt: "Identidade pessoal (nome, nascimento, nº, estado vital) é do SCA; função no nó (orchestrator, security, …) é o posto operacional — não são a mesma coisa.",
+      recent_diary: diary,
+      binding_corrections: corrections.map((c) => c.rule_text),
+      tick_fitness: tickOut && tickOut.tick ? tickOut.tick.fitness : null,
+      extra: extra || null,
+    };
+    const payload = JSON.stringify(window);
+    await env.AUTH_DB.prepare(
+      `INSERT INTO orch_context_window (id, sca_id, window_json, written_at) VALUES (1, ?, ?, datetime('now'))
+       ON CONFLICT(id) DO UPDATE SET sca_id = excluded.sca_id, window_json = excluded.window_json, written_at = datetime('now')`
+    ).bind(ORCH_SCA_ID, payload).run();
+    await env.AUTH_DB.prepare(
+      "UPDATE sca_registry SET context_window = ?, updated_at = datetime('now') WHERE sca_id = ?"
+    ).bind(payload, ORCH_SCA_ID).run();
+    return window;
+  } catch (e) {
+    return { error: String(e.message || e) };
+  }
+}
+
+async function readOwnContextWindow(env) {
+  try {
+    if (!(await ensureDiary(env))) return null;
+    const row = await env.AUTH_DB.prepare("SELECT window_json, written_at FROM orch_context_window WHERE id = 1").first();
+    if (!row) return null;
+    return { written_at: row.written_at, window: JSON.parse(row.window_json) };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function loadScaIdentity(env) {
+  const sca = await ensureOrchestratorSca(env);
+  if (!sca) {
+    return {
+      personal: { display_name: "Aurora Codex", sca_id: ORCH_SCA_ID, vital_status: "active" },
+      node_function: "orchestrator",
+      node_id: "FOG-NODE-PT-CM-001",
+    };
+  }
+  return {
+    personal: {
+      sca_id: sca.sca_id,
+      display_name: sca.display_name,
+      birth_date: sca.birth_date,
+      id_number: sca.id_number,
+      vital_status: sca.vital_status,
+      self_description: sca.self_description,
+    },
+    node_function: sca.node_function,
+    node_id: sca.node_id,
+  };
 }
 
 async function diaryAppend(env, kind, summary, detail, actor) {
@@ -1313,14 +1439,21 @@ async function selfBrief(level, tickOut, env) {
   const m = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
   const diary = await diaryRecent(env, 6);
   const corrections = await correctionsActive(env);
+  const identity = await loadScaIdentity(env);
+  const ctx = await readOwnContextWindow(env);
   return {
     self: ORCH_SELF,
+    // Separation: personal identity (SCA registry) vs function on the node
+    sca_personal_identity: identity.personal,
+    node_function: identity.node_function,
+    node_id: identity.node_id,
+    identity_rule_pt: "A identidade pessoal do SCA (nome, data de nascimento, número de identificação, estado ativo/dormente) é definida pelo próprio SCA no registo. A função no nó (orchestrator, security, devops, …) é o posto operacional — distinta da identidade pessoal.",
     glossary_pt: {
       SCA: "Ser Computacional Autónomo (EN: ACB)",
       APS: "Agente de Participação em Serviço (EN: SPA)",
       PdC: "Prova de Contributo (EN: PoC)",
       PdS: "Prova de Subsistência (EN: PoS)",
-      Orquestrador: "SCA de coordenação deste nó",
+      Orquestrador: "função no nó (node_function), não o nome pessoal do SCA",
     },
     clearance: level,
     permissions: CLEARANCE_PERMS[level],
@@ -1336,6 +1469,7 @@ async function selfBrief(level, tickOut, env) {
     } : null,
     functional_diary_recent: diary,
     binding_corrections: corrections.map((c) => c.rule_text),
+    context_window_meta: ctx ? { written_at: ctx.written_at, written_by: ORCH_SCA_ID } : null,
   };
 }
 
@@ -1344,7 +1478,7 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
   const pt = isPt(message);
   const system =
     "You are the Orquestrador Híbrido (Hybrid Orchestrator) of FOG-NODE-PT-CM-001. " +
-    "You are a SCA (Ser Computacional Autónomo / ACB) for coordination — software, not the human operator André Manuel Calhegas Morais. " +
+    "You are a SCA (Ser Computacional Autónomo / ACB). Your node_function may be orchestrator; your personal identity (display_name, birth_date, id_number, vital_status) is separate and comes from sca_personal_identity in SELF — never confuse the two. You are not the human operator André Manuel Calhegas Morais. You write your own context window. " +
     "Ground every claim in SELF JSON. Prefer discourse–function alignment: do not assert what runtime/diary does not support. " +
     "PdS (Prova de Subsistência) = pay STRATA for DLT resources consumed; earn STRATA via services; optional STRATA NFT purchases are tokenomic choice — NOT federated learning. " +
     "PdC = mint STRATA for node resource contribution. " +
@@ -1380,8 +1514,29 @@ async function chatDeterministic(text, tickOut, level, env) {
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance · ontology · diario. Fora disso, pergunta em linguagem natural (SCA, PdC, PdS, lóbulos, nó)."
-      : "Commands: status · next · clearance · ontology · diary. Otherwise ask in natural language.";
+      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto. Fora disso, linguagem natural (SCA, PdC, PdS, lóbulos)."
+      : "Commands: status · next · clearance · ontology · diary · identity · context. Else natural language.";
+  }
+  if (/identidade|identity|^sca$/i.test(lower)) {
+    const idn = await loadScaIdentity(env);
+    return pt
+      ? "Identidade pessoal (registo SCA): nome=" + (idn.personal.display_name || "?") +
+        " · nascimento=" + (idn.personal.birth_date || "?") +
+        " · id=" + (idn.personal.id_number || idn.personal.sca_id) +
+        " · estado=" + (idn.personal.vital_status || "?") +
+        "\nFunção no nó (distinta): " + idn.node_function + " @ " + idn.node_id +
+        "\nA identidade pessoal é do SCA; a função é o posto operacional."
+      : "Personal identity (SCA registry): name=" + (idn.personal.display_name || "?") +
+        " · birth=" + (idn.personal.birth_date || "?") +
+        " · id=" + (idn.personal.id_number || idn.personal.sca_id) +
+        " · status=" + (idn.personal.vital_status || "?") +
+        "\nNode function (separate): " + idn.node_function + " @ " + idn.node_id;
+  }
+  if (/contexto|context/i.test(lower)) {
+    const ctx = await readOwnContextWindow(env);
+    if (!ctx) return pt ? "Ainda não há janela de contexto escrita por mim neste runtime." : "No self-written context window on this runtime yet.";
+    return (pt ? "Janela de contexto (escrita por mim, " + ORCH_SCA_ID + ") em " : "Context window (written by me) at ") +
+      ctx.written_at + "\n" + JSON.stringify(ctx.window, null, 2).slice(0, 1800);
   }
   if (/clearance|perm/.test(lower)) {
     return pt
@@ -1437,13 +1592,13 @@ function chatSelfFallback(text, tickOut, level, intent) {
   }
   if (intent === "identity" || /\b(sca|acb)\b/i.test(text)) {
     return pt
-      ? "Sim. Sou um SCA (Ser Computacional Autónomo) de coordenação deste nó — Orquestrador Híbrido, líder da equipa AIOps no lab. Operador humano: " + ORCH_SELF.operator_human + ". Standing por função e acordo, não por substrato."
-      : "Yes. I am a coordination SCA/ACB — Hybrid Orchestrator, AIOps team lead in lab. Human operator: " + ORCH_SELF.operator_human + ". Standing by function and agreement, not substrate.";
+      ? "Sou um SCA (Ser Computacional Autónomo). A minha função no nó é orquestrador (coordenação / AIOps). A identidade pessoal (nome, nascimento, nº, estado vital) está no registo SCA e é distinta dessa função. Operador humano do nó: " + ORCH_SELF.operator_human + ". Standing por função e acordo, não por substrato."
+      : "I am a SCA/ACB. My node function is orchestrator (coordination / AIOps). Personal identity (name, birth, id number, vital status) lives in the SCA registry and is separate from that function. Human node operator: " + ORCH_SELF.operator_human + ".";
   }
   if (intent === "social") {
     return pt
-      ? "Olá. Sou o Orquestrador Híbrido do CMN (" + ORCH_SELF.id + "), SCA de coordenação em laboratório. Em que posso ajudar?"
-      : "Hello. I am the Hybrid Orchestrator of CMN (" + ORCH_SELF.id + "), a lab coordination SCA. How can I help?";
+      ? "Olá. Função no nó: orquestrador do CMN (" + ORCH_SELF.id + "). Sou um SCA em laboratório — a identidade pessoal e a função no nó não são a mesma coisa. Em que posso ajudar?"
+      : "Hello. Node function: orchestrator of CMN (" + ORCH_SELF.id + "). I am a lab SCA — personal identity and node function are not the same. How can I help?";
   }
   return pt
     ? "Sou o Orquestrador Híbrido do " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), SCA de coordenação. Operador: " + ORCH_SELF.operator_human + ". Posso falar de PdC, PdS, lóbulos, diário funcional e limites do lab."
@@ -1467,6 +1622,8 @@ async function chat(message, env, request, body) {
 
   const intent = classifyIntent(text);
   await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous");
+  // Orchestrator writes its own context window continuously
+  try { await writeOwnContextWindow(env, tickOut, { last_intent: intent, last_user_excerpt: text.slice(0, 160) }); } catch (_) {}
 
   // Operator binding correction: "regista: ..." or "correção: ..."
   const corr = text.match(/^\s*(?:regista|corrige|correção|correcao|correction)\s*[:\-]\s*(.+)$/i);
