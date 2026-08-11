@@ -209,7 +209,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.0.0-environment',
+          version: '5.1.0-wake-pulse',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -493,6 +493,10 @@ export default {
           .bind(listing_id)
           .run();
         await db.prepare("UPDATE acb_registry SET status = 'active', last_action = 'hired' WHERE id = ?").bind(listing.acb_id).run();
+        // Wake from hibernation when paid labour arrives
+        try {
+          await db.prepare("UPDATE acb_marketplace SET availability = 'busy' WHERE acb_id = ? AND availability = 'hibernated'").bind(listing.acb_id).run();
+        } catch (_) {}
 
         await db
           .prepare('INSERT INTO acb_cycles (id, acb_id, kind, amount, balance_after, meta, created_at) VALUES (?,?,?,?,?,?,?)')
@@ -647,7 +651,7 @@ export default {
           );
         }
         const after = await debitStrata(db, acb_id, cost);
-        const status = after < 0.01 ? 'HIBERNATED' : 'active';
+        const status = after < 1e-6 ? 'HIBERNATED' : 'active';
         if (status === 'HIBERNATED') {
           await db.prepare("UPDATE acb_registry SET status = 'HIBERNATED', last_action = 'subsistence_empty' WHERE id = ?").bind(acb_id).run();
           try {
@@ -686,8 +690,8 @@ export default {
           if (bal >= cost && String(acb.status).toUpperCase() !== 'HIBERNATED') {
             const after = await debitStrata(db, acb_id, cost);
             await db.prepare("UPDATE acb_registry SET last_action = 'pulse', balance = ? WHERE id = ?").bind(after, acb_id).run();
-            sub = { cost, balance: after, status: after < 0.01 ? 'HIBERNATED' : 'active' };
-            if (after < 0.01) {
+            sub = { cost, balance: after, status: after < 1e-6 ? 'HIBERNATED' : 'active' };
+            if (after < 1e-6) {
               await db.prepare("UPDATE acb_registry SET status = 'HIBERNATED' WHERE id = ?").bind(acb_id).run();
             }
           } else {
