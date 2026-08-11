@@ -193,7 +193,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '4.1.0-capital-social',
+          version: '4.2.0-refined-kinds',
           clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
@@ -691,7 +691,7 @@ export default {
         return j({ success: true, daos: rows.results || [] });
       }
 
-      if (path === '/dao/get' || (path.startsWith('/dao/') && path.split('/').length === 3 && !['health','spa','proposal','vote','proposals','status','templates','template','execute','compliance','rbac','roles','create','register','list','daos','join','members','treasury','bootstrap'].includes(path.split('/')[2]))) {
+      if (path === '/dao/get' || (path.startsWith('/dao/') && path.split('/').length === 3 && !['health','spa','proposal','vote','proposals','status','templates','template','execute','compliance','rbac','roles','create','register','list','daos','join','members','treasury','bootstrap','partner','partners','distribute','info'].includes(path.split('/')[2]))) {
         // optional - skip fragile path
       }
 
@@ -700,7 +700,7 @@ export default {
         if (!dao_id) return j({ error: 'dao_id required' }, 400);
         const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
         if (!dao) return j({ error: 'not found' }, 404);
-        const members = await db.prepare('SELECT * FROM dao_members WHERE dao_id = ? AND status = ?').bind(dao_id, 'active').all();
+        let members = await db.prepare('SELECT * FROM dao_members WHERE dao_id = ? AND status = ?').bind(dao_id, 'active').all();
         let treasury = 0;
         try {
           const tr = await db
@@ -709,7 +709,32 @@ export default {
             .first();
           treasury = tr ? Number(tr.balance) : 0;
         } catch (_) {}
-        return j({ success: true, dao, members: members.results || [], treasury_strata: treasury });
+        let partners = [];
+        let rules = {
+          commercial: dao.kind !== 'associative',
+          quotas: dao.kind === 'associative' ? 'always_equal' : 'proportional_to_capital_social',
+          profit_distribution: dao.kind !== 'associative',
+          composition: dao.kind === 'associative' ? 'users_and_or_ACBs_mixed_allowed' : 'partners_unipersonal_or_society',
+        };
+        if (dao.kind !== 'associative') {
+          try {
+            const pr = await db.prepare("SELECT * FROM dao_partners WHERE dao_id = ? AND status = 'active'").bind(dao_id).all();
+            partners = pr.results || [];
+          } catch (_) {}
+        } else {
+          // force equal weights in response view
+          members = {
+            results: (members.results || []).map((m) => ({ ...m, role: m.role || 'member', weight: 1, quota: 'equal' })),
+          };
+        }
+        return j({
+          success: true,
+          dao,
+          rules,
+          members: members.results || [],
+          partners,
+          treasury_strata: treasury,
+        });
       }
 
       // Associative open join / corporate invite
@@ -722,7 +747,12 @@ export default {
         const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
         if (!dao) return j({ error: 'dao not found' }, 404);
         if (dao.kind === 'associative') {
-          // open join for associative (lab: any authenticated or named member)
+          if (data.capital_strata != null || data.share_pct != null || data.role === 'partner') {
+            return j({
+              error: 'associative_equal_quotas_only',
+              message: 'Associative DAOs: equal member quotas only — no capital social, partners, or profit shares',
+            }, 400);
+          }
           await db
             .prepare(
               `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
@@ -730,8 +760,17 @@ export default {
             )
             .bind(dao_id, member_id)
             .run();
-          const dag = await dagAnchor(env, { type: 'dao_join', dao_id, member_id, kind: 'associative' });
-          return j({ success: true, dao_id, member_id, role: 'member', kind: 'associative', dag_vertex: dag.vertex_id || null });
+          const dag = await dagAnchor(env, { type: 'dao_join', dao_id, member_id, kind: 'associative', quota: 'equal' });
+          return j({
+            success: true,
+            dao_id,
+            member_id,
+            role: 'member',
+            kind: 'associative',
+            quota: 'equal',
+            profit_distribution: false,
+            dag_vertex: dag.vertex_id || null,
+          });
         }
         // corporate: requires clearance internal+ and optional inviter admin
         if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
@@ -764,8 +803,14 @@ export default {
         if (!dao_id || !(amount > 0)) return j({ error: 'dao_id and amount > 0 required' }, 400);
         const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
         if (!dao) return j({ error: 'dao not found' }, 404);
-        if (dao.kind === 'associative' && action === 'payout' && !requireRank(actor, 'confidential')) {
-          return j(deny(actor, 'confidential'), 403);
+        if (dao.kind === 'associative' && action === 'payout') {
+          if (data.as_profit || data.dividend || data.profit_distribution) {
+            return j({
+              error: 'associative_no_profit_distribution',
+              message: 'Associative DAOs cannot pay profits/dividends in STRATA to members',
+            }, 400);
+          }
+          if (!requireRank(actor, 'confidential')) return j(deny(actor, 'confidential'), 403);
         }
         if (dao.kind === 'corporate' && !requireRank(actor, action === 'payout' ? 'secret' : 'internal')) {
           return j(deny(actor, action === 'payout' ? 'secret' : 'internal'), 403);
@@ -949,13 +994,13 @@ export default {
             dao_id: 'DAO-CMN-ASSOCIATIVE',
             kind: 'associative',
             name: 'Calhegas Morais Associative DAO',
-            meta: { team: 'aiops-dev', realm: 'realm_1f20890b' },
+            meta: { team: 'aiops-dev', realm: 'realm_1f20890b', commercial: false, quotas: 'equal', profit_distribution: false, composition: 'mixed_users_acbs' },
           },
           {
             dao_id: 'DAO-CMN-CORPORATE',
             kind: 'corporate',
             name: 'Calhegas Morais Corporate DAO',
-            meta: { host_node: 'FOG-NODE-PT-CM-001', clearance: true },
+            meta: { host_node: 'FOG-NODE-PT-CM-001', clearance: true, commercial: true, structure: 'unipersonal', profit_distribution: true, capital_social: 'external_registry' },
           },
         ]) {
           const exists = await db.prepare('SELECT dao_id FROM daos WHERE dao_id = ?').bind(spec.dao_id).first();
@@ -986,6 +1031,17 @@ export default {
             )
             .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', spec.kind === 'associative' ? 'member' : 'partner', 1)
             .run();
+
+          if (spec.kind === 'corporate') {
+            await db
+              .prepare(
+                `INSERT OR REPLACE INTO dao_partners (dao_id, partner_id, capital_strata, share_pct, registry_ref, registry_jurisdiction, status, joined_at)
+                 VALUES (?,?,?,?,?,?, 'active', datetime('now'))`
+              )
+              .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', 1, 100, 'PT-CMN-UNIPERSONAL-PENDING', 'PT')
+              .run();
+          }
+
           // seed associative with ACB team as members
           if (spec.kind === 'associative') {
             for (const m of [
@@ -1017,7 +1073,18 @@ export default {
         const data = await request.json().catch(() => ({}));
         const proposalId = data.proposal_id || 'PROP-' + crypto.randomUUID().slice(0, 10);
         const proposal_type = data.proposal_type || data.type || 'governance';
-        const dao_template = data.dao_template || data.template || 'foundational';
+        const dao_id = data.dao_id || null;
+        if (dao_id) {
+          const drow = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+          if (drow && drow.kind === 'associative' && /profit|dividend|distribu/i.test(String(proposal_type + ' ' + (data.title || '') + ' ' + (data.description || '')))) {
+            return j({
+              error: 'associative_no_profit_distribution',
+              message: 'Associative DAOs cannot propose STRATA profit distributions to members',
+            }, 400);
+          }
+        }
+        const dao_template = data.dao_template || data.template || (dao_id ? null : 'foundational');
+
         const quorum = Number(data.quorum_required != null ? data.quorum_required : 1);
         const closes_at = data.closes_at || null;
         try {
@@ -1065,7 +1132,7 @@ export default {
         const proposal_id = data.proposal_id;
         const voter = (actor.authenticated && actor.user_id) || data.voter_id || data.voter || data.account;
         const vote = (data.vote || data.choice || '').toLowerCase();
-        const weight = Number(data.weight != null ? data.weight : 1);
+        let weight = 1;
         if (!proposal_id || !voter || !['for', 'against', 'abstain', 'yes', 'no'].includes(vote)) {
           return j({ error: 'proposal_id, voter, vote(for|against|abstain) required' }, 400);
         }
@@ -1075,6 +1142,30 @@ export default {
         if (prop.status && !['active', 'open'].includes(prop.status)) {
           return j({ error: 'proposal not open', status: prop.status }, 400);
         }
+        // Weight: associative = equal 1; corporate = capital social share (clients cannot self-set weight)
+        weight = 1;
+        try {
+          const dao_id = prop.dao_id || data.dao_id;
+          if (dao_id) {
+            const drow = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+            if (drow && drow.kind !== 'associative') {
+              const partner = await db
+                .prepare("SELECT * FROM dao_partners WHERE dao_id = ? AND partner_id = ? AND status = 'active'")
+                .bind(dao_id, voter)
+                .first();
+              if (partner && Number(partner.share_pct) > 0) {
+                weight = Number(partner.share_pct) / 100;
+              } else if (partner && Number(partner.capital_strata) > 0) {
+                const tot = await db
+                  .prepare("SELECT SUM(capital_strata) as s FROM dao_partners WHERE dao_id = ? AND status = 'active'")
+                  .bind(dao_id)
+                  .first();
+                const s = Number(tot?.s) || 1;
+                weight = Number(partner.capital_strata) / s;
+              }
+            }
+          }
+        } catch (_) {}
         const dag = await dagAnchor(env, { type: 'dao_vote', proposal_id, voter, vote: normalized, weight });
         await db
           .prepare(
@@ -1189,7 +1280,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '4.1.0-capital-social' });
+        return j({ success: true, status: 'operational', active_spas, version: '4.2.0-refined-kinds' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);

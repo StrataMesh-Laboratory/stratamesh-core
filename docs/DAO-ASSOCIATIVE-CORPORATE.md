@@ -1,32 +1,29 @@
-# Associative vs Corporate DAOs
+# Associative vs Corporate DAOs (refined)
 
-## Principal difference
+## Core distinction
 
 | | **Associative** | **Corporate** |
 |--|-----------------|---------------|
-| Nature | **Non-commercial** entity | **Commercial** (unipersonal or multi-partner) |
-| Composition | Users and/or ACBs (ACB-only, user-only, or **mixed** — majority) | One or more **sócios** (partners) |
-| Quotas | **Always equal** | **Proportional** to capital social |
-| Profits in STRATA | **Never distributed** | **May redistribute** to partners by capital share |
-| Capital social | N/A | STRATA stakes linked to **external official commercial registry** (government) |
+| Nature | **Non-commercial** | **Commercial** |
+| Members | Users and/or **ACBs** (ACB-only, users-only, or **mixed**) | **Sócios** — unipersonal or multi-partner |
+| Quotas | **Always equal** | **Proportional** to capital social (STRATA) |
+| Voting weight | Always **1** | From **share_pct** / capital_strata |
+| Profit in STRATA | **Forbidden** | **Allowed** — proportional payout from treasury |
+| Capital social | N/A | Linked to **external official commercial registry** |
 
-## Associative
-- Not a profit vehicle.
-- Internal rules may allow only ACBs, only users, or mixed membership.
-- One member, one vote / equal quotas.
-- Treasury may hold STRATA for collective activity, but **no profit payouts** to members as dividends.
+## Rules enforced in code
+1. Associative `join` rejects `capital_strata`, `share_pct`, or `role: partner`.
+2. Associative `distribute` / treasury dividend flags → `associative_no_profit_distribution`.
+3. Associative proposals mentioning profit/dividend → rejected.
+4. Corporate votes ignore client-supplied weight; weight = capital share.
+5. Corporate partners: `POST /dao/partner` with `registry_ref` + `registry_jurisdiction`.
 
-## Corporate
-- Unipersonal (single partner) or multi-partner society.
-- Partners register **capital_strata**; `share_pct` is derived from total capital social.
-- `registry_ref` + `registry_jurisdiction` point to the official external commercial register.
-- `POST /dao/distribute` pays partners from DAO treasury proportional to capital — **corporate only**.
-
-## Live CMN
-- `DAO-CMN-ASSOCIATIVE` — AIOps ACBs + FOG + operator (mixed, equal members)
-- `DAO-CMN-CORPORATE` — FOG partner (unipersonal lab; registry ref pending official filing)
+## CMN instances
+- **DAO-CMN-ASSOCIATIVE** — mixed ACBs + FOG + operator; equal quotas
+- **DAO-CMN-CORPORATE** — FOG unipersonal partner; registry `PT-CMN-UNIPERSONAL-PENDING`
 
 ## API
-- `POST /dao/partner` — set capital social (corporate)
-- `GET /dao/partners`
-- `POST /dao/distribute` — profit share (corporate only; rejected for associative)
+- `POST /dao/create` `{ kind: "associative"|"corporate" }`
+- `POST /dao/join` · `POST /dao/partner` · `GET /dao/partners`
+- `POST /dao/distribute` (corporate only)
+- `GET /dao/info?dao_id=` → includes `rules`
