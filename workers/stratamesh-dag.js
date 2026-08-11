@@ -27,6 +27,15 @@ async function sha256(d) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+async function contentCid(d) {
+  const hex = await sha256(d);
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+  let bits = '';
+  for (let i = 0; i < hex.length; i += 2) bits += parseInt(hex.slice(i, i + 2), 16).toString(2).padStart(8, '0');
+  let out = '';
+  for (let i = 0; i + 5 <= bits.length; i += 5) out += alphabet[parseInt(bits.slice(i, i + 5), 2)];
+  return 'bafy' + out.slice(0, 52);
+}
 
 export default {
   async fetch(request, env) {
@@ -65,7 +74,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.1.0-ipfs-ops',
+          version: '2.2.0-refined',
           vertices: count,
           pipeline: ['tip-select', 'hash', 'ipfs-pin', 'attach', 'gossip'],
           schema: 'vertices + dag_vertices + ipfs_pins',
@@ -129,7 +138,7 @@ export default {
         let cid = body.cid || body.ipfs_cid || null;
         let pin = null;
         if (!cid && content != null) {
-          cid = 'bafy' + (await sha256(typeof content === 'string' ? content : JSON.stringify(content))).slice(0, 50);
+          cid = await contentCid(typeof content === 'string' ? content : JSON.stringify(content));
         }
         if (cid) {
           try {
@@ -206,22 +215,32 @@ export default {
         } catch (_) {}
 
         // Gossip
-        const peers = [
-          'https://stratamesh-node-2.stratamesh.workers.dev/validate',
-          'https://stratamesh-node-3.stratamesh.workers.dev/validate',
-          'https://stratamesh-gossip.stratamesh.workers.dev/broadcast',
-        ];
+        const gossipBody = JSON.stringify({ id: vid, hash: ph, tip: vid, cid, tips: tipIds, payload: payloadStr.slice(0, 200) });
         const gossip = [];
-        for (const peer of peers) {
+        const peerBindings = [
+          ['node-2', env.NODE2, 'https://stratamesh-node-2.stratamesh.workers.dev', '/validate'],
+          ['node-3', env.NODE3, 'https://stratamesh-node-3.stratamesh.workers.dev', '/validate'],
+          ['gossip', env.GOSSIP, 'https://stratamesh-gossip.stratamesh.workers.dev', '/broadcast'],
+        ];
+        for (const [name, binding, base, pth] of peerBindings) {
           try {
-            const resp = await fetch(peer, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: vid, hash: ph, tip: vid, cid, tips: tipIds, payload: payloadStr.slice(0, 200) }),
-            });
-            gossip.push({ peer: peer.split('.')[0].replace('https://', ''), ok: resp.ok, status: resp.status });
+            let resp;
+            if (binding && typeof binding.fetch === 'function') {
+              resp = await binding.fetch(new Request('https://peer' + pth, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: gossipBody,
+              }));
+            } else {
+              resp = await fetch(base + pth, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: gossipBody,
+              });
+            }
+            gossip.push({ peer: name, ok: resp.ok, status: resp.status });
           } catch (e) {
-            gossip.push({ peer, ok: false, error: String(e.message || e).slice(0, 80) });
+            gossip.push({ peer: name, ok: false, error: String(e.message || e).slice(0, 80) });
           }
         }
 
@@ -235,7 +254,7 @@ export default {
           pin,
           gossip,
           cumulative_weight: 1,
-          version: '2.1.0-ipfs-ops',
+          version: '2.2.0-refined',
         });
       }
 
@@ -274,7 +293,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.1.0-ipfs-ops',
+        version: '2.2.0-refined',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate'],
       });
     } catch (e) {

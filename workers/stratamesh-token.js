@@ -12,6 +12,35 @@ async function sha256(d) {
     .join('');
 }
 
+/** Lab CIDv1-style: bafy + base32-ish of sha256 (not full multiformats, stable content-id) */
+async function contentCid(d) {
+  const hex = await sha256(d);
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+  let bits = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    bits += parseInt(hex.slice(i, i + 2), 16).toString(2).padStart(8, '0');
+  }
+  let out = '';
+  for (let i = 0; i + 5 <= bits.length; i += 5) {
+    out += alphabet[parseInt(bits.slice(i, i + 5), 2)];
+  }
+  return 'bafy' + out.slice(0, 52);
+}
+
+async function labSign(payload, secret) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret || 'stratamesh-lab-signing-v1'),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -91,7 +120,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.0.0-tokenization',
+        version: '2.1.0-refined',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -188,9 +217,9 @@ export default {
         node: 'FOG-NODE-PT-CM-001',
         created_at: new Date().toISOString(),
       };
+      metadata.lab_signature = await labSign(JSON.stringify({ name, owner, asset_type, attributes }), env.LAB_SIGNING_SECRET);
       const metaStr = JSON.stringify(metadata);
-      const metadata_cid =
-        body.metadata_cid || 'bafy' + (await sha256(metaStr)).slice(0, 50);
+      const metadata_cid = body.metadata_cid || (await contentCid(metaStr));
 
       // IPFS pin record (best-effort)
       try {
@@ -285,9 +314,9 @@ export default {
         standard: 'strata-nft-import-1',
         created_at: new Date().toISOString(),
       };
+      metadata.lab_signature = await labSign(JSON.stringify({ source_chain, source_token_id, owner }), env.LAB_SIGNING_SECRET);
       const metaStr = JSON.stringify(metadata);
-      const metadata_cid =
-        body.metadata_cid || 'bafy' + (await sha256(metaStr)).slice(0, 50);
+      const metadata_cid = body.metadata_cid || (await contentCid(metaStr));
 
       try {
         await db
