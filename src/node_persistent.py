@@ -289,6 +289,7 @@ class PersistentFogNode:
 
     def status(self) -> dict:
         with self.lock:
+            self.spas.apply_opt_out_grace()
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             return build_status_payload(
@@ -427,7 +428,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 data = {}
             try:
-                self._json(200, NODE.spas.request_opt_out(str(data.get("spa_id", "")), str(data.get("reason", ""))))
+                self._json(200, NODE.spas.request_opt_out(str(data.get("spa_id", "")), str(data.get("reason", "")), bool(data.get("immediate", False))))
             except Exception as e:
                 self._json(400, {"error": str(e)})
 

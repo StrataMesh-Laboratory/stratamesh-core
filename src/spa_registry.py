@@ -155,21 +155,49 @@ class SPARegistry:
         return True
 
 
-    def request_opt_out(self, spa_id: str, reason: str = "") -> dict:
-        """Begin opt-out; active until grace period elapses (lab: immediate deactivate flag + timestamp)."""
+    def request_opt_out(self, spa_id: str, reason: str = "", immediate: bool = False) -> dict:
+        """Begin opt-out. Lab default: grace period = opt_out_days (simulated seconds optional)."""
         rec = self.spas.get(spa_id)
         if not rec:
             raise KeyError("spa not found")
-        rec.active = False
-        meta = {
+        now = time.time()
+        # Lab: 1 day → 60s for demos; production would use days * 86400
+        grace_sec = float(rec.opt_out_days) * 60.0  # accelerated lab clock
+        if immediate:
+            grace_sec = 0.0
+        rec._opt_out_at = now  # type: ignore
+        rec._grace_until = now + grace_sec  # type: ignore
+        rec._opt_out_reason = reason  # type: ignore
+        if grace_sec <= 0:
+            rec.active = False
+            status = "opted_out"
+        else:
+            status = "opt_out_pending"
+            # stays active during grace
+        return {
             "spa_id": spa_id,
             "provider_id": rec.provider_id,
             "opt_out_days": rec.opt_out_days,
+            "grace_seconds_lab": grace_sec,
+            "grace_until": getattr(rec, "_grace_until", None),
             "reason": reason,
-            "status": "opted_out",
-            "at": time.time(),
+            "status": status,
+            "at": now,
+            "active": rec.active,
         }
-        return meta
+
+    def apply_opt_out_grace(self) -> list:
+        """Deactivate SPAs whose grace period elapsed."""
+        now = time.time()
+        done = []
+        for rec in self.spas.values():
+            until = getattr(rec, "_grace_until", None)
+            if until is None:
+                continue
+            if now >= until and rec.active:
+                rec.active = False
+                done.append(rec.spa_id)
+        return done
 
     def list_by_provider(self, provider_id: str) -> list:
         return [r for r in self.spas.values() if r.provider_id == provider_id]
