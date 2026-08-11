@@ -140,7 +140,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '4.0.0-labour-market',
+          version: '4.0.1-labour-market',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only; rates from scarcity/supply-demand (not fixed artificial emission)',
@@ -275,6 +275,25 @@ export default {
           return j({ error: String(e.message || e) }, 500);
         }
 
+        // FK: user_id must exist in users — map payer account or ensure lab user row
+        let user_id = payer;
+        try {
+          const u = await db.prepare('SELECT id FROM users WHERE id = ? OR email = ?').bind(payer, payer).first();
+          if (u) user_id = u.id;
+          else {
+            await db
+              .prepare(
+                `INSERT OR IGNORE INTO users (id, email, display_name, clearance_level, created)
+                 VALUES (?, ?, ?, 0, datetime('now'))`
+              )
+              .bind(payer, payer.includes('@') ? payer : payer + '@node.stratamesh.lab', 'STRATA holder ' + payer)
+              .run();
+            user_id = payer;
+          }
+        } catch (_) {
+          user_id = payer;
+        }
+
         await db
           .prepare(
             `INSERT INTO acb_labor_contracts
@@ -283,7 +302,7 @@ export default {
           )
           .bind(
             contract_id,
-            payer,
+            user_id,
             listing.acb_id,
             listing_id,
             listing.labor_category,
