@@ -6,7 +6,14 @@ export default {
     const country = request.headers.get('cf-ipcountry') || 'PT';
     const cplp = ['PT','BR','AO','MZ','CV','GW','ST','TL','GQ','MO'];
     const defaultLang = cplp.includes(country) ? 'pt' : 'en';
-    const lang = url.searchParams.get('lang') || defaultLang;
+    const langParam = url.searchParams.get('lang');
+    let lang = langParam || defaultLang;
+    // Path-based language: /pt and /en
+    if (path === '/pt' || path === '/pt/' || path.startsWith('/pt/')) {
+      lang = 'pt';
+    } else if (path === '/en' || path === '/en/') {
+      lang = 'en';
+    }
 
     // Password recovery proxy
     if (path.startsWith('/api/auth-recovery') || path.startsWith('/api/recovery')) {
@@ -57,6 +64,10 @@ export default {
     // Static pages from D1
     const keyMap = {
       '/': 'landing',
+      '/pt': 'landing',
+      '/pt/': 'landing',
+      '/en': 'landing',
+      '/en/': 'landing',
       '/request_access': 'request_access',
       '/request-access': 'request_access',
       '/accesspoint': 'accesspoint',
