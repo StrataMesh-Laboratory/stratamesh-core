@@ -193,7 +193,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '4.2.0-refined-kinds',
+          version: '4.2.1-refined-kinds',
           clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
@@ -918,8 +918,6 @@ export default {
 
       // Profit distribution — corporate only, proportional to capital social
       if (path === '/dao/distribute' && request.method === 'POST') {
-        const actor = await resolveActor(request, env);
-        if (!requireRank(actor, 'secret')) return j(deny(actor, 'secret'), 403);
         const data = await request.json().catch(() => ({}));
         const dao_id = data.dao_id;
         const amount = Number(data.amount || 0);
@@ -932,6 +930,8 @@ export default {
             message: 'Associative DAOs are non-commercial: equal quotas, no STRATA profit distributions to members',
           }, 400);
         }
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'secret')) return j(deny(actor, 'secret'), 403);
         const partners = await db.prepare("SELECT * FROM dao_partners WHERE dao_id = ? AND status = 'active'").bind(dao_id).all();
         const list = partners.results || [];
         if (!list.length) return j({ error: 'no_partners' }, 400);
@@ -1280,7 +1280,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '4.2.0-refined-kinds' });
+        return j({ success: true, status: 'operational', active_spas, version: '4.2.1-refined-kinds' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
