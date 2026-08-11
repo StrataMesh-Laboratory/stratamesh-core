@@ -232,6 +232,86 @@ async function chat(message, env) {
   };
 }
 
+
+const CHAT_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orchestrator · StrataMesh</title>
+<style>
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--accent:#c4b5a0;--card:#111113;--ok:#9caf88}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;display:flex;flex-direction:column}
+header{padding:1rem 1.25rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+header h1{font-size:1rem;font-weight:500;letter-spacing:.04em}
+header span{font-size:.7rem;color:var(--muted);font-family:ui-monospace,monospace}
+#log{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;max-width:720px;width:100%;margin:0 auto}
+.msg{font-size:.9rem;line-height:1.5;white-space:pre-wrap}
+.msg .who{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.25rem;font-family:ui-monospace,monospace}
+.msg.user .who{color:#93c5fd}
+.msg.orch .who{color:var(--ok)}
+.msg.sys{color:var(--muted);font-size:.8rem}
+footer{border-top:1px solid var(--line);padding:1rem 1.25rem;max-width:720px;width:100%;margin:0 auto}
+form{display:flex;gap:.5rem}
+input{flex:1;background:var(--card);border:1px solid var(--line);color:var(--fg);padding:.75rem 1rem;border-radius:4px;font-size:.9rem}
+input:focus{outline:none;border-color:var(--accent)}
+button{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:.75rem 1.1rem;border-radius:4px;cursor:pointer;font-size:.8rem;letter-spacing:.06em}
+button:hover{background:rgba(196,181,160,.08)}
+button:disabled{opacity:.4;cursor:wait}
+a{color:var(--accent);font-size:.7rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>Orchestrator</h1>
+  <span id="ver">hybrid-edge</span>
+</header>
+<div id="log">
+  <div class="msg sys">Hybrid Orchestrator chat — Calhegas Morais Fog Node. Try: status · next · ontology · qiga</div>
+</div>
+<footer>
+  <form id="f">
+    <input id="q" autocomplete="off" placeholder="Message the Orchestrator…" autofocus>
+    <button type="submit" id="go">Send</button>
+  </form>
+  <p style="margin-top:.75rem"><a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard">← Portal</a></p>
+</footer>
+<script>
+const log=document.getElementById('log');
+const q=document.getElementById('q');
+const go=document.getElementById('go');
+function add(role,text){
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  const who=role==='user'?'You':role==='orch'?'Orchestrator':'';
+  d.innerHTML=(who?'<div class="who">'+who+'</div>':'')+String(text).replace(/</g,'&lt;');
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+}
+document.getElementById('f').onsubmit=async(e)=>{
+  e.preventDefault();
+  const msg=q.value.trim();
+  if(!msg)return;
+  q.value='';
+  add('user',msg);
+  go.disabled=true;
+  try{
+    const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const j=await r.json();
+    if(j.version) document.getElementById('ver').textContent=j.version;
+    add('orch', j.reply||j.error||JSON.stringify(j));
+  }catch(err){
+    add('sys','Error: '+(err.message||err));
+  }finally{
+    go.disabled=false;
+    q.focus();
+  }
+};
+</script>
+</body>
+</html>`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -267,12 +347,22 @@ export default {
 
     if (path === "/chat" || path === "/api/chat") {
       if (request.method === "GET") {
-        return json({
-          service: "orchestrator-chat",
-          version: VERSION,
-          stub: false,
-          methods: ["POST"],
-          body: { message: "string" },
+        const accept = request.headers.get("Accept") || "";
+        if (accept.includes("application/json") && !accept.includes("text/html")) {
+          return json({
+            service: "orchestrator-chat",
+            version: VERSION,
+            stub: false,
+            methods: ["POST"],
+            body: { message: "string" },
+          });
+        }
+        return new Response(CHAT_HTML, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": "*",
+          },
         });
       }
       let body = {};
