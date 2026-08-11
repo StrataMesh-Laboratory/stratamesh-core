@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.5.0-mesh-integrated";
+const VERSION = "10.6.0-mesh-repaired";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1003,6 +1003,13 @@ async function gatherMetrics(env) {
     ["scout", env.SCOUT, "https://stratamesh-scout.stratamesh.workers.dev/", "/"],
     ["crypto", env.CRYPTO, "https://stratamesh-crypto.stratamesh.workers.dev/health", "/health"],
     ["dag", env.DAG, "https://stratamesh-dag.stratamesh.workers.dev/", "/"],
+    ["node2", env.NODE2, "https://stratamesh-node-2.stratamesh.workers.dev/health", "/health"],
+    ["node3", env.NODE3, "https://stratamesh-node-3.stratamesh.workers.dev/health", "/health"],
+    ["edge", env.EDGE, "https://stratamesh-edge.stratamesh.workers.dev/health", "/health"],
+    ["gossip", env.GOSSIP, "https://stratamesh-gossip.stratamesh.workers.dev/health", "/health"],
+    ["consensus", env.CONSENSUS, "https://stratamesh-consensus.stratamesh.workers.dev/health", "/health"],
+    ["registry", env.REGISTRY, "https://stratamesh-registry.stratamesh.workers.dev/health", "/health"],
+    ["gate", env.GATE, "https://stratamesh-gate.stratamesh.workers.dev/health", "/health"],
   ];
   const mesh = {};
   for (const [name, binding, url, bpath] of meshTargets) {
@@ -1043,6 +1050,13 @@ async function gatherMetrics(env) {
     mesh_dao_ok: !!(mesh.dao && mesh.dao.ok),
     mesh_poc_ok: !!(mesh.poc && mesh.poc.ok),
     mesh_token_ok: !!(mesh.token && mesh.token.ok),
+    mesh_node2_ok: !!(mesh.node2 && mesh.node2.ok),
+    mesh_node3_ok: !!(mesh.node3 && mesh.node3.ok),
+    mesh_edge_ok: !!(mesh.edge && mesh.edge.ok),
+    mesh_gossip_ok: !!(mesh.gossip && mesh.gossip.ok),
+    mesh_consensus_ok: !!(mesh.consensus && mesh.consensus.ok),
+    mesh_registry_ok: !!(mesh.registry && mesh.registry.ok),
+    mesh_gate_ok: !!(mesh.gate && mesh.gate.ok),
     auth_ok: !!(auth && auth.ok),
     auth_users: auth?.data?.checks?.database?.users ?? null,
     auth_sessions: auth?.data?.checks?.sessions?.active ?? null,
