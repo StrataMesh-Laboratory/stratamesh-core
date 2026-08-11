@@ -37,6 +37,71 @@ async function contentCid(d) {
   return 'bafy' + out.slice(0, 52);
 }
 
+
+async function ensureConflictTables(db) {
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS spend_claims (
+      spend_key TEXT PRIMARY KEY,
+      vertex_id TEXT NOT NULL,
+      payload_hash TEXT,
+      emission_node TEXT,
+      created_at TEXT
+    )`).run();
+  } catch (_) {}
+}
+
+function extractSpendKey(payload) {
+  let o = payload;
+  if (typeof payload === 'string') {
+    try { o = JSON.parse(payload); } catch { return null; }
+  }
+  if (!o || typeof o !== 'object') return null;
+  // explicit key
+  if (o.spend_key) return String(o.spend_key);
+  const typ = (o.type || o.kind || '').toLowerCase();
+  // token transfer / nft transfer conflict surface
+  if (typ.includes('transfer') || typ.includes('spend') || typ === 'payment') {
+    const asset = o.asset_id || o.nft_id || o.token || 'STRATA';
+    const from = o.from || o.owner || o.seller || o.account || '';
+    const nonce = o.nonce || o.utxo || o.tx_ref || o.id || '';
+    if (from || nonce) return `spend:${asset}:${from}:${nonce}`;
+  }
+  if (typ === 'nft_mint' && o.id) return `mint:${o.id}`;
+  return null;
+}
+
+async function bumpWeights(db, tipIds, delta = 1) {
+  // Increase cumulative_weight on referenced tips (parents) — lab approximation of cumulative confirmation weight
+  for (const tid of tipIds || []) {
+    if (!tid || tid === 'GENESIS') continue;
+    try {
+      await db.prepare('UPDATE vertices SET cumulative_weight = COALESCE(cumulative_weight,0) + ? WHERE vertex_id = ?').bind(delta, tid).run();
+    } catch (_) {}
+    try {
+      await db.prepare('UPDATE dag_tips SET weight = COALESCE(weight,0) + ? WHERE vertex_id = ? OR cid = ?').bind(delta, tid, tid).run();
+    } catch (_) {}
+    // one level up: parents of tip
+    try {
+      const row = await db.prepare('SELECT parent_vertices FROM vertices WHERE vertex_id = ?').bind(tid).first();
+      if (row && row.parent_vertices) {
+        let parents = [];
+        try { parents = JSON.parse(row.parent_vertices); } catch { parents = []; }
+        for (const pid of parents.slice(0, 4)) {
+          if (!pid || pid === 'GENESIS') continue;
+          try {
+            await db.prepare('UPDATE vertices SET cumulative_weight = COALESCE(cumulative_weight,0) + ? WHERE vertex_id = ?').bind(Math.max(1, Math.floor(delta / 2)), pid).run();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }
+}
+
+function confidenceFromWeight(w) {
+  const n = Number(w) || 0;
+  return Math.round((1 - 1 / (1 + n)) * 10000) / 10000;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -74,7 +139,9 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.2.0-refined',
+          version: '2.5.1-weight-conflict',
+          anti_double_spend: true,
+          cumulative_weight: true,
           vertices: count,
           pipeline: ['tip-select', 'hash', 'ipfs-pin', 'attach', 'gossip'],
           schema: 'vertices + dag_vertices + ipfs_pins',
@@ -113,12 +180,40 @@ export default {
         const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
         const ph = await sha256(payloadStr);
 
-        // double-spend
+        await ensureConflictTables(db);
+
+        // Exact duplicate payload
         let dup = null;
         try {
           dup = await db.prepare('SELECT vertex_id FROM vertices WHERE payload_hash=?').bind(ph).first();
         } catch (_) {}
-        if (dup) return j({ error: 'Double-spend detected', existing: dup.vertex_id }, 409);
+        if (dup) {
+          return j({
+            error: 'duplicate_payload',
+            reason: 'Identical payload already on DAG',
+            existing: dup.vertex_id,
+            rule: 'payload_hash unique',
+          }, 409);
+        }
+
+        // Semantic double-spend / conflict (spend_key)
+        const spendKey = extractSpendKey(payload);
+        if (spendKey) {
+          let claim = null;
+          try {
+            claim = await db.prepare('SELECT * FROM spend_claims WHERE spend_key = ?').bind(spendKey).first();
+          } catch (_) {}
+          if (claim && claim.payload_hash !== ph) {
+            return j({
+              error: 'Double-spend detected',
+              reason: 'Conflicting spend_key already claimed by another vertex',
+              spend_key: spendKey,
+              existing: claim.vertex_id,
+              existing_hash: claim.payload_hash,
+              rule: 'one spend_key → one accepted payload on DAG',
+            }, 409);
+          }
+        }
 
         // tips
         let tipIds = body.tips;
@@ -204,15 +299,31 @@ export default {
           }
         }
 
-        // Update tip weights lightly
+                // Register spend claim (anti-double-spend surface)
+        if (spendKey) {
+          try {
+            await db
+              .prepare(
+                'INSERT OR IGNORE INTO spend_claims (spend_key, vertex_id, payload_hash, emission_node, created_at) VALUES (?,?,?,?,?)'
+              )
+              .bind(spendKey, vid, ph, node_id, new Date().toISOString())
+              .run();
+          } catch (_) {}
+        }
+
+        // Cumulative weight: new vertex weight=1; bump parents (whitepaper confirmation via subsequent references)
+        await bumpWeights(db, tipIds, 1);
         try {
-          await db
-            .prepare(
-              'INSERT INTO dag_tips (cid, weight, updated_at, vertex_id) VALUES (?,1,?,?) ON CONFLICT(cid) DO UPDATE SET weight = weight + 1, updated_at = excluded.updated_at'
-            )
-            .bind(cid || vid, now, vid)
-            .run();
+          for (const tip of tipIds) {
+            await db
+              .prepare(
+                'INSERT INTO dag_tips (cid, weight, updated_at, vertex_id) VALUES (?,1,?,?) ON CONFLICT(cid) DO UPDATE SET weight = weight + 1, updated_at = excluded.updated_at'
+              )
+              .bind(tip, new Date().toISOString(), vid)
+              .run();
+          }
         } catch (_) {}
+
 
         // Gossip
         const gossipBody = JSON.stringify({ id: vid, hash: ph, tip: vid, cid, tips: tipIds, payload: payloadStr.slice(0, 200) });
@@ -254,7 +365,9 @@ export default {
           pin,
           gossip,
           cumulative_weight: 1,
-          version: '2.2.0-refined',
+          spend_key: spendKey,
+          confidence: confidenceFromWeight(1),
+          version: '2.5.1-weight-conflict',
         });
       }
 
@@ -290,11 +403,34 @@ export default {
         return j({ vertex: v });
       }
 
+
+      // GET /confidence?id= — cumulative weight → probabilistic confidence
+      if (path === '/confidence') {
+        const id = url.searchParams.get('id') || url.searchParams.get('vertex_id');
+        if (!id) return j({ error: 'id required' }, 400);
+        const v = await db.prepare('SELECT vertex_id, cumulative_weight, payload_hash, parent_vertices FROM vertices WHERE vertex_id = ?').bind(id).first();
+        if (!v) return j({ error: 'not found' }, 404);
+        const w = Number(v.cumulative_weight || 0);
+        return j({
+          vertex_id: v.vertex_id,
+          cumulative_weight: w,
+          confidence: confidenceFromWeight(w),
+          model: 'lab: confidence = 1 - 1/(1+weight); weight grows when later txs reference this vertex as tip',
+        });
+      }
+
+      // GET /conflicts — spend claims ledger
+      if (path === '/conflicts' || path === '/spend-claims') {
+        await ensureConflictTables(db);
+        const rows = await db.prepare('SELECT * FROM spend_claims ORDER BY created_at DESC LIMIT 50').all();
+        return j({ claims: rows.results || [], rule: 'one spend_key → one vertex' });
+      }
+
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.2.0-refined',
-        endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate'],
+        version: '2.5.1-weight-conflict',
+        endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {
       return j({ error: String(e.message || e) }, 500);
