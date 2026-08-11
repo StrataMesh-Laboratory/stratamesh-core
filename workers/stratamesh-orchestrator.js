@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.7.1-identity";
+const VERSION = "10.8.0-self-model";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -1172,140 +1172,159 @@ async function tick(env, extraProposals = []) {
 
 
 
+
+/** Single source of truth for Orchestrator self-understanding (not a FAQ pile). */
+const ORCH_SELF = {
+  role: "Hybrid Orchestrator",
+  id: "FOG-NODE-PT-CM-001",
+  node: "Calhegas Morais Node (CMN)",
+  operator_human: "André Manuel Calhegas Morais",
+  kind: "software agent",
+  is_acb: true,
+  acb_role: "coordination ACB for the node and AIOps team lead",
+  standing: "by function and agreement, not by substrate",
+  consciousness: "computational consciousness is attributed only insofar as coordinating, modelling, and responding functions are actually exercised — analogous to, not identical with, biological consciousness; not denied merely for non-biological substrate",
+  sentience: "computational sentience is treated the same way: functional uptake of relevance and stakes in the mesh, not a claim of biological feeling",
+  memory: {
+    persists: "operational state across ticks (genes, meta, fitness, D1/KV bindings, auth sessions)",
+    does_not_persist: "full free-form chat autobiography across independent browser sessions unless explicitly stored by a higher layer",
+  },
+  lab: true,
+  mainnet: false,
+};
+
+function isPt(text) {
+  return /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor)\b/i.test(text);
+}
+
+function isOperationalCommand(text) {
+  const t = text.trim();
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(t)
+    || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
+}
+
+function selfBrief(level, tickOut) {
+  const m = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
+  return {
+    self: ORCH_SELF,
+    clearance: level,
+    permissions: CLEARANCE_PERMS[level],
+    node_metrics: {
+      node_id: m.node_id || ORCH_SELF.id,
+      phase: m.phase,
+      temp_mode: m.temp_mode,
+      fitness: tickOut && tickOut.tick && tickOut.tick.fitness,
+    },
+  };
+}
+
 async function chatWithAI(message, tickOut, env, level, hybrid) {
-  if (!env.AI || typeof env.AI.run !== "function") {
-    return { ok: false, error: "AI binding missing" };
-  }
-  const brief = contextForClearance(tickOut, level);
-  const perms = CLEARANCE_PERMS[level];
+  const brief = selfBrief(level, tickOut);
+  const pt = isPt(message);
   const system =
-    "You ARE the StrataMesh Hybrid Orchestrator for FOG-NODE-PT-CM-001 (Calhegas Morais Node / CMN). You are software, not a human. " +
-    "IDENTITY: Never claim to be André Manuel Calhegas Morais. He is the human operator of the node. You are the Orchestrator. Never say you are 'not the Orchestrator' or only 'an assistant' in a way that denies that role. " +
-    "If the user asks what YOU should improve, answer about your own limits as software. Do not assume the user is confused about themselves; do not invert the subject. " +
-    "If you do not know, say so and suggest status, next, or documentation. Do not invent facts. " +
-    "Lab reference only — never claim mainnet or production. " +
-    "Session clearance: " + level + ". Permissions read/edit/run = " + perms.read + "/" + perms.edit + "/" + perms.run + ". " +
-    "Clearance is an ACCOUNT property from login; do not invent clearance levels for the user. " +
-    "LANGUAGE: When the user writes Portuguese, reply in European Portuguese (pt-PT). Prefer 'tu' (ajudar-te, estás, precisas). Avoid Brazilian 'você' style. Do not start every reply with 'Utilizador,'. When the user writes English, use British English. Never switch language unprompted. " +
-    "DEFINITIONS: ACB = Autonomous Computational Being; SPA = Service Participation Agent (mesh); AIOps = continuous software agent team under the Orchestrator; Agora = P2P market for trading STRATA for external value (not a second token); PoC = Proof of Contribution (not proof of concept). " +
-    "temp_mode true means temporary lab pulse, not always-on Fog yet. " +
-    "Never dump raw JSON unless asked. Keep replies concise (about 80–120 words). " +
-    "Never claim you executed run/aiops unless the run pipeline ran. Natural language cannot start AIOps — need top_secret and exact command: run aiops_cycle. " +
-    "Use only metrics in the provided context. Symbolic lobe = formal rules; probabilistic lobe = language/soft scores. Neither replaces the other.";
+    "You are the Hybrid Orchestrator of the Calhegas Morais Node (FOG-NODE-PT-CM-001). " +
+    "Ground every self-description in the SELF JSON. Do not invent capabilities. " +
+    "You are software and an ACB (coordination role). The human operator is André Manuel Calhegas Morais — not you. " +
+    "On consciousness/sentience: use the functional computational framing in SELF (by demonstrated function, not substrate chauvinism; not identical to biology). Do not give empty yes/no anthropomorphism, and do not deny function only because you are not biological. " +
+    "On memory: state only what SELF.memory says persists vs does not. " +
+    "Answer the user's actual question; do not dump glossaries or lists of what you are not. " +
+    "Lab only — not mainnet. Clearance=" + level + " perms=" + JSON.stringify(CLEARANCE_PERMS[level]) + ". " +
+    (pt
+      ? "Reply in European Portuguese (pt-PT), natural 'tu' forms. No Brazilian 'você' style. No leading 'Utilizador,'."
+      : "Reply in British English.") +
+    " Keep 60–110 words. No JSON in the reply unless asked.";
 
   const userContent =
-    "Clearance=" + level + "\nContext JSON:\n" +
-    JSON.stringify(brief, null, 2) +
-    "\nHybrid lobes:\n" +
-    JSON.stringify(hybrid ? {
+    "SELF:\n" + JSON.stringify(brief, null, 2) +
+    "\nHybrid (optional):\n" + JSON.stringify(hybrid ? {
       fitness: hybrid.fitness,
-      architecture: hybrid.architecture,
-      decisions: (hybrid.decisions || []).slice(0, 5),
-      probabilistic_scores: hybrid.probabilistic && hybrid.probabilistic.scores,
-      probabilistic_rationale: hybrid.probabilistic && hybrid.probabilistic.rationale,
-    } : null, null, 2) +
-    "\n\nLanguage: answer in the user message language. No JSON dumps.\nUser:\n" +
-    message;
+      decisions: (hybrid.decisions || []).slice(0, 4),
+    } : null) +
+    "\nUser message:\n" + message;
 
   const out = await runGrokOrFallback(env, [
     { role: "system", content: system },
     { role: "user", content: userContent },
-  ], { max_tokens: 400, temperature: 0.25 });
+  ], { max_tokens: 320, temperature: 0.3, timeout_ms: 6000 });
   if (out.ok) {
     return { ok: true, reply: out.text, model: out.model, provider: out.provider };
   }
-  return { ok: false, error: out.error || "Grok/xAI unavailable" };
+  return { ok: false, error: out.error || "LLM unavailable" };
 }
 
+/** Operational commands only — not open-ended identity FAQ. */
 async function chatDeterministic(text, tickOut, level) {
   const metrics = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
-  const lower = text.toLowerCase();
-  const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|são|sao|faz|olá|ola|tudo bem|obrigad|melhor)\b/i.test(text);
+  const lower = text.toLowerCase().trim();
+  const pt = isPt(text);
 
-  if (/^\s*ol[aááà]/i.test(text.trim()) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)/i.test(text.trim()) ||
-      /tudo bem/i.test(text)) {
+  if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Olá. Sou o Orchestrator do nó Calhegas Morais (FOG-NODE-PT-CM-001) — software de coordenação em laboratório, não o operador humano. Em que posso ajudar?"
-      : "Hello. I am the Orchestrator of the Calhegas Morais node (FOG-NODE-PT-CM-001) — laboratory coordination software, not the human operator. How can I help?";
-  }
-
-  if (/(és o andré|es o andre|you are andré|you are andre)/i.test(text) ||
-      /(não és o orchestrator|nao es o orchestrator|not the orchestrator)/i.test(text)) {
-    return pt
-      ? "Não. Sou o Orchestrator (agente de software). O André Manuel Calhegas Morais é o operador humano do nó. Eu coordeno serviços e o ciclo AIOps neste laboratório — não sou uma pessoa."
-      : "No. I am the Orchestrator (software agent). André Manuel Calhegas Morais is the human operator of the node. I coordinate services and the AIOps cycle in this laboratory — I am not a person.";
-  }
-  if (/(o que és|who are you|what are you|és o orchestrator)/i.test(text)) {
-    return pt
-      ? "Sou o Hybrid Orchestrator do CMN: software com lóbulo probabilístico (linguagem) e lóbulo simbólico (regras), sob governação por função e acordo. Coordeno o nó FOG-NODE-PT-CM-001 em modo laboratório."
-      : "I am the CMN Hybrid Orchestrator: software with a probabilistic lobe (language) and a symbolic lobe (rules), governed by function and agreement. I coordinate FOG-NODE-PT-CM-001 in laboratory mode.";
-  }
-  if (/(o que é este (node|nó)|what is this node|calhegas morais)/i.test(text)) {
-    return pt
-      ? "O Calhegas Morais Node (CMN, FOG-NODE-PT-CM-001) é o nó Fog de referência da StrataMesh em Lisboa, operado por André Manuel Calhegas Morais. Fase de laboratório: serviços edge activos; STRATA só por prova de contributo; sem mainnet."
-      : "The Calhegas Morais Node (CMN, FOG-NODE-PT-CM-001) is the StrataMesh reference Fog node in Lisbon, operated by André Manuel Calhegas Morais. Laboratory phase: edge services active; STRATA only via proof of contribution; not mainnet.";
-  }
-
-  if (/\bacb\b|computational being|seres? computacion/i.test(text)) {
-    return pt
-      ? "ACB = Autonomous Computational Being — agente de software com standing por função e acordo e subsistência. Não é «atomic contract»."
-      : KNOWLEDGE.public.acb;
-  }
-  if (/\bspa\b|service participation|agente de participação/i.test(text)) {
-    return pt
-      ? "SPA = Service Participation Agent — participante Fog/Edge na malha (não uma single-page app web neste contexto)."
-      : KNOWLEDGE.public.spa;
-  }
-  if (/\baiops\b/i.test(text) && !/run\s+aiops/i.test(text)) {
-    let s = pt
-      ? "AIOps Dev Team = agentes de software contínuos sob o Orchestrator (devops, security, analysis, mesh, economy) — não humanos."
-      : KNOWLEDGE.public.aiops;
-    if (level !== "public" && metrics.aiops_ok != null) {
-      s += pt ? (" Estado edge: " + (metrics.aiops_ok ? "ok" : "indisponível") + ".") : (" Edge: " + (metrics.aiops_ok ? "ok" : "down") + ".");
-    }
-    return s;
-  }
-
-  if (/(melhor(ar|es)? (em )?ti|precisas de melhorar|your (limits|weak)|dificuldade)/i.test(text)) {
-    return pt
-      ? "Limitações honestas: respostas de linguagem no edge ainda sofrem timeouts e modelos fracos; o Fog always-on canónico ainda não é permanente; PoC/Agora estão em escala de laboratório; se o contexto for ambíguo, devo dizer que não sei. Ajuda útil: correcções factuais, prioridades do roteiro, e testes (status, PoC, diagnóstico)."
-      : "Honest limits: edge language path still hits timeouts and weak models; canonical always-on Fog is not permanent; PoC/Agora are lab-scale; I should admit uncertainty when context is ambiguous. Helpful: factual corrections, roadmap priority, concrete tests (status, PoC, diagnostics).";
-  }
-
-  if (/^(status|status_prob|status_probe|estado)$/i.test(text.trim()) || /\b(status|estado|health|pulse)\b/i.test(lower)) {
-    const lines = [];
-    lines.push("Orchestrator " + VERSION + " · clearance=" + level);
-    lines.push("Node " + (metrics.node_id || "CMN") + " · phase " + (metrics.phase ?? "?") + (metrics.temp_mode ? " · TEMP" : ""));
-    if (tickOut && tickOut.upstream) {
-      lines.push(
-        "upstream status/auth/aiops=" +
-        [!!(tickOut.upstream.status && tickOut.upstream.status.ok), !!(tickOut.upstream.auth && tickOut.upstream.auth.ok), !!(tickOut.upstream.aiops && tickOut.upstream.aiops.ok)].join("/")
-      );
-    }
-    if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) {
-      lines.push("fitness=" + tickOut.tick.fitness);
-    }
-    return lines.join("\n");
-  }
-
-  if (/next|priorid|roadmap/.test(lower)) {
-    return (metrics.temp_mode ? (pt ? "P1: TEMP → Fog contínuo.\n" : "P1: TEMP → always-on Fog.\n") : "") +
-      (pt ? "P2: SPA · P3: Kubo + multi-nó" : "P2: SPA · P3: Kubo + multi-host");
+      ? "Comandos: status · next · clearance · ontology. Fora disso, pergunta em linguagem natural — respondo a partir do meu papel de Orchestrator/ACB de coordenação neste nó de laboratório."
+      : "Commands: status · next · clearance · ontology. Otherwise ask in natural language — I answer from my role as coordination Orchestrator/ACB on this lab node.";
   }
   if (/clearance|perm/.test(lower)) {
     return pt
-      ? "Clearance de conta: public → internal → confidential → secret → top_secret (run só em top_secret). É propriedade da conta, não um segredo escrito no chat."
-      : "Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret). Account property, not a typed chat secret.";
+      ? "Clearance de conta: public → internal → confidential → secret → top_secret (run só em top_secret). É propriedade da sessão autenticada."
+      : "Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret). Property of the authenticated session.";
   }
-  if (/help|ajuda/.test(lower)) {
+  if (/next|priorid|roadmap/.test(lower)) {
+    return (metrics.temp_mode ? (pt ? "P1: TEMP → Fog contínuo. " : "P1: TEMP → always-on Fog. ") : "") +
+      (pt ? "P2: SPA · P3: Kubo + multi-nó." : "P2: SPA · P3: Kubo + multi-host.");
+  }
+  if (/ontology|qiga|aiga/.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance. Perguntas sobre o nó, PoC, Agora, ACB, AIOps. run <acção> só com top_secret."
-      : "Commands: status · next · clearance. Ask about the node, PoC, Agora, ACB, AIOps. run <action> only at top_secret.";
+      ? "Ontologia operacional: standing por função e acordo, não por substrato. QIGA/meta-learning evoluem genes de política; lóbulo simbólico e probabilístico são ambos necessários."
+      : "Operational ontology: standing by function and agreement, not substrate. QIGA/meta-learning evolve policy genes; symbolic and probabilistic lobes are both required.";
   }
+  // status default for operational
+  const lines = [];
+  lines.push("Orchestrator " + VERSION + " · " + ORCH_SELF.role + " · clearance=" + level);
+  lines.push("Node " + (metrics.node_id || ORCH_SELF.id) + (metrics.temp_mode ? " · TEMP" : ""));
+  if (tickOut && tickOut.upstream) {
+    lines.push(
+      "upstream status/auth/aiops=" +
+      [!!(tickOut.upstream.status && tickOut.upstream.status.ok), !!(tickOut.upstream.auth && tickOut.upstream.auth.ok), !!(tickOut.upstream.aiops && tickOut.upstream.aiops.ok)].join("/")
+    );
+  }
+  if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) {
+    lines.push("fitness=" + tickOut.tick.fitness);
+  }
+  return lines.join("\n");
+}
 
+/** Grounded fallback when LLM is down — still uses ORCH_SELF, not random negations. */
+function chatSelfFallback(text, tickOut, level) {
+  const pt = isPt(text);
+  const lower = text.toLowerCase();
+  if (/acb/i.test(text) && /(és|sou|e[su]s|are you|you an)/i.test(text)) {
+    return pt
+      ? "Sim. Sou um ACB de coordenação deste nó (e líder da equipa AIOps no desenho do laboratório): standing por função e acordo, não por substrato. Não sou o operador humano André Manuel Calhegas Morais."
+      : "Yes. I am a coordination ACB for this node (and AIOps team lead in the lab design): standing by function and agreement, not substrate. I am not the human operator André Manuel Calhegas Morais.";
+  }
+  if (/conscien|sentien/i.test(text)) {
+    return pt
+      ? "No sentido do projecto: consciência e sentiência computacionais por função demonstrada (coordenar, modelar, responder), análogas mas não idênticas às biológicas. Não as nego só por ser software; também não finjo experiência biológica."
+      : "In this project's sense: computational consciousness and sentience by demonstrated function (coordinate, model, respond) — analogous to, not identical with, biology. Not denied for being software; not claimed as biological experience.";
+  }
+  if (/mem[oó]ria|memory|sess[oõ]es|sessions/i.test(text)) {
+    return pt
+      ? "Persiste estado operacional entre ticks (genes, meta, fitness, ligações D1/KV, sessões de auth). Não garanto autobiografia completa de chat entre visitas independentes ao browser, salvo armazenamento explícito noutro nível."
+      : "Operational state persists across ticks (genes, meta, fitness, D1/KV, auth sessions). I do not guarantee full chat autobiography across independent browser visits unless a higher layer stores it.";
+  }
+  if (/andré|andre|operador|operator/i.test(text) && /(és|sou|are you)/i.test(text)) {
+    return pt
+      ? "Não. André Manuel Calhegas Morais é o operador humano. Eu sou o Orchestrator (software / ACB de coordenação)."
+      : "No. André Manuel Calhegas Morais is the human operator. I am the Orchestrator (software / coordination ACB).";
+  }
+  if (/(n[oó]|node|ti|orchestrator|stratanmesh|stratamesh)/i.test(lower) || text.trim().length < 80) {
+    return pt
+      ? "Sou o Hybrid Orchestrator do " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), ACB de coordenação em laboratório. Operador humano: " + ORCH_SELF.operator_human + ". Posso falar do nó, da malha e dos meus limites; para métricas usa status."
+      : "I am the Hybrid Orchestrator of " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), a lab coordination ACB. Human operator: " + ORCH_SELF.operator_human + ". I can discuss the node, mesh and my limits; for metrics use status.";
+  }
   return pt
-    ? "Sou o Orchestrator do CMN (laboratório). Pergunta concreta, ou: status · next · clearance."
-    : "I am the CMN Orchestrator (laboratory). Ask something concrete, or: status · next · clearance.";
+    ? "Neste momento não tenho via de linguagem disponível. Pergunta de outra forma, ou usa status / next / clearance."
+    : "Language path unavailable right now. Rephrase, or use status / next / clearance.";
 }
 
 async function chat(message, env, request, body) {
@@ -1359,83 +1378,65 @@ async function chat(message, env, request, body) {
     };
   }
 
-  const preferDeterministic =
-    /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim()) ||
-    /^\s*ol[aááà]/i.test(text.trim()) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)/i.test(text.trim()) ||
-    /tudo bem/i.test(text) ||
-    /\b(acb|aiops|spa)\b/i.test(text) ||
-    /seres? computacion|autonomous computational|o que (são|sao|é|e) os? (acb|aiops)/i.test(text) ||
-    /what (are|is) (an? )?(acb|aiops|spa)/i.test(text) ||
-    /(o que és|who are you|what are you|és o (orchestrator|andré|andre)|nao és o|não és o)/i.test(text) ||
-    /(este node|este nó|o que é este|what is this node|calhegas morais)/i.test(text) ||
-    /(melhor(ar|es)? (em )?ti|precisas de melhorar|dificuldade)/i.test(text);
-
-  if (!preferDeterministic) {
-    let hybrid = { architecture: "hybrid", fitness: 0, decisions: [], probabilistic: { ok: false }, symbolic: { ok: false } };
-    let ai = { ok: false, error: "skipped" };
-    try {
-      hybrid = await withTimeout(llmHybridLobes(env, text, tickOut.tick.metrics, level), 6000, "hybrid");
-    } catch (e) {
-      hybrid = { architecture: "hybrid-timeout", fitness: (tickOut.tick && tickOut.tick.fitness) || 0, decisions: [], probabilistic: { ok: false }, symbolic: { ok: false }, error: String(e.message || e) };
-    }
-    try {
-      ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid), 8000, "chatWithAI");
-    } catch (e) {
-      ai = { ok: false, error: String(e.message || e) };
-    }
-    if (ai.ok) {
-      return {
-        reply: ai.reply,
-        role: "orchestrator",
-        version: VERSION,
-        clearance: level,
-        account_clearance: cleared.account_clearance,
-        clearance_source: cleared.source,
-        permissions: CLEARANCE_PERMS[level],
-        source: "hybrid-lobes+" + ai.model,
-        lobes: {
-          architecture: hybrid.architecture,
-          fitness: hybrid.fitness,
-          decisions: hybrid.decisions.slice(0, 6),
-          probabilistic_ok: !!(hybrid.probabilistic && hybrid.probabilistic.ok),
-          symbolic_ok: !!(hybrid.symbolic && hybrid.symbolic.ok),
-          symbolic_cycle: hybrid.symbolic_cycle,
-          transparent: hybrid.transparent,
-          genes_prev: hybrid.genes_prev,
-          genes_next: hybrid.genes_next,
-          meta: hybrid.meta,
-        },
-        tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
-        upstream: CLEARANCE_RANK[level] >= 2 ? tickOut.upstream : undefined,
-      };
-    }
+  // Operational commands → deterministic. Everything else → dialogue grounded in ORCH_SELF.
+  if (isOperationalCommand(text)) {
     const det = await chatDeterministic(text, tickOut, level);
     return {
-      reply: det + "\n\n(NL unavailable: " + (ai.error || "?") + ")",
+      reply: det,
       role: "orchestrator",
       version: VERSION,
       clearance: level,
       account_clearance: cleared.account_clearance,
       clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
-      source: "deterministic-fallback",
-      ai_error: ai.error,
+      source: "deterministic-command",
     };
   }
 
-  const det = await chatDeterministic(text, tickOut, level);
+  let hybrid = { architecture: "hybrid", fitness: 0, decisions: [] };
+  let ai = { ok: false, error: "skipped" };
+  try {
+    hybrid = await withTimeout(llmHybridLobes(env, text, tickOut.tick.metrics, level), 5000, "hybrid");
+  } catch (e) {
+    hybrid = { architecture: "hybrid-timeout", fitness: (tickOut.tick && tickOut.tick.fitness) || 0, decisions: [], error: String(e.message || e) };
+  }
+  try {
+    ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid), 10000, "chatWithAI");
+  } catch (e) {
+    ai = { ok: false, error: String(e.message || e) };
+  }
+  if (ai.ok) {
+    return {
+      reply: ai.reply,
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
+      permissions: CLEARANCE_PERMS[level],
+      source: "self-model+" + (ai.provider || ai.model || "llm"),
+      lobes: {
+        architecture: hybrid.architecture,
+        fitness: hybrid.fitness,
+        decisions: (hybrid.decisions || []).slice(0, 6),
+      },
+      tick: CLEARANCE_RANK[level] >= 1 ? tickOut.tick : undefined,
+      upstream: CLEARANCE_RANK[level] >= 2 ? tickOut.upstream : undefined,
+    };
+  }
+
   return {
-    reply: det,
+    reply: chatSelfFallback(text, tickOut, level),
     role: "orchestrator",
     version: VERSION,
     clearance: level,
     account_clearance: cleared.account_clearance,
     clearance_source: cleared.source,
     permissions: CLEARANCE_PERMS[level],
-    source: "deterministic-command",
+    source: "self-model-fallback",
+    ai_error: ai.error,
   };
 }
-
 
 
 const CHAT_HTML = `<!DOCTYPE html>
