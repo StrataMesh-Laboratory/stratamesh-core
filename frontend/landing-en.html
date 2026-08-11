@@ -4,40 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calhegas Morais · StrataMesh Reference Node</title>
-<meta name="description" content="Calhegas Morais Fog Node (FOG-NODE-PT-CM-001) — StrataMesh DLT laboratory reference. Lisbon, Portugal.">
+<meta name="description" content="Calhegas Morais Fog Node — laboratory reference for StrataMesh, a distributed ledger network. Lisbon, Portugal.">
 <meta name="robots" content="index,follow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4b5a0;--ok:#9caf88;--card:#111113}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4b5a0;--card:#111113}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:300;line-height:1.65;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:300;line-height:1.7;min-height:100vh;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
-.top{max-width:40rem;margin:0 auto;padding:1.25rem 1.5rem 0;display:flex;justify-content:flex-end}
+.top{max-width:42rem;margin:0 auto;padding:1.25rem 1.5rem 0;display:flex;justify-content:flex-end}
 .lang{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.12em;display:flex;align-items:center;gap:.35rem;color:var(--muted)}
 .lang a{color:var(--muted);padding:.2rem .35rem}.lang a:hover{color:var(--fg)}
 .lang a.active{color:var(--fg);border-bottom:1px solid var(--accent)}.lang .sep{opacity:.4}
-.wrap{max-width:40rem;margin:0 auto;padding:1.5rem 1.5rem 5rem}
-header{margin-bottom:2.75rem;padding-bottom:2rem;border-bottom:1px solid var(--line)}
-.kicker{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem}
-h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(2.2rem,5.5vw,3.1rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.75rem}
-.sub{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1.35rem}
-.meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.75rem}
-.chip{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.06em;padding:.3rem .55rem;border:1px solid var(--line2);border-radius:2px;color:var(--muted)}
+.wrap{max-width:42rem;margin:0 auto;padding:1.5rem 1.5rem 5rem}
+header{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--line)}
+.kicker{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(2.15rem,5.5vw,3rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.65rem}
+.sub{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem}
+.meta{display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.5rem}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.05em;padding:.28rem .5rem;border:1px solid var(--line2);border-radius:2px;color:var(--muted)}
 .chip strong{color:var(--fg);font-weight:500}
-.lede{font-size:1.05rem;color:var(--fg);margin-bottom:1rem;max-width:36rem}
-.muted{color:var(--muted);font-size:.95rem;max-width:36rem}
-.actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.75rem}
-.btn{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.1rem;border-radius:2px;border:1px solid var(--line2);color:var(--fg);background:transparent;display:inline-block}
+.lede{font-size:1.08rem;color:var(--fg);margin-bottom:1rem;max-width:38rem}
+.note{color:var(--muted);font-size:.95rem;max-width:38rem;margin-bottom:.85rem}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.05rem;border-radius:2px;border:1px solid var(--line2);color:var(--fg);background:transparent;display:inline-block}
 .btn.primary{background:var(--accent);color:#0a0a0b;border-color:var(--accent)}
 .btn:hover{border-color:var(--accent)}
-section{margin:2.75rem 0;padding-top:2rem;border-top:1px solid var(--line)}
-h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.45rem;margin-bottom:1rem;letter-spacing:-.01em}
-h3{font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:.9rem;margin-bottom:.35rem;color:var(--fg)}
-p{margin-bottom:.85rem;color:var(--muted);font-size:.95rem}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+section{margin:2.4rem 0;padding-top:1.85rem;border-top:1px solid var(--line)}
+h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.4rem;margin-bottom:.9rem;letter-spacing:-.01em}
+h3{font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:.95rem;margin:1.15rem 0 .35rem;color:var(--fg)}
+p{margin-bottom:.9rem;color:var(--muted);font-size:.95rem}
+strong{color:var(--fg);font-weight:500}
+.def{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.15rem;margin:1rem 0}
+.def p{margin-bottom:.65rem}.def p:last-child{margin-bottom:0}
+.def .term{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.25rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
 @media(max-width:560px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.05rem}
+.card h3{margin-top:0;margin-bottom:.4rem;font-size:.9rem}
 .card p{margin:0;font-size:.88rem}
 .live{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem}
 .live-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem}
@@ -45,13 +50,13 @@ p{margin-bottom:.85rem;color:var(--muted);font-size:.95rem}
 .live-grid div span{display:block;font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
 .live-grid div b{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:.9rem;color:var(--fg)}
 .err{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:#c47a7a;margin-top:.5rem;min-height:1em}
-.tracks{display:flex;flex-wrap:wrap;gap:.4rem}
-.tracks span{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.06em;padding:.35rem .55rem;border:1px solid var(--line2);border-radius:2px;color:var(--muted)}
-.state{list-style:none}
-.state li{font-size:.9rem;color:var(--muted);padding:.4rem 0;border-bottom:1px solid var(--line);display:flex;gap:.75rem}
-.state li span{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);min-width:3.5rem}
-.links p{margin-bottom:.45rem;font-size:.9rem}
-footer{margin-top:3.5rem;padding-top:1.5rem;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.04em;color:var(--muted);line-height:1.8}
+.live-cap{font-size:.8rem;color:var(--muted);margin-top:.75rem;margin-bottom:0}
+.state{list-style:none;margin-top:.5rem}
+.state li{font-size:.9rem;color:var(--muted);padding:.45rem 0;border-bottom:1px solid var(--line);display:flex;gap:.75rem;align-items:flex-start}
+.state li span{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);min-width:4.2rem;padding-top:.15rem}
+.links p{margin-bottom:.4rem;font-size:.9rem}
+footer{margin-top:3.25rem;padding-top:1.5rem;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.04em;color:var(--muted);line-height:1.85}
+.disclaimer{font-size:.82rem;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:.85rem 1rem;margin-top:1.25rem}
 </style>
 </head>
 <body>
@@ -64,87 +69,133 @@ footer{margin-top:3.5rem;padding-top:1.5rem;border-top:1px solid var(--line);fon
 </div>
 <div class="wrap">
   <header>
-    <p class="kicker">StrataMesh DLT · Laboratory</p>
+    <p class="kicker">Laboratory project · Lisbon</p>
     <h1>Calhegas Morais</h1>
-    <p class="sub">Reference Fog Node · Lisbon</p>
+    <p class="sub">Reference node of the StrataMesh network</p>
     <div class="meta">
       <span class="chip"><strong>FOG-NODE-PT-CM-001</strong></span>
       <span class="chip">38.7169° N · 9.1427° W</span>
-      <span class="chip">v0.2.1-lab</span>
+      <span class="chip">laboratory version 0.2.1</span>
     </div>
-    <p class="lede">Reference node for StrataMesh — a next-generation distributed ledger under laboratory development.</p>
-    <p class="muted">Operated by André Manuel Calhegas Morais. STRATA is issued solely through proof of resource contribution; secondary acquisition is via the peer-to-peer Agora.</p>
+    <p class="lede">This site presents the node operated by André Manuel Calhegas Morais — an experimental reference point for <strong>StrataMesh</strong>, a shared-record computer network.</p>
+    <p class="note">This is not an authorised financial service, nor a finished production network. Material described here is under development and may change.</p>
     <div class="actions">
-      <a class="btn primary" href="/dashboard">Portal</a>
-      <a class="btn" href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat">Orchestrator</a>
-      <a class="btn" href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">Repository</a>
+      <a class="btn primary" href="/dashboard">Member area</a>
+      <a class="btn" href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">Source code</a>
     </div>
   </header>
 
+  <section aria-labelledby="sec-what">
+    <h2 id="sec-what">What is StrataMesh?</h2>
+    <p>StrataMesh is a <strong>distributed ledger</strong> project: a system in which many machines cooperate to keep shared records, without relying on a single central server.</p>
+    <p>In plain terms, the aim is to let people and programs:</p>
+    <p>— contribute computing resources (disk space, processing capacity, network connectivity, uptime);<br>
+    — receive, in return for that measurable contribution, digital units called <strong>STRATA</strong>;<br>
+    — use or exchange those units under the published rules of the protocol.</p>
+    <p>The technical design uses a graph of records (rather than a classic linear chain of blocks), content-addressed storage, and software for governance and autonomous agents. At this stage everything remains a <strong>laboratory</strong> effort.</p>
+  </section>
+
+  <section aria-labelledby="sec-node">
+    <h2 id="sec-node">What is this node?</h2>
+    <p>A <strong>node</strong> is an installation that takes part in the network: it may store data, validate information, keep services available, or combine these roles.</p>
+    <p>The <strong>Calhegas Morais</strong> node (technical identifier <strong>FOG-NODE-PT-CM-001</strong>) is the project’s reference installation in Lisbon. It is used to build, test, and document the protocol before any wider operation with many independent operators.</p>
+  </section>
+
+  <section aria-labelledby="sec-strata">
+    <h2 id="sec-strata">What is STRATA?</h2>
+    <p><strong>STRATA</strong> is the network’s internal unit of account. It is not issued by an administrative switch or a free faucet.</p>
+    <p>New units may be created only when a node <strong>contributes real, measurable resources</strong> to the network — for example storage or processing capacity — and that contribution is recorded and valued under the emission policy.</p>
+    <p>Someone who already holds STRATA may later exchange it with others for external value (for example a conventional currency), if both parties agree. That exchange <em>does not create</em> new STRATA; it only transfers existing units.</p>
+  </section>
+
+  <section aria-labelledby="sec-poc">
+    <h2 id="sec-poc">Proof of Contribution (not “proof of concept”)</h2>
+    <p>In this project, <strong>PoC</strong> means <strong>Proof of Contribution</strong>. It does <em>not</em> mean “proof of concept” in the product-development sense.</p>
+    <div class="def">
+      <p><span class="term">Proof of Contribution</span>
+      The mechanism by which the network measures resources actually supplied by a node and, on that basis, may attribute STRATA to the contributor.</p>
+      <p>Value takes into account: the <strong>quantity</strong> of the resource; an external <strong>market reference</strong> for that type of resource; a <strong>quality</strong> factor (for example reliability); and conversion into STRATA via the internal exchange market.</p>
+    </div>
+    <p>It is important to separate <strong>resource</strong> from <strong>function</strong>. Resource is the capacity itself (disk, processing, network, availability). Function is the use to which it is put (which application or file). The network prices the resource; it does not invent different prices merely because the use changes.</p>
+  </section>
+
+  <section aria-labelledby="sec-agora">
+    <h2 id="sec-agora">What is the Agora?</h2>
+    <p>The <strong>Agora</strong> is not a second token and not a mandatory “dual-asset” pair with STRATA.</p>
+    <div class="def">
+      <p><span class="term">Agora</span>
+      A peer-to-peer exchange market: holders of STRATA may offer to trade it for other value (for example euro or another agreed unit), and those who want STRATA may accept such terms.</p>
+      <p>Rates observed in that order book help translate the market value of resources into STRATA amounts under proof of contribution. The rate is <strong>not set by the protocol</strong>; it emerges from participants’ offers.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="sec-more">
+    <h2 id="sec-more">Other parts of the system</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Agents (ACB)</h3>
+        <p>Autonomous programs that can provide services on the network. They are paid in existing STRATA for useful work — they do not create new issuance.</p>
+      </div>
+      <div class="card">
+        <h3>Orchestrator &amp; AIOps</h3>
+        <p>Coordination and continuous operation for the reference node, including agent teams for development and maintenance.</p>
+      </div>
+      <div class="card">
+        <h3>Associative DAO</h3>
+        <p>A collective organisation without commercial profit distribution: members hold equal quotas (people and/or agents).</p>
+      </div>
+      <div class="card">
+        <h3>Corporate DAO</h3>
+        <p>A partnership form (one or more partners) with share capital in STRATA and optional distribution of results to partners.</p>
+      </div>
+    </div>
+  </section>
+
   <section aria-labelledby="sec-live">
-    <h2 id="sec-live">Indicators</h2>
+    <h2 id="sec-live">Technical indicators (laboratory)</h2>
+    <p>Figures read near real time from this node’s services. They are for technical monitoring only and are not a performance guarantee or a recommendation.</p>
     <div class="live">
       <div class="live-grid" id="live-grid">
         <div><span>Version</span><b>—</b></div>
         <div><span>Phase</span><b>—</b></div>
-        <div><span>DAG</span><b>—</b></div>
-        <div><span>SPA</span><b>—</b></div>
-        <div><span>STRATA</span><b>—</b></div>
-        <div><span>Agora</span><b>—</b></div>
+        <div><span>Records (DAG)</span><b>—</b></div>
+        <div><span>Services (SPA)</span><b>—</b></div>
+        <div><span>STRATA (supply)</span><b>—</b></div>
+        <div><span>Agora trades</span><b>—</b></div>
       </div>
       <p class="err" id="live-err" role="status"></p>
+      <p class="live-cap">DAG: record structure. SPA: service participation agents. Counts may reflect a test environment.</p>
     </div>
-  </section>
-
-  <section aria-labelledby="sec-about">
-    <h2 id="sec-about">About the protocol</h2>
-    <p>StrataMesh combines a directed acyclic graph (DAG), content-addressed persistence (IPFS), service participation agents (SPA), autonomous computational beings (ACB), and polycentric governance (associative and corporate DAOs).</p>
-    <p>Network contribution is valued by <strong style="color:var(--fg);font-weight:500">resource class</strong> — storage, compute, bandwidth, and availability — not by the application purpose of that capacity. Quality is the only premium or discount within each class.</p>
-  </section>
-
-  <section aria-labelledby="sec-cap">
-    <h2 id="sec-cap">Laboratory capabilities</h2>
-    <div class="grid">
-      <div class="card"><h3>PoC</h3><p>STRATA issuance for on-graph measured resources, with incremental accounting.</p></div>
-      <div class="card"><h3>Agora</h3><p>Peer market for exchanging STRATA against external value agreed between parties.</p></div>
-      <div class="card"><h3>ACB &amp; AIOps</h3><p>Agents with a labour market; operations team led by the Orchestrator.</p></div>
-      <div class="card"><h3>DAO</h3><p>Associative (equal quotas, no profit) and corporate (share capital and distribution).</p></div>
-    </div>
-  </section>
-
-  <section aria-labelledby="sec-tracks">
-    <h2 id="sec-tracks">Development tracks</h2>
-    <div class="tracks" id="tracks"></div>
   </section>
 
   <section aria-labelledby="sec-state">
-    <h2 id="sec-state">Status</h2>
+    <h2 id="sec-state">Current project status</h2>
     <ul class="state">
-      <li><span>Tag</span> v0.2.1-lab</li>
-      <li><span>Ops</span> Edge services active; continuous Fog host in preparation</li>
-      <li><span>Emission</span> B0 policy — PoC only</li>
-      <li><span>Next</span> Always-on host · multi-node mesh · Agora depth</li>
+      <li><span>Stage</span> Public laboratory reference (tag v0.2.1-lab)</li>
+      <li><span>Issuance</span> Only via proof of resource contribution</li>
+      <li><span>Infrastructure</span> Edge services active; continuous physical host in preparation</li>
+      <li><span>Next</span> Permanent node availability · more operators · deeper exchange market</li>
     </ul>
+    <p class="disclaimer">This project is not investment advice. In the laboratory phase, STRATA should not be treated as a financial product offered to the public.</p>
   </section>
 
   <section class="links" aria-labelledby="sec-ref">
-    <h2 id="sec-ref">References</h2>
-    <p><a href="https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab" target="_blank" rel="noopener">Release notes v0.2.1-lab</a></p>
-    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/ROADMAP-PUBLIC-v0.2.md" target="_blank" rel="noopener">Public roadmap</a></p>
-    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/POC-RESOURCE-VS-FUNCTION.md" target="_blank" rel="noopener">PoC — resource versus function</a></p>
-    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/B0-EMISSION-POLICY.md" target="_blank" rel="noopener">B0 emission policy</a></p>
-    <p><a href="https://stratamesh-status.stratamesh.workers.dev/status" target="_blank" rel="noopener">Status (JSON)</a></p>
+    <h2 id="sec-ref">Documentation and code</h2>
+    <p><a href="https://github.com/amcmorais/stratamesh-core" target="_blank" rel="noopener">Main repository (code and documentation)</a></p>
+    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/ROADMAP-PUBLIC-v0.2.md" target="_blank" rel="noopener">Public development roadmap</a></p>
+    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/POC-RESOURCE-VS-FUNCTION.md" target="_blank" rel="noopener">Proof of contribution: resource and function</a></p>
+    <p><a href="https://github.com/amcmorais/stratamesh-core/blob/main/docs/B0-EMISSION-POLICY.md" target="_blank" rel="noopener">Emission policy</a></p>
+    <p><a href="https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab" target="_blank" rel="noopener">Laboratory release notes 0.2.1</a></p>
   </section>
 
   <footer>
-    FOG-NODE-PT-CM-001<br>
-    © 2026 André Manuel Calhegas Morais · StrataMesh DLT<br>
-    Laboratory reference · Language standard EN-GB
+    Node identifier: FOG-NODE-PT-CM-001<br>
+    © 2026 André Manuel Calhegas Morais · StrataMesh<br>
+    Laboratory institutional page · British English (EN-GB)
   </footer>
 </div>
 <script>
-document.getElementById("tracks").innerHTML=["A0","A1","A2","A3","B0","B1","B2","B3","B4"].map(function(x){return "<span>"+x+"</span>";}).join("");
-var LABELS=["Version","Phase","DAG","SPA","STRATA","Agora"];
+var LABELS=["Version","Phase","Records","Services","STRATA","Trades"];
 function pulse(){
   fetch("https://stratamesh-status.stratamesh.workers.dev/status").then(function(r){return r.json();}).then(function(s){
     document.getElementById("live-err").textContent="";
