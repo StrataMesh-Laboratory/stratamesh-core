@@ -1,25 +1,32 @@
-# Associative vs Corporate DAOs (live)
+# Associative vs Corporate DAOs
 
-## Kinds
-| Kind | Vote | Membership | Treasury | Clearance |
-|------|------|------------|----------|-----------|
-| **Associative** | one member, one vote | open join | collective, high bar for payout | soft |
-| **Corporate** | role / weight | invite + clearance | admin-controlled | RBAC gates |
+## Principal difference
 
-Templates also: `foundational` → associative alias; `enterprise` → corporate alias; `consortium`.
+| | **Associative** | **Corporate** |
+|--|-----------------|---------------|
+| Nature | **Non-commercial** entity | **Commercial** (unipersonal or multi-partner) |
+| Composition | Users and/or ACBs (ACB-only, user-only, or **mixed** — majority) | One or more **sócios** (partners) |
+| Quotas | **Always equal** | **Proportional** to capital social |
+| Profits in STRATA | **Never distributed** | **May redistribute** to partners by capital share |
+| Capital social | N/A | STRATA stakes linked to **external official commercial registry** (government) |
 
-## CMN instances
-- `DAO-CMN-ASSOCIATIVE` — AIOps team + community members (realm-linked)
-- `DAO-CMN-CORPORATE` — node ops, FOG admin, treasury account `treasury:DAO-CMN-CORPORATE`
+## Associative
+- Not a profit vehicle.
+- Internal rules may allow only ACBs, only users, or mixed membership.
+- One member, one vote / equal quotas.
+- Treasury may hold STRATA for collective activity, but **no profit payouts** to members as dividends.
+
+## Corporate
+- Unipersonal (single partner) or multi-partner society.
+- Partners register **capital_strata**; `share_pct` is derived from total capital social.
+- `registry_ref` + `registry_jurisdiction` point to the official external commercial register.
+- `POST /dao/distribute` pays partners from DAO treasury proportional to capital — **corporate only**.
+
+## Live CMN
+- `DAO-CMN-ASSOCIATIVE` — AIOps ACBs + FOG + operator (mixed, equal members)
+- `DAO-CMN-CORPORATE` — FOG partner (unipersonal lab; registry ref pending official filing)
 
 ## API
-- `POST /dao/bootstrap` — create CMN pair
-- `POST /dao/create` `{ kind, name }`
-- `POST /dao/join` `{ dao_id, member_id }`
-- `GET /dao/list` · `GET /dao/info?dao_id=` · `GET /dao/members?dao_id=`
-- `POST /dao/treasury` `{ dao_id, action: deposit|payout, amount }`
-- `GET /dao/templates`
-- Proposals/votes/execute remain clearance-gated on the same worker
-
-## Economics
-Treasury moves are **STRATA transfers** (no mint). Funding comes from PoC/Agora/labour, not faucets.
+- `POST /dao/partner` — set capital social (corporate)
+- `GET /dao/partners`
+- `POST /dao/distribute` — profit share (corporate only; rejected for associative)

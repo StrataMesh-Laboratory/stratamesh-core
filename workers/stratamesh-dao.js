@@ -193,7 +193,7 @@ export default {
         } catch (_) {}
         return j({
           status: 'active',
-          version: '4.0.0-associative-corporate',
+          version: '4.1.0-capital-social',
           clearance_enforced: true,
           active_spas: spa_count,
           endpoints: [
@@ -515,6 +515,28 @@ export default {
           joined_at TEXT,
           PRIMARY KEY (dao_id, member_id)
         )`).run();
+        
+        await db.prepare(`CREATE TABLE IF NOT EXISTS dao_partners (
+          dao_id TEXT,
+          partner_id TEXT,
+          capital_strata REAL DEFAULT 0,
+          share_pct REAL DEFAULT 0,
+          registry_ref TEXT,
+          registry_jurisdiction TEXT,
+          status TEXT DEFAULT 'active',
+          joined_at TEXT,
+          PRIMARY KEY (dao_id, partner_id)
+        )`).run();
+        await db.prepare(`CREATE TABLE IF NOT EXISTS dao_profit_distributions (
+          id TEXT PRIMARY KEY,
+          dao_id TEXT,
+          partner_id TEXT,
+          amount REAL,
+          period TEXT,
+          meta TEXT,
+          created_at TEXT
+        )`).run();
+
         await db.prepare(`CREATE TABLE IF NOT EXISTS dao_treasury_events (
           id TEXT PRIMARY KEY,
           dao_id TEXT,
@@ -533,25 +555,34 @@ export default {
             id: 'associative',
             kind: 'associative',
             name: 'Associative DAO',
-            scope: 'member_cooperative_open_or_curated_membership',
+            commercial: false,
+            scope: 'non_commercial_users_and_or_acbs',
+            membership_composition: ['users', 'ACBs', 'mixed'],
             quorum: 0.51,
             vote: 'one_member_one_vote',
+            quotas: 'always_equal',
+            profit_distribution: false,
             roles: ['member', 'delegate', 'secretary'],
-            features: ['open_join', 'equal_vote', 'spa_collective', 'republic_compatible'],
+            features: ['equal_quotas', 'no_profit_distribution', 'acb_only_or_mixed_or_users', 'spa_collective'],
             membership: 'associative_join',
-            whitepaper: 'polycentric community / ACB republic style governance',
+            note: 'Non-commercial entity. Quotas always equal. Never distributes profits in STRATA.',
           },
           corporate: {
             id: 'corporate',
             kind: 'corporate',
             name: 'Corporate DAO',
-            scope: 'enterprise_rbac_treasury_compliance',
+            commercial: true,
+            scope: 'unipersonal_or_multi_partner_society',
+            structure: ['unipersonal', 'multi_partner'],
             quorum: 0.67,
-            vote: 'role_weighted_or_share_class',
-            roles: ['admin', 'operator', 'auditor', 'member'],
-            features: ['rbac', 'treasury', 'audit_log', 'compliance_reports', 'clearance_gates'],
-            membership: 'invite_or_clearance',
-            whitepaper: 'enterprise private governance with treasury controls',
+            vote: 'share_capital_weighted',
+            quotas: 'proportional_to_capital_social_strata',
+            profit_distribution: true,
+            capital_social: 'external_official_commercial_registry',
+            roles: ['partner', 'admin', 'operator', 'auditor'],
+            features: ['share_capital', 'profit_distribution', 'registry_link', 'rbac', 'treasury'],
+            membership: 'partners_only',
+            note: 'Commercial. Partners hold unequal stakes from capital social (STRATA) linked to official government commercial registry. May redistribute profits to partners.',
           },
           foundational: {
             id: 'foundational',
@@ -611,16 +642,28 @@ export default {
             `INSERT OR REPLACE INTO daos (dao_id, kind, name, template, quorum, treasury_account, status, meta, created_at)
              VALUES (?,?,?,?,?,?,'active',?, datetime('now'))`
           )
-          .bind(dao_id, kind, name, template, quorum, treasury_account, JSON.stringify(data.meta || {}))
+          .bind(dao_id, kind, name, template, quorum, treasury_account, JSON.stringify({ ...(data.meta || {}), commercial: kind !== 'associative', profit_distribution: kind !== 'associative', quotas: kind === 'associative' ? 'equal' : 'capital_weighted' }))
           .run();
-        const founder_role = kind === 'associative' ? 'member' : 'admin';
+        const founder_role = kind === 'associative' ? 'member' : 'partner';
+        const capital = Number(data.capital_strata || data.capital_social || 0);
+        const registry_ref = data.registry_ref || data.commercial_registry || null;
+        const registry_jurisdiction = data.registry_jurisdiction || data.jurisdiction || null;
         await db
           .prepare(
             `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
              VALUES (?,?,?,?, 'active', datetime('now'))`
           )
-          .bind(dao_id, founder, founder_role, kind === 'corporate' ? 1 : 1)
+          .bind(dao_id, founder, founder_role, 1)
           .run();
+        if (kind === 'corporate') {
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO dao_partners (dao_id, partner_id, capital_strata, share_pct, registry_ref, registry_jurisdiction, status, joined_at)
+               VALUES (?,?,?,?,?,?, 'active', datetime('now'))`
+            )
+            .bind(dao_id, founder, capital, 100, registry_ref, registry_jurisdiction)
+            .run();
+        }
         try {
           await db
             .prepare(
@@ -766,6 +809,137 @@ export default {
         return j({ success: true, dao_id, action, amount, dag_vertex: dag.vertex_id || null });
       }
 
+
+      // Corporate only: register/update partner capital social
+      if (path === '/dao/partner' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'internal')) return j(deny(actor, 'internal'), 403);
+        const data = await request.json().catch(() => ({}));
+        const dao_id = data.dao_id;
+        const partner_id = data.partner_id || data.member_id;
+        if (!dao_id || !partner_id) return j({ error: 'dao_id and partner_id required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'dao not found' }, 404);
+        if (dao.kind === 'associative') {
+          return j({
+            error: 'associative_no_partners',
+            message: 'Associative DAOs have equal member quotas only — no capital social partners or profit shares',
+          }, 400);
+        }
+        const capital = Number(data.capital_strata || data.capital || 0);
+        if (!(capital >= 0)) return j({ error: 'capital_strata >= 0 required' }, 400);
+        // recompute share_pct across partners
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO dao_partners (dao_id, partner_id, capital_strata, share_pct, registry_ref, registry_jurisdiction, status, joined_at)
+             VALUES (?,?,?,0,?,?, 'active', datetime('now'))`
+          )
+          .bind(dao_id, partner_id, capital, data.registry_ref || null, data.registry_jurisdiction || null)
+          .run();
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
+             VALUES (?,?, 'partner', 1, 'active', datetime('now'))`
+          )
+          .bind(dao_id, partner_id)
+          .run();
+        const all = await db.prepare("SELECT * FROM dao_partners WHERE dao_id = ? AND status = 'active'").bind(dao_id).all();
+        const total = (all.results || []).reduce((s, r) => s + Number(r.capital_strata || 0), 0) || 1;
+        for (const r of all.results || []) {
+          const pct = (Number(r.capital_strata || 0) / total) * 100;
+          await db.prepare('UPDATE dao_partners SET share_pct = ? WHERE dao_id = ? AND partner_id = ?').bind(pct, dao_id, r.partner_id).run();
+        }
+        const partners = await db.prepare("SELECT * FROM dao_partners WHERE dao_id = ?").bind(dao_id).all();
+        return j({ success: true, dao_id, partners: partners.results || [], total_capital_strata: total });
+      }
+
+      if (path === '/dao/partners') {
+        const dao_id = url.searchParams.get('dao_id');
+        if (!dao_id) return j({ error: 'dao_id required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'not found' }, 404);
+        if (dao.kind === 'associative') {
+          return j({
+            success: true,
+            dao_id,
+            kind: 'associative',
+            partners: [],
+            note: 'Associative DAOs do not have capital partners — members hold equal quotas and do not receive profit distributions',
+          });
+        }
+        const rows = await db.prepare('SELECT * FROM dao_partners WHERE dao_id = ?').bind(dao_id).all();
+        return j({ success: true, dao_id, kind: 'corporate', partners: rows.results || [] });
+      }
+
+      // Profit distribution — corporate only, proportional to capital social
+      if (path === '/dao/distribute' && request.method === 'POST') {
+        const actor = await resolveActor(request, env);
+        if (!requireRank(actor, 'secret')) return j(deny(actor, 'secret'), 403);
+        const data = await request.json().catch(() => ({}));
+        const dao_id = data.dao_id;
+        const amount = Number(data.amount || 0);
+        if (!dao_id || !(amount > 0)) return j({ error: 'dao_id and amount > 0 required' }, 400);
+        const dao = await db.prepare('SELECT * FROM daos WHERE dao_id = ?').bind(dao_id).first();
+        if (!dao) return j({ error: 'dao not found' }, 404);
+        if (dao.kind === 'associative') {
+          return j({
+            error: 'associative_no_profit_distribution',
+            message: 'Associative DAOs are non-commercial: equal quotas, no STRATA profit distributions to members',
+          }, 400);
+        }
+        const partners = await db.prepare("SELECT * FROM dao_partners WHERE dao_id = ? AND status = 'active'").bind(dao_id).all();
+        const list = partners.results || [];
+        if (!list.length) return j({ error: 'no_partners' }, 400);
+        const total_cap = list.reduce((s, r) => s + Number(r.capital_strata || 0), 0);
+        if (!(total_cap > 0)) return j({ error: 'capital_social_zero', message: 'Register capital_strata per partner first' }, 400);
+        // check treasury balance
+        let tbal = 0;
+        try {
+          const tr = await db
+            .prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+            .bind(dao.treasury_account)
+            .first();
+          tbal = tr ? Number(tr.balance) : 0;
+        } catch (_) {}
+        if (tbal < amount) return j({ error: 'insufficient_treasury', balance: tbal, needed: amount }, 402);
+        const distributions = [];
+        for (const r of list) {
+          const share = (Number(r.capital_strata || 0) / total_cap) * amount;
+          if (!(share > 0)) continue;
+          await db
+            .prepare(`UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')`)
+            .bind(share, dao.treasury_account)
+            .run();
+          await db
+            .prepare(
+              `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+               VALUES (?, 'STRATA', ?, 0, 0)
+               ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+            )
+            .bind(r.partner_id, share)
+            .run();
+          await db
+            .prepare(
+              `INSERT INTO dao_profit_distributions (id, dao_id, partner_id, amount, period, meta, created_at)
+               VALUES (?,?,?,?,?,?, datetime('now'))`
+            )
+            .bind(crypto.randomUUID(), dao_id, r.partner_id, share, data.period || null, JSON.stringify({ capital: r.capital_strata, share_pct: r.share_pct }))
+            .run();
+          distributions.push({ partner_id: r.partner_id, amount: share, share_pct: r.share_pct, capital_strata: r.capital_strata });
+        }
+        const dag = await dagAnchor(env, { type: 'dao_profit_distribution', dao_id, amount, distributions });
+        return j({
+          success: true,
+          dao_id,
+          kind: 'corporate',
+          total_distributed: amount,
+          distributions,
+          dag_vertex: dag.vertex_id || null,
+          note: 'Proportional to capital social (STRATA) — external commercial registry is source of partnership truth',
+        });
+      }
+
+
       if (path === '/dao/bootstrap' && request.method === 'POST') {
         const actor = await resolveActor(request, env);
         // Create CMN associative (AIOps/community) + corporate (node ops) if missing
@@ -810,7 +984,7 @@ export default {
               `INSERT OR REPLACE INTO dao_members (dao_id, member_id, role, weight, status, joined_at)
                VALUES (?,?,?,?, 'active', datetime('now'))`
             )
-            .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', spec.kind === 'associative' ? 'member' : 'admin', 1)
+            .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', spec.kind === 'associative' ? 'member' : 'partner', 1)
             .run();
           // seed associative with ACB team as members
           if (spec.kind === 'associative') {
@@ -1015,7 +1189,7 @@ export default {
         try {
           active_spas = (await db.prepare("SELECT COUNT(*) as c FROM spas WHERE status = 'active'").first())?.c ?? 0;
         } catch (_) {}
-        return j({ success: true, status: 'operational', active_spas, version: '4.0.0-associative-corporate' });
+        return j({ success: true, status: 'operational', active_spas, version: '4.1.0-capital-social' });
       }
 
       return j({ error: 'Not Found', available_endpoints: ['/dao/health', '/dao/spa', '/dao/spa/list', '/dao/spa/opt-out', '/dao/spa/pinner', '/dao/pin-offer', '/dao/pin-request', '/dao/pin-market', '/dao/tick'] }, 404);
