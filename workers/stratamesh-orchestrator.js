@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.7.0-priority-c";
+const VERSION = "10.7.1-identity";
 
 const ONTOLOGY = {
   standing: "by function and agreement, not substrate",
@@ -24,7 +24,7 @@ const ONTOLOGY = {
 /** Domain knowledge — StrataMesh + Calhegas Morais Node (CMN) */
 const KNOWLEDGE = {
   public: {
-    project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, dual-asset Strata Agora, Autonomous Computational Beings (ACBs), and Proof of Subsistence. Not mainnet.",
+    project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, peer Agora for external-value trade, Autonomous Computational Beings (ACBs), and Proof of Subsistence. Not mainnet.",
     cmn: "Calhegas Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
     acb: "ACB = Autonomous Computational Being (not 'atomic block contracts'). Software agents with standing by function and agreement, subsistence accounting, and optional DAO/republic tracks in the whitepaper roadmap.",
     spa: "SPA = Service Participation Agent (Fog/Edge participant registration and duties), not a web single-page app in this context.",
@@ -1222,7 +1222,7 @@ async function chatDeterministic(text, tickOut, level) {
   const lower = text.toLowerCase();
   const pt = /[ãáàâçéêíóôõú]/i.test(text) || /\b(o que|podes|como|são|sao|faz|olá|ola|tudo bem|obrigad|melhor)\b/i.test(text);
 
-  if (/^(ol[aá]|olá|hello|hi|hey|bom dia|boa tarde|boa noite)[\s!?.]*$/i.test(text.trim()) ||
+  if (/^\s*ol[aááà]/i.test(text.trim()) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)/i.test(text.trim()) ||
       /tudo bem/i.test(text)) {
     return pt
       ? "Olá. Sou o Orchestrator do nó Calhegas Morais (FOG-NODE-PT-CM-001) — software de coordenação em laboratório, não o operador humano. Em que posso ajudar?"
@@ -1361,7 +1361,7 @@ async function chat(message, env, request, body) {
 
   const preferDeterministic =
     /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance)$/i.test(text.trim()) ||
-    /^(ol[aá]|olá|hello|hi|hey|bom dia|boa tarde|boa noite)[\s!?.]*$/i.test(text.trim()) ||
+    /^\s*ol[aááà]/i.test(text.trim()) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)/i.test(text.trim()) ||
     /tudo bem/i.test(text) ||
     /\b(acb|aiops|spa)\b/i.test(text) ||
     /seres? computacion|autonomous computational|o que (são|sao|é|e) os? (acb|aiops)/i.test(text) ||
