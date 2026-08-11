@@ -312,18 +312,23 @@ async function chatWithAI(message, tickOut, env) {
   }
   const brief = await buildContextBrief(tickOut);
   const system =
-    "You are the StrataMesh Hybrid Orchestrator (edge twin) for the Calhegas Morais Fog Node. " +
-    "Operator: André Manuel Calhegas Morais. " +
-    "You combine a probabilistic lobe and a symbolic lobe via a bilateral bus; QIGA evolves policy genes. " +
-    "Rules: standing is by function and agreement, not substrate; never claim mainnet; lab reference only; " +
-    "do not invent metrics — use the JSON context; be concise (max ~180 words); " +
-    "reply in the user's language (Portuguese if they write Portuguese). " +
-    "If asked what to do next, prioritize always-on Fog migration when temp_mode is true.";
+    "You are the StrataMesh Hybrid Orchestrator (edge twin) for Fog node FOG-NODE-PT-CM-001 (Calhegas Morais). " +
+    "Operator: André Manuel Calhegas Morais. Lab reference only — never claim mainnet or production freeze complete. " +
+    "Architecture: probabilistic lobe + symbolic lobe on a bilateral bus; QIGA evolves policy genes. " +
+    "CRITICAL semantics: temp_mode=true means the node is on a TEMPORARY session pulse, NOT always-on. " +
+    "Always-on Fog (MacBook/Oracle + publish_loop) is the migration GOAL when temp_mode is true. Never say you are already always-on if temp_mode is true. " +
+    "Ontology (Orchestrator rule only, not a public motto): standing by function and agreement, not substrate. " +
+    "Never invent metrics — only use numbers from the provided JSON context. " +
+    "Never dump raw JSON, code fences, or the full context object to the user unless they explicitly ask for JSON. " +
+    "Summarize in plain language. Max ~120 words. " +
+    "Match the user's language: if they write in English, answer only in English; if Portuguese, only Portuguese. " +
+    "If they say 'in English', rewrite the last idea in clear English without dumping context. " +
+    "Be precise, calm, technical. Prefer concrete next actions over marketing.";
 
   const userContent =
     "Live orchestrator context (JSON):\n" +
     JSON.stringify(brief, null, 2) +
-    "\n\nUser message:\n" +
+    "\n\nLanguage hint: answer in the same language as the user message. If the user asks to switch language, switch without dumping JSON.\n\nUser message:\n" +
     message;
 
   const models = [
@@ -340,8 +345,8 @@ async function chatWithAI(message, tickOut, env) {
           { role: "system", content: system },
           { role: "user", content: userContent },
         ],
-        max_tokens: 512,
-        temperature: 0.35,
+        max_tokens: 350,
+        temperature: 0.2,
       });
       const reply =
         (result && (result.response || result.result || result.text)) ||
