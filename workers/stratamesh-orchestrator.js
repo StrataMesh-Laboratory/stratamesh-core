@@ -38,27 +38,32 @@ const KNOWLEDGE = {
     ops: "CMN may run TEMP session pulse until always-on host (MacBook/Oracle Free + optional Tunnel). SPA grace and dual Agora are lab-verified tracks.",
     security: "Auth sessions and staff counts are operational signals. Irreversible token/emission changes require escalator_class.",
   },
+  secret: {
+    ops: "Secret clearance: full operational picture short of gated run. Account-class classification on profiles/KV. Edit ops notes; no run.",
+  },
   top_secret: {
-    run: "Top Secret may invoke gated run actions: refresh_tick, aiops_cycle, status_probe. Edit may annotate ops notes in-session. No destructive genesis/emission without separate multi-party escalation outside this chat.",
+    run: "Top Secret: gated run actions refresh_tick, aiops_cycle, status_probe. Edit ops notes. No destructive genesis/emission without multi-party escalation outside this chat.",
   },
 };
 
 /** Clearance ladder */
-const CLEARANCE_RANK = { public: 0, internal: 1, confidential: 2, top_secret: 3 };
+const CLEARANCE_RANK = { public: 0, internal: 1, confidential: 2, secret: 3, top_secret: 4 };
 
 const CLEARANCE_PERMS = {
   public: { read: true, edit: false, run: false },
   internal: { read: true, edit: false, run: false },
   confidential: { read: true, edit: true, run: false },
+  secret: { read: true, edit: true, run: false },
   top_secret: { read: true, edit: true, run: true },
 };
 
 function normalizeClearance(raw) {
   const s = String(raw || "public").toLowerCase().replace(/[\s-]+/g, "_");
-  if (["public", "pub", "clearance_public"].includes(s)) return "public";
-  if (["internal", "intl", "clearance_internal"].includes(s)) return "internal";
+  if (["public", "pub", "clearance_public", "unclassified"].includes(s)) return "public";
+  if (["internal", "intl", "clearance_internal", "restricted"].includes(s)) return "internal";
   if (["confidential", "conf", "clearance_confidential"].includes(s)) return "confidential";
-  if (["top_secret", "topsecret", "ts", "clearance_top_secret", "secret"].includes(s)) return "top_secret";
+  if (["secret", "clearance_secret", "sec"].includes(s)) return "secret";
+  if (["top_secret", "topsecret", "ts", "clearance_top_secret", "top-secret"].includes(s)) return "top_secret";
   return "public";
 }
 
@@ -77,10 +82,11 @@ function resolveClearance(request, body) {
   ).replace(/^Bearer\s+/i, "");
   let level = normalizeClearance(fromBody || h || "public");
   if (token) {
-    const t = token.toLowerCase();
-    if (t.includes("top") || t.includes("ts-")) level = "top_secret";
-    else if (t.includes("conf") || t.includes("staff")) level = rankMax(level, "confidential");
-    else if (t.includes("internal") || t.length > 20) level = rankMax(level, "internal");
+    const tk = token.toLowerCase();
+    if (tk.includes("top") || tk.includes("ts-")) level = "top_secret";
+    else if (tk.includes("secret") && !tk.includes("top")) level = rankMax(level, "secret");
+    else if (tk.includes("conf") || tk.includes("staff")) level = rankMax(level, "confidential");
+    else if (tk.includes("internal") || tk.length > 20) level = rankMax(level, "internal");
   }
   return level;
 }
@@ -98,7 +104,8 @@ function contextForClearance(tickOut, level) {
       ...KNOWLEDGE.public,
       ...(CLEARANCE_RANK[level] >= 1 ? KNOWLEDGE.internal : {}),
       ...(CLEARANCE_RANK[level] >= 2 ? KNOWLEDGE.confidential : {}),
-      ...(CLEARANCE_RANK[level] >= 3 ? KNOWLEDGE.top_secret : {}),
+      ...(CLEARANCE_RANK[level] >= 3 ? KNOWLEDGE.secret : {}),
+      ...(CLEARANCE_RANK[level] >= 4 ? KNOWLEDGE.top_secret : {}),
     },
   };
 
@@ -147,7 +154,7 @@ function contextForClearance(tickOut, level) {
     };
   }
 
-  if (level === "confidential") {
+  if (level === "confidential" || level === "secret") {
     return {
       ...base,
       cmn: {
@@ -174,6 +181,8 @@ function contextForClearance(tickOut, level) {
         fitness: tickOut.tick.fitness,
       },
       ontology: ONTOLOGY,
+      account_classification: level,
+      edit_actions_allowed: level === "secret" || level === "confidential" ? ["ops_note"] : [],
     };
   }
 
@@ -466,10 +475,10 @@ async function chatWithAI(message, tickOut, env, level) {
     "temp_mode=true means TEMPORARY session pulse — NOT already always-on; always-on is the migration goal. " +
     "Never dump raw JSON unless the user explicitly asks for JSON. Max ~140 words. " +
     "Match user language (EN/PT). " +
-    "Public: educational StrataMesh/CMN only, no sensitive ops detail. " +
-    "Internal: lab architecture + limited live metrics. " +
-    "Confidential: fuller ops picture; edit means suggesting/recording ops notes only when asked. " +
-    "Top Secret: may describe gated run actions (refresh_tick, aiops_cycle, status_probe) but do not claim unstoppable control. " +
+    "Account clearance ladder (fixed): public → internal → confidential → secret → top_secret. " +
+    "Public: educational only. Internal: lab metrics. Confidential: ops detail + edit notes. " +
+    "Secret: same operational depth as confidential with account-class secret; still no run. " +
+    "Top Secret only: gated run (refresh_tick, aiops_cycle, status_probe). " +
     "Ontology is Orchestrator governance, not a public website motto.";
 
   const userContent =
@@ -538,7 +547,7 @@ async function chatDeterministic(text, tickOut, level) {
     if (m.temp_mode) lines.push("P1: TEMP → always-on Fog + publish_loop");
     lines.push("P2: SPA fog/pinner registration · P3: Kubo + multi-host gossip");
   } else if (/clearance|perm/.test(lower)) {
-    lines.push("Levels: public (info) → internal (lab metrics) → confidential (edit notes) → top_secret (run gated actions)");
+    lines.push("Account clearance: public → internal → confidential → secret → top_secret (run only at top_secret)");
   } else {
     lines.push("Ask status / next / clearance — or free-form under your clearance.");
   }
@@ -652,7 +661,7 @@ button#go:disabled{opacity:.5}
 </header>
 <div id="log">
   <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
-  Clearance: <b>public</b> (info) → <b>internal</b> (lab metrics) → <b>confidential</b> (edit) → <b>top_secret</b> (run).<br>
+  Account clearance: <b>public</b> → <b>internal</b> → <b>confidential</b> → <b>secret</b> → <b>top_secret</b> (run).<br>
   Top secret run examples: <code>run refresh_tick</code> · <code>run aiops_cycle</code> · <code>run status_probe</code></div>
 </div>
 <div id="composer">
@@ -663,6 +672,7 @@ button#go:disabled{opacity:.5}
         <option value="public">public (read / informative)</option>
         <option value="internal">internal (read / lab)</option>
         <option value="confidential">confidential (read + edit)</option>
+        <option value="secret">secret (read + edit)</option>
         <option value="top_secret">top_secret (read + edit + run)</option>
       </select>
       <label>Token</label>
@@ -746,8 +756,8 @@ export default {
         bus: "bilateral",
         qiga: true,
         stub: false,
-        clearance_levels: ["public", "internal", "confidential", "top_secret"],
-        permissions: { public: "read", internal: "read", confidential: "read+edit", top_secret: "read+edit+run" },
+        clearance_levels: ["public", "internal", "confidential", "secret", "top_secret"],
+        permissions: { public: "read", internal: "read", confidential: "read+edit", secret: "read+edit", top_secret: "read+edit+run" },
         timestamp: new Date().toISOString(),
       });
     }
