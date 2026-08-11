@@ -61,8 +61,8 @@ export default {
       return servePortal(request, env, corsHeaders);
     }
 
-    if (path === '/' || path === '') {
-      return Response.redirect(url.origin + '/dashboard', 302);
+    if (path === '/' || path === '' || path === '/home' || path === '/index.html') {
+      return serveHome(request, env, corsHeaders);
     }
 
     return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -199,6 +199,94 @@ function pickLang(request) {
   const al = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (al.startsWith('pt')) return 'pt';
   return 'en';
+}
+
+
+async function serveHome(request, env, corsHeaders) {
+  const lang = pickLang(request);
+  const keys = [`home-${lang}`, lang === 'en' ? 'home-pt' : 'home-en', 'home', `landing-${lang}`];
+  try {
+    if (env.LEDGER) {
+      for (const key of keys) {
+        try {
+          const { results: chunks } = await env.LEDGER.prepare(
+            "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+          ).bind(key).all();
+          if (chunks && chunks.length) {
+            const html = chunks.map((c) => c.value || "").join("");
+            if (html) {
+              return new Response(html, {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  "Content-Type": "text/html; charset=utf-8",
+                  "Cache-Control": "public, max-age=120",
+                  "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
+                  "X-Home-Source": "site_content_chunks",
+                },
+              });
+            }
+          }
+        } catch (_) {}
+        try {
+          const { results } = await env.LEDGER.prepare(
+            "SELECT value FROM site_content WHERE key = ? LIMIT 1"
+          ).bind(key).all();
+          if (results && results[0] && results[0].value) {
+            return new Response(results[0].value, {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "public, max-age=120",
+                "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
+                "X-Home-Source": "site_content",
+              },
+            });
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    console.error("home LEDGER", e);
+  }
+  try {
+    const u = "https://stratamesh-portal.stratamesh.workers.dev/home?lang=" + lang;
+    const pr = await fetch(u);
+    if (pr.ok) {
+      const html = await pr.text();
+      if (html && html.includes("<html")) {
+        return new Response(html, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=120",
+            "X-Home-Source": "portal-worker",
+          },
+        });
+      }
+    }
+  } catch (_) {}
+  return new Response(fallbackHome(lang), {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/html; charset=utf-8",
+      "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
+    },
+  });
+}
+
+function fallbackHome(lang) {
+  const isPt = lang === "pt";
+  const title = isPt ? "Calhegas Morais · StrataMesh" : "Calhegas Morais · StrataMesh";
+  const body = isPt
+    ? "<h1>Calhegas Morais</h1><p>Nó Fog de referência · laboratório StrataMesh DLT.</p><p><a href=\"/dashboard\">Portal</a></p>"
+    : "<h1>Calhegas Morais</h1><p>Reference Fog node · StrataMesh DLT laboratory.</p><p><a href=\"/dashboard\">Portal</a></p>";
+  return `<!DOCTYPE html><html lang="${isPt ? "pt-PT" : "en-GB"}"><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:system-ui;background:#0a0a0b;color:#e8e6e3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{max-width:28rem;padding:2rem}a{color:#c4b5a0}</style></head><body><div class="box">${body}</div></body></html>`;
 }
 
 async function servePortal(request, env, corsHeaders) {
