@@ -387,7 +387,49 @@ async function credit(db, node_id, amount, meta) {
   } catch (_) {}
 }
 
+async function syncNetworkDemand(db) {
+  const demand = { ipfs_pin: 0, validate: 0, fog_uptime: 0, gossip: 0 };
+  try {
+    const req = await db
+      .prepare("SELECT COALESCE(SUM(size_gb),0) as gb, COUNT(*) as c FROM pin_requests WHERE status IN ('matched','filled','active','completed','pending')")
+      .first();
+    demand.ipfs_pin = (Number(req?.gb) || 0) * 1024 + (Number(req?.c) || 0);
+  } catch (_) {}
+  try {
+    const n = await db.prepare('SELECT COUNT(*) as c FROM subsidy_events').first();
+    demand.validate = Number(n?.c) || 0;
+  } catch (_) {}
+  try {
+    const v = await db.prepare('SELECT COUNT(*) as c FROM dag_vertices').first();
+    demand.gossip = Math.max(0, (Number(v?.c) || 0) * 0.1);
+  } catch (_) {}
+  for (const [cls, units] of Object.entries(demand)) {
+    if (!(units > 0)) continue;
+    try {
+      await db
+        .prepare(
+          `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
+           ON CONFLICT(resource_class) DO UPDATE SET consumed = excluded.consumed, updated_at = excluded.updated_at`
+        )
+        .bind(cls, units)
+        .run();
+    } catch (_) {}
+  }
+  return demand;
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    const db = env.LEDGER || env.STRATAMESH_LEDGER || env.DB;
+    try {
+      await ensure(db);
+      const demand = await syncNetworkDemand(db);
+      console.log('poc_sync_demand', JSON.stringify(demand));
+    } catch (e) {
+      console.log('poc_sync_error', String(e.message || e));
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
@@ -403,7 +445,7 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.3.0-onchain',
+          version: '5.4.0-onchain-cron',
           sole_mint_path: true,
           process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
         });
@@ -522,23 +564,12 @@ export default {
       // Sync mesh demand into analytics meters (does not set mint rate)
       if (path === '/sync' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const node_id = body.node_id;
-        if (!node_id) return j({ error: 'node_id required for contribution sync' }, 400);
-        const m = await measureOnchain(db, node_id);
-        // update demand meters network-wide
-        for (const [cls, units] of Object.entries(m.demand || {})) {
-          if (!(units > 0)) continue;
-          try {
-            await db
-              .prepare(
-                `INSERT INTO resource_meters (resource_class, contributed, consumed, updated_at) VALUES (?,0,?,datetime('now'))
-                 ON CONFLICT(resource_class) DO UPDATE SET consumed = excluded.consumed, updated_at = excluded.updated_at`
-              )
-              .bind(cls, units)
-              .run();
-          } catch (_) {}
+        const demand = await syncNetworkDemand(db);
+        let measurement = null;
+        if (body.node_id) {
+          measurement = await measureOnchain(db, body.node_id);
         }
-        return j({ success: true, measurement: m, meters_synced: m.demand });
+        return j({ success: true, meters_synced: demand, measurement, triggered: 'manual' });
       }
 
       if (path === '/mint' && request.method === 'POST') {
