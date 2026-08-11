@@ -22,6 +22,33 @@ export default {
       }, corsHeaders);
     }
 
+    // Orchestrator — always proxy to known workers.dev (service binding optional)
+    if (path === '/orchestrator' || path === '/orchestrator/' || path.startsWith('/orchestrator/')) {
+      const sub = path.replace(/^\/orchestrator/, '') || '/health';
+      let targetPath = sub.startsWith('/') ? sub : '/' + sub;
+      if (targetPath === '/' || targetPath === '') targetPath = '/health';
+      try {
+        let resp = null;
+        if (env.ORCH) {
+          try {
+            const oReq = new Request('https://orchestrator.internal' + targetPath, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' }
+            });
+            resp = await env.ORCH.fetch(oReq);
+            if (resp.status === 404) resp = null;
+          } catch (_) { resp = null; }
+        }
+        if (!resp) {
+          const upstream = 'https://stratamesh-orchestrator.stratamesh.workers.dev' + targetPath;
+          resp = await fetch(upstream, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        }
+        return withCors(resp, corsHeaders);
+      } catch (e) {
+        return jsonResponse({ status: 'error', error: String(e.message || e), worker: 'stratamesh-orchestrator' }, corsHeaders, 503);
+      }
+    }
+
     if (path.startsWith('/api/')) {
       return proxyApi(request, env, path, url, corsHeaders);
     }
