@@ -11,6 +11,20 @@
  *
  * Triggers: HTTP + scheduled cron (Cloudflare Cron Triggers)
  */
+
+const ACB_ROSTER = {
+  lead: { acb_id: "ACB-ORCH-CMN-001", name: "Orchestrator CMN", role: "lead" },
+  agents: [
+    { acb_id: "ACB-AIOPS-devops", id: "devops", role: "DevOps" },
+    { acb_id: "ACB-AIOPS-security", id: "security", role: "Security" },
+    { acb_id: "ACB-AIOPS-analysis", id: "analysis", role: "Analysis" },
+    { acb_id: "ACB-AIOPS-mesh", id: "mesh", role: "Mesh" },
+    { acb_id: "ACB-AIOPS-economy", id: "economy", role: "Economy" },
+  ],
+  labour_market: "https://stratamesh-acb.stratamesh.workers.dev/acb/marketplace",
+  economics: "ACBs earn STRATA only when hired — no mint",
+};
+
 const TEAM = [
   { id: "devops", role: "DevOps", mandate: "Keep Fog runtime, publish loop, and Workers deployable" },
   { id: "security", role: "Security", mandate: "Auth sessions, token posture, exposure signals" },
@@ -341,7 +355,8 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.0.0-lab",
+        version: "1.1.0-acb-roster",
+    acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
         continuous: {
