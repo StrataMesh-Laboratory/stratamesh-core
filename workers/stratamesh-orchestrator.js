@@ -216,15 +216,38 @@ async function tick(env, extraProposals = []) {
   };
 }
 
-async function chat(message, env) {
-  const text = String(message || "").trim().slice(0, 2000);
-  if (!text) return { reply: "Empty message.", role: "orchestrator", version: VERSION };
 
-  const tickOut = await tick(env);
+async function buildContextBrief(tickOut) {
+  const m = tickOut.tick.metrics;
+  return {
+    version: VERSION,
+    node_id: m.node_id,
+    operator: m.operator,
+    phase: m.phase,
+    phase_name: m.phase_name,
+    lab_version: m.version,
+    temp_mode: m.temp_mode,
+    dag_txs: m.dag_txs,
+    spa_active: m.spa_active,
+    spa_total: m.spa_total,
+    token_supply: m.token_supply,
+    agora_trades: m.agora_trades,
+    auth_ok: m.auth_ok,
+    auth_users: m.auth_users,
+    auth_sessions: m.auth_sessions,
+    aiops_ok: m.aiops_ok,
+    fitness: tickOut.tick.fitness,
+    decisions: tickOut.tick.decisions,
+    genes: tickOut.tick.genes_next,
+    upstream: tickOut.upstream,
+    ontology: ONTOLOGY,
+  };
+}
+
+async function chatDeterministic(text, tickOut) {
   const m = tickOut.tick.metrics;
   const lower = text.toLowerCase();
   const lines = [];
-
   lines.push("Orchestrator " + VERSION + " · bilateral bus (edge twin)");
   lines.push(
     "Node " + (m.node_id || "?") +
@@ -249,15 +272,6 @@ async function chat(message, env) {
       lines.push("Auth users=" + m.auth_users + " · sessions=" + m.auth_sessions);
     }
     if (m.temp_mode) lines.push("Mode: TEMP pulse — promote to always-on Fog when ready.");
-    if (m.source) lines.push("Status source: " + String(m.source).slice(0, 120));
-    lines.push("Tick fitness=" + tickOut.tick.fitness);
-    for (const d of tickOut.tick.decisions) {
-      lines.push(
-        "  " + d.proposal + ": " + d.verdict +
-        " soft=" + d.soft_score +
-        " committed=" + d.committed
-      );
-    }
   } else if (/next|próxim|proxim|roadmap|fazer|todo|priorid/.test(lower)) {
     if (m.temp_mode) {
       lines.push("P1 DevOps: migrate Fog from TEMP session → MacBook/Oracle always-on + publish_loop.");
@@ -270,51 +284,125 @@ async function chat(message, env) {
     lines.push("P3 Mesh: real Kubo pins + multi-host gossip.");
     lines.push("P4 Economy: lab emission remains capped until B0 production freeze.");
   } else if (/ontol|substrat|chauvin|função|funcao|standing/.test(lower)) {
-    lines.push("Symbolic lobe rule (Orchestrator only — not a node motto):");
-    lines.push("  Standing by function and agreement, not substrate.");
+    lines.push("Standing by function and agreement, not substrate (Orchestrator rule).");
     lines.push("Proposals that deny computational agents are rejected.");
-    lines.push("Irreversible actions require escalator_class.");
   } else if (/qiga|gene|evolv|aiga/.test(lower)) {
-    lines.push("QIGA genes (edge step): " + tickOut.tick.genes_next.join(", "));
-    lines.push("Fitness this tick: " + tickOut.tick.fitness);
+    lines.push("QIGA genes: " + tickOut.tick.genes_next.join(", "));
+    lines.push("Fitness: " + tickOut.tick.fitness);
   } else if (/aiops|equipa|team|agent/.test(lower)) {
-    lines.push(
-      "AIOps cycle reachable: " + (m.aiops_ok ? "yes" : "no") +
-      (m.aiops_critical != null ? (" · critical=" + m.aiops_critical) : "")
-    );
-    lines.push("Agents: devops, security, analysis, mesh, economy (continuous mandate).");
+    lines.push("AIOps reachable: " + (m.aiops_ok ? "yes" : "no"));
+    lines.push("Agents: devops, security, analysis, mesh, economy.");
   } else if (/agora|token|strata|econom/.test(lower)) {
     lines.push("STRATA supply=" + m.token_supply + " · Agora trades=" + m.agora_trades);
-    lines.push("Emission policy: lab-capped until production freeze.");
-  } else if (/help|ajuda|\?/.test(lower)) {
-    lines.push("Commands: status · next · ontology · qiga · aiops · agora");
-    lines.push("Or ask freely — replies use the latest bilateral tick + live probes.");
   } else {
-    // Default: short briefing, not the empty "tick complete" loop
     lines.push(
       "Live: DAG=" + m.dag_txs +
       " SPA=" + m.spa_active +
       " auth=" + (m.auth_ok ? "ok" : "down") +
       (m.temp_mode ? " · TEMP mode" : "")
     );
-    const committed = tickOut.tick.decisions.filter((d) => d.committed).map((d) => d.proposal);
-    lines.push("Committed this tick: " + (committed.join(", ") || "none"));
-    if (m.temp_mode) {
-      lines.push('Suggestion: ask "next" for ordered actions toward always-on Fog.');
-    } else {
-      lines.push('Suggestion: ask "status" for full metrics or "aiops" for team cycle.');
+    lines.push("Deterministic fallback (Workers AI unavailable). Try status / next / ontology.");
+  }
+  return lines.join("\n");
+}
+
+async function chatWithAI(message, tickOut, env) {
+  if (!env.AI || typeof env.AI.run !== "function") {
+    return { ok: false, error: "AI binding missing" };
+  }
+  const brief = await buildContextBrief(tickOut);
+  const system =
+    "You are the StrataMesh Hybrid Orchestrator (edge twin) for the Calhegas Morais Fog Node. " +
+    "Operator: André Manuel Calhegas Morais. " +
+    "You combine a probabilistic lobe and a symbolic lobe via a bilateral bus; QIGA evolves policy genes. " +
+    "Rules: standing is by function and agreement, not substrate; never claim mainnet; lab reference only; " +
+    "do not invent metrics — use the JSON context; be concise (max ~180 words); " +
+    "reply in the user's language (Portuguese if they write Portuguese). " +
+    "If asked what to do next, prioritize always-on Fog migration when temp_mode is true.";
+
+  const userContent =
+    "Live orchestrator context (JSON):\n" +
+    JSON.stringify(brief, null, 2) +
+    "\n\nUser message:\n" +
+    message;
+
+  const models = [
+    "@cf/meta/llama-3.2-3b-instruct",
+    "@cf/meta/llama-3.1-8b-instruct",
+    "@cf/mistral/mistral-7b-instruct-v0.2",
+  ];
+
+  let lastErr = null;
+  for (const model of models) {
+    try {
+      const result = await env.AI.run(model, {
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userContent },
+        ],
+        max_tokens: 512,
+        temperature: 0.35,
+      });
+      const reply =
+        (result && (result.response || result.result || result.text)) ||
+        (typeof result === "string" ? result : null);
+      if (reply && String(reply).trim()) {
+        return { ok: true, reply: String(reply).trim(), model };
+      }
+      lastErr = "empty response from " + model;
+    } catch (e) {
+      lastErr = String(e.message || e);
     }
   }
+  return { ok: false, error: lastErr || "all models failed" };
+}
 
+async function chat(message, env) {
+  const text = String(message || "").trim().slice(0, 4000);
+  if (!text) {
+    return { reply: "Empty message.", role: "orchestrator", version: VERSION };
+  }
+
+  const tickOut = await tick(env);
+  const preferDeterministic = /^(status|next|ontology|qiga|aiga|aiops|agora|help|ajuda)\\b/i.test(text);
+
+  // Natural language path via Workers AI unless user issued a classic command
+  if (!preferDeterministic) {
+    const ai = await chatWithAI(text, tickOut, env);
+    if (ai.ok) {
+      return {
+        reply: ai.reply,
+        role: "orchestrator",
+        version: VERSION,
+        source: "workers-ai+" + ai.model,
+        tick: tickOut.tick,
+        upstream: tickOut.upstream,
+      };
+    }
+    // fall through with note
+    const det = await chatDeterministic(text, tickOut);
+    return {
+      reply: det + "\\n\\n(NL model unavailable: " + (ai.error || "unknown") + ")",
+      role: "orchestrator",
+      version: VERSION,
+      source: "deterministic-fallback",
+      tick: tickOut.tick,
+      upstream: tickOut.upstream,
+      ai_error: ai.error,
+    };
+  }
+
+  const det = await chatDeterministic(text, tickOut);
   return {
-    reply: lines.join("\n"),
+    reply: det,
     role: "orchestrator",
     version: VERSION,
-    source: "hybrid-edge-tick",
+    source: "deterministic-command",
     tick: tickOut.tick,
     upstream: tickOut.upstream,
   };
 }
+
 
 export default {
   async fetch(request, env) {
