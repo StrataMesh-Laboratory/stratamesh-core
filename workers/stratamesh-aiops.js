@@ -148,17 +148,12 @@ async function runTeamCycleBudgeted(env) {
   const orchUrl = normalizeServiceUrl(env.ORCH_URL || DEFAULT_ORCH, "orch");
   const authUrl = normalizeServiceUrl(env.AUTH_URL || DEFAULT_AUTH, "auth");
 
-  async function probe(binding, url) {
+  async function probe(url) {
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 4000);
+    const timer = setTimeout(() => ac.abort(), 5000);
     try {
-      let r;
-      const init = { method: "GET", headers: { Accept: "application/json" }, signal: ac.signal };
-      if (binding && typeof binding.fetch === "function") {
-        r = await binding.fetch(new Request(url, init));
-      } else {
-        r = await fetch(url, init);
-      }
+      // Prefer public URL fetch: service-binding path routing was returning 404/empty for /health
+      const r = await fetch(url, { method: "GET", headers: { Accept: "application/json" }, signal: ac.signal });
       const text = await r.text();
       let data = null;
       try { data = JSON.parse(text); } catch { data = null; }
@@ -171,9 +166,9 @@ async function runTeamCycleBudgeted(env) {
   }
 
   const [status, orch, auth] = await Promise.all([
-    probe(env.STATUS, statusUrl),
-    probe(env.ORCH, orchUrl),
-    probe(env.AUTH, authUrl),
+    probe(statusUrl),
+    probe(orchUrl),
+    probe(authUrl),
   ]);
 
   const reports = [];
@@ -251,7 +246,7 @@ async function runTeamCycleBudgeted(env) {
     reports,
     next_actions: buildNextActions(reports, status.data),
     acb_ops,
-    version: "1.4.4-probe-paths",
+    version: "1.4.5-fetch-direct",
   };
 
   if (env.AIOPS_KV) {
@@ -572,7 +567,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.4.4-probe-paths', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.4.5-fetch-direct', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -581,7 +576,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.4.4-probe-paths",
+        version: "1.4.5-fetch-direct",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
