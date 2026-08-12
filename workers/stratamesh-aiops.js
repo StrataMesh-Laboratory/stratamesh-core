@@ -86,8 +86,24 @@ const TEAM = [
 ];
 
 const DEFAULT_STATUS = "https://stratamesh-status.stratamesh.workers.dev/status";
+// Note: plain_text STATUS_URL/AUTH_URL/ORCH_URL may be origin-only — probe() normalizes paths.
 const DEFAULT_ORCH = "https://stratamesh-orchestrator.stratamesh.workers.dev/health";
 const DEFAULT_AUTH = "https://stratamesh-auth.stratamesh.workers.dev/health";
+
+/** Origins in env (e.g. …workers.dev) need a health/status path appended. */
+function normalizeServiceUrl(url, kind) {
+  const u = String(url || "").replace(/\/$/, "");
+  if (!u) {
+    if (kind === "status") return DEFAULT_STATUS;
+    if (kind === "orch") return DEFAULT_ORCH;
+    return DEFAULT_AUTH;
+  }
+  if (/\/(health|status|cycle|tick)(\/|$)/i.test(u)) return u;
+  if (kind === "status") return u + "/status";
+  if (kind === "orch") return u + "/health";
+  return u + "/health";
+}
+
 
 async function fetchJson(url, timeoutMs = 8000) {
   const ctrl = new AbortController();
@@ -128,9 +144,9 @@ function agentReport(id, findings, severity = "info") {
 
 /** Hourly cron: real agent findings, hard budget on outbound calls (free-tier). */
 async function runTeamCycleBudgeted(env) {
-  const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
-  const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
-  const authUrl = env.AUTH_URL || DEFAULT_AUTH;
+  const statusUrl = normalizeServiceUrl(env.STATUS_URL || DEFAULT_STATUS, "status");
+  const orchUrl = normalizeServiceUrl(env.ORCH_URL || DEFAULT_ORCH, "orch");
+  const authUrl = normalizeServiceUrl(env.AUTH_URL || DEFAULT_AUTH, "auth");
 
   async function probe(binding, url) {
     const ac = new AbortController();
@@ -235,7 +251,7 @@ async function runTeamCycleBudgeted(env) {
     reports,
     next_actions: buildNextActions(reports, status.data),
     acb_ops,
-    version: "1.4.3-bg-timeout",
+    version: "1.4.4-probe-paths",
   };
 
   if (env.AIOPS_KV) {
@@ -249,8 +265,8 @@ async function runTeamCycleBudgeted(env) {
 
 async function runTeamCycleLight(env) {
   // probes only — max ~3 outbound requests
-  const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
-  const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
+  const statusUrl = normalizeServiceUrl(env.STATUS_URL || DEFAULT_STATUS, "status");
+  const orchUrl = normalizeServiceUrl(env.ORCH_URL || DEFAULT_ORCH, "orch");
   async function probe(binding, url) {
     try {
       if (binding && typeof binding.fetch === "function") {
@@ -275,9 +291,9 @@ async function runTeamCycle(env) {
   let acb_ops = null;
   try { acb_ops = await pulseAcbTeam(env); } catch (_) {}
 
-  const statusUrl = env.STATUS_URL || DEFAULT_STATUS;
-  const orchUrl = env.ORCH_URL || DEFAULT_ORCH;
-  const authUrl = env.AUTH_URL || DEFAULT_AUTH;
+  const statusUrl = normalizeServiceUrl(env.STATUS_URL || DEFAULT_STATUS, "status");
+  const orchUrl = normalizeServiceUrl(env.ORCH_URL || DEFAULT_ORCH, "orch");
+  const authUrl = normalizeServiceUrl(env.AUTH_URL || DEFAULT_AUTH, "auth");
 
   async function probe(binding, url) {
     if (binding) {
@@ -556,7 +572,7 @@ export default {
 
     if (path === '/team-pulse' || path === '/aiops/team-pulse') {
       const pulses = await pulseAcbTeam(env);
-      return new Response(JSON.stringify({ success: true, version: '1.4.3-bg-timeout', pulses }), {
+      return new Response(JSON.stringify({ success: true, version: '1.4.4-probe-paths', pulses }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
@@ -565,7 +581,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.4.3-bg-timeout",
+        version: "1.4.4-probe-paths",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",

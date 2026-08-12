@@ -216,7 +216,7 @@ export default {
             subsistence: 'ACB spends STRATA on compute; insolvent hibernates',
           },
           environment: {
-            holons: ['ugc_sandbox', 'open_world', 'virtual_realm'],
+            holons: ['ugc_sandbox', 'open_world', 'virtual_realm', 'metaverse_os', 'node', 'dlt'],
             cmn_team: CMN_TEAM,
           },
           acbs: n,

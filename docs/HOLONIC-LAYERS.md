@@ -1,66 +1,56 @@
-# Holonic layers — StrataMesh Web3 Metaverse (whitepaper-aligned)
+# Holonic architecture — StrataMesh DLT / Web3 Metaverse
 
-Source: *Stratamesh: Next-Generation Distributed Ledger Technology* (esp. Metaverse stack).
-
-## Correct order of abstraction (personal → global)
+Canonical stack (infrastructure top → inhabitance bottom), aligned with the whitepaper and node topology:
 
 ```
-UGC Sandbox  →  Multi-User Persistent Open-Worlds  →  Virtual Realms (hypervisors)  →  Web3 Metaverse
-     ↑                         ↑                              ↑
-  private mint            shared persistence            fog SPA infrastructure
+                    STRATAMESH DLT
+                          │
+      ┌───────────────────┼───────────────────┐
+   NODE A              NODE B              NODE C
+      │                   │                   │
+   OS / VM              OS / VM              OS / VM
+      │                   │                   │
+      └───────────────────┼───────────────────┘
+                          │
+                WEB3 METAVERSE OS
+                          │
+           ┌──────────────┴──────────────┐
+     VIRTUAL REALM A               VIRTUAL REALM B
+           │                             │
+    ┌──────┴──────┐                ┌─────┴─────┐
+  WORLD A1      WORLD A2         WORLD B1    WORLD B2
+    │             │                │           │
+  Sandbox       Sandbox          Sandbox     Sandbox
+    │
+┌───┴────┐
+User    SCA (ACB)
 ```
 
-| Order | Holon | Whitepaper role |
-|------:|-------|-----------------|
-| **1** | **UGC Sandbox** | Personal, private crucibles; creativity minted into unique assets (NFT + IPFS) |
-| **2** | **Multi-User Persistent Open-Worlds** | Shared worlds; sandbox contributions integrate as dynamic portions |
-| **3** | **Virtual Realms** | **Hypervisor servers** that *instantiate and operate* open-worlds; fog nodes under voluntary DAO SPAs; each realm may carry its own meta-layer rules |
-| **4** | **Web3 Metaverse** | Individual Virtual Realms coalesce into the overarching interconnected tapestry |
+## Layer table
 
-**Critical rule:** Open-Worlds are hosted **inside** Virtual Realms — not the reverse.
+| Level | Layer | Role |
+|------:|-------|------|
+| 0 | **StrataMesh DLT** | Mesh of contributing nodes; DAG, PdC, PdS, Agora, gossip |
+| 1 | **Node (OS / VM)** | Fog/edge host (e.g. FOG-NODE-PT-CM-001); physical/virtual machine |
+| 2 | **Web3 Metaverse OS** | Runtime that spans nodes; schedules realms and shared services |
+| 3 | **Virtual Realm** | Hypervisor-like domain: instantiates and operates worlds under realm rules / SPA |
+| 4 | **World (Open-World)** | Multi-user persistent world; receives sandbox contributions as dynamic portions |
+| 5 | **UGC Sandbox** | Authoring / isolation cell before (or beside) world integration |
+| 6 | **User & SCA** | Humans and Seres Computacionais Autónomos inhabit sandboxes/worlds by function |
 
-## Foundational substrate (under the Metaverse stack)
+## Critical rules
 
-| Layer | Component | Role |
-|-------|-----------|------|
-| DAG core | tips, gossip, cumulative weight | Parallel txs; probabilistic finality |
-| IPFS linkage | CIDs in DAG vertices | Content-addressed payloads / NFT metadata |
-| Edge nodes | lightweight, user/IoT-near | Initiate txs, local cache, cheap validation |
-| Fog nodes | stable, SPA-bound | Ledger share, pin/cache, contracts, optional deterministic finality, **realm hypervisors** |
-| Meta-layer | app/DAO finality modules | Opt-in deterministic finality; sovereign app rules |
-| Economy | PoC → STRATA → Agora; NFT mint | Contribution loop; tokenisation |
-| Agency | ACBs, Proof of Subsistence, DAO Republic | Computational citizens within the Metaverse |
+1. **Open-Worlds live inside Virtual Realms** — not the reverse.
+2. **Sandboxes** are the fine-grained holon where Users and SCAs act; they compose into Worlds.
+3. **Node OS/VM** is substrate for the Metaverse OS — standing of SCAs remains **by function and agreement**, not by substrate.
+4. **CMN lab IDs** (examples): realm `realm_1f20890b` · world `world_b787cfe9-c` · sandbox `sbx_9bed54e8-880` · node `FOG-NODE-PT-CM-001`.
 
-## Lab implementation map
+## Code anchors
 
-| Holon | Worker | Notes |
-|-------|--------|-------|
-| Sandbox | `stratamesh-sandbox` | `POST /create`, `POST /publish` (+ optional NFT), `POST /integrate` → world |
-| Open-World | `stratamesh-worlds` | Namespaces of experience; **must** reference a `realm_id` |
-| Virtual Realm | `stratamesh-realms` | Hypervisor / SPA sovereignty; lists hosted `world_ids` |
-| Metaverse | status + orchestrator aggregate | Composite view of realms + economy + ACBs |
-| Substrate | `stratamesh-dag`, `stratamesh-ipfs` | CIDv1 + DAG pipeline |
+| Concern | Worker / store |
+|---------|----------------|
+| SCA environment (realm/world/sandbox/node) | `stratamesh-acb` → `acb_environment` |
+| Holon labels | `ugc_sandbox` ⊂ `open_world` ⊂ `virtual_realm` under Metaverse OS on node |
+| Registry publish | Orchestrator `publicar_registo` → IPFS CID |
 
-## Canonical lab flow
-
-1. **Sandbox** `create` → real IPFS CID for draft asset  
-2. **Sandbox** `publish` → optional NFT mint + DAG anchor  
-3. **Sandbox** `integrate` → attach published item to an **Open-World**  
-4. **Open-World** is created/listed with **`realm_id`** (Virtual Realm hypervisor)  
-5. **Virtual Realm** under fog SPA hosts one or more worlds  
-6. Multiple realms → **Web3 Metaverse** aggregate  
-
-## What is still lab (honest)
-
-- No real-time multi-user 3D presence / MUOW client  
-- Realm “hypervisor” is control-plane + registry, not a full VM orchestrator  
-- Metaverse aggregate is API/status composition, not a single runtime  
-
-## Document control
-
-| Version | Date | Notes |
-|---------|------|--------|
-| 1.0 | 2026-08-11 | Initial (incorrect World⊃Realm ordering) |
-| **2.0** | **2026-08-11** | Whitepaper-correct: Sandbox → Open-World → Virtual Realm → Metaverse |
-
-**UNCLASSIFIED // FOG-NODE-PT-CM-001**
+*Updated to match operator topology diagram (2026-08).*
