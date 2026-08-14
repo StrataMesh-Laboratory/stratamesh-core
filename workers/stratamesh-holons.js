@@ -589,3 +589,130 @@ function holonStackPath(ids) {
     .join(" → ");
 }
 
+
+
+const VERSION = "1.0.0-contratos-pt";
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-cache",
+    },
+  });
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    let path = url.pathname;
+    if (path.startsWith("/api/v1/holons")) path = path.slice("/api/v1/holons".length) || "/";
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
+    }
+
+    if (path === "/health" || path === "/" || path === "") {
+      return json({
+        status: "ok",
+        servico: "stratamesh-holons",
+        service: "stratamesh-holons",
+        version: VERSION,
+        descricao: "Contratos inteligentes de interface entre camadas holónicas (PT-PT)",
+        autoridade_temporal: "PPC",
+        endpoints: ["/health", "/camadas", "/layers", "/contratos", "/contracts", "/contrato", "/contract", "/validar", "/validate", "/emitir", "/emit", "/caminho", "/path"],
+      });
+    }
+
+    if (path === "/camadas" || path === "/layers") {
+      return json({
+        pilha: HOLONIC_LAYERS.map((l) => ({
+          id: l.id,
+          nome: l.nome || l.name,
+          name_en: l.name_en || l.name,
+          papel: l.papel || l.role,
+        })),
+        caminho: holonStackPath(),
+        lingua: "pt-PT",
+        version: VERSION,
+      });
+    }
+
+    if (path === "/contratos" || path === "/contracts") {
+      return json({
+        contratos: HOLON_CONTRACTS,
+        schema: "interface_holonica_v1",
+        nota: "IDs estáveis em inglês técnico; nomes e eventos preferenciais em PT-PT",
+        version: VERSION,
+      });
+    }
+
+    if (path === "/contrato" || path === "/contract") {
+      const id = url.searchParams.get("id") || url.searchParams.get("holon");
+      if (!id) return json({ erro: "id_obrigatorio", exemplo: "/contrato?id=virtual_realm" }, 400);
+      const c = holonContract(id);
+      if (!c) return json({ erro: "holon_desconhecido", id }, 404);
+      return json({ contrato: c, version: VERSION });
+    }
+
+    if (path === "/caminho" || path === "/path") {
+      return json({
+        caminho: holonStackPath(),
+        path_ids: HOLONIC_LAYERS.map((l) => l.id).join(" / "),
+        version: VERSION,
+      });
+    }
+
+    if ((path === "/validar" || path === "/validate") && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const from = body.de || body.from || body.holon;
+      const event = body.evento || body.event;
+      const to = body.para || body.to || null;
+      if (!from || !event) return json({ erro: "de_e_evento_obrigatorios" }, 400);
+      const result = validateHolonEvent(from, event, to);
+      let temporal = null;
+      try {
+        temporal = ppcCompact(from);
+      } catch (_) {}
+      return json({ ...result, temporal, version: VERSION });
+    }
+
+    if ((path === "/emitir" || path === "/emit") && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const from = body.de || body.from || body.holon;
+      const event = body.evento || body.event;
+      const to = body.para || body.to || null;
+      const payload = body.carga || body.payload || {};
+      if (!from || !event) return json({ erro: "de_e_evento_obrigatorios" }, 400);
+      const v = validateHolonEvent(from, event, to);
+      if (!v.ok) return json({ aceite: false, ...v, version: VERSION }, 400);
+      const envelope = {
+        schema: "stratamesh.holon.event.v1",
+        id: crypto.randomUUID(),
+        de: from,
+        para: to,
+        evento: event,
+        carga: payload,
+        temporal: typeof ppcCompact === "function" ? ppcCompact(from) : null,
+        emitido_em_iso_portadora: new Date().toISOString(),
+        contrato: "interface_holonica_v1",
+      };
+      // Persist optional log
+      if (env.LEDGER || env.DB) {
+        try {
+          const db = env.LEDGER || env.DB;
+          await db.prepare(
+            "CREATE TABLE IF NOT EXISTS holon_event_log (id TEXT PRIMARY KEY, de TEXT, para TEXT, evento TEXT, body TEXT, created_at TEXT)"
+          ).run();
+          await db.prepare(
+            "INSERT INTO holon_event_log (id, de, para, evento, body, created_at) VALUES (?,?,?,?,?,?)"
+          ).bind(envelope.id, from, to || "", event, JSON.stringify(envelope).slice(0, 8000), envelope.emitido_em_iso_portadora).run();
+        } catch (_) {}
+      }
+      return json({ aceite: true, envelope, validacao: v, version: VERSION });
+    }
+
+    return json({ erro: "nao_encontrado", path, version: VERSION }, 404);
+  },
+};

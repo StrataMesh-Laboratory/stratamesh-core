@@ -1,201 +1,238 @@
 /**
- * Holon 1 — UGC Sandbox (whitepaper)
- * Personal private crucible → mint assets → integrate into Open-Worlds
+ * Holon 5 — UGC Sandbox
+ * Parent: open_world · Children: agent (inhabitance)
  */
+const HOLON = {
+  id: "ugc_sandbox",
+  order: 5,
+  parent: "open_world",
+  children: ["agent"],
+  version: "3.1.0-pt-contratos",
+};
+
+function j(d, s = 200) {
+  return new Response(JSON.stringify(d), {
+    status: s,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+  });
+}
+
+async function ensureSchema(db) {
+  if (!db) return;
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS sandboxes (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        parent_world_id TEXT,
+        owner_id TEXT,
+        status TEXT,
+        isolation TEXT,
+        content_json TEXT,
+        meta_json TEXT,
+        created_at TEXT,
+        updated_at TEXT,
+        published_at TEXT
+      )`
+    )
+    .run();
+  for (const col of [
+    "ALTER TABLE sandboxes ADD COLUMN parent_world_id TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN owner_id TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN isolation TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN content_json TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN meta_json TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN updated_at TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN published_at TEXT",
+  ]) {
+    try {
+      await db.prepare(col).run();
+    } catch (_) {}
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
-    if (path.startsWith('/api/v1/sandbox')) path = path.slice('/api/v1/sandbox'.length) || '/';
-    const j = (d, s = 200) =>
-      new Response(JSON.stringify(d), {
-        status: s,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': '*' } });
+    if (path.startsWith("/api/v1/sandbox")) path = path.slice("/api/v1/sandbox".length) || "/";
+    if (path.startsWith("/api/v1/sandboxes")) path = path.slice("/api/v1/sandboxes".length) || "/";
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*" } });
     }
-
     const db = env.LEDGER || env.DB;
-    try {
-      if (db) {
-        await db
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS ugc_sandbox (
-              id TEXT PRIMARY KEY, owner TEXT, cid TEXT, label TEXT, status TEXT,
-              nft_id TEXT, world_id TEXT, created_at TEXT, published_at TEXT
-            )`
-          )
-          .run();
-      }
 
-      if (path === '/health' || path === '/' || path === '') {
+    try {
+      await ensureSchema(db);
+
+      if (path === "/health" || path === "/" || path === "") {
         let count = 0;
         try {
-          const r = await db.prepare('SELECT COUNT(*) as c FROM ugc_sandbox').first();
-          count = r?.c ?? 0;
+          count = (await db.prepare("SELECT COUNT(*) as c FROM sandboxes").first())?.c ?? 0;
         } catch (_) {}
         return j({
-          status: 'ok',
-          service: 'stratamesh-sandbox',
-          holon: 'ugc_sandbox',
-          order: 1,
-          role: 'Personal UGC crucible — private mint before Open-World integration',
-          next_holon: 'open_world',
-          items: count,
-          version: '2.1.0-whitepaper',
+          status: "ok",
+          service: "stratamesh-sandbox",
+          holon: HOLON,
+          sandboxes: count,
+          endpoints: [
+            "/health",
+            "/contract",
+            "/list",
+            "/get",
+            "/create",
+            "/publish",
+            "/integrate",
+            "/describe",
+          ],
         });
       }
 
-      if (path === '/list' || path === '/sandbox') {
-        const owner = url.searchParams.get('owner');
+      if (path === "/contract") {
+        return j({
+          holon: HOLON,
+          nome: "Bancada UGC",
+          lingua: "pt-PT",
+          invariants: ["isolation until publish", "publish targets parent open_world"],
+          integration: {
+            emits: ["sandbox.publish", "sandbox.integrate"],
+            consumes: ["world.attach_sandbox", "agent.edit"],
+            upstream: "open_world",
+            downstream: "agent",
+          },
+        });
+      }
+
+      if (path === "/list" || path === "/sandbox") {
+        const world = url.searchParams.get("world_id");
         let rows;
-        if (owner) {
-          rows = await db.prepare('SELECT * FROM ugc_sandbox WHERE owner = ? ORDER BY created_at DESC LIMIT 50').bind(owner).all();
+        if (world) {
+          rows = await db.prepare("SELECT * FROM sandboxes WHERE parent_world_id = ? ORDER BY created_at DESC LIMIT 100").bind(world).all();
         } else {
-          rows = await db.prepare('SELECT * FROM ugc_sandbox ORDER BY created_at DESC LIMIT 50').all();
+          rows = await db.prepare("SELECT * FROM sandboxes ORDER BY created_at DESC LIMIT 100").all();
         }
-        return j({ items: rows.results || [], holon: 'ugc_sandbox', order: 1 });
+        return j({
+          sandboxes: (rows.results || []).map((s) => ({ ...s, holon: "ugc_sandbox" })),
+          count: (rows.results || []).length,
+          holon: HOLON,
+        });
       }
 
-      if (path === '/create' && request.method === 'POST') {
+      if (path === "/get") {
+        const id = url.searchParams.get("id");
+        if (!id) return j({ error: "id required" }, 400);
+        const sb = await db.prepare("SELECT * FROM sandboxes WHERE id = ?").bind(id).first();
+        if (!sb) return j({ error: "not_found", id }, 404);
+        return j({
+          sandbox: sb,
+          holon: HOLON,
+          path: `open_world:${sb.parent_world_id || "?"} / ugc_sandbox:${id}`,
+        });
+      }
+
+      if (path === "/create" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        let cid = body.cid || null;
-        const label = body.label || body.name || 'draft';
-        const owner = body.owner || 'FOG-NODE-PT-CM-001';
-        const content = body.content || { label, type: 'ugc_draft', owner, holon: 'sandbox' };
-        if (!cid) {
-          const payload = JSON.stringify({ content, name: label, node_id: owner });
-          for (let attempt = 0; attempt < 3 && !cid; attempt++) {
-            try {
-              let r;
-              if (env.IPFS && typeof env.IPFS.fetch === 'function') {
-                r = await env.IPFS.fetch(new Request('https://ipfs/add', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: payload,
-                }));
-              } else {
-                r = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: payload,
-                });
-              }
-              const ij = await r.json();
-              if (ij && ij.cid) cid = ij.cid;
-            } catch (_) {}
-          }
-        }
-        if (!cid) cid = 'pending';
-        const id = 'sbx_' + crypto.randomUUID().slice(0, 12);
+        const id = body.id || "sbx_" + crypto.randomUUID().slice(0, 10);
+        const now = new Date().toISOString();
         await db
-          .prepare('INSERT INTO ugc_sandbox (id, owner, cid, label, status, created_at) VALUES (?,?,?,?,?,?)')
-          .bind(id, owner, cid, label, 'draft', new Date().toISOString())
+          .prepare(
+            `INSERT OR REPLACE INTO sandboxes
+            (id, title, parent_world_id, owner_id, status, isolation, content_json, meta_json, created_at, updated_at, published_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+          )
+          .bind(
+            id,
+            body.title || "Untitled sandbox",
+            body.parent_world_id || body.world_id || "cmn-lab-world",
+            body.owner_id || null,
+            "isolated",
+            body.isolation || "strict",
+            JSON.stringify(body.content || {}),
+            JSON.stringify({ source: "create" }),
+            now,
+            now,
+            null
+          )
           .run();
         return j({
           success: true,
-          item: { id, owner, cid, label, status: 'draft' },
-          holon: 'ugc_sandbox',
-          order: 1,
-          next: 'POST /publish then POST /integrate into an Open-World',
+          id,
+          status: "isolated",
+          parent_world_id: body.parent_world_id || body.world_id || "cmn-lab-world",
+          holon: HOLON,
+          event: "sandbox.created",
+          seamless: { next: "POST /attach-sandbox on worlds; later /publish" },
         });
       }
 
-      if (path === '/publish' && request.method === 'POST') {
+      if (path === "/publish" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        const item_id = body.item_id || body.id;
-        const as_nft = body.as_nft !== false; // default true per whitepaper mint path
-        const row = await db.prepare('SELECT * FROM ugc_sandbox WHERE id = ?').bind(item_id).first();
-        if (!row) return j({ error: 'not found' }, 404);
-        let nft_id = row.nft_id || null;
-        if (as_nft && !nft_id) {
-          try {
-            const r = await fetch('https://stratamesh-token.stratamesh.workers.dev/mint', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                owner: row.owner,
-                name: row.label,
-                asset_type: 'digital',
-                metadata_cid: row.cid && row.cid !== 'pending' ? row.cid : undefined,
-                description: 'Published from UGC Sandbox (whitepaper flow)',
-              }),
-            });
-            const mj = await r.json();
-            nft_id = mj.nft?.id || null;
-            if (mj.nft?.metadata_cid && (!row.cid || row.cid === 'pending')) {
-              await db.prepare('UPDATE ugc_sandbox SET cid = ? WHERE id = ?').bind(mj.nft.metadata_cid, item_id).run();
-            }
-          } catch (_) {}
-        }
+        const id = body.id || body.sandbox_id;
+        if (!id) return j({ error: "id required" }, 400);
+        const sb = await db.prepare("SELECT * FROM sandboxes WHERE id = ?").bind(id).first();
+        if (!sb) return j({ error: "not_found", id }, 404);
+        const now = new Date().toISOString();
         await db
-          .prepare('UPDATE ugc_sandbox SET status = ?, nft_id = ?, published_at = ? WHERE id = ?')
-          .bind('published', nft_id, new Date().toISOString(), item_id)
+          .prepare("UPDATE sandboxes SET status = ?, published_at = ?, updated_at = ?, content_json = COALESCE(?, content_json) WHERE id = ?")
+          .bind("published", now, now, body.content ? JSON.stringify(body.content) : null, id)
           .run();
         return j({
           success: true,
-          item_id,
-          status: 'published',
-          nft_id,
-          holon: 'ugc_sandbox',
-          next: 'POST /integrate { item_id, world_id } → Open-World',
+          id,
+          status: "published",
+          parent_world_id: sb.parent_world_id,
+          event: "sandbox.publish",
+          holon_flow: "ugc_sandbox → open_world portion",
+          seamless: { notify_world: "world may attach or already attached" },
         });
       }
 
-      // Integrate published sandbox item into an Open-World (whitepaper: contributions become dynamic portions)
-      if (path === '/integrate' && request.method === 'POST') {
+      if (path === "/integrate" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
-        const item_id = body.item_id || body.id;
-        const world_id = body.world_id || 'cmn-lab-world';
-        const row = await db.prepare('SELECT * FROM ugc_sandbox WHERE id = ?').bind(item_id).first();
-        if (!row) return j({ error: 'not found' }, 404);
-        if (row.status !== 'published' && !body.force) {
-          return j({ error: 'publish before integrate', status: row.status }, 400);
+        const id = body.id || body.sandbox_id;
+        if (!id) return j({ error: "id required" }, 400);
+        const sb = await db.prepare("SELECT * FROM sandboxes WHERE id = ?").bind(id).first();
+        if (!sb) return j({ error: "not_found", id }, 404);
+        if (sb.status !== "published" && !body.force) {
+          return j({ error: "must_publish_first", status: sb.status }, 409);
         }
-        await db.prepare('UPDATE ugc_sandbox SET world_id = ?, status = ? WHERE id = ?').bind(world_id, 'integrated', item_id).run();
-        const fresh = await db.prepare('SELECT * FROM ugc_sandbox WHERE id = ?').bind(item_id).first();
-        let attached = false;
-        const attachBody = JSON.stringify({
-          world_id,
-          sandbox_id: item_id,
-          cid: (fresh && fresh.cid) || row.cid,
-          nft_id: (fresh && fresh.nft_id) || row.nft_id,
-          owner: row.owner,
-          label: row.label,
-        });
-        for (let i = 0; i < 2 && !attached; i++) {
-          try {
-            let ar;
-            if (env.WORLDS && typeof env.WORLDS.fetch === 'function') {
-              ar = await env.WORLDS.fetch(new Request('https://worlds/attach', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: attachBody,
-              }));
-            } else {
-              ar = await fetch('https://stratamesh-worlds.stratamesh.workers.dev/attach', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: attachBody,
-              });
-            }
-            const aj = await ar.json();
-            attached = !!(aj && aj.success);
-          } catch (_) {}
-        }
+        await db
+          .prepare("UPDATE sandboxes SET status = ?, updated_at = ? WHERE id = ?")
+          .bind("integrated", new Date().toISOString(), id)
+          .run();
         return j({
           success: true,
-          item_id,
-          world_id,
-          status: 'integrated',
-          attached,
-          holon_flow: 'sandbox → open_world',
-          note: 'Open-World must reside in a Virtual Realm hypervisor',
+          id,
+          status: "integrated",
+          parent_world_id: sb.parent_world_id,
+          event: "sandbox.integrate",
+          holon_flow: "sandbox content becomes world portion",
         });
       }
 
-      return j({
-        error: 'not found',
-        holon: 'ugc_sandbox',
-        endpoints: ['/health', '/list', '/create', '/publish', '/integrate'],
-      }, 404);
+      if (path === "/describe") {
+        return j({
+          holon: HOLON,
+          depth: {
+            isolation: "authoring cell until publish",
+            lifecycle: "isolated → published → integrated",
+            agency: "agents edit inside sandbox under owner_id",
+          },
+          seamless: {
+            up: "parent_world_id + worlds.attach-sandbox",
+            down: "agent inhabitance and edits",
+          },
+        });
+      }
+
+      return j(
+        {
+          error: "not found",
+          holon: HOLON,
+          endpoints: ["/health", "/contract", "/list", "/get", "/create", "/publish", "/integrate", "/describe"],
+        },
+        404
+      );
     } catch (e) {
       return j({ error: String(e.message || e) }, 500);
     }

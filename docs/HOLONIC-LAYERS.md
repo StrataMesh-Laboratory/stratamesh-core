@@ -1,191 +1,103 @@
-# Holonic architecture — StrataMesh (depth edition)
+# Arquitectura holónica — StrataMesh (edição em profundidade, PT-PT)
 
-Each layer is a **holon**: whole in itself, part of the layer above. Integration is seamless only when every layer exposes a stable **contract** (invariants, events, upstream/downstream, schema).
+Cada camada é um **holão**: inteiro em si e parte da camada acima. A integração só é contínua quando cada holão expõe um **contrato de interface** estável (invariantes, eventos, a montante / a jusante, esquema).
 
 ```
-STRATAMESH DLT                          ← mesh substrate
+RDL STRATAMESH                              ← substrato da malha
     │
-NODE (OS/VM)                            ← host capacity
+NÓ (SO / VM)                                ← capacidade do anfitrião
     │
-WEB3 METAVERSE OS (shared)              ← OS across nodes
-    ├─ CLP temporal kernel              ← civil time (PPC authority)
-    ├─ Dashboard / Portal               ← OS applications
-    └─ VIRTUAL REALM                    ← hypervisor domain
+SO DO METAVERSO WEB3 (partilhado)           ← SO entre nós
+    ├─ Kernel temporal CLP                  ← tempo civil (autoridade PPC)
+    ├─ Painel / Portal                      ← aplicações do SO
+    └─ REINO VIRTUAL                        ← domínio hipervisor
             │
-        OPEN-WORLD                      ← persistent multi-user experience
+        MUNDO ABERTO                        ← experiência persistente multi-utilizador
             │
-        UGC SANDBOX                     ← authoring / isolation
+        BANCADA UGC                         ← criação e isolamento
             │
-        USER | SCA                      ← standing by function & agreement
+        UTILIZADOR | SCA                    ← standing por função e acordo
 ```
 
----
-
-## 0 — StrataMesh DLT
-
-**Role.** Mesh-wide ledger and resource economics: DAG vertices, tip selection, gossip, PdC (contribution mint only via node resources), PdS (subsistence spend), Agora (P2P external exchange), token/NFT strata.
-
-**Owns.** Finality weight, payload integrity, spend_key conflicts, on-graph temporal seals.
-
-**Does not own.** UX, realm scheduling, personal SCA identity narrative.
-
-**Invariants**
-- Payload hash is identity; temporal PPC envelope may be sealed **inside** payload before hash (`holon: dlt`).
-- PdC mints only from audited resource contribution priced via Agora rates — never arbitrary mint.
-- PdS debits resource consumption; insolvency → hibernation, not infinite credit.
-- ISO-8601 is wire carrier; civil authority is PPC.
-
-**Interfaces**
-- `POST /submit` → vertex + `temporal`
-- Gossip / tips / weight
-- Downstream: Node reports contribution; Metaverse OS reads DAG state
-
-**Events emitted.** `vertex.attached`, `tip.updated`, `conflict.rejected`
+**IDs técnicos** (estáveis, para código): `dlt`, `node`, `metaverse_os`, `clp`, `dashboard`, `virtual_realm`, `open_world`, `ugc_sandbox`, `agent`.  
+**Nomes de superfície** (PT-PT): RDL, Nó, SO do Metaverso, CLP, Painel, Reino Virtual, Mundo Aberto, Bancada UGC, Utilizador|SCA.
 
 ---
 
-## 1 — Node (OS / VM)
+## 0 — RDL StrataMesh (`dlt`)
 
-**Role.** Fog/edge host capacity: CPU, storage, bandwidth, location. Example: `FOG-NODE-PT-CM-001` (Lisboa).
+**Papel.** Razão distribuída e economia de recursos da malha: vértices GDA, selecção de pontas, fofoca, PdC, PdS, Ágora, tokens/NFT strata.
 
-**Owns.** Hardware/VM meters, node_id, SPA registration, contribution claims toward PdC.
-
-**Does not own.** Ledger truth (DLT does); world content (realms/worlds do).
-
-**Invariants**
-- Node is **substrate**, never the standing of an SCA.
-- Contribution is metered by **resource type + quality**, not by function label (storage is storage).
-- Multiple nodes share one Metaverse OS view.
-
-**Interfaces.** Status pulse, PoC meters, SPA opt-in/out, orchestrator mesh probes.
-
-**Events.** `node.pulse`, `contribution.claim`, `spa.opt_out`
+**Contrato de interface.** Ver `HOLON_CONTRACTS.dlt` e `GET /contratos` no serviço `stratamesh-holons`.
 
 ---
 
-## 2 — Web3 Metaverse OS (shared)
+## 1 — Nó SO/VM (`node`)
 
-**Role.** Shared operating system across nodes: schedules realms, hosts OS apps (dashboard, portal, chat), holds CLP kernel, orchestrates SCA ops team.
-
-**Owns.** Cross-node session surface, OS-level services (auth bridge, orchestrator, AIOps), holonic path resolution.
-
-**Does not own.** Per-realm sovereignty rules beyond capacity grants; user UGC bytes (sandbox does).
-
-**Invariants**
-- Dashboard/portal are **applications inside** the OS — not an admin plane above the DLT.
-- One logical OS spans Node A/B/C.
-- Orchestrator writes its own context window; SCA personal identity ≠ node_function.
-
-**Interfaces.** `/dashboard`, `/clp`, orchestrator `/chat|/tick|/ppc`, AIOps `/cycle`, auth.
-
-**Events.** `os.schedule`, `os.tick`, `sca.diary`, `aiops.cycle`
-
-### 2a — CLP temporal kernel
-
-**Role.** Civil lunisolar time + PPC inertial matrix (Almendres, Carnac, Menga, Newgrange, Stonehenge).
-
-**Owns.** `ppcStamp`, `ppcCompact(holon)`, validation, CLP addresses.
-
-**Invariants.** Authority = PPC; ISO demoted to carrier; stamps self-validate against solar phase + θ/λ.
-
-**API.** Orchestrator `GET|POST /ppc`, `POST /ppc/validate`; UI `/clp`.
-
-### 2b — Dashboard / Portal
-
-**Role.** Human/SCA-facing OS apps: health, chat, clearance-gated ops.
-
-**Owns.** Presentation, session UX, language (PT-PT / EN-GB).
-
-**Invariants.** Registered users for dashboard/chat; staff vs common login paths; clearance is account field.
+**Papel.** Capacidade fog/edge (ex.: `FOG-NODE-PT-CM-001`, Lisboa). Substrato — **não** confere standing a SCA.
 
 ---
 
-## 3 — Virtual Realm
+## 2 — SO do Metaverso Web3 (`metaverse_os`)
 
-**Role.** **Hypervisor domain** for open-worlds: capacity, sovereignty, SPA binding — not the experience itself.
+**Papel.** Sistema operativo partilhado entre nós: agenda reinos, aloja painel/portal/chat, kernel CLP, equipa AIOps.
 
-**Owns.** Realm registry, world hosting slots, sovereignty/operator metadata.
-
-**Invariants**
-- `open_world ⊂ virtual_realm` (never reverse).
-- Realm is infrastructure; narrative/play lives in worlds.
-
-**Contract (live)**
-- Upstream: `metaverse_os` (`os.schedule`)
-- Downstream: `open_world`
-- Emits: `realm.created`, `realm.host_world`
-- Schema: realm, realm_worlds binding
-
-**API.** `/list`, `/create`, `/ensure-lab`, `/host-world`, `/children`, `/describe`, `/contract`
+**2a CLP** — autoridade temporal PPC; ISO só portadora.  
+**2b Painel / Portal** — aplicações do SO (não plano de administração acima da RDL).
 
 ---
 
-## 4 — Open-World
+## 3 — Reino Virtual (`virtual_realm`)
 
-**Role.** Persistent multi-user world under a realm: rules, inhabitants, sandbox attachments.
-
-**Owns.** World rules JSON, inhabitant lists, sandbox links.
-
-**Invariants.** World always names parent `realm_id`; sandboxes attach to worlds, not directly to realms.
-
-**Contract**
-- Upstream: `virtual_realm`
-- Downstream: `ugc_sandbox`
-- Emits: `world.created`, `world.attach_sandbox`, `world.inhabit`
-
-**API.** `/list`, `/create`, `/ensure-lab`, `/attach-sandbox`, `/inhabitants`, `/contract`
+**Papel.** Domínio **hipervisor** para mundos abertos (capacidade, soberania) — não a experiência em si.  
+**Invariante:** `mundo_aberto ⊂ reino_virtual`.
 
 ---
 
-## 5 — UGC Sandbox
+## 4 — Mundo Aberto (`open_world`)
 
-**Role.** Fine-grained authoring and isolation holon; publish/integrate toward world.
-
-**Owns.** Draft assets, isolation flags, publish pipeline stubs.
-
-**Invariants.** Sandbox actions are local until `publish`/`integrate`; SCA and User are peer inhabitants by function.
-
-**Contract**
-- Upstream: `open_world`
-- Downstream: `agent` (user|sca)
-- Emits: `sandbox.created`, `sandbox.publish`, `sandbox.integrate`
-
-**API.** `/list`, `/create`, `/publish`, `/integrate`, `/describe`, `/contract`
+**Papel.** Mundo persistente multi-utilizador sob um reino.  
+**Invariante:** declara sempre o `realm_id` pai; bancadas ligam-se ao mundo, não ao reino.
 
 ---
 
-## 6 — User | SCA (agent)
+## 5 — Bancada UGC (`ugc_sandbox`)
 
-**Role.** Standing **by function and agreement**, not substrate. Humans and Seres Computacionais Autónomos (SCA; EN: ACB).
-
-**Owns.** Personal identity graph (name, birth, id, vital_status), labour listings, PdS balance behaviour, optional NFT choice.
-
-**Invariants**
-- `node_function` (orchestrator, security, …) ≠ personal identity.
-- PdS costs realistic, non-existentially prohibitive floor.
-- Labour pay from strata holders — not fixed PoC rates.
-
-**Interfaces.** ACB registry, marketplace, subsistence, orchestrator SCA registry, clearance.
+**Papel.** Criação e isolamento; publicar/integrar para o mundo.  
+**Invariante:** local até publicar; Utilizador e SCA são pares por função.
 
 ---
 
-## Cross-layer integration rules
+## 6 — Utilizador | SCA (`agent`)
 
-1. **Path addressing:** `dlt / node:{id} / metaverse_os / clp|dashboard / realm:{id} / world:{id} / sandbox:{id} / agent:{id}`
-2. **Events flow downward for schedule, upward for proofs** (contribution, PdS, vertex).
-3. **Every durable write prefers a `temporal` compact** with the **holon id** of the writer.
-4. **No layer may invent standing** for SCAs from substrate alone.
-5. **Seamless integration** = each `/contract` documents emits/consumes; callers only use contract surface.
+**Papel.** Standing por função e acordo. SCA = Ser Computacional Autónomo.  
+Identidade pessoal ≠ função no nó (orquestrador, segurança, …).
 
-## CMN lab anchors
+---
 
-| Item | Value |
+## Contratos inteligentes de interface
+
+Serviço: **`stratamesh-holons`**
+
+| Método | Caminho | Função |
+|--------|---------|--------|
+| GET | `/camadas` | Pilha em PT-PT |
+| GET | `/contratos` | Todos os contratos |
+| GET | `/contrato?id=` | Um holão |
+| POST | `/validar` | `{ de, evento, para? }` |
+| POST | `/emitir` | Emite envelope selado (PPC) se o contrato aceitar |
+
+Esquema de evento: `stratamesh.holon.event.v1`.
+
+Código-fonte: `shared/holonic-clp.js` (`HOLON_CONTRACTS`, `validateHolonEvent`).
+
+## Âncoras do laboratório CMN
+
+| Item | Valor |
 |------|--------|
-| Node | `FOG-NODE-PT-CM-001` |
-| Realm | `realm_1f20890b` / lab `cmn-lab` |
-| World | `world_b787cfe9-c` / `cmn-lab-world` |
-| Sandbox | `sbx_9bed54e8-880` |
-| Coords | 38.7169°N, 9.1427°W |
-| CLP UI | `/clp` |
-
-See: `TEMPORAL-PPC-PHASE1.md`, `TEMPORALIDADE-CLP.md`, `EPISTEMIC-ONTOLOGY.md`, `shared/holonic-clp.js`.
+| Nó | `FOG-NODE-PT-CM-001` |
+| Reino | `realm_1f20890b` / `cmn-lab` |
+| Mundo | `world_b787cfe9-c` |
+| Bancada | `sbx_9bed54e8-880` |
+| Coordenadas | 38,7169° N · 9,1427° W |
+| CLP | `/clp` |
