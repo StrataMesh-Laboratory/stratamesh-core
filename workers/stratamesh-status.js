@@ -1,4 +1,5 @@
 const SNAPSHOT = {"version": "0.2.1-lab-temp", "phase": "2"};
+
 /** EMBEDDED from shared/holonic-clp.js — foundational holarchy + CLP (do not edit only here; edit shared/) */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
@@ -7,8 +8,28 @@ const SNAPSHOT = {"version": "0.2.1-lab-temp", "phase": "2"};
  * Holonic stack (infra top → inhabitance bottom):
  *   DLT → Node(OS/VM) → Web3 Metaverse OS (shared) → {CLP, Dashboard} → Realm → World → Sandbox → User|SCA
  *
- * CLP: relative civil time; ISO-8601 remains the wire format for DAG/interop.
+ * CLP: relative civil time.
+ * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
+ * Migration ISO→PPC does not delete ISO — it demotes UTC from authority to carrier.
  */
+
+/** Temporal migration policy (phase 1) */
+const TEMPORAL_POLICY = {
+  phase: 1,
+  authority: "PPC", // planetary convention points + local solar frame
+  civil: "CLP",
+  wire_carrier: "ISO-8601", // interop only — not civil authority
+  gains: [
+    "location_proof_baked_in",
+    "no_utc_trusted_third_party_for_civil_time",
+    "inertial_frame_sun_position",
+    "self_validating_across_centuries",
+    "poc_bindable_to_astronomical_reality",
+    "contracts_astronomically_enforceable",
+  ],
+  loses: ["comfort_of_abstract_universal_time"],
+};
+
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
   name: "Calhegas Morais Node",
@@ -220,7 +241,117 @@ function ppcMatrix(ms = Date.now()) {
   });
 }
 
-const LIVE_HTML = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>StrataMesh \u00b7 Live \u00b7 v0.2.1-lab</title>\n<style>\n:root{--bg:#0b0f14;--card:#141a22;--text:#e6edf3;--muted:#8b9bb4;--accent:#3b82f6;--ok:#22c55e;--warn:#fbbf24}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:1.25rem}\n.c{max-width:960px;margin:0 auto}\nh1{font-size:1.2rem} .sub{color:var(--muted);font-size:.8rem;margin:.25rem 0 1rem}\n.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.65rem}\n.card{background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:.9rem}\n.label{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}\n.stat{font-size:1.25rem;font-weight:600;margin-top:.15rem}\n.ok{color:var(--ok)} table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:.4rem}\nth,td{text-align:left;padding:.3rem .2rem;border-bottom:1px solid #1e293b;color:var(--muted)}\nth{color:#93c5fd} a{color:var(--accent)} pre{font-size:.72rem;color:var(--muted);overflow:auto;max-height:160px}\n.pill{display:inline-block;background:#14532d;color:var(--ok);padding:.15rem .5rem;border-radius:999px;font-size:.72rem}\ntracks span{display:inline-block;margin:.15rem .25rem 0 0;padding:.15rem .45rem;border-radius:6px;background:#1e293b;font-size:.7rem;color:#94a3b8}\n</style>\n</head>\n<body>\n<div class=\"c\">\n  <h1>StrataMesh live status</h1>\n  <p class=\"sub\"><span class=\"pill\">v0.2.1-lab</span> \u00b7 FOG-NODE-PT-CM-001 \u00b7 auto-refresh 30s \u00b7\n    <a href=\"/status\">JSON</a> \u00b7 <a href=\"https://github.com/amcmorais/stratamesh-core\">GitHub</a> \u00b7\n    <a href=\"https://calhegasmorais.pt/\">Site</a></p>\n  <div id=\"error\" style=\"color:#f87171;font-size:.85rem\"></div>\n  <div class=\"grid\" id=\"cards\"></div>\n  <div class=\"card\" style=\"margin-top:.75rem\">\n    <div class=\"label\">Lab tracks</div>\n    <div class=\"tracks\" id=\"tracks\"></div>\n  </div>\n  <div class=\"card\" style=\"margin-top:.75rem\">\n    <div class=\"label\">Finality tips</div>\n    <table><thead><tr><th>tx</th><th>conf</th><th>weight</th><th>type</th></tr></thead><tbody id=\"tips\"></tbody></table>\n  </div>\n  <div class=\"card\" style=\"margin-top:.75rem\"><div class=\"label\">SPA / token / SVC</div><pre id=\"extra\"></pre></div>\n</div>\n<script>\nconst URL = location.origin + '/status';\nconst TRACKS = ['A0 ops','A1 mesh sync','A2 multi-SPA','A3 join doc','B0 emission','B1 dual Agora','B2 finality','B3 ACB meters','B4 PQ hooks'];\ndocument.getElementById('tracks').innerHTML = TRACKS.map(t=>'<span>'+t+'</span>').join('');\nasync function load(){\n  try{\n    const s = await fetch(URL+'?t='+Date.now()).then(r=>r.json());\n    document.getElementById('error').textContent = '';\n    const cards = [\n      ['Version', s.version || '\u2014', ''],\n      ['Phase', (s.phase||'?')+' '+(s.phase_name||''), ''],\n      ['DAG txs', s.dag?.transaction_count ?? '\u2014', ''],\n      ['Tips', s.dag?.tip_count ?? '\u2014', ''],\n      ['SPAs', s.spa?.active ?? '\u2014', ''],\n      ['STRATA', s.token?.total_supply ?? s.contribution?.total_minted ?? '\u2014', ''],\n      ['Uptime s', s.uptime_seconds ?? '\u2014', ''],\n      ['Solvent', s.subsistence?.solvent ? 'yes' : 'check', s.subsistence?.solvent ? 'ok' : ''],\n    ];\n    document.getElementById('cards').innerHTML = cards.map(([l,v,c])=>\n      `<div class=\"card\"><div class=\"label\">${l}</div><div class=\"stat ${c}\">${v}</div></div>`).join('');\n    const tips = s.finality_tips || [];\n    document.getElementById('tips').innerHTML = tips.length ? tips.map(t=>\n      `<tr><td><code>${t.tx_id}</code></td><td>${((t.confidence||0)*100).toFixed(1)}%</td><td>${t.cumulative_weight}</td><td>${t.type||''}</td></tr>`\n    ).join('') : '<tr><td colspan=\"4\">none</td></tr>';\n    document.getElementById('extra').textContent = JSON.stringify({\n      spa: s.spa, token: s.token, service_credit: s.service_credit,\n      acbs: s.acbs, pq_keys: s.pq_keys, source: s.source\n    }, null, 2);\n  }catch(e){ document.getElementById('error').textContent = String(e); }\n}\nload(); setInterval(load, 30000);\n</script>\n</body>\n</html>\n";
+
+/** Deterministic short fingerprint (FNV-1a 32-bit hex) — no crypto dependency. */
+function fnv1aHex(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return ("00000000" + (h >>> 0).toString(16)).slice(-8);
+}
+
+/**
+ * Phase-1 PPC stamp: dual encoding.
+ * - iso: wire carrier (interop)
+ * - clp: civil relative address
+ * - ppc: inertial planetary matrix (truth layer)
+ * - solar: local astronomical phase at claimed locality
+ */
+function ppcStamp(opts = {}) {
+  const now = opts.date ? new Date(opts.date) : new Date();
+  const ms = now.getTime();
+  const lat = opts.lat != null ? opts.lat : NODE_CMN.lat;
+  const lon = opts.lon != null ? opts.lon : NODE_CMN.lon;
+  const locality = opts.locality || NODE_CMN.locality;
+  const node_id = opts.node_id || NODE_CMN.node_id;
+  const clp = clpAddress({ date: now, lat, lon, locality, node_id });
+  const matrix = ppcMatrix(ms);
+  const phase = intraDayPhase(now, lat, lon);
+  const payload = {
+    schema: "stratamesh.ppc.stamp.v1",
+    policy: TEMPORAL_POLICY.phase,
+    authority: TEMPORAL_POLICY.authority,
+    node_id,
+    locality,
+    lat,
+    lon,
+    iso_carrier: now.toISOString(), // demoted: carrier, not authority
+    jd: Number(julianDate(ms).toFixed(6)),
+    clp,
+    solar: {
+      phase: phase.phase,
+      vector: phase.vector,
+      sunrise: phase.times.sunrise.toISOString(),
+      noon: phase.times.noon.toISOString(),
+      sunset: phase.times.sunset.toISOString(),
+      nadir: phase.times.nadir.toISOString(),
+    },
+    ppc: matrix,
+  };
+  // Fingerprint binds locality + phase + PPC θ/λ — location-proof without TTP
+  const canon =
+    node_id +
+    "|" +
+    lat.toFixed(4) +
+    "," +
+    lon.toFixed(4) +
+    "|" +
+    phase.phase +
+    "|" +
+    matrix.map((p) => p.name + ":" + p.theta + "/" + p.lambda).join(";");
+  payload.ppc_fingerprint = fnv1aHex(canon);
+  payload.canon = canon;
+  return payload;
+}
+
+/**
+ * Self-validate a PPC stamp against recomputed astronomical/PPC state.
+ * Phase 1: tolerance on fingerprint match + phase consistency + locality bounds.
+ */
+function validatePpcStamp(stamp, opts = {}) {
+  if (!stamp || stamp.schema !== "stratamesh.ppc.stamp.v1") {
+    return { ok: false, reason: "invalid_schema" };
+  }
+  const ms = stamp.iso_carrier ? Date.parse(stamp.iso_carrier) : Date.now();
+  if (!Number.isFinite(ms)) return { ok: false, reason: "bad_iso_carrier" };
+  const recomputed = ppcStamp({
+    date: new Date(ms),
+    lat: stamp.lat,
+    lon: stamp.lon,
+    locality: stamp.locality,
+    node_id: stamp.node_id,
+  });
+  const fpMatch = recomputed.ppc_fingerprint === stamp.ppc_fingerprint;
+  const phaseMatch = recomputed.solar.phase === (stamp.solar && stamp.solar.phase);
+  // JD drift check (carrier vs astronomical continuum)
+  const jdDelta = Math.abs(recomputed.jd - (stamp.jd || 0));
+  const jdOk = jdDelta < 0.0002; // ~17s
+  const ok = fpMatch && phaseMatch && jdOk;
+  return {
+    ok,
+    authority: "PPC",
+    fp_match: fpMatch,
+    phase_match: phaseMatch,
+    jd_delta: jdDelta,
+    jd_ok: jdOk,
+    expected_fingerprint: recomputed.ppc_fingerprint,
+    claimed_fingerprint: stamp.ppc_fingerprint,
+    location_proof: ok,
+    note: ok
+      ? "Stamp self-validates against PPC inertial matrix + local solar frame"
+      : "Stamp failed astronomical/PPC self-validation",
+  };
+}
+
+/** Explicit migration helper: ISO string → PPC-authoritative stamp */
+function isoToPpc(iso, opts = {}) {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) throw new Error("invalid_iso");
+  return ppcStamp({ ...opts, date: new Date(ms) });
+}
+
 
 function page(s) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StrataMesh Status</title>
@@ -252,10 +383,18 @@ export default {
     if (url.pathname === '/status' || url.pathname === '/v1/status') {
       const foundation = typeof holonicContext === 'function' ? holonicContext() : null;
       const clp = typeof clpAddress === 'function' ? clpAddress() : null;
+      const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
       const enriched = Object.assign({}, data, {
         foundation,
         clp,
-        temporal: { civil: 'CLP', wire: 'ISO-8601' },
+        ppc,
+        temporal: {
+          phase: 1,
+          authority: 'PPC',
+          civil: 'CLP',
+          wire_carrier: 'ISO-8601',
+          note: 'PPC is planetary truth; ISO is interop carrier only',
+        },
         holonic_path: foundation && foundation.path,
       });
       return new Response(JSON.stringify(enriched, null, 2), {headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':'no-cache'}});

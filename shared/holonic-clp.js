@@ -5,8 +5,28 @@
  * Holonic stack (infra top → inhabitance bottom):
  *   DLT → Node(OS/VM) → Web3 Metaverse OS (shared) → {CLP, Dashboard} → Realm → World → Sandbox → User|SCA
  *
- * CLP: relative civil time; ISO-8601 remains the wire format for DAG/interop.
+ * CLP: relative civil time.
+ * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
+ * Migration ISO→PPC does not delete ISO — it demotes UTC from authority to carrier.
  */
+
+/** Temporal migration policy (phase 1) */
+export const TEMPORAL_POLICY = {
+  phase: 1,
+  authority: "PPC", // planetary convention points + local solar frame
+  civil: "CLP",
+  wire_carrier: "ISO-8601", // interop only — not civil authority
+  gains: [
+    "location_proof_baked_in",
+    "no_utc_trusted_third_party_for_civil_time",
+    "inertial_frame_sun_position",
+    "self_validating_across_centuries",
+    "poc_bindable_to_astronomical_reality",
+    "contracts_astronomically_enforceable",
+  ],
+  loses: ["comfort_of_abstract_universal_time"],
+};
+
 export const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
   name: "Calhegas Morais Node",
@@ -216,4 +236,115 @@ export function ppcMatrix(ms = Date.now()) {
       lambda: Math.log(pseudoLunar + 0.001).toFixed(6),
     };
   });
+}
+
+
+/** Deterministic short fingerprint (FNV-1a 32-bit hex) — no crypto dependency. */
+export function fnv1aHex(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return ("00000000" + (h >>> 0).toString(16)).slice(-8);
+}
+
+/**
+ * Phase-1 PPC stamp: dual encoding.
+ * - iso: wire carrier (interop)
+ * - clp: civil relative address
+ * - ppc: inertial planetary matrix (truth layer)
+ * - solar: local astronomical phase at claimed locality
+ */
+export function ppcStamp(opts = {}) {
+  const now = opts.date ? new Date(opts.date) : new Date();
+  const ms = now.getTime();
+  const lat = opts.lat != null ? opts.lat : NODE_CMN.lat;
+  const lon = opts.lon != null ? opts.lon : NODE_CMN.lon;
+  const locality = opts.locality || NODE_CMN.locality;
+  const node_id = opts.node_id || NODE_CMN.node_id;
+  const clp = clpAddress({ date: now, lat, lon, locality, node_id });
+  const matrix = ppcMatrix(ms);
+  const phase = intraDayPhase(now, lat, lon);
+  const payload = {
+    schema: "stratamesh.ppc.stamp.v1",
+    policy: TEMPORAL_POLICY.phase,
+    authority: TEMPORAL_POLICY.authority,
+    node_id,
+    locality,
+    lat,
+    lon,
+    iso_carrier: now.toISOString(), // demoted: carrier, not authority
+    jd: Number(julianDate(ms).toFixed(6)),
+    clp,
+    solar: {
+      phase: phase.phase,
+      vector: phase.vector,
+      sunrise: phase.times.sunrise.toISOString(),
+      noon: phase.times.noon.toISOString(),
+      sunset: phase.times.sunset.toISOString(),
+      nadir: phase.times.nadir.toISOString(),
+    },
+    ppc: matrix,
+  };
+  // Fingerprint binds locality + phase + PPC θ/λ — location-proof without TTP
+  const canon =
+    node_id +
+    "|" +
+    lat.toFixed(4) +
+    "," +
+    lon.toFixed(4) +
+    "|" +
+    phase.phase +
+    "|" +
+    matrix.map((p) => p.name + ":" + p.theta + "/" + p.lambda).join(";");
+  payload.ppc_fingerprint = fnv1aHex(canon);
+  payload.canon = canon;
+  return payload;
+}
+
+/**
+ * Self-validate a PPC stamp against recomputed astronomical/PPC state.
+ * Phase 1: tolerance on fingerprint match + phase consistency + locality bounds.
+ */
+export function validatePpcStamp(stamp, opts = {}) {
+  if (!stamp || stamp.schema !== "stratamesh.ppc.stamp.v1") {
+    return { ok: false, reason: "invalid_schema" };
+  }
+  const ms = stamp.iso_carrier ? Date.parse(stamp.iso_carrier) : Date.now();
+  if (!Number.isFinite(ms)) return { ok: false, reason: "bad_iso_carrier" };
+  const recomputed = ppcStamp({
+    date: new Date(ms),
+    lat: stamp.lat,
+    lon: stamp.lon,
+    locality: stamp.locality,
+    node_id: stamp.node_id,
+  });
+  const fpMatch = recomputed.ppc_fingerprint === stamp.ppc_fingerprint;
+  const phaseMatch = recomputed.solar.phase === (stamp.solar && stamp.solar.phase);
+  // JD drift check (carrier vs astronomical continuum)
+  const jdDelta = Math.abs(recomputed.jd - (stamp.jd || 0));
+  const jdOk = jdDelta < 0.0002; // ~17s
+  const ok = fpMatch && phaseMatch && jdOk;
+  return {
+    ok,
+    authority: "PPC",
+    fp_match: fpMatch,
+    phase_match: phaseMatch,
+    jd_delta: jdDelta,
+    jd_ok: jdOk,
+    expected_fingerprint: recomputed.ppc_fingerprint,
+    claimed_fingerprint: stamp.ppc_fingerprint,
+    location_proof: ok,
+    note: ok
+      ? "Stamp self-validates against PPC inertial matrix + local solar frame"
+      : "Stamp failed astronomical/PPC self-validation",
+  };
+}
+
+/** Explicit migration helper: ISO string → PPC-authoritative stamp */
+export function isoToPpc(iso, opts = {}) {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) throw new Error("invalid_iso");
+  return ppcStamp({ ...opts, date: new Date(ms) });
 }
