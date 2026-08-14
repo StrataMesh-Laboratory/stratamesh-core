@@ -12,15 +12,17 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.15.0-ppc-holonic";
+const VERSION = "10.16.0-holarchy-complete";
 
-/** EMBEDDED from shared/holonic-clp.js — foundational holarchy + CLP (do not edit only here; edit shared/) */
+/** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
- * Holonic stack (infra top → inhabitance bottom):
- *   DLT → Node(OS/VM) → Web3 Metaverse OS (shared) → {CLP, Dashboard} → Realm → World → Sandbox → User|SCA
+ * Pilha holónica (infraestrutura → habitação):
+ *   RDL (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Reino Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
+ * CLP não é camada: é kernel temporal da RDL, selado em cada holão via ppcCompact.
+ * Painel/Portal não é camada acima: vive na Bancada UGC.
  *
  * CLP: relative civil time.
  * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
@@ -55,17 +57,15 @@ const NODE_CMN = {
   sandbox_id: "sbx_9bed54e8-880",
 };
 
-/** Ordered from substrate mesh to agent inhabitance */
+/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada UGC. */
 const HOLONIC_LAYERS = [
-  { id: "dlt", name: "StrataMesh DLT", role: "mesh DAG, PdC, PdS, Agora, gossip" },
-  { id: "node", name: "Node OS/VM", role: "fog/edge host substrate" },
-  { id: "metaverse_os", name: "Web3 Metaverse OS", role: "shared OS across nodes" },
-  { id: "clp", name: "CLP temporal kernel", role: "relative lunisolar civil time + PPC matrix" },
-  { id: "dashboard", name: "Dashboard/Portal", role: "OS application surface inside holarchy" },
-  { id: "virtual_realm", name: "Virtual Realm", role: "hypervisor domain for worlds" },
-  { id: "open_world", name: "Open-World", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", name: "UGC Sandbox", role: "authoring / isolation holon" },
-  { id: "agent", name: "User | SCA", role: "standing by function and agreement" },
+  { id: "dlt", nome: "RDL StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
+  { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
+  { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
+  { id: "virtual_realm", nome: "Reino Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
+  { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
+  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
+  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 
 const PPC = [
@@ -221,16 +221,17 @@ function holonicContext(overrides = {}) {
       "dlt:stratamesh",
       `node:${n.node_id}`,
       "metaverse_os:shared",
-      "clp:kernel",
       `realm:${n.realm_id}`,
       `world:${n.world_id}`,
-      `sandbox:${n.sandbox_id}`,
+      `sandbox:${n.sandbox_id}+painel`,
     ].join(" / "),
     node: n,
-    clp,
+    clp, // kernel temporal embutido (não camada)
     rules: {
       metaverse_os_shared_across_nodes: true,
-      dashboard_inside_holarchy: true,
+      painel_dentro_bancada_ugc: true,
+      clp_embutido_na_rdl: true,
+      clp_nao_e_camada: true,
       worlds_inside_realms: true,
       standing_by_function_not_substrate: true,
       wire_time_iso8601: true,
@@ -365,6 +366,212 @@ function isoToPpc(iso, opts = {}) {
   if (!Number.isFinite(ms)) throw new Error("invalid_iso");
   return ppcStamp({ ...opts, date: new Date(ms) });
 }
+
+
+/**
+ * Compact temporal envelope for embedding in DAG/ACB/PoC/diary (holon-aware).
+ * holon: dlt | node | metaverse_os | virtual_realm | open_world | ugc_sandbox | agent
+ * (CLP selado via ppcCompact em qualquer holão; Painel ⊂ ugc_sandbox)
+ */
+function ppcCompact(holon = "dlt", opts = {}) {
+  const full = ppcStamp(opts);
+  return {
+    schema: "stratamesh.ppc.compact.v1",
+    holon,
+    authority: "PPC",
+    phase_policy: TEMPORAL_POLICY.phase,
+    fp: full.ppc_fingerprint,
+    jd: full.jd,
+    phase: full.solar.phase,
+    vector: full.solar.vector,
+    iso_carrier: full.iso_carrier,
+    locality: full.locality,
+    node_id: full.node_id,
+    lat: full.lat,
+    lon: full.lon,
+    clp_address: full.clp.address,
+    ppc_anchors: full.ppc.map((p) => ({ name: p.name, theta: p.theta, lambda: p.lambda })),
+  };
+}
+
+/** Attach temporal to a domain object without losing original fields. */
+function withPpc(obj, holon, opts = {}) {
+  const base = obj && typeof obj === "object" ? obj : { value: obj };
+  return Object.assign({}, base, { temporal: ppcCompact(holon, opts) });
+}
+
+
+/** Contratos de interface entre holões (máquina + legenda PT-PT).
+ * CLP não é holão contratual — é kernel temporal da RDL.
+ * Painel não é holão — é superfície de app dentro da Bancada UGC.
+ */
+const HOLON_CONTRACTS = {
+  dlt: {
+    holon: "dlt",
+    nome: "RDL StrataMesh",
+    possui: ["gda", "pdc", "pds_razao", "liquidacao_agora", "fofoca", "kernel_temporal_clp_ppc"],
+    owns: ["dag", "pdc", "pds_ledger", "agora_settlement", "gossip", "clp_ppc_kernel"],
+    invariantes: ["identidade_por_hash_carga", "selo_ppc_antes_do_hash", "pdc_so_por_recursos", "clp_embutido_em_todo_o_fluxo"],
+    invariants: ["payload_hash_identity", "ppc_seal_before_hash", "pdc_from_resources_only", "clp_embedded_throughout"],
+    emite: ["vertice.anexado", "ponta.actualizada", "conflito.rejeitado", "temporal.selo"],
+    emits: ["vertex.attached", "tip.updated", "conflict.rejected", "temporal.stamp"],
+    consome: ["no.contributo", "agente.debito_pds"],
+    consumes: ["node.contribution", "agent.pds_debit"],
+    a_montante: null,
+    upstream: null,
+    a_jusante: "node",
+    downstream: "node",
+  },
+  node: {
+    holon: "node",
+    nome: "Nó (SO/VM)",
+    possui: ["medidores_capacidade", "registo_aps", "node_id"],
+    owns: ["capacity_meters", "spa_registration", "node_id"],
+    invariantes: ["substrato_nao_e_standing", "recurso_nao_e_rotulo_de_funcao"],
+    invariants: ["substrate_not_standing", "resource_not_function_label"],
+    emite: ["no.pulso", "contributo.pedido", "aps.opt_out"],
+    emits: ["node.pulse", "contribution.claim", "spa.opt_out"],
+    consome: ["rdl.peso", "so.agendar", "vertice.anexado"],
+    consumes: ["dlt.weight", "os.schedule", "vertex.attached"],
+    a_montante: "dlt",
+    upstream: "dlt",
+    a_jusante: "metaverse_os",
+    downstream: "metaverse_os",
+  },
+  metaverse_os: {
+    holon: "metaverse_os",
+    nome: "SO do Metaverso Web3",
+    possui: ["so_partilhado", "orquestrador", "aiops", "syscalls", "barramento_holonico"],
+    owns: ["shared_os", "orchestrator", "aiops", "syscalls", "holon_bus"],
+    invariantes: ["so_partilhado_entre_nos", "identidade_diferente_da_funcao", "painel_nao_e_camada_do_so"],
+    invariants: ["os_shared_across_nodes", "identity_neq_function", "panel_not_os_layer"],
+    emite: ["so.tic", "so.agendar", "sca.diario", "aiops.ciclo"],
+    emits: ["os.tick", "os.schedule", "sca.diary", "aiops.cycle"],
+    consome: ["no.pulso", "reino.pronto"],
+    consumes: ["node.pulse", "realm.ready"],
+    a_montante: "node",
+    upstream: "node",
+    a_jusante: "virtual_realm",
+    downstream: "virtual_realm",
+  },
+  virtual_realm: {
+    holon: "virtual_realm",
+    nome: "Reino Virtual",
+    possui: ["registo_reinos", "capacidade_mundos", "soberania"],
+    owns: ["realm_registry", "world_capacity", "sovereignty"],
+    invariantes: ["mundo_aberto_subconjunto_reino", "hipervisor_nao_experiencia"],
+    invariants: ["open_world_subset_realm", "hypervisor_not_experience"],
+    emite: ["reino.criado", "reino.albergar_mundo"],
+    emits: ["realm.created", "realm.host_world"],
+    consome: ["so.agendar", "mundo.pronto"],
+    consumes: ["os.schedule", "open_world.ready"],
+    a_montante: "metaverse_os",
+    upstream: "metaverse_os",
+    a_jusante: "open_world",
+    downstream: "open_world",
+  },
+  open_world: {
+    holon: "open_world",
+    nome: "Mundo Aberto",
+    possui: ["regras_mundo", "habitantes", "ligacoes_bancada"],
+    owns: ["world_rules", "inhabitants", "sandbox_links"],
+    invariantes: ["reino_pai_obrigatorio", "bancada_liga_ao_mundo"],
+    invariants: ["parent_realm_required", "sandbox_attaches_to_world"],
+    emite: ["mundo.criado", "mundo.anexar_bancada", "mundo.habitar"],
+    emits: ["world.created", "world.attach_sandbox", "world.inhabit"],
+    consome: ["reino.albergar_mundo", "bancada.publicar"],
+    consumes: ["realm.host_world", "sandbox.publish"],
+    a_montante: "virtual_realm",
+    upstream: "virtual_realm",
+    a_jusante: "ugc_sandbox",
+    downstream: "ugc_sandbox",
+  },
+  ugc_sandbox: {
+    holon: "ugc_sandbox",
+    nome: "Bancada UGC",
+    possui: ["rascunhos", "isolamento", "pipeline_publicacao", "painel_portal"],
+    owns: ["draft_assets", "isolation", "publish_pipeline", "panel_portal"],
+    invariantes: ["local_ate_publicar", "utilizador_e_sca_pares", "painel_dentro_da_bancada"],
+    invariants: ["local_until_publish", "user_sca_peer_inhabitants", "panel_inside_sandbox"],
+    emite: ["bancada.criada", "bancada.publicar", "bancada.integrar", "ui.sessao", "ui.chat"],
+    emits: ["sandbox.created", "sandbox.publish", "sandbox.integrate", "ui.session", "ui.chat"],
+    consome: ["mundo.anexar_bancada", "agente.accao", "so.tic"],
+    consumes: ["world.attach_sandbox", "agent.action", "os.tick"],
+    a_montante: "open_world",
+    upstream: "open_world",
+    a_jusante: "agent",
+    downstream: "agent",
+    superficie_apps: ["painel", "portal", "chat_orquestrador"],
+  },
+  agent: {
+    holon: "agent",
+    nome: "Utilizador | SCA",
+    possui: ["identidade_pessoal", "trabalho", "comportamento_pds", "nft_opcional"],
+    owns: ["personal_identity", "labour", "pds_behaviour", "optional_nft"],
+    invariantes: ["standing_por_funcao", "identidade_diferente_funcao_no", "pds_nao_proibitivo"],
+    invariants: ["standing_by_function", "identity_neq_node_function", "pds_non_prohibitive"],
+    emite: ["agente.debito_pds", "agente.trabalho", "agente.identidade"],
+    emits: ["agent.pds_debit", "agent.labour", "agent.identity"],
+    consome: ["bancada.integrar", "agora.troca", "ui.sessao"],
+    consumes: ["sandbox.integrate", "agora.trade", "ui.session"],
+    a_montante: "ugc_sandbox",
+    upstream: "ugc_sandbox",
+    a_jusante: null,
+    downstream: null,
+  },
+};
+
+/**
+ * Contrato inteligente de interface: valida se um evento pode ser emitido/consumido.
+ */
+function validateHolonEvent(fromHolon, eventName, toHolon = null) {
+  const c = HOLON_CONTRACTS[fromHolon];
+  if (!c) return { ok: false, erro: "holon_desconhecido", holon: fromHolon };
+  const emits = c.emits || [];
+  const emite = c.emite || [];
+  const allowed = emits.includes(eventName) || emite.includes(eventName);
+  if (!allowed) {
+    return {
+      ok: false,
+      erro: "evento_nao_contratado",
+      holon: fromHolon,
+      nome: c.nome,
+      evento: eventName,
+      emite_permitidos: emite,
+      emits_allowed: emits,
+    };
+  }
+  if (toHolon) {
+    const dest = HOLON_CONTRACTS[toHolon];
+    if (!dest) return { ok: false, erro: "destino_desconhecido", toHolon };
+    const cons = (dest.consumes || []).concat(dest.consome || []);
+    return {
+      ok: true,
+      de: fromHolon,
+      para: toHolon,
+      evento: eventName,
+      destino_consome: cons,
+      consumo_exacto: cons.includes(eventName),
+      contrato: "interface_holonica_v1",
+    };
+  }
+  return { ok: true, de: fromHolon, evento: eventName, contrato: "interface_holonica_v1", nome: c.nome };
+}
+
+function holonContract(id) {
+  return HOLON_CONTRACTS[id] || null;
+}
+
+function holonStackPath(ids) {
+  const layers = ids || HOLONIC_LAYERS.map((l) => l.id);
+  return layers
+    .map((id) => {
+      const L = HOLONIC_LAYERS.find((x) => x.id === id);
+      return L ? L.nome || L.name || id : id;
+    })
+    .join(" → ");
+}
+
 
 
 

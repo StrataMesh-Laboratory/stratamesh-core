@@ -217,13 +217,36 @@ export default {
         }
         if (!inserted) return j({ error: lastErr || "insert_failed", id }, 500);
 
+        let holon_event = null;
+        try {
+          const payload = {
+            de: "open_world",
+            evento: "world.created",
+            para: "ugc_sandbox",
+            carga: { id, parent_realm_id: parent, title },
+          };
+          let hr;
+          if (env.HOLONS && typeof env.HOLONS.fetch === "function") {
+            hr = await env.HOLONS.fetch(new Request("https://holons.internal/emitir", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            }));
+          } else {
+            hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            });
+          }
+          holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+        } catch (e) {
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 100) };
+        }
         return j({
           success: true,
           id,
           parent_realm_id: parent,
           holon: HOLON,
-          event: "world.updated",
+          event: "world.created",
           seamless: { notify_realm: "POST /host-world on stratamesh-realms" },
+          holon_event,
         });
       }
 
@@ -241,11 +264,27 @@ export default {
           )
           .bind(world_id, sandbox_id, body.title || sandbox_id, body.status || "attached", new Date().toISOString())
           .run();
+        let holon_event = null;
+        try {
+          const payload = {
+            de: "open_world",
+            evento: "world.attach_sandbox",
+            para: "ugc_sandbox",
+            carga: { world_id, sandbox_id },
+          };
+          const hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+          });
+          holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+        } catch (e) {
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };
+        }
         return j({
           success: true,
           world_id,
           sandbox_id,
           event: "world.attach_sandbox",
+          holon_event,
           holon_flow: "ugc_sandbox ⊂ open_world",
         });
       }

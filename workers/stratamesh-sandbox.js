@@ -19,6 +19,21 @@ function j(d, s = 200) {
 
 async function ensureSchema(db) {
   if (!db) return;
+  for (const col of [
+    "ALTER TABLE sandboxes ADD COLUMN title TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN name TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN parent_world_id TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN owner_id TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN status TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN isolation TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN content_json TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN meta_json TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN created_at TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN updated_at TEXT",
+    "ALTER TABLE sandboxes ADD COLUMN published_at TEXT",
+  ]) {
+    try { await db.prepare(col).run(); } catch (_) {}
+  }
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS sandboxes (
@@ -136,33 +151,52 @@ export default {
         const body = await request.json().catch(() => ({}));
         const id = body.id || "sbx_" + crypto.randomUUID().slice(0, 10);
         const now = new Date().toISOString();
-        await db
-          .prepare(
-            `INSERT OR REPLACE INTO sandboxes
-            (id, title, parent_world_id, owner_id, status, isolation, content_json, meta_json, created_at, updated_at, published_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-          )
-          .bind(
-            id,
-            body.title || "Untitled sandbox",
-            body.parent_world_id || body.world_id || "cmn-lab-world",
-            body.owner_id || null,
-            "isolated",
-            body.isolation || "strict",
-            JSON.stringify(body.content || {}),
-            JSON.stringify({ source: "create" }),
-            now,
-            now,
-            null
-          )
-          .run();
+        const title = body.title || body.name || "Untitled sandbox";
+        const parent = body.parent_world_id || body.world_id || "cmn-lab-world";
+        const meta = JSON.stringify({ source: "create" });
+        const content = JSON.stringify(body.content || {});
+        for (const col of ["title","name","parent_world_id","owner_id","status","isolation","content_json","meta_json","created_at","updated_at","published_at"]) {
+          try { await db.prepare(`ALTER TABLE sandboxes ADD COLUMN ${col} TEXT`).run(); } catch (_) {}
+        }
+        let inserted = false, lastErr = null;
+        const attempts = [
+          { sql: `INSERT OR REPLACE INTO sandboxes (id, title, parent_world_id, owner_id, status, isolation, content_json, meta_json, created_at, updated_at, published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+            binds: [id, title, parent, body.owner_id || null, "isolated", body.isolation || "strict", content, meta, now, now, null] },
+          { sql: `INSERT OR REPLACE INTO sandboxes (id, name, parent_world_id, status, content_json, created_at) VALUES (?,?,?,?,?,?)`,
+            binds: [id, title, parent, "isolated", content, now] },
+          { sql: `INSERT OR REPLACE INTO sandboxes (id, data, created_at) VALUES (?,?,?)`,
+            binds: [id, JSON.stringify({ title, parent, status: "isolated" }), now] },
+          { sql: `INSERT OR REPLACE INTO sandboxes (id) VALUES (?)`, binds: [id] },
+        ];
+        for (const a of attempts) {
+          try { await db.prepare(a.sql).bind(...a.binds).run(); inserted = true; break; }
+          catch (e) { lastErr = String(e.message || e); }
+        }
+        if (!inserted) return j({ error: lastErr || "insert_failed", id }, 500);
+        let holon_event = null;
+        try {
+          const payload = { de: "ugc_sandbox", evento: "sandbox.created", para: "agent", carga: { id, title, parent } };
+          let hr;
+          if (env.HOLONS && typeof env.HOLONS.fetch === "function") {
+            hr = await env.HOLONS.fetch(new Request("https://holons.internal/emitir", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            }));
+          } else {
+            hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            });
+          }
+          const tx = await hr.text();
+          try { holon_event = JSON.parse(tx); } catch { holon_event = { aceite: hr.ok, http: hr.status, raw: tx.slice(0, 100) }; }
+        } catch (e) { holon_event = { aceite: false, erro: String(e.message || e).slice(0, 100) }; }
         return j({
           success: true,
           id,
           status: "isolated",
-          parent_world_id: body.parent_world_id || body.world_id || "cmn-lab-world",
+          parent_world_id: parent,
           holon: HOLON,
           event: "sandbox.created",
+          holon_event,
           seamless: { next: "POST /attach-sandbox on worlds; later /publish" },
         });
       }
@@ -184,6 +218,18 @@ export default {
           status: "published",
           parent_world_id: sb.parent_world_id,
           event: "sandbox.publish",
+          holon_event: await (async () => {
+            try {
+              const payload = { de: "ugc_sandbox", evento: "sandbox.publish", para: "open_world", carga: body };
+              let hr;
+              hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+              });
+              const tx = await hr.text();
+              try { return JSON.parse(tx); } catch { return { aceite: hr.ok, http: hr.status }; }
+            } catch (e) { return { aceite: false, erro: String(e.message || e).slice(0, 80) }; }
+          })(),
+
           holon_flow: "ugc_sandbox → open_world portion",
           seamless: { notify_world: "world may attach or already attached" },
         });
