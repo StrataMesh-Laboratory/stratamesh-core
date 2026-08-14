@@ -1,5 +1,5 @@
 /**
- * Holon 3 — Virtual Domain (hypervisor)
+ * Holon 3 — Virtual Realm (hypervisor)
  * Parent: metaverse_os · Children: open_world
  * Contract: worlds live inside realms; realm ≠ world.
  */

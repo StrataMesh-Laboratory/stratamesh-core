@@ -20,8 +20,8 @@ const VERSION = "10.16.0-holarchy-complete";
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   RDL (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
- * CLP não é camada: é kernel temporal da RDL, selado em cada holão via ppcCompact.
+ *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
+ * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
  * Painel/Portal não é camada acima: vive na Bancada UGC.
  *
  * CLP: relative civil time.
@@ -59,10 +59,10 @@ const NODE_CMN = {
 
 /** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada UGC. */
 const HOLONIC_LAYERS = [
-  { id: "dlt", nome: "RDL StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
+  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
-  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Domain", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
+  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
   { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
   { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
   { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
@@ -402,13 +402,13 @@ function withPpc(obj, holon, opts = {}) {
 
 
 /** Contratos de interface entre holões (máquina + legenda PT-PT).
- * CLP não é holão contratual — é kernel temporal da RDL.
+ * CLP não é holão contratual — é kernel temporal da TRD.
  * Painel não é holão — é superfície de app dentro da Bancada UGC.
  */
 const HOLON_CONTRACTS = {
   dlt: {
     holon: "dlt",
-    nome: "RDL StrataMesh",
+    nome: "TRD StrataMesh",
     possui: ["gda", "pdc", "pds_razao", "liquidacao_agora", "fofoca", "kernel_temporal_clp_ppc"],
     owns: ["dag", "pdc", "pds_ledger", "agora_settlement", "gossip", "clp_ppc_kernel"],
     invariantes: ["identidade_por_hash_carga", "selo_ppc_antes_do_hash", "pdc_so_por_recursos", "clp_embutido_em_todo_o_fluxo"],
