@@ -7,7 +7,7 @@ const HOLON = {
   order: 4,
   parent: "virtual_realm",
   children: ["ugc_sandbox"],
-  version: "3.1.0-pt-contratos",
+  version: "3.2.0-schema-title",
 };
 
 function j(d, s = 200) {
@@ -82,6 +82,15 @@ export default {
 
     try {
       await ensureSchema(db);
+
+      if (path === "/schema") {
+        try {
+          const info = await db.prepare("PRAGMA table_info(worlds)").all();
+          return j({ columns: info.results || [], holon: HOLON });
+        } catch (e) {
+          return j({ error: String(e.message || e) }, 500);
+        }
+      }
 
       if (path === "/health" || path === "/" || path === "") {
         let count = 0;
@@ -175,26 +184,39 @@ export default {
       if ((path === "/create" || path === "/ensure-lab") && (request.method === "POST" || path === "/ensure-lab")) {
         const body = path === "/ensure-lab" ? {} : await request.json().catch(() => ({}));
         const id = path === "/ensure-lab" ? "cmn-lab-world" : body.id || "world_" + crypto.randomUUID().slice(0, 10);
-        const now = new Date().toISOString();
+        const title = body.title || body.name || (path === "/ensure-lab" ? "Calhegas Morais Lab Open-World" : "Untitled Open-World");
         const parent = body.parent_realm_id || body.realm_id || "cmn-lab";
-        await db
-          .prepare(
-            `INSERT OR REPLACE INTO worlds
-            (id, title, parent_realm_id, status, rules_json, inhabitant_count, meta_json, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?)`
-          )
-          .bind(
-            id,
-            body.title || (path === "/ensure-lab" ? "Calhegas Morais Lab Open-World" : "Untitled Open-World"),
-            parent,
-            body.status || "active",
-            JSON.stringify(body.rules || { public: true, lab: path === "/ensure-lab" }),
-            body.inhabitant_count ?? 0,
-            JSON.stringify({ source: path === "/ensure-lab" ? "ensure-lab" : "create" }),
-            now,
-            now
-          )
-          .run();
+        const status = body.status || "active";
+        const rules = JSON.stringify(body.rules || { public: true, lab: path === "/ensure-lab" });
+        const meta = JSON.stringify({ source: path === "/ensure-lab" ? "ensure-lab" : "create" });
+        const now = new Date().toISOString();
+        // Migrate schema aggressively
+        for (const col of ["title", "name", "parent_realm_id", "status", "rules_json", "inhabitant_count", "meta_json", "created_at", "updated_at"]) {
+          try { await db.prepare(`ALTER TABLE worlds ADD COLUMN ${col} TEXT`).run(); } catch (_) {}
+        }
+        let inserted = false;
+        const attempts = [
+          { sql: `INSERT OR REPLACE INTO worlds (id, title, parent_realm_id, status, rules_json, inhabitant_count, meta_json, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`,
+            binds: [id, title, parent, status, rules, 0, meta, now, now] },
+          { sql: `INSERT OR REPLACE INTO worlds (id, name, parent_realm_id, status, rules_json, meta_json, created_at) VALUES (?,?,?,?,?,?,?)`,
+            binds: [id, title, parent, status, rules, meta, now] },
+          { sql: `INSERT OR REPLACE INTO worlds (id, name, status, created_at) VALUES (?,?,?,?)`,
+            binds: [id, title, status, now] },
+          { sql: `INSERT OR REPLACE INTO worlds (id) VALUES (?)`,
+            binds: [id] },
+        ];
+        let lastErr = null;
+        for (const a of attempts) {
+          try {
+            await db.prepare(a.sql).bind(...a.binds).run();
+            inserted = true;
+            break;
+          } catch (e) {
+            lastErr = String(e.message || e);
+          }
+        }
+        if (!inserted) return j({ error: lastErr || "insert_failed", id }, 500);
+
         return j({
           success: true,
           id,

@@ -262,19 +262,36 @@ export default {
           .run();
         let holon_event = null;
         try {
-          const hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              de: "virtual_realm",
-              evento: "realm.host_world",
-              para: "open_world",
-              carga: { realm_id, world_id },
-            }),
-          });
-          holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+          const payload = {
+            de: "virtual_realm",
+            evento: "realm.host_world",
+            para: "open_world",
+            carga: { realm_id, world_id },
+          };
+          let hr;
+          if (env.HOLONS && typeof env.HOLONS.fetch === "function") {
+            hr = await env.HOLONS.fetch(
+              new Request("https://holons.internal/emitir", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              })
+            );
+          } else {
+            hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+          }
+          const text = await hr.text();
+          try {
+            holon_event = JSON.parse(text);
+          } catch {
+            holon_event = { aceite: hr.ok, http: hr.status, raw: text.slice(0, 120) };
+          }
         } catch (e) {
-          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 120) };
         }
         return j({
           success: true,
