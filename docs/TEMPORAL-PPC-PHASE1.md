@@ -46,3 +46,16 @@ ISO is **not deleted**. It is demoted to a **carrier** so external systems still
 ## Source
 
 `shared/holonic-clp.js` → `ppcStamp`, `validatePpcStamp`, `isoToPpc`, `TEMPORAL_POLICY`
+
+
+## Holonic integration (depth)
+
+| Holon | Component | PPC role |
+|-------|-----------|----------|
+| **dlt** | `stratamesh-dag` `/submit` | `temporal` sealed **inside** payload **before** hash — on-graph, immutable |
+| **metaverse_os** | Orchestrator diary, AIOps cycle | Every functional event + team cycle carries `ppcCompact("metaverse_os")` |
+| **agent** | ACB subsistence cycles | PdS debits stamped with `ppcCompact("agent")` |
+| **clp** | `/ppc`, `/ppc/validate` | Issue + self-validate full stamps |
+| **node** | Status `/status` | Live foundation path + PPC stamp |
+
+ISO remains wire carrier only. Validation recomputes solar phase + PPC θ/λ; tampering locality or fingerprint fails `location_proof`.

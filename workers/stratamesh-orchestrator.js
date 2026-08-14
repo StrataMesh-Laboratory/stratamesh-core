@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.14.0-ppc-phase1";
+const VERSION = "10.15.0-ppc-holonic";
 
 /** EMBEDDED from shared/holonic-clp.js — foundational holarchy + CLP (do not edit only here; edit shared/) */
 /**
@@ -2021,9 +2021,19 @@ async function loadScaIdentity(env) {
 async function diaryAppend(env, kind, summary, detail, actor) {
   try {
     if (!(await ensureDiary(env))) return;
+    // Metaverse OS / Orchestrator holon: every diary event carries PPC civil authority
+    let det = detail ? String(detail).slice(0, 1600) : "";
+    try {
+      if (typeof ppcCompact === "function") {
+        const t = ppcCompact("metaverse_os");
+        const stamp = { temporal: { fp: t.fp, phase: t.phase, jd: t.jd, holon: t.holon, authority: "PPC" } };
+        det = (det ? det + " | " : "") + JSON.stringify(stamp);
+        det = det.slice(0, 2000);
+      }
+    } catch (_) {}
     await env.AUTH_DB.prepare(
       "INSERT INTO orch_functional_diary (kind, summary, detail, actor) VALUES (?, ?, ?, ?)"
-    ).bind(kind, String(summary).slice(0, 500), detail ? String(detail).slice(0, 2000) : null, actor || "system").run();
+    ).bind(kind, String(summary).slice(0, 500), det || null, actor || "system").run();
   } catch (_) {}
 }
 

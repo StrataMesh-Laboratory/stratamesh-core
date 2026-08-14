@@ -1,4 +1,4 @@
-/** EMBEDDED from shared/holonic-clp.js — foundational holarchy + CLP (do not edit only here; edit shared/) */
+/** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
  * Workers embed or mirror this module — it is not decorative UI logic.
@@ -348,4 +348,36 @@ function isoToPpc(iso, opts = {}) {
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) throw new Error("invalid_iso");
   return ppcStamp({ ...opts, date: new Date(ms) });
+}
+
+
+/**
+ * Compact temporal envelope for embedding in DAG/ACB/PoC/diary (holon-aware).
+ * holon: dlt | node | metaverse_os | clp | dashboard | virtual_realm | open_world | ugc_sandbox | agent
+ */
+function ppcCompact(holon = "dlt", opts = {}) {
+  const full = ppcStamp(opts);
+  return {
+    schema: "stratamesh.ppc.compact.v1",
+    holon,
+    authority: "PPC",
+    phase_policy: TEMPORAL_POLICY.phase,
+    fp: full.ppc_fingerprint,
+    jd: full.jd,
+    phase: full.solar.phase,
+    vector: full.solar.vector,
+    iso_carrier: full.iso_carrier,
+    locality: full.locality,
+    node_id: full.node_id,
+    lat: full.lat,
+    lon: full.lon,
+    clp_address: full.clp.address,
+    ppc_anchors: full.ppc.map((p) => ({ name: p.name, theta: p.theta, lambda: p.lambda })),
+  };
+}
+
+/** Attach temporal to a domain object without losing original fields. */
+function withPpc(obj, holon, opts = {}) {
+  const base = obj && typeof obj === "object" ? obj : { value: obj };
+  return Object.assign({}, base, { temporal: ppcCompact(holon, opts) });
 }
