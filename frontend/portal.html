@@ -121,29 +121,26 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 </div>
 <div class="portal" id="portalPage">
-  <div class="nav" id="userNav">
-    <button class="active" onclick="showPanel('wallet',this)">Wallet</button>
-    <button onclick="showPanel('agora',this)">Agora</button>
-    <button onclick="showPanel('economy',this)">Economy</button>
-    <button onclick="showPanel('sandbox',this)">Sandbox</button>
-    <button onclick="showPanel('dao',this)">DAO</button>
-    <button onclick="showPanel('spa',this)">SPA</button>
-    <button onclick="showPanel('acb',this)">ACB</button>
-    <button onclick="showPanel('diagnostics',this)">Diagnostics</button>
-    <button onclick="showPanel('orch',this)">Orchestrator</button>
-    <button onclick="showPanel('clp',this)">CLP</button>
-    <button onclick="showPanel('profile',this)">Profile</button>
+  <!-- Painel comum = base; Pessoal = comum + extras desbloqueados por clearance -->
+  <div class="nav" id="mainNav">
+    <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)">Carteira</button>
+    <button type="button" data-panel="agora" onclick="showPanel('agora',this)">Ágora</button>
+    <button type="button" data-panel="economy" onclick="showPanel('economy',this)">Economia</button>
+    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)">Bancada</button>
+    <button type="button" data-panel="dao" onclick="showPanel('dao',this)">DAO</button>
+    <button type="button" data-panel="spa" onclick="showPanel('spa',this)">APS</button>
+    <button type="button" data-panel="acb" onclick="showPanel('acb',this)">SCA</button>
+    <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)">Diagnóstico</button>
+    <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orquestrador</button>
+    <button type="button" data-panel="clp" onclick="showPanel('clp',this)">CLP</button>
+    <button type="button" data-panel="profile" onclick="showPanel('profile',this)">Perfil</button>
+    <!-- Pessoal only -->
+    <button type="button" data-panel="kyc" data-staff="1" onclick="showPanel('kyc',this)" style="display:none">Fila KYC</button>
+    <button type="button" data-panel="users" data-staff="1" onclick="showPanel('users',this)" style="display:none">Utilizadores</button>
+    <button type="button" data-panel="system" data-staff="1" data-min-clearance="secret" onclick="showPanel('system',this)" style="display:none">Sistema</button>
+    <button type="button" data-panel="holons" data-staff="1" data-min-clearance="confidential" onclick="showPanel('holons',this)" style="display:none">Holões / SO</button>
   </div>
-  
-  <div class="nav" id="staffNav" style="display:none">
-    <button class="active" onclick="showPanel('kyc',this)">KYC Queue</button>
-    <button onclick="showPanel('users',this)">Users</button>
-    <button onclick="showPanel('system',this)">System</button>
-    <button onclick="showPanel('diagnostics',this)">Diagnostics</button>
-    <button onclick="showPanel('orch',this)">Orchestrator</button>
-    <button onclick="showPanel('clp',this)">CLP</button>
-    <button onclick="showPanel('profile',this)">Profile</button>
-  </div>
+  <p id="panelModeHint" style="font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.06em;color:var(--muted);margin:.35rem 0 0.75rem;text-transform:uppercase"></p>
 
   <div class="panel active" id="panel-wallet">
     <h3>Strata Wallet</h3>
@@ -248,6 +245,18 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div id="acbList"><p style="color:var(--muted)">Loading ACB status…</p></div>
   </div>
 
+  <div class="panel" id="panel-holons">
+    <h3>Holões · SO do Metaverso</h3>
+    <p class="lead">Vista pessoal (clearance ≥ confidential): pilha holónica, syscalls e barramento.</p>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="value" id="holonBoot">--</div><div class="label">Boot SO</div></div>
+      <div class="stat-card"><div class="value" id="holonLayers">--</div><div class="label">Camadas</div></div>
+      <div class="stat-card"><div class="value" id="holonEvents">--</div><div class="label">Eventos</div></div>
+    </div>
+    <pre id="holonPath" style="margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;font-size:.75rem;overflow:auto;color:var(--muted)"></pre>
+    <button type="button" class="btn" onclick="loadHolonsPanel()" style="margin-top:.75rem;padding:.6rem 1rem;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Actualizar</button>
+  </div>
+
   <div class="panel" id="panel-kyc">
     <h3>KYC Verification Queue</h3>
     <div id="kycPending"><p style="color:var(--muted)">Loading pending verifications...</p></div>
@@ -339,6 +348,62 @@ function showToast(m,e){const t=document.getElementById('toast');t.textContent=m
 function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?'Register':'Sign In';document.getElementById('authBtn').textContent=isRegister?'Register':'Continue';document.getElementById('toggleText').textContent=isRegister?'Already have an account? Sign In':'Need an account? Register';document.getElementById('loginError').style.display='none'}
 
 
+
+function isStaffUser(){
+  try{
+    if(currentUser&&(currentUser.type==='staff'||currentUser.auth_type==='staff'||currentUser.role==='staff'||currentUser.role==='admin'||currentUser.role==='root_admin')) return true;
+    if(localStorage.getItem('auth_type')==='staff') return true;
+  }catch(e){}
+  return false;
+}
+function clearanceRank(c){
+  var m={public:0,internal:1,confidential:2,secret:3,top_secret:4};
+  return m[String(c||'public').toLowerCase().replace(/-/g,'_')]||0;
+}
+function currentClearance(){
+  try{
+    return (currentUser&&(currentUser.clearance||currentUser.clearance_level))||localStorage.getItem('clearance')||'public';
+  }catch(e){ return 'public'; }
+}
+/** Pessoal = todas as funções do comum + extras; extras filtrados por clearance da conta */
+function applyNavPermissions(){
+  var staff=isStaffUser();
+  var cl=clearanceRank(currentClearance());
+  var nav=document.getElementById('mainNav');
+  if(!nav) return;
+  nav.querySelectorAll('button[data-staff="1"]').forEach(function(btn){
+    var need=btn.getAttribute('data-min-clearance');
+    var ok=staff;
+    if(ok&&need) ok=cl>=clearanceRank(need);
+    btn.style.display=ok?'':'none';
+  });
+  // Orquestrador: comum pode ver (read); run/sys só staff high clearance — UI note
+  var hint=document.getElementById('panelModeHint');
+  if(hint){
+    if(staff){
+      hint.textContent='Painel de pessoal · clearance '+(currentClearance()||'—')+' · base comum + capacidades administrativas';
+      hint.style.color='var(--accent)';
+    }else{
+      hint.textContent='Painel de utilizador comum · carteira, ágora, bancada, SCA · clearance '+(currentClearance()||'public');
+      hint.style.color='var(--muted)';
+    }
+  }
+}
+async function loadHolonsPanel(){
+  try{
+    var boot=await fetch('https://stratamesh-holons.stratamesh.workers.dev/boot').then(function(r){return r.json()});
+    var cam=await fetch('https://stratamesh-holons.stratamesh.workers.dev/camadas').then(function(r){return r.json()});
+    var ev=await fetch('https://stratamesh-holons.stratamesh.workers.dev/eventos').then(function(r){return r.json()});
+    var el=document.getElementById('holonBoot'); if(el) el.textContent=boot.ok?'OK':'PARCIAL';
+    el=document.getElementById('holonLayers'); if(el) el.textContent=(cam.pilha&&cam.pilha.length)||'—';
+    el=document.getElementById('holonEvents'); if(el) el.textContent=(ev.eventos&&ev.eventos.length)||0;
+    var sc=await fetch('https://stratamesh-holons.stratamesh.workers.dev/syscalls').then(function(r){return r.json()}).catch(function(){return {};});
+    el=document.getElementById('holonPath'); if(el) el.textContent=(cam.caminho||'')+'\n'+JSON.stringify({boot_passos:boot.passos,syscalls:Object.keys(sc.syscalls||{})},null,2);
+  }catch(e){
+    var el=document.getElementById('holonPath'); if(el) el.textContent=String(e.message||e);
+  }
+}
+
 function showPortal(user){
   try{
     if(user && typeof user === 'object'){
@@ -367,17 +432,13 @@ function showPortal(user){
       var isStaff=currentUser&&(currentUser.type==='staff'||currentUser.auth_type==='staff');
       rb.className='role-badge role-'+(isStaff?(role==='root_admin'?'root':role==='admin'?'admin':'staff'):'user');
     }
-    var userNav=document.getElementById('userNav');
-    var staffNav=document.getElementById('staffNav');
-    var isStaff=currentUser&&(currentUser.type==='staff'||currentUser.auth_type==='staff'||localStorage.getItem('auth_type')==='staff');
+    applyNavPermissions();
+    var mainNav=document.getElementById('mainNav');
+    var isStaff=isStaffUser();
     if(isStaff){
-      if(userNav)userNav.style.display='none';
-      if(staffNav)staffNav.style.display='flex';
-      showPanel('kyc', staffNav?staffNav.querySelector('button'):null);
+      showPanel('wallet', mainNav?mainNav.querySelector('[data-panel="wallet"]'):null);
     }else{
-      if(userNav)userNav.style.display='flex';
-      if(staffNav)staffNav.style.display='none';
-      showPanel('wallet', userNav?userNav.querySelector('button'):null);
+      showPanel('wallet', mainNav?mainNav.querySelector('[data-panel="wallet"]'):null);
     }
     var pe=document.getElementById('profileEmail'); if(pe)pe.textContent=(currentUser&&currentUser.email)||'--';
     var pr=document.getElementById('profileRole'); if(pr)pr.textContent=(currentUser&&currentUser.role)||'--';
