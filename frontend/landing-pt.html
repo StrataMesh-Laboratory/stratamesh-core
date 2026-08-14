@@ -23,9 +23,6 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .lang{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.12em;display:flex;align-items:center;gap:.35rem;color:var(--muted)}
 .lang a{color:var(--muted);padding:.2rem .35rem}.lang a:hover{color:var(--fg)}
 .lang a.active{color:var(--fg);border-bottom:1px solid var(--accent)}.lang .sep{opacity:.4}
-.toc{max-width:44rem;margin:0 auto;padding:1rem 1.5rem 0;display:flex;flex-wrap:wrap;gap:.5rem .9rem}
-.toc a{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid transparent}
-.toc a:hover{color:var(--accent);border-color:var(--line2)}
 .wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
 header{margin-bottom:2.75rem;padding-bottom:2.25rem;border-bottom:1px solid var(--line)}
 .kicker{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
@@ -35,12 +32,18 @@ h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(
 .btn{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px;transition:background .15s,color .15s}
 .btn:hover{background:var(--accent);color:#111}
 .btn.ghost{border-color:var(--line2);color:var(--muted)}.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:transparent}
-.flow{display:grid;gap:.55rem;margin:2rem 0 2.5rem;padding:1.15rem 1.2rem;background:var(--card);border:1px solid var(--line);border-radius:4px}
-.flow-title{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
-.flow ol{list-style:none;counter-reset:f;display:grid;gap:.45rem}
-.flow li{counter-increment:f;display:grid;grid-template-columns:1.6rem 1fr;gap:.55rem;align-items:start;font-size:.88rem;color:var(--muted)}
-.flow li::before{content:counter(f,decimal-leading-zero);font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--accent);padding-top:.15rem}
-.flow li strong{color:var(--fg);font-weight:400}
+.map-grid{display:grid;gap:.65rem;margin:1.35rem 0 0}
+@media(min-width:520px){.map-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:720px){.map-grid{grid-template-columns:1fr 1fr 1fr}}
+.map-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.4rem;min-height:5.5rem;transition:border-color .15s}
+.map-card:hover{border-color:var(--line2)}
+.map-card a{color:inherit;text-decoration:none;display:block;height:100%}
+.map-num{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.map-card strong{font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:.92rem;color:var(--fg);letter-spacing:-.01em}
+.map-card span{font-size:.82rem;color:var(--muted);line-height:1.45}
+.toc{max-width:44rem;margin:0 auto;padding:1rem 1.5rem 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(6.5rem,1fr));gap:.45rem}
+.toc a{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:.45rem .55rem;text-align:center;background:var(--card)}
+.toc a:hover{color:var(--accent);border-color:var(--line2)}
 .section{margin-bottom:2.75rem;padding-bottom:2.5rem;border-bottom:1px solid var(--line)}
 .section:last-of-type{border-bottom:none}
 .sec-num{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.55rem}
@@ -76,14 +79,14 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
 </div>
 
 <nav class="toc" aria-label="Secções">
-  <a href="#mapa">Mapa</a>
-  <a href="#rede">Rede</a>
-  <a href="#valor">Valor</a>
-  <a href="#no">Este nó</a>
-  <a href="#quem">Quem participa</a>
-  <a href="#arquitectura">Arquitectura</a>
-  <a href="#estado">Estado</a>
-  <a href="#entrar">Entrar</a>
+  <a href="#mapa">00 Mapa</a>
+  <a href="#rede">01 Rede</a>
+  <a href="#valor">02 Valor</a>
+  <a href="#no">03 Nó</a>
+  <a href="#quem">04 Quem</a>
+  <a href="#arquitectura">05 Arquitectura</a>
+  <a href="#estado">06 Estado</a>
+  <a href="#entrar">07 Entrar</a>
 </nav>
 
 <main class="wrap">
@@ -102,17 +105,14 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
   <section class="section" id="mapa">
     <p class="sec-num">00 · Orientação</p>
     <h2>Como está organizada esta página</h2>
-    <p>Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada bloco responde a uma pergunta concreta, sem assumir jargão prévio.</p>
-    <div class="flow">
-      <p class="flow-title">Fluxo de leitura</p>
-      <ol>
-        <li><strong>Rede</strong> — o que é a StrataMesh e para que serve</li>
-        <li><strong>Valor</strong> — STRATA, contributo e a Ágora (como se cria e troca valor)</li>
-        <li><strong>Este nó</strong> — o que o Calhegas Morais faz na rede</li>
-        <li><strong>Quem participa</strong> — pessoas e agentes computacionais</li>
-        <li><strong>Arquitectura</strong> — camadas do sistema e tempo planetário</li>
-        <li><strong>Estado e entrada</strong> — o que já corre em laboratório e como aceder</li>
-      </ol>
+    <p>Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa é um tema separado — clique para saltar.</p>
+    <div class="map-grid" role="navigation" aria-label="Mapa da página">
+      <a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é a StrataMesh e para que serve</span></a>
+      <a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>STRATA, contributo e a Ágora</span></a>
+      <a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que o Calhegas Morais faz na rede</span></a>
+      <a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Pessoas e agentes computacionais</span></a>
+      <a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Camadas holónicas e tempo CLP</span></a>
+      <a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>Laboratório e como aceder ao portal</span></a>
     </div>
   </section>
 
