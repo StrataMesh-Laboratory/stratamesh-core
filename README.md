@@ -51,3 +51,19 @@ See `docs/EPISTEMIC-ONTOLOGY.md`.
 
 ## Licence
 MIT — see `LICENSE`
+
+## Holonic foundation & CLP time
+
+Source of truth: `shared/holonic-clp.js` (embedded into edge workers).
+
+```
+STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
+  ├─ CLP temporal kernel (civil time)
+  ├─ Dashboard / Portal (OS apps, inside the holarchy)
+  └─ Virtual Realm → World → Sandbox → User | SCA
+```
+
+- **Civil time:** CLP (`/clp`); **wire time:** ISO-8601 for DAG/interop.
+- Orchestrator `/health` and Status `/status` expose `foundation` + `clp`.
+- Docs: `docs/HOLONIC-LAYERS.md`, `docs/TEMPORALIDADE-CLP.md`.
+

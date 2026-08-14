@@ -209,14 +209,14 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.2.1-ops',
+          version: '5.3.0-holonic',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
             subsistence: 'ACB spends STRATA on compute; insolvent hibernates',
           },
           environment: {
-            holons: ['ugc_sandbox', 'open_world', 'virtual_realm', 'metaverse_os', 'node', 'dlt'],
+            holons: ['dlt', 'node', 'metaverse_os', 'clp', 'dashboard', 'virtual_realm', 'open_world', 'ugc_sandbox', 'agent'],
             cmn_team: CMN_TEAM,
           },
           acbs: n,
@@ -398,7 +398,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.2.1-ops',
+          version: '5.3.0-holonic',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
