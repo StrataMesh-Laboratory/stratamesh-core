@@ -591,7 +591,7 @@ function holonStackPath(ids) {
 
 
 
-const VERSION = "1.0.0-contratos-pt";
+const VERSION = "1.1.0-so-metaversal";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -603,6 +603,160 @@ function json(data, status = 200) {
     },
   });
 }
+
+
+/** Mapa de serviços por holão (edge URLs — lab) */
+const HOLON_SERVICES = {
+  dlt: "https://stratamesh-dag.stratamesh.workers.dev",
+  node: "https://stratamesh-status.stratamesh.workers.dev",
+  metaverse_os: "https://stratamesh-orchestrator.stratamesh.workers.dev",
+  clp: "https://stratamesh-orchestrator.stratamesh.workers.dev",
+  dashboard: "https://stratamesh-spa.stratamesh.workers.dev",
+  virtual_realm: "https://stratamesh-realms.stratamesh.workers.dev",
+  open_world: "https://stratamesh-worlds.stratamesh.workers.dev",
+  ugc_sandbox: "https://stratamesh-sandbox.stratamesh.workers.dev",
+  agent: "https://stratamesh-acb.stratamesh.workers.dev",
+};
+
+/** Funções de sistema do SO do Metaverso (syscalls) */
+const SYSCALLS = {
+  registar_vertice: {
+    holon: "dlt",
+    descricao: "Anexa vértice à RDL (GDA) com selo PPC",
+    emite: "vertex.attached",
+    endpoint: "/submit",
+    metodo: "POST",
+  },
+  pulso_no: {
+    holon: "node",
+    descricao: "Lê estado/capacidade do nó",
+    emite: "node.pulse",
+    endpoint: "/status",
+    metodo: "GET",
+  },
+  tic_so: {
+    holon: "metaverse_os",
+    descricao: "Ciclo do orquestrador (lóbulos + QIGA)",
+    emite: "os.tick",
+    endpoint: "/tick",
+    metodo: "GET",
+  },
+  selo_temporal: {
+    holon: "clp",
+    descricao: "Emite selo PPC/CLP",
+    emite: "temporal.stamp",
+    endpoint: "/ppc",
+    metodo: "GET",
+  },
+  garantir_reino_lab: {
+    holon: "virtual_realm",
+    descricao: "Garante reino laboratorial CMN",
+    emite: "realm.created",
+    endpoint: "/ensure-lab",
+    metodo: "GET",
+  },
+  albergar_mundo: {
+    holon: "virtual_realm",
+    descricao: "Reino alberga um mundo aberto",
+    emite: "realm.host_world",
+    endpoint: "/host-world",
+    metodo: "POST",
+  },
+  garantir_mundo_lab: {
+    holon: "open_world",
+    descricao: "Garante mundo aberto laboratorial",
+    emite: "world.created",
+    endpoint: "/ensure-lab",
+    metodo: "GET",
+  },
+  anexar_bancada: {
+    holon: "open_world",
+    descricao: "Mundo anexa bancada UGC",
+    emite: "world.attach_sandbox",
+    endpoint: "/attach-sandbox",
+    metodo: "POST",
+  },
+  criar_bancada: {
+    holon: "ugc_sandbox",
+    descricao: "Cria bancada de criação/isolamento",
+    emite: "sandbox.created",
+    endpoint: "/create",
+    metodo: "POST",
+  },
+  publicar_bancada: {
+    holon: "ugc_sandbox",
+    descricao: "Publica conteúdo da bancada para o mundo",
+    emite: "sandbox.publish",
+    endpoint: "/publish",
+    metodo: "POST",
+  },
+};
+
+async function callHolonService(env, holonId, endpoint, method = "GET", body = null) {
+  const bindingMap = {
+    dlt: env.DAG,
+    node: env.STATUS,
+    metaverse_os: env.ORCH,
+    clp: env.ORCH,
+    virtual_realm: env.REALMS,
+    open_world: env.WORLDS,
+    ugc_sandbox: env.SANDBOX,
+    agent: env.ACB,
+  };
+  const binding = bindingMap[holonId];
+  const path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+  if (binding && typeof binding.fetch === "function") {
+    const init = { method, headers: { "Content-Type": "application/json" } };
+    if (body && method !== "GET" && method !== "HEAD") init.body = JSON.stringify(body);
+    const r = await binding.fetch(new Request("https://holon.internal" + path, init));
+    const text = await r.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+    return { ok: r.ok, status: r.status, via: "binding", data };
+  }
+  const base = HOLON_SERVICES[holonId];
+  if (!base) return { ok: false, status: 0, via: "none", error: "servico_desconhecido" };
+  const init = { method, headers: { "Content-Type": "application/json" } };
+  if (body && method !== "GET" && method !== "HEAD") init.body = JSON.stringify(body);
+  try {
+    const r = await fetch(base + path, init);
+    const text = await r.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+    return { ok: r.ok, status: r.status, via: "url", data };
+  } catch (e) {
+    return { ok: false, status: 0, via: "url", error: String(e.message || e) };
+  }
+}
+
+async function emitEvent(env, from, event, to, payload) {
+  const v = validateHolonEvent(from, event, to);
+  if (!v.ok) return { aceite: false, ...v };
+  const envelope = {
+    schema: "stratamesh.holon.event.v1",
+    id: crypto.randomUUID(),
+    de: from,
+    para: to,
+    evento: event,
+    carga: payload || {},
+    temporal: typeof ppcCompact === "function" ? ppcCompact(from) : null,
+    emitido_em_iso_portadora: new Date().toISOString(),
+    contrato: "interface_holonica_v1",
+  };
+  if (env.LEDGER || env.DB) {
+    try {
+      const db = env.LEDGER || env.DB;
+      await db.prepare(
+        "CREATE TABLE IF NOT EXISTS holon_event_log (id TEXT PRIMARY KEY, de TEXT, para TEXT, evento TEXT, body TEXT, created_at TEXT)"
+      ).run();
+      await db.prepare(
+        "INSERT INTO holon_event_log (id, de, para, evento, body, created_at) VALUES (?,?,?,?,?,?)"
+      ).bind(envelope.id, from, to || "", event, JSON.stringify(envelope).slice(0, 8000), envelope.emitido_em_iso_portadora).run();
+    } catch (_) {}
+  }
+  return { aceite: true, envelope, validacao: v };
+}
+
 
 export default {
   async fetch(request, env) {
@@ -619,9 +773,9 @@ export default {
         servico: "stratamesh-holons",
         service: "stratamesh-holons",
         version: VERSION,
-        descricao: "Contratos inteligentes de interface entre camadas holónicas (PT-PT)",
+        descricao: "Núcleo do SO do Metaverso Web3 — contratos, syscalls e barramento holónico (PT-PT)",
         autoridade_temporal: "PPC",
-        endpoints: ["/health", "/camadas", "/layers", "/contratos", "/contracts", "/contrato", "/contract", "/validar", "/validate", "/emitir", "/emit", "/caminho", "/path"],
+        endpoints: ["/health","/so","/syscalls","/syscall","/boot","/eventos","/camadas","/contratos","/contrato","/validar","/emitir","/caminho"],
       });
     }
 
@@ -711,6 +865,91 @@ export default {
         } catch (_) {}
       }
       return json({ aceite: true, envelope, validacao: v, version: VERSION });
+    }
+
+
+    if (path === "/so" || path === "/os" || path === "/kernel") {
+      return json({
+        nome: "SO do Metaverso Web3 — núcleo holónico",
+        version: VERSION,
+        pilha: holonStackPath(),
+        syscalls: Object.keys(SYSCALLS),
+        servicos: HOLON_SERVICES,
+        funcoes_por_camada: Object.fromEntries(
+          Object.entries(HOLON_CONTRACTS).map(([id, c]) => [
+            id,
+            { nome: c.nome, possui: c.possui || c.owns, emite: c.emite || c.emits, consome: c.consome || c.consumes },
+          ])
+        ),
+        interoperabilidade: {
+          barramento: "stratamesh-holons /emitir + /syscall",
+          temporal: "PPC selado por holão (ppcCompact)",
+          rdl: "GDA com temporal antes do hash",
+        },
+      });
+    }
+
+    if (path === "/syscalls" || path === "/chamadas") {
+      return json({ syscalls: SYSCALLS, version: VERSION });
+    }
+
+    if ((path === "/syscall" || path === "/chamada") && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const name = body.chamada || body.syscall || body.fn;
+      const spec = SYSCALLS[name];
+      if (!spec) return json({ ok: false, erro: "syscall_desconhecida", disponiveis: Object.keys(SYSCALLS) }, 400);
+      const args = body.args || body.carga || body.payload || {};
+      const call = await callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args);
+      const ev = await emitEvent(env, spec.holon, spec.emite, null, {
+        syscall: name,
+        resultado_ok: call.ok,
+        resumo: call.data && (call.data.vertex_id || call.data.id || call.data.status || call.data.success),
+      });
+      return json({
+        ok: call.ok,
+        syscall: name,
+        holon: spec.holon,
+        descricao: spec.descricao,
+        chamada: call,
+        evento: ev,
+        version: VERSION,
+      }, call.ok ? 200 : 502);
+    }
+
+    if ((path === "/boot" || path === "/arrancar") && (request.method === "POST" || request.method === "GET")) {
+      // Arranque do SO metaversal: reino → mundo → selo temporal → tic → pulso nó
+      const passos = [];
+      const seq = [
+        ["garantir_reino_lab", {}],
+        ["garantir_mundo_lab", {}],
+        ["selo_temporal", {}],
+        ["tic_so", {}],
+        ["pulso_no", {}],
+      ];
+      for (const [name, args] of seq) {
+        const spec = SYSCALLS[name];
+        const call = await callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args);
+        const ev = await emitEvent(env, spec.holon, spec.emite, null, { boot: true, syscall: name });
+        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, evento_id: ev.envelope && ev.envelope.id });
+      }
+      return json({
+        ok: passos.every((p) => p.ok),
+        arranque: "SO Metaverso Web3 + RDL",
+        caminho: holonStackPath(),
+        passos,
+        version: VERSION,
+      });
+    }
+
+    if (path === "/eventos" || path === "/events") {
+      const db = env.LEDGER || env.DB;
+      if (!db) return json({ eventos: [], nota: "sem D1" });
+      try {
+        const r = await db.prepare("SELECT id, de, para, evento, created_at FROM holon_event_log ORDER BY created_at DESC LIMIT 30").all();
+        return json({ eventos: r.results || [], version: VERSION });
+      } catch (e) {
+        return json({ eventos: [], erro: String(e.message || e) });
+      }
     }
 
     return json({ erro: "nao_encontrado", path, version: VERSION }, 404);

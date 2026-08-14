@@ -523,7 +523,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.7.0-ppc',
+          version: '2.8.0-so-bus',
           anti_double_spend: true,
           cumulative_weight: true,
           vertices: count,
@@ -768,9 +768,34 @@ export default {
           }
         }
 
+        // Barramento SO Metaverso: anunciar vértice à camada holónica
+        let holon_event = null;
+        try {
+          const bus = env.HOLONS;
+          const payload = {
+            de: 'dlt',
+            evento: 'vertex.attached',
+            para: 'node',
+            carga: { vertex_id: vid, payload_hash: ph, node_id },
+          };
+          if (bus && typeof bus.fetch === 'function') {
+            const hr = await bus.fetch(new Request('https://holons.internal/emitir', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+            }));
+            holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+          } else {
+            const hr = await fetch('https://stratamesh-holons.stratamesh.workers.dev/emitir', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+            });
+            holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+          }
+        } catch (e) {
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };
+        }
+
         return j({
           success: true,
-          pipeline: 'tip-select → hash → ipfs-pin → attach → gossip',
+          pipeline: 'tip-select → hash → ipfs-pin → attach → gossip → holon-bus',
           vertex_id: vid,
           payload_hash: ph,
           tips: tipIds,
@@ -782,9 +807,10 @@ export default {
           lightweight: isLightweight,
           subsidy_requested: subsidyRequested,
           confidence: confidenceFromWeight(1),
-          version: '2.7.0-ppc',
+          version: '2.8.0-so-bus',
           temporal: payloadObj.temporal || null,
           temporal_authority: 'PPC',
+          holon_event,
         });
       }
 
@@ -846,7 +872,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.7.0-ppc',
+        version: '2.8.0-so-bus',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {

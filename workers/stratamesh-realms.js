@@ -8,7 +8,7 @@ const HOLON = {
   order: 3,
   parent: "metaverse_os",
   children: ["open_world"],
-  version: "3.1.0-pt-contratos",
+  version: "3.2.0-so-bus",
 };
 
 function j(d, s = 200) {
@@ -260,13 +260,30 @@ export default {
             JSON.stringify({ source: body.source || "host-world" })
           )
           .run();
+        let holon_event = null;
+        try {
+          const hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              de: "virtual_realm",
+              evento: "realm.host_world",
+              para: "open_world",
+              carga: { realm_id, world_id },
+            }),
+          });
+          holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+        } catch (e) {
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };
+        }
         return j({
           success: true,
           realm_id,
           world_id,
           event: "realm.host_world",
-          holon_flow: "open_world ⊂ virtual_realm",
+          holon_flow: "mundo_aberto ⊂ reino_virtual",
           integration: { next: "stratamesh-worlds /attach or ensure parent_realm_id" },
+          holon_event,
         });
       }
 
