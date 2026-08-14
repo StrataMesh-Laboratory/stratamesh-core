@@ -380,3 +380,97 @@ export function withPpc(obj, holon, opts = {}) {
   const base = obj && typeof obj === "object" ? obj : { value: obj };
   return Object.assign({}, base, { temporal: ppcCompact(holon, opts) });
 }
+
+
+/** Per-holon integration contracts — single source for seamless interop */
+export const HOLON_CONTRACTS = {
+  dlt: {
+    holon: "dlt",
+    owns: ["dag", "pdc", "pds_ledger", "agora_settlement", "gossip"],
+    invariants: ["payload_hash_identity", "ppc_seal_before_hash", "pdc_from_resources_only"],
+    emits: ["vertex.attached", "tip.updated", "conflict.rejected"],
+    consumes: ["node.contribution", "agent.pds_debit"],
+    upstream: null,
+    downstream: "node",
+  },
+  node: {
+    holon: "node",
+    owns: ["capacity_meters", "spa_registration", "node_id"],
+    invariants: ["substrate_not_standing", "resource_not_function_label"],
+    emits: ["node.pulse", "contribution.claim", "spa.opt_out"],
+    consumes: ["dlt.weight", "os.schedule"],
+    upstream: "dlt",
+    downstream: "metaverse_os",
+  },
+  metaverse_os: {
+    holon: "metaverse_os",
+    owns: ["shared_os", "orchestrator", "aiops", "dashboard_apps"],
+    invariants: ["dashboard_inside_os", "os_shared_across_nodes", "identity_neq_function"],
+    emits: ["os.tick", "os.schedule", "sca.diary", "aiops.cycle"],
+    consumes: ["node.pulse", "realm.ready"],
+    upstream: "node",
+    downstream: ["clp", "dashboard", "virtual_realm"],
+  },
+  clp: {
+    holon: "clp",
+    owns: ["ppc_authority", "clp_address", "solar_phase"],
+    invariants: ["ppc_authority", "iso_carrier_only"],
+    emits: ["temporal.stamp", "temporal.validated"],
+    consumes: ["os.tick"],
+    upstream: "metaverse_os",
+    downstream: null,
+  },
+  dashboard: {
+    holon: "dashboard",
+    owns: ["portal_ux", "clearance_gate_ui"],
+    invariants: ["registered_users_only", "pt_pt_en_gb"],
+    emits: ["ui.session", "ui.chat"],
+    consumes: ["os.tick", "auth.session"],
+    upstream: "metaverse_os",
+    downstream: null,
+  },
+  virtual_realm: {
+    holon: "virtual_realm",
+    owns: ["realm_registry", "world_capacity", "sovereignty"],
+    invariants: ["open_world_subset_realm", "hypervisor_not_experience"],
+    emits: ["realm.created", "realm.host_world"],
+    consumes: ["os.schedule", "open_world.ready"],
+    upstream: "metaverse_os",
+    downstream: "open_world",
+  },
+  open_world: {
+    holon: "open_world",
+    owns: ["world_rules", "inhabitants", "sandbox_links"],
+    invariants: ["parent_realm_required", "sandbox_attaches_to_world"],
+    emits: ["world.created", "world.attach_sandbox", "world.inhabit"],
+    consumes: ["realm.host_world", "sandbox.publish"],
+    upstream: "virtual_realm",
+    downstream: "ugc_sandbox",
+  },
+  ugc_sandbox: {
+    holon: "ugc_sandbox",
+    owns: ["draft_assets", "isolation", "publish_pipeline"],
+    invariants: ["local_until_publish", "user_sca_peer_inhabitants"],
+    emits: ["sandbox.created", "sandbox.publish", "sandbox.integrate"],
+    consumes: ["world.attach_sandbox", "agent.action"],
+    upstream: "open_world",
+    downstream: "agent",
+  },
+  agent: {
+    holon: "agent",
+    owns: ["personal_identity", "labour", "pds_behaviour", "optional_nft"],
+    invariants: ["standing_by_function", "identity_neq_node_function", "pds_non_prohibitive"],
+    emits: ["agent.pds_debit", "agent.labour", "agent.identity"],
+    consumes: ["sandbox.integrate", "agora.trade"],
+    upstream: "ugc_sandbox",
+    downstream: null,
+  },
+};
+
+export function holonContract(id) {
+  return HOLON_CONTRACTS[id] || null;
+}
+
+export function holonStackPath(ids) {
+  return (ids || HOLONIC_LAYERS.map((l) => l.id)).join(" → ");
+}
