@@ -1,5 +1,5 @@
 /**
- * Holon 3 — Virtual Realm (hypervisor)
+ * Holon 3 — Virtual Domain (hypervisor)
  * Parent: metaverse_os · Children: open_world
  * Contract: worlds live inside realms; realm ≠ world.
  */
@@ -111,7 +111,7 @@ export default {
       if (path === "/contract") {
         return j({
           holon: HOLON,
-          nome: "Reino Virtual",
+          nome: "Domínio Virtual",
           lingua: "pt-PT",
           invariants: ["open_world ⊂ virtual_realm", "realm is hypervisor not experience"],
           integration: {
@@ -298,7 +298,7 @@ export default {
           realm_id,
           world_id,
           event: "realm.host_world",
-          holon_flow: "mundo_aberto ⊂ reino_virtual",
+          holon_flow: "mundo_aberto ⊂ dominio_virtual",
           integration: { next: "stratamesh-worlds /attach or ensure parent_realm_id" },
           holon_event,
         });

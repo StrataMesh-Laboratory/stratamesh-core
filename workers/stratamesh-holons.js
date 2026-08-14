@@ -4,7 +4,7 @@
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   RDL (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Reino Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
+ *   RDL (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
  * CLP não é camada: é kernel temporal da RDL, selado em cada holão via ppcCompact.
  * Painel/Portal não é camada acima: vive na Bancada UGC.
  *
@@ -46,9 +46,9 @@ const HOLONIC_LAYERS = [
   { id: "dlt", nome: "RDL StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
-  { id: "virtual_realm", nome: "Reino Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
-  { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
+  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Domain", papel: "infraestrutura: domínio virtual (hipervisor) — não reino/kingdom nem lugar visitável", role: "infrastructure: virtual domain (hypervisor) — not kingdom/realm-as-place" },
+  { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "mundo persistente acedível (dentro de um Domínio Virtual)", role: "user-accessible persistent world (inside a Virtual Domain)" },
+  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "sandbox isolado de criação UGC (+ Painel/Portal)", role: "isolated UGC creation sandbox (+ Panel/Portal)" },
   { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 
@@ -440,7 +440,7 @@ const HOLON_CONTRACTS = {
   },
   virtual_realm: {
     holon: "virtual_realm",
-    nome: "Reino Virtual",
+    nome: "Domínio Virtual",
     possui: ["registo_reinos", "capacidade_mundos", "soberania"],
     owns: ["realm_registry", "world_capacity", "sovereignty"],
     invariantes: ["mundo_aberto_subconjunto_reino", "hipervisor_nao_experiencia"],
@@ -618,14 +618,14 @@ const SYSCALLS = {
   },
   garantir_reino_lab: {
     holon: "virtual_realm",
-    descricao: "Garante reino laboratorial CMN",
+    descricao: "Garante domínio virtual laboratorial CMN",
     emite: "realm.created",
     endpoint: "/ensure-lab",
     metodo: "GET",
   },
   albergar_mundo: {
     holon: "virtual_realm",
-    descricao: "Reino alberga um mundo aberto",
+    descricao: "Domínio virtual alberga um mundo aberto",
     emite: "realm.host_world",
     endpoint: "/host-world",
     metodo: "POST",

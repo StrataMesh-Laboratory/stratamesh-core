@@ -19,5 +19,5 @@
 ## Later (whitepaper depth)
 - Full ABFT modules beyond lab confidence
 - IPFS swarm / multi-gateway (beyond R2 CIDv1)
-- Holonic realm runtimes (Sandbox → Open-Worlds → Virtual Realms → Metaverse)
+- Holonic realm runtimes (Sandbox → Open-Worlds → Virtual Domains → Metaverse)
 - EUR rails for Agora settlement (not lab intent only)

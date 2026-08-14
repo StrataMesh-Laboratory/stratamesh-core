@@ -9,7 +9,7 @@ A pilha é **aninhada de cima para baixo**. Cada camada **contém** a seguinte.
 RDL StrataMesh                         ← livro-razão; CLP/PPC embutido (não é experiência)
   └ Nó (SO / VM)                       ← substrato do anfitrião
       └ SO do Metaverso Web3           ← SO partilhado entre nós
-          └ Reino Virtual              ← INFRAESTRUTURA (hipervisor / domínio computacional)
+          └ Domínio Virtual              ← INFRAESTRUTURA (hipervisor / domínio computacional)
               └ Mundo Aberto           ← mundo persistente (aqui o utilizador “entra”)
                   └ Bancada UGC        ← SANDBOX de criação (+ Painel / Portal)
                       └ Utilizador | SCA
@@ -26,7 +26,7 @@ RDL StrataMesh                         ← livro-razão; CLP/PPC embutido (não 
 
 | PT-PT | Significado correcto | Evitar |
 |--------|----------------------|--------|
-| **Reino Virtual** | Camada de **infraestrutura**: realm/domínio que organiza capacidade para mundos (análogo a hipervisor). | Traduzir como “Virtual Kingdom” e tratar como lugar visitável |
+| **Domínio Virtual** | Camada de **infraestrutura** (hipervisor / domínio computacional) que organiza capacidade para mundos. | «Reino», «Kingdom», ou tratar como lugar visitável |
 | **Mundo Aberto** | Mundo persistente multi-utilizador **dentro** de um reino | Confundir com o próprio reino |
 | **Bancada UGC** | **Sandbox** isolado de criação de conteúdo | “Workbench” / oficina como metáfora principal |
 | **SO do Metaverso Web3** | Sistema operativo **partilhado entre nós** | Um “mundo” ou um “reino” |
@@ -38,7 +38,7 @@ RDL StrataMesh                         ← livro-razão; CLP/PPC embutido (não 
 | **RDL** | Dados / protocolo | GDA, PdC, PdS, Ágora; selo temporal CLP/PPC |
 | **Nó** | Substrato | Capacidade do anfitrião; substrato ≠ standing |
 | **SO Metaverso** | Sistema operativo | Syscalls, barramento, orquestrador, AIOps |
-| **Reino Virtual** | **Infraestrutura** | Hipervisor: capacidade e soberania de mundos |
+| **Domínio Virtual** | **Infraestrutura** | Hipervisor: capacidade e soberania de mundos |
 | **Mundo Aberto** | Experiência | Regras, habitantes, anexar bancadas |
 | **Bancada UGC** | Criação (sandbox) | Rascunhos, publish/integrate, **Painel, Portal, chat** |
 | **Utilizador \| SCA** | Agentes | Identidade, trabalho, PdS |

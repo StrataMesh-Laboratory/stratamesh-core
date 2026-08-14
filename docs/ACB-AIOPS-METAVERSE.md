@@ -18,7 +18,7 @@
 
 ## Holonic placement
 - Sandbox draft: `sbx_9bed54e8-880` (AIOps roster UGC)
-- Virtual Realm: `realm_1f20890b` (CMN AIOps Realm)
+- Virtual Domain: `realm_1f20890b` (CMN AIOps Realm)
 - DAG vertex: `metaverse_acb_roster` anchored from FOG-NODE-PT-CM-001
 
 ## Live contracts (examples)
@@ -29,7 +29,7 @@ Further agents remain on the book until holders acquire STRATA via PoC/Agora and
 
 ## Holonic progress (live)
 - Published sandbox `sbx_9bed54e8-880` → integrated into Open-World `world_b787cfe9-c`
-- Hosted in Virtual Realms `realm_1f20890b` and `cmn-lab`
+- Hosted in Virtual Domains `realm_1f20890b` and `cmn-lab`
 - Flow: **sandbox → open_world ⊂ virtual_realm**
 - Orchestrator + DevOps contracts completed; DevOps subsistence 0.05 STRATA spent (balance remains active)
 

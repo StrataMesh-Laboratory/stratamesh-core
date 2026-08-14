@@ -60,7 +60,7 @@ Source of truth: `shared/holonic-clp.js` (embedded into edge workers).
 STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
   ├─ CLP temporal kernel (civil time)
   ├─ Dashboard / Portal (OS apps, inside the holarchy)
-  └─ Virtual Realm → World → Sandbox → User | SCA
+  └─ Virtual Domain → World → Sandbox → User | SCA
 ```
 
 - **Civil time:** CLP (`/clp`); **wire time:** ISO-8601 for DAG/interop.
