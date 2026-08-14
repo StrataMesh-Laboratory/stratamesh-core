@@ -170,14 +170,27 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
   <section class="section" id="architecture">
     <p class="sec-num">05 · Architecture</p>
     <h2>Holonic layers and CLP time</h2>
-    <p>The system is organised as <strong>holons</strong>: each layer is a whole and part of the layer above. The portal panel is <strong>not</strong> a separate layer — it lives inside the <strong>UGC Sandbox</strong>. CLP time is <strong>not</strong> a layer — it is <strong>embedded in the DLT</strong> across the flow.</p>
-    <div class="stack">
-      <b>StrataMesh DLT</b> <span style="opacity:.5">← CLP / PPC temporal kernel embedded</span><br>
-      → <b>Node</b> (OS / VM)<br>
-      → <b>Web3 Metaverse OS</b> <span style="opacity:.5">shared across nodes</span><br>
-      → <b>Virtual Realm</b> → <b>Open World</b> → <b>UGC Sandbox</b> (+ Panel)<br>
-      → <b>User | SCA</b>
+    <p>Read this as a <strong>top-down nested stack</strong> — not a list of synonyms, and not “places” sitting side by side. Each level <em>contains</em> the next; they are not interchangeable features.</p>
+    <div class="stack" aria-label="Holonic hierarchy">
+      <b>StrataMesh DLT</b> <span style="opacity:.5">— ledger + CLP/PPC time embedded (not an experience layer)</span><br>
+      └ <b>Node</b> <span style="opacity:.5">— host machine / OS</span><br>
+      &nbsp;&nbsp;└ <b>Web3 Metaverse OS</b> <span style="opacity:.5">— shared operating system across nodes</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;└ <b>Virtual Realm</b> <span style="opacity:.5">— <u>infrastructure</u> layer (hypervisor / computational domain), not a “kingdom” users visit</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Open World</b> <span style="opacity:.5">— persistent world users and SCAs enter</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>UGC Sandbox</b> <span style="opacity:.5">— isolated creation space (+ Panel / Portal)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>User | SCA</b>
     </div>
+    <div class="grid two" style="margin-top:1.15rem">
+      <div class="card">
+        <h3>Virtual Realm ≠ a place to visit</h3>
+        <p>In the Portuguese source, <strong>Reino Virtual</strong> means an infrastructure <em>realm/domain</em>: it organises and isolates capacity for worlds (like a hypervisor). It is <strong>not</strong> a destination a user “walks into”.</p>
+      </div>
+      <div class="card">
+        <h3>Bancada → Sandbox</h3>
+        <p>Portuguese <strong>Bancada UGC</strong> is the isolated, safe space for user-generated content. The correct technical English is <strong>sandbox</strong> — not “workbench”, even though “bancada” can mean a workbench in everyday Portuguese.</p>
+      </div>
+    </div>
+    <p class="note">The portal <strong>Panel</strong> is not a stack layer: it is an app <em>inside</em> the UGC Sandbox. <strong>CLP</strong> is not a layer either: it is the temporal kernel <em>embedded in the DLT</em>.</p>
     <p><a href="/clp">Open the CLP interface →</a></p>
   </section>
 

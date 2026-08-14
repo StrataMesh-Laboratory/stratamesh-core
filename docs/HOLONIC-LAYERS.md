@@ -1,51 +1,52 @@
 # Arquitectura holónica — StrataMesh (PT-PT)
 
-Cada **camada** é um holão. O que **não** é camada:
+## Como ler (importante)
 
-- **CLP / PPC** — kernel temporal **embutido na RDL** e selado em todo o fluxo (`ppcCompact` em cada holão). Não aparece na pilha como degrau.
-- **Painel / Portal** — superfície de aplicações **dentro da Bancada UGC**, não acima do SO nem camada paralela ao Metaverso.
+A pilha é **aninhada de cima para baixo**. Cada camada **contém** a seguinte.  
+**Não** são sinónimos, **não** estão ao mesmo nível, **não** são “sítios” intercambiáveis.
 
 ```
-RDL STRATAMESH                    ← substrato + kernel temporal CLP/PPC (embutido)
-    │
-NÓ (SO / VM)                      ← capacidade do anfitrião
-    │
-SO DO METAVERSO WEB3              ← SO partilhado (orquestrador, AIOps, syscalls, barramento)
-    │
-REINO VIRTUAL                     ← hipervisor
-    │
-MUNDO ABERTO                      ← experiência persistente
-    │
-BANCADA UGC                       ← criação + isolamento + **Painel/Portal**
-    │
-UTILIZADOR | SCA                  ← standing por função e acordo
+RDL StrataMesh                         ← livro-razão; CLP/PPC embutido (não é experiência)
+  └ Nó (SO / VM)                       ← substrato do anfitrião
+      └ SO do Metaverso Web3           ← SO partilhado entre nós
+          └ Reino Virtual              ← INFRAESTRUTURA (hipervisor / domínio computacional)
+              └ Mundo Aberto           ← mundo persistente (aqui o utilizador “entra”)
+                  └ Bancada UGC        ← SANDBOX de criação (+ Painel / Portal)
+                      └ Utilizador | SCA
 ```
 
-**IDs técnicos:** `dlt` · `node` · `metaverse_os` · `virtual_realm` · `open_world` · `ugc_sandbox` · `agent`
+### O que *não* é camada
 
-## Funções por camada
+| Termo | Papel real |
+|--------|------------|
+| **CLP / PPC** | Kernel temporal **embutido na RDL** — atravessa o fluxo; não é degrau da pilha |
+| **Painel / Portal** | Aplicação **dentro da Bancada UGC** — não fica “acima” do SO nem ao lado do Metaverso |
 
-| Camada | Função específica |
-|--------|-------------------|
-| **RDL** | GDA, PdC, PdS, Ágora, fofoca; **selo temporal CLP/PPC** em cargas e eventos |
-| **Nó** | Capacidade, APS, pulso; substrato ≠ standing |
-| **SO Metaverso** | Syscalls, barramento, orquestrador, AIOps |
-| **Reino Virtual** | Capacidade e soberania de mundos (hipervisor) |
-| **Mundo Aberto** | Regras, habitantes, anexar bancadas |
-| **Bancada UGC** | Rascunhos, publish/integrate, **Painel, Portal, chat** |
-| **Utilizador \| SCA** | Identidade, trabalho, PdS, escolha NFT |
+### Terminologia que costuma confundir
 
-## Kernel temporal (não-camada)
+| PT-PT | Significado correcto | Evitar |
+|--------|----------------------|--------|
+| **Reino Virtual** | Camada de **infraestrutura**: realm/domínio que organiza capacidade para mundos (análogo a hipervisor). | Traduzir como “Virtual Kingdom” e tratar como lugar visitável |
+| **Mundo Aberto** | Mundo persistente multi-utilizador **dentro** de um reino | Confundir com o próprio reino |
+| **Bancada UGC** | **Sandbox** isolado de criação de conteúdo | “Workbench” / oficina como metáfora principal |
+| **SO do Metaverso Web3** | Sistema operativo **partilhado entre nós** | Um “mundo” ou um “reino” |
 
-Autoridade civil: **PPC**. ISO-8601 só portadora.  
-API de selo: `GET /ppc` no orquestrador (exposição do kernel da RDL).  
-Todo evento do barramento e todo vértice GDA preferem `temporal` com o holão escritor.
+### Funções por camada
 
-## Painel (não-camada)
+| Camada | Tipo | Função |
+|--------|------|--------|
+| **RDL** | Dados / protocolo | GDA, PdC, PdS, Ágora; selo temporal CLP/PPC |
+| **Nó** | Substrato | Capacidade do anfitrião; substrato ≠ standing |
+| **SO Metaverso** | Sistema operativo | Syscalls, barramento, orquestrador, AIOps |
+| **Reino Virtual** | **Infraestrutura** | Hipervisor: capacidade e soberania de mundos |
+| **Mundo Aberto** | Experiência | Regras, habitantes, anexar bancadas |
+| **Bancada UGC** | Criação (sandbox) | Rascunhos, publish/integrate, **Painel, Portal, chat** |
+| **Utilizador \| SCA** | Agentes | Identidade, trabalho, PdS |
 
-Syscall `abrir_painel` → superfície SPA **atribuída ao holão `ugc_sandbox`**.  
-Contrato da bancada emite `ui.sessao` / `ui.chat`.
+### IDs técnicos
 
-## Serviço
+`dlt` · `node` · `metaverse_os` · `virtual_realm` · `open_world` · `ugc_sandbox` · `agent`
 
-`stratamesh-holons` — `/so` · `/syscalls` · `/syscall` · `/boot` · `/emitir` · `/eventos`
+### Serviço de núcleo
+
+`stratamesh-holons` — `/so` · `/syscalls` · `/boot` · `/emitir` · `/eventos` · `/camadas`

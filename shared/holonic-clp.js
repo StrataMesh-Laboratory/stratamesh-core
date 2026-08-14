@@ -45,9 +45,9 @@ export const HOLONIC_LAYERS = [
   { id: "dlt", nome: "RDL StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
-  { id: "virtual_realm", nome: "Reino Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
-  { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
+  { id: "virtual_realm", nome: "Reino Virtual", name_en: "Virtual Realm", papel: "infraestrutura (hipervisor/domínio) — não é lugar visitável", role: "infrastructure hypervisor/domain — not a user-facing place" },
+  { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "mundo persistente acedível (dentro de um Reino)", role: "user-accessible persistent world (inside a Realm)" },
+  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "sandbox isolado de criação UGC (+ Painel/Portal)", role: "isolated UGC creation sandbox (+ Panel/Portal)" },
   { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 

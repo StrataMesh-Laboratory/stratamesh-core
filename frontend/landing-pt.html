@@ -204,16 +204,27 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
   <section class="section" id="arquitectura">
     <p class="sec-num">05 · Arquitectura</p>
     <h2>Camadas holónicas e tempo CLP</h2>
-    <p>O sistema está organizado em <strong>holões</strong>: cada camada é um todo e, ao mesmo tempo, parte da camada acima. O Painel do portal <strong>não</strong> é uma camada à parte — vive dentro da <strong>Bancada UGC</strong>. O tempo CLP <strong>não</strong> é uma camada — está <strong>embutido na RDL</strong> e acompanha todo o fluxo.</p>
-    <div class="stack">
-      <b>RDL StrataMesh</b> <span style="opacity:.5">← kernel temporal CLP / PPC embutido</span><br>
-      → <b>Nó</b> (SO / VM)<br>
-      → <b>SO do Metaverso Web3</b> <span style="opacity:.5">partilhado entre nós</span><br>
-      → <b>Reino Virtual</b><br>
-      → <b>Mundo Aberto</b><br>
-      → <b>Bancada UGC</b> <span style="opacity:.5">(+ Painel / Portal)</span><br>
-      → <b>Utilizador | SCA</b>
+    <p>Leia isto como uma <strong>pilha aninhada de cima para baixo</strong> — não como uma lista de sinónimos nem como “sítios” à mesma altura. Cada nível <em>contém</em> o seguinte; não são alternativas entre si.</p>
+    <div class="stack" aria-label="Hierarquia holónica">
+      <b>RDL StrataMesh</b> <span style="opacity:.5">— livro-razão + tempo CLP/PPC embutido (não é camada de experiência)</span><br>
+      └ <b>Nó</b> <span style="opacity:.5">— máquina / SO do anfitrião</span><br>
+      &nbsp;&nbsp;└ <b>SO do Metaverso Web3</b> <span style="opacity:.5">— sistema operativo partilhado entre nós</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;└ <b>Reino Virtual</b> <span style="opacity:.5">— camada de <u>infraestrutura</u> (hipervisor / domínio computacional), não um “reino” para visitar</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Mundo Aberto</b> <span style="opacity:.5">— mundo persistente a que utilizadores e SCA acedem</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Bancada UGC</b> <span style="opacity:.5">— <u>sandbox</u> isolado de criação (+ Painel / Portal)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Utilizador | SCA</b>
     </div>
+    <div class="grid two" style="margin-top:1.15rem">
+      <div class="card">
+        <h3>Reino Virtual ≠ lugar</h3>
+        <p>Em PT-PT, <strong>reino</strong> aqui significa <em>domínio / realm</em> de infraestrutura: organiza e isola capacidade para mundos (como um hipervisor). <strong>Não</strong> é um destino que o utilizador “entra a passear”.</p>
+      </div>
+      <div class="card">
+        <h3>Bancada = sandbox</h3>
+        <p><strong>Bancada UGC</strong> é o espaço <em>isolado e seguro</em> de criação de conteúdo (user-generated content). Em inglês técnico: <strong>sandbox</strong> — não “workbench” de oficina, embora a palavra portuguesa também possa sugerir isso.</p>
+      </div>
+    </div>
+    <p class="note">O <strong>Painel</strong> do portal não é uma camada da pilha: é uma aplicação <em>dentro</em> da Bancada UGC. O <strong>CLP</strong> também não é camada: é o kernel temporal <em>embutido na RDL</em>.</p>
     <h3>Calendário Lunisolar Planetário (CLP)</h3>
     <p>O tempo civil de referência na rede privilegia âncoras astronómicas e localidade (matriz <strong>PPC</strong>), em vez de tratar o relógio apenas como abstracto universal. O ISO-8601 continua a existir como <strong>portadora</strong> técnica; a autoridade civil no protocolo é planetária.</p>
     <p><a href="/clp">Abrir a interface CLP →</a></p>
