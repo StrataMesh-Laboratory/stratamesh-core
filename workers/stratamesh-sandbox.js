@@ -7,7 +7,7 @@ const HOLON = {
   order: 5,
   parent: "open_world",
   children: ["agent"],
-  version: "3.1.0-pt-contratos",
+  version: "3.2.0-painel-dentro",
 };
 
 function j(d, s = 200) {
@@ -93,6 +93,8 @@ export default {
           holon: HOLON,
           nome: "Bancada UGC",
           lingua: "pt-PT",
+          superficie: ["painel", "portal", "chat"],
+          nota: "Painel/Portal vivem nesta bancada — não são camada acima",
           invariants: ["isolation until publish", "publish targets parent open_world"],
           integration: {
             emits: ["sandbox.publish", "sandbox.integrate"],
