@@ -41,7 +41,34 @@ export default {
       }
     }
 
+    // CLP temporal kernel (also routed via stratamesh-spa; fallback here for apex /*)
+    if (path === '/clp' || path === '/clp/' || path === '/tempo' || path === '/tempo/' || path === '/temporal' || path === '/temporal/') {
+      try {
+        const html = await loadSiteHtml(env, ['clp']);
+        if (html) {
+          return new Response(html, {
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'public, max-age=60',
+              'Content-Language': 'pt-PT',
+              'X-CLP-Source': 'stratamesh-ui',
+            },
+          });
+        }
+        return new Response('<h1>CLP em falta no D1 (key clp)</h1>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      } catch (e) {
+        return new Response('<h1>CLP error</h1><pre>' + String(e.message || e) + '</pre>', {
+          status: 500,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+    }
+
     const country = request.headers.get('cf-ipcountry') || 'PT';
+
     const cplp = ['PT','BR','AO','MZ','CV','GW','ST','TL','GQ','MO'];
     const defaultLang = cplp.includes(country) ? 'pt' : 'en';
     const langParam = url.searchParams.get('lang');
