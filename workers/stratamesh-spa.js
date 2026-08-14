@@ -1,3 +1,37 @@
+
+async function serveEni(env) {
+  try {
+    if (env.LEDGER || env.DB) {
+      const db = env.LEDGER || env.DB;
+      const { results: chunks } = await db.prepare(
+        "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+      ).bind("eni").all();
+      if (chunks && chunks.length) {
+        const html = chunks.map((c) => c.value || "").join("");
+        return new Response(html, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=120",
+            "X-ENI-Source": "site_content_chunks",
+          },
+        });
+      }
+    }
+  } catch (e) {
+    console.error("eni LEDGER", e);
+  }
+  try {
+    const r = await fetch("https://stratamesh-eni.stratamesh.workers.dev/");
+    if (r.ok) return new Response(await r.text(), {
+      headers: { "Content-Type": "text/html; charset=utf-8", "X-ENI-Source": "worker" },
+    });
+  } catch (_) {}
+  return new Response(
+    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>AMCM ENI</title></head><body style=\"background:#0a0a0b;color:#e8e6e3;font-family:sans-serif;padding:2rem\"><h1>AMCM ENI</h1><p>Página da entidade legal temporariamente indisponível. Contacto: amcmorais@icloud.com</p><p><a href=\"https://calhegasmorais.pt/\" style=\"color:#c4b5a0\">Nó CMN</a></p></body></html>",
+    { headers: { "Content-Type": "text/html; charset=utf-8" } }
+  );
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -57,6 +91,9 @@ export default {
       return Response.redirect(url.origin + '/dashboard', 301);
     }
 
+    if (path === '/eni' || path === '/eni/' || path === '/amcm' || path === '/amcm-eni') {
+      return serveEni(env);
+    }
     if (path === '/clp' || path === '/clp/' || path === '/tempo' || path === '/temporal') {
       return serveClp(request, env, corsHeaders);
     }
