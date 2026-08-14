@@ -57,19 +57,23 @@ export default {
       return Response.redirect(url.origin + '/dashboard', 301);
     }
 
+    if (path === '/clp' || path === '/clp/' || path === '/tempo' || path === '/temporal') {
+      return serveClp(request, env, corsHeaders);
+    }
+
     if (path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard/')) {
       return servePortal(request, env, corsHeaders);
     }
 
-    if (path === '/' || path === '' || path === '/home' || path === '/index.html' || path === '/pt' || path === '/pt/' || path === '/en' || path === '/en/') {
-      if (path.startsWith('/pt')) {
-        const u = new URL(request.url); u.searchParams.set('lang','pt');
-        request = new Request(u.toString(), request);
-      } else if (path.startsWith('/en')) {
-        const u = new URL(request.url); u.searchParams.set('lang','en');
-        request = new Request(u.toString(), request);
-      }
-      return serveHome(request, env, corsHeaders);
+    if (
+      path === '/' || path === '' || path === '/home' || path === '/index.html' ||
+      path === '/pt' || path === '/pt/' || path.startsWith('/pt/') ||
+      path === '/en' || path === '/en/' || path.startsWith('/en/')
+    ) {
+      const u = new URL(request.url);
+      if (path === '/pt' || path === '/pt/' || path.startsWith('/pt/')) u.searchParams.set('lang', 'pt');
+      if (path === '/en' || path === '/en/' || path.startsWith('/en/')) u.searchParams.set('lang', 'en');
+      return serveHome(new Request(u.toString(), request), env, corsHeaders);
     }
 
     return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -208,6 +212,38 @@ function pickLang(request) {
   return 'en';
 }
 
+
+
+async function serveClp(request, env, corsHeaders) {
+  try {
+    if (env.LEDGER) {
+      const { results: chunks } = await env.LEDGER.prepare(
+        "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+      ).bind("clp").all();
+      if (chunks && chunks.length) {
+        const html = chunks.map((c) => c.value || "").join("");
+        if (html) {
+          return new Response(html, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "public, max-age=60",
+              "Content-Language": "pt-PT",
+              "X-CLP-Source": "site_content_chunks",
+            },
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error("clp LEDGER", e);
+  }
+  return new Response(
+    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>CLP</title></head><body style=\"background:#050505;color:#e5e5e5;font-family:sans-serif;padding:2rem\"><h1>CLP</h1><p>Conteúdo CLP indisponível no LEDGER (key clp).</p></body></html>",
+    { status: 503, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+  );
+}
 
 async function serveHome(request, env, corsHeaders) {
   const lang = pickLang(request);

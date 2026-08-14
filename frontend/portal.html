@@ -131,6 +131,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button onclick="showPanel('acb',this)">ACB</button>
     <button onclick="showPanel('diagnostics',this)">Diagnostics</button>
     <button onclick="showPanel('orch',this)">Orchestrator</button>
+    <button onclick="showPanel('clp',this)">CLP</button>
     <button onclick="showPanel('profile',this)">Profile</button>
   </div>
   
@@ -140,6 +141,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button onclick="showPanel('system',this)">System</button>
     <button onclick="showPanel('diagnostics',this)">Diagnostics</button>
     <button onclick="showPanel('orch',this)">Orchestrator</button>
+    <button onclick="showPanel('clp',this)">CLP</button>
     <button onclick="showPanel('profile',this)">Profile</button>
   </div>
 
@@ -299,6 +301,21 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Send</button>
     </div>
     <p style="color:#555;font-size:11px;margin-top:8px">Try: status · aiops · next · mesh</p>
+  </div>
+
+  
+  <div class="panel" id="panel-clp">
+    <h2>Temporalidade CLP</h2>
+    <p class="hint" style="color:var(--muted);font-size:.88rem;margin-bottom:1rem;line-height:1.55">
+      Calendário Lunisolar Planetário — kernel temporal do <strong>Web3 Metaverse OS</strong> (partilhado entre nós).
+      O dashboard vive <em>dentro</em> das camadas holónicas; o CLP calibra o endereço temporal relativo e a matriz PPC.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+      <a href="/clp" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.5rem .9rem;border:1px solid var(--line2);border-radius:4px;color:var(--accent);text-decoration:none">Abrir CLP a ecrã completo</a>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050505;min-height:70vh">
+      <iframe src="/clp" title="Sistema Temporal CLP" style="width:100%;height:75vh;border:0;display:block" loading="lazy"></iframe>
+    </div>
   </div>
 
   <div class="panel" id="panel-profile">
