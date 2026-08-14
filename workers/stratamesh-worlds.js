@@ -231,9 +231,7 @@ export default {
               method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
             }));
           } else {
-            hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
-              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-            });
+            throw new Error("HOLONS binding missing");
           }
           holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
         } catch (e) {
@@ -272,12 +270,19 @@ export default {
             para: "ugc_sandbox",
             carga: { world_id, sandbox_id },
           };
-          const hr = await fetch("https://stratamesh-holons.stratamesh.workers.dev/emitir", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-          });
-          holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+          let hr;
+          if (env.HOLONS && typeof env.HOLONS.fetch === "function") {
+            hr = await env.HOLONS.fetch(new Request("https://holons.internal/emitir", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            }));
+          } else {
+            throw new Error("HOLONS binding missing");
+          }
+          const tx = await hr.text();
+          try { holon_event = JSON.parse(tx); }
+          catch { holon_event = { aceite: hr.ok, http: hr.status, raw: tx.slice(0, 160) }; }
         } catch (e) {
-          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };
+          holon_event = { aceite: false, erro: String(e.message || e).slice(0, 120) };
         }
         return j({
           success: true,
