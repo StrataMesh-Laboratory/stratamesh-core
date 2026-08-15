@@ -42,7 +42,7 @@ export const NODE_CMN = {
 
 /** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada UGC. */
 export const HOLONIC_LAYERS = [
-  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
+  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "livro-razão GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
   { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "infraestrutura: domínio virtual (hipervisor) — não é lugar visitável", role: "infrastructure virtual realm (hypervisor) — not a user-facing place" },
