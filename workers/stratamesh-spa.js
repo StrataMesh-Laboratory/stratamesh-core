@@ -94,7 +94,16 @@ export default {
     if (path === '/eni' || path === '/eni/' || path === '/amcm' || path === '/amcm-eni') {
       return serveEni(env);
     }
-    if (path === '/pagamentos' || path === '/pagamentos/' || path === '/pay' || path === '/pay/') {
+    
+    if (path === '/api/payment-intent' || path.startsWith('/api/payment')) {
+      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
+        const init = { method: request.method, headers: request.headers };
+        if (request.method !== 'GET' && request.method !== 'HEAD') init.body = await request.arrayBuffer();
+        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal' + path, init));
+      }
+      return new Response(JSON.stringify({ error: 'eni_pay_unavailable' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    }
+if (path === '/pagamentos' || path === '/pagamentos/' || path === '/pay' || path === '/pay/') {
       // Prefer service binding to eni-pay; else redirect to dedicated worker host
       if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
         return env.ENI_PAY.fetch(new Request('https://eni-pay.internal/', { method: 'GET' }));
