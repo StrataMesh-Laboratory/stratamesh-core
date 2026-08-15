@@ -94,6 +94,17 @@ export default {
     if (path === '/eni' || path === '/eni/' || path === '/amcm' || path === '/amcm-eni') {
       return serveEni(env);
     }
+    if (path === '/pagamentos' || path === '/pagamentos/' || path === '/pay' || path === '/pay/') {
+      // Prefer service binding to eni-pay; else redirect to dedicated worker host
+      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
+        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal/', { method: 'GET' }));
+      }
+      try {
+        const r = await fetch('https://stratamesh-eni-pay.stratamesh.workers.dev/');
+        if (r.ok) return new Response(await r.text(), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Pay-Source': 'eni-pay-url' } });
+      } catch (_) {}
+      return Response.redirect('https://eni.calhegasmorais.pt/pagamentos', 302);
+    }
     if (path === '/clp' || path === '/clp/' || path === '/tempo' || path === '/temporal') {
       return serveClp(request, env, corsHeaders);
     }

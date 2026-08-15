@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -88,10 +88,10 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h2 id="formTitle">Sign in</h2>
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <input type="email" id="email" placeholder="Email" autocomplete="email">
-    <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+    <input type="password" id="password" placeholder="Palavra-passe" autocomplete="current-password">
     <div class="error" id="loginError"></div>
-    <button type="button" onclick="handleAuth()" id="authBtn">Continue</button>
-    <div class="toggle" onclick="toggleMode()" id="toggleText">Need an account? Register</div>
+    <button type="button" onclick="handleAuth()" id="authBtn">Continuar</button>
+    <div class="toggle" onclick="toggleMode()" id="toggleText">Precisa de conta? Registar</div>
 
     <div id="socialLogin">
       <p>Common users</p>
@@ -100,17 +100,17 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <button type="button" id="btnApple" disabled onclick="startOAuth('apple')">Apple (pending credentials)</button>
     </div>
 
-    <div class="toggle" onclick="showStaffLogin()" id="staffToggle">Staff / Pessoal login</div>
+    <div class="toggle" onclick="showStaffLogin()" id="staffToggle">Acesso de pessoal</div>
     <div id="staffBox">
-      <p>Internal staff only · email + password · 2FA (lab)</p>
-      <input id="staffEmail" type="email" placeholder="Staff email" autocomplete="username">
-      <input id="staffPass" type="password" placeholder="Staff password" autocomplete="current-password">
+      <p>Apenas pessoal · email + palavra-passe · 2FA (lab)</p>
+      <input id="staffEmail" type="email" placeholder="Email de pessoal" autocomplete="username">
+      <input id="staffPass" type="password" placeholder="Palavra-passe de pessoal" autocomplete="current-password">
       <div id="staff2faRow" style="display:none">
-        <input id="staffOtp" type="text" inputmode="numeric" placeholder="6-digit 2FA code" autocomplete="one-time-code">
+        <input id="staffOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos)" autocomplete="one-time-code">
         <p id="staffOtpHint"></p>
       </div>
       <div id="staffError"></div>
-      <button type="button" onclick="staffAuth()" id="staffBtn">Staff Continue</button>
+      <button type="button" onclick="staffAuth()" id="staffBtn">Continuar (pessoal)</button>
       <div class="toggle" onclick="hideStaffLogin()">← Back to user login</div>
     </div>
 
@@ -150,7 +150,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <div class="stat-card"><div class="value" id="nodeRank">--</div><div class="label">Contexto do nó</div></div>
     </div>
     <h3 style="margin-top:20px">Actividade recente</h3>
-    <table class="tx-list"><thead><tr><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody id="txList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">No transactions yet</td></tr></tbody></table>
+    <table class="tx-list"><thead><tr><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody id="txList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Sem movimentos ainda</td></tr></tbody></table>
   </div>
 
   <div class="panel" id="panel-agora">
@@ -192,7 +192,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-sandbox">
     <h3>Web3 Sandbox</h3>
-    <p style="color:var(--muted);margin-bottom:16px">Create and mint digital assets on the StrataMesh.</p>
+    <p style="color:var(--muted);margin-bottom:16px">Criar e registar activos digitais na StrataMesh.</p>
     <div class="stat-grid">
       <div class="stat-card"><div class="value">0</div><div class="label">Assets Created</div></div>
       <div class="stat-card"><div class="value">0</div><div class="label">NFTs Minted</div></div>
@@ -239,7 +239,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h3>SCA · Seres Computacionais Autónomos</h3>
     <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Proof of Subsistence — earn · pay compute · hibernate if insolvent</p>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
-      <button onclick="registerAcb()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Register ACB</button>
+      <button onclick="registerAcb()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Registar SCA</button>
       <button onclick="loadACB()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh</button>
     </div>
     <div id="acbList"><p style="color:var(--muted)">A carregar estado dos SCA…</p></div>
@@ -296,20 +296,20 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   <div class="panel" id="panel-diagnostics">
     <h3>Troubleshooting · RCA</h3>
     <p style="color:var(--muted);margin-bottom:16px">Run end-to-end diagnostics across all StrataMesh services. Results are shared between users and the Orchestrator.</p>
-    <button class="diag-run-btn" onclick="runDiagnostics()" id="diagRunBtn">Run Full Diagnostic</button>
+    <button class="diag-run-btn" onclick="runDiagnostics()" id="diagRunBtn">Diagnóstico completo</button>
     <div id="diagResults"></div>
   </div>
 
   
   <div class="panel" id="panel-orch">
-    <h3>Orchestrator</h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Open full chat page</a></p>
+    <h3>Orquestrador</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Abrir chat completo</a></p>
     <div id="orchChat" style="height:320px;overflow-y:auto;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5"></div>
     <div style="display:flex;gap:8px">
       <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Mensagem ao Orquestrador…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
       <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Enviar</button>
     </div>
-    <p style="color:#555;font-size:11px;margin-top:8px">Try: status · aiops · next · mesh</p>
+    <p style="color:#555;font-size:11px;margin-top:8px">Experimente: status · aiops · next · mesh</p>
   </div>
 
   
@@ -355,19 +355,24 @@ const SVC = {
 };
 const LANG = (function(){
   try {
-    var h = (document.documentElement.lang||'').toLowerCase();
-    if (h.indexOf('en')===0) return 'en';
-    if (location.pathname.indexOf('/en')===0) return 'en';
-  } catch(e){}
+    var q = new URLSearchParams(location.search).get('lang');
+    if (q === 'en' || q === 'pt') return q;
+    if (location.pathname.indexOf('/en') === 0) return 'en';
+    var h = (document.documentElement.lang || '').toLowerCase();
+    if (h.indexOf('en') === 0) return 'en';
+  } catch (e) {}
   return 'pt';
 })();
+if (LANG === 'pt') { try { document.documentElement.lang = 'pt-PT'; } catch (e) {} }
+else { try { document.documentElement.lang = 'en-GB'; } catch (e) {} }
+
 function T(pt, en){ return LANG==='en' ? en : pt; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 let isRegister=false,currentUser=null,token=localStorage.getItem('sm_token')||localStorage.getItem('token');
 
 function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e||'success');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 
-function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?'Register':'Sign In';document.getElementById('authBtn').textContent=isRegister?'Register':'Continue';document.getElementById('toggleText').textContent=isRegister?'Already have an account? Sign In':'Need an account? Register';document.getElementById('loginError').style.display='none'}
+function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar','Already have an account? Sign in'):T('Precisa de conta? Registar','Need an account? Register');document.getElementById('loginError').style.display='none'}
 
 
 
@@ -491,7 +496,7 @@ async function handleAuth(){
   }
   if(!e||!p){ setErr('Email and password required'); return; }
   setErr('');
-  if(btn){btn.disabled=true;btn.textContent='Authenticating…';}
+  if(btn){btn.disabled=true;btn.textContent='A autenticar…';}
   const path=isRegister?'/register':'/login';
   const urls=[
     'https://stratamesh-auth.stratamesh.workers.dev'+path,
@@ -510,7 +515,7 @@ async function handleAuth(){
           token=j.token||j.session_token;
           try{ localStorage.setItem('token',token); localStorage.setItem('sm_token',token); localStorage.setItem('auth_type','user'); }catch(_){}
           currentUser=Object.assign({type:'user',email:e}, j);
-          if(btn){btn.disabled=false;btn.textContent=isRegister?'Register':'Continue';}
+          if(btn){btn.disabled=false;btn.textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');}
           try{ showToast(isRegister?'Registration successful — access granted':'Access granted'); }catch(_){}
           setErr('');
           showPortal(currentUser);
@@ -524,7 +529,7 @@ async function handleAuth(){
     }
     setErr(lastErr);
   }finally{
-    if(btn){btn.disabled=false;btn.textContent=isRegister?'Register':'Continue';}
+    if(btn){btn.disabled=false;btn.textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');}
   }
 }
 
@@ -602,7 +607,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','No transactions yet'))+'</td></tr>';
+          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -738,9 +743,9 @@ async function loadACB(){
       html+=acbs.slice(0,24).map(function(a){
         var name=a.name||a.id||a.acb_id;
         var st=a.status||'—';
-        return '<div class="acb-card" style="display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)">'+
+        return '<div class="sca-card" style="display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)">'+
           '<div><strong>'+esc(name)+'</strong><br><span style="color:var(--muted);font-size:.78rem">'+esc(a.personality||a.role||a.acb_id||'')+'</span></div>'+
-          '<div style="text-align:right;font-size:.78rem"><span class="acb-status">'+esc(st)+'</span><br>'+
+          '<div style="text-align:right;font-size:.78rem"><span class="sca-status">'+esc(st)+'</span><br>'+
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
@@ -754,7 +759,7 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','Loading…');
+  if(st) st.textContent=T('A carregar…','A carregar…');
   try{
     var poc=null, tok=null, ag=null;
     try{ var r1=await fetch(SVC.poc+'/health',{signal:AbortSignal.timeout(8000)}); if(r1.ok) poc=await r1.json(); }catch(_){}
@@ -778,7 +783,7 @@ async function loadEconomy(){
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -827,7 +832,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.orch+'/health',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
@@ -906,7 +911,7 @@ async function loadACB(){
       const st=(a.status||'').toLowerCase();
       const bal=a.balance!=null?a.balance:'—';
       const safe=String(id).replace(/"/g,'');
-      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px;display:flex;justify-content:space-between;align-items:center"><div><strong>'+safe+'</strong><br><span style="font-size:.7rem;color:var(--muted)">bal '+bal+' · '+st+'</span></div><div><button type="button" class="acb-earn" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;margin-right:.25rem;cursor:pointer">Earn</button><button type="button" class="acb-sub" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;cursor:pointer">Subsist</button></div></div>';
+      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px;display:flex;justify-content:space-between;align-items:center"><div><strong>'+safe+'</strong><br><span style="font-size:.7rem;color:var(--muted)">bal '+bal+' · '+st+'</span></div><div><button type="button" class="sca-earn" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;margin-right:.25rem;cursor:pointer">Earn</button><button type="button" class="sca-sub" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;cursor:pointer">Subsist</button></div></div>';
     }).join(''):'<p style="color:var(--muted)">No ACBs — register one</p>';
     var list=document.getElementById('acbList');
     if(list){
@@ -925,7 +930,7 @@ async function acbSub(id){
   try{await fetch('/api/v1/acb/subsistence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acb_id:id,inference_cost:0.5})});loadACB();}catch(e){}
 }
 
-async function loadACB(){try{const r=await fetch('/api/v1/acb/list');if(r.ok){const j=await r.json();document.getElementById('acbList').innerHTML=j.acbs&&j.acbs.length?j.acbs.map(a=>'<div class="acb-card"><div><strong>'+a.id+'</strong><br><span style="color:#888;font-size:12px">'+a.role+'</span></div><div><span class="acb-status '+(a.status==='active'?'acb-active':'acb-hibernated')+'">'+a.status+'</span></div></div>').join(''):'<p style="color:#888">No ACBs active</p>'}}catch(e){document.getElementById('acbList').innerHTML='<p style="color:#888">ACB system initializing</p>'}}
+async function loadACB(){try{const r=await fetch('/api/v1/acb/list');if(r.ok){const j=await r.json();document.getElementById('acbList').innerHTML=j.acbs&&j.acbs.length?j.acbs.map(a=>'<div class="sca-card"><div><strong>'+a.id+'</strong><br><span style="color:#888;font-size:12px">'+a.role+'</span></div><div><span class="sca-status '+(a.status==='active'?'acb-active':'acb-hibernated')+'">'+a.status+'</span></div></div>').join(''):'<p style="color:#888">Nenhum SCA activo</p>'}}catch(e){document.getElementById('acbList').innerHTML='<p style="color:#888">Sistema SCA a inicializar</p>'}}
 
 async function loadKYC(){
   try{
@@ -970,7 +975,7 @@ const WORKERS = [
   {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/health',fallback:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Agora market'}
 ];
 
-async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='Running...';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Run Full Diagnostic'}
+async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='A executar…';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Diagnóstico completo'}
 
 function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Root Cause Analysis (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' issue(s) detected:</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Recommended actions:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">This diagnostic was run at '+new Date().toLocaleString()+' by user <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>All Systems Operational</h4><p style="color:#888">No issues detected across '+results.length+' services.</p></div>'}out.innerHTML=html}
 
@@ -1053,7 +1058,7 @@ async function staffAuth(){
   const btn = document.getElementById('staffBtn');
   const errEl = document.getElementById('staffError');
   function setErr(msg){ if(errEl){ errEl.textContent=msg||''; errEl.style.display=msg?'block':'none'; } try{ if(msg) showToast(msg,'error'); }catch(_){} }
-  if(!email||!pass){ setErr('Staff email and password required'); return; }
+  if(!email||!pass){ setErr('Email de pessoal and password required'); return; }
   if(btn) btn.disabled = true;
   setErr('');
   try {
@@ -1078,7 +1083,7 @@ async function staffAuth(){
         token = j.token;
         try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
         currentUser = Object.assign({ type:'staff', email: email }, j);
-        try{ showToast('Staff access granted'); }catch(_){}
+        try{ showToast('Acesso de pessoal concedido'); }catch(_){}
         showPortal(currentUser);
         return;
       }
@@ -1095,14 +1100,14 @@ async function staffAuth(){
       try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
       currentUser = Object.assign({ type:'staff', email: email }, j);
       staffChallenge = null;
-      try{ showToast('Staff access granted'); }catch(_){}
+      try{ showToast('Acesso de pessoal concedido'); }catch(_){}
       showPortal(currentUser);
       return;
     }
   } catch (e) {
     setErr(e.message||String(e));
   } finally {
-    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = 'Staff Continue'; }
+    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = 'Continuar (pessoal)'; }
   }
 }
 
@@ -1116,7 +1121,7 @@ const ECO = {
 };
 async function loadEconomy(){
   const st = document.getElementById('ecoStatus');
-  if(st) st.textContent = 'loading…';
+  if(st) st.textContent = 'a carregar…';
   try {
     // Free-tier: reuse client cache 5 min to avoid repeat multi-Worker fan-out
     try {
@@ -1256,7 +1261,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','No transactions yet'))+'</td></tr>';
+          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -1392,9 +1397,9 @@ async function loadACB(){
       html+=acbs.slice(0,24).map(function(a){
         var name=a.name||a.id||a.acb_id;
         var st=a.status||'—';
-        return '<div class="acb-card" style="display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)">'+
+        return '<div class="sca-card" style="display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)">'+
           '<div><strong>'+esc(name)+'</strong><br><span style="color:var(--muted);font-size:.78rem">'+esc(a.personality||a.role||a.acb_id||'')+'</span></div>'+
-          '<div style="text-align:right;font-size:.78rem"><span class="acb-status">'+esc(st)+'</span><br>'+
+          '<div style="text-align:right;font-size:.78rem"><span class="sca-status">'+esc(st)+'</span><br>'+
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
@@ -1408,7 +1413,7 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','Loading…');
+  if(st) st.textContent=T('A carregar…','A carregar…');
   try{
     var poc=null, tok=null, ag=null;
     try{ var r1=await fetch(SVC.poc+'/health',{signal:AbortSignal.timeout(8000)}); if(r1.ok) poc=await r1.json(); }catch(_){}
@@ -1432,7 +1437,7 @@ async function loadEconomy(){
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -1481,7 +1486,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.orch+'/health',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
