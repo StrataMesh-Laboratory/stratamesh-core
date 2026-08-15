@@ -239,14 +239,13 @@ function withCors(resp, corsHeaders) {
 
 function pickLang(request) {
   const url = new URL(request.url);
-  const q = url.searchParams.get('lang');
-  if (q === 'pt' || q === 'en') return q;
-  const country = request.headers.get('cf-ipcountry') || '';
-  const cplp = ['PT','BR','AO','MZ','CV','GW','ST','TL','GQ','MO'];
-  if (cplp.includes(country)) return 'pt';
-  const al = (request.headers.get('Accept-Language') || '').toLowerCase();
-  if (al.startsWith('pt')) return 'pt';
-  return 'en';
+  const path = url.pathname || "/";
+  if (path === "/en" || path.startsWith("/en/")) return "en";
+  if (path === "/pt" || path.startsWith("/pt/")) return "pt";
+  const q = (url.searchParams.get("lang") || "").toLowerCase();
+  if (q === "en" || q === "pt") return q;
+  // Domínio público CMN: português europeu por omissão (não depender do Accept-Language do datacenter)
+  return "pt";
 }
 
 
