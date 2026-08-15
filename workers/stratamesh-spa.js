@@ -83,6 +83,22 @@ export default {
       }
     }
 
+    if (path === '/api/payment-intent' || path.startsWith('/api/payment')) {
+      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
+        const init = { method: request.method, headers: request.headers };
+        if (request.method !== 'GET' && request.method !== 'HEAD') init.body = await request.arrayBuffer();
+        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal' + path, init));
+      }
+      return new Response(JSON.stringify({ error: 'eni_pay_unavailable' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (path === '/pagamentos' || path === '/pagamentos/' || path === '/pay' || path === '/pay/') {
+      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
+        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal/', { method: 'GET' }));
+      }
+      return Response.redirect('https://eni.calhegasmorais.pt/pagamentos', 302);
+    }
+
     if (path.startsWith('/api/')) {
       return proxyApi(request, env, path, url, corsHeaders);
     }
@@ -95,25 +111,7 @@ export default {
       return serveEni(env);
     }
     
-    if (path === '/api/payment-intent' || path.startsWith('/api/payment')) {
-      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
-        const init = { method: request.method, headers: request.headers };
-        if (request.method !== 'GET' && request.method !== 'HEAD') init.body = await request.arrayBuffer();
-        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal' + path, init));
-      }
-      return new Response(JSON.stringify({ error: 'eni_pay_unavailable' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-    }
-if (path === '/pagamentos' || path === '/pagamentos/' || path === '/pay' || path === '/pay/') {
-      // Prefer service binding to eni-pay; else redirect to dedicated worker host
-      if (env.ENI_PAY && typeof env.ENI_PAY.fetch === 'function') {
-        return env.ENI_PAY.fetch(new Request('https://eni-pay.internal/', { method: 'GET' }));
-      }
-      try {
-        const r = await fetch('https://stratamesh-eni-pay.stratamesh.workers.dev/');
-        if (r.ok) return new Response(await r.text(), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Pay-Source': 'eni-pay-url' } });
-      } catch (_) {}
-      return Response.redirect('https://eni.calhegasmorais.pt/pagamentos', 302);
-    }
+
     if (path === '/clp' || path === '/clp/' || path === '/tempo' || path === '/temporal') {
       return serveClp(request, env, corsHeaders);
     }
