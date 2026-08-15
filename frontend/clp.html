@@ -250,7 +250,8 @@
                 const varY = Math.tan(obliqCorr/2 * Math.PI/180) * Math.tan(obliqCorr/2 * Math.PI/180);
                 const eqOfTime = 4 * (varY * Math.sin(2 * geomMeanLongSun * Math.PI/180) - 2 * eccentEarthOrbit * Math.sin(geomMeanAnomSun * Math.PI/180) + 4 * eccentEarthOrbit * varY * Math.sin(geomMeanAnomSun * Math.PI/180) * Math.cos(2 * geomMeanLongSun * Math.PI/180) - 0.5 * varY * varY * Math.sin(4 * geomMeanLongSun * Math.PI/180)) * 180/Math.PI;
 
-                const trueSolarNoon = (720 - 4 * lon - eqOfTime + date.getTimezoneOffset()) / 1440;
+                const tzMinutes = -date.getTimezoneOffset(); // WEST verão: +60; UTC: 0
+  const trueSolarNoon = (720 - 4 * lon - eqOfTime + tzMinutes) / 1440;
                 
                 const haArg = Math.cos(90.833 * Math.PI/180) / (Math.cos(lat * Math.PI/180) * Math.cos(sunDecl * Math.PI/180)) - Math.tan(lat * Math.PI/180) * Math.tan(sunDecl * Math.PI/180);
                 

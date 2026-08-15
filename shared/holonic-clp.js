@@ -105,7 +105,8 @@ export function solarTimes(date, lat, lon) {
       0.5 * varY * varY * Math.sin((4 * geomMeanLongSun * Math.PI) / 180)) *
       180) /
     Math.PI;
-  const trueSolarNoon = (720 - 4 * lon - eqOfTime + date.getTimezoneOffset()) / 1440;
+  const tzMinutes = -date.getTimezoneOffset(); // WEST verão: +60; UTC: 0
+  const trueSolarNoon = (720 - 4 * lon - eqOfTime + tzMinutes) / 1440;
   const haArg =
     Math.cos((90.833 * Math.PI) / 180) /
       (Math.cos((lat * Math.PI) / 180) * Math.cos((sunDecl * Math.PI) / 180)) -
