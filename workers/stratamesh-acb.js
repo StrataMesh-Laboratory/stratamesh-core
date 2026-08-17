@@ -752,7 +752,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.7.1-micro-pds',
+          version: '5.7.2-diverse-cognition',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1161,7 +1161,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.1-micro-pds',
+          version: '5.7.2-diverse-cognition',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1664,7 +1664,15 @@ export default {
           return intentions;
         }
 
-        // Maintain pulse if active and can afford micro-cost
+        // Vary means: do not always pulse — rotate with goals and last_action
+        const last = String(acb.last_action || '');
+        if (bal >= PDS_MICRO.reflect + PDS_MICRO.reserve && (last.includes('pulse') || last.includes('cognition'))) {
+          intentions.push({
+            action: 'reflect',
+            reason: 'revise_provisional_model',
+            params: { cost: PDS_MICRO.reflect },
+          });
+        }
         if (bal >= PDS_MICRO.pulse + PDS_MICRO.reserve) {
           intentions.push({
             action: 'pulse',
@@ -1981,7 +1989,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.1-micro-pds',
+          version: '5.7.2-diverse-cognition',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2083,7 +2091,18 @@ export default {
         }
 
         const intentions = deliberateMeans(acb, afterProcess, goals);
-        const top = intentions[0] || { action: 'reflect', reason: 'default_unprompted' };
+        let top = intentions[0] || { action: 'reflect', reason: 'default_unprompted' };
+        // Prefer goal advancement / reflect over repeated pulse
+        const last = String(acb.last_action || '');
+        if (last.includes('pulse') || last.includes('autonomous_cognition')) {
+          const alt = intentions.find((i) => i.action !== 'pulse') || intentions.find((i) => i.action === 'reflect');
+          if (alt) top = alt;
+        }
+        // Attach goal_id for advance if goal-linked intention
+        if (top.action === 'advance_goal' && !top.goal_id && goals[0]) top.goal_id = goals[0].id;
+        if (!top.action && goals[0]) {
+          top = { action: 'advance_goal', reason: 'goal', goal_id: goals[0].id, params: {} };
+        }
 
         // Memory trace of this cognition (costs extra PdS)
         let memory_id = null;
@@ -2222,7 +2241,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, version: '5.7.1-micro-pds' });
+          return j({ success: !report.skipped, report, version: '5.7.2-diverse-cognition' });
         }
         const pop = await populationAutonomousCognition({
           trigger: 'api_tick',
@@ -2230,7 +2249,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, version: '5.7.1-micro-pds' });
+        return j({ ...pop, version: '5.7.2-diverse-cognition' });
       }
 
       if ((path === '/acb/memory' || path === '/sca/memory') && method === 'GET') {
