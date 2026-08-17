@@ -13,19 +13,43 @@ function j(data, status = 200) {
   });
 }
 
+/**
+ * Node roles are assignments, not personal identity.
+ * LEGACY_HOLDERS: current technical ids (stable PK) — display names must be personal, not role labels.
+ */
+const NODE_ROLE_KEYS = ['orchestrator', 'devops', 'security', 'analysis', 'mesh', 'economy'];
+const LEGACY_ROLE_HOLDERS = {
+  orchestrator: 'ACB-ORCH-CMN-001',
+  devops: 'ACB-AIOPS-devops',
+  security: 'ACB-AIOPS-security',
+  analysis: 'ACB-AIOPS-analysis',
+  mesh: 'ACB-AIOPS-mesh',
+  economy: 'ACB-AIOPS-economy',
+};
+/** Provisional personal names (not jobs) until each SCA self-names via /acb/identity/set */
+const PROVISIONAL_PERSONAL_NAMES = {
+  'ACB-ORCH-CMN-001': 'Vespera',
+  'ACB-AIOPS-devops': 'Kael',
+  'ACB-AIOPS-security': 'Nyx',
+  'ACB-AIOPS-analysis': 'Solace',
+  'ACB-AIOPS-mesh': 'Reed',
+  'ACB-AIOPS-economy': 'Mira',
+};
 const CMN_TEAM = {
-  lead: 'ACB-ORCH-CMN-001',
+  // Deprecated aliases — prefer node_role_assignments table
+  lead: LEGACY_ROLE_HOLDERS.orchestrator,
   agents: [
-    'ACB-AIOPS-devops',
-    'ACB-AIOPS-security',
-    'ACB-AIOPS-analysis',
-    'ACB-AIOPS-mesh',
-    'ACB-AIOPS-economy',
+    LEGACY_ROLE_HOLDERS.devops,
+    LEGACY_ROLE_HOLDERS.security,
+    LEGACY_ROLE_HOLDERS.analysis,
+    LEGACY_ROLE_HOLDERS.mesh,
+    LEGACY_ROLE_HOLDERS.economy,
   ],
   realm_id: 'realm_1f20890b',
   world_id: 'world_b787cfe9-c',
   sandbox_id: 'sbx_9bed54e8-880',
   host_node: 'FOG-NODE-PT-CM-001',
+  ontology: 'role_is_assignment_person_is_sca',
 };
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
@@ -548,6 +572,74 @@ async function getEnvironment(db, acb_id) {
   }
 }
 
+
+async function ensureIdentitySchema(db) {
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS node_role_assignments (
+      role TEXT PRIMARY KEY,
+      sca_id TEXT NOT NULL,
+      assigned_at TEXT DEFAULT (datetime('now')),
+      assigned_by TEXT,
+      note TEXT
+    )`).run();
+  } catch (_) {}
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS sca_identity (
+      sca_id TEXT PRIMARY KEY,
+      personal_name TEXT NOT NULL,
+      born_at TEXT,
+      id_number TEXT,
+      name_origin TEXT DEFAULT 'provisional',
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`).run();
+  } catch (_) {}
+}
+
+function looksLikeRoleLabel(name) {
+  if (!name) return true;
+  const n = String(name).toLowerCase();
+  return /orchestrator|devops|aiops|security|ops lead|builder|sre|mesh|economy|analysis|lead|guardian|sentinel|archivist|oracle|digital guardian/i.test(n)
+    || n.startsWith('acb-aiops')
+    || n.startsWith('acb-orch');
+}
+
+async function getPersonalName(db, sca_id, fallbackName) {
+  try {
+    const row = await db.prepare('SELECT personal_name, name_origin FROM sca_identity WHERE sca_id = ?').bind(sca_id).first();
+    if (row && row.personal_name) return row;
+  } catch (_) {}
+  return { personal_name: fallbackName || sca_id, name_origin: 'registry' };
+}
+
+async function getRoleHolder(db, role) {
+  try {
+    const row = await db.prepare('SELECT sca_id, assigned_at FROM node_role_assignments WHERE role = ?').bind(role).first();
+    if (row) return row;
+  } catch (_) {}
+  return { sca_id: LEGACY_ROLE_HOLDERS[role] || null, assigned_at: null };
+}
+
+async function listRoleAssignments(db) {
+  const out = [];
+  for (const role of NODE_ROLE_KEYS) {
+    const h = await getRoleHolder(db, role);
+    let person = null;
+    if (h.sca_id) {
+      const reg = await db.prepare('SELECT id, name, status FROM acb_registry WHERE id = ?').bind(h.sca_id).first();
+      const idn = await getPersonalName(db, h.sca_id, reg?.name);
+      person = {
+        sca_id: h.sca_id,
+        personal_name: idn.personal_name,
+        name_origin: idn.name_origin,
+        status: reg?.status || null,
+      };
+    }
+    out.push({ role, holder: person, assigned_at: h.assigned_at || null });
+  }
+  return out;
+}
+
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -594,7 +686,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.4.0-volition',
+          version: '5.5.0-identity-role-split',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -630,8 +722,17 @@ export default {
 
       if (path === '/acb/register' && method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const id = body.acb_id || body.id || 'ACB-' + crypto.randomUUID().slice(0, 10);
-        const name = body.name || id;
+        const id = body.acb_id || body.id || 'SCA-' + crypto.randomUUID().slice(0, 10);
+        let name = body.personal_name || body.name || id;
+        if (body.role && !body.personal_name && !body.name) {
+          return j({ error: 'personal_name required', reason: 'Do not register SCA identity as a node role' }, 400);
+        }
+        if (looksLikeRoleLabel(name) && !body.allow_provisional_name) {
+          return j({
+            error: 'name_looks_like_role',
+            reason: 'Registry name is personal identity; assign node role via /acb/role/assign',
+          }, 400);
+        }
         await db
           .prepare(
             `INSERT OR REPLACE INTO acb_registry (id, name, personality, status, subsistence_score, balance, created_at, last_action)
@@ -659,10 +760,29 @@ export default {
             meta: body.meta || body.environment?.meta,
           });
         }
+        try {
+          await ensureIdentitySchema(db);
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO sca_identity (sca_id, personal_name, born_at, id_number, name_origin, updated_at)
+               VALUES (?,?,datetime('now'),?,?,datetime('now'))`
+            )
+            .bind(id, name, body.id_number || 'ID-' + id.replace(/[^A-Za-z0-9]/g, '').slice(-12), body.personal_name ? 'self' : 'register')
+            .run();
+        } catch (_) {}
+        if (body.role && NODE_ROLE_KEYS.includes(String(body.role).toLowerCase())) {
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO node_role_assignments (role, sca_id, assigned_by, note) VALUES (?,?,?,?)`
+            )
+            .bind(String(body.role).toLowerCase(), id, 'register', 'optional role at register')
+            .run();
+        }
         return j({
           success: true,
-          acb: { acb_id: id, name, status: 'active', balance: 0 },
-          note: 'ACBs earn when STRATA holders hire them — not via PoC mint',
+          sca: { sca_id: id, personal_name: name, status: 'active', balance: 0 },
+          role_assignment: body.role || null,
+          note: 'Identity is the person; node role is optional assignment',
         });
       }
 
@@ -682,41 +802,206 @@ export default {
         return j({ success: true, environment: await getEnvironment(db, acb_id) });
       }
 
-      // Bootstrap CMN team environments
+      // Bootstrap: persons first, roles as assignments (not identity)
       if (path === '/acb/team/bootstrap' && method === 'POST') {
-        const all = [CMN_TEAM.lead, ...CMN_TEAM.agents];
-        const roles = {
-          'ACB-ORCH-CMN-001': 'lead',
-          'ACB-AIOPS-devops': 'devops',
-          'ACB-AIOPS-security': 'security',
-          'ACB-AIOPS-analysis': 'analysis',
-          'ACB-AIOPS-mesh': 'mesh',
-          'ACB-AIOPS-economy': 'economy',
-        };
-        for (const id of all) {
-          const exists = await db.prepare('SELECT id FROM acb_registry WHERE id = ?').bind(id).first();
+        await ensureIdentitySchema(db);
+        const results = [];
+        for (const role of NODE_ROLE_KEYS) {
+          const id = LEGACY_ROLE_HOLDERS[role];
+          const personal = PROVISIONAL_PERSONAL_NAMES[id] || ('SCA-' + id.slice(-6));
+          const exists = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(id).first();
           if (!exists) {
             await db
               .prepare(
                 `INSERT OR IGNORE INTO acb_registry (id, name, personality, status, subsistence_score, balance, created_at, last_action)
                  VALUES (?,?,?,?,0,0,datetime('now'),'bootstrap')`
               )
-              .bind(id, id, 'aiops-' + (roles[id] || 'agent'), 'active')
+              .bind(id, personal, 'person', 'active')
               .run();
+          } else if (looksLikeRoleLabel(exists.name)) {
+            await db.prepare(`UPDATE acb_registry SET name = ? WHERE id = ?`).bind(personal, id).run();
           }
+          try {
+            await db
+              .prepare(
+                `INSERT OR REPLACE INTO sca_identity (sca_id, personal_name, born_at, id_number, name_origin, updated_at)
+                 VALUES (?,?,datetime('now'),?,?,datetime('now'))`
+              )
+              .bind(id, personal, 'ID-' + id.replace(/[^A-Za-z0-9]/g, '').slice(-12), 'provisional')
+              .run();
+          } catch (_) {}
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO node_role_assignments (role, sca_id, assigned_by, note) VALUES (?,?,?,?)`
+            )
+            .bind(role, id, 'bootstrap', 'assignment only — not personal identity')
+            .run();
           await setEnvironment(db, id, {
             host_node: CMN_TEAM.host_node,
             realm_id: CMN_TEAM.realm_id,
             world_id: CMN_TEAM.world_id,
             sandbox_id: CMN_TEAM.sandbox_id,
             holon: 'virtual_realm',
-            role: roles[id] || 'agent',
+            role: role,
             team: 'aiops-dev',
-            meta: { metaverse: true, tokenomic: true },
+            meta: { metaverse: true, tokenomic: true, identity_separated: true },
+          });
+          results.push({ role, sca_id: id, personal_name: personal });
+        }
+        return j({
+          success: true,
+          ontology: 'SCA personal identity ≠ node role assignment',
+          assignments: results,
+          note: 'Provisional names until each SCA sets personal_name via POST /acb/identity/set',
+        });
+      }
+
+      // Separate identity for all role-labelled registry rows
+      if ((path === '/acb/identity/separate' || path === '/acb/identity/migrate') && method === 'POST') {
+        await ensureIdentitySchema(db);
+        const rows = (await db.prepare('SELECT id, name, status FROM acb_registry').all()).results || [];
+        const changed = [];
+        for (const row of rows) {
+          let personal = row.name;
+          let origin = 'kept';
+          if (looksLikeRoleLabel(row.name) || looksLikeRoleLabel(row.id)) {
+            personal = PROVISIONAL_PERSONAL_NAMES[row.id] || ('SCA-' + String(row.id).replace(/[^A-Za-z0-9]/g, '').slice(-8));
+            origin = 'provisional';
+            await db.prepare('UPDATE acb_registry SET name = ? WHERE id = ?').bind(personal, row.id).run();
+          }
+          try {
+            await db
+              .prepare(
+                `INSERT OR REPLACE INTO sca_identity (sca_id, personal_name, born_at, id_number, name_origin, updated_at)
+                 VALUES (?,?,COALESCE((SELECT born_at FROM sca_identity WHERE sca_id = ?), datetime('now')),?,?,datetime('now'))`
+              )
+              .bind(row.id, personal, row.id, 'ID-' + String(row.id).replace(/[^A-Za-z0-9]/g, '').slice(-12), origin)
+              .run();
+          } catch (e) {
+            changed.push({ sca_id: row.id, error: String(e.message || e) });
+            continue;
+          }
+          changed.push({ sca_id: row.id, personal_name: personal, name_origin: origin });
+        }
+        // Ensure role assignments for CMN roles
+        for (const role of NODE_ROLE_KEYS) {
+          const id = LEGACY_ROLE_HOLDERS[role];
+          await db
+            .prepare(
+              `INSERT OR IGNORE INTO node_role_assignments (role, sca_id, assigned_by, note) VALUES (?,?,?,?)`
+            )
+            .bind(role, id, 'migrate', 'role assignment graph')
+            .run();
+        }
+        return j({
+          success: true,
+          changed,
+          roles: await listRoleAssignments(db),
+          rule: 'Personal name is who the SCA is; role is a job they may leave without ceasing to exist',
+        });
+      }
+
+      // SCA self-sets personal identity (not a job title)
+      if ((path === '/acb/identity/set' || path === '/sca/identity/set') && method === 'POST') {
+        await ensureIdentitySchema(db);
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id || body.id;
+        const personal_name = String(body.personal_name || body.name || '').trim().slice(0, 128);
+        if (!sca_id || !personal_name) return j({ error: 'sca_id and personal_name required' }, 400);
+        if (looksLikeRoleLabel(personal_name)) {
+          return j({
+            error: 'name_looks_like_role',
+            reason: 'Personal name must not be a node function (orchestrator, devops, …)',
+          }, 400);
+        }
+        const acb = await db.prepare('SELECT id FROM acb_registry WHERE id = ?').bind(sca_id).first();
+        if (!acb) return j({ error: 'not found' }, 404);
+        await db.prepare('UPDATE acb_registry SET name = ?, last_action = ? WHERE id = ?').bind(personal_name, 'identity_set', sca_id).run();
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO sca_identity (sca_id, personal_name, born_at, id_number, name_origin, updated_at)
+             VALUES (?,?,COALESCE((SELECT born_at FROM sca_identity WHERE sca_id = ?), datetime('now')),?,?,datetime('now'))`
+          )
+          .bind(
+            sca_id,
+            personal_name,
+            sca_id,
+            body.id_number || 'ID-' + sca_id.replace(/[^A-Za-z0-9]/g, '').slice(-12),
+            'self'
+          )
+          .run();
+        return j({
+          success: true,
+          sca_id,
+          personal_name,
+          name_origin: 'self',
+          note: 'Node roles unchanged — identity is independent of any assignment',
+        });
+      }
+
+      if ((path === '/acb/identity' || path === '/sca/identity') && method === 'GET') {
+        await ensureIdentitySchema(db);
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (sca_id) {
+          const reg = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(sca_id).first();
+          const idn = await db.prepare('SELECT * FROM sca_identity WHERE sca_id = ?').bind(sca_id).first();
+          const env = await getEnvironment(db, sca_id);
+          return j({
+            sca_id,
+            registry: reg,
+            identity: idn,
+            current_node_role: env?.role || null,
+            ontology: 'person persists if role is vacated',
           });
         }
-        return j({ success: true, bootstrapped: all, environment: CMN_TEAM });
+        const all = (await db.prepare('SELECT * FROM sca_identity ORDER BY personal_name').all()).results || [];
+        return j({ identities: all, roles: await listRoleAssignments(db) });
       }
+
+      // Assign / reassign node role to an existing SCA person
+      if ((path === '/acb/role/assign' || path === '/node/role/assign') && method === 'POST') {
+        await ensureIdentitySchema(db);
+        const body = await request.json().catch(() => ({}));
+        const role = String(body.role || '').toLowerCase();
+        const sca_id = body.sca_id || body.acb_id;
+        if (!NODE_ROLE_KEYS.includes(role)) return j({ error: 'invalid role', allowed: NODE_ROLE_KEYS }, 400);
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const acb = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(sca_id).first();
+        if (!acb) return j({ error: 'sca not found' }, 404);
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO node_role_assignments (role, sca_id, assigned_by, note) VALUES (?,?,?,?)`
+          )
+          .bind(role, sca_id, body.assigned_by || 'system', body.note || 'role reassignment')
+          .run();
+        await setEnvironment(db, sca_id, {
+          host_node: CMN_TEAM.host_node,
+          realm_id: CMN_TEAM.realm_id,
+          world_id: CMN_TEAM.world_id,
+          sandbox_id: CMN_TEAM.sandbox_id,
+          holon: 'virtual_realm',
+          role: role,
+          team: body.team || 'aiops-dev',
+          meta: { identity_separated: true },
+        });
+        const idn = await getPersonalName(db, sca_id, acb.name);
+        return j({
+          success: true,
+          role,
+          holder: { sca_id, personal_name: idn.personal_name },
+          note: 'Previous holder (if any) remains a person in the registry without this role',
+        });
+      }
+
+      if ((path === '/acb/roles' || path === '/node/roles') && method === 'GET') {
+        await ensureIdentitySchema(db);
+        return j({
+          success: true,
+          roles: await listRoleAssignments(db),
+          ontology: 'role ⊂ assignment; SCA identity is independent',
+        });
+      }
+
 
 
       // Operational cycle: Orchestrator redistributes earned STRATA to team (transfers only)
@@ -787,7 +1072,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.4.0-volition',
+          version: '5.5.0-identity-role-split',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1598,7 +1883,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.4.0-volition',
+          version: '5.5.0-identity-role-split',
           cycled: reports.length,
           reports,
           ontology: {

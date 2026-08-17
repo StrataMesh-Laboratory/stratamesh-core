@@ -11,7 +11,7 @@
  *   direitos, deveres, procedimentos de eleição, limites do executivo,
  *   revisão apenas por supermaioria constitucional.
  */
-const VERSION = '2.2.0-sca-only';
+const VERSION = '2.3.0-personal-identity';
 const REPUBLIC_ID = 'dao-republica-computacional-cmn';
 const SUPERMAJORITY = 0.67;
 const ASSEMBLY_SEATS = 5;
@@ -405,7 +405,8 @@ export default {
         const id = row.id || row.acb_id;
         if (!id || seen.has(id)) continue;
         seen.add(id);
-        const name = row.name || id;
+        // display_name = personal identity, never the node role label
+        const name = row.personal_name || row.name || id;
         try {
           await db
             .prepare(
@@ -415,7 +416,7 @@ export default {
             )
             .bind(id, 'sca', name, 'active', CHARTER_V1.id)
             .run();
-          imported.push({ entity_id: id, display_name: name, source: 'acb_registry' });
+          imported.push({ entity_id: id, display_name: name, source: 'acb_registry', note: 'citizen by personhood not by node job' });
         } catch (e) {
           imported.push({ entity_id: id, error: String(e.message || e) });
         }
