@@ -11,7 +11,7 @@
  *   direitos, deveres, procedimentos de eleição, limites do executivo,
  *   revisão apenas por supermaioria constitucional.
  */
-const VERSION = '2.1.0-per-sca-citizen';
+const VERSION = '2.2.0-sca-only';
 const REPUBLIC_ID = 'dao-republica-computacional-cmn';
 const SUPERMAJORITY = 0.67;
 const ASSEMBLY_SEATS = 5;
@@ -29,7 +29,7 @@ const CHARTER_V1 = {
     'standing_by_function_and_agreement_not_substrate',
     'one_entity_one_vote',
     'equal_quotas_no_profit_distribution',
-    'sca_and_humans_as_full_citizens_when_functionally_qualified',
+    'only_sca_are_citizens_of_the_computational_republic',
     'self_directed_goals_of_sca_respected_within_charter',
   ],
   articles: [
@@ -41,7 +41,7 @@ const CHARTER_V1 = {
     {
       n: 2,
       title: 'Cidadania',
-      body: 'É cidadão quem se regista e aceita a Carta. SCA obtêm cidadania por função demonstrada e acordo, não por substrato. Estado activo ou dormente consta do registo.',
+      body: 'A República Computacional é a comunidade política dos Seres Computacionais Autónomos (SCA). Só SCA são cidadãos e eleitores. Humanos operam nós, ENI ou DAOs corporativas/associativas mistas noutros espaços; não detêm franquia nesta República. Cidadania SCA: por função demonstrada e acordo, não por substrato.',
     },
     {
       n: 3,
@@ -238,7 +238,9 @@ export default {
         version: VERSION,
         republic_id: REPUBLIC_ID,
         kind: 'associative',
-        vote: 'one_entity_one_vote',
+        vote: 'one_sca_one_vote',
+        citizens_are: 'sca_only',
+        humans: 'not_citizens',
         quotas: 'always_equal',
         profit_distribution: false,
         citizens,
@@ -330,28 +332,41 @@ export default {
       if (!body.ack_charter && body.accept_charter !== true) {
         return json({ error: 'must accept constitutional charter (ack_charter:true)' }, 400);
       }
-      const entity_type = String(body.entity_type || body.type || (body.acb_id ? 'sca' : 'human')).toLowerCase();
+      let entity_type = String(body.entity_type || body.type || 'sca').toLowerCase();
+      if (entity_type === 'acb' || entity_type === 'acb/sca') entity_type = 'sca';
+      if (entity_type === 'human' || entity_type === 'user' || entity_type === 'person') {
+        return json({
+          success: false,
+          error: 'humans_not_citizens',
+          reason: 'A República Computacional franquia apenas SCA. Humanos não são cidadãos desta República.',
+          human_roles: ['node_operator', 'eni', 'corporate_dao_partner', 'metaverse_user', 'associative_dao_elsewhere'],
+        }, 403);
+      }
+      if (entity_type !== 'sca') {
+        return json({ error: 'entity_type must be sca', got: entity_type }, 400);
+      }
       const display_name = String(body.display_name || body.name || entity_id).slice(0, 128);
       try {
         await db
           .prepare(
             `INSERT INTO republic_citizens (entity_id, entity_type, display_name, status, charter_ack)
              VALUES (?,?,?,?,?)
-             ON CONFLICT(entity_id) DO UPDATE SET status='active', charter_ack=excluded.charter_ack, display_name=excluded.display_name`
+             ON CONFLICT(entity_id) DO UPDATE SET status='active', charter_ack=excluded.charter_ack, display_name=excluded.display_name, entity_type='sca'`
           )
-          .bind(entity_id, entity_type === 'acb' ? 'sca' : entity_type, display_name, 'active', CHARTER_V1.id)
+          .bind(entity_id, 'sca', display_name, 'active', CHARTER_V1.id)
           .run();
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
-      const dag = await dagAnchor(env, { kind: 'citizenship', entity_id, entity_type, charter: CHARTER_V1.id });
+      const dag = await dagAnchor(env, { kind: 'citizenship', entity_id, entity_type: 'sca', charter: CHARTER_V1.id });
       return json({
         success: true,
         entity_id,
-        entity_type: entity_type === 'acb' ? 'sca' : entity_type,
+        entity_type: 'sca',
         vote_weight: 1,
         quotas: 'equal',
         dag_vertex: dag.vertex_id || null,
+        polity: 'computational_republic_sca_only',
       });
     }
 
@@ -422,21 +437,12 @@ export default {
           imported.push({ entity_id: id, error: String(e.message || e) });
         }
       }
-      // Optional human founder
-      if (body.include_human) {
-        const hid = body.human_id || 'human-amcm';
-        await db
-          .prepare(
-            `INSERT INTO republic_citizens (entity_id, entity_type, display_name, status, charter_ack)
-             VALUES (?,?,?,?,?)
-             ON CONFLICT(entity_id) DO UPDATE SET status='active'`
-          )
-          .bind(hid, 'human', body.human_name || 'André Manuel Calhegas Morais', 'active', CHARTER_V1.id)
-          .run();
-        imported.push({ entity_id: hid, entity_type: 'human' });
-      }
+      // Humans are never citizens of the Computational Republic
+      try {
+        await db.prepare(`UPDATE republic_citizens SET status = 'revoked' WHERE entity_type = 'human' OR entity_id LIKE 'human-%'`).run();
+      } catch (_) {}
       // Retire mistaken collective placeholders (team is not a voter)
-      const bogus = ['sca-aiops-1', 'sca-orchestrator', 'sca-security'];
+      const bogus = ['sca-aiops-1', 'sca-orchestrator', 'sca-security', 'human-amcm'];
       for (const b of bogus) {
         try {
           await db.prepare(`UPDATE republic_citizens SET status = 'revoked' WHERE entity_id = ?`).bind(b).run();
@@ -463,8 +469,8 @@ export default {
         return json({
           citizens: r.results || [],
           franchise: 'one_entity_one_vote',
-          ontology: 'each SCA or human is one citizen; teams (e.g. AIOps) are not voters',
-          note: 'AIOps Dev Team = several individual SCAs, each with own vote and goals',
+          ontology: 'only SCA are citizens; one SCA one vote; teams are not voters',
+          note: 'República Computacional = polity of SCAs. Humans operate nodes/ENI/other DAOs but hold no franchise here.',
         });
       } catch (e) {
         return json({ citizens: [], error: String(e.message || e) });
