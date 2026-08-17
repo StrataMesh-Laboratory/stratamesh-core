@@ -86,3 +86,92 @@ Prioridade: encaixe com Workers, D1, KV, TRD/GDA, auth e portal.
 | Web Crypto SHA-256 nos vértices GDA | **Já em uso** no `stratamesh-dag` (equivalente funcional a noble-hashes no edge) |
 | TOTP staff (RFC 6238 / estilo otplib) | **Activo** — `/staff/totp/enroll` + challenge `TOTP-{id}` |
 | CIDv1 real (raw+sha2-256) | **Activo** no GDA — Helia full node continua pendente (fog) |
+
+
+## Outras funcionalidades open-source (GitHub) — expansão
+
+Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos úteis para o Nó / StrataMesh.
+
+### Identidade, consentimento e compliance
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [w3c/vc-data-model](https://github.com/w3c/vc-data-model) | Verifiable Credentials | Credenciais de clearance / PdC auditável |
+| [decentralized-identity/presentation-exchange](https://github.com/decentralized-identity/presentation-exchange) | Presentation Exchange | Pedidos de prova sem revelar excesso |
+| [eu-digital-identity-wallet/eudi-lib-jvm](https://github.com/eu-digital-identity-wallet) | Carteira EUDI (ref.) | CMD / EUDI quando RP estiver pronto |
+| [openid/OpenID4VCI](https://github.com/openid/OpenID4VCI) | Emissão de credenciais | Atestados de nó / staff |
+| [privacycg/is-logged-in](https://github.com/privacycg) | Padrões privacidade web | Portal sem tracking desnecessário |
+
+### Pagamentos e settlement (sem custodiar chaves bancárias)
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [interledger/rafiki](https://github.com/interledger/rafiki) | Interledger node | Liquidação multi-moeda futura |
+| [Open-Invoice/standard](https://github.com/network-invoice) / [Invoice-Ninja](https://github.com/invoiceninja/invoiceninja) | Facturação | ENI: recibos/donativos (self-host) |
+| [stripe-samples](https://github.com/stripe-samples) (só se conta Stripe) | Checkout | Opcional; ENI já usa transferência Wise |
+
+### Tempo, calendário e dados astronómicos
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [mourner/suncalc](https://github.com/mourner/suncalc) | Nascer/pôr sol | Validar / substituir motor CLP |
+| [commenthol/date-holidays](https://github.com/commenthol/date-holidays) | Feriados por país | Calendário civil PT-PT |
+| [moment/luxon](https://github.com/moment/luxon) | Timezones | PPC + portadora ISO |
+
+### Grafos, CRDT e sincronização
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [automerge/automerge](https://github.com/automerge/automerge) | CRDT | Bancada UGC offline-first |
+| [yjs/yjs](https://github.com/yjs/yjs) | CRDT colaboração | Mundo Aberto / edição partilhada |
+| [ipld/js-dag-json](https://github.com/ipld/js-dag-json) | IPLD JSON | Vértices legíveis + CID |
+| [orbitdb/orbitdb](https://github.com/orbitdb/orbitdb) | DB sobre IPFS | Lab fog (não no Worker free) |
+| [gun/gun](https://github.com/amark/gun) | Grafo P2P | Experiências multi-nó |
+
+### IA no edge e orquestração de agentes
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [cloudflare/ai](https://github.com/cloudflare/ai) | Workers AI bindings | Orquestrador / chat (já próximo) |
+| [langchain-ai/langgraphjs](https://github.com/langchain-ai/langgraphjs) | Grafos de agentes | AIOps Dev Team (cuidado com CPU free) |
+| [vercel/ai](https://github.com/vercel/ai) | SDK streaming | Chat portal |
+| [guidance-ai/guidance](https://github.com/guidance-ai/guidance) | Geração estruturada | Respostas JSON do Orquestrador |
+
+### Segurança e supply-chain
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [cisagov/ScubaGear](https://github.com/cisagov/ScubaGear) | Audit configs | Processo (não runtime) |
+| [google/capslock](https://github.com/google/capslock) | Capacidade Go | Se houver binários fog |
+| [sigstore/cosign](https://github.com/sigstore/cosign) | Assinar artefactos | Releases do repo |
+| [slsa-framework/slsa](https://github.com/slsa-framework/slsa) | Provenance builds | CI do stratamesh-core |
+| [zaproxy/zaproxy](https://github.com/zaproxy/zaproxy) | Security scan | Portal / API |
+
+### Observabilidade e fiabilidade
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [open-telemetry/opentelemetry-js](https://github.com/open-telemetry/opentelemetry-js) | Traces | Amostragem baixa no free |
+| [fluent/fluent-bit](https://github.com/fluent/fluent-bit) | Logs fog | Nó local |
+| [grafana/loki](https://github.com/grafana/loki) | Log store | Self-host opcional |
+| [healthchecks/healthchecks](https://github.com/healthchecks/healthchecks) | Cron dead-man | AIOps always-on |
+
+### UI / acessibilidade / i18n
+
+| Projecto | Função | Encaixe CMN |
+|----------|--------|-------------|
+| [formatjs/formatjs](https://github.com/formatjs/formatjs) | i18n robusto | PT-PT / EN-GB |
+| [kentcdodds/mdx-bundler](https://github.com/kentcdodds/mdx-bundler) | Docs MDX | Whitepaper no portal |
+| [shikijs/shiki](https://github.com/shikijs/shiki) | Syntax highlight | Docs técnicas |
+| [WICG/sanitizer-api](https://github.com/WICG/sanitizer-api) | Sanitizar HTML | Bancada UGC |
+
+### Próximas integrações recomendadas (ordem prática no Free)
+
+1. **suncalc** — cruzar com CLP (confiança astronómica)  
+2. **ipld/js-dag-json** ou **dag-cbor** — payloads GDA tipados + CID  
+3. **yjs** ou **automerge** — Bancada UGC colaborativa (lab)  
+4. **cosign + SLSA** no GitHub Actions do `stratamesh-core`  
+5. **formatjs** — i18n portal sem strings soltas  
+6. **healthchecks** — watchdog dos ciclos AIOps  
+
+*Não é lista de compras obrigatória: cada linha deve justificar-se por PdC, PdS ou clareza institucional ENI.*
