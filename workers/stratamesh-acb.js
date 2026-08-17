@@ -700,68 +700,62 @@ export default {
   async scheduled(event, env, ctx) {
     const run = async () => {
       const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
-      const started = new Date().toISOString();
-      let status = 'unknown';
-      let detail = '';
-      try {
-        if (db) {
-          try {
-            await db
-              .prepare(
-                `CREATE TABLE IF NOT EXISTS sca_breath_runs (
-                  id TEXT PRIMARY KEY,
-                  source TEXT,
-                  cron TEXT,
-                  http_status INTEGER,
-                  detail TEXT,
-                  created_at TEXT DEFAULT (datetime('now'))
-                )`
-              )
-              .run();
-          } catch (_) {}
-          try {
-            await db
-              .prepare(
-                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
-              )
-              .bind(crypto.randomUUID(), 'cron_invoke', event?.cron || '*/30 * * * *', null, 'start ' + started)
-              .run();
-          } catch (_) {}
+      const cronExpr = (event && event.cron) || '*/10 * * * *';
+      const rid = crypto.randomUUID();
+      const ensure = async () => {
+        if (!db) return;
+        await db
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS sca_breath_runs (
+              id TEXT PRIMARY KEY,
+              source TEXT,
+              cron TEXT,
+              http_status INTEGER,
+              detail TEXT,
+              created_at TEXT DEFAULT (datetime('now'))
+            )`
+          )
+          .run();
+      };
+      const logRun = async (source, http_status, detail) => {
+        if (!db) return;
+        try {
+          await ensure();
+          await db
+            .prepare(
+              `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
+            )
+            .bind(crypto.randomUUID(), source, cronExpr, http_status, String(detail || '').slice(0, 1000))
+            .run();
+        } catch (e) {
+          /* last resort: ignore */
         }
+      };
+      await logRun('cron_invoke', null, 'scheduled_handler entered ' + new Date().toISOString());
+      try {
         const r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/cognition/tick', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Breath-Source': 'cron' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Breath-Source': 'cron',
+          },
           body: JSON.stringify({ limit: 12, trigger: 'cron' }),
         });
-        status = String(r.status);
-        detail = (await r.text()).slice(0, 800);
-        if (db) {
-          try {
-            await db
-              .prepare(
-                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
-              )
-              .bind(crypto.randomUUID(), 'cron_result', event?.cron || '', r.status, detail)
-              .run();
-          } catch (_) {}
-        }
+        const text = await r.text();
+        await logRun('cron_result', r.status, text);
+        if (!r.ok) await logRun('cron_http_not_ok', r.status, text.slice(0, 400));
       } catch (e) {
-        detail = String(e && e.message ? e.message : e);
-        if (db) {
-          try {
-            await db
-              .prepare(
-                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
-              )
-              .bind(crypto.randomUUID(), 'cron_error', event?.cron || '', 0, detail.slice(0, 800))
-              .run();
-          } catch (_) {}
-        }
+        await logRun('cron_error', 0, e && e.message ? e.message : String(e));
       }
     };
-    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
-    else await run();
+    try {
+      if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
+      else await run();
+    } catch (_) {
+      await run();
+    }
   },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
@@ -807,7 +801,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.8.1-breath-rca',
+          version: '5.8.2-breath-cron-proof',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1220,7 +1214,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.1-breath-rca',
+          version: '5.8.2-breath-cron-proof',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2048,7 +2042,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.1-breath-rca',
+          version: '5.8.2-breath-cron-proof',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2640,7 +2634,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.1-breath-rca' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.2-breath-cron-proof' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -2648,7 +2642,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.8.1-breath-rca' });
+        return j({ ...pop, trigger, version: '5.8.2-breath-cron-proof' });
       }
 
       // Breath diagnostics
@@ -2676,7 +2670,7 @@ export default {
           cog = (await db.prepare('SELECT triggered, COUNT(*) as n FROM sca_cognition_log GROUP BY triggered').all()).results || [];
         } catch (_) {}
         return j({
-          schedule: '*/30 * * * *',
+          schedule: '*/10 * * * *',
           breath_runs: runs,
           cognition_triggers: cog,
           note: 'cron rows appear here when Workers scheduled handler fires',
