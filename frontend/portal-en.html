@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
-<script>window.__FORCE_LANG=window.__FORCE_LANG||null;</script>
+<html lang="en-GB">
+<script>window.__FORCE_LANG='en';</script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portal · Calhegas Morais · StrataMesh</title>
-<meta name="description" content="Portal StrataMesh CMN — autenticação, carteira, Ágora, Orquestrador.">
+<meta name="description" content="StrataMesh CMN portal — authentication, wallet, Agora, Orchestrator.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -89,10 +89,10 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h2 id="formTitle">Sign in</h2>
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <input type="email" id="email" placeholder="Email" autocomplete="email">
-    <input type="password" id="password" placeholder="Palavra-passe" autocomplete="current-password">
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password">
     <div class="error" id="loginError"></div>
-    <button type="button" onclick="handleAuth()" id="authBtn">Continuar</button>
-    <div class="toggle" onclick="toggleMode()" id="toggleText">Precisa de conta? Registar</div>
+    <button type="button" onclick="handleAuth()" id="authBtn">Continue</button>
+    <div class="toggle" onclick="toggleMode()" id="toggleText">Need an account? Register</div>
 
     <div id="socialLogin">
       <p>Common users</p>
@@ -101,38 +101,38 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <button type="button" id="btnApple" disabled onclick="startOAuth('apple')">Apple (pending credentials)</button>
     </div>
 
-    <div class="toggle" onclick="showStaffLogin()" id="staffToggle">Acesso de pessoal</div>
+    <div class="toggle" onclick="showStaffLogin()" id="staffToggle">Staff access</div>
     <div id="staffBox">
-      <p>Apenas pessoal · email + palavra-passe · 2FA (lab)</p>
-      <input id="staffEmail" type="email" placeholder="Email de pessoal" autocomplete="username">
-      <input id="staffPass" type="password" placeholder="Palavra-passe de pessoal" autocomplete="current-password">
+      <p>Staff only · email + palavra-passe · 2FA (lab)</p>
+      <input id="staffEmail" type="email" placeholder="Staff email" autocomplete="username">
+      <input id="staffPass" type="password" placeholder="Password de pessoal" autocomplete="current-password">
       <div id="staff2faRow" style="display:none">
-        <input id="staffOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos)" autocomplete="one-time-code">
+        <input id="staffOtp" type="text" inputmode="numeric" placeholder="6-digit 2FA code" autocomplete="one-time-code">
         <p id="staffOtpHint"></p>
       </div>
       <div id="staffError"></div>
-      <button type="button" onclick="staffAuth()" id="staffBtn">Continuar (pessoal)</button>
+      <button type="button" onclick="staffAuth()" id="staffBtn">Staff continue</button>
       <div class="toggle" onclick="hideStaffLogin()">← Back to user login</div>
     </div>
 
     <p class="login-foot">
       <a href="https://stratamesh-spa.stratamesh.workers.dev/">← Site</a>
-      · <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat">Orquestrador</a>
+      · <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat">Orchestrator</a>
     </p>
   </div>
 </div>
 <div class="portal" id="portalPage">
   <!-- Painel comum = base; Pessoal = comum + extras desbloqueados por clearance -->
   <div class="nav" id="mainNav">
-    <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)">Carteira</button>
-    <button type="button" data-panel="agora" onclick="showPanel('agora',this)">Ágora</button>
-    <button type="button" data-panel="economy" onclick="showPanel('economy',this)">Economia</button>
-    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)">Bancada</button>
+    <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)">Wallet</button>
+    <button type="button" data-panel="agora" onclick="showPanel('agora',this)">Agora</button>
+    <button type="button" data-panel="economy" onclick="showPanel('economy',this)">Economy</button>
+    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)">Sandbox</button>
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)">DAO</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)">APS</button>
     <button type="button" data-panel="acb" onclick="showPanel('acb',this)">SCA</button>
-    <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)">Diagnóstico</button>
-    <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orquestrador</button>
+    <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)">Diagnostics</button>
+    <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orchestrator</button>
     <button type="button" data-panel="clp" onclick="showPanel('clp',this)">CLP</button>
     <button type="button" data-panel="profile" onclick="showPanel('profile',this)">Perfil</button>
     <!-- Pessoal only -->
@@ -172,7 +172,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h3>Economia · PdC · Trabalho · DAO</h3>
     <p class="lead">Live CMN meters — market-priced PoC, SCA labour, associative vs corporate DAOs. No faucets.</p>
     <div style="margin-bottom:1rem">
-      <button type="button" onclick="loadEconomy()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase">Actualizar</button>
+      <button type="button" onclick="loadEconomy()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase">Refresh</button>
       <span id="ecoStatus" style="margin-left:.75rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted)"></span>
     </div>
     <div class="stat-grid">
@@ -193,7 +193,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-sandbox">
     <h3>Web3 Sandbox</h3>
-    <p style="color:var(--muted);margin-bottom:16px">Criar e registar activos digitais na StrataMesh.</p>
+    <p style="color:var(--muted);margin-bottom:16px">Create and mint digital assets on StrataMesh.</p>
     <div class="stat-grid">
       <div class="stat-card"><div class="value">0</div><div class="label">Assets Created</div></div>
       <div class="stat-card"><div class="value">0</div><div class="label">NFTs Minted</div></div>
@@ -229,7 +229,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div style="margin:1rem 0;display:flex;gap:.5rem;flex-wrap:wrap">
       <button onclick="registerSpa()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Register SPA</button>
-      <button onclick="loadSPA()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Actualizar</button>
+      <button onclick="loadSPA()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh</button>
     </div>
     <div id="spaList"><p style="color:var(--muted)">A carregar APS / bancadas…</p></div>
     <h4 style="margin-top:1.25rem;font-weight:400;color:var(--muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase">Mercado de afixação</h4>
@@ -237,11 +237,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-acb">
-    <h3>SCA · Seres Computacionais Autónomos</h3>
+    <h3>SCA · Autonomous Computational Beings</h3>
     <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Proof of Subsistence — earn · pay compute · hibernate if insolvent</p>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
       <button onclick="registerAcb()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Registar SCA</button>
-      <button onclick="loadACB()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Actualizar</button>
+      <button onclick="loadACB()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh</button>
     </div>
     <div id="acbList"><p style="color:var(--muted)">A carregar estado dos SCA…</p></div>
   </div>
@@ -255,7 +255,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <div class="stat-card"><div class="value" id="holonEvents">--</div><div class="label">Eventos</div></div>
     </div>
     <pre id="holonPath" style="margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;font-size:.75rem;overflow:auto;color:var(--muted)"></pre>
-    <button type="button" class="btn" onclick="loadHolonsPanel()" style="margin-top:.75rem;padding:.6rem 1rem;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Actualizar</button>
+    <button type="button" class="btn" onclick="loadHolonsPanel()" style="margin-top:.75rem;padding:.6rem 1rem;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Refresh</button>
   </div>
 
   <div class="panel" id="panel-kyc">
@@ -296,19 +296,19 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   <!-- DIAGNOSTIC WIZARD -->
   <div class="panel" id="panel-diagnostics">
     <h3>Troubleshooting · RCA</h3>
-    <p style="color:var(--muted);margin-bottom:16px">Diagnóstico de ponta a ponta dos serviços StrataMesh. Os resultados são partilhados entre utilizadores e o Orquestrador.</p>
-    <button class="diag-run-btn" onclick="runDiagnostics()" id="diagRunBtn">Diagnóstico completo</button>
+    <p style="color:var(--muted);margin-bottom:16px">End-to-end diagnostics across StrataMesh services. Results are shared between users and the Orchestrator.</p>
+    <button class="diag-run-btn" onclick="runDiagnostics()" id="diagRunBtn">Full diagnostic</button>
     <div id="diagResults"></div>
   </div>
 
   
   <div class="panel" id="panel-orch">
-    <h3>Orquestrador</h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Chat do Orquestrador híbrido. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Abrir chat completo</a></p>
+    <h3>Orchestrator</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Open full chat</a></p>
     <div id="orchChat" style="height:320px;overflow-y:auto;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5"></div>
     <div style="display:flex;gap:8px">
-      <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Mensagem ao Orquestrador…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
-      <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Enviar</button>
+      <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Message the Orchestrator…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
+      <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Send</button>
     </div>
     <p style="color:#555;font-size:11px;margin-top:8px">Experimente: status · aiops · next · mesh</p>
   </div>
@@ -374,7 +374,7 @@ let isRegister=false,currentUser=null,token=localStorage.getItem('sm_token')||lo
 
 function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e||'success');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 
-function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar','Already have an account? Sign in'):T('Precisa de conta? Registar','Precisa de conta? Registar');document.getElementById('loginError').style.display='none'}
+function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');document.getElementById('toggleText').textContent=isRegister?T('Already have an account? Sign in','Already have an account? Sign in'):T('Need an account? Register','Need an account? Register');document.getElementById('loginError').style.display='none'}
 
 
 
@@ -946,7 +946,7 @@ async function loadKYC(){
         el.innerHTML=list.length?list.map(function(u){
           return '<div class="kyc-queue"><b>'+u.email+'</b> ('+(u.doc_type||'')+') - '+(u.created_at||'')+
             '<br><input id="sa'+u.id+'" placeholder="strata_address" style="margin:8px 0;padding:6px;background:#1a1a3e;border:1px solid #2a2a5a;border-radius:4px;color:#e0e0e0">'+
-            '<br><button class="kyc-approve" onclick="verify('+u.id+',\'verified\')">Aprovar</button>'+
+            '<br><button class="kyc-approve" onclick="verify('+u.id+',\'verified\')">Approve</button>'+
             '<button class="kyc-reject" onclick="verify('+u.id+',\'rejected\')">Reject</button></div>';
         }).join(''):'<p style="color:#888">No pending verifications</p>';
       }
@@ -969,7 +969,7 @@ const WORKERS = [
   {name:'stratamesh-spa',path:'/dashboard',desc:'Portal SPA',skipJson:true},
   {name:'stratamesh-dag-gateway',path:'https://stratamesh-dag-gateway.stratamesh.workers.dev/api/v1/status',fallback:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'DAG Gateway'},
   {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'DAG Core'},
-  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/orchestrator/health',desc:'Orquestrador de tarefas'},
+  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/orchestrator/health',desc:'Task Orchestrator'},
   {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps Monitoring'},
   {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',fallback:'https://stratamesh-ipfs-pinner.stratamesh.workers.dev/ipfs/health',desc:'IPFS (CID storage)'},
   {name:'stratamesh-pq-keys',path:'https://stratamesh-pq-keys.stratamesh.workers.dev/health',fallback:'https://stratamesh-pq-keys.stratamesh.workers.dev/pq/status',desc:'Post-Quantum Keys'},
@@ -977,9 +977,9 @@ const WORKERS = [
   {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/health',fallback:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Agora market'}
 ];
 
-async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='A executar…';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Diagnóstico completo'}
+async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='A executar…';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Full diagnostic'}
 
-function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Análise de causa raiz (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' problema(s) detectado(s):</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Acções recomendadas:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">Diagnóstico executado em '+new Date().toLocaleString()+' pelo utilizador <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>Todos os sistemas operacionais</h4><p style="color:#888">Nenhum problema detectado em '+results.length+' services.</p></div>'}out.innerHTML=html}
+function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Root Cause Analysis (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' issue(s) detected:</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Recommended actions:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">This diagnostic was run at '+new Date().toLocaleString()+' by user <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>All systems operational</h4><p style="color:#888">No issues detected across '+results.length+' services.</p></div>'}out.innerHTML=html}
 
 if(token){loadUser()}
 
@@ -1060,7 +1060,7 @@ async function staffAuth(){
   const btn = document.getElementById('staffBtn');
   const errEl = document.getElementById('staffError');
   function setErr(msg){ if(errEl){ errEl.textContent=msg||''; errEl.style.display=msg?'block':'none'; } try{ if(msg) showToast(msg,'error'); }catch(_){} }
-  if(!email||!pass){ setErr('Email de pessoal and password required'); return; }
+  if(!email||!pass){ setErr('Staff email and password required'); return; }
   if(btn) btn.disabled = true;
   setErr('');
   try {
@@ -1085,7 +1085,7 @@ async function staffAuth(){
         token = j.token;
         try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
         currentUser = Object.assign({ type:'staff', email: email }, j);
-        try{ showToast('Acesso de pessoal concedido'); }catch(_){}
+        try{ showToast('Staff access concedido'); }catch(_){}
         showPortal(currentUser);
         return;
       }
@@ -1102,14 +1102,14 @@ async function staffAuth(){
       try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
       currentUser = Object.assign({ type:'staff', email: email }, j);
       staffChallenge = null;
-      try{ showToast('Acesso de pessoal concedido'); }catch(_){}
+      try{ showToast('Staff access concedido'); }catch(_){}
       showPortal(currentUser);
       return;
     }
   } catch (e) {
     setErr(e.message||String(e));
   } finally {
-    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = 'Continuar (pessoal)'; }
+    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = 'Staff continue'; }
   }
 }
 
