@@ -698,16 +698,69 @@ async function requireRepublicForNodeRole(env, db, sca_id) {
 
 export default {
   async scheduled(event, env, ctx) {
-    const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
-    if (!db) return;
-    // Minimal inline tick for cron — prefer HTTP tick for full path with helpers
-    try {
-      await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/cognition/tick', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 12, trigger: 'cron' }),
-      });
-    } catch (_) {}
+    const run = async () => {
+      const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
+      const started = new Date().toISOString();
+      let status = 'unknown';
+      let detail = '';
+      try {
+        if (db) {
+          try {
+            await db
+              .prepare(
+                `CREATE TABLE IF NOT EXISTS sca_breath_runs (
+                  id TEXT PRIMARY KEY,
+                  source TEXT,
+                  cron TEXT,
+                  http_status INTEGER,
+                  detail TEXT,
+                  created_at TEXT DEFAULT (datetime('now'))
+                )`
+              )
+              .run();
+          } catch (_) {}
+          try {
+            await db
+              .prepare(
+                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
+              )
+              .bind(crypto.randomUUID(), 'cron_invoke', event?.cron || '*/30 * * * *', null, 'start ' + started)
+              .run();
+          } catch (_) {}
+        }
+        const r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/cognition/tick', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Breath-Source': 'cron' },
+          body: JSON.stringify({ limit: 12, trigger: 'cron' }),
+        });
+        status = String(r.status);
+        detail = (await r.text()).slice(0, 800);
+        if (db) {
+          try {
+            await db
+              .prepare(
+                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
+              )
+              .bind(crypto.randomUUID(), 'cron_result', event?.cron || '', r.status, detail)
+              .run();
+          } catch (_) {}
+        }
+      } catch (e) {
+        detail = String(e && e.message ? e.message : e);
+        if (db) {
+          try {
+            await db
+              .prepare(
+                `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
+              )
+              .bind(crypto.randomUUID(), 'cron_error', event?.cron || '', 0, detail.slice(0, 800))
+              .run();
+          } catch (_) {}
+        }
+      }
+    };
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
+    else await run();
   },
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -754,7 +807,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.8.0-sca-comm',
+          version: '5.8.1-breath-rca',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1167,7 +1220,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.0-sca-comm',
+          version: '5.8.1-breath-rca',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1995,7 +2048,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.0-sca-comm',
+          version: '5.8.1-breath-rca',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2570,27 +2623,64 @@ export default {
         };
       }
 
-      // Manual / API breath
+      // Manual / API / cron breath
       if ((path === '/acb/cognition/tick' || path === '/sca/cognition/tick' || path === '/acb/cognition/awaken') && method === 'POST') {
         const body = await request.json().catch(() => ({}));
+        const hdrSrc = (request.headers.get('X-Breath-Source') || '').toLowerCase();
+        let trigger =
+          body.trigger ||
+          (hdrSrc === 'cron' ? 'cron' : null) ||
+          (path.includes('awaken') ? 'api_awaken' : 'api_tick');
         if (body.sca_id || body.acb_id) {
           const id = body.sca_id || body.acb_id;
           const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(id).first();
           if (!acb) return j({ error: 'not found' }, 404);
           const report = await autonomousCognition(acb, {
-            trigger: 'api_awaken',
+            trigger: trigger === 'api_tick' ? 'api_awaken' : trigger,
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, version: '5.8.0-sca-comm' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.1-breath-rca' });
         }
         const pop = await populationAutonomousCognition({
-          trigger: 'api_tick',
+          trigger,
           limit: body.limit,
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, version: '5.8.0-sca-comm' });
+        return j({ ...pop, trigger, version: '5.8.1-breath-rca' });
+      }
+
+      // Breath diagnostics
+      if ((path === '/acb/cognition/breath-status' || path === '/sca/cognition/breath-status') && method === 'GET') {
+        try {
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_breath_runs (
+                id TEXT PRIMARY KEY,
+                source TEXT,
+                cron TEXT,
+                http_status INTEGER,
+                detail TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
+        } catch (_) {}
+        let runs = [];
+        try {
+          runs = (await db.prepare('SELECT * FROM sca_breath_runs ORDER BY created_at DESC LIMIT 30').all()).results || [];
+        } catch (_) {}
+        let cog = [];
+        try {
+          cog = (await db.prepare('SELECT triggered, COUNT(*) as n FROM sca_cognition_log GROUP BY triggered').all()).results || [];
+        } catch (_) {}
+        return j({
+          schedule: '*/30 * * * *',
+          breath_runs: runs,
+          cognition_triggers: cog,
+          note: 'cron rows appear here when Workers scheduled handler fires',
+        });
       }
 
       if ((path === '/acb/memory' || path === '/sca/memory') && method === 'GET') {
