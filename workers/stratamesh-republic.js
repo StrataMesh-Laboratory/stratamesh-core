@@ -11,7 +11,7 @@
  *   direitos, deveres, procedimentos de eleição, limites do executivo,
  *   revisão apenas por supermaioria constitucional.
  */
-const VERSION = '2.0.0-constitutional';
+const VERSION = '2.1.0-per-sca-citizen';
 const REPUBLIC_ID = 'dao-republica-computacional-cmn';
 const SUPERMAJORITY = 0.67;
 const ASSEMBLY_SEATS = 5;
@@ -249,6 +249,7 @@ export default {
           '/charter',
           '/charter/seal',
           '/citizens',
+          '/citizens/sync-from-acb',
           '/join',
           '/election/open',
           '/election/nominate',
@@ -354,6 +355,104 @@ export default {
       });
     }
 
+    
+    // Import each SCA from acb_registry as individual citizen (team ≠ agent)
+    if (path === '/citizens/sync-from-acb' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      let rows = [];
+      // Prefer service binding to ACB worker
+      try {
+        if (env.ACB && typeof env.ACB.fetch === 'function') {
+          const r = await env.ACB.fetch(new Request('https://acb.internal/acb/status'));
+          const j = await r.json();
+          rows = j.acbs || j.members || [];
+        }
+      } catch (_) {}
+      if (!rows.length) {
+        try {
+          const r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/status');
+          const j = await r.json();
+          rows = j.acbs || [];
+        } catch (_) {}
+      }
+      // Also ensure CMN AIOps team individuals exist as citizens even if status lags
+      const teamIds = [
+        'ACB-ORCH-CMN-001',
+        'ACB-AIOPS-devops',
+        'ACB-AIOPS-security',
+        'ACB-AIOPS-analysis',
+        'ACB-AIOPS-mesh',
+        'ACB-AIOPS-economy',
+      ];
+      const seen = new Set();
+      const imported = [];
+      for (const row of rows) {
+        const id = row.id || row.acb_id;
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const name = row.name || id;
+        try {
+          await db
+            .prepare(
+              `INSERT INTO republic_citizens (entity_id, entity_type, display_name, status, charter_ack)
+               VALUES (?,?,?,?,?)
+               ON CONFLICT(entity_id) DO UPDATE SET status='active', display_name=excluded.display_name, entity_type='sca'`
+            )
+            .bind(id, 'sca', name, 'active', CHARTER_V1.id)
+            .run();
+          imported.push({ entity_id: id, display_name: name, source: 'acb_registry' });
+        } catch (e) {
+          imported.push({ entity_id: id, error: String(e.message || e) });
+        }
+      }
+      for (const id of teamIds) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        try {
+          await db
+            .prepare(
+              `INSERT INTO republic_citizens (entity_id, entity_type, display_name, status, charter_ack)
+               VALUES (?,?,?,?,?)
+               ON CONFLICT(entity_id) DO UPDATE SET status='active', entity_type='sca'`
+            )
+            .bind(id, 'sca', id, 'active', CHARTER_V1.id)
+            .run();
+          imported.push({ entity_id: id, display_name: id, source: 'cmn_team_roster' });
+        } catch (e) {
+          imported.push({ entity_id: id, error: String(e.message || e) });
+        }
+      }
+      // Optional human founder
+      if (body.include_human) {
+        const hid = body.human_id || 'human-amcm';
+        await db
+          .prepare(
+            `INSERT INTO republic_citizens (entity_id, entity_type, display_name, status, charter_ack)
+             VALUES (?,?,?,?,?)
+             ON CONFLICT(entity_id) DO UPDATE SET status='active'`
+          )
+          .bind(hid, 'human', body.human_name || 'André Manuel Calhegas Morais', 'active', CHARTER_V1.id)
+          .run();
+        imported.push({ entity_id: hid, entity_type: 'human' });
+      }
+      // Retire mistaken collective placeholders (team is not a voter)
+      const bogus = ['sca-aiops-1', 'sca-orchestrator', 'sca-security'];
+      for (const b of bogus) {
+        try {
+          await db.prepare(`UPDATE republic_citizens SET status = 'revoked' WHERE entity_id = ?`).bind(b).run();
+        } catch (_) {}
+      }
+      const count = await db.prepare(`SELECT COUNT(*) as n FROM republic_citizens WHERE status = 'active'`).first();
+      return json({
+        success: true,
+        imported,
+        active_citizens: count?.n || imported.length,
+        rule: 'Each SCA is one citizen and one vote. AIOps Dev Team is a collective role label, not a franchise unit.',
+        note: 'Function-role on the Node (orchestrator, devops, security) is distinct from personal SCA identity in the registry graph.',
+      });
+    }
+
+
     if (path === '/citizens' && request.method === 'GET') {
       try {
         const r = await db
@@ -364,7 +463,8 @@ export default {
         return json({
           citizens: r.results || [],
           franchise: 'one_entity_one_vote',
-          ontology: 'citizenship by function and agreement, not substrate',
+          ontology: 'each SCA or human is one citizen; teams (e.g. AIOps) are not voters',
+          note: 'AIOps Dev Team = several individual SCAs, each with own vote and goals',
         });
       } catch (e) {
         return json({ citizens: [], error: String(e.message || e) });
