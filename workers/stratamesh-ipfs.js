@@ -189,7 +189,7 @@ export default {
       return json({
         status: 'ok',
         service: 'stratamesh-ipfs',
-        version: '3.0.1-real-cid',
+        version: '3.1.0-dag-integrated',
         cid: 'CIDv1 raw+sha2-256 multibase base32',
         storage: {
           r2: !!env.FOG_BUCKET,
@@ -197,7 +197,7 @@ export default {
           pinata: !!env.PINATA_JWT,
         },
         gateway: true,
-        endpoints: ['/health', '/add', '/pin', '/ipfs/{cid}', '/get', '/tiers', '/pins'],
+        endpoints: ['/health', '/add', '/pin', '/verify', '/ipfs/{cid}', '/get', '/tiers', '/pins'],
       });
     }
 
@@ -249,6 +249,30 @@ export default {
     }
 
     // POST /add — compute real CID, store, optional Pinata
+    
+    // POST /verify — confirm content matches CID
+    if (path === '/verify' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const content =
+        body.content != null
+          ? typeof body.content === 'string'
+            ? body.content
+            : JSON.stringify(body.content)
+          : null;
+      const claim = body.cid;
+      if (content == null) return json({ error: 'content required' }, 400);
+      const cid = await cidV1Raw(content);
+      const stored = claim ? await loadContent(env, claim) : await loadContent(env, cid);
+      return json({
+        success: true,
+        cid,
+        claim: claim || null,
+        matches_claim: claim ? claim === cid : null,
+        stored: !!stored,
+        algorithm: 'CIDv1-raw-sha2-256-base32',
+      });
+    }
+
     if ((path === '/add' || path === '/pin' || path === '/upload') && request.method === 'POST') {
       let content;
       let meta = {};
@@ -322,7 +346,7 @@ export default {
         ],
         note: 'CIDv1 raw+sha2-256. Content stored on StrataMesh edge (R2/KV). Public gateways resolve only after network announcement or Pinata.',
         pinata: external,
-        version: '3.0.1-real-cid',
+        version: '3.1.0-dag-integrated',
       });
     }
 

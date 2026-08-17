@@ -412,24 +412,18 @@ async function sha256(d) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
-/** CIDv1 (base32 multibase) for raw codec + sha2-256 multihash — verifiable content address without full Helia. */
+/** CIDv1 base32 — identical algorithm to stratamesh-ipfs cidV1Raw (raw 0x55 + sha2-256). */
 async function contentCid(d) {
   const data = new TextEncoder().encode(typeof d === 'string' ? d : JSON.stringify(d));
   const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
-  // multihash: sha2-256 (0x12) + length 32 (0x20) + digest
-  const mh = new Uint8Array(2 + hash.length);
-  mh[0] = 0x12;
-  mh[1] = 0x20;
-  mh.set(hash, 2);
-  // cidv1: version 1 (0x01) + raw codec (0x55) + multihash
-  const cidBytes = new Uint8Array(2 + mh.length);
+  const cidBytes = new Uint8Array(2 + 2 + 32);
   cidBytes[0] = 0x01;
   cidBytes[1] = 0x55;
-  cidBytes.set(mh, 2);
+  cidBytes[2] = 0x12;
+  cidBytes[3] = 0x20;
+  cidBytes.set(hash, 4);
   const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
-  let bits = 0;
-  let value = 0;
-  let out = '';
+  let bits = 0, value = 0, out = '';
   for (let i = 0; i < cidBytes.length; i++) {
     value = (value << 8) | cidBytes[i];
     bits += 8;
@@ -441,6 +435,102 @@ async function contentCid(d) {
   if (bits > 0) out += alphabet[(value << (5 - bits)) & 31];
   return 'b' + out;
 }
+
+/** Persist payload on IPFS edge (service binding preferred). Returns { cid, gateway_url, stored, mode }. */
+async function ipfsAddPayload(env, payloadStr, node_id, meta = {}) {
+  const localCid = await contentCid(payloadStr);
+  // 1) Service binding
+  if (env.IPFS && typeof env.IPFS.fetch === 'function') {
+    try {
+      const resp = await env.IPFS.fetch(
+        new Request('https://ipfs.internal/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: payloadStr,
+            node_id: node_id || 'FOG-NODE-PT-CM-001',
+            tier: meta.tier || 'contributor',
+            name: meta.name || 'dag-payload',
+          }),
+        })
+      );
+      const j = await resp.json().catch(() => ({}));
+      if (j && j.cid) {
+        return {
+          cid: j.cid,
+          gateway_url: j.gateway_url || `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${j.cid}`,
+          gateway_path: j.gateway_path || `/ipfs/${j.cid}`,
+          stored: true,
+          mode: 'service_binding',
+          size_bytes: j.size_bytes,
+          cid_match_local: j.cid === localCid,
+          local_cid: localCid,
+          pinata: j.pinata || null,
+        };
+      }
+    } catch (e) {
+      /* fall through */
+    }
+  }
+  // 2) HTTP to workers.dev (same account)
+  try {
+    const resp = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: payloadStr,
+        node_id: node_id || 'FOG-NODE-PT-CM-001',
+        tier: meta.tier || 'contributor',
+        name: meta.name || 'dag-payload',
+      }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (j && j.cid) {
+      return {
+        cid: j.cid,
+        gateway_url: j.gateway_url,
+        gateway_path: j.gateway_path,
+        stored: true,
+        mode: 'http_workers_dev',
+        size_bytes: j.size_bytes,
+        cid_match_local: j.cid === localCid,
+        local_cid: localCid,
+        pinata: j.pinata || null,
+      };
+    }
+  } catch (_) {}
+  // 3) Local CID only (ledger records address; content not yet on edge store)
+  return {
+    cid: localCid,
+    gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${localCid}`,
+    gateway_path: `/ipfs/${localCid}`,
+    stored: false,
+    mode: 'local_cid_only',
+    size_bytes: payloadStr.length,
+    cid_match_local: true,
+    local_cid: localCid,
+  };
+}
+
+async function ipfsResolve(env, cid) {
+  if (!cid) return null;
+  if (env.IPFS && typeof env.IPFS.fetch === 'function') {
+    try {
+      const r = await env.IPFS.fetch(new Request('https://ipfs.internal/ipfs/' + encodeURIComponent(cid)));
+      if (r.ok) {
+        const text = await r.text();
+        return { found: true, cid, content: text, via: 'binding' };
+      }
+    } catch (_) {}
+  }
+  try {
+    const r = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/get?cid=' + encodeURIComponent(cid));
+    const j = await r.json();
+    if (j && j.found) return { found: true, cid, content: j.content, via: 'http_get' };
+  } catch (_) {}
+  return { found: false, cid };
+}
+
 
 
 async function ensureConflictTables(db) {
@@ -544,7 +634,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.9.0-cidv1-raw',
+          version: '3.0.0-ipfs-integrated',
           anti_double_spend: true,
           cumulative_weight: true,
           vertices: count,
@@ -577,6 +667,32 @@ export default {
       }
 
       // POST /submit — full pipeline
+      
+      // Resolve content by CID (IPFS edge)
+      if ((path === '/resolve' || path.startsWith('/cid/')) && request.method === 'GET') {
+        const cid = path.startsWith('/cid/')
+          ? path.slice('/cid/'.length).split('/')[0]
+          : url.searchParams.get('cid');
+        if (!cid) return j({ error: 'cid required' }, 400);
+        const hit = await ipfsResolve(env, cid);
+        let vertex = null;
+        try {
+          vertex = await db
+            .prepare('SELECT vertex_id, vertex_type, ipfs_cid, payload_hash, cumulative_weight, created_at FROM vertices WHERE ipfs_cid = ? LIMIT 1')
+            .bind(cid)
+            .first();
+        } catch (_) {}
+        return j({
+          success: !!hit?.found,
+          cid,
+          content: hit?.found ? hit.content : null,
+          via: hit?.via || null,
+          vertex: vertex || null,
+          gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
+        }, hit?.found ? 200 : 404);
+      }
+
+
       if ((path === '/submit' || path === '/pipeline' || path === '/attach') && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         const payload = body.payload ?? body;
@@ -644,11 +760,53 @@ export default {
           if (!tipIds.length) tipIds = ['GENESIS'];
         }
 
-        // CID / IPFS
+        // CID / IPFS — content-address payload then attach CID to vertex
         let cid = body.cid || body.ipfs_cid || null;
         let pin = null;
-        if (!cid && content != null) {
-          cid = await contentCid(typeof content === 'string' ? content : JSON.stringify(content));
+        let ipfsMeta = null;
+        const contentForIpfs =
+          content != null
+            ? typeof content === 'string'
+              ? content
+              : JSON.stringify(content)
+            : payloadStr;
+        if (!cid && contentForIpfs) {
+          ipfsMeta = await ipfsAddPayload(env, contentForIpfs, node_id, {
+            tier: body.tier || 'contributor',
+            name: body.pin_name || body.vertex_type || 'dag-payload',
+          });
+          cid = ipfsMeta.cid;
+          pin = {
+            cid,
+            status: ipfsMeta.stored ? 'pinned' : 'cid_only',
+            tier: body.tier || 'contributor',
+            mode: ipfsMeta.mode,
+            gateway_url: ipfsMeta.gateway_url,
+            cid_match_local: ipfsMeta.cid_match_local,
+          };
+        } else if (cid && contentForIpfs) {
+          // Client-supplied CID: still store content under computed CID; warn on mismatch
+          ipfsMeta = await ipfsAddPayload(env, contentForIpfs, node_id, {
+            tier: body.tier || 'contributor',
+            name: body.pin_name || 'dag-payload',
+          });
+          if (ipfsMeta.cid !== cid) {
+            pin = {
+              cid: ipfsMeta.cid,
+              client_cid: cid,
+              status: 'cid_mismatch_using_content_address',
+              mode: ipfsMeta.mode,
+              gateway_url: ipfsMeta.gateway_url,
+            };
+            cid = ipfsMeta.cid;
+          } else {
+            pin = {
+              cid,
+              status: ipfsMeta.stored ? 'pinned' : 'cid_only',
+              mode: ipfsMeta.mode,
+              gateway_url: ipfsMeta.gateway_url,
+            };
+          }
         }
         if (cid) {
           try {
@@ -656,23 +814,19 @@ export default {
               .prepare(
                 'INSERT INTO ipfs_pins (node_id, cid, pin_name, size_bytes, tier, status, strata_cost) VALUES (?,?,?,?,?,?,?)'
               )
-              .bind(node_id, cid, body.pin_name || 'dag-payload', body.size_bytes || 0, body.tier || 'contributor', 'pinned', 0)
+              .bind(
+                node_id,
+                cid,
+                body.pin_name || 'dag-payload',
+                (ipfsMeta && ipfsMeta.size_bytes) || body.size_bytes || (contentForIpfs ? contentForIpfs.length : 0),
+                body.tier || 'contributor',
+                pin && pin.status === 'pinned' ? 'pinned' : 'announced',
+                0
+              )
               .run();
-            pin = { cid, status: 'pinned', tier: body.tier || 'contributor' };
           } catch (e) {
-            pin = { cid, status: 'pin_best_effort', note: String(e.message || e).slice(0, 120) };
+            if (!pin) pin = { cid, status: 'pin_ledger_best_effort', note: String(e.message || e).slice(0, 120) };
           }
-          try {
-            if (env.IPFS && typeof env.IPFS.fetch === 'function') {
-              await env.IPFS.fetch(
-                new Request('https://ipfs/pin', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ cid, node_id, tier: 'contributor' }),
-                })
-              );
-            }
-          } catch (_) {}
         }
 
         const vid = crypto.randomUUID();
@@ -822,13 +976,15 @@ export default {
           tips: tipIds,
           ipfs_cid: cid,
           pin,
+          ipfs_gateway: pin && pin.gateway_url ? pin.gateway_url : (cid ? `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}` : null),
+          ipfs_resolve: cid ? `/resolve?cid=${encodeURIComponent(cid)}` : null,
           gossip,
           cumulative_weight: 1,
           spend_key: spendKey,
           lightweight: isLightweight,
           subsidy_requested: subsidyRequested,
           confidence: confidenceFromWeight(1),
-          version: '2.9.0-cidv1-raw',
+          version: '3.0.0-ipfs-integrated',
           temporal: payloadObj.temporal || null,
           temporal_authority: 'PPC',
           holon_event,
@@ -893,7 +1049,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.9.0-cidv1-raw',
+        version: '3.0.0-ipfs-integrated',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {
