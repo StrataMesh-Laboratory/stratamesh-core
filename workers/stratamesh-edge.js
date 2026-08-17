@@ -14,8 +14,10 @@ export default {
           node_type: 'edge',
           mesh: 'stratamesh-fog',
           node_id: 'FOG-NODE-PT-CM-EDGE',
+          iot: 'https://stratamesh-iot.stratamesh.workers.dev',
+          substrate: 'agnostic',
           repaired: true,
-          version: '1.1.0-repaired'
+          version: '1.2.0-iot-aware'
         });
       }
 
