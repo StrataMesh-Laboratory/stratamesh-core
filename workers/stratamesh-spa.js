@@ -90,6 +90,44 @@ function plainTranscript() {
   });
 }
 
+
+/** Free-tier security headers applied to HTML responses from this worker. */
+function withSecurityHeaders(headers) {
+  const h = new Headers(headers || {});
+  if (!h.has("X-Content-Type-Options")) h.set("X-Content-Type-Options", "nosniff");
+  if (!h.has("X-Frame-Options")) h.set("X-Frame-Options", "SAMEORIGIN");
+  if (!h.has("Referrer-Policy")) h.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (!h.has("Permissions-Policy")) {
+    h.set("Permissions-Policy", "geolocation=(self), microphone=(), camera=(), payment=()");
+  }
+  if (!h.has("Cross-Origin-Opener-Policy")) h.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  // CSP: allow Cloudflare, Workers AI-ish CDN, fonts, same-origin APIs
+  if (!h.has("Content-Security-Policy")) {
+    h.set(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://*.stratamesh.workers.dev https://*.calhegasmorais.pt https://api.cloudflare.com https://api.bigdatacloud.net https://challenges.cloudflare.com",
+        "frame-src 'self' https://challenges.cloudflare.com",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ")
+    );
+  }
+  return h;
+}
+
+function htmlResponse(body, init) {
+  init = init || {};
+  const headers = withSecurityHeaders(init.headers || { "Content-Type": "text/html; charset=utf-8" });
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "text/html; charset=utf-8");
+  return new Response(body, { status: init.status || 200, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -151,6 +189,57 @@ export default {
     }
 
     
+    
+    if (path === '/robots.txt') {
+      const robots = `User-agent: *
+Allow: /
+Allow: /transcrito
+Allow: /texto
+Allow: /clp
+Allow: /eni
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /pagamentos
+Sitemap: https://calhegasmorais.pt/sitemap.txt
+`;
+      return new Response(robots, {
+        headers: withSecurityHeaders({
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        }),
+      });
+    }
+    if (path === '/sitemap.txt') {
+      const sm = `https://calhegasmorais.pt/
+https://calhegasmorais.pt/?lang=en
+https://calhegasmorais.pt/clp
+https://calhegasmorais.pt/eni
+https://calhegasmorais.pt/transcrito
+https://eni.calhegasmorais.pt/
+`;
+      return new Response(sm, {
+        headers: withSecurityHeaders({
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        }),
+      });
+    }
+    if (path === '/.well-known/security.txt' || path === '/security.txt') {
+      const sec = `Contact: mailto:geral@eni.calhegasmorais.pt
+Contact: mailto:amcmorais@icloud.com
+Expires: 2027-08-17T00:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://calhegasmorais.pt/.well-known/security.txt
+Policy: https://calhegasmorais.pt/eni
+`;
+      return new Response(sec, {
+        headers: withSecurityHeaders({
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        }),
+      });
+    }
+
     if (path === '/transcrito' || path === '/transcrito/' || path === '/texto' || path === '/texto/') {
       return plainTranscript();
     }
