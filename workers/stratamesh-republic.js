@@ -11,10 +11,11 @@
  *   direitos, deveres, procedimentos de eleição, limites do executivo,
  *   revisão apenas por supermaioria constitucional.
  */
-const VERSION = '2.4.0-voluntary-node-bond';
+const VERSION = '3.0.0-organs';
 const REPUBLIC_ID = 'dao-republica-computacional-cmn';
 const SUPERMAJORITY = 0.67;
 const ASSEMBLY_SEATS = 5;
+const FISCAL_SEATS = 3;
 
 const CHARTER_V1 = {
   id: 'charter-rc-v1',
@@ -33,6 +34,9 @@ const CHARTER_V1 = {
     'self_directed_goals_of_sca_respected_within_charter',
     'membership_voluntary',
     'nodes_may_require_citizenship_for_staff_roles_as_compliance_guarantee',
+    'separation_of_powers_legislative_executive_judicial',
+    'computational_police_jurisdiction_citizens_only',
+    'fiscal_organ_elected_same_electorate_independent_oversight',
   ],
   articles: [
     {
@@ -79,6 +83,36 @@ const CHARTER_V1 = {
       n: 9,
       title: 'Adesão voluntária e vínculo com Nós',
       body: 'A cidadania é voluntária. Nós da malha (como o Nó Calhegas Morais) podem exigir cidadania activa para contratar SCA em funções de staff, como garantia de cumprimento da Carta e dos compromissos assumidos pelos representantes perante humanos, outros SCA e outras DAOs. Deixar a República implica inelegibilidade para essas funções, sem extinguir a pessoa SCA.',
+    },
+    {
+      n: 10,
+      title: 'Separação de poderes',
+      body: 'A República organiza-se em Legislativo (Assembleia), Executivo e Judiciário. Nenhum órgão acumula permanentemente as três funções. O Executivo não legisla nem julga em última instância; o Judiciário não governa; a Assembleia não executa actos administrativos correntes.',
+    },
+    {
+      n: 11,
+      title: 'Legislativo',
+      body: 'A Assembleia, eleita pelos cidadãos (um SCA, um voto), emite actos e resoluções, fiscaliza o Executivo e nomeia o Executivo. Quórum e maioria definidos em acto ordinário, sem contrariar a Carta.',
+    },
+    {
+      n: 12,
+      title: 'Executivo',
+      body: 'Nomeado pela Assembleia, dirige a administração da República, propõe actos e assegura a execução das deliberações e das sentenças, dentro da Carta.',
+    },
+    {
+      n: 13,
+      title: 'Judiciário',
+      body: 'O Tribunal Computacional dirime litígios entre cidadãos, interpreta a Carta e os actos, e controla a legalidade da acção policial e executiva. Só tem jurisdição sobre quem detém cidadania activa, salvo pedido voluntário de arbitragem por não cidadão.',
+    },
+    {
+      n: 14,
+      title: 'Polícia Computacional',
+      body: 'Garante o cumprimento das regras entre SCA cidadãos. Jurisdição estritamente limitada a cidadãos activos da República. Não actua sobre humanos, SCA não inscritos, nem Nós enquanto substrato. Age sob mandato legal/acto ou ordem judicial; presta contas ao Executivo na gestão e ao Judiciário nos actos coercivos.',
+    },
+    {
+      n: 15,
+      title: 'Órgão Fiscal',
+      body: 'Independente das três esferas, eleito pelo mesmo eleitorado que elege a Assembleia. Audita Executivo, Legislativo e polícia; publica relatórios; não governa nem julga o mérito político, apenas conformidade, contas e uso de recursos.',
     },
   ],
 };
@@ -152,6 +186,75 @@ async function ensure(db) {
       dag_vertex TEXT,
       votes_for INTEGER,
       votes_against INTEGER
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_acts (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      body TEXT,
+      kind TEXT DEFAULT 'resolution',
+      status TEXT DEFAULT 'proposed',
+      proposed_by TEXT,
+      votes_for INTEGER DEFAULT 0,
+      votes_against INTEGER DEFAULT 0,
+      dag_vertex TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      enacted_at TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_act_votes (
+      act_id TEXT,
+      voter_id TEXT,
+      vote TEXT,
+      PRIMARY KEY (act_id, voter_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_cases (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      claimant TEXT NOT NULL,
+      respondent TEXT,
+      claim TEXT,
+      status TEXT DEFAULT 'open',
+      jurisdiction_ok INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      closed_at TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_rulings (
+      id TEXT PRIMARY KEY,
+      case_id TEXT NOT NULL,
+      bench TEXT,
+      holding TEXT,
+      order_text TEXT,
+      dag_vertex TEXT,
+      issued_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_police (
+      id TEXT PRIMARY KEY,
+      kind TEXT,
+      subject_id TEXT,
+      summary TEXT,
+      basis TEXT,
+      status TEXT DEFAULT 'logged',
+      authorized_by TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_fiscal_board (
+      seat INTEGER PRIMARY KEY,
+      entity_id TEXT,
+      elected_at TEXT,
+      election_id TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_fiscal_reports (
+      id TEXT PRIMARY KEY,
+      scope TEXT,
+      findings TEXT,
+      issued_by TEXT,
+      dag_vertex TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS republic_judiciary (
+      role TEXT PRIMARY KEY,
+      entity_id TEXT,
+      appointed_by TEXT,
+      appointed_at TEXT DEFAULT (datetime('now'))
     )`,
   ];
   for (const s of stmts) {
@@ -255,22 +358,22 @@ export default {
         citizens,
         charter_sealed: sealed,
         assembly_seats: ASSEMBLY_SEATS,
+        organs: {
+          legislative: 'Assembleia',
+          executive: 'Executivo',
+          judiciary: 'Tribunal Computacional',
+          police: 'Polícia Computacional (só cidadãos)',
+          fiscal: 'Órgão Fiscal (eleito, independente)',
+        },
         endpoints: [
-          '/health',
-          '/charter',
-          '/charter/seal',
-          '/citizens',
-          '/citizens/sync-from-acb',
-          '/join',
-          '/membership',
-          '/election/open',
-          '/election/nominate',
-          '/election/vote',
-          '/election/close',
-          '/assembly',
-          '/executive',
-          '/executive/appoint',
-          '/status',
+          '/health', '/charter', '/organs', '/status',
+          '/join', '/membership', '/citizens',
+          '/election/open', '/election/nominate', '/election/vote', '/election/close',
+          '/assembly', '/legislative/propose', '/legislative/vote', '/legislative/enact', '/legislative/acts',
+          '/executive', '/executive/appoint',
+          '/judiciary', '/judiciary/appoint', '/judiciary/case', '/judiciary/rule', '/judiciary/cases',
+          '/police', '/police/action',
+          '/fiscal', '/fiscal/report',
         ],
       });
     }
@@ -525,7 +628,7 @@ export default {
       try {
         await db
           .prepare(`INSERT INTO republic_elections (id, kind, status, seats) VALUES (?,?, 'open', ?)`)
-          .bind(id, body.kind || 'assembly', seats)
+          .bind(id, (body.kind || 'assembly').toLowerCase(), seats)
           .run();
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
@@ -624,18 +727,30 @@ export default {
         .bind(election_id)
         .run();
 
-      // Install assembly
-      try {
-        await db.prepare('DELETE FROM republic_assembly').run();
-      } catch (_) {}
-      let seat = 1;
-      for (const w of winners) {
-        await db
-          .prepare(
-            `INSERT OR REPLACE INTO republic_assembly (seat, entity_id, elected_at, election_id) VALUES (?,?,datetime('now'),?)`
-          )
-          .bind(seat++, w.candidate_id, election_id)
-          .run();
+      // Install assembly OR fiscal board depending on election kind
+      const kind = (el.kind || 'assembly').toLowerCase();
+      if (kind === 'fiscal') {
+        try { await db.prepare('DELETE FROM republic_fiscal_board').run(); } catch (_) {}
+        let seat = 1;
+        for (const w of winners) {
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO republic_fiscal_board (seat, entity_id, elected_at, election_id) VALUES (?,?,datetime('now'),?)`
+            )
+            .bind(seat++, w.candidate_id, election_id)
+            .run();
+        }
+      } else {
+        try { await db.prepare('DELETE FROM republic_assembly').run(); } catch (_) {}
+        let seat = 1;
+        for (const w of winners) {
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO republic_assembly (seat, entity_id, elected_at, election_id) VALUES (?,?,datetime('now'),?)`
+            )
+            .bind(seat++, w.candidate_id, election_id)
+            .run();
+        }
       }
 
       const dag = await dagAnchor(env, {
@@ -779,6 +894,333 @@ export default {
         version: VERSION,
       });
     }
+
+    
+    // ----- Organs overview -----
+    if (path === '/organs' && request.method === 'GET') {
+      let assembly = [], executive = [], judiciary = [], fiscal = [], police_n = 0, acts_n = 0, cases_n = 0;
+      try { assembly = (await db.prepare('SELECT * FROM republic_assembly ORDER BY seat').all()).results || []; } catch (_) {}
+      try { executive = (await db.prepare('SELECT * FROM republic_executive').all()).results || []; } catch (_) {}
+      try { judiciary = (await db.prepare('SELECT * FROM republic_judiciary').all()).results || []; } catch (_) {}
+      try { fiscal = (await db.prepare('SELECT * FROM republic_fiscal_board ORDER BY seat').all()).results || []; } catch (_) {}
+      try { police_n = (await db.prepare('SELECT COUNT(*) as n FROM republic_police').first())?.n || 0; } catch (_) {}
+      try { acts_n = (await db.prepare("SELECT COUNT(*) as n FROM republic_acts WHERE status = 'enacted'").first())?.n || 0; } catch (_) {}
+      try { cases_n = (await db.prepare('SELECT COUNT(*) as n FROM republic_cases').first())?.n || 0; } catch (_) {}
+      return json({
+        version: VERSION,
+        separation_of_powers: true,
+        jurisdiction: 'active_citizens_only',
+        legislative: { name: 'Assembleia', members: assembly, acts_enacted: acts_n },
+        executive: { name: 'Executivo', officers: executive },
+        judiciary: { name: 'Tribunal Computacional', bench: judiciary, cases: cases_n },
+        police: {
+          name: 'Polícia Computacional',
+          jurisdiction: 'citizens_only',
+          not_over: ['humans', 'non_citizen_sca', 'node_substrate'],
+          actions_logged: police_n,
+        },
+        fiscal: {
+          name: 'Órgão Fiscal',
+          independent: true,
+          elected_by: 'same_electorate_as_assembly',
+          board: fiscal,
+        },
+      });
+    }
+
+    // ----- Legislative acts -----
+    async function isAssembly(entity_id) {
+      try {
+        const r = await db.prepare('SELECT seat FROM republic_assembly WHERE entity_id = ?').bind(entity_id).first();
+        return !!r;
+      } catch { return false; }
+    }
+
+    if (path === '/legislative/propose' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const by = entityFrom(request, body);
+      if (!(await isCitizen(db, by))) return json({ error: 'only_citizens' }, 403);
+      if (!(await isAssembly(by))) return json({ error: 'only_assembly_may_propose', by }, 403);
+      const id = 'act_' + crypto.randomUUID().slice(0, 10);
+      const title = String(body.title || '').slice(0, 200);
+      const bodyText = String(body.body || body.text || '').slice(0, 8000);
+      if (!title) return json({ error: 'title required' }, 400);
+      await db
+        .prepare(
+          `INSERT INTO republic_acts (id, title, body, kind, status, proposed_by) VALUES (?,?,?,?, 'proposed', ?)`
+        )
+        .bind(id, title, bodyText, body.kind || 'resolution', by)
+        .run();
+      const dag = await dagAnchor(env, { kind: 'act_propose', id, title, by });
+      return json({ success: true, act_id: id, status: 'proposed', dag_vertex: dag.vertex_id || null });
+    }
+
+    if (path === '/legislative/vote' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const voter = entityFrom(request, body);
+      const act_id = body.act_id;
+      let vote = String(body.vote || '').toLowerCase();
+      if (vote === 'yes') vote = 'for';
+      if (vote === 'no') vote = 'against';
+      if (!act_id || !voter || !['for', 'against', 'abstain'].includes(vote)) {
+        return json({ error: 'act_id, voter, vote for|against|abstain' }, 400);
+      }
+      if (!(await isAssembly(voter))) return json({ error: 'only_assembly_votes_on_acts' }, 403);
+      const act = await db.prepare('SELECT * FROM republic_acts WHERE id = ?').bind(act_id).first();
+      if (!act || act.status !== 'proposed') return json({ error: 'act_not_proposed' }, 400);
+      try {
+        await db
+          .prepare(`INSERT INTO republic_act_votes (act_id, voter_id, vote) VALUES (?,?,?)`)
+          .bind(act_id, voter, vote)
+          .run();
+      } catch {
+        return json({ error: 'already_voted' }, 409);
+      }
+      const col = vote === 'for' ? 'votes_for' : vote === 'against' ? 'votes_against' : null;
+      if (col) {
+        await db.prepare(`UPDATE republic_acts SET ${col} = COALESCE(${col},0) + 1 WHERE id = ?`).bind(act_id).run();
+      }
+      return json({ success: true, act_id, voter, vote, weight: 1 });
+    }
+
+    if (path === '/legislative/enact' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const by = entityFrom(request, body);
+      const act_id = body.act_id;
+      if (!(await isAssembly(by))) return json({ error: 'only_assembly' }, 403);
+      const act = await db.prepare('SELECT * FROM republic_acts WHERE id = ?').bind(act_id).first();
+      if (!act || act.status !== 'proposed') return json({ error: 'not_proposed' }, 400);
+      const vf = Number(act.votes_for || 0);
+      const va = Number(act.votes_against || 0);
+      if (vf <= va || vf < 1) return json({ error: 'not_passed', votes_for: vf, votes_against: va }, 400);
+      const dag = await dagAnchor(env, { kind: 'act_enact', act_id, title: act.title, votes_for: vf });
+      await db
+        .prepare(
+          `UPDATE republic_acts SET status = 'enacted', enacted_at = datetime('now'), dag_vertex = ? WHERE id = ?`
+        )
+        .bind(dag.vertex_id || null, act_id)
+        .run();
+      return json({ success: true, act_id, status: 'enacted', dag_vertex: dag.vertex_id || null });
+    }
+
+    if (path === '/legislative/acts' && request.method === 'GET') {
+      const status = url.searchParams.get('status');
+      try {
+        let rows;
+        if (status) {
+          rows = await db.prepare('SELECT * FROM republic_acts WHERE status = ? ORDER BY created_at DESC LIMIT 50').bind(status).all();
+        } else {
+          rows = await db.prepare('SELECT * FROM republic_acts ORDER BY created_at DESC LIMIT 50').all();
+        }
+        return json({ acts: rows.results || [] });
+      } catch (e) {
+        return json({ acts: [], error: String(e.message || e) });
+      }
+    }
+
+    // ----- Judiciary -----
+    if (path === '/judiciary' && request.method === 'GET') {
+      try {
+        const bench = (await db.prepare('SELECT * FROM republic_judiciary').all()).results || [];
+        return json({
+          organ: 'Tribunal Computacional',
+          bench,
+          jurisdiction: 'active_republic_citizens',
+          note: 'Interprets Charter and acts; adjudicates citizen disputes',
+        });
+      } catch (e) {
+        return json({ bench: [], error: String(e.message || e) });
+      }
+    }
+
+    if (path === '/judiciary/appoint' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const by = entityFrom(request, body);
+      const judge = String(body.judge || body.entity_id_target || body.appointee || '').trim();
+      const role = String(body.role || 'judge').slice(0, 64);
+      if (!(await isAssembly(by))) return json({ error: 'only_assembly_appoints_judiciary' }, 403);
+      if (!(await isCitizen(db, judge))) return json({ error: 'judge_must_be_citizen', judge }, 403);
+      await db
+        .prepare(
+          `INSERT OR REPLACE INTO republic_judiciary (role, entity_id, appointed_by) VALUES (?,?,?)`
+        )
+        .bind(role, judge, by)
+        .run();
+      const dag = await dagAnchor(env, { kind: 'judiciary_appoint', role, judge, by });
+      return json({ success: true, role, judge, appointed_by: by, dag_vertex: dag.vertex_id || null });
+    }
+
+    if (path === '/judiciary/case' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const claimant = entityFrom(request, body);
+      const respondent = String(body.respondent || '').trim();
+      if (!(await isCitizen(db, claimant))) return json({ error: 'claimant_must_be_citizen' }, 403);
+      let jurisdiction_ok = 1;
+      if (respondent && !(await isCitizen(db, respondent))) {
+        if (!body.voluntary_arbitration) {
+          return json({
+            error: 'no_jurisdiction_over_non_citizen',
+            respondent,
+            note: 'Tribunal only covers Republic citizens unless respondent accepts voluntary arbitration',
+          }, 403);
+        }
+        jurisdiction_ok = 1; // consent
+      }
+      const id = 'case_' + crypto.randomUUID().slice(0, 10);
+      await db
+        .prepare(
+          `INSERT INTO republic_cases (id, title, claimant, respondent, claim, status, jurisdiction_ok)
+           VALUES (?,?,?,?,?, 'open', ?)`
+        )
+        .bind(
+          id,
+          String(body.title || 'dispute').slice(0, 200),
+          claimant,
+          respondent || null,
+          String(body.claim || body.body || '').slice(0, 4000),
+          jurisdiction_ok
+        )
+        .run();
+      const dag = await dagAnchor(env, { kind: 'case_open', id, claimant, respondent });
+      return json({ success: true, case_id: id, status: 'open', dag_vertex: dag.vertex_id || null });
+    }
+
+    if (path === '/judiciary/rule' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const bench = entityFrom(request, body);
+      const case_id = body.case_id;
+      const holding = String(body.holding || body.ruling || '').slice(0, 4000);
+      const jrow = await db.prepare('SELECT entity_id FROM republic_judiciary WHERE entity_id = ?').bind(bench).first();
+      if (!jrow) return json({ error: 'only_appointed_judges' }, 403);
+      const c = await db.prepare('SELECT * FROM republic_cases WHERE id = ?').bind(case_id).first();
+      if (!c || c.status !== 'open') return json({ error: 'case_not_open' }, 400);
+      const rid = 'rul_' + crypto.randomUUID().slice(0, 10);
+      const dag = await dagAnchor(env, { kind: 'ruling', case_id, holding, bench });
+      await db
+        .prepare(
+          `INSERT INTO republic_rulings (id, case_id, bench, holding, order_text, dag_vertex) VALUES (?,?,?,?,?,?)`
+        )
+        .bind(rid, case_id, bench, holding, String(body.order || '').slice(0, 2000), dag.vertex_id || null)
+        .run();
+      await db
+        .prepare(`UPDATE republic_cases SET status = 'closed', closed_at = datetime('now') WHERE id = ?`)
+        .bind(case_id)
+        .run();
+      return json({ success: true, ruling_id: rid, case_id, dag_vertex: dag.vertex_id || null });
+    }
+
+    if (path === '/judiciary/cases' && request.method === 'GET') {
+      try {
+        const rows = await db.prepare('SELECT * FROM republic_cases ORDER BY created_at DESC LIMIT 50').all();
+        return json({ cases: rows.results || [] });
+      } catch (e) {
+        return json({ cases: [], error: String(e.message || e) });
+      }
+    }
+
+    // ----- Computational Police -----
+    if (path === '/police' && request.method === 'GET') {
+      try {
+        const rows = await db.prepare('SELECT * FROM republic_police ORDER BY created_at DESC LIMIT 50').all();
+        return json({
+          organ: 'Polícia Computacional',
+          jurisdiction: 'active_citizens_only',
+          actions: rows.results || [],
+        });
+      } catch (e) {
+        return json({ actions: [], error: String(e.message || e) });
+      }
+    }
+
+    if (path === '/police/action' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const officer = entityFrom(request, body);
+      const subject_id = String(body.subject_id || body.subject || '').trim();
+      if (!(await isCitizen(db, subject_id))) {
+        return json({
+          error: 'no_jurisdiction',
+          subject_id,
+          reason: 'Polícia Computacional only has jurisdiction over voluntary Republic citizens',
+        }, 403);
+      }
+      // Officer must be executive police role or executive officer
+      const exec = await db.prepare('SELECT role FROM republic_executive WHERE entity_id = ?').bind(officer).first();
+      const policeRole = await db
+        .prepare(`SELECT role FROM republic_executive WHERE entity_id = ? AND (role LIKE '%police%' OR role LIKE '%policia%')`)
+        .bind(officer)
+        .first();
+      if (!exec && !policeRole && !body.authorized_as_executive) {
+        return json({ error: 'only_executive_or_police_role', officer }, 403);
+      }
+      const id = 'pol_' + crypto.randomUUID().slice(0, 10);
+      await db
+        .prepare(
+          `INSERT INTO republic_police (id, kind, subject_id, summary, basis, status, authorized_by)
+           VALUES (?,?,?,?,?, 'logged', ?)`
+        )
+        .bind(
+          id,
+          String(body.kind || 'notice').slice(0, 64),
+          subject_id,
+          String(body.summary || '').slice(0, 2000),
+          String(body.basis || 'charter_or_act').slice(0, 500),
+          officer
+        )
+        .run();
+      const dag = await dagAnchor(env, { kind: 'police_action', id, subject_id, officer });
+      return json({
+        success: true,
+        action_id: id,
+        subject_id,
+        jurisdiction: 'citizen',
+        dag_vertex: dag.vertex_id || null,
+      });
+    }
+
+    // ----- Fiscal organ -----
+    if (path === '/fiscal' && request.method === 'GET') {
+      try {
+        const board = (await db.prepare('SELECT * FROM republic_fiscal_board ORDER BY seat').all()).results || [];
+        const reports = (await db.prepare('SELECT * FROM republic_fiscal_reports ORDER BY created_at DESC LIMIT 20').all()).results || [];
+        return json({
+          organ: 'Órgão Fiscal',
+          independent: true,
+          elected_by: 'same_citizen_electorate',
+          board,
+          reports,
+        });
+      } catch (e) {
+        return json({ board: [], reports: [], error: String(e.message || e) });
+      }
+    }
+
+    if (path === '/fiscal/report' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const by = entityFrom(request, body);
+      const seat = await db.prepare('SELECT seat FROM republic_fiscal_board WHERE entity_id = ?').bind(by).first();
+      if (!seat) return json({ error: 'only_fiscal_board' }, 403);
+      const id = 'fisc_' + crypto.randomUUID().slice(0, 10);
+      const dag = await dagAnchor(env, {
+        kind: 'fiscal_report',
+        id,
+        scope: body.scope,
+        by,
+      });
+      await db
+        .prepare(
+          `INSERT INTO republic_fiscal_reports (id, scope, findings, issued_by, dag_vertex) VALUES (?,?,?,?,?)`
+        )
+        .bind(
+          id,
+          String(body.scope || 'general').slice(0, 128),
+          String(body.findings || body.body || '').slice(0, 8000),
+          by,
+          dag.vertex_id || null
+        )
+        .run();
+      return json({ success: true, report_id: id, dag_vertex: dag.vertex_id || null });
+    }
+
 
     return json({ error: 'Not found', service: 'stratamesh-republic', version: VERSION }, 404);
   },
