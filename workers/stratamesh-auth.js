@@ -14,6 +14,50 @@ export default {
         'Content-Type': 'application/json'
       };
       if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+      async function sha256Hex(s) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)));
+        return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+      async function resolveSession(env, bearer) {
+        const token = String(bearer || '').replace(/^Bearer\s+/i, '').trim();
+        if (!token) return null;
+        const th = await sha256Hex(token);
+        let session = await env.AUTH_DB.prepare(
+          "SELECT * FROM sessions WHERE (token_hash = ? OR token = ?) AND expires_at > datetime('now')"
+        ).bind(th, token).first();
+        return session || null;
+      }
+      async function issueSession(env, userId) {
+        const token = crypto.randomUUID() + '.' + crypto.randomUUID();
+        const token_hash = await sha256Hex(token);
+        await env.AUTH_DB.prepare(
+          "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
+        ).bind(userId, 'redacted', token_hash).run();
+        return token;
+      }
+      async function verifyTurnstile(env, token, ip) {
+        const secret = env.TURNSTILE_SECRET;
+        if (!secret) return { ok: true, skipped: true, reason: 'no_secret_configured' };
+        if (!token || String(token).length < 10) return { ok: false, error: 'turnstile_token_required' };
+        try {
+          const body = new URLSearchParams();
+          body.set('secret', secret);
+          body.set('response', String(token));
+          if (ip) body.set('remoteip', ip);
+          const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+          const j = await r.json();
+          if (j && j.success) return { ok: true, hostname: j.hostname };
+          return { ok: false, error: 'turnstile_failed', codes: (j && j['error-codes']) || [] };
+        } catch (e) {
+          return { ok: false, error: 'turnstile_verify_error', detail: String(e.message || e) };
+        }
+      }
+
       
       // Health / diagnostic endpoint
       if (path === '/health' && request.method === 'GET') {
@@ -21,7 +65,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.5.0-phone-otp',
+          version: '2.6.0-turnstile-session-hash',
           checks: {}
         };
         try {
@@ -62,8 +106,7 @@ export default {
             if (hash !== storedHash) {
               return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
             }
-            const token = crypto.randomUUID();
-            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))").bind(user.id, token, token).run();
+            const token = await issueSession(env, user.id);
             return new Response(JSON.stringify({ 
               success: true, 
               token, 
@@ -442,6 +485,12 @@ export default {
           if (!password || password.length < 8) {
             return new Response(JSON.stringify({ success: false, error: 'Password must be at least 8 characters' }), { headers: corsHeaders, status: 400 });
           }
+          const tsToken = body['cf-turnstile-response'] || body.turnstile_token || body.turnstile || '';
+          const ip = request.headers.get('CF-Connecting-IP') || '';
+          const ts = await verifyTurnstile(env, tsToken, ip);
+          if (!ts.ok) {
+            return new Response(JSON.stringify({ success: false, error: ts.error || 'turnstile_failed', codes: ts.codes || [] }), { headers: corsHeaders, status: 400 });
+          }
           const existing = await env.AUTH_DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
           if (existing) {
             return new Response(JSON.stringify({ success: false, error: 'Email already registered' }), { headers: corsHeaders, status: 409 });
@@ -472,7 +521,8 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const th = await sha256Hex(token);
+          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!session || (session.clearance_level !== 'INTERNAL' && session.clearance_level !== 'CONFIDENTIAL' && session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
             return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance' }), { headers: corsHeaders, status: 403 });
           }
@@ -488,7 +538,8 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const th = await sha256Hex(token);
+          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!session || (session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
             return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance: SECRET required' }), { headers: corsHeaders, status: 403 });
           }
@@ -506,7 +557,8 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const th = await sha256Hex(token);
+          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!session || (session.clearance_level !== 'INTERNAL' && session.clearance_level !== 'CONFIDENTIAL' && session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
             return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance' }), { headers: corsHeaders, status: 403 });
           }
@@ -522,7 +574,8 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.strata_address as wallet_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const th = await sha256Hex(token);
+          const session = await env.AUTH_DB.prepare("SELECT s.*, u.strata_address as wallet_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!session) return new Response(JSON.stringify({ success: false, error: 'Invalid session' }), { headers: corsHeaders, status: 401 });
           return new Response(JSON.stringify({ success: true, wallet: session.wallet_address, balance: session.token_balance || 0 }), { headers: corsHeaders });
         } catch (e) {
@@ -535,8 +588,8 @@ export default {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          
-          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const th = await sha256Hex(token);
+          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (userSession) {
             return new Response(JSON.stringify({ 
               success: true, 
@@ -581,7 +634,8 @@ export default {
             { id: 'phone', enabled: true, label: 'Mobile SMS OTP (primary common users)', register: true, login: true,
               endpoints: { start: '/auth/phone/start', verify: '/auth/phone/verify' },
               note: 'Password optional second factor after SMS' },
-            { id: 'password', enabled: true, label: 'Email + password (fallback)', register: true, login: true },
+            { id: 'password', enabled: true, label: 'Email + password (fallback)', register: true, login: true, turnstile: true },
+            { id: 'turnstile', enabled: !!env.TURNSTILE_SECRET, sitekey: env.TURNSTILE_SITEKEY || '0x4AAAAAADF2vDlGNQpLYloe', label: 'Cloudflare Turnstile' },
             { id: 'google', enabled: googleOn, label: 'Google', register: true, login: true,
               start: '/auth/google/start', note: googleOn ? 'OIDC' : 'Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET' },
             { id: 'apple', enabled: appleOn, label: 'Apple', register: true, login: true,
@@ -657,10 +711,11 @@ export default {
       
       // ========== Social OAuth (Google / Apple / Microsoft) ==========
       async function issueUserSession(user) {
-        const token = crypto.randomUUID();
+        const token = crypto.randomUUID() + '.' + crypto.randomUUID();
+        const token_hash = await sha256Hex(token);
         await env.AUTH_DB.prepare(
           "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
-        ).bind(user.id, token, token).run();
+        ).bind(user.id, 'redacted', token_hash).run();
         return {
           success: true,
           type: 'user',

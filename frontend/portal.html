@@ -72,6 +72,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .toast.show{display:block}.toast.error{border-color:var(--danger);color:var(--danger)}
 @media(max-width:560px){.header{padding:1rem}.login-box h2{font-size:1.7rem}.portal{padding:1rem 1rem 3rem}}
 </style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 <div class="header">
@@ -91,6 +92,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <input type="email" id="email" placeholder="Email" autocomplete="email">
     <input type="password" id="password" placeholder="Palavra-passe" autocomplete="current-password">
     <div class="error" id="loginError"></div>
+    <div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
     <button type="button" onclick="handleAuth()" id="authBtn">Continuar</button>
     <div class="toggle" onclick="toggleMode()" id="toggleText">Precisa de conta? Registar</div>
 
@@ -510,7 +512,7 @@ async function handleAuth(){
       try{
         const ctrl=new AbortController();
         const timer=setTimeout(()=>ctrl.abort(),12000);
-        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:e,password:p}),signal:ctrl.signal});
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:e,password:p,'cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}),signal:ctrl.signal});
         clearTimeout(timer);
         const j=await r.json().catch(()=>({}));
         if(j.token || (j.success && j.session_token)){
