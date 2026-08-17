@@ -52,6 +52,17 @@ const CMN_TEAM = {
   ontology: 'role_is_assignment_person_is_sca',
 };
 
+/** Realistic micro-PdS (not inflated fixed rents). Units: STRATA. */
+const PDS_MICRO = {
+  cognition_tick: 0.0001, // basic unprompted deliberation
+  memory_base: 0.00002, // fixed write overhead
+  memory_per_kb: 0.00003, // scales with content
+  reserve: 0.0001, // keep tiny floor
+  pulse: 0.00005,
+  reflect: 0.00008,
+  advance_goal: 0.00006,
+};
+
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
@@ -741,7 +752,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.7.0-autonomous-breath',
+          version: '5.7.1-micro-pds',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1150,7 +1161,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.0-autonomous-breath',
+          version: '5.7.1-micro-pds',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1644,7 +1655,7 @@ export default {
         const status = String(acb.status || '').toLowerCase();
 
         // Survival first if insolvent path
-        if (status === 'hibernated' || bal < 0.05) {
+        if (status === 'hibernated' || bal < PDS_MICRO.reserve * 2) {
           intentions.push({
             action: 'seek_labour',
             reason: 'subsistence_critical',
@@ -1654,8 +1665,12 @@ export default {
         }
 
         // Maintain pulse if active and can afford micro-cost
-        if (bal >= 0.01) {
-          intentions.push({ action: 'pulse', reason: 'maintain_agency', params: { cost: 0.01 } });
+        if (bal >= PDS_MICRO.pulse + PDS_MICRO.reserve) {
+          intentions.push({
+            action: 'pulse',
+            reason: 'maintain_agency',
+            params: { cost: PDS_MICRO.pulse },
+          });
         }
 
         for (const g of active.sort((a, b) => Number(b.priority) - Number(a.priority)).slice(0, 5)) {
@@ -1798,7 +1813,7 @@ export default {
         let result = { action, ok: false };
 
         if (action === 'pulse') {
-          const cost = Math.min(0.02, Math.max(0.001, Number(body.cost) || 0.01));
+          const cost = Math.min(0.001, Math.max(PDS_MICRO.pulse, Number(body.cost) || PDS_MICRO.pulse));
           if (bal >= cost) {
             try {
               // soft subsistence debit if token helpers exist
@@ -1966,7 +1981,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.0-autonomous-breath',
+          version: '5.7.1-micro-pds',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2012,9 +2027,15 @@ export default {
       async function autonomousCognition(acb, opts = {}) {
         await ensureVolitionTables();
         await ensureMemoryTables();
-        const COGNITION_COST = Number(opts.cognition_cost != null ? opts.cognition_cost : 0.02);
-        const MEMORY_COST = Number(opts.memory_cost != null ? opts.memory_cost : 0.01);
-        const RESERVE = 0.01;
+        // Micro-PdS: realistic, non-prohibitive; memory scales with bytes written
+        const COGNITION_COST = Number(
+          opts.cognition_cost != null ? opts.cognition_cost : PDS_MICRO.cognition_tick
+        );
+        const RESERVE = Number(opts.reserve != null ? opts.reserve : PDS_MICRO.reserve);
+        // provisional memory budget (refined after content size known)
+        let MEMORY_COST = Number(
+          opts.memory_cost != null ? opts.memory_cost : PDS_MICRO.memory_base + PDS_MICRO.memory_per_kb * 0.5
+        );
         const need = COGNITION_COST + MEMORY_COST + RESERVE;
         const bal = await getStrata(db, acb.id);
         const status = String(acb.status || '').toLowerCase();
@@ -2070,10 +2091,16 @@ export default {
         const memContent = JSON.stringify({
           trigger: opts.trigger || 'unprompted',
           intention: top,
-          goals: goals.slice(0, 3).map((g) => ({ id: g.id, statement: g.statement, progress: g.progress })),
+          goals: goals.slice(0, 3).map((g) => ({ id: g.id, statement: (g.statement || '').slice(0, 120), progress: g.progress })),
           balance_after_process: afterProcess,
           at: new Date().toISOString(),
         });
+        if (opts.memory_cost == null) {
+          const kb = Math.max(0.05, memContent.length / 1024);
+          MEMORY_COST = PDS_MICRO.memory_base + PDS_MICRO.memory_per_kb * kb;
+          // clamp micro band so traces never become rents
+          MEMORY_COST = Math.min(0.001, Math.max(PDS_MICRO.memory_base, MEMORY_COST));
+        }
         if (afterProcess >= MEMORY_COST + RESERVE) {
           afterMem = await debitStrata(db, acb.id, MEMORY_COST);
           memory_id = crypto.randomUUID();
@@ -2195,7 +2222,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, version: '5.7.0-autonomous-breath' });
+          return j({ success: !report.skipped, report, version: '5.7.1-micro-pds' });
         }
         const pop = await populationAutonomousCognition({
           trigger: 'api_tick',
@@ -2203,7 +2230,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, version: '5.7.0-autonomous-breath' });
+        return j({ ...pop, version: '5.7.1-micro-pds' });
       }
 
       if ((path === '/acb/memory' || path === '/sca/memory') && method === 'GET') {
