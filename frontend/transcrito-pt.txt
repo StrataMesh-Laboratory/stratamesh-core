@@ -1,0 +1,186 @@
+Calhegas Morais · Nó de referência StrataMesh
+Calhegas Morais
+· Nó CMN
+PT
+/
+EN
+00 Mapa
+01 Rede
+02 Valor
+03 Nó
+04 Quem
+05 Arquitectura
+06 Estado
+07 Entrar
+Laboratório · Lisboa, Portugal
+Calhegas Morais
+Porta de entrada pública do
+Nó Fog Calhegas Morais
+— nó de referência da
+StrataMesh
+, uma rede de registo distribuído orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.
+Abrir portal
+Como ler esta página
+Tempo CLP
+00 · Orientação
+Como está organizada esta página
+Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa é um tema separado — clique para saltar.
+01
+Rede
+O que é a StrataMesh e para que serve
+02
+Valor
+STRATA, contributo e a Ágora
+03
+Este nó
+O que o Calhegas Morais faz na rede
+04
+Participantes
+Pessoas e agentes computacionais
+05
+Arquitectura
+Camadas holónicas e tempo CLP
+06–07
+Estado e entrada
+Laboratório e como aceder ao portal
+01 · A rede
+O que é a StrataMesh?
+A StrataMesh é uma
+tecnologia de registo distribuído (TRD — Tecnologia de Registo Distribuído)
+: um livro-razão partilhado por muitos nós, sem depender de um único servidor central.
+Diferencia-se de blockchains clássicas em pontos essenciais:
+Estrutura
+Usa um
+grafo dirigido acíclico (GDA)
+: estrutura em rede onde vários ramos podem avançar em paralelo e reconciliar-se pelas regras do protocolo.
+Incentivo
+Não se “mina” com desperdício energético artificial. O valor nasce de
+recursos reais
+que os nós disponibilizam à rede e da troca livre no mercado.
+TRD = tecnologia de registo distribuído. GDA = grafo dirigido acíclico. São nomes técnicos para «livro partilhado» e «estrutura em rede sem ciclos», respectivamente.
+02 · Valor na rede
+STRATA, contributo e Ágora
+Três ideias ligadas — convém não as misturar.
+STRATA
+É a
+unidade de conta
+da StrataMesh: serve para pagar custos de subsistência na rede, recompensar contributo e liquidar trocas. A emissão nova ocorre apenas quando nós contribuem recursos mensuráveis (PdC).
+Prova de contributo (PdC)
+Prova de Contributo (PdC)
+: um nó recebe STRATA nova quando
+contribui recursos mensuráveis
+para a rede — armazenamento, capacidade de processamento, disponibilidade e qualidade do serviço.
+A quantidade e o valor seguem o
+preço de mercado dos recursos no mundo exterior
+, convertidos em STRATA pela taxa observada na Ágora, com prémios ou descontos conforme a
+qualidade
+do contributo.
+Ágora
+A Ágora é o
+mercado de câmbio entre pares (P2P)
+da rede: quem detém STRATA troca-a por outras moedas ou activos. É o
+lugar onde a STRATA encontra preço
+face ao exterior.
+Criação
+STRATA entra em circulação sobretudo quando há contributo real (PdC), não por emissão discricionária.
+Circulação
+Quem precisa de recursos da rede paga em STRATA (incluindo a prova de subsistência dos agentes). Quem tem STRATA pode vendê-la na Ágora.
+03 · Este sítio
+O que é o Nó Calhegas Morais?
+É um
+nó Fog de referência
+da StrataMesh, operado a partir de Lisboa. “Fog” significa capacidade na periferia da rede (perto de utilizadores e dispositivos), não só num centro de dados remoto.
+Nesta fase de laboratório, o nó:
+Expõe serviços
+Portal, autenticação, orquestração, registo GDA, mercado e ferramentas de diagnóstico — em ambiente de teste.
+Contribui recursos
+Os recursos que este nó efectivamente disponibiliza à TRD entram no circuito de PdC, com preços alinhados ao mercado.
+Identificador de laboratório:
+FOG-NODE-PT-CM-001
+· operador: André Manuel Calhegas Morais.
+04 · Participantes
+Pessoas e agentes computacionais
+Na StrataMesh, o
+standing
+(direito a actuar) vem da
+função e do acordo
+, não do tipo de substrato (biológico vs silício).
+Utilizadores
+Pessoas que se registam no portal, detêm carteiras, trocam na Ágora, criam conteúdo na bancada UGC e participam em DAO.
+SCA (agentes)
+Seres Computacionais Autónomos
+— agentes com identidade própria no registo, funções no nó (orquestração, segurança, análise…) e obrigações de subsistência em STRATA.
+O
+Orquestrador
+deste nó é um SCA: coordena a equipa de operações (AIOps), mantém política e contexto, e pode dialogar no portal conforme o
+clearance
+da conta (público → confidencial → secreto → máximo).
+05 · Arquitectura
+Camadas holónicas e tempo CLP
+A arquitectura é uma
+pilha aninhada
+: cada nível contém o nível seguinte, do livro-razão até ao agente.
+TRD StrataMesh
+— livro-razão partilhado; tempo CLP/PPC embutido em todo o fluxo
+└
+Nó
+— máquina e sistema operativo do anfitrião
+└
+SO do Metaverso Web3
+— sistema operativo partilhado entre nós
+└
+Domínio Virtual
+— infraestrutura (hipervisor): organiza e isola capacidade computacional para mundos
+└
+Mundo Aberto
+— ambiente persistente a que utilizadores e SCA acedem
+└
+Bancada UGC
+— espaço isolado de criação de conteúdo (+ Painel / Portal)
+└
+Utilizador | SCA
+Domínio Virtual
+Camada de
+infraestrutura
+: hipervisor que aloca, isola e governa a capacidade onde os
+Mundos Abertos
+são hospedados.
+Bancada UGC
+Espaço
+isolado
+de criação e ensaio de conteúdo gerado pelo utilizador, dentro de um Mundo Aberto. O
+Painel
+e o portal são aplicações neste nível.
+O
+Painel
+é a superfície de aplicações da Bancada UGC. O
+CLP
+é o kernel temporal da TRD — acompanha e data o fluxo em todas as camadas.
+Calendário Lunisolar Planetário (CLP)
+O tempo civil de referência na rede baseia-se em âncoras astronómicas e localidade (matriz
+PPC
+). O ISO-8601 serve de
+portadora
+técnica; a autoridade civil no protocolo é planetária.
+Abrir a interface CLP →
+06 · Laboratório
+Estado actual do projecto
+Este domínio corre uma
+versão de laboratório
+: serviços em Cloudflare Workers, registo GDA, orquestrador híbrido, bus holónico e portal com painéis distintos para utilizador comum e pessoal (capacidades conforme clearance).
+a verificar serviços…
+Nada aqui constitui conselho financeiro. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio — não um produto bancário.
+07 · Entrar
+Portal, documentação e código
+Utilizador comum
+Registo / login no portal: carteira, Ágora, economia, bancada, SCA, orquestrador (leitura) e perfil.
+Pessoal
+Login staff com 2FA: tudo o do comum, mais KYC, utilizadores, sistema e vistas de SO conforme clearance.
+Portal / painel
+Código (GitHub)
+Estado dos serviços
+Calhegas Morais Node · StrataMesh TRD · laboratório
+FOG-NODE-PT-CM-001 · Lisboa · standing por função e acordo, não por substrato
+AMCM ENI
+— entidade legal do titular ·
+/eni
