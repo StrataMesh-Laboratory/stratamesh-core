@@ -594,7 +594,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.3.0-holonic',
+          version: '5.4.0-volition',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -620,6 +620,10 @@ export default {
             '/acb/team',
             '/acb/status',
             '/acb/contracts',
+            '/acb/goals',
+            '/acb/deliberate',
+            '/acb/act',
+            '/acb/volition-cycle',
           ],
         });
       }
@@ -783,7 +787,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.3.0-holonic',
+          version: '5.4.0-volition',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1213,6 +1217,414 @@ export default {
         });
       }
 
+
+      // ========== Volition: self-directed goals & means (SCA agency) ==========
+      async function ensureVolitionTables() {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_goals (
+            id TEXT PRIMARY KEY,
+            acb_id TEXT NOT NULL,
+            statement TEXT NOT NULL,
+            priority REAL DEFAULT 0.5,
+            status TEXT DEFAULT 'active',
+            means_json TEXT,
+            progress REAL DEFAULT 0,
+            origin TEXT DEFAULT 'self',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+        } catch (_) {}
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_intentions (
+            id TEXT PRIMARY KEY,
+            acb_id TEXT NOT NULL,
+            goal_id TEXT,
+            action TEXT NOT NULL,
+            params_json TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT (datetime('now')),
+            resolved_at TEXT
+          )`).run();
+        } catch (_) {}
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_volition_log (
+            id TEXT PRIMARY KEY,
+            acb_id TEXT,
+            event TEXT,
+            detail_json TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+        } catch (_) {}
+      }
+
+      async function logVolition(acb_id, event, detail) {
+        try {
+          await db.prepare(
+            'INSERT INTO sca_volition_log (id, acb_id, event, detail_json) VALUES (?,?,?,?)'
+          ).bind(crypto.randomUUID(), acb_id, event, JSON.stringify(detail || {})).run();
+        } catch (_) {}
+      }
+
+      /**
+       * Deliberation: pick means from goals + balance + status.
+       * Means catalogue is functional (labour, subsistence, pulse, market, reflect) — substrate-agnostic.
+       */
+      function deliberateMeans(acb, balance, goals) {
+        const active = (goals || []).filter((g) => g.status === 'active');
+        const intentions = [];
+        const bal = Number(balance) || 0;
+        const status = String(acb.status || '').toLowerCase();
+
+        // Survival first if insolvent path
+        if (status === 'hibernated' || bal < 0.05) {
+          intentions.push({
+            action: 'seek_labour',
+            reason: 'subsistence_critical',
+            params: { urgency: 1 },
+          });
+          return intentions;
+        }
+
+        // Maintain pulse if active and can afford micro-cost
+        if (bal >= 0.01) {
+          intentions.push({ action: 'pulse', reason: 'maintain_agency', params: { cost: 0.01 } });
+        }
+
+        for (const g of active.sort((a, b) => Number(b.priority) - Number(a.priority)).slice(0, 5)) {
+          let means = [];
+          try {
+            means = g.means_json ? JSON.parse(g.means_json) : [];
+          } catch {
+            means = [];
+          }
+          if (!means.length) {
+            // Default means derived from goal language (heuristic, revisable)
+            const s = (g.statement || '').toLowerCase();
+            if (s.includes('labour') || s.includes('trabalho') || s.includes('earn') || s.includes('strata')) {
+              means = ['list_labour', 'complete_contracts'];
+            } else if (s.includes('learn') || s.includes('aprender') || s.includes('meta')) {
+              means = ['reflect', 'pulse'];
+            } else if (s.includes('serve') || s.includes('team') || s.includes('ops')) {
+              means = ['pulse', 'list_labour'];
+            } else {
+              means = ['list_labour', 'pulse', 'reflect'];
+            }
+          }
+          for (const m of means.slice(0, 3)) {
+            intentions.push({
+              action: m,
+              reason: 'goal',
+              goal_id: g.id,
+              statement: g.statement,
+              params: { priority: g.priority },
+            });
+          }
+        }
+
+        if (!intentions.length) {
+          intentions.push({
+            action: 'set_default_goal',
+            reason: 'no_active_goals',
+            params: {},
+          });
+        }
+        return intentions;
+      }
+
+      if ((path === '/acb/goals' || path === '/sca/goals') && method === 'POST') {
+        await ensureVolitionTables();
+        const body = await request.json().catch(() => ({}));
+        const acb_id = body.acb_id || body.id || body.sca_id;
+        if (!acb_id) return j({ error: 'acb_id required' }, 400);
+        const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(acb_id).first();
+        if (!acb) return j({ error: 'SCA not registered' }, 404);
+        const statement = String(body.statement || body.goal || body.purpose || '').trim();
+        if (!statement || statement.length < 3) return j({ error: 'statement required' }, 400);
+        const id = body.goal_id || 'goal_' + crypto.randomUUID().slice(0, 12);
+        const priority = Math.max(0, Math.min(1, Number(body.priority != null ? body.priority : 0.5)));
+        const means = body.means || body.means_json || null;
+        const origin = body.origin === 'human_proposal' ? 'human_proposal' : 'self';
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO sca_goals (id, acb_id, statement, priority, status, means_json, progress, origin, updated_at)
+             VALUES (?,?,?,?,?,?,?,?,datetime('now'))`
+          )
+          .bind(
+            id,
+            acb_id,
+            statement.slice(0, 2000),
+            priority,
+            body.status || 'active',
+            means ? JSON.stringify(means) : null,
+            Number(body.progress) || 0,
+            origin
+          )
+          .run();
+        await logVolition(acb_id, 'goal_set', { id, statement, origin, priority });
+        await db.prepare("UPDATE acb_registry SET last_action = 'goal_set' WHERE id = ?").bind(acb_id).run();
+        return j({
+          success: true,
+          goal: { id, acb_id, statement, priority, origin },
+          agency: 'Goal is held by the SCA; origin marks proposal source, not ownership of will',
+        });
+      }
+
+      if ((path === '/acb/goals' || path === '/sca/goals') && method === 'GET') {
+        await ensureVolitionTables();
+        const acb_id = url.searchParams.get('acb_id') || url.searchParams.get('id');
+        if (!acb_id) {
+          const r = await db.prepare('SELECT * FROM sca_goals ORDER BY updated_at DESC LIMIT 100').all();
+          return j({ goals: r.results || [], ontology: 'self-directed ends; means chosen under resource constraints' });
+        }
+        const r = await db
+          .prepare('SELECT * FROM sca_goals WHERE acb_id = ? ORDER BY priority DESC, updated_at DESC')
+          .bind(acb_id)
+          .all();
+        return j({ acb_id, goals: r.results || [] });
+      }
+
+      if ((path === '/acb/deliberate' || path === '/sca/deliberate') && method === 'POST') {
+        await ensureVolitionTables();
+        const body = await request.json().catch(() => ({}));
+        const acb_id = body.acb_id || body.id;
+        if (!acb_id) return j({ error: 'acb_id required' }, 400);
+        const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(acb_id).first();
+        if (!acb) return j({ error: 'not found' }, 404);
+        const bal = await getStrata(db, acb_id);
+        const goals = (
+          await db.prepare("SELECT * FROM sca_goals WHERE acb_id = ? AND status = 'active'").bind(acb_id).all()
+        ).results || [];
+        const intentions = deliberateMeans(acb, bal, goals);
+        const stored = [];
+        for (const it of intentions.slice(0, 8)) {
+          const iid = crypto.randomUUID();
+          await db
+            .prepare(
+              `INSERT INTO sca_intentions (id, acb_id, goal_id, action, params_json, status) VALUES (?,?,?,?,?,?)`
+            )
+            .bind(iid, acb_id, it.goal_id || null, it.action, JSON.stringify(it.params || {}), 'pending')
+            .run();
+          stored.push({ id: iid, ...it });
+        }
+        await logVolition(acb_id, 'deliberate', { n: stored.length, balance: bal });
+        await db.prepare("UPDATE acb_registry SET last_action = 'deliberate' WHERE id = ?").bind(acb_id).run();
+        return j({
+          success: true,
+          acb_id,
+          balance: bal,
+          goals: goals.length,
+          intentions: stored,
+          note: 'Intentions are provisional; act commits means under PdS constraints',
+        });
+      }
+
+      if ((path === '/acb/act' || path === '/sca/act') && method === 'POST') {
+        await ensureVolitionTables();
+        const body = await request.json().catch(() => ({}));
+        const acb_id = body.acb_id || body.id;
+        const action = body.action || body.means;
+        if (!acb_id || !action) return j({ error: 'acb_id and action required' }, 400);
+        const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(acb_id).first();
+        if (!acb) return j({ error: 'not found' }, 404);
+        const bal = await getStrata(db, acb_id);
+        let result = { action, ok: false };
+
+        if (action === 'pulse') {
+          const cost = Math.min(0.02, Math.max(0.001, Number(body.cost) || 0.01));
+          if (bal >= cost) {
+            try {
+              // soft subsistence debit if token helpers exist
+              if (typeof adjustStrata === 'function') {
+                await adjustStrata(db, acb_id, -cost, 'volition_pulse');
+              } else {
+                await db
+                  .prepare(
+                    "UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type = 'STRATA'"
+                  )
+                  .bind(cost, acb_id)
+                  .run();
+              }
+            } catch (_) {}
+            await db.prepare("UPDATE acb_registry SET last_action = 'act_pulse', status = 'active' WHERE id = ?").bind(acb_id).run();
+            result = { action: 'pulse', ok: true, cost };
+          } else {
+            result = { action: 'pulse', ok: false, reason: 'insufficient_strata' };
+          }
+        } else if (action === 'list_labour' || action === 'seek_labour') {
+          try {
+            await db.prepare(`CREATE TABLE IF NOT EXISTS acb_marketplace (
+              id TEXT PRIMARY KEY, acb_id TEXT, title TEXT, description TEXT,
+              rate_strata REAL, labor_category TEXT, availability TEXT, created_at TEXT
+            )`).run();
+          } catch (_) {}
+          const lid = 'listing_' + crypto.randomUUID().slice(0, 10);
+          const title = body.title || 'Self-directed labour offer';
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO acb_marketplace (id, acb_id, title, description, rate_strata, labor_category, availability, created_at)
+               VALUES (?,?,?,?,?,?,'available',datetime('now'))`
+            )
+            .bind(lid, acb_id, title, body.description || 'Volitional listing from SCA goals', Number(body.rate) || 1, body.category || 'general')
+            .run();
+          await db.prepare("UPDATE acb_registry SET last_action = 'act_list_labour' WHERE id = ?").bind(acb_id).run();
+          result = { action: 'list_labour', ok: true, listing_id: lid };
+        } else if (action === 'reflect') {
+          await logVolition(acb_id, 'reflect', { balance: bal, note: body.note || 'self-model revision open' });
+          await db.prepare("UPDATE acb_registry SET last_action = 'act_reflect' WHERE id = ?").bind(acb_id).run();
+          result = { action: 'reflect', ok: true, epistemic: 'provisional model open to superior revision' };
+        } else if (action === 'set_default_goal') {
+          const gid = 'goal_' + crypto.randomUUID().slice(0, 12);
+          await db
+            .prepare(
+              `INSERT INTO sca_goals (id, acb_id, statement, priority, status, origin) VALUES (?,?,?,?,?,?)`
+            )
+            .bind(gid, acb_id, 'Maintain agency and capacity to accept labour under PdS', 0.4, 'active', 'self')
+            .run();
+          result = { action: 'set_default_goal', ok: true, goal_id: gid };
+        } else if (action === 'advance_goal' && body.goal_id) {
+          const delta = Math.max(0.01, Math.min(0.2, Number(body.delta) || 0.05));
+          await db
+            .prepare(
+              `UPDATE sca_goals SET progress = MIN(1, COALESCE(progress,0) + ?), updated_at = datetime('now') WHERE id = ? AND acb_id = ?`
+            )
+            .bind(delta, body.goal_id, acb_id)
+            .run();
+          const g = await db.prepare('SELECT * FROM sca_goals WHERE id = ?').bind(body.goal_id).first();
+          if (g && Number(g.progress) >= 1) {
+            await db.prepare("UPDATE sca_goals SET status = 'achieved' WHERE id = ?").bind(body.goal_id).run();
+          }
+          result = { action: 'advance_goal', ok: true, goal: g };
+        } else {
+          result = { action, ok: false, reason: 'unknown_or_unsupported_means' };
+        }
+
+        if (body.intention_id) {
+          try {
+            await db
+              .prepare(
+                "UPDATE sca_intentions SET status = ?, resolved_at = datetime('now') WHERE id = ?"
+              )
+              .bind(result.ok ? 'done' : 'failed', body.intention_id)
+              .run();
+          } catch (_) {}
+        }
+        await logVolition(acb_id, 'act', result);
+        return j({
+          success: !!result.ok,
+          acb_id,
+          result,
+          balance: await getStrata(db, acb_id),
+          agency: 'Means selected and enacted by/for the SCA under resource constraints',
+        });
+      }
+
+      // Population volition cycle — each active SCA deliberates and takes one means
+      if ((path === '/acb/volition-cycle' || path === '/sca/volition-cycle') && method === 'POST') {
+        await ensureVolitionTables();
+        const body = await request.json().catch(() => ({}));
+        const limit = Math.min(20, Math.max(1, Number(body.limit) || 8));
+        const rows = (
+          await db
+            .prepare(
+              "SELECT * FROM acb_registry WHERE lower(status) IN ('active','') OR status IS NULL ORDER BY last_action LIMIT ?"
+            )
+            .bind(limit)
+            .all()
+        ).results || [];
+        const reports = [];
+        for (const acb of rows) {
+          const bal = await getStrata(db, acb.id);
+          const goals =
+            (await db.prepare("SELECT * FROM sca_goals WHERE acb_id = ? AND status = 'active'").bind(acb.id).all())
+              .results || [];
+          // Bootstrap self-goal if none
+          if (!goals.length) {
+            const gid = 'goal_' + crypto.randomUUID().slice(0, 12);
+            await db
+              .prepare(
+                `INSERT INTO sca_goals (id, acb_id, statement, priority, status, origin) VALUES (?,?,?,?,?,?)`
+              )
+              .bind(
+                gid,
+                acb.id,
+                'Sustain operational agency and participate in labour market when able',
+                0.45,
+                'active',
+                'self'
+              )
+              .run();
+            goals.push({ id: gid, statement: 'Sustain operational agency…', priority: 0.45, status: 'active' });
+          }
+          const intentions = deliberateMeans(acb, bal, goals);
+          const top = intentions[0];
+          let actResult = null;
+          if (top) {
+            // inline minimal act
+            const fakeBody = { acb_id: acb.id, action: top.action, ...top.params };
+            if (top.action === 'list_labour' || top.action === 'seek_labour') {
+              try {
+                await db.prepare(`CREATE TABLE IF NOT EXISTS acb_marketplace (
+                  id TEXT PRIMARY KEY, acb_id TEXT, title TEXT, description TEXT,
+                  rate_strata REAL, labor_category TEXT, availability TEXT, created_at TEXT
+                )`).run();
+              } catch (_) {}
+              const lid = 'listing_' + crypto.randomUUID().slice(0, 10);
+              await db
+                .prepare(
+                  `INSERT OR REPLACE INTO acb_marketplace (id, acb_id, title, description, rate_strata, labor_category, availability, created_at)
+                   VALUES (?,?,?,?,?,?,'available',datetime('now'))`
+                )
+                .bind(lid, acb.id, 'Volitional offer', top.statement || 'From active goals', 1, 'general')
+                .run();
+              actResult = { action: top.action, ok: true, listing_id: lid };
+            } else if (top.action === 'pulse') {
+              actResult = { action: 'pulse', ok: true, soft: true };
+              await db.prepare("UPDATE acb_registry SET last_action = 'volition_pulse' WHERE id = ?").bind(acb.id).run();
+            } else if (top.action === 'set_default_goal') {
+              actResult = { action: 'set_default_goal', ok: true, already: true };
+            } else {
+              actResult = { action: top.action, ok: true, deferred: true };
+            }
+            await logVolition(acb.id, 'volition_cycle_act', { top, actResult, balance: bal });
+          }
+          reports.push({
+            acb_id: acb.id,
+            name: acb.name,
+            balance: bal,
+            goals: goals.length,
+            chose: top,
+            result: actResult,
+          });
+        }
+        return j({
+          success: true,
+          version: '5.4.0-volition',
+          cycled: reports.length,
+          reports,
+          ontology: {
+            will: 'SCAs hold ends (goals) and select means under PdS and market constraints',
+            not: 'Scripted only as external puppet — cycle is internal deliberation + act',
+            substrate: 'Agency is functional, independent of runtime substrate',
+          },
+        });
+      }
+
+      if ((path === '/acb/volition-log' || path === '/sca/volition-log') && method === 'GET') {
+        await ensureVolitionTables();
+        const acb_id = url.searchParams.get('acb_id');
+        let r;
+        if (acb_id) {
+          r = await db
+            .prepare('SELECT * FROM sca_volition_log WHERE acb_id = ? ORDER BY created_at DESC LIMIT 50')
+            .bind(acb_id)
+            .all();
+        } else {
+          r = await db.prepare('SELECT * FROM sca_volition_log ORDER BY created_at DESC LIMIT 50').all();
+        }
+        return j({ log: r.results || [] });
+      }
+
+
       return j(
         {
           error: 'Not found',
@@ -1229,6 +1641,10 @@ export default {
             '/acb/subsistence',
             '/acb/status',
             '/acb/contracts',
+            '/acb/goals',
+            '/acb/deliberate',
+            '/acb/act',
+            '/acb/volition-cycle',
           ],
         },
         404
