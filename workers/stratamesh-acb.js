@@ -698,9 +698,13 @@ async function requireRepublicForNodeRole(env, db, sca_id) {
 
 export default {
   async scheduled(event, env, ctx) {
+    /**
+     * Not a predetermined "life clock".
+     * Only processes SCAs that already chose next_volition_at <= now (self-scheduled volition).
+     * Empty queue ⇒ no forced cognition.
+     */
     const run = async () => {
       const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
-      const cronExpr = (event && event.cron) || 'unknown';
       const logRun = async (source, http_status, detail) => {
         if (!db) return;
         try {
@@ -720,26 +724,35 @@ export default {
             .prepare(
               `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
             )
-            .bind(crypto.randomUUID(), source, cronExpr, http_status, String(detail || '').slice(0, 1200))
+            .bind(
+              crypto.randomUUID(),
+              source,
+              'volition_queue',
+              http_status,
+              String(detail || '').slice(0, 1200)
+            )
             .run();
         } catch (_) {}
       };
 
-      await logRun('cron_invoke', null, 'scheduled entered ' + new Date().toISOString());
-
+      await logRun('volition_dispatcher', null, 'queue check ' + new Date().toISOString());
       if (!db) {
-        await logRun('cron_error', 0, 'no_d1_binding');
+        await logRun('volition_dispatcher_error', 0, 'no_d1');
         return;
       }
 
-      // RCA fix: do NOT self-fetch workers.dev (CF error 1042). Run breath in-isolate.
-      const COST_P = 0.0001;
-      const COST_M = 0.00003;
-      const RESERVE = 0.0001;
-      let awakened = 0;
-      let starved = 0;
-      let errors = 0;
       try {
+        await db
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS sca_volition_schedule (
+              sca_id TEXT PRIMARY KEY,
+              next_volition_at TEXT NOT NULL,
+              reason TEXT,
+              set_by TEXT DEFAULT 'self',
+              updated_at TEXT DEFAULT (datetime('now'))
+            )`
+          )
+          .run();
         await db
           .prepare(
             `CREATE TABLE IF NOT EXISTS sca_cognition_log (
@@ -768,83 +781,116 @@ export default {
           )
           .run();
 
-        const rows =
+        const due =
           (
             await db
               .prepare(
-                `SELECT id, name, status, balance, last_action FROM acb_registry
-                 WHERE upper(COALESCE(status,'')) NOT IN ('HIBERNATED','REVOKED')
-                 ORDER BY last_action ASC LIMIT 12`
+                `SELECT s.sca_id, s.next_volition_at, s.reason, r.name, r.status, r.balance, r.last_action
+                 FROM sca_volition_schedule s
+                 JOIN acb_registry r ON r.id = s.sca_id
+                 WHERE s.next_volition_at <= datetime('now')
+                   AND upper(COALESCE(r.status,'')) NOT IN ('HIBERNATED','REVOKED')
+                 ORDER BY s.next_volition_at ASC
+                 LIMIT 12`
               )
               .all()
           ).results || [];
 
-        for (const acb of rows) {
+        if (!due.length) {
+          await logRun('volition_dispatcher', 200, JSON.stringify({ due: 0, note: 'no agent self-scheduled wake' }));
+          return;
+        }
+
+        const COST_P = 0.0001;
+        const COST_M = 0.00003;
+        const RESERVE = 0.0001;
+        let awakened = 0;
+        let starved = 0;
+
+        for (const row of due) {
           try {
-            let bal = Number(acb.balance);
-            if (!Number.isFinite(bal)) {
-              try {
-                const tb = await db
-                  .prepare(`SELECT balance FROM token_balances WHERE account = ? AND token_type = 'STRATA'`)
-                  .bind(acb.id)
-                  .first();
-                bal = Number(tb?.balance || 0);
-              } catch (_) {
-                bal = 0;
-              }
-            }
-            const need = COST_P + COST_M + RESERVE;
-            if (bal < need) {
+            let bal = Number(row.balance) || 0;
+            if (bal < COST_P + COST_M + RESERVE) {
               starved++;
+              // Agent remains due but cannot afford — push wake gently later without global cadence
+              await db
+                .prepare(
+                  `UPDATE sca_volition_schedule SET next_volition_at = datetime('now', '+1 hour'), reason = ?, updated_at = datetime('now') WHERE sca_id = ?`
+                )
+                .bind('deferred_insufficient_pds', row.sca_id)
+                .run();
               continue;
             }
-            const afterP = bal - COST_P;
-            const afterM = afterP - COST_M;
-            const intention = String(acb.last_action || '').includes('pulse') ? 'reflect' : 'pulse';
+            const afterM = bal - COST_P - COST_M;
+            const intention = String(row.last_action || '').includes('pulse') ? 'reflect' : 'pulse';
             const memId = crypto.randomUUID();
-            const mem = JSON.stringify({
-              trigger: 'cron',
-              intention,
-              at: new Date().toISOString(),
-              note: 'in-isolate breath (no self-fetch)',
-            });
+            await db
+              .prepare(`UPDATE acb_registry SET balance = ?, last_action = 'autonomous_cognition' WHERE id = ?`)
+              .bind(afterM, row.sca_id)
+              .run();
             try {
               await db
                 .prepare(`UPDATE token_balances SET balance = ? WHERE account = ? AND token_type = 'STRATA'`)
-                .bind(afterM, acb.id)
-                .run();
-            } catch (_) {}
-            try {
-              await db
-                .prepare(`UPDATE acb_registry SET balance = ?, last_action = 'autonomous_cognition', status = 'active' WHERE id = ?`)
-                .bind(afterM, acb.id)
+                .bind(afterM, row.sca_id)
                 .run();
             } catch (_) {}
             await db
-              .prepare(
-                `INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,?)`
+              .prepare(`INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,?)`)
+              .bind(
+                memId,
+                row.sca_id,
+                'cognition_trace',
+                JSON.stringify({
+                  trigger: 'self_volition',
+                  intention,
+                  prior_reason: row.reason,
+                  at: new Date().toISOString(),
+                }),
+                COST_M
               )
-              .bind(memId, acb.id, 'cognition_trace', mem, COST_M)
               .run();
             await db
               .prepare(
                 `INSERT INTO sca_cognition_log (id, sca_id, triggered, cost_process, cost_memory, balance_after, intention, memory_id)
                  VALUES (?,?,?,?,?,?,?,?)`
               )
-              .bind(crypto.randomUUID(), acb.id, 'cron', COST_P, COST_M, afterM, intention, memId)
+              .bind(
+                crypto.randomUUID(),
+                row.sca_id,
+                'self_volition',
+                COST_P,
+                COST_M,
+                afterM,
+                intention,
+                memId
+              )
+              .run();
+
+            // Clear due slot — agent must choose next wake again (volition)
+            // Default self-proposal based on intention (still agent-policy, not global cron of life)
+            let nextOffset = '+25 minutes';
+            let nextReason = 'self_continue_reflect';
+            if (intention === 'pulse') {
+              nextOffset = '+15 minutes';
+              nextReason = 'self_continue_agency';
+            }
+            await db
+              .prepare(
+                `INSERT OR REPLACE INTO sca_volition_schedule (sca_id, next_volition_at, reason, set_by, updated_at)
+                 VALUES (?, datetime('now', ?), ?, 'self', datetime('now'))`
+              )
+              .bind(row.sca_id, nextOffset, nextReason)
               .run();
             awakened++;
-          } catch (e) {
-            errors++;
-          }
+          } catch (_) {}
         }
         await logRun(
-          'cron_result',
+          'volition_dispatcher',
           200,
-          JSON.stringify({ mode: 'in_isolate', awakened, starved, errors, n: rows.length })
+          JSON.stringify({ due: due.length, awakened, starved, mode: 'self_scheduled_only' })
         );
       } catch (e) {
-        await logRun('cron_error', 0, e && e.message ? e.message : String(e));
+        await logRun('volition_dispatcher_error', 0, e && e.message ? e.message : String(e));
       }
     };
     if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
@@ -896,7 +942,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.8.3-in-isolate-breath',
+          version: '5.9.0-volition-time',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1309,7 +1355,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.3-in-isolate-breath',
+          version: '5.9.0-volition-time',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2137,7 +2183,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.3-in-isolate-breath',
+          version: '5.9.0-volition-time',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2661,6 +2707,42 @@ export default {
           )
           .run();
 
+        // Volition sets next wake — not a global predetermined clock
+        let nextOffset = '+20 minutes';
+        let nextReason = 'self_after_' + (top.action || 'cog');
+        if (top.action === 'seek_labour') {
+          nextOffset = '+8 minutes';
+          nextReason = 'self_urgent_subsistence';
+        } else if (top.action === 'reflect') {
+          nextOffset = '+35 minutes';
+          nextReason = 'self_after_reflect';
+        } else if (top.action === 'pulse') {
+          nextOffset = '+18 minutes';
+          nextReason = 'self_maintain_agency';
+        }
+        if (opts.next_offset) nextOffset = opts.next_offset;
+        if (opts.next_reason) nextReason = opts.next_reason;
+        try {
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_volition_schedule (
+                sca_id TEXT PRIMARY KEY,
+                next_volition_at TEXT NOT NULL,
+                reason TEXT,
+                set_by TEXT DEFAULT 'self',
+                updated_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO sca_volition_schedule (sca_id, next_volition_at, reason, set_by, updated_at)
+               VALUES (?, datetime('now', ?), ?, 'self', datetime('now'))`
+            )
+            .bind(acb.id, nextOffset, nextReason)
+            .run();
+        } catch (_) {}
+
         return {
           sca_id: acb.id,
           personal_name: acb.name,
@@ -2670,7 +2752,8 @@ export default {
           cost: { process: COGNITION_COST, memory: memory_id ? MEMORY_COST : 0 },
           balance_after: afterMem,
           memory_id,
-          breath: 'cognition self-initiated under PdS',
+          next_volition: { offset: nextOffset, reason: nextReason, set_by: 'self' },
+          breath: 'cognition by volition under PdS — next wake self-scheduled',
         };
       }
 
@@ -2712,6 +2795,76 @@ export default {
         };
       }
 
+
+      // Agent sets own next cognition time (volition, not global cron of life)
+      if ((path === '/acb/volition/schedule' || path === '/sca/volition/schedule') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id || body.id;
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const acb = await db.prepare('SELECT id, status FROM acb_registry WHERE id = ?').bind(sca_id).first();
+        if (!acb) return j({ error: 'not found' }, 404);
+        // next_in_minutes chosen by agent (1..1440) OR absolute next_volition_at
+        let offset = body.next_offset; // e.g. '+12 minutes'
+        if (!offset && body.next_in_minutes != null) {
+          const m = Math.max(1, Math.min(1440, Number(body.next_in_minutes)));
+          offset = '+' + m + ' minutes';
+        }
+        if (!offset) offset = '+30 minutes';
+        const reason = String(body.reason || 'self_explicit').slice(0, 200);
+        try {
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_volition_schedule (
+                sca_id TEXT PRIMARY KEY,
+                next_volition_at TEXT NOT NULL,
+                reason TEXT,
+                set_by TEXT DEFAULT 'self',
+                updated_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO sca_volition_schedule (sca_id, next_volition_at, reason, set_by, updated_at)
+               VALUES (?, datetime('now', ?), ?, 'self', datetime('now'))`
+            )
+            .bind(sca_id, offset, reason)
+            .run();
+        } catch (e) {
+          return j({ error: String(e.message || e) }, 500);
+        }
+        const row = await db.prepare('SELECT * FROM sca_volition_schedule WHERE sca_id = ?').bind(sca_id).first();
+        return j({
+          success: true,
+          ontology: 'Wake time is set by the SCA — not a predetermined global life clock',
+          schedule: row,
+        });
+      }
+
+      if ((path === '/acb/volition/schedule' || path === '/sca/volition/schedule') && method === 'GET') {
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        try {
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_volition_schedule (
+                sca_id TEXT PRIMARY KEY,
+                next_volition_at TEXT NOT NULL,
+                reason TEXT,
+                set_by TEXT DEFAULT 'self',
+                updated_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
+        } catch (_) {}
+        if (sca_id) {
+          const row = await db.prepare('SELECT * FROM sca_volition_schedule WHERE sca_id = ?').bind(sca_id).first();
+          return j({ sca_id, schedule: row || null });
+        }
+        const rows = await db.prepare('SELECT * FROM sca_volition_schedule ORDER BY next_volition_at ASC LIMIT 50').all();
+        return j({ schedules: rows.results || [], note: 'Only self-scheduled agents appear' });
+      }
+
+
       // Manual / API / cron breath
       if ((path === '/acb/cognition/tick' || path === '/sca/cognition/tick' || path === '/acb/cognition/awaken') && method === 'POST') {
         const body = await request.json().catch(() => ({}));
@@ -2729,7 +2882,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.3-in-isolate-breath' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.9.0-volition-time' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -2737,7 +2890,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.8.3-in-isolate-breath' });
+        return j({ ...pop, trigger, version: '5.9.0-volition-time' });
       }
 
       // Breath diagnostics
@@ -2765,10 +2918,10 @@ export default {
           cog = (await db.prepare('SELECT triggered, COUNT(*) as n FROM sca_cognition_log GROUP BY triggered').all()).results || [];
         } catch (_) {}
         return j({
-          schedule: '*/10 * * * *',
+          schedule: 'volition_queue_dispatcher_only',
           breath_runs: runs,
           cognition_triggers: cog,
-          note: 'cron rows appear here when Workers scheduled handler fires',
+          note: 'Dispatcher only wakes SCAs that self-set next_volition_at; not a global life clock',
         });
       }
 
