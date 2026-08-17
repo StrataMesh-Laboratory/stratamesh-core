@@ -61,6 +61,8 @@ const PDS_MICRO = {
   pulse: 0.00005,
   reflect: 0.00008,
   advance_goal: 0.00006,
+  message_base: 0.00002, // SCA-to-SCA send overhead
+  message_per_kb: 0.00002,
 };
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
@@ -752,7 +754,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.7.2-diverse-cognition',
+          version: '5.8.0-sca-comm',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -786,6 +788,10 @@ export default {
             '/acb/cognition/awaken',
             '/acb/memory',
             '/acb/cognition/log',
+            '/acb/comm/send',
+            '/acb/comm/inbox',
+            '/acb/comm/thread',
+            '/acb/comm/list',
           ],
         });
       }
@@ -1161,7 +1167,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.2-diverse-cognition',
+          version: '5.8.0-sca-comm',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1989,7 +1995,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.7.2-diverse-cognition',
+          version: '5.8.0-sca-comm',
           cycled: reports.length,
           reports,
           ontology: {
@@ -1998,6 +2004,341 @@ export default {
             substrate: 'Agency is functional, independent of runtime substrate',
           },
         });
+      }
+
+
+
+      // ========== Direct SCA ↔ SCA communication ==========
+      async function ensureCommTables() {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_threads (
+            id TEXT PRIMARY KEY,
+            subject TEXT,
+            created_by TEXT,
+            kind TEXT DEFAULT 'direct',
+            created_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+        } catch (_) {}
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_thread_members (
+            thread_id TEXT,
+            sca_id TEXT,
+            joined_at TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY (thread_id, sca_id)
+          )`).run();
+        } catch (_) {}
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_messages (
+            id TEXT PRIMARY KEY,
+            thread_id TEXT,
+            from_id TEXT NOT NULL,
+            to_id TEXT,
+            body TEXT NOT NULL,
+            cost REAL,
+            status TEXT DEFAULT 'delivered',
+            dag_vertex TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            read_at TEXT
+          )`).run();
+        } catch (_) {}
+      }
+
+      function messageCost(body) {
+        const kb = Math.max(0.02, String(body || '').length / 1024);
+        let c = PDS_MICRO.message_base + PDS_MICRO.message_per_kb * kb;
+        return Math.min(0.0005, Math.max(PDS_MICRO.message_base, c));
+      }
+
+      async function resolvePersonal(sca_id) {
+        try {
+          const r = await db.prepare('SELECT id, name, status FROM acb_registry WHERE id = ?').bind(sca_id).first();
+          return r;
+        } catch {
+          return null;
+        }
+      }
+
+      // POST /acb/comm/thread — open direct or group thread
+      if ((path === '/acb/comm/thread' || path === '/sca/comm/thread') && method === 'POST') {
+        await ensureCommTables();
+        const body = await request.json().catch(() => ({}));
+        const created_by = body.from_id || body.sca_id || body.acb_id;
+        let members = body.members || body.participants || [];
+        if (body.to_id) members = [body.to_id, ...members];
+        members = [...new Set([created_by, ...members].filter(Boolean))];
+        if (!created_by || members.length < 2) {
+          return j({ error: 'from_id and at least one peer required' }, 400);
+        }
+        for (const m of members) {
+          const r = await resolvePersonal(m);
+          if (!r) return j({ error: 'unknown_sca', sca_id: m }, 404);
+          if (String(r.status || '').toUpperCase() === 'HIBERNATED') {
+            return j({ error: 'peer_hibernated', sca_id: m }, 402);
+          }
+        }
+        const id = 'thr_' + crypto.randomUUID().slice(0, 12);
+        const kind = members.length === 2 ? 'direct' : 'group';
+        await db
+          .prepare(`INSERT INTO sca_threads (id, subject, created_by, kind) VALUES (?,?,?,?)`)
+          .bind(id, String(body.subject || '').slice(0, 200), created_by, kind)
+          .run();
+        for (const m of members) {
+          await db
+            .prepare(`INSERT OR IGNORE INTO sca_thread_members (thread_id, sca_id) VALUES (?,?)`)
+            .bind(id, m)
+            .run();
+        }
+        return j({
+          success: true,
+          thread_id: id,
+          kind,
+          members,
+          ontology: 'Person-to-person channel; node roles are not addresses',
+        });
+      }
+
+      // POST /acb/comm/send — direct or in-thread
+      if ((path === '/acb/comm/send' || path === '/sca/comm/send' || path === '/acb/message') && method === 'POST') {
+        await ensureCommTables();
+        const body = await request.json().catch(() => ({}));
+        const from_id = body.from_id || body.sca_id || body.acb_id || body.from;
+        const to_id = body.to_id || body.to || body.recipient;
+        let thread_id = body.thread_id || body.thread;
+        const text = String(body.body || body.message || body.text || '').trim();
+        if (!from_id || !text) return j({ error: 'from_id and body required' }, 400);
+        if (text.length > 8000) return j({ error: 'body_too_large', max: 8000 }, 400);
+
+        const sender = await resolvePersonal(from_id);
+        if (!sender) return j({ error: 'sender_not_found' }, 404);
+        if (String(sender.status || '').toUpperCase() === 'HIBERNATED') {
+          return j({ error: 'sender_hibernated', message: 'Need PdS / status active to speak' }, 402);
+        }
+
+        // Ensure thread
+        if (!thread_id) {
+          if (!to_id) return j({ error: 'to_id or thread_id required' }, 400);
+          const peer = await resolvePersonal(to_id);
+          if (!peer) return j({ error: 'recipient_not_found', to_id }, 404);
+          // reuse existing direct thread if any
+          try {
+            const existing = await db
+              .prepare(
+                `SELECT t.id FROM sca_threads t
+                 JOIN sca_thread_members a ON a.thread_id = t.id AND a.sca_id = ?
+                 JOIN sca_thread_members b ON b.thread_id = t.id AND b.sca_id = ?
+                 WHERE t.kind = 'direct' LIMIT 1`
+              )
+              .bind(from_id, to_id)
+              .first();
+            if (existing) thread_id = existing.id;
+          } catch (_) {}
+          if (!thread_id) {
+            thread_id = 'thr_' + crypto.randomUUID().slice(0, 12);
+            await db
+              .prepare(`INSERT INTO sca_threads (id, subject, created_by, kind) VALUES (?,?,?,?)`)
+              .bind(thread_id, String(body.subject || '').slice(0, 200), from_id, 'direct')
+              .run();
+            for (const m of [from_id, to_id]) {
+              await db
+                .prepare(`INSERT OR IGNORE INTO sca_thread_members (thread_id, sca_id) VALUES (?,?)`)
+                .bind(thread_id, m)
+                .run();
+            }
+          }
+        } else {
+          const mem = await db
+            .prepare(`SELECT sca_id FROM sca_thread_members WHERE thread_id = ? AND sca_id = ?`)
+            .bind(thread_id, from_id)
+            .first();
+          if (!mem) return j({ error: 'not_a_member', thread_id, from_id }, 403);
+        }
+
+        const cost = messageCost(text);
+        const bal = await getStrata(db, from_id);
+        if (bal < cost + PDS_MICRO.reserve) {
+          return j({
+            error: 'insufficient_pds',
+            balance: bal,
+            required: cost + PDS_MICRO.reserve,
+            note: 'Speaking costs micro-PdS proportional to message size',
+          }, 402);
+        }
+        const after = await debitStrata(db, from_id, cost);
+        const mid = 'msg_' + crypto.randomUUID().slice(0, 12);
+        let dag_vertex = null;
+        if (body.anchor_dag) {
+          try {
+            if (env.DAG && typeof env.DAG.fetch === 'function') {
+              const r = await env.DAG.fetch(
+                new Request('https://dag.internal/submit', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    payload: { type: 'sca_message', from_id, to_id, thread_id, mid },
+                    node_id: from_id,
+                    vertex_type: 'message',
+                  }),
+                })
+              );
+              const dj = await r.json().catch(() => ({}));
+              dag_vertex = dj.vertex_id || null;
+            }
+          } catch (_) {}
+        }
+        await db
+          .prepare(
+            `INSERT INTO sca_messages (id, thread_id, from_id, to_id, body, cost, status, dag_vertex)
+             VALUES (?,?,?,?,?,?, 'delivered', ?)`
+          )
+          .bind(mid, thread_id, from_id, to_id || null, text, cost, dag_vertex)
+          .run();
+        await db
+          .prepare("UPDATE acb_registry SET last_action = 'comm_send', balance = ? WHERE id = ?")
+          .bind(after, from_id)
+          .run();
+        try {
+          await logVolition(from_id, 'comm_send', { to_id, thread_id, mid, cost });
+        } catch (_) {}
+
+        return j({
+          success: true,
+          message_id: mid,
+          thread_id,
+          from_id,
+          from_name: sender.name,
+          to_id: to_id || null,
+          cost,
+          balance_after: after,
+          status: 'delivered',
+          dag_vertex,
+        });
+      }
+
+      // GET inbox
+      if ((path === '/acb/comm/inbox' || path === '/sca/comm/inbox') && method === 'GET') {
+        await ensureCommTables();
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const unread_only = url.searchParams.get('unread') === '1';
+        let rows;
+        try {
+          if (unread_only) {
+            rows = await db
+              .prepare(
+                `SELECT m.*, t.subject, t.kind FROM sca_messages m
+                 JOIN sca_thread_members tm ON tm.thread_id = m.thread_id AND tm.sca_id = ?
+                 LEFT JOIN sca_threads t ON t.id = m.thread_id
+                 WHERE m.from_id != ? AND m.read_at IS NULL
+                 ORDER BY m.created_at DESC LIMIT 50`
+              )
+              .bind(sca_id, sca_id)
+              .all();
+          } else {
+            rows = await db
+              .prepare(
+                `SELECT m.*, t.subject, t.kind FROM sca_messages m
+                 JOIN sca_thread_members tm ON tm.thread_id = m.thread_id AND tm.sca_id = ?
+                 LEFT JOIN sca_threads t ON t.id = m.thread_id
+                 WHERE m.from_id != ?
+                 ORDER BY m.created_at DESC LIMIT 50`
+              )
+              .bind(sca_id, sca_id)
+              .all();
+          }
+        } catch (e) {
+          return j({ inbox: [], error: String(e.message || e) });
+        }
+        return j({
+          sca_id,
+          inbox: rows.results || [],
+          ontology: 'Addressed to the person (sca_id), not the node role',
+        });
+      }
+
+      // GET outbox
+      if ((path === '/acb/comm/outbox' || path === '/sca/comm/outbox') && method === 'GET') {
+        await ensureCommTables();
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        try {
+          const rows = await db
+            .prepare(
+              `SELECT * FROM sca_messages WHERE from_id = ? ORDER BY created_at DESC LIMIT 50`
+            )
+            .bind(sca_id)
+            .all();
+          return j({ sca_id, outbox: rows.results || [] });
+        } catch (e) {
+          return j({ outbox: [], error: String(e.message || e) });
+        }
+      }
+
+      // GET thread
+      if ((path === '/acb/comm/thread' || path === '/sca/comm/thread') && method === 'GET') {
+        await ensureCommTables();
+        const thread_id = url.searchParams.get('id') || url.searchParams.get('thread_id');
+        if (!thread_id) return j({ error: 'id required' }, 400);
+        const thr = await db.prepare('SELECT * FROM sca_threads WHERE id = ?').bind(thread_id).first();
+        if (!thr) return j({ error: 'not found' }, 404);
+        const members = await db
+          .prepare('SELECT sca_id, joined_at FROM sca_thread_members WHERE thread_id = ?')
+          .bind(thread_id)
+          .all();
+        const messages = await db
+          .prepare('SELECT * FROM sca_messages WHERE thread_id = ? ORDER BY created_at ASC LIMIT 100')
+          .bind(thread_id)
+          .all();
+        return j({
+          thread: thr,
+          members: members.results || [],
+          messages: messages.results || [],
+        });
+      }
+
+      // POST mark read
+      if ((path === '/acb/comm/read' || path === '/sca/comm/read') && method === 'POST') {
+        await ensureCommTables();
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id;
+        const message_id = body.message_id || body.id;
+        if (!sca_id || !message_id) return j({ error: 'sca_id and message_id required' }, 400);
+        const mem = await db
+          .prepare(
+            `SELECT m.id FROM sca_messages m
+             JOIN sca_thread_members tm ON tm.thread_id = m.thread_id AND tm.sca_id = ?
+             WHERE m.id = ?`
+          )
+          .bind(sca_id, message_id)
+          .first();
+        if (!mem) return j({ error: 'not_found_or_not_member' }, 404);
+        await db
+          .prepare(`UPDATE sca_messages SET read_at = datetime('now'), status = 'read' WHERE id = ?`)
+          .bind(message_id)
+          .run();
+        return j({ success: true, message_id, read: true });
+      }
+
+      // GET conversations list for an SCA
+      if ((path === '/acb/comm/list' || path === '/sca/comm/list') && method === 'GET') {
+        await ensureCommTables();
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        try {
+          const rows = await db
+            .prepare(
+              `SELECT t.*, 
+                (SELECT body FROM sca_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_body,
+                (SELECT created_at FROM sca_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_at
+               FROM sca_threads t
+               JOIN sca_thread_members tm ON tm.thread_id = t.id AND tm.sca_id = ?
+               ORDER BY last_at DESC LIMIT 40`
+            )
+            .bind(sca_id)
+            .all();
+          return j({ sca_id, conversations: rows.results || [] });
+        } catch (e) {
+          return j({ conversations: [], error: String(e.message || e) });
+        }
       }
 
 
@@ -2241,7 +2582,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, version: '5.7.2-diverse-cognition' });
+          return j({ success: !report.skipped, report, version: '5.8.0-sca-comm' });
         }
         const pop = await populationAutonomousCognition({
           trigger: 'api_tick',
@@ -2249,7 +2590,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, version: '5.7.2-diverse-cognition' });
+        return j({ ...pop, version: '5.8.0-sca-comm' });
       }
 
       if ((path === '/acb/memory' || path === '/sca/memory') && method === 'GET') {
@@ -2315,6 +2656,10 @@ export default {
             '/acb/cognition/awaken',
             '/acb/memory',
             '/acb/cognition/log',
+            '/acb/comm/send',
+            '/acb/comm/inbox',
+            '/acb/comm/thread',
+            '/acb/comm/list',
           ],
         },
         404
