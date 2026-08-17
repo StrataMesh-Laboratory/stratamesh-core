@@ -224,7 +224,7 @@ https://eni.calhegasmorais.pt/
         }),
       });
     }
-    if (path === '/.well-known/security.txt' || path === '/security.txt') {
+    if (path === '/.well-known/security.txt' || path === '/security.txt' || path === '/seguranca.txt' || path.endsWith('security.txt')) {
       const sec = `Contact: mailto:geral@eni.calhegasmorais.pt
 Contact: mailto:amcmorais@icloud.com
 Expires: 2027-08-17T00:00:00.000Z
