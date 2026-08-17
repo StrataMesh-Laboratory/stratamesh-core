@@ -84,5 +84,5 @@ Prioridade: encaixe com Workers, D1, KV, TRD/GDA, auth e portal.
 | Turnstile no registo | **Activo** (sitekey widget + siteverify no `stratamesh-auth`) |
 | Sessões com hash SHA-256 | **Activo** (token só no cliente; D1 guarda `token_hash`) |
 | Web Crypto SHA-256 nos vértices GDA | **Já em uso** no `stratamesh-dag` (equivalente funcional a noble-hashes no edge) |
-| otplib TOTP staff | Pendente (2FA lab por código já existe) |
-| Helia / CID real | Pendente (fog local) |
+| TOTP staff (RFC 6238 / estilo otplib) | **Activo** — `/staff/totp/enroll` + challenge `TOTP-{id}` |
+| CIDv1 real (raw+sha2-256) | **Activo** no GDA — Helia full node continua pendente (fog) |

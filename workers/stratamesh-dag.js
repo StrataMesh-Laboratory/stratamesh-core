@@ -412,14 +412,34 @@ async function sha256(d) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+/** CIDv1 (base32 multibase) for raw codec + sha2-256 multihash — verifiable content address without full Helia. */
 async function contentCid(d) {
-  const hex = await sha256(d);
+  const data = new TextEncoder().encode(typeof d === 'string' ? d : JSON.stringify(d));
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+  // multihash: sha2-256 (0x12) + length 32 (0x20) + digest
+  const mh = new Uint8Array(2 + hash.length);
+  mh[0] = 0x12;
+  mh[1] = 0x20;
+  mh.set(hash, 2);
+  // cidv1: version 1 (0x01) + raw codec (0x55) + multihash
+  const cidBytes = new Uint8Array(2 + mh.length);
+  cidBytes[0] = 0x01;
+  cidBytes[1] = 0x55;
+  cidBytes.set(mh, 2);
   const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
-  let bits = '';
-  for (let i = 0; i < hex.length; i += 2) bits += parseInt(hex.slice(i, i + 2), 16).toString(2).padStart(8, '0');
+  let bits = 0;
+  let value = 0;
   let out = '';
-  for (let i = 0; i + 5 <= bits.length; i += 5) out += alphabet[parseInt(bits.slice(i, i + 5), 2)];
-  return 'bafy' + out.slice(0, 52);
+  for (let i = 0; i < cidBytes.length; i++) {
+    value = (value << 8) | cidBytes[i];
+    bits += 8;
+    while (bits >= 5) {
+      out += alphabet[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) out += alphabet[(value << (5 - bits)) & 31];
+  return 'b' + out;
 }
 
 
@@ -524,7 +544,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-dag',
-          version: '2.8.0-so-bus',
+          version: '2.9.0-cidv1-raw',
           anti_double_spend: true,
           cumulative_weight: true,
           vertices: count,
@@ -808,7 +828,7 @@ export default {
           lightweight: isLightweight,
           subsidy_requested: subsidyRequested,
           confidence: confidenceFromWeight(1),
-          version: '2.8.0-so-bus',
+          version: '2.9.0-cidv1-raw',
           temporal: payloadObj.temporal || null,
           temporal_authority: 'PPC',
           holon_event,
@@ -873,7 +893,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-dag',
-        version: '2.8.0-so-bus',
+        version: '2.9.0-cidv1-raw',
         endpoints: ['/health', '/tips', '/submit', '/attach', '/vertices', '/vertex', '/validate', '/confidence', '/conflicts'],
       });
     } catch (e) {

@@ -15,6 +15,89 @@ export default {
       };
       if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+      // --- TOTP (RFC 6238, HMAC-SHA-1) — staff app-based 2FA without npm ---
+      function b32Encode(bytes) {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        let bits = 0, value = 0, out = '';
+        for (let i = 0; i < bytes.length; i++) {
+          value = (value << 8) | bytes[i];
+          bits += 8;
+          while (bits >= 5) {
+            out += alphabet[(value >>> (bits - 5)) & 31];
+            bits -= 5;
+          }
+        }
+        if (bits > 0) out += alphabet[(value << (5 - bits)) & 31];
+        return out;
+      }
+      function b32Decode(str) {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        const clean = String(str || '').toUpperCase().replace(/=+$/, '').replace(/[^A-Z2-7]/g, '');
+        let bits = 0, value = 0;
+        const out = [];
+        for (let i = 0; i < clean.length; i++) {
+          const idx = alphabet.indexOf(clean[i]);
+          if (idx < 0) continue;
+          value = (value << 5) | idx;
+          bits += 5;
+          if (bits >= 8) {
+            out.push((value >>> (bits - 8)) & 255);
+            bits -= 8;
+          }
+        }
+        return new Uint8Array(out);
+      }
+      async function hmacSha1(keyBytes, msgBytes) {
+        const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, msgBytes);
+        return new Uint8Array(sig);
+      }
+      async function totpCode(secretB32, step = 30, digits = 6) {
+        const key = b32Decode(secretB32);
+        const counter = Math.floor(Date.now() / 1000 / step);
+        const buf = new ArrayBuffer(8);
+        const view = new DataView(buf);
+        view.setUint32(0, Math.floor(counter / 0x100000000), false);
+        view.setUint32(4, counter >>> 0, false);
+        const hmac = await hmacSha1(key, new Uint8Array(buf));
+        const offset = hmac[hmac.length - 1] & 0xf;
+        const bin =
+          ((hmac[offset] & 0x7f) << 24) |
+          ((hmac[offset + 1] & 0xff) << 16) |
+          ((hmac[offset + 2] & 0xff) << 8) |
+          (hmac[offset + 3] & 0xff);
+        const mod = 10 ** digits;
+        return String(bin % mod).padStart(digits, '0');
+      }
+      async function totpVerify(secretB32, code, window = 1) {
+        const want = String(code || '').trim();
+        if (!/^\d{6}$/.test(want)) return false;
+        for (let w = -window; w <= window; w++) {
+          const key = b32Decode(secretB32);
+          const counter = Math.floor(Date.now() / 1000 / 30) + w;
+          const buf = new ArrayBuffer(8);
+          const view = new DataView(buf);
+          view.setUint32(0, Math.floor(counter / 0x100000000), false);
+          view.setUint32(4, counter >>> 0, false);
+          const hmac = await hmacSha1(key, new Uint8Array(buf));
+          const offset = hmac[hmac.length - 1] & 0xf;
+          const bin =
+            ((hmac[offset] & 0x7f) << 24) |
+            ((hmac[offset + 1] & 0xff) << 16) |
+            ((hmac[offset + 2] & 0xff) << 8) |
+            (hmac[offset + 3] & 0xff);
+          const c = String(bin % 1000000).padStart(6, '0');
+          if (c === want) return true;
+        }
+        return false;
+      }
+      async function ensureStaffTotpColumn() {
+        try {
+          await env.AUTH_DB.prepare('ALTER TABLE staff ADD COLUMN totp_secret TEXT').run();
+        } catch (_) {}
+      }
+
+
       async function sha256Hex(s) {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)));
         return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -65,7 +148,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.6.0-turnstile-session-hash',
+          version: '2.7.0-totp-staff',
           checks: {}
         };
         try {
@@ -150,6 +233,63 @@ export default {
       
 
       // --- STAFF-only login (separate from public users / future CMD) ---
+      
+      // --- Staff TOTP enroll / status ---
+      if ((path === '/staff/totp/enroll' || path === '/staff-totp-enroll') && request.method === 'POST') {
+        try {
+          await ensureStaffTotpColumn();
+          const body = await request.json().catch(() => ({}));
+          const email = String(body.email || '').trim().toLowerCase();
+          const password = String(body.password || '');
+          if (!email || !password) {
+            return new Response(JSON.stringify({ success: false, error: 'email and password required' }), { headers: corsHeaders, status: 400 });
+          }
+          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE lower(email) = lower(?)').bind(email).first();
+          if (!staff || !staff.password_hash) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), { headers: corsHeaders, status: 401 });
+          }
+          const parts = String(staff.password_hash).split(':');
+          const [salt, storedHash] = parts;
+          const enc = new TextEncoder();
+          const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+          const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
+          const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
+          if (hash !== storedHash) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), { headers: corsHeaders, status: 401 });
+          }
+          const rnd = new Uint8Array(20);
+          crypto.getRandomValues(rnd);
+          const secret = b32Encode(rnd);
+          await env.AUTH_DB.prepare('UPDATE staff SET totp_secret = ? WHERE id = ?').bind(secret, staff.id).run();
+          const label = encodeURIComponent('CMN Staff:' + email);
+          const issuer = encodeURIComponent('CalhegasMorais');
+          const otpauth = 'otpauth://totp/' + label + '?secret=' + secret + '&issuer=' + issuer + '&digits=6&period=30';
+          return new Response(JSON.stringify({
+            success: true,
+            secret,
+            otpauth_url: otpauth,
+            message: 'Scan otpauth_url in Google Authenticator / Aegis / 1Password. Next staff login requires TOTP.',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+      if ((path === '/staff/totp/status' || path === '/staff-totp-status') && request.method === 'POST') {
+        try {
+          await ensureStaffTotpColumn();
+          const body = await request.json().catch(() => ({}));
+          const email = String(body.email || '').trim().toLowerCase();
+          const staff = await env.AUTH_DB.prepare('SELECT id, email, totp_secret FROM staff WHERE lower(email) = lower(?)').bind(email).first();
+          return new Response(JSON.stringify({
+            success: true,
+            enrolled: !!(staff && staff.totp_secret),
+            email: staff ? staff.email : null,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
       if ((path === '/staff/login' || path === '/staff-login') && request.method === 'POST') {
         try {
           const { email, password } = await request.json();
@@ -172,7 +312,20 @@ export default {
           if (hash !== storedHash) {
             return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
           }
-          // Ensure OTP table
+          await ensureStaffTotpColumn();
+          // Prefer app TOTP when enrolled
+          if (staff.totp_secret) {
+            return new Response(JSON.stringify({
+              success: true,
+              requires_2fa: true,
+              challenge: 'TOTP-' + staff.id,
+              channel: 'totp',
+              message: 'Staff password OK. Enter the 6-digit code from your authenticator app.',
+              email: staff.email,
+              role: staff.role,
+            }), { headers: corsHeaders });
+          }
+          // Lab fallback: one-time code (echo when LAB_OTP_ECHO=1)
           await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS staff_otp (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             staff_id INTEGER NOT NULL,
@@ -187,16 +340,13 @@ export default {
           await env.AUTH_DB.prepare(
             "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
           ).bind(staff.id, code, challenge).run();
-          // Lab: no mail provider bound — echo OTP when LAB_OTP_ECHO=1 (default true in lab)
           const echo = env.LAB_OTP_ECHO !== '0';
-          const channel = env.STAFF_2FA_CHANNEL || 'email';
           return new Response(JSON.stringify({
             success: true,
             requires_2fa: true,
             challenge,
-            channel,
-            message: 'Staff password OK. Enter the 6-digit code (lab 2FA).',
-            // Production: send code via email/SMS provider; never echo.
+            channel: env.STAFF_2FA_CHANNEL || 'email',
+            message: 'Staff password OK. Enter the 6-digit lab code.',
             lab_otp: echo ? code : undefined,
             email: staff.email,
             role: staff.role,
@@ -215,19 +365,25 @@ export default {
           const row = await env.AUTH_DB.prepare(
             "SELECT * FROM staff_otp WHERE challenge = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
           ).bind(challenge).first();
-          if (!row || String(row.code) !== String(code).trim()) {
-            return new Response(JSON.stringify({ success: false, error: 'Invalid or expired 2FA code' }), { headers: corsHeaders, status: 401 });
+          let staff = null;
+          if (String(challenge).startsWith('TOTP-')) {
+            const sid = parseInt(String(challenge).slice(5), 10);
+            staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE id = ?').bind(sid).first();
+            if (!staff || !staff.totp_secret || !(await totpVerify(staff.totp_secret, code))) {
+              return new Response(JSON.stringify({ success: false, error: 'Invalid or expired TOTP code' }), { headers: corsHeaders, status: 401 });
+            }
+          } else {
+            if (!row || String(row.code) !== String(code).trim()) {
+              return new Response(JSON.stringify({ success: false, error: 'Invalid or expired 2FA code' }), { headers: corsHeaders, status: 401 });
+            }
+            await env.AUTH_DB.prepare('UPDATE staff_otp SET used = 1 WHERE id = ?').bind(row.id).run();
+            staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE id = ?').bind(row.staff_id).first();
           }
-          await env.AUTH_DB.prepare('UPDATE staff_otp SET used = 1 WHERE id = ?').bind(row.id).run();
-          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE id = ?').bind(row.staff_id).first();
           if (!staff) {
             return new Response(JSON.stringify({ success: false, error: 'Staff not found' }), { headers: corsHeaders, status: 401 });
           }
-          const token = crypto.randomUUID();
+          const token = await issueSession(env, -staff.id);
           await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
-          await env.AUTH_DB.prepare(
-            "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
-          ).bind(-staff.id, token, token).run();
           return new Response(JSON.stringify({
             success: true,
             type: 'staff',
@@ -643,7 +799,7 @@ export default {
             { id: 'microsoft', enabled: msOn, label: 'Microsoft', register: true, login: true,
               start: '/auth/microsoft/start', note: msOn ? 'OIDC' : 'Set MICROSOFT_CLIENT_ID + MICROSOFT_CLIENT_SECRET' },
             { id: 'staff', enabled: true, label: 'Staff / Pessoal (email + password + 2FA)', register: false, login: true,
-              endpoints: { login: '/staff/login', verify_2fa: '/staff/2fa' }, note: 'Internal only' },
+              endpoints: { login: '/staff/login', verify_2fa: '/staff/2fa', totp_enroll: '/staff/totp/enroll' }, note: 'Internal only · TOTP app when enrolled' },
             { id: 'cmd', enabled: !!cmdOn, label: 'Chave Móvel Digital (Portugal)', register: true, login: true,
               note: cmdOn ? 'Autenticação.gov' : 'Pending AMA SP — lab' },
             { id: 'eudi', enabled: !!eudiOn, label: 'EU Digital Identity Wallet', register: true, login: true,
