@@ -458,7 +458,7 @@ async function ipfsAddPayload(env, payloadStr, node_id, meta = {}) {
       if (j && j.cid) {
         return {
           cid: j.cid,
-          gateway_url: j.gateway_url || `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${j.cid}`,
+          gateway_url: j.gateway_url || `https://calhegasmorais.pt/ipfs/${j.cid}`,
           gateway_path: j.gateway_path || `/ipfs/${j.cid}`,
           stored: true,
           mode: 'service_binding',
@@ -502,7 +502,7 @@ async function ipfsAddPayload(env, payloadStr, node_id, meta = {}) {
   // 3) Local CID only (ledger records address; content not yet on edge store)
   return {
     cid: localCid,
-    gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${localCid}`,
+    gateway_url: `https://calhegasmorais.pt/ipfs/${localCid}`,
     gateway_path: `/ipfs/${localCid}`,
     stored: false,
     mode: 'local_cid_only',
@@ -688,7 +688,7 @@ export default {
           content: hit?.found ? hit.content : null,
           via: hit?.via || null,
           vertex: vertex || null,
-          gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
+          gateway_url: `https://calhegasmorais.pt/ipfs/${cid}`,
         }, hit?.found ? 200 : 404);
       }
 
@@ -976,7 +976,7 @@ export default {
           tips: tipIds,
           ipfs_cid: cid,
           pin,
-          ipfs_gateway: pin && pin.gateway_url ? pin.gateway_url : (cid ? `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}` : null),
+          ipfs_gateway: pin && pin.gateway_url ? pin.gateway_url : (cid ? `https://calhegasmorais.pt/ipfs/${cid}` : null),
           ipfs_resolve: cid ? `/resolve?cid=${encodeURIComponent(cid)}` : null,
           gossip,
           cumulative_weight: 1,

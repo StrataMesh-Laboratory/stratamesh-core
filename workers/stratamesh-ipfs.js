@@ -189,7 +189,7 @@ export default {
       return json({
         status: 'ok',
         service: 'stratamesh-ipfs',
-        version: '3.1.0-dag-integrated',
+        version: '3.2.0-edge',
         cid: 'CIDv1 raw+sha2-256 multibase base32',
         storage: {
           r2: !!env.FOG_BUCKET,
@@ -197,44 +197,75 @@ export default {
           pinata: !!env.PINATA_JWT,
         },
         gateway: true,
-        endpoints: ['/health', '/add', '/pin', '/verify', '/ipfs/{cid}', '/get', '/tiers', '/pins'],
+        endpoints: ['/health', '/edge', '/add', '/pin', '/verify', '/ipfs/{cid}', '/get', '/name', '/edge/index', '/tiers', '/pins'],
       });
     }
 
     // Gateway: GET /ipfs/{cid}
-    if (path.startsWith('/ipfs/') && request.method === 'GET') {
+    if (path.startsWith('/ipfs/') && (request.method === 'GET' || request.method === 'HEAD')) {
+      if (request.method === 'HEAD') {
+        const cid = path.slice('/ipfs/'.length).split('/')[0];
+        const hit = await loadContent(env, cid);
+        if (!hit) return new Response(null, { status: 404, headers: { 'X-Content-CID': cid || '' } });
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Content-Type': hit.contentType || 'application/octet-stream',
+            'X-Content-CID': cid,
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
       const cid = path.slice('/ipfs/'.length).split('/')[0];
       if (!cid || cid === 'health') return json({ error: 'cid required' }, 400);
       const hit = await loadContent(env, cid);
       if (!hit) {
-        // try public gateways for externally pinned content
-        for (const gw of ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/']) {
+        // Edge beyond fog: pull from public IPFS network and replicate onto this edge
+        for (const gw of [
+          'https://cloudflare-ipfs.com/ipfs/',
+          'https://ipfs.io/ipfs/',
+          'https://dweb.link/ipfs/',
+          'https://gateway.pinata.cloud/ipfs/',
+        ]) {
           try {
-            const r = await fetch(gw + cid, { method: 'GET', redirect: 'follow' });
+            const r = await fetch(gw + cid, {
+              method: 'GET',
+              redirect: 'follow',
+              headers: { Accept: '*/*' },
+            });
             if (r.ok) {
-              const body = await r.arrayBuffer();
-              return new Response(body, {
+              const ab = await r.arrayBuffer();
+              const bytes = new Uint8Array(ab);
+              const ct = r.headers.get('content-type') || 'application/octet-stream';
+              try {
+                await storeContent(env, cid, bytes, { contentType: ct, node_id: 'edge-replicate' });
+              } catch (_) {}
+              return new Response(bytes, {
                 status: 200,
                 headers: {
-                  'Content-Type': r.headers.get('content-type') || 'application/octet-stream',
+                  'Content-Type': ct,
                   'Access-Control-Allow-Origin': '*',
-                  'X-StrataMesh-Gateway': 'public-fallback',
+                  'Cache-Control': 'public, max-age=31536000, immutable',
+                  'X-StrataMesh-Gateway': 'public-replicate-to-edge',
                   'X-Content-CID': cid,
+                  'X-Replicated-From': gw,
                 },
               });
             }
           } catch (_) {}
         }
-        return json({ error: 'not found', cid }, 404);
+        return json({ error: 'not found', cid, tried: 'edge+public' }, 404);
       }
       return new Response(hit.body, {
         status: 200,
         headers: {
-          'Content-Type': hit.contentType,
+          'Content-Type': hit.contentType || 'application/octet-stream',
           'Access-Control-Allow-Origin': '*',
-          'X-StrataMesh-Gateway': 'local',
-          'X-Content-CID': cid,
           'Cache-Control': 'public, max-age=31536000, immutable',
+          'X-StrataMesh-Gateway': 'edge',
+          'X-Content-CID': cid,
         },
       });
     }
@@ -322,6 +353,15 @@ export default {
 
       const cid = await cidV1Raw(content);
       await storeContent(env, cid, content, meta);
+      try {
+        if (env.CID_CACHE) {
+          await env.CID_CACHE.put(
+            'edge:cid:' + cid,
+            JSON.stringify({ cid, at: new Date().toISOString(), size: typeof content === 'string' ? content.length : content.length }),
+            { expirationTtl: 60 * 60 * 24 * 30 }
+          );
+        }
+      } catch (_) {}
 
       let external = null;
       if (env.PINATA_JWT && meta.contentType.includes('json')) {
@@ -339,14 +379,15 @@ export default {
         size_bytes: typeof content === 'string' ? content.length : content.length,
         content_type: meta.contentType,
         gateway_path: `/ipfs/${cid}`,
-        gateway_url: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
+        gateway_url: `https://calhegasmorais.pt/ipfs/${cid}`,
+        gateway_workers: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
         public_gateways: [
           `https://ipfs.io/ipfs/${cid}`,
           `https://cloudflare-ipfs.com/ipfs/${cid}`,
         ],
         note: 'CIDv1 raw+sha2-256. Content stored on StrataMesh edge (R2/KV). Public gateways resolve only after network announcement or Pinata.',
         pinata: external,
-        version: '3.1.0-dag-integrated',
+        version: '3.2.0-edge',
       });
     }
 
@@ -379,6 +420,73 @@ export default {
         return json({ pins: [], error: String(e.message || e) });
       }
     }
+
+    
+    // --- Edge naming (IPNS-like pointer in KV) ---
+    if (path === '/name' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const name = String(body.name || body.key || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+      const cid = String(body.cid || '').trim();
+      if (!name || !cid) return json({ error: 'name and cid required' }, 400);
+      if (!env.CID_CACHE) return json({ error: 'CID_CACHE KV required' }, 503);
+      await env.CID_CACHE.put('ipns:' + name, JSON.stringify({
+        name, cid, updated_at: new Date().toISOString(), node_id: body.node_id || 'edge',
+      }));
+      return json({
+        success: true,
+        name,
+        cid,
+        resolve: '/name/' + name,
+        gateway: 'https://calhegasmorais.pt/ipfs/' + cid,
+      });
+    }
+    if (path.startsWith('/name/') && request.method === 'GET') {
+      const name = path.slice('/name/'.length).split('/')[0];
+      if (!name) return json({ error: 'name required' }, 400);
+      if (!env.CID_CACHE) return json({ error: 'CID_CACHE KV required' }, 503);
+      const raw = await env.CID_CACHE.get('ipns:' + name);
+      if (!raw) return json({ error: 'name not found', name }, 404);
+      const rec = JSON.parse(raw);
+      if (url.searchParams.get('redirect') === '1' && rec.cid) {
+        return Response.redirect('https://calhegasmorais.pt/ipfs/' + rec.cid, 302);
+      }
+      return json({ success: true, ...rec, gateway: 'https://calhegasmorais.pt/ipfs/' + rec.cid });
+    }
+
+    // Edge catalog of recently added CIDs
+    if (path === '/edge/index' && request.method === 'GET') {
+      if (!env.CID_CACHE) return json({ index: [], note: 'no CID_CACHE' });
+      const list = await env.CID_CACHE.list({ prefix: 'edge:cid:', limit: 50 });
+      const keys = (list.keys || []).map((k) => k.name.replace(/^edge:cid:/, ''));
+      return json({
+        success: true,
+        count: keys.length,
+        cids: keys,
+        gateway_base: 'https://calhegasmorais.pt/ipfs/',
+      });
+    }
+
+    // Edge capability report
+    if (path === '/edge' && request.method === 'GET') {
+      return json({
+        status: 'ok',
+        layer: 'edge',
+        beyond_fog: true,
+        domain_gateway: 'https://calhegasmorais.pt/ipfs/{cid}',
+        workers_gateway: 'https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/{cid}',
+        features: [
+          'CIDv1 raw+sha2-256',
+          'R2+KV content store',
+          'public gateway fetch + replicate-to-edge',
+          'IPNS-like names in KV',
+          'DAG service binding /add',
+          'optional Pinata if PINATA_JWT',
+        ],
+        storage: { r2: !!env.FOG_BUCKET, kv: !!env.CID_CACHE, pinata: !!env.PINATA_JWT },
+        version: '3.2.0-edge',
+      });
+    }
+
 
     return json({ error: 'Not found', endpoints: ['/health', '/add', '/pin', '/ipfs/{cid}', '/get', '/tiers'] }, 404);
   },
