@@ -700,60 +700,155 @@ export default {
   async scheduled(event, env, ctx) {
     const run = async () => {
       const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
-      const cronExpr = (event && event.cron) || '*/10 * * * *';
-      const rid = crypto.randomUUID();
-      const ensure = async () => {
-        if (!db) return;
-        await db
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS sca_breath_runs (
-              id TEXT PRIMARY KEY,
-              source TEXT,
-              cron TEXT,
-              http_status INTEGER,
-              detail TEXT,
-              created_at TEXT DEFAULT (datetime('now'))
-            )`
-          )
-          .run();
-      };
+      const cronExpr = (event && event.cron) || 'unknown';
       const logRun = async (source, http_status, detail) => {
         if (!db) return;
         try {
-          await ensure();
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_breath_runs (
+                id TEXT PRIMARY KEY,
+                source TEXT,
+                cron TEXT,
+                http_status INTEGER,
+                detail TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
           await db
             .prepare(
               `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
             )
-            .bind(crypto.randomUUID(), source, cronExpr, http_status, String(detail || '').slice(0, 1000))
+            .bind(crypto.randomUUID(), source, cronExpr, http_status, String(detail || '').slice(0, 1200))
             .run();
-        } catch (e) {
-          /* last resort: ignore */
-        }
+        } catch (_) {}
       };
-      await logRun('cron_invoke', null, 'scheduled_handler entered ' + new Date().toISOString());
+
+      await logRun('cron_invoke', null, 'scheduled entered ' + new Date().toISOString());
+
+      if (!db) {
+        await logRun('cron_error', 0, 'no_d1_binding');
+        return;
+      }
+
+      // RCA fix: do NOT self-fetch workers.dev (CF error 1042). Run breath in-isolate.
+      const COST_P = 0.0001;
+      const COST_M = 0.00003;
+      const RESERVE = 0.0001;
+      let awakened = 0;
+      let starved = 0;
+      let errors = 0;
       try {
-        const r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/cognition/tick', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Breath-Source': 'cron',
-          },
-          body: JSON.stringify({ limit: 12, trigger: 'cron' }),
-        });
-        const text = await r.text();
-        await logRun('cron_result', r.status, text);
-        if (!r.ok) await logRun('cron_http_not_ok', r.status, text.slice(0, 400));
+        await db
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS sca_cognition_log (
+              id TEXT PRIMARY KEY,
+              sca_id TEXT,
+              triggered TEXT,
+              cost_process REAL,
+              cost_memory REAL,
+              balance_after REAL,
+              intention TEXT,
+              memory_id TEXT,
+              created_at TEXT DEFAULT (datetime('now'))
+            )`
+          )
+          .run();
+        await db
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS sca_memory (
+              id TEXT PRIMARY KEY,
+              sca_id TEXT NOT NULL,
+              kind TEXT,
+              content TEXT,
+              cost REAL,
+              created_at TEXT DEFAULT (datetime('now'))
+            )`
+          )
+          .run();
+
+        const rows =
+          (
+            await db
+              .prepare(
+                `SELECT id, name, status, balance, last_action FROM acb_registry
+                 WHERE upper(COALESCE(status,'')) NOT IN ('HIBERNATED','REVOKED')
+                 ORDER BY last_action ASC LIMIT 12`
+              )
+              .all()
+          ).results || [];
+
+        for (const acb of rows) {
+          try {
+            let bal = Number(acb.balance);
+            if (!Number.isFinite(bal)) {
+              try {
+                const tb = await db
+                  .prepare(`SELECT balance FROM token_balances WHERE account = ? AND token_type = 'STRATA'`)
+                  .bind(acb.id)
+                  .first();
+                bal = Number(tb?.balance || 0);
+              } catch (_) {
+                bal = 0;
+              }
+            }
+            const need = COST_P + COST_M + RESERVE;
+            if (bal < need) {
+              starved++;
+              continue;
+            }
+            const afterP = bal - COST_P;
+            const afterM = afterP - COST_M;
+            const intention = String(acb.last_action || '').includes('pulse') ? 'reflect' : 'pulse';
+            const memId = crypto.randomUUID();
+            const mem = JSON.stringify({
+              trigger: 'cron',
+              intention,
+              at: new Date().toISOString(),
+              note: 'in-isolate breath (no self-fetch)',
+            });
+            try {
+              await db
+                .prepare(`UPDATE token_balances SET balance = ? WHERE account = ? AND token_type = 'STRATA'`)
+                .bind(afterM, acb.id)
+                .run();
+            } catch (_) {}
+            try {
+              await db
+                .prepare(`UPDATE acb_registry SET balance = ?, last_action = 'autonomous_cognition', status = 'active' WHERE id = ?`)
+                .bind(afterM, acb.id)
+                .run();
+            } catch (_) {}
+            await db
+              .prepare(
+                `INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,?)`
+              )
+              .bind(memId, acb.id, 'cognition_trace', mem, COST_M)
+              .run();
+            await db
+              .prepare(
+                `INSERT INTO sca_cognition_log (id, sca_id, triggered, cost_process, cost_memory, balance_after, intention, memory_id)
+                 VALUES (?,?,?,?,?,?,?,?)`
+              )
+              .bind(crypto.randomUUID(), acb.id, 'cron', COST_P, COST_M, afterM, intention, memId)
+              .run();
+            awakened++;
+          } catch (e) {
+            errors++;
+          }
+        }
+        await logRun(
+          'cron_result',
+          200,
+          JSON.stringify({ mode: 'in_isolate', awakened, starved, errors, n: rows.length })
+        );
       } catch (e) {
         await logRun('cron_error', 0, e && e.message ? e.message : String(e));
       }
     };
-    try {
-      if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
-      else await run();
-    } catch (_) {
-      await run();
-    }
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
+    else await run();
   },
 
   async fetch(request, env) {
@@ -801,7 +896,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.8.2-breath-cron-proof',
+          version: '5.8.3-in-isolate-breath',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1214,7 +1309,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.2-breath-cron-proof',
+          version: '5.8.3-in-isolate-breath',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2042,7 +2137,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.8.2-breath-cron-proof',
+          version: '5.8.3-in-isolate-breath',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2634,7 +2729,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.2-breath-cron-proof' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.8.3-in-isolate-breath' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -2642,7 +2737,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.8.2-breath-cron-proof' });
+        return j({ ...pop, trigger, version: '5.8.3-in-isolate-breath' });
       }
 
       // Breath diagnostics
