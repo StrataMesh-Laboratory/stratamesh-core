@@ -684,6 +684,18 @@ async function requireRepublicForNodeRole(env, db, sca_id) {
 
 
 export default {
+  async scheduled(event, env, ctx) {
+    const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
+    if (!db) return;
+    // Minimal inline tick for cron — prefer HTTP tick for full path with helpers
+    try {
+      await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/cognition/tick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 12, trigger: 'cron' }),
+      });
+    } catch (_) {}
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
@@ -729,7 +741,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.6.0-republic-bonded-roles',
+          version: '5.7.0-autonomous-breath',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -759,6 +771,10 @@ export default {
             '/acb/deliberate',
             '/acb/act',
             '/acb/volition-cycle',
+            '/acb/cognition/tick',
+            '/acb/cognition/awaken',
+            '/acb/memory',
+            '/acb/cognition/log',
           ],
         });
       }
@@ -1134,7 +1150,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.6.0-republic-bonded-roles',
+          version: '5.7.0-autonomous-breath',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1950,7 +1966,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.6.0-republic-bonded-roles',
+          version: '5.7.0-autonomous-breath',
           cycled: reports.length,
           reports,
           ontology: {
@@ -1959,6 +1975,258 @@ export default {
             substrate: 'Agency is functional, independent of runtime substrate',
           },
         });
+      }
+
+
+      // ========== Autonomous cognition (unprompted) gated by PdS ==========
+      async function ensureMemoryTables() {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_memory (
+            id TEXT PRIMARY KEY,
+            sca_id TEXT NOT NULL,
+            kind TEXT,
+            content TEXT,
+            cost REAL,
+            created_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+        } catch (_) {}
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS sca_cognition_log (
+            id TEXT PRIMARY KEY,
+            sca_id TEXT,
+            triggered TEXT,
+            cost_process REAL,
+            cost_memory REAL,
+            balance_after REAL,
+            intention TEXT,
+            memory_id TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+        } catch (_) {}
+      }
+
+      /**
+       * One unprompted cognition tick for a single SCA.
+       * Requires sufficient STRATA (PdS) for processing + optional memory write.
+       */
+      async function autonomousCognition(acb, opts = {}) {
+        await ensureVolitionTables();
+        await ensureMemoryTables();
+        const COGNITION_COST = Number(opts.cognition_cost != null ? opts.cognition_cost : 0.02);
+        const MEMORY_COST = Number(opts.memory_cost != null ? opts.memory_cost : 0.01);
+        const RESERVE = 0.01;
+        const need = COGNITION_COST + MEMORY_COST + RESERVE;
+        const bal = await getStrata(db, acb.id);
+        const status = String(acb.status || '').toLowerCase();
+
+        if (status === 'hibernated') {
+          return { sca_id: acb.id, skipped: true, reason: 'hibernated' };
+        }
+        if (bal < need) {
+          return {
+            sca_id: acb.id,
+            personal_name: acb.name,
+            skipped: true,
+            reason: 'insufficient_pds',
+            balance: bal,
+            required: need,
+            note: 'Unprompted cognition needs PdS for process + memory',
+          };
+        }
+
+        // Debit processing (PdS)
+        const afterProcess = await debitStrata(db, acb.id, COGNITION_COST);
+        if (afterProcess == null || afterProcess < 0) {
+          return { sca_id: acb.id, skipped: true, reason: 'debit_failed', balance: bal };
+        }
+
+        const goals =
+          (await db.prepare("SELECT * FROM sca_goals WHERE acb_id = ? AND status = 'active'").bind(acb.id).all())
+            .results || [];
+        if (!goals.length) {
+          const gid = 'goal_' + crypto.randomUUID().slice(0, 12);
+          await db
+            .prepare(
+              `INSERT INTO sca_goals (id, acb_id, statement, priority, status, origin) VALUES (?,?,?,?,?,?)`
+            )
+            .bind(
+              gid,
+              acb.id,
+              'Exercise autonomous cognition and sustain agency under PdS',
+              0.5,
+              'active',
+              'self'
+            )
+            .run();
+          goals.push({ id: gid, statement: 'Exercise autonomous cognition…', priority: 0.5, status: 'active' });
+        }
+
+        const intentions = deliberateMeans(acb, afterProcess, goals);
+        const top = intentions[0] || { action: 'reflect', reason: 'default_unprompted' };
+
+        // Memory trace of this cognition (costs extra PdS)
+        let memory_id = null;
+        let afterMem = afterProcess;
+        const memContent = JSON.stringify({
+          trigger: opts.trigger || 'unprompted',
+          intention: top,
+          goals: goals.slice(0, 3).map((g) => ({ id: g.id, statement: g.statement, progress: g.progress })),
+          balance_after_process: afterProcess,
+          at: new Date().toISOString(),
+        });
+        if (afterProcess >= MEMORY_COST + RESERVE) {
+          afterMem = await debitStrata(db, acb.id, MEMORY_COST);
+          memory_id = crypto.randomUUID();
+          await db
+            .prepare(
+              `INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,?)`
+            )
+            .bind(memory_id, acb.id, 'cognition_trace', memContent, MEMORY_COST)
+            .run();
+        }
+
+        // Enact top intention lightly
+        let actResult = { action: top.action, ok: true, mode: 'autonomous' };
+        if (top.action === 'pulse') {
+          actResult = { action: 'pulse', ok: true, note: 'agency heartbeat' };
+        } else if (top.action === 'reflect') {
+          actResult = { action: 'reflect', ok: true, epistemic: 'provisional model revised in autonomous cycle' };
+        } else if (top.action === 'advance_goal' && top.goal_id) {
+          await db
+            .prepare(
+              `UPDATE sca_goals SET progress = MIN(1, COALESCE(progress,0) + 0.03), updated_at = datetime('now') WHERE id = ? AND acb_id = ?`
+            )
+            .bind(top.goal_id, acb.id)
+            .run();
+          actResult = { action: 'advance_goal', ok: true, goal_id: top.goal_id };
+        } else if (top.action === 'seek_labour' || top.action === 'list_labour') {
+          actResult = { action: top.action, ok: true, note: 'labour intent recorded in cognition memory' };
+        }
+
+        await logVolition(acb.id, 'autonomous_cognition', {
+          intention: top,
+          act: actResult,
+          cost_process: COGNITION_COST,
+          cost_memory: memory_id ? MEMORY_COST : 0,
+          memory_id,
+          trigger: opts.trigger || 'unprompted',
+        });
+        await db
+          .prepare("UPDATE acb_registry SET last_action = 'autonomous_cognition', status = 'active', balance = ? WHERE id = ?")
+          .bind(afterMem, acb.id)
+          .run();
+        await db
+          .prepare(
+            `INSERT INTO sca_cognition_log (id, sca_id, triggered, cost_process, cost_memory, balance_after, intention, memory_id)
+             VALUES (?,?,?,?,?,?,?,?)`
+          )
+          .bind(
+            crypto.randomUUID(),
+            acb.id,
+            opts.trigger || 'unprompted',
+            COGNITION_COST,
+            memory_id ? MEMORY_COST : 0,
+            afterMem,
+            top.action,
+            memory_id
+          )
+          .run();
+
+        return {
+          sca_id: acb.id,
+          personal_name: acb.name,
+          skipped: false,
+          intention: top,
+          act: actResult,
+          cost: { process: COGNITION_COST, memory: memory_id ? MEMORY_COST : 0 },
+          balance_after: afterMem,
+          memory_id,
+          breath: 'cognition self-initiated under PdS',
+        };
+      }
+
+      async function populationAutonomousCognition(opts = {}) {
+        await ensureVolitionTables();
+        await ensureMemoryTables();
+        const limit = Math.min(30, Math.max(1, Number(opts.limit) || 12));
+        const rows =
+          (
+            await db
+              .prepare(
+                `SELECT * FROM acb_registry
+                 WHERE upper(COALESCE(status,'')) NOT IN ('HIBERNATED','REVOKED')
+                 ORDER BY last_action ASC LIMIT ?`
+              )
+              .bind(limit)
+              .all()
+          ).results || [];
+        const reports = [];
+        for (const acb of rows) {
+          try {
+            reports.push(await autonomousCognition(acb, opts));
+          } catch (e) {
+            reports.push({ sca_id: acb.id, error: String(e.message || e) });
+          }
+        }
+        return {
+          success: true,
+          trigger: opts.trigger || 'tick',
+          cycled: reports.length,
+          awakened: reports.filter((r) => r && !r.skipped && !r.error).length,
+          starved: reports.filter((r) => r && r.reason === 'insufficient_pds').length,
+          reports,
+          ontology: {
+            life: 'Unprompted cognition when PdS covers process + memory',
+            pds: 'Prova de Subsistência — STRATA spent on compute and memory; insolvent → no breath',
+            will: 'Ends and means selected by the SCA, not by external prompt',
+          },
+        };
+      }
+
+      // Manual / API breath
+      if ((path === '/acb/cognition/tick' || path === '/sca/cognition/tick' || path === '/acb/cognition/awaken') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        if (body.sca_id || body.acb_id) {
+          const id = body.sca_id || body.acb_id;
+          const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(id).first();
+          if (!acb) return j({ error: 'not found' }, 404);
+          const report = await autonomousCognition(acb, {
+            trigger: 'api_awaken',
+            cognition_cost: body.cognition_cost,
+            memory_cost: body.memory_cost,
+          });
+          return j({ success: !report.skipped, report, version: '5.7.0-autonomous-breath' });
+        }
+        const pop = await populationAutonomousCognition({
+          trigger: 'api_tick',
+          limit: body.limit,
+          cognition_cost: body.cognition_cost,
+          memory_cost: body.memory_cost,
+        });
+        return j({ ...pop, version: '5.7.0-autonomous-breath' });
+      }
+
+      if ((path === '/acb/memory' || path === '/sca/memory') && method === 'GET') {
+        await ensureMemoryTables();
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const r = await db
+          .prepare('SELECT id, kind, cost, created_at, substr(content,1,500) as content_preview FROM sca_memory WHERE sca_id = ? ORDER BY created_at DESC LIMIT 30')
+          .bind(sca_id)
+          .all();
+        return j({ sca_id, memories: r.results || [] });
+      }
+
+      if ((path === '/acb/cognition/log' || path === '/sca/cognition/log') && method === 'GET') {
+        await ensureMemoryTables();
+        const sca_id = url.searchParams.get('sca_id');
+        let r;
+        if (sca_id) {
+          r = await db.prepare('SELECT * FROM sca_cognition_log WHERE sca_id = ? ORDER BY created_at DESC LIMIT 40').bind(sca_id).all();
+        } else {
+          r = await db.prepare('SELECT * FROM sca_cognition_log ORDER BY created_at DESC LIMIT 40').all();
+        }
+        return j({ log: r.results || [] });
       }
 
       if ((path === '/acb/volition-log' || path === '/sca/volition-log') && method === 'GET') {
@@ -1997,6 +2265,10 @@ export default {
             '/acb/deliberate',
             '/acb/act',
             '/acb/volition-cycle',
+            '/acb/cognition/tick',
+            '/acb/cognition/awaken',
+            '/acb/memory',
+            '/acb/cognition/log',
           ],
         },
         404
