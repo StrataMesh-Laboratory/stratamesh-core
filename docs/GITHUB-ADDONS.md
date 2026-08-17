@@ -175,3 +175,6 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 6. **healthchecks** — watchdog dos ciclos AIOps  
 
 *Não é lista de compras obrigatória: cada linha deve justificar-se por PdC, PdS ou clareza institucional ENI.*
+
+
+| IoT edge universal | **Activo** — `stratamesh-iot` 2.1.0 · docs/IOT-EDGE.md |

@@ -17,7 +17,7 @@ export default {
           iot: 'https://stratamesh-iot.stratamesh.workers.dev',
           substrate: 'agnostic',
           repaired: true,
-          version: '1.2.0-iot-aware'
+          version: '2.0.0-iot-hub'
         });
       }
 
@@ -29,6 +29,15 @@ export default {
       if (path === '/cache' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         return j({ cid: body.cid, cached: true, cached_at: new Date().toISOString() });
+      }
+      if (path === '/iot' || path.startsWith('/iot/')) {
+        const target = 'https://stratamesh-iot.stratamesh.workers.dev' + (path === '/iot' ? '/health' : path.slice(4) || '/health');
+        try {
+          const r = await fetch(target, { method: request.method, headers: request.headers, body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer() });
+          return new Response(await r.arrayBuffer(), { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') || 'application/json', 'Access-Control-Allow-Origin': '*' } });
+        } catch (e) {
+          return j({ error: String(e.message || e), service: 'stratamesh-edge', proxy: 'iot' }, 502);
+        }
       }
       if (path === '/sync') {
         return j({ status: 'synced', fog_node: 'calhegasmorais.pt', last_sync: new Date().toISOString() });
