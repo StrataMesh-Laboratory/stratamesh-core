@@ -133,6 +133,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)">DAO</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)">APS</button>
     <button type="button" data-panel="acb" onclick="showPanel('acb',this)">SCA</button>
+    <button type="button" data-panel="iot" onclick="showPanel('iot',this)">IoT</button>
     <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)">Diagnóstico</button>
     <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orquestrador</button>
     <button type="button" data-panel="clp" onclick="showPanel('clp',this)">CLP</button>
@@ -296,6 +297,28 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <!-- DIAGNOSTIC WIZARD -->
+  
+  <div class="panel" id="panel-iot">
+    <h2 data-i18n="iot_title">IoT · Edge</h2>
+    <p class="lead">Ingestão universal no edge — ACK imediato, GDA em background, identidade por função (não por substrato).</p>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0">
+      <button type="button" onclick="loadIot()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Actualizar</button>
+      <a href="https://stratamesh-iot.stratamesh.workers.dev/compat" target="_blank" rel="noopener" style="padding:.55rem 1rem;border:1px solid var(--line2);border-radius:4px;color:var(--accent);text-decoration:none;font-size:.85rem">/compat</a>
+    </div>
+    <div id="iotStats" style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted);margin-bottom:1rem">A carregar…</div>
+    <h3 style="font-size:1rem;margin:.5rem 0">Agentes recentes</h3>
+    <div id="iotAgents" style="overflow:auto"></div>
+    <h3 style="font-size:1rem;margin:1rem 0 .5rem">Ensaio rápido (universal)</h3>
+    <p style="font-size:.82rem;color:var(--muted)">Não controla aparelhos — só telemetria passiva no edge. Formatos: JSON · texto KV · GET.</p>
+    <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin:.5rem 0">
+      <button type="button" onclick="iotPing('json')" style="padding:.5rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">JSON</button>
+      <button type="button" onclick="iotPing('kv')" style="padding:.5rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">texto KV</button>
+      <button type="button" onclick="iotPing('get')" style="padding:.5rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">GET query</button>
+      <button type="button" onclick="iotPing('senml')" style="padding:.5rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">SenML</button>
+    </div>
+    <pre id="iotPingOut" style="margin-top:.75rem;font-size:.75rem;color:var(--muted);white-space:pre-wrap"></pre>
+  </div>
+
   <div class="panel" id="panel-diagnostics">
     <h3>Troubleshooting · RCA</h3>
     <p style="color:var(--muted);margin-bottom:16px">Diagnóstico de ponta a ponta dos serviços StrataMesh. Os resultados são partilhados entre utilizadores e o Orquestrador.</p>
@@ -1504,6 +1527,57 @@ async function loadSystemPanel(){
 }
 
 
+
+async function loadIot(){
+  var stats=document.getElementById('iotStats');
+  var agents=document.getElementById('iotAgents');
+  if(stats) stats.textContent=T('A carregar…','Loading…');
+  try{
+    var base='https://stratamesh-iot.stratamesh.workers.dev';
+    var [s,a]=await Promise.all([
+      fetch(base+'/stats').then(function(r){return r.json();}),
+      fetch(base+'/agents').then(function(r){return r.json();})
+    ]);
+    if(stats){
+      stats.textContent='v'+(s.version||'?')+' · agents='+(s.agents||0)+' · events='+(s.events||0)+' · on_dag='+(s.on_dag||0);
+    }
+    var list=(a&&a.agents)||[];
+    if(agents){
+      if(!list.length){ agents.innerHTML='<p style="color:var(--muted)">'+T('Nenhum agente ainda','No agents yet')+'</p>'; }
+      else{
+        agents.innerHTML='<table class="tx-list"><thead><tr><th>agent_id</th><th>'+T('eventos','events')+'</th><th>'+T('visto','seen')+'</th><th>hint</th></tr></thead><tbody>'+
+          list.map(function(x){
+            return '<tr><td>'+String(x.agent_id||'')+'</td><td>'+(x.event_count||0)+'</td><td>'+String(x.last_seen||'')+'</td><td>'+String(x.substrate_hint||'—')+'</td></tr>';
+          }).join('')+'</tbody></table>';
+      }
+    }
+  }catch(e){
+    if(stats) stats.textContent=String(e.message||e);
+  }
+}
+async function iotPing(mode){
+  var out=document.getElementById('iotPingOut');
+  if(out) out.textContent=T('A enviar…','Sending…');
+  var base='https://stratamesh-iot.stratamesh.workers.dev';
+  mode=mode||'json';
+  try{
+    var r;
+    if(mode==='get'){
+      r=await fetch(base+'/ingest?agent=portal-lab&kind=portal_ping&v=1&fmt=json');
+    }else if(mode==='kv'){
+      r=await fetch(base+'/t',{method:'POST',headers:{'Content-Type':'text/plain','X-Agent-Id':'portal-lab'},body:'kind=portal_ping value=1'});
+    }else if(mode==='senml'){
+      r=await fetch(base+'/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-Agent-Id':'portal-lab'},body:JSON.stringify([{n:'portal_ping',v:1,u:'1'}])});
+    }else{
+      r=await fetch(base+'/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-Agent-Id':'portal-lab'},body:JSON.stringify({kind:'portal_ping',value:1,ts:new Date().toISOString()})});
+    }
+    var j=await r.json();
+    if(out) out.textContent=JSON.stringify(j,null,2);
+    loadIot();
+  }catch(e){ if(out) out.textContent=String(e.message||e); }
+}
+
+window.loadIot=loadIot;window.iotPing=iotPing;
 window.loadWallet=loadWallet;window.loadAgora=loadAgora;window.loadDAO=loadDAO;
 window.loadSPA=loadSPA;window.loadSandbox=loadSandbox;window.loadACB=loadACB;
 window.loadEconomy=loadEconomy;window.loadKYC=loadKYC;
@@ -1520,6 +1594,7 @@ window.loadUsersPanel=loadUsersPanel;window.loadSystemPanel=loadSystemPanel;
       else if(n==='sandbox' || n==='spa') loadSPA();
       else if(n==='dao') loadDAO();
       else if(n==='acb') loadACB();
+      else if(n==='iot') loadIot();
       else if(n==='holons') loadHolonsPanel();
       else if(n==='kyc') loadKYC();
       else if(n==='users') loadUsersPanel();

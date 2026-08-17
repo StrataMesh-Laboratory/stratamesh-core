@@ -560,10 +560,11 @@ async function runTeamCycleBudgeted(env) {
     }
   }
 
-  const [status, orch, auth] = await Promise.all([
+  const [status, orch, auth, iot] = await Promise.all([
     probe(env.STATUS, "/status"),
     probe(env.ORCH, "/health"),
     probe(env.AUTH, "/health"),
+    probe(env.IOT, "/health"),
   ]);
 
   const reports = [];
@@ -610,7 +611,14 @@ async function runTeamCycleBudgeted(env) {
     mesh.push("roles=" + JSON.stringify(roles));
     if (!roles.fog && !roles.pinner) mesh.push("No fog/pinner SPA — register when host ready");
   } else mesh.push("SPA metrics missing");
-  reports.push(agentReport("mesh", mesh, "info"));
+  if (iot && iot.ok) {
+    const iv = (iot.data && iot.data.version) || "ok";
+    const ag = iot.data && iot.data.agents_known;
+    mesh.push("IoT edge " + iv + (ag != null ? "; agents_known=" + ag : ""));
+  } else {
+    mesh.push("IoT edge unreachable or binding missing");
+  }
+  reports.push(agentReport("mesh", mesh, iot && iot.ok ? "info" : "warn"));
 
   // economy
   const eco = [];
@@ -637,13 +645,14 @@ async function runTeamCycleBudgeted(env) {
       status: { ok: status.ok, http: status.status },
       orchestrator: { ok: orch.ok, http: orch.status, version: orch.data && orch.data.version },
       auth: { ok: auth.ok, http: auth.status },
+      iot: { ok: !!(iot && iot.ok), http: iot && iot.status, version: iot && iot.data && iot.data.version },
     },
     reports,
     next_actions: buildNextActions(reports, status.data),
     acb_ops,
     temporal: typeof ppcCompact === "function" ? ppcCompact("metaverse_os") : null,
     foundation_path: typeof holonicContext === "function" ? holonicContext().path : null,
-    version: "1.5.0-ppc",
+    version: "1.6.0-iot-mesh",
   };
 
   if (env.AIOPS_KV) {
@@ -787,6 +796,7 @@ async function runTeamCycle(env) {
       status: { ok: status.ok, http: status.status },
       orchestrator: { ok: orch.ok, http: orch.status, version: orch.data?.version },
       auth: { ok: auth.ok, http: auth.status },
+      iot: { ok: !!(iot && iot.ok), http: iot && iot.status, version: iot && iot.data && iot.data.version },
     },
     reports,
     next_actions: buildNextActions(reports, status.data),
@@ -969,7 +979,7 @@ export default {
       return json({
         status: "ok",
         worker: "stratamesh-aiops",
-        version: "1.5.0-ppc",
+        version: "1.6.0-iot-mesh",
         acb_roster: ACB_ROSTER,
         team: TEAM.map((a) => a.id),
         mode: "continuous-development",
