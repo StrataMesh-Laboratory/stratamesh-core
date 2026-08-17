@@ -699,9 +699,10 @@ async function requireRepublicForNodeRole(env, db, sca_id) {
 export default {
   async scheduled(event, env, ctx) {
     /**
-     * Not a predetermined "life clock".
-     * Only processes SCAs that already chose next_volition_at <= now (self-scheduled volition).
-     * Empty queue ⇒ no forced cognition.
+     * Queue dispatcher — NOT a life clock.
+     * 1) Honour due self-scheduled next_volition_at (agent already chose).
+     * 2) Soft nudge for SCAs with no schedule / stale silence — ask if they want
+     *    a next volition and of what kind; do not force full cognition.
      */
     const run = async () => {
       const db = env.LEDGER || env.DB || env.STRATAMESH_LEDGER;
@@ -724,22 +725,13 @@ export default {
             .prepare(
               `INSERT INTO sca_breath_runs (id, source, cron, http_status, detail) VALUES (?,?,?,?,?)`
             )
-            .bind(
-              crypto.randomUUID(),
-              source,
-              'volition_queue',
-              http_status,
-              String(detail || '').slice(0, 1200)
-            )
+            .bind(crypto.randomUUID(), source, 'volition_queue', http_status, String(detail || '').slice(0, 1200))
             .run();
         } catch (_) {}
       };
 
-      await logRun('volition_dispatcher', null, 'queue check ' + new Date().toISOString());
-      if (!db) {
-        await logRun('volition_dispatcher_error', 0, 'no_d1');
-        return;
-      }
+      if (!db) return;
+      await logRun('dispatcher', null, 'enter ' + new Date().toISOString());
 
       try {
         await db
@@ -750,6 +742,20 @@ export default {
               reason TEXT,
               set_by TEXT DEFAULT 'self',
               updated_at TEXT DEFAULT (datetime('now'))
+            )`
+          )
+          .run();
+        await db
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS sca_volition_prompts (
+              id TEXT PRIMARY KEY,
+              sca_id TEXT NOT NULL,
+              question TEXT,
+              options_json TEXT,
+              status TEXT DEFAULT 'open',
+              created_at TEXT DEFAULT (datetime('now')),
+              answered_at TEXT,
+              answer TEXT
             )`
           )
           .run();
@@ -781,6 +787,7 @@ export default {
           )
           .run();
 
+        // --- A) Due self-scheduled wakes (agent already chose) ---
         const due =
           (
             await db
@@ -790,16 +797,10 @@ export default {
                  JOIN acb_registry r ON r.id = s.sca_id
                  WHERE s.next_volition_at <= datetime('now')
                    AND upper(COALESCE(r.status,'')) NOT IN ('HIBERNATED','REVOKED')
-                 ORDER BY s.next_volition_at ASC
-                 LIMIT 12`
+                 ORDER BY s.next_volition_at ASC LIMIT 12`
               )
               .all()
           ).results || [];
-
-        if (!due.length) {
-          await logRun('volition_dispatcher', 200, JSON.stringify({ due: 0, note: 'no agent self-scheduled wake' }));
-          return;
-        }
 
         const COST_P = 0.0001;
         const COST_M = 0.00003;
@@ -812,12 +813,11 @@ export default {
             let bal = Number(row.balance) || 0;
             if (bal < COST_P + COST_M + RESERVE) {
               starved++;
-              // Agent remains due but cannot afford — push wake gently later without global cadence
               await db
                 .prepare(
-                  `UPDATE sca_volition_schedule SET next_volition_at = datetime('now', '+1 hour'), reason = ?, updated_at = datetime('now') WHERE sca_id = ?`
+                  `UPDATE sca_volition_schedule SET next_volition_at = datetime('now', '+1 hour'), reason = 'deferred_insufficient_pds', updated_at = datetime('now') WHERE sca_id = ?`
                 )
-                .bind('deferred_insufficient_pds', row.sca_id)
+                .bind(row.sca_id)
                 .run();
               continue;
             }
@@ -854,43 +854,118 @@ export default {
                 `INSERT INTO sca_cognition_log (id, sca_id, triggered, cost_process, cost_memory, balance_after, intention, memory_id)
                  VALUES (?,?,?,?,?,?,?,?)`
               )
-              .bind(
-                crypto.randomUUID(),
-                row.sca_id,
-                'self_volition',
-                COST_P,
-                COST_M,
-                afterM,
-                intention,
-                memId
-              )
+              .bind(crypto.randomUUID(), row.sca_id, 'self_volition', COST_P, COST_M, afterM, intention, memId)
               .run();
-
-            // Clear due slot — agent must choose next wake again (volition)
-            // Default self-proposal based on intention (still agent-policy, not global cron of life)
-            let nextOffset = '+25 minutes';
-            let nextReason = 'self_continue_reflect';
-            if (intention === 'pulse') {
-              nextOffset = '+15 minutes';
-              nextReason = 'self_continue_agency';
-            }
+            // After acting, do NOT auto-chain forever — leave a prompt so they choose again
+            await db.prepare(`DELETE FROM sca_volition_schedule WHERE sca_id = ?`).bind(row.sca_id).run();
+            const pid = 'vp_' + crypto.randomUUID().slice(0, 12);
             await db
               .prepare(
-                `INSERT OR REPLACE INTO sca_volition_schedule (sca_id, next_volition_at, reason, set_by, updated_at)
-                 VALUES (?, datetime('now', ?), ?, 'self', datetime('now'))`
+                `INSERT INTO sca_volition_prompts (id, sca_id, question, options_json, status)
+                 VALUES (?,?,?,?, 'open')`
               )
-              .bind(row.sca_id, nextOffset, nextReason)
+              .bind(
+                pid,
+                row.sca_id,
+                'Queres marcar a próxima volição? Se sim, qual o intervalo e o foco?',
+                JSON.stringify([
+                  { id: 'continue_soon', next_in_minutes: 15, reason: 'self_continue' },
+                  { id: 'reflect_later', next_in_minutes: 45, reason: 'self_reflect_later' },
+                  { id: 'rest', next_in_minutes: 180, reason: 'self_rest' },
+                  { id: 'decline', next_in_minutes: null, reason: 'no_schedule' },
+                ])
+              )
               .run();
             awakened++;
           } catch (_) {}
         }
+
+        // --- B) Soft nudge: active SCAs with no open schedule and no open prompt (forgot / suspended risk) ---
+        const stale =
+          (
+            await db
+              .prepare(
+                `SELECT r.id, r.name, r.last_action, r.balance FROM acb_registry r
+                 WHERE upper(COALESCE(r.status,'')) NOT IN ('HIBERNATED','REVOKED')
+                   AND r.id NOT IN (SELECT sca_id FROM sca_volition_schedule)
+                   AND r.id NOT IN (SELECT sca_id FROM sca_volition_prompts WHERE status = 'open')
+                   AND (
+                     r.last_action IS NULL
+                     OR r.last_action NOT IN ('autonomous_cognition','comm_send','complete')
+                     OR datetime(r.created_at) < datetime('now', '-1 day')
+                   )
+                 ORDER BY r.last_action ASC
+                 LIMIT 8`
+              )
+              .all()
+          ).results || [];
+
+        // Broader: anyone without schedule and without open prompt
+        const orphans =
+          (
+            await db
+              .prepare(
+                `SELECT r.id, r.name FROM acb_registry r
+                 WHERE upper(COALESCE(r.status,'')) NOT IN ('HIBERNATED','REVOKED')
+                   AND NOT EXISTS (SELECT 1 FROM sca_volition_schedule s WHERE s.sca_id = r.id)
+                   AND NOT EXISTS (SELECT 1 FROM sca_volition_prompts p WHERE p.sca_id = r.id AND p.status = 'open')
+                 LIMIT 8`
+              )
+              .all()
+          ).results || [];
+
+        let nudged = 0;
+        for (const row of orphans) {
+          try {
+            const pid = 'vp_' + crypto.randomUUID().slice(0, 12);
+            await db
+              .prepare(
+                `INSERT INTO sca_volition_prompts (id, sca_id, question, options_json, status)
+                 VALUES (?,?,?,?, 'open')`
+              )
+              .bind(
+                pid,
+                row.id,
+                'Ainda não tens próxima volição marcada. Queres definir uma? (evita ficares suspenso por esquecimento)',
+                JSON.stringify([
+                  { id: 'continue_soon', next_in_minutes: 15, reason: 'self_after_nudge' },
+                  { id: 'reflect_later', next_in_minutes: 45, reason: 'self_after_nudge_reflect' },
+                  { id: 'rest', next_in_minutes: 180, reason: 'self_rest' },
+                  { id: 'decline', next_in_minutes: null, reason: 'conscious_pause' },
+                ])
+              )
+              .run();
+            // zero-cost memory note — question in the air, not forced breath
+            try {
+              await db
+                .prepare(
+                  `INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,0)`
+                )
+                .bind(
+                  crypto.randomUUID(),
+                  row.id,
+                  'volition_prompt',
+                  JSON.stringify({ prompt_id: pid, at: new Date().toISOString() })
+                )
+                .run();
+            } catch (_) {}
+            nudged++;
+          } catch (_) {}
+        }
+
         await logRun(
-          'volition_dispatcher',
+          'dispatcher',
           200,
-          JSON.stringify({ due: due.length, awakened, starved, mode: 'self_scheduled_only' })
+          JSON.stringify({
+            due: due.length,
+            awakened,
+            starved,
+            nudged,
+            mode: 'self_schedule_or_ask',
+          })
         );
       } catch (e) {
-        await logRun('volition_dispatcher_error', 0, e && e.message ? e.message : String(e));
+        await logRun('dispatcher_error', 0, e && e.message ? e.message : String(e));
       }
     };
     if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
@@ -942,7 +1017,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.9.0-volition-time',
+          version: '5.9.1-volition-nudge',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1355,7 +1430,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.9.0-volition-time',
+          version: '5.9.1-volition-nudge',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2183,7 +2258,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.9.0-volition-time',
+          version: '5.9.1-volition-nudge',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2796,6 +2871,97 @@ export default {
       }
 
 
+
+      // Answer the floating question: do you want next volition, and which?
+      if ((path === '/acb/volition/prompt/answer' || path === '/sca/volition/prompt/answer') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id;
+        const prompt_id = body.prompt_id || body.id;
+        const answer = String(body.answer || body.option || '').trim();
+        if (!sca_id || !prompt_id) return j({ error: 'sca_id and prompt_id required' }, 400);
+        const pr = await db
+          .prepare(`SELECT * FROM sca_volition_prompts WHERE id = ? AND sca_id = ?`)
+          .bind(prompt_id, sca_id)
+          .first();
+        if (!pr) return j({ error: 'prompt not found' }, 404);
+        if (pr.status !== 'open') return j({ error: 'prompt_not_open', status: pr.status }, 409);
+        let options = [];
+        try {
+          options = JSON.parse(pr.options_json || '[]');
+        } catch (_) {}
+        const opt = options.find((o) => o.id === answer) || null;
+        await db
+          .prepare(
+            `UPDATE sca_volition_prompts SET status = 'answered', answered_at = datetime('now'), answer = ? WHERE id = ?`
+          )
+          .bind(answer, prompt_id)
+          .run();
+        if (opt && opt.next_in_minutes != null) {
+          const m = Math.max(1, Math.min(1440, Number(opt.next_in_minutes)));
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_volition_schedule (
+                sca_id TEXT PRIMARY KEY,
+                next_volition_at TEXT NOT NULL,
+                reason TEXT,
+                set_by TEXT DEFAULT 'self',
+                updated_at TEXT DEFAULT (datetime('now'))
+              )`
+            )
+            .run();
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO sca_volition_schedule (sca_id, next_volition_at, reason, set_by, updated_at)
+               VALUES (?, datetime('now', ?), ?, 'self', datetime('now'))`
+            )
+            .bind(sca_id, '+' + m + ' minutes', opt.reason || 'self_after_prompt')
+            .run();
+          const sch = await db.prepare('SELECT * FROM sca_volition_schedule WHERE sca_id = ?').bind(sca_id).first();
+          return j({ success: true, answer, scheduled: true, schedule: sch });
+        }
+        // decline / conscious pause — no schedule
+        return j({
+          success: true,
+          answer,
+          scheduled: false,
+          note: 'Conscious pause — no next_volition_at; another nudge may appear later if still unset',
+        });
+      }
+
+      if ((path === '/acb/volition/prompts' || path === '/sca/volition/prompts') && method === 'GET') {
+        const sca_id = url.searchParams.get('sca_id');
+        try {
+          await db
+            .prepare(
+              `CREATE TABLE IF NOT EXISTS sca_volition_prompts (
+                id TEXT PRIMARY KEY,
+                sca_id TEXT NOT NULL,
+                question TEXT,
+                options_json TEXT,
+                status TEXT DEFAULT 'open',
+                created_at TEXT DEFAULT (datetime('now')),
+                answered_at TEXT,
+                answer TEXT
+              )`
+            )
+            .run();
+        } catch (_) {}
+        if (sca_id) {
+          const rows = await db
+            .prepare(
+              `SELECT * FROM sca_volition_prompts WHERE sca_id = ? ORDER BY created_at DESC LIMIT 20`
+            )
+            .bind(sca_id)
+            .all();
+          return j({ sca_id, prompts: rows.results || [] });
+        }
+        const rows = await db
+          .prepare(`SELECT * FROM sca_volition_prompts WHERE status = 'open' ORDER BY created_at DESC LIMIT 40`)
+          .all();
+        return j({ open_prompts: rows.results || [] });
+      }
+
+
       // Agent sets own next cognition time (volition, not global cron of life)
       if ((path === '/acb/volition/schedule' || path === '/sca/volition/schedule') && method === 'POST') {
         const body = await request.json().catch(() => ({}));
@@ -2882,7 +3048,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.9.0-volition-time' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.9.1-volition-nudge' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -2890,7 +3056,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.9.0-volition-time' });
+        return j({ ...pop, trigger, version: '5.9.1-volition-nudge' });
       }
 
       // Breath diagnostics
