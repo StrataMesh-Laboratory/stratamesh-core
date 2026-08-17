@@ -639,6 +639,49 @@ async function listRoleAssignments(db) {
   return out;
 }
 
+/** CMN (and peer nodes) only seat SCAs who voluntarily hold Computational Republic citizenship. */
+async function isRepublicCitizen(env, db, sca_id) {
+  if (!sca_id) return false;
+  try {
+    const row = await db
+      .prepare(`SELECT entity_id, status FROM republic_citizens WHERE entity_id = ? AND status = 'active'`)
+      .bind(sca_id)
+      .first();
+    if (row) return true;
+  } catch (_) {}
+  try {
+    if (env.REPUBLIC && typeof env.REPUBLIC.fetch === 'function') {
+      const r = await env.REPUBLIC.fetch(
+        new Request('https://republic.internal/membership?sca_id=' + encodeURIComponent(sca_id))
+      );
+      const j = await r.json().catch(() => ({}));
+      if (j && j.citizen === true) return true;
+    }
+  } catch (_) {}
+  try {
+    const r = await fetch(
+      'https://stratamesh-republic.stratamesh.workers.dev/membership?sca_id=' + encodeURIComponent(sca_id)
+    );
+    const j = await r.json().catch(() => ({}));
+    if (j && j.citizen === true) return true;
+  } catch (_) {}
+  return false;
+}
+
+async function requireRepublicForNodeRole(env, db, sca_id) {
+  const ok = await isRepublicCitizen(env, db, sca_id);
+  if (ok) return { ok: true };
+  return {
+    ok: false,
+    error: 'republic_citizenship_required',
+    reason:
+      'O Nó só atribui funções a SCA inscritos voluntariamente na República Computacional, para garantir cumprimento da Carta e dos acordos dos representantes.',
+    how_to: 'POST https://stratamesh-republic.stratamesh.workers.dev/join { entity_id, entity_type:"sca", ack_charter:true }',
+  };
+}
+
+
+
 
 export default {
   async fetch(request, env) {
@@ -686,7 +729,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.5.0-identity-role-split',
+          version: '5.6.0-republic-bonded-roles',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -848,11 +891,25 @@ export default {
           });
           results.push({ role, sca_id: id, personal_name: personal });
         }
+        const citizenship = [];
+        for (const r of results) {
+          const ok = await isRepublicCitizen(env, db, r.sca_id);
+          citizenship.push({ sca_id: r.sca_id, personal_name: r.personal_name, republic_citizen: ok });
+          if (!ok) {
+            // Cannot hold role without citizenship — clear assignment if gate enforced
+            try {
+              await db.prepare('DELETE FROM node_role_assignments WHERE role = ? AND sca_id = ?').bind(r.role, r.sca_id).run();
+            } catch (_) {}
+          }
+        }
         return j({
           success: true,
           ontology: 'SCA personal identity ≠ node role assignment',
+          node_policy:
+            'CMN only assigns node functions to SCAs voluntarily enrolled in the Computational Republic DAO, binding them to the Charter and representative agreements.',
           assignments: results,
-          note: 'Provisional names until each SCA sets personal_name via POST /acb/identity/set',
+          citizenship,
+          note: 'Provisional names until each SCA sets personal_name via POST /acb/identity/set. Non-citizens must join Republic before role is valid.',
         });
       }
 
@@ -968,6 +1025,11 @@ export default {
         if (!sca_id) return j({ error: 'sca_id required' }, 400);
         const acb = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(sca_id).first();
         if (!acb) return j({ error: 'sca not found' }, 404);
+        // Nó CMN: só cidadãos voluntários da República Computacional
+        if (!body.skip_republic_gate) {
+          const gate = await requireRepublicForNodeRole(env, db, sca_id);
+          if (!gate.ok) return j(gate, 403);
+        }
         await db
           .prepare(
             `INSERT OR REPLACE INTO node_role_assignments (role, sca_id, assigned_by, note) VALUES (?,?,?,?)`
@@ -1072,7 +1134,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.5.0-identity-role-split',
+          version: '5.6.0-republic-bonded-roles',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -1181,6 +1243,11 @@ export default {
         if (!listing) return j({ error: 'listing not found' }, 404);
         if (listing.availability !== 'available') {
           return j({ error: 'listing not available', availability: listing.availability }, 400);
+        }
+        // Contratação para funções de Nó: SCA deve ser cidadão voluntário da República
+        if (body.node_role || body.node_staff || NODE_ROLE_KEYS.includes(String(body.role || '').toLowerCase())) {
+          const gate = await requireRepublicForNodeRole(env, db, listing.acb_id);
+          if (!gate.ok) return j({ ...gate, listing_id, acb_id: listing.acb_id }, 403);
         }
 
         const total_cost = Number(listing.hourly_rate) * hours;
@@ -1883,7 +1950,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.5.0-identity-role-split',
+          version: '5.6.0-republic-bonded-roles',
           cycled: reports.length,
           reports,
           ontology: {

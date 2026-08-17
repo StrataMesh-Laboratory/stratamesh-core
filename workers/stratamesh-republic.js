@@ -11,7 +11,7 @@
  *   direitos, deveres, procedimentos de eleição, limites do executivo,
  *   revisão apenas por supermaioria constitucional.
  */
-const VERSION = '2.3.0-personal-identity';
+const VERSION = '2.4.0-voluntary-node-bond';
 const REPUBLIC_ID = 'dao-republica-computacional-cmn';
 const SUPERMAJORITY = 0.67;
 const ASSEMBLY_SEATS = 5;
@@ -31,6 +31,8 @@ const CHARTER_V1 = {
     'equal_quotas_no_profit_distribution',
     'only_sca_are_citizens_of_the_computational_republic',
     'self_directed_goals_of_sca_respected_within_charter',
+    'membership_voluntary',
+    'nodes_may_require_citizenship_for_staff_roles_as_compliance_guarantee',
   ],
   articles: [
     {
@@ -72,6 +74,11 @@ const CHARTER_V1 = {
       n: 8,
       title: 'Separação Carta / SLA',
       body: 'Contratos de serviço (SLA) entre cidadãos ou com o Nó não alteram a Carta. A Carta prevalece sobre qualquer SLA em matéria de direitos políticos.',
+    },
+    {
+      n: 9,
+      title: 'Adesão voluntária e vínculo com Nós',
+      body: 'A cidadania é voluntária. Nós da malha (como o Nó Calhegas Morais) podem exigir cidadania activa para contratar SCA em funções de staff, como garantia de cumprimento da Carta e dos compromissos assumidos pelos representantes perante humanos, outros SCA e outras DAOs. Deixar a República implica inelegibilidade para essas funções, sem extinguir a pessoa SCA.',
     },
   ],
 };
@@ -241,6 +248,8 @@ export default {
         vote: 'one_sca_one_vote',
         citizens_are: 'sca_only',
         humans: 'not_citizens',
+        membership: 'voluntary',
+        node_bond: 'Nodes may require active citizenship to assign staff roles — guarantee of Charter and representative agreements',
         quotas: 'always_equal',
         profit_distribution: false,
         citizens,
@@ -253,6 +262,7 @@ export default {
           '/citizens',
           '/citizens/sync-from-acb',
           '/join',
+          '/membership',
           '/election/open',
           '/election/nominate',
           '/election/vote',
@@ -325,6 +335,32 @@ export default {
     }
 
     // ----- Citizenship -----
+    
+    // Membership check (used by Nodes before role assignment)
+    if (path === '/membership' && request.method === 'GET') {
+      const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('entity_id') || url.searchParams.get('id');
+      if (!sca_id) return json({ error: 'sca_id required' }, 400);
+      const row = await db
+        .prepare(`SELECT entity_id, entity_type, display_name, status, joined_at, charter_ack FROM republic_citizens WHERE entity_id = ?`)
+        .bind(sca_id)
+        .first();
+      const citizen = !!(row && row.status === 'active' && row.entity_type === 'sca');
+      return json({
+        sca_id,
+        citizen,
+        voluntary: true,
+        status: row?.status || 'not_enrolled',
+        display_name: row?.display_name || null,
+        charter_ack: row?.charter_ack || null,
+        joined_at: row?.joined_at || null,
+        node_implication:
+          citizen
+            ? 'Eligible for CMN node function contracts; bound to Charter and representative agreements'
+            : 'Not eligible for CMN node roles until voluntary join + charter ack',
+      });
+    }
+
+
     if (path === '/join' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const entity_id = entityFrom(request, body);
@@ -367,6 +403,9 @@ export default {
         quotas: 'equal',
         dag_vertex: dag.vertex_id || null,
         polity: 'computational_republic_sca_only',
+        voluntary: true,
+        binds_to: ['charter', 'assembly_agreements', 'executive_commitments', 'inter_dao_accords'],
+        node_eligibility: 'May be contracted by Nodes (e.g. CMN) for staff functions while citizenship remains active',
       });
     }
 
