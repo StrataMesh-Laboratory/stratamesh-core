@@ -1,8 +1,10 @@
 /**
- * StrataMesh Token Engine — STRATA foundational token
- * Fungible STRATA + tokenisation to STRATA NFTs (native digital substance & external-asset representatives)
- * Open worlds & CGU/UGC (users + SCAs) are STRATA NFTs · import external/cold · DAG · IPFS
+ * STRATA — exclusive foundational token of StrataMesh.
+ * Fungible form: settle value (PoC mint only via stratamesh-poc; Agora P2P; PoS).
+ * Non-fungible form: tokenisation of native digital substance OR external-asset representatives on the DLT.
+ * Open worlds = STRATA NFTs. CGU/UGC (users + SCAs) = STRATA NFTs.
  */
+
 async function sha256(d) {
   const h = await crypto.subtle.digest(
     'SHA-256',
@@ -163,6 +165,25 @@ export default {
 
     // WHITEPAPLE: base STRATA is minted ONLY via Proof of Contribution (stratamesh-poc).
     // This worker tokenises assets (NFT) and tracks balances — it does NOT emit STRATA.
+    
+    if (path === '/tokenisation/kinds' || path === '/nft/kinds') {
+      return json({
+        foundational_token: 'STRATA',
+        forms: {
+          fungible: { role: 'settlement, PoS, Agora, contribution metering', mint: 'Node PoC only' },
+          non_fungible: {
+            role: 'tokenisation of digital substance or external-asset representatives on the DLT',
+            kinds: [
+              { id: 'open_world', note: 'Open worlds composed of STRATA NFTs' },
+              { id: 'cgu', aliases: ['ugc'], note: 'User-Generated Creations including SCA authors' },
+              { id: 'external_asset', note: 'Representative of off-DLT asset anchored on DLT' },
+              { id: 'import', note: 'Import from other DLT or cold storage as STRATA NFT' },
+            ],
+          },
+        },
+      });
+    }
+
     if ((path === '/mint-strata' || path === '/mint/strata' || path === '/emit') && request.method === 'POST') {
       return json({
         success: false,
@@ -204,7 +225,7 @@ export default {
         holders,
         nft_count: nfts,
         engines: ['fungible_STRATA', 'strata_nft_tokenisation', 'nft_cgu_ugc', 'nft_import', 'open_world_nfts', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
-        strata_definition: 'Exclusive foundational token of StrataMesh. Fungible form settles value; tokenisation yields STRATA NFTs (native digital substance and external-asset representatives). Open worlds and CGU/UGC (users+SCAs) are STRATA NFTs. Fungible mint only via Node PoC.',
+        strata_definition: 'Exclusive foundational token of StrataMesh (not a mere unit of account). Fungible settles value; tokenisation yields STRATA NFTs for native digital substance and external-asset representatives on the DLT. Open worlds are entirely STRATA NFTs. CGU/UGC includes human users and SCAs; creations are STRATA NFTs. New fungible mint only via Node PoC.',
         emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });
@@ -423,29 +444,44 @@ export default {
       }
     }
 
-    // --- POST /mint  UGC / asset tokenization ---
+    // --- POST /mint  CGU/UGC + asset tokenisation → STRATA NFT ---
     if (path === '/mint' && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
       const owner = body.owner || body.account || body.node_id || 'anonymous';
+      const kind_raw = String(body.kind || body.category || body.asset_type || body.type || 'cgu').toLowerCase();
+      const kind_map = {
+        ugc: 'cgu', cgu: 'cgu', sandbox: 'cgu', creation: 'cgu',
+        open_world: 'open_world', world: 'open_world', mundo: 'open_world',
+        external: 'external_asset', external_asset: 'external_asset', representative: 'external_asset',
+        import: 'import', cold: 'import',
+        digital: 'cgu', physical: 'external_asset', financial: 'external_asset',
+      };
+      const kind = kind_map[kind_raw] || kind_raw || 'cgu';
       const asset_type =
-        body.asset_type || body.type || (body.physical ? 'physical' : body.financial ? 'financial' : 'digital');
-      const name = body.name || body.title || 'Untitled Strata Asset';
+        body.asset_type || body.type || (body.physical ? 'physical' : body.financial ? 'financial' : kind === 'open_world' ? 'open_world' : 'digital');
+      const name = body.name || body.title || (kind === 'open_world' ? 'Open World' : kind === 'cgu' ? 'CGU Creation' : 'Strata Asset');
       const description = body.description || '';
       const attributes = body.attributes || body.traits || {};
-      const external_ref = body.external_ref || body.source || null; // e.g. other DLT
+      const external_ref = body.external_ref || body.source || null;
       const physical_ref = body.physical_ref || body.serial || null;
       const financial_ref = body.financial_ref || body.isin || null;
+      const authors = body.authors || body.creators || []; // users and/or SCA ids
 
       const metadata = {
         name,
         description,
+        kind,
         asset_type,
         attributes,
+        authors,
+        foundational_token: 'STRATA',
+        form: 'non_fungible',
         external_ref,
         physical_ref,
         financial_ref,
         standard: 'strata-nft-1',
+        cgu_includes_sca: true,
         node: 'FOG-NODE-PT-CM-001',
         created_at: new Date().toISOString(),
       };

@@ -2,7 +2,7 @@
 
 **Release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) — reference Fog node (**not mainnet**)
 
-**STRATA** is the exclusive foundational token (fungible + tokenisable to NFTs: open worlds, UGC including SCA creations). Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
+**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
 
 ## Public pulse
@@ -25,7 +25,7 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 | 0–1 | DAG, tip selection, gossip, persistent node, IPFS client |
 | 2 | SPA registry, finality, status pipeline |
 | 3 | PoC → STRATA, Agora + settlement |
-| 4 | NFT/CID objects, UGC sandbox |
+| 4 | STRATA NFTs / CID objects, CGU sandbox (users+SCAs) |
 | 5 | DAO proposals & votes |
 | 6 | ACB + Proof of Subsistence |
 | 7 | PQ key **placeholders** (not real crypto) |
