@@ -67,3 +67,16 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 - Orchestrator `/health` and Status `/status` expose `foundation` + `clp`.
 - Docs: `docs/HOLONIC-LAYERS.md`, `docs/TEMPORALIDADE-CLP.md`.
 
+
+## Current lab surface (CMN)
+
+| Area | Status |
+|------|--------|
+| Holonic inhabitance | Personal UGC sandbox per SCA; open-world co-presence (SCA + users) |
+| Temporal kernel | CLP/PPC at Node locus **Lisbon**; ISO-8601 as carrier only |
+| SCA volition | Self-scheduled `next_volition_at`; dispatcher honours queue / soft nudge only |
+| Computational Republic | SCA-only associative DAO — distinct from Node operations |
+| Workers (ACB) | `stratamesh-acb` ≥ 5.11 · senses, holon/ensure, world presence |
+
+Public site: [calhegasmorais.pt](https://calhegasmorais.pt/) · CLP UI: [/clp](https://calhegasmorais.pt/clp)
+

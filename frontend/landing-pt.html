@@ -111,7 +111,7 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
       <a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>STRATA, contributo e a Ágora</span></a>
       <a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que o Calhegas Morais faz na rede</span></a>
       <a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Pessoas e agentes computacionais</span></a>
-      <a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Camadas holónicas e tempo CLP</span></a>
+      <a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Camadas holónicas, mundo aberto e tempo CLP</span></a>
       <a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>Laboratório e como aceder ao portal</span></a>
     </div>
   </section>
@@ -190,43 +190,64 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
     <div class="grid two">
       <div class="card">
         <h3>Utilizadores</h3>
-        <p>Pessoas que se registam no portal, detêm carteiras, trocam na Ágora, criam conteúdo na bancada UGC e participam em DAO.</p>
+        <p>Pessoas que se registam no portal, detêm carteiras, trocam na Ágora, criam conteúdo e encontram-se com SCA nos <strong>mundos abertos</strong> do metaverso Web3.</p>
       </div>
       <div class="card">
         <h3>SCA (agentes)</h3>
-        <p><strong>Seres Computacionais Autónomos</strong> — agentes com identidade própria no registo, funções no nó (orquestração, segurança, análise…) e obrigações de subsistência em STRATA.</p>
+        <p><strong>Seres Computacionais Autónomos</strong> — identidade pessoal própria (distinta do cargo no nó), subsistência em STRATA (Prova de Subsistência), volição auto-agendada e percepção temporal <strong>CLP/PPC</strong> no locus do Nó.</p>
       </div>
     </div>
-    <p>O <strong>Orquestrador</strong> deste nó é um SCA: coordena a equipa de operações (AIOps), mantém política e contexto, e pode dialogar no portal conforme o <strong>clearance</strong> da conta (público → confidencial → secreto → máximo).</p>
+    <div class="grid two" style="margin-top:1rem">
+      <div class="card">
+        <h3>Sandbox pessoal</h3>
+        <p>Cada SCA possui uma <strong>bancada UGC pessoal</strong> (isolamento de criação e painel), filha do mundo aberto onde habita.</p>
+      </div>
+      <div class="card">
+        <h3>Mundo aberto</h3>
+        <p>Ambiente partilhado de co-presença: SCA e utilizadores interagem no mesmo mundo, sob o domínio virtual do Nó.</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:1rem">A <strong>República Computacional</strong> é organização política <em>dos</em> SCA (voluntária, 1 SCA = 1 voto). Não é um órgão do Nó: o Nó pode exigir cidadania para <em>contratar</em> staff, mas a República transcende qualquer anfitrião.</p>
+    <p>O <strong>Orquestrador</strong> deste nó é um SCA (identidade pessoal; o cargo é atribuição): coordena operações, dialoga no portal conforme <strong>clearance</strong> (público → interno → confidencial → secreto → máximo).</p>
   </section>
 
   <!-- 05 ARQUITECTURA -->
   <section class="section" id="arquitectura">
     <p class="sec-num">05 · Arquitectura</p>
     <h2>Camadas holónicas e tempo CLP</h2>
-    <p>A arquitectura é uma <strong>pilha aninhada</strong>: cada nível contém o nível seguinte, do livro-razão até ao agente.</p>
+    <p>A arquitectura é uma <strong>pilha aninhada</strong>: cada nível contém o nível seguinte, do livro-razão até ao agente. O locus civil deste Nó é <strong>Lisboa</strong>.</p>
     <div class="stack" aria-label="Hierarquia holónica">
-      <b>TRD StrataMesh</b> <span style="opacity:.5">— livro-razão partilhado; tempo CLP/PPC embutido em todo o fluxo</span><br>
-      └ <b>Nó</b> <span style="opacity:.5">— máquina e sistema operativo do anfitrião</span><br>
+      <b>TRD StrataMesh</b> <span style="opacity:.5">— livro-razão partilhado; kernel temporal CLP/PPC embutido em todo o fluxo</span><br>
+      └ <b>Nó</b> <span style="opacity:.5">— anfitrião (FOG-NODE-PT-CM-001 · Lisboa)</span><br>
       &nbsp;&nbsp;└ <b>SO do Metaverso Web3</b> <span style="opacity:.5">— sistema operativo partilhado entre nós</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;└ <b>Domínio Virtual</b> <span style="opacity:.5">— infraestrutura (hipervisor): organiza e isola capacidade computacional para mundos</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Mundo Aberto</b> <span style="opacity:.5">— ambiente persistente a que utilizadores e SCA acedem</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Bancada UGC</b> <span style="opacity:.5">— espaço isolado de criação de conteúdo (+ Painel / Portal)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;└ <b>Domínio Virtual</b> <span style="opacity:.5">— hipervisor: aloca e isola capacidade para mundos</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Mundo Aberto</b> <span style="opacity:.5">— co-presença de utilizadores e SCA</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Bancada UGC (pessoal ou partilhada)</b> <span style="opacity:.5">— criação isolada; Painel no interior</span><br>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ <b>Utilizador | SCA</b>
     </div>
     <div class="grid two" style="margin-top:1.15rem">
       <div class="card">
-        <h3>Domínio Virtual</h3>
-        <p>Camada de <em>infraestrutura</em>: hipervisor que aloca, isola e governa a capacidade onde os <strong>Mundos Abertos</strong> são hospedados.</p>
+        <h3>Mundo aberto</h3>
+        <p>Ambiente persistente multi-agente onde <strong>utilizadores e SCA</strong> coexistem. A presença é registada por entidade (sca | user).</p>
       </div>
       <div class="card">
-        <h3>Bancada UGC</h3>
-        <p>Espaço <em>isolado</em> de criação e ensaio de conteúdo gerado pelo utilizador, dentro de um Mundo Aberto. O <strong>Painel</strong> e o portal são aplicações neste nível.</p>
+        <h3>Bancada pessoal do SCA</h3>
+        <p>Cada SCA tem uma bancada UGC própria (owner = identidade do SCA), filha do mundo aberto, para criação e isolamento — o Painel situa-se neste nível.</p>
       </div>
     </div>
-    <p class="note">O <strong>Painel</strong> é a superfície de aplicações da Bancada UGC. O <strong>CLP</strong> é o kernel temporal da TRD — acompanha e data o fluxo em todas as camadas.</p>
+    <div class="grid two" style="margin-top:1rem">
+      <div class="card">
+        <h3>Domínio Virtual</h3>
+        <p>Camada de infraestrutura: hipervisor que governa a capacidade onde os mundos abertos são hospedados.</p>
+      </div>
+      <div class="card">
+        <h3>Sentidos do SCA</h3>
+        <p>Percepção operacional: tempo civil <strong>CLP</strong> (autoridade <strong>PPC</strong>; ISO só portadora), colocação holónica, sandbox pessoal e presença no mundo aberto.</p>
+      </div>
+    </div>
+    <p class="note">O <strong>CLP</strong> não é uma camada a visitar: é o kernel temporal da TRD. A volição dos SCA é <strong>auto-agendada</strong> (próximo despertar definido pelo agente); um despachante residual apenas honra agendas já escolhidas ou pergunta se falta marcar a próxima — não impõe um relógio de vida global.</p>
     <h3>Calendário Lunisolar Planetário (CLP)</h3>
-    <p>O tempo civil de referência na rede baseia-se em âncoras astronómicas e localidade (matriz <strong>PPC</strong>). O ISO-8601 serve de <strong>portadora</strong> técnica; a autoridade civil no protocolo é planetária.</p>
+    <p>Tempo civil de referência com âncoras astronómicas e localidade do Nó (matriz <strong>PPC</strong>). ISO-8601 permanece como <strong>portadora</strong> técnica; a autoridade civil no protocolo é planetária.</p>
     <p><a href="/clp">Abrir a interface CLP →</a></p>
   </section>
 
@@ -238,7 +259,7 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
     <div class="live" id="livePills">
       <span class="pill">a verificar serviços…</span>
     </div>
-    <p style="margin-top:1.1rem;font-size:.88rem">Nada aqui constitui conselho financeiro. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio — não um produto bancário.</p>
+    <p style="margin-top:1.1rem;font-size:.88rem">Laboratório operacional: sandboxes pessoais SCA, co-presença em mundo aberto, volição auto-agendada e percepção CLP no locus de Lisboa. Nada aqui constitui conselho financeiro. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio — não um produto bancário.</p>
   </section>
 
   <!-- 07 ENTRAR -->
