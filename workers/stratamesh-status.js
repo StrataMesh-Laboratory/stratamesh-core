@@ -583,7 +583,7 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
 <h1>${s.name_pt||s.name||'Calhegas Morais'} · ${s.node_id||''}</h1>
 <p class="pill">v${s.version||''} · fase ${s.phase||''} — ${s.phase_name||''} · ${s.status||''}</p>
 <p class="muted">${s.timestamp||''} · fonte ${s.source||''}</p>
-<p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||8} · ${upLine}</p>
+<p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||9} · ${upLine}</p>
 <div class="grid">
   <div class="card"><div class="v">${mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'}</div><div class="l">Circulação</div></div>
   <div class="card"><div class="v">${mon.out_of_circulation!=null?Number(mon.out_of_circulation).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—'}</div><div class="l">#0 queima</div></div>
@@ -623,7 +623,7 @@ async function buildLiveStatus(env) {
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast] = await Promise.all([
+  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH] = await Promise.all([
     svcJson(env, 'TOKEN', '/monetary'),
     svcJson(env, 'TOKEN', '/architecture'),
     svcJson(env, 'POC', '/pool'),
@@ -633,6 +633,7 @@ async function buildLiveStatus(env) {
     svcJson(env, 'REPUBLIC', '/health'),
     svcJson(env, 'AGORA', '/health'),
     svcJson(env, 'AIOPS', '/health'),
+    svcJson(env, 'AUTH', '/health'),
   ]);
 
   const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
@@ -653,7 +654,7 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.1-refined',
+    version: '0.3.2-pulse',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -688,7 +689,17 @@ async function buildLiveStatus(env) {
       republic: repH.ok,
       agora: agoraH.ok,
       aiops: aiopsLast.ok,
+      auth: authH.ok,
     },
+    auth: authH.json && authH.ok ? {
+      version: authH.json.version,
+      users: authH.json.checks && authH.json.checks.database ? authH.json.checks.database.users : null,
+      staff: authH.json.checks && authH.json.checks.staff ? authH.json.checks.staff.count : null,
+    } : null,
+    dag: dagH.json && dagH.ok ? {
+      version: dagH.json.version,
+      status: dagH.json.status || 'ok',
+    } : null,
     republic: repH.json && repH.ok ? {
       version: repH.json.version,
       kind: repH.json.kind,
@@ -703,8 +714,8 @@ async function buildLiveStatus(env) {
       note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
     summary: {
-      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast].filter((x) => x && x.ok).length,
-      upstream_total: 8,
+      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH].filter((x) => x && x.ok).length,
+      upstream_total: 9,
       circulating: mon ? mon.circulating_supply : null,
       burned: mon ? mon.out_of_circulation : null,
       mint_emitted: mon && mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : (mon && mon.mint_emitted),
