@@ -583,7 +583,7 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
 <h1>${s.name_pt||s.name||'Calhegas Morais'} · ${s.node_id||''}</h1>
 <p class="pill">v${s.version||''} · fase ${s.phase||''} — ${s.phase_name||''} · ${s.status||''}</p>
 <p class="muted">${s.timestamp||''} · fonte ${s.source||''}</p>
-<p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||9} · ${upLine}</p>
+<p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||11} · ${upLine}</p>
 <div class="grid">
   <div class="card"><div class="v">${mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'}</div><div class="l">Circulação</div></div>
   <div class="card"><div class="v">${mon.out_of_circulation!=null?Number(mon.out_of_circulation).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—'}</div><div class="l">#0 queima</div></div>
@@ -623,7 +623,7 @@ async function buildLiveStatus(env) {
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH] = await Promise.all([
+  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
     svcJson(env, 'TOKEN', '/monetary'),
     svcJson(env, 'TOKEN', '/architecture'),
     svcJson(env, 'POC', '/pool'),
@@ -635,6 +635,8 @@ async function buildLiveStatus(env) {
     svcJson(env, 'AGORA', '/agora/rate?quote=EUR'),
     svcJson(env, 'AIOPS', '/health'),
     svcJson(env, 'AUTH', '/health'),
+    svcJson(env, 'IPFS', '/health'),
+    svcJson(env, 'HOLONS', '/health'),
   ]);
 
   const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
@@ -655,7 +657,7 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.3-agora-rate',
+    version: '0.3.4-mesh-pulse',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -691,7 +693,11 @@ async function buildLiveStatus(env) {
       agora: agoraH.ok,
       aiops: aiopsLast.ok,
       auth: authH.ok,
+      ipfs: ipfsH.ok,
+      holons: holonsH.ok,
     },
+    ipfs: ipfsH.json && ipfsH.ok ? { version: ipfsH.json.version, status: ipfsH.json.status || 'ok' } : null,
+    holons: holonsH.json && holonsH.ok ? { version: holonsH.json.version, servico: holonsH.json.servico || holonsH.json.service } : null,
     auth: authH.json && authH.ok ? {
       version: authH.json.version,
       users: authH.json.checks && authH.json.checks.database ? authH.json.checks.database.users : null,
@@ -731,8 +737,8 @@ async function buildLiveStatus(env) {
       note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
     summary: {
-      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH].filter((x) => x && x.ok).length,
-      upstream_total: 9,
+      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
+      upstream_total: 11,
       circulating: mon ? mon.circulating_supply : null,
       burned: mon ? mon.out_of_circulation : null,
       mint_emitted: mon && mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : (mon && mon.mint_emitted),
@@ -785,10 +791,25 @@ export default {
     if (url.pathname === '/live' || url.pathname === '/widget')
       return new Response(LIVE_HTML, {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
 
-    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/') {
+    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
       const live = await buildLiveStatus(env);
       if (url.pathname === '/' && (request.headers.get('Accept') || '').includes('text/html')) {
         return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+      }
+      if (url.pathname === '/summary' || url.pathname === '/health') {
+        const slim = {
+          version: live.version,
+          status: live.status,
+          timestamp: live.timestamp,
+          summary: live.summary,
+          monetary: live.monetary,
+          agora_rate: live.agora && live.agora.rate,
+          upstream: live.upstream,
+          auth: live.auth,
+        };
+        return new Response(JSON.stringify(slim, null, 2), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
+        });
       }
       return new Response(JSON.stringify(live, null, 2), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },

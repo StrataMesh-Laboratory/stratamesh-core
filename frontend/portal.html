@@ -1408,26 +1408,49 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','A carregar…');
+  if(st) st.textContent=T('A carregar…','Loading…');
   try{
-    var poc=null, tok=null, ag=null;
-    try{ var r1=await fetch(SVC.poc+'/health',{signal:AbortSignal.timeout(8000)}); if(r1.ok) poc=await r1.json(); }catch(_){}
-    try{ var r2=await fetch(SVC.token+'/health',{signal:AbortSignal.timeout(8000)}); if(r2.ok) tok=await r2.json(); }catch(_){}
-    try{ var r3=await fetch(SVC.agora+'/health',{signal:AbortSignal.timeout(8000)}); if(r3.ok) ag=await r3.json(); }catch(_){}
-    var bits=[];
-    if(poc) bits.push(T('PdC ','PoC ')+ (poc.version||'ok') + ' · ' + T('classes','classes') + ' ' + (poc.resource_classes||[]).join(', '));
-    if(tok) bits.push('STRATA ' + T('oferta','supply') + ' ' + Number(tok.total_supply||0).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}));
-    if(ag) bits.push(T('Ágora ','Agora ') + (ag.version||'ok'));
-    if(st) st.textContent = bits.length ? bits.join(' · ') : T('Serviços de economia em laboratório','Economy services in laboratory mode');
-    // fill known eco fields if present
-    var el;
-    el=document.getElementById('ecoPoc'); if(el) el.textContent = poc ? (poc.sole_mint_path?T('única via de emissão','sole mint path'):'ok') : '—';
-    el=document.getElementById('ecoSupply'); if(el) el.textContent = tok && tok.total_supply!=null ? Number(tok.total_supply).toFixed(2) : '—';
-    el=document.getElementById('ecoHolders'); if(el) el.textContent = tok && tok.holders!=null ? tok.holders : '—';
+    var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
+    var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
+    var live=null;
+    try{
+      var rs=await fetch(statusBase.replace(/\/$/,'')+'/summary',{signal:AbortSignal.timeout(12000)});
+      if(!rs.ok) rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(12000)});
+      if(rs.ok) live=await rs.json();
+    }catch(_){}
+    var loc=LANG==='en'?'en-GB':'pt-PT';
+    var fmt=function(n,d){ return (n==null||n==='')?'—':Number(n).toLocaleString(loc,{maximumFractionDigits:d==null?2:d}); };
+    if(live){
+      var m=live.monetary||{};
+      var sum=live.summary||{};
+      var up=live.upstream||{};
+      var el;
+      el=document.getElementById('ecoCirc'); if(el) el.textContent=fmt(m.circulating_supply,2);
+      el=document.getElementById('ecoSink'); if(el) el.textContent=fmt(m.out_of_circulation,4);
+      el=document.getElementById('ecoMint'); if(el) el.textContent=fmt(m.mint_emitted,6);
+      el=document.getElementById('ecoSupply'); if(el) el.textContent=fmt(m.circulating_supply,2);
+      var ar=live.agora_rate||(live.agora&&live.agora.rate);
+      el=document.getElementById('ecoAgoraRate'); if(el&&ar&&ar.strata_per_quote!=null) el.textContent=Number(ar.strata_per_quote).toFixed(4);
+      var upOk=sum.upstream_ok!=null?sum.upstream_ok:Object.keys(up).filter(function(k){return up[k];}).length;
+      var upTot=sum.upstream_total||Object.keys(up).length||11;
+      if(st) st.textContent=T('Estado ao vivo','Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19);
+    } else if(st) {
+      st.textContent=T('Status indisponível','Status unavailable');
+    }
+    try{
+      var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
+      if(rb.ok){
+        var bj=await rb.json();
+        var strata=(bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance;
+        var ef=document.getElementById('ecoFogBal'); if(ef&&strata!=null) ef.textContent=fmt(strata,5);
+      }
+    }catch(_){}
+    if(typeof loadMonetaryPoles==='function') await loadMonetaryPoles();
   }catch(e){
     if(st) st.textContent=String(e.message||e);
   }
 }
+
 
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
@@ -1473,7 +1496,6 @@ async function loadUsersPanel(){
 async function loadSystemPanel(){
   var el=document.getElementById('systemStatus');
   if(!el){
-    // try inject into panel-system
     var panel=document.getElementById('panel-system');
     if(panel && !document.getElementById('systemStatus')){
       var d=document.createElement('div'); d.id='systemStatus'; d.style.marginTop='1rem';
@@ -1481,18 +1503,50 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…','Loading live status…')+'</p>';
   try{
-    var r=await fetch(SVC.orch+'/health',{signal:AbortSignal.timeout(10000)});
-    var j=r.ok?await r.json():{};
-    var path=(j.foundation&&j.foundation.path)||'';
-    el.innerHTML='<pre style="font-size:.75rem;color:var(--muted);white-space:pre-wrap">'+esc(JSON.stringify({
-      version:j.version, path:path, rules:j.foundation&&j.foundation.rules
-    },null,2))+'</pre>';
+    var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
+    var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
+    var live=null, tdra=null;
+    try{
+      var r=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(14000)});
+      if(r.ok) live=await r.json();
+    }catch(_){}
+    try{
+      var r2=await fetch(orchBase.replace(/\/$/,'')+'/tdra',{signal:AbortSignal.timeout(10000)});
+      if(r2.ok) tdra=await r2.json();
+    }catch(_){}
+    if(!live){
+      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.','Status unavailable.')+'</p>';
+      return;
+    }
+    var up=live.upstream||{};
+    var sum=live.summary||{};
+    var mon=live.monetary||{};
+    var ar=(live.agora&&live.agora.rate)||{};
+    var rows=Object.keys(up).map(function(k){
+      return '<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--line)"><span>'+k+'</span><span style="color:'+(up[k]?'#9caf88':'#e07a5f')+'">'+(up[k]?'OK':'—')+'</span></div>';
+    }).join('');
+    el.innerHTML=
+      '<div style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--muted);margin-bottom:.75rem">'+
+      esc(live.version||'')+' · '+(live.timestamp||'').slice(0,19)+
+      ' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||11)+
+      (ar.strata_per_quote!=null?(' · Ágora '+ar.strata_per_quote+' STRATA/EUR'):'')+
+      '</div>'+
+      '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(7rem,1fr));gap:.6rem;margin-bottom:1rem">'+
+      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação','Circulating')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.mint_emitted!=null?Number(mon.mint_emitted).toFixed(4):'—')+'</div><div class="label">#mint</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+'</div><div class="label">#0</div></div>'+
+      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores','Users')+'</div></div>'+
+      '</div>'+
+      '<h4 style="margin:.5rem 0;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Upstream</h4>'+
+      rows+
+      '<p style="margin-top:1rem;font-size:.8rem;color:var(--muted)"><a href="'+statusBase+'/status" target="_blank" rel="noopener">JSON status</a> · <a href="'+statusBase+'/summary" target="_blank" rel="noopener">/summary</a> · <a href="'+orchBase+'/tdra" target="_blank" rel="noopener">TDRA</a></p>';
   }catch(e){
-    el.innerHTML='<p style="color:var(--muted)">'+esc(e.message||e)+'</p>';
+    el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
   }
 }
+
 
 
 
