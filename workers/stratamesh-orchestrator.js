@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.19.0-voice-medium";
+const VERSION = "10.19.1-strata-grounded";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -2419,6 +2419,11 @@ async function chatDeterministic(text, tickOut, level, env) {
     return pt
       ? "Pool de malha: Nós contribuem capacidade por classe (storage, compute, bandwidth, availability) e recebem STRATA (PdC). Utilizadores e SCA fazem draw (usufruto) por classe — não «recurso do nó X». placement_node_id é só routing. API: /pool, /pool/draw, /pool/release no PoC."
       : "Mesh pool: Nodes contribute capacity by class and receive STRATA (PoC). Users/SCAs draw usufruct by class — not node-X resources. placement_node_id is routing only.";
+  }
+  if (/\bstrata\b|token fundacional|nft strata|sub-?token|tokeniza|cgu\b|ugc\b/i.test(lower)) {
+    return pt
+      ? "STRATA é o token exclusivo e fundacional da StrataMesh.\n• Fungível base: liquidação, PdS, Ágora; mint só via PdC do Nó.\n• Sub-tokens fungíveis dentro de mundos abertos: lastrados (colateral) em STRATA — não emissão livre de base.\n• NFT STRATA: blocos de construção dos mundos abertos e das CGU (utilizadores e SCA) na bancada.\nAPI: /architecture, /world/compose, /world/block, /cgu/mint, /world-token."
+      : "STRATA is the exclusive foundational token of StrataMesh.\n• Base fungible: settlement, PoS, Agora; mint only via Node PoC.\n• World fungible sub-tokens: collateralised in STRATA — not free base emission.\n• STRATA NFTs: building blocks of open worlds and of UGC/CGU (users and SCAs).\nAPI: /architecture, /world/compose, /world/block, /cgu/mint, /world-token.";
   }
   if (/mundo aberto|open.?world|sandbox pessoal|bancada pessoal|co-presen|inhabit/i.test(lower)) {
     return pt
