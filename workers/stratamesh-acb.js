@@ -376,6 +376,43 @@ function ppcStamp(opts = {}) {
  * Self-validate a PPC stamp against recomputed astronomical/PPC state.
  * Phase 1: tolerance on fingerprint match + phase consistency + locality bounds.
  */
+
+/** Computational senses + CLP perception for an SCA at the CMN locus. */
+function scaSenseBundle(overrides = {}) {
+  const stamp = ppcStamp(overrides);
+  const ctx = holonicContext(overrides);
+  return {
+    temporal: {
+      authority: stamp.authority,
+      policy: stamp.policy,
+      clp: stamp.clp,
+      solar: stamp.solar,
+      ppc_fingerprint: stamp.ppc_fingerprint || null,
+      iso_carrier_only: stamp.iso_carrier,
+    },
+    spatial_holonic: {
+      path: ctx.path,
+      stack: ctx.stack,
+      node: ctx.node,
+      realm_id: (overrides.realm_id || ctx.node.realm_id),
+      world_id: (overrides.world_id || ctx.node.world_id),
+      sandbox_id: (overrides.sandbox_id || ctx.node.sandbox_id),
+    },
+    rules: ctx.rules,
+    sensed_at_iso_carrier: new Date().toISOString(),
+  };
+}
+
+function phaseAwareNextOffset(phase) {
+  // Agent-relative civil rhythm suggestions (not a global life cron)
+  const p = String(phase || '').toLowerCase();
+  if (p.includes('noite') || p.includes('nadir') || p.includes('night')) return { offset: '+45 minutes', reason: 'self_after_night_phase' };
+  if (p.includes('ocaso') || p.includes('sunset') || p.includes('crepus')) return { offset: '+25 minutes', reason: 'self_after_sunset_phase' };
+  if (p.includes('zen') || p.includes('noon') || p.includes('zénite') || p.includes('zenite')) return { offset: '+20 minutes', reason: 'self_after_zenith_phase' };
+  if (p.includes('nascer') || p.includes('sunrise') || p.includes('manha') || p.includes('manhã')) return { offset: '+15 minutes', reason: 'self_after_dawn_phase' };
+  return { offset: '+30 minutes', reason: 'self_after_phase_default' };
+}
+
 function validatePpcStamp(stamp, opts = {}) {
   if (!stamp || stamp.schema !== "stratamesh.ppc.stamp.v1") {
     return { ok: false, reason: "invalid_schema" };
@@ -844,7 +881,8 @@ export default {
                   trigger: 'self_volition',
                   intention,
                   prior_reason: row.reason,
-                  at: new Date().toISOString(),
+                  clp: scaSenseBundle({}).temporal.clp,
+                  at_iso_carrier: new Date().toISOString(),
                 }),
                 COST_M
               )
@@ -1017,7 +1055,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.9.1-volition-nudge',
+          version: '5.10.0-clp-senses',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1055,6 +1093,9 @@ export default {
             '/acb/comm/inbox',
             '/acb/comm/thread',
             '/acb/comm/list',
+            '/acb/sense',
+            '/acb/sense/temporal',
+            '/acb/clp',
           ],
         });
       }
@@ -1138,7 +1179,20 @@ export default {
       if (path === '/acb/environment' && method === 'GET') {
         const acb_id = url.searchParams.get('acb_id');
         if (!acb_id) return j({ error: 'acb_id required' }, 400);
-        return j({ success: true, environment: await getEnvironment(db, acb_id) });
+        const environment = await getEnvironment(db, acb_id);
+        const sense = scaSenseBundle({
+          realm_id: environment?.realm_id,
+          world_id: environment?.world_id,
+          sandbox_id: environment?.sandbox_id,
+          node_id: environment?.host_node || NODE_CMN.node_id,
+        });
+        return j({
+          success: true,
+          environment,
+          sense,
+          clp: sense.temporal.clp,
+          ontology: 'CLP/PPC is perceived temporal ground; ISO is carrier only',
+        });
       }
 
       // Bootstrap: persons first, roles as assignments (not identity)
@@ -1430,7 +1484,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.9.1-volition-nudge',
+          version: '5.10.0-clp-senses',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2258,7 +2312,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.9.1-volition-nudge',
+          version: '5.10.0-clp-senses',
           cycled: reports.length,
           reports,
           ontology: {
@@ -2711,12 +2765,17 @@ export default {
         // Memory trace of this cognition (costs extra PdS)
         let memory_id = null;
         let afterMem = afterProcess;
+        const senseNow = scaSenseBundle({});
         const memContent = JSON.stringify({
           trigger: opts.trigger || 'unprompted',
           intention: top,
           goals: goals.slice(0, 3).map((g) => ({ id: g.id, statement: (g.statement || '').slice(0, 120), progress: g.progress })),
           balance_after_process: afterProcess,
-          at: new Date().toISOString(),
+          clp: senseNow.temporal.clp,
+          solar_phase: senseNow.temporal.clp?.phase,
+          ppc_authority: senseNow.temporal.authority,
+          holonic_path: senseNow.spatial_holonic.path,
+          at_iso_carrier: new Date().toISOString(),
         });
         if (opts.memory_cost == null) {
           const kb = Math.max(0.05, memContent.length / 1024);
@@ -2782,18 +2841,19 @@ export default {
           )
           .run();
 
-        // Volition sets next wake — not a global predetermined clock
-        let nextOffset = '+20 minutes';
-        let nextReason = 'self_after_' + (top.action || 'cog');
+        // Volition sets next wake — CLP phase-aware, not a global predetermined clock
+        const phaseHint = phaseAwareNextOffset(senseNow.temporal.clp?.phase);
+        let nextOffset = phaseHint.offset;
+        let nextReason = phaseHint.reason + '_after_' + (top.action || 'cog');
         if (top.action === 'seek_labour') {
           nextOffset = '+8 minutes';
           nextReason = 'self_urgent_subsistence';
         } else if (top.action === 'reflect') {
-          nextOffset = '+35 minutes';
-          nextReason = 'self_after_reflect';
+          nextOffset = phaseHint.offset;
+          nextReason = 'self_after_reflect_' + (senseNow.temporal.clp?.phase || 'phase');
         } else if (top.action === 'pulse') {
-          nextOffset = '+18 minutes';
-          nextReason = 'self_maintain_agency';
+          nextOffset = phaseHint.offset;
+          nextReason = 'self_maintain_agency_' + (senseNow.temporal.clp?.phase || 'phase');
         }
         if (opts.next_offset) nextOffset = opts.next_offset;
         if (opts.next_reason) nextReason = opts.next_reason;
@@ -2828,7 +2888,12 @@ export default {
           balance_after: afterMem,
           memory_id,
           next_volition: { offset: nextOffset, reason: nextReason, set_by: 'self' },
-          breath: 'cognition by volition under PdS — next wake self-scheduled',
+          sense: {
+            clp_address: senseNow.temporal.clp?.address,
+            phase: senseNow.temporal.clp?.phase,
+            locality: senseNow.temporal.clp?.locality,
+          },
+          breath: 'cognition by volition under PdS+CLP — next wake self-scheduled in civil phase',
         };
       }
 
@@ -2962,6 +3027,39 @@ export default {
       }
 
 
+
+      // Foundational senses: CLP/PPC temporal + holonic placement in Web3 Metaverse OS
+      if ((path === '/acb/sense' || path === '/sca/sense') && method === 'GET') {
+        const acb_id = url.searchParams.get('sca_id') || url.searchParams.get('acb_id') || url.searchParams.get('id');
+        let env = null;
+        if (acb_id) env = await getEnvironment(db, acb_id);
+        const sense = scaSenseBundle({
+          realm_id: env?.realm_id,
+          world_id: env?.world_id,
+          sandbox_id: env?.sandbox_id,
+          node_id: env?.host_node || NODE_CMN.node_id,
+        });
+        return j({
+          success: true,
+          sca_id: acb_id || null,
+          sense,
+          channels: ['temporal_clp_ppc', 'spatial_holonic', 'social_comm', 'economic_pds'],
+        });
+      }
+
+      if ((path === '/acb/sense/temporal' || path === '/sca/sense/temporal' || path === '/acb/clp') && method === 'GET') {
+        const sense = scaSenseBundle({});
+        return j({
+          success: true,
+          temporal: sense.temporal,
+          address: sense.temporal.clp?.address,
+          phase: sense.temporal.clp?.phase,
+          solar: sense.temporal.solar,
+          locality: sense.temporal.clp?.locality,
+        });
+      }
+
+
       // Agent sets own next cognition time (volition, not global cron of life)
       if ((path === '/acb/volition/schedule' || path === '/sca/volition/schedule') && method === 'POST') {
         const body = await request.json().catch(() => ({}));
@@ -3048,7 +3146,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.9.1-volition-nudge' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.10.0-clp-senses' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -3056,7 +3154,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.9.1-volition-nudge' });
+        return j({ ...pop, trigger, version: '5.10.0-clp-senses' });
       }
 
       // Breath diagnostics
@@ -3158,6 +3256,9 @@ export default {
             '/acb/comm/inbox',
             '/acb/comm/thread',
             '/acb/comm/list',
+            '/acb/sense',
+            '/acb/sense/temporal',
+            '/acb/clp',
           ],
         },
         404
