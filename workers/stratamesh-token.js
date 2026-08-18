@@ -92,6 +92,146 @@ async function dagSubmit(env, payload, content) {
 }
 
 
+
+/** STRATA monetary poles (protocol addresses on the shared ledger).
+ *  #mint — emission source: only creates STRATA; never receives; spendable balance always 0.
+ *  #0    — burn sink: only accepts STRATA when resources are consumed; never transfers out.
+ *  Circulating = sum(balances) − balance(#0); emission tracked on #mint.total_minted.
+ */
+const STRATA_MINT_SOURCE = '#mint';
+const STRATA_BURN_SINK = '#0';
+
+async function ensureMonetaryPoles(db) {
+  if (!db) return;
+  try {
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', 0, 0, 0)
+       ON CONFLICT(account, token_type) DO NOTHING`
+    ).bind(STRATA_MINT_SOURCE).run();
+  } catch (_) {
+    try {
+      await db.prepare(
+        `INSERT OR IGNORE INTO token_balances (account, token_type, balance, total_minted, total_burned)
+         VALUES (?, 'STRATA', 0, 0, 0)`
+      ).bind(STRATA_MINT_SOURCE).run();
+    } catch (_) {}
+  }
+  try {
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', 0, 0, 0)
+       ON CONFLICT(account, token_type) DO NOTHING`
+    ).bind(STRATA_BURN_SINK).run();
+  } catch (_) {
+    try {
+      await db.prepare(
+        `INSERT OR IGNORE INTO token_balances (account, token_type, balance, total_minted, total_burned)
+         VALUES (?, 'STRATA', 0, 0, 0)`
+      ).bind(STRATA_BURN_SINK).run();
+    } catch (_) {}
+  }
+  try {
+    await db.prepare(
+      `CREATE TABLE IF NOT EXISTS strata_burn_events (
+        id TEXT PRIMARY KEY,
+        from_account TEXT NOT NULL,
+        amount REAL NOT NULL,
+        reason TEXT,
+        resource_class TEXT,
+        meta_json TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`
+    ).run();
+  } catch (_) {}
+}
+
+function isMintSource(account) {
+  return String(account || '') === STRATA_MINT_SOURCE || String(account || '').toLowerCase() === 'strata://mint';
+}
+function isBurnSink(account) {
+  return String(account || '') === STRATA_BURN_SINK || String(account || '') === '0' || String(account || '').toLowerCase() === 'strata://burn';
+}
+
+/** Record protocol emission: node receives STRATA; #mint total_minted rises; #mint never holds spendable. */
+async function recordMintEmission(db, node_id, amount) {
+  if (!db || !(amount > 0) || !node_id) return;
+  if (isBurnSink(node_id) || isMintSource(node_id)) return;
+  await ensureMonetaryPoles(db);
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', 0, ?, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET
+       total_minted = COALESCE(token_balances.total_minted,0) + excluded.total_minted,
+       balance = 0`
+  ).bind(STRATA_MINT_SOURCE, amount).run();
+}
+
+/** Burn on resource use: debit payer → credit #0 (sink never transfers out). */
+async function burnStrataToSink(db, from_account, amount, reason, meta) {
+  const cost = Math.abs(Number(amount) || 0);
+  if (!db || cost <= 0 || !from_account) {
+    return { ok: false, error: 'invalid_burn' };
+  }
+  if (isBurnSink(from_account)) {
+    return { ok: false, error: 'burn_sink_cannot_spend' };
+  }
+  if (isMintSource(from_account)) {
+    return { ok: false, error: 'mint_source_cannot_spend' };
+  }
+  await ensureMonetaryPoles(db);
+  let bal = 0;
+  try {
+    const row = await db.prepare(
+      "SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')"
+    ).bind(from_account).first();
+    bal = Number(row?.balance || 0);
+  } catch (_) {}
+  if (bal < cost) {
+    return { ok: false, error: 'insufficient_balance', balance: bal, required: cost };
+  }
+  await db.prepare(
+    `UPDATE token_balances SET
+       balance = balance - ?,
+       total_burned = COALESCE(total_burned,0) + ?
+     WHERE account = ? AND token_type IN ('STRATA','strata')`
+  ).bind(cost, cost, from_account).run();
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', ?, 0, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET
+       balance = balance + excluded.balance`
+  ).bind(STRATA_BURN_SINK, cost).run();
+  const id = 'burn_' + crypto.randomUUID().slice(0, 12);
+  try {
+    await db.prepare(
+      `INSERT INTO strata_burn_events (id, from_account, amount, reason, resource_class, meta_json)
+       VALUES (?,?,?,?,?,?)`
+    ).bind(
+      id, from_account, cost, reason || 'resource_use',
+      (meta && meta.resource_class) || null,
+      JSON.stringify(meta || {})
+    ).run();
+  } catch (_) {}
+  let sink = 0, payer = 0;
+  try {
+    sink = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_BURN_SINK).first())?.balance || 0);
+    payer = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(from_account).first())?.balance || 0);
+  } catch (_) {}
+  return {
+    ok: true,
+    burn_id: id,
+    from: from_account,
+    to: STRATA_BURN_SINK,
+    amount: cost,
+    reason: reason || 'resource_use',
+    from_balance: payer,
+    sink_balance: sink,
+    out_of_circulation: true,
+  };
+}
+
+
 async function ensureLabOrigin(db) {
   if (!db) return;
   try {
@@ -357,7 +497,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '3.0.0-strata-functional',
+        version: '3.1.0-mint-burn-poles',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -1097,6 +1237,89 @@ export default {
     }
 
 
+
+    // --- STRATA monetary system: #mint (emit-only) ↔ circulating ↔ #0 (burn-only) ---
+    if (path === '/monetary' || path === '/monetary-system') {
+      await ensureMonetaryPoles(db);
+      let mint = null, sink = null, circulating = 0, total_minted = 0;
+      try {
+        mint = await db.prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_MINT_SOURCE).first();
+        sink = await db.prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_BURN_SINK).first();
+        const circ = await db.prepare(
+          "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account NOT IN (?, ?)"
+        ).bind(STRATA_MINT_SOURCE, STRATA_BURN_SINK).first();
+        circulating = Number(circ?.s || 0);
+        total_minted = Number(mint?.total_minted || 0);
+      } catch (_) {}
+      return json({
+        success: true,
+        poles: {
+          mint: {
+            address: STRATA_MINT_SOURCE,
+            role: 'emission_source_only',
+            receives: false,
+            transfers_out: false,
+            spendable_balance: 0,
+            total_emitted: total_minted,
+            note: 'Opposite of #0: only creates STRATA via PoC; never holds spendable balance',
+          },
+          burn_sink: {
+            address: STRATA_BURN_SINK,
+            role: 'out_of_circulation_sink',
+            receives: true,
+            transfers_out: false,
+            balance: Number(sink?.balance || 0),
+            note: 'When users/SCAs consume resources, STRATA move here and cannot leave',
+          },
+        },
+        circulating_supply: circulating,
+        out_of_circulation: Number(sink?.balance || 0),
+        flow: 'PoC → #mint emits → node/user/SCA wallets (circulating) → resource use burns → #0',
+      });
+    }
+
+    if ((path === '/burn' || path === '/strata/burn') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const account = body.account || body.from || body.owner;
+      const amount = Number(body.amount);
+      const reason = body.reason || body.purpose || 'resource_use';
+      const r = await burnStrataToSink(db, account, amount, reason, {
+        resource_class: body.resource_class,
+        beneficiary_kind: body.beneficiary_kind,
+        ref: body.ref,
+      });
+      return json(r, r.ok ? 200 : (r.error === 'insufficient_balance' ? 402 : 400));
+    }
+
+    // Fungible transfer with monetary poles enforced
+    if ((path === '/transfer-fungible' || path === '/strata/transfer') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const from = body.from || body.account;
+      const to = body.to || body.recipient;
+      const amount = Number(body.amount);
+      if (!from || !to || !(amount > 0)) return json({ error: 'from, to, amount > 0 required' }, 400);
+      if (isBurnSink(from)) return json({ error: 'burn_sink_cannot_transfer_out', address: STRATA_BURN_SINK }, 403);
+      if (isMintSource(from)) return json({ error: 'mint_source_cannot_transfer', address: STRATA_MINT_SOURCE }, 403);
+      if (isMintSource(to)) return json({ error: 'mint_source_cannot_receive', address: STRATA_MINT_SOURCE }, 403);
+      if (isBurnSink(to)) {
+        // intentional burn via transfer to #0
+        const r = await burnStrataToSink(db, from, amount, body.reason || 'transfer_to_sink', body);
+        return json(r, r.ok ? 200 : 400);
+      }
+      await ensureMonetaryPoles(db);
+      const row = await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(from).first();
+      if (Number(row?.balance || 0) < amount) return json({ error: 'insufficient_balance' }, 402);
+      await db.prepare("UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')").bind(amount, from).run();
+      await db.prepare(
+        `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned) VALUES (?, 'STRATA', ?, 0, 0)
+         ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+      ).bind(to, amount).run();
+      return json({ success: true, from, to, amount });
+    }
+
+
     return json({
       error: 'not found',
       endpoints: [
@@ -1116,6 +1339,9 @@ export default {
         'POST /import',
         'POST /transfer',
         'POST /lab/grant',
+        'GET /monetary',
+        'POST /burn',
+        'POST /transfer-fungible',
       ],
     }, 404);
   },

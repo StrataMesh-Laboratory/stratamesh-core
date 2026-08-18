@@ -1,3 +1,143 @@
+
+/** STRATA monetary poles (protocol addresses on the shared ledger).
+ *  #mint — emission source: only creates STRATA; never receives; spendable balance always 0.
+ *  #0    — burn sink: only accepts STRATA when resources are consumed; never transfers out.
+ *  Circulating = sum(balances) − balance(#0); emission tracked on #mint.total_minted.
+ */
+const STRATA_MINT_SOURCE = '#mint';
+const STRATA_BURN_SINK = '#0';
+
+async function ensureMonetaryPoles(db) {
+  if (!db) return;
+  try {
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', 0, 0, 0)
+       ON CONFLICT(account, token_type) DO NOTHING`
+    ).bind(STRATA_MINT_SOURCE).run();
+  } catch (_) {
+    try {
+      await db.prepare(
+        `INSERT OR IGNORE INTO token_balances (account, token_type, balance, total_minted, total_burned)
+         VALUES (?, 'STRATA', 0, 0, 0)`
+      ).bind(STRATA_MINT_SOURCE).run();
+    } catch (_) {}
+  }
+  try {
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', 0, 0, 0)
+       ON CONFLICT(account, token_type) DO NOTHING`
+    ).bind(STRATA_BURN_SINK).run();
+  } catch (_) {
+    try {
+      await db.prepare(
+        `INSERT OR IGNORE INTO token_balances (account, token_type, balance, total_minted, total_burned)
+         VALUES (?, 'STRATA', 0, 0, 0)`
+      ).bind(STRATA_BURN_SINK).run();
+    } catch (_) {}
+  }
+  try {
+    await db.prepare(
+      `CREATE TABLE IF NOT EXISTS strata_burn_events (
+        id TEXT PRIMARY KEY,
+        from_account TEXT NOT NULL,
+        amount REAL NOT NULL,
+        reason TEXT,
+        resource_class TEXT,
+        meta_json TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`
+    ).run();
+  } catch (_) {}
+}
+
+function isMintSource(account) {
+  return String(account || '') === STRATA_MINT_SOURCE || String(account || '').toLowerCase() === 'strata://mint';
+}
+function isBurnSink(account) {
+  return String(account || '') === STRATA_BURN_SINK || String(account || '') === '0' || String(account || '').toLowerCase() === 'strata://burn';
+}
+
+/** Record protocol emission: node receives STRATA; #mint total_minted rises; #mint never holds spendable. */
+async function recordMintEmission(db, node_id, amount) {
+  if (!db || !(amount > 0) || !node_id) return;
+  if (isBurnSink(node_id) || isMintSource(node_id)) return;
+  await ensureMonetaryPoles(db);
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', 0, ?, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET
+       total_minted = COALESCE(token_balances.total_minted,0) + excluded.total_minted,
+       balance = 0`
+  ).bind(STRATA_MINT_SOURCE, amount).run();
+}
+
+/** Burn on resource use: debit payer → credit #0 (sink never transfers out). */
+async function burnStrataToSink(db, from_account, amount, reason, meta) {
+  const cost = Math.abs(Number(amount) || 0);
+  if (!db || cost <= 0 || !from_account) {
+    return { ok: false, error: 'invalid_burn' };
+  }
+  if (isBurnSink(from_account)) {
+    return { ok: false, error: 'burn_sink_cannot_spend' };
+  }
+  if (isMintSource(from_account)) {
+    return { ok: false, error: 'mint_source_cannot_spend' };
+  }
+  await ensureMonetaryPoles(db);
+  let bal = 0;
+  try {
+    const row = await db.prepare(
+      "SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')"
+    ).bind(from_account).first();
+    bal = Number(row?.balance || 0);
+  } catch (_) {}
+  if (bal < cost) {
+    return { ok: false, error: 'insufficient_balance', balance: bal, required: cost };
+  }
+  await db.prepare(
+    `UPDATE token_balances SET
+       balance = balance - ?,
+       total_burned = COALESCE(total_burned,0) + ?
+     WHERE account = ? AND token_type IN ('STRATA','strata')`
+  ).bind(cost, cost, from_account).run();
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', ?, 0, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET
+       balance = balance + excluded.balance`
+  ).bind(STRATA_BURN_SINK, cost).run();
+  const id = 'burn_' + crypto.randomUUID().slice(0, 12);
+  try {
+    await db.prepare(
+      `INSERT INTO strata_burn_events (id, from_account, amount, reason, resource_class, meta_json)
+       VALUES (?,?,?,?,?,?)`
+    ).bind(
+      id, from_account, cost, reason || 'resource_use',
+      (meta && meta.resource_class) || null,
+      JSON.stringify(meta || {})
+    ).run();
+  } catch (_) {}
+  let sink = 0, payer = 0;
+  try {
+    sink = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_BURN_SINK).first())?.balance || 0);
+    payer = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(from_account).first())?.balance || 0);
+  } catch (_) {}
+  return {
+    ok: true,
+    burn_id: id,
+    from: from_account,
+    to: STRATA_BURN_SINK,
+    amount: cost,
+    reason: reason || 'resource_use',
+    from_balance: payer,
+    sink_balance: sink,
+    out_of_circulation: true,
+  };
+}
+
+
 /**
  * PoC refined process pipeline
  *
@@ -494,6 +634,7 @@ async function credit(db, node_id, amount, meta) {
       )
       .run();
   } catch (_) {}
+  try { await recordMintEmission(db, node_id, amount); } catch (_) {}
   // Mesh pool: capacity is mesh-level by class; node_id is payee of mint only
   try {
     const cls = normalizeResourceClass(meta.contribution_type) || meta.contribution_type;
@@ -1169,8 +1310,19 @@ export default {
         await ensure(db);
         const body = await request.json().catch(() => ({}));
         const r = await meshDraw(db, body);
+        let strata_burn = null;
+        if (r.ok && (body.pay_strata || body.strata_cost || body.burn_strata)) {
+          const cost = Number(body.strata_cost || body.pay_strata || body.burn_strata || 0);
+          const payer = body.beneficiary_id || body.account || body.payer;
+          if (cost > 0 && payer) {
+            strata_burn = await burnStrataToSink(db, payer, cost, 'mesh_pool_draw', {
+              resource_class: body.resource_class || r.resource_class,
+              draw_id: r.draw_id || r.id,
+            });
+          }
+        }
         const code = r.ok ? 200 : r.error === 'insufficient_mesh_capacity' ? 409 : 400;
-        return j({ ...r, version: '5.8.0-mesh-pool' }, code);
+        return j({ ...r, strata_burn, version: '5.9.0-mint-burn' }, code);
       }
 
       if ((path === '/pool/release' || path === '/mesh/pool/release') && request.method === 'POST') {

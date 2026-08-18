@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.19.1-strata-grounded";
+const VERSION = "10.19.2-mint-burn";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
