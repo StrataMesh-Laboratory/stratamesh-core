@@ -377,10 +377,14 @@ function ppcStamp(opts = {}) {
  * Phase 1: tolerance on fingerprint match + phase consistency + locality bounds.
  */
 
-/** Computational senses + CLP perception for an SCA at the CMN locus. */
+/** Computational senses + CLP + holonic inhabitance (personal sandbox + open worlds). */
 function scaSenseBundle(overrides = {}) {
   const stamp = ppcStamp(overrides);
   const ctx = holonicContext(overrides);
+  const realm_id = overrides.realm_id || ctx.node.realm_id;
+  const world_id = overrides.world_id || ctx.node.world_id;
+  const personal_sandbox_id = overrides.personal_sandbox_id || overrides.sandbox_id || null;
+  const open_world_id = overrides.open_world_id || world_id;
   return {
     temporal: {
       authority: stamp.authority,
@@ -394,11 +398,31 @@ function scaSenseBundle(overrides = {}) {
       path: ctx.path,
       stack: ctx.stack,
       node: ctx.node,
-      realm_id: (overrides.realm_id || ctx.node.realm_id),
-      world_id: (overrides.world_id || ctx.node.world_id),
-      sandbox_id: (overrides.sandbox_id || ctx.node.sandbox_id),
+      realm_id,
+      // Shared open world where SCAs and users meet
+      open_world: {
+        id: open_world_id,
+        holon: 'open_world',
+        role: 'persistent multi-user inhabitance',
+        interacts_with: ['sca', 'user'],
+      },
+      // Personal UGC sandbox (child of open world / agent locus)
+      personal_sandbox: {
+        id: personal_sandbox_id,
+        holon: 'ugc_sandbox',
+        role: 'personal authoring / isolation',
+        owner_sca_id: overrides.sca_id || null,
+      },
+      world_id: open_world_id,
+      sandbox_id: personal_sandbox_id,
     },
-    rules: ctx.rules,
+    presence: overrides.presence || null,
+    rules: {
+      ...ctx.rules,
+      personal_sandbox_per_sca: true,
+      open_world_shared_interaction: true,
+      painel_inside_sandbox: true,
+    },
     sensed_at_iso_carrier: new Date().toISOString(),
   };
 }
@@ -733,6 +757,124 @@ async function requireRepublicForNodeRole(env, db, sca_id) {
 
 
 
+
+async function ensureHolonSchema(db) {
+  if (!db) return;
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS sandboxes (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      parent_world_id TEXT,
+      owner_id TEXT,
+      status TEXT,
+      isolation TEXT,
+      content_json TEXT,
+      meta_json TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`).run();
+  } catch (_) {}
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS sca_presence (
+      sca_id TEXT PRIMARY KEY,
+      realm_id TEXT,
+      world_id TEXT,
+      sandbox_id TEXT,
+      mode TEXT DEFAULT 'inhabit',
+      status TEXT DEFAULT 'present',
+      entered_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      meta_json TEXT
+    )`).run();
+  } catch (_) {}
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS world_presence (
+      id TEXT PRIMARY KEY,
+      world_id TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      entity_kind TEXT NOT NULL,
+      status TEXT DEFAULT 'present',
+      entered_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`).run();
+  } catch (_) {}
+}
+
+async function ensurePersonalHolon(db, sca_id, displayName) {
+  await ensureHolonSchema(db);
+  const realm_id = NODE_CMN.realm_id || 'realm_1f20890b';
+  const world_id = NODE_CMN.world_id || 'world_b787cfe9-c';
+  let sbx = null;
+  try {
+    sbx = await db
+      .prepare(`SELECT * FROM sandboxes WHERE owner_id = ? ORDER BY created_at ASC LIMIT 1`)
+      .bind(sca_id)
+      .first();
+  } catch (_) {}
+  if (!sbx) {
+    const id = 'sbx_personal_' + String(sca_id).replace(/[^A-Za-z0-9]/g, '').slice(-14);
+    const title = 'Sandbox · ' + (displayName || sca_id);
+    try {
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO sandboxes (id, title, parent_world_id, owner_id, status, isolation, meta_json, created_at, updated_at)
+           VALUES (?,?,?,?, 'active', 'personal', ?, datetime('now'), datetime('now'))`
+        )
+        .bind(id, title, world_id, sca_id, JSON.stringify({ holon: 'ugc_sandbox', personal: true, painel_inside: true }))
+        .run();
+    } catch (_) {}
+    try {
+      sbx = await db.prepare(`SELECT * FROM sandboxes WHERE id = ?`).bind(id).first();
+    } catch (_) {}
+    if (!sbx) sbx = { id, title, parent_world_id: world_id, owner_id: sca_id, status: 'active' };
+  }
+  await db
+    .prepare(
+      `INSERT OR REPLACE INTO sca_presence (sca_id, realm_id, world_id, sandbox_id, mode, status, updated_at)
+       VALUES (?,?,?,?, 'inhabit', 'present', datetime('now'))`
+    )
+    .bind(sca_id, realm_id, world_id, sbx.id)
+    .run();
+  await db
+    .prepare(
+      `INSERT OR REPLACE INTO world_presence (id, world_id, entity_id, entity_kind, status, updated_at)
+       VALUES (?,?,?,?, 'present', datetime('now'))`
+    )
+    .bind('wp_' + sca_id, world_id, sca_id, 'sca')
+    .run();
+  await setEnvironment(db, sca_id, {
+    host_node: NODE_CMN.node_id,
+    realm_id,
+    world_id,
+    sandbox_id: sbx.id,
+    holon: 'ugc_sandbox',
+    meta: { personal_sandbox: true, open_world_id: world_id },
+  });
+  return {
+    realm_id,
+    open_world_id: world_id,
+    personal_sandbox: sbx,
+    presence: { mode: 'inhabit', status: 'present', world_id, realm_id },
+  };
+}
+
+async function whoInWorld(db, world_id) {
+  await ensureHolonSchema(db);
+  try {
+    return (
+      (await db
+        .prepare(
+          `SELECT * FROM world_presence WHERE world_id = ? AND status = 'present' ORDER BY updated_at DESC LIMIT 100`
+        )
+        .bind(world_id)
+        .all()).results || []
+    );
+  } catch {
+    return [];
+  }
+}
+
+
 export default {
   async scheduled(event, env, ctx) {
     /**
@@ -1055,7 +1197,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.10.0-clp-senses',
+          version: '5.11.0-holonic-inhabitance',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1158,11 +1300,17 @@ export default {
             .bind(String(body.role).toLowerCase(), id, 'register', 'optional role at register')
             .run();
         }
+        let holon = null;
+        try {
+          holon = await ensurePersonalHolon(db, id, name);
+        } catch (_) {}
         return j({
           success: true,
           sca: { sca_id: id, personal_name: name, status: 'active', balance: 0 },
           role_assignment: body.role || null,
-          note: 'Identity is the person; node role is optional assignment',
+          personal_sandbox: holon?.personal_sandbox || null,
+          open_world_id: holon?.open_world_id || null,
+          note: 'Identity is the person; personal sandbox + open-world presence provisioned',
         });
       }
 
@@ -1484,7 +1632,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.10.0-clp-senses',
+          version: '5.11.0-holonic-inhabitance',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2312,7 +2460,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.10.0-clp-senses',
+          version: '5.11.0-holonic-inhabitance',
           cycled: reports.length,
           reports,
           ontology: {
@@ -3028,22 +3176,119 @@ export default {
 
 
 
+
+
+
+      if ((path === '/acb/holon/ensure' || path === '/sca/holon/ensure') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id;
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const reg = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(sca_id).first();
+        if (!reg) return j({ error: 'not found' }, 404);
+        const holon = await ensurePersonalHolon(db, sca_id, reg.name);
+        return j({
+          success: true,
+          sca_id,
+          personal_sandbox: holon.personal_sandbox,
+          open_world_id: holon.open_world_id,
+          realm_id: holon.realm_id,
+          presence: holon.presence,
+          ontology: 'SCA inhabits personal sandbox; meets others in open world under same realm',
+        });
+      }
+
+      if ((path === '/acb/world/enter' || path === '/sca/world/enter') && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const sca_id = body.sca_id || body.acb_id;
+        const world_id = body.world_id || NODE_CMN.world_id;
+        const realm_id = body.realm_id || NODE_CMN.realm_id;
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const holon = await ensurePersonalHolon(db, sca_id, sca_id);
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO sca_presence (sca_id, realm_id, world_id, sandbox_id, mode, status, updated_at)
+             VALUES (?,?,?,?, 'inhabit', 'present', datetime('now'))`
+          )
+          .bind(sca_id, realm_id, world_id, holon.personal_sandbox.id)
+          .run();
+        await db
+          .prepare(
+            `INSERT OR REPLACE INTO world_presence (id, world_id, entity_id, entity_kind, status, updated_at)
+             VALUES (?,?,?,?, 'present', datetime('now'))`
+          )
+          .bind('wp_' + sca_id, world_id, sca_id, 'sca')
+          .run();
+        if (body.user_id) {
+          await db
+            .prepare(
+              `INSERT OR REPLACE INTO world_presence (id, world_id, entity_id, entity_kind, status, updated_at)
+               VALUES (?,?,?,?, 'present', datetime('now'))`
+            )
+            .bind('wp_user_' + body.user_id, world_id, body.user_id, 'user')
+            .run();
+        }
+        const who = await whoInWorld(db, world_id);
+        return j({ success: true, sca_id, world_id, realm_id, presence: who });
+      }
+
+      if ((path === '/acb/world/who' || path === '/sca/world/who') && method === 'GET') {
+        const world_id = url.searchParams.get('world_id') || NODE_CMN.world_id;
+        const who = await whoInWorld(db, world_id);
+        return j({ world_id, presence: who, ontology: 'Open world co-presence of SCAs and users' });
+      }
+
+      if ((path === '/acb/sandbox' || path === '/sca/sandbox') && method === 'GET') {
+        const sca_id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (!sca_id) return j({ error: 'sca_id required' }, 400);
+        const reg = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(sca_id).first();
+        if (!reg) return j({ error: 'not found' }, 404);
+        const holon = await ensurePersonalHolon(db, sca_id, reg.name);
+        return j({
+          sca_id,
+          personal_sandbox: holon.personal_sandbox,
+          parent_open_world: holon.open_world_id,
+          realm_id: holon.realm_id,
+        });
+      }
+
+
       // Foundational senses: CLP/PPC temporal + holonic placement in Web3 Metaverse OS
       if ((path === '/acb/sense' || path === '/sca/sense') && method === 'GET') {
         const acb_id = url.searchParams.get('sca_id') || url.searchParams.get('acb_id') || url.searchParams.get('id');
+        let holon = null;
         let env = null;
-        if (acb_id) env = await getEnvironment(db, acb_id);
+        if (acb_id) {
+          const reg = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(acb_id).first();
+          if (reg) holon = await ensurePersonalHolon(db, acb_id, reg.name);
+          env = await getEnvironment(db, acb_id);
+        }
         const sense = scaSenseBundle({
-          realm_id: env?.realm_id,
-          world_id: env?.world_id,
-          sandbox_id: env?.sandbox_id,
+          sca_id: acb_id,
+          realm_id: holon?.realm_id || env?.realm_id,
+          world_id: holon?.open_world_id || env?.world_id,
+          open_world_id: holon?.open_world_id || env?.world_id,
+          personal_sandbox_id: holon?.personal_sandbox?.id || env?.sandbox_id,
+          sandbox_id: holon?.personal_sandbox?.id || env?.sandbox_id,
           node_id: env?.host_node || NODE_CMN.node_id,
+          presence: holon?.presence || null,
         });
+        let others = [];
+        if (sense.spatial_holonic.open_world?.id) {
+          others = await whoInWorld(db, sense.spatial_holonic.open_world.id);
+        }
         return j({
           success: true,
           sca_id: acb_id || null,
           sense,
-          channels: ['temporal_clp_ppc', 'spatial_holonic', 'social_comm', 'economic_pds'],
+          open_world_presence: others,
+          channels: [
+            'temporal_clp_ppc',
+            'spatial_holonic',
+            'personal_sandbox',
+            'open_world_social',
+            'social_comm',
+            'economic_pds',
+          ],
         });
       }
 
@@ -3146,7 +3391,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.10.0-clp-senses' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.11.0-holonic-inhabitance' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -3154,7 +3399,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.10.0-clp-senses' });
+        return j({ ...pop, trigger, version: '5.11.0-holonic-inhabitance' });
       }
 
       // Breath diagnostics
