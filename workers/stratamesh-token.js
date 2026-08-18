@@ -478,30 +478,38 @@ export default {
     }
 
     // --- NFT list ---
-    if (path === '/list' || path === '/nfts') {
+        if (path === '/list' || path === '/nfts') {
       if (!db) return json({ nfts: [] });
       const owner = url.searchParams.get('owner');
+      const world_id = url.searchParams.get('world_id');
       const limit = Math.min(50, parseInt(url.searchParams.get('limit') || '20', 10));
       try {
-        let rows;
-        if (owner) {
-          rows = await db
-            .prepare('SELECT * FROM nft_assets WHERE owner = ? ORDER BY created_at DESC LIMIT ?')
-            .bind(owner, limit)
-            .all();
-        } else {
-          rows = await db
-            .prepare('SELECT * FROM nft_assets ORDER BY created_at DESC LIMIT ?')
-            .bind(limit)
-            .all();
+        await ensureStrataFunctionalSchema(db);
+        let rows = { results: [] };
+        try {
+          if (owner && world_id) {
+            rows = await db.prepare('SELECT * FROM strata_nfts WHERE owner = ? AND world_id = ? ORDER BY created_at DESC LIMIT ?').bind(owner, world_id, limit).all();
+          } else if (owner) {
+            rows = await db.prepare('SELECT * FROM strata_nfts WHERE owner = ? ORDER BY created_at DESC LIMIT ?').bind(owner, limit).all();
+          } else if (world_id) {
+            rows = await db.prepare('SELECT * FROM strata_nfts WHERE world_id = ? ORDER BY created_at DESC LIMIT ?').bind(world_id, limit).all();
+          } else {
+            rows = await db.prepare('SELECT * FROM strata_nfts ORDER BY created_at DESC LIMIT ?').bind(limit).all();
+          }
+        } catch (_) {
+          if (owner) {
+            rows = await db.prepare('SELECT * FROM nft_assets WHERE owner = ? ORDER BY rowid DESC LIMIT ?').bind(owner, limit).all();
+          } else {
+            rows = await db.prepare('SELECT * FROM nft_assets ORDER BY rowid DESC LIMIT ?').bind(limit).all();
+          }
         }
-        return json({ success: true, nfts: rows.results || [], count: (rows.results || []).length });
+        return json({ success: true, nfts: rows.results || [], count: (rows.results || []).length, source: 'strata_nfts' });
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
     }
 
-    // --- GET single NFT ---
+    // --- GET single NFT NFT ---
     if (path === '/get' || path.startsWith('/get/')) {
       const id = url.searchParams.get('id') || path.replace(/^\/get\/?/, '');
       if (!id) return json({ error: 'id required' }, 400);

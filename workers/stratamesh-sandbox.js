@@ -192,21 +192,39 @@ export default {
         } catch (e) { holon_event = { aceite: false, erro: String(e.message || e).slice(0, 100) }; }
         let strata_nft = null;
         try {
-          const tr = await fetch(TOKEN_URL + "/cgu/mint", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sandbox_id: id,
-              world_id: parent,
-              title: title || id,
-              author_id: body.owner_id || body.owner || "portal",
-              author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") ? "sca" : "user"),
-              status: "isolated",
-            }),
+          const cguBody = JSON.stringify({
+            sandbox_id: id,
+            world_id: parent,
+            title: title || id,
+            author_id: body.owner_id || body.owner || "portal",
+            author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") ? "sca" : "user"),
+            status: "isolated",
           });
-          strata_nft = await tr.json().catch(() => null);
+          let tr;
+          if (env.TOKEN && typeof env.TOKEN.fetch === "function") {
+            tr = await env.TOKEN.fetch(new Request("https://token.internal/cgu/mint", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: cguBody,
+            }));
+          } else if (env.STRATAMESH_TOKEN && typeof env.STRATAMESH_TOKEN.fetch === "function") {
+            tr = await env.STRATAMESH_TOKEN.fetch(new Request("https://token.internal/cgu/mint", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: cguBody,
+            }));
+          } else {
+            // workers.dev inter-worker fetch returns 1042 — skip; surface clear error
+            strata_nft = { error: "TOKEN_service_binding_required", note: "bind TOKEN → stratamesh-token" };
+            tr = null;
+          }
+          if (tr) {
+            const raw = await tr.text();
+            try {
+              strata_nft = JSON.parse(raw);
+              strata_nft.http = tr.status;
+            } catch {
+              strata_nft = { error: "non_json", http: tr.status, raw: String(raw).slice(0, 200) };
+            }
+          }
         } catch (e) {
-          strata_nft = { error: String(e.message || e).slice(0, 120) };
+          strata_nft = { error: String(e.message || e).slice(0, 160) };
         }
         return j({
           success: true,

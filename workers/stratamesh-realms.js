@@ -1,6 +1,27 @@
 const TOKEN_URL = "https://stratamesh-token.stratamesh.workers.dev";
+
+async function ensureWorldStrataStructure(env, world_id, owner, title, realm_id) {
+  try {
+    const body = JSON.stringify({ world_id, owner, title, realm_id });
+    let res;
+    if (env && env.TOKEN && typeof env.TOKEN.fetch === "function") {
+      res = await env.TOKEN.fetch(new Request("https://token.internal/world/compose", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body,
+      }));
+      const raw = await res.text();
+      try { return Object.assign(JSON.parse(raw), { via: "service_binding" }); } catch {
+        return { error: "non_json", http: res.status, raw: String(raw).slice(0, 120), via: "service_binding" };
+      }
+    }
+    return { error: "TOKEN_service_binding_required", note: "bind TOKEN → stratamesh-token (workers.dev inter-fetch is blocked with 1042)" };
+
+  } catch (e) {
+    return { error: String(e.message || e).slice(0, 160) };
+  }
+}
+
 /**
- * Holon 3 — Virtual Realm (hypervisor) · open structures as STRATA NFTs
+ * Holon 3 — Virtual Realm (hypervisor)
  * Parent: metaverse_os · Children: open_world
  * Contract: worlds live inside realms; realm ≠ world.
  */
@@ -68,21 +89,6 @@ async function ensureSchema(db) {
   }
 }
 
-
-      // STRATA: open world structure is STRATA NFT blocks
-      async function ensureWorldStrataStructure(world_id, owner, title, realm_id) {
-        try {
-          const res = await fetch(TOKEN_URL + "/world/compose", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ world_id, owner, title, realm_id }),
-          });
-          return await res.json();
-        } catch (e) {
-          return { error: String(e.message || e) };
-        }
-      }
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -127,7 +133,7 @@ export default {
       if (path === "/contract") {
         return j({
           holon: HOLON,
-          nome: "Domínio Virtual",
+          nome: "Reino Virtual",
           lingua: "pt-PT",
           invariants: ["open_world ⊂ virtual_realm", "realm is hypervisor not experience"],
           integration: {
@@ -260,8 +266,18 @@ export default {
         const realm_id = body.realm_id || "cmn-lab";
         const world_id = body.world_id;
         if (!world_id) return j({ error: "world_id required" }, 400);
-        const realm = await db.prepare("SELECT id FROM realms WHERE id = ?").bind(realm_id).first();
-        if (!realm) return j({ error: "realm_not_found", realm_id }, 404);
+        let realm = await db.prepare("SELECT id FROM realms WHERE id = ?").bind(realm_id).first();
+        if (!realm) {
+          try {
+            await db.prepare(
+              `INSERT INTO realms (id, name, sovereignty, operator, status, created_at) VALUES (?,?,?,?,?,?)`
+            ).bind(realm_id, body.realm_name || realm_id, "operator",
+              body.owner || body.operator || "FOG-NODE-PT-CM-001", "active", new Date().toISOString()).run();
+            realm = { id: realm_id, auto_created: true };
+          } catch (e) {
+            return j({ error: "realm_create_failed", realm_id, detail: String(e.message || e) }, 500);
+          }
+        }
         await db
           .prepare(
             `INSERT OR REPLACE INTO realm_worlds (realm_id, world_id, title, status, hosted_at, meta_json)
@@ -276,6 +292,9 @@ export default {
             JSON.stringify({ source: body.source || "host-world" })
           )
           .run();
+        const strata_structure = await ensureWorldStrataStructure(
+          env, world_id, body.owner || body.operator || "FOG-NODE-PT-CM-001", body.title || world_id, realm_id
+        );
         let holon_event = null;
         try {
           const payload = {
@@ -309,17 +328,13 @@ export default {
         } catch (e) {
           holon_event = { aceite: false, erro: String(e.message || e).slice(0, 120) };
         }
-        
-        const _wid = body.world_id || body.id || world_id;
-        const strata_structure = await ensureWorldStrataStructure(
-          _wid, body.owner || body.operator || "FOG-NODE-PT-CM-001", body.title || body.name || _wid, id || body.realm_id
-        );
-return j({
-          success: true, strata_structure,
+        return j({
+          success: true,
           realm_id,
           world_id,
+          strata_structure,
           event: "realm.host_world",
-          holon_flow: "mundo_aberto ⊂ dominio_virtual",
+          holon_flow: "mundo_aberto ⊂ reino_virtual",
           integration: { next: "stratamesh-worlds /attach or ensure parent_realm_id" },
           holon_event,
         });
