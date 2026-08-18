@@ -1794,6 +1794,7 @@ function classifyIntent(text) {
   if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobe|probabil|simb[oó]lic)\b/i.test(t)) return "architecture";
   if (/\b(clp|ppc|lunisolar|tempo civil|calend[aá]rio)\b/i.test(t)) return "clp";
   if (/\b(pool|malha|mesh.?pool|usufrut|resource.?class)\b/i.test(t)) return "mesh";
+  if (/\b(strata|token fundacional|nft strata|sub-?token|tokeniza|\bcgu\b|\bugc\b)\b/i.test(t) || /\bstrata\b/i.test(t)) return "strata";
   if (/\b(mundo aberto|open.?world|sandbox|bancada|hol[oó]n|inhabit)\b/i.test(t)) return "holon";
   if (/voli|next_volition|sopro|auto-?agend/i.test(t)) return "volition";
   if (/\b(sca|acb|ser computacional|és um|es um|are you|identidade|nome|registo)\b/i.test(t)) return "identity";
@@ -2742,9 +2743,10 @@ async function chat(message, env, request, body) {
   }
 
   // Domain truths: grounded only (LLM must not rewrite PdS/memory/hybrid/mind definitions)
-  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition") {
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition" || intent === "strata") {
+    const groundedDet = await chatDeterministic(text, tickOut, level, env);
     return {
-      reply: chatSelfFallback(text, tickOut, level, intent),
+      reply: groundedDet || chatSelfFallback(text, tickOut, level, intent),
       role: "orchestrator",
       version: VERSION,
       clearance: level,
@@ -2756,6 +2758,21 @@ async function chat(message, env, request, body) {
     };
   }
 
+  // Domain knowledge first (STRATA, CLP, pool, …) — LLM is voice only, not authority
+  {
+    const domainDet = await chatDeterministic(text, tickOut, level, env);
+    if (domainDet && !isOperationalCommand(text)) {
+      const domainHit = /\b(strata|clp|ppc|pool|malha|mundo|volição|volicao|cgu|ugc|nft|pd[cs]|poc|pos)\b/i.test(text);
+      if (domainHit) {
+        return {
+          reply: domainDet,
+          role: "orchestrator", version: VERSION, clearance: level,
+          account_clearance: cleared.account_clearance, clearance_source: cleared.source,
+          permissions: CLEARANCE_PERMS[level], source: "grounded-fast", intent,
+        };
+      }
+    }
+  }
   let hybrid = { architecture: "hybrid", fitness: 0, decisions: [] };
   let ai = { ok: false, error: "skipped" };
   try {
