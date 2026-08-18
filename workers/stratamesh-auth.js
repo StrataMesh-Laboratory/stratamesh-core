@@ -148,7 +148,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.7.0-totp-staff',
+          version: '2.10.0-kyc-auto',
           checks: {}
         };
         try {
@@ -174,7 +174,10 @@ export default {
       
       if (path === '/login' && request.method === 'POST') {
         try {
-          const { email, password } = await request.json();
+          const loginBody = await request.json();
+          const email = loginBody.email;
+          const password = loginBody.password;
+          const lang = resolveLang(loginBody, request);
           if (!email || !password) {
             return new Response(JSON.stringify({ success: false, error: 'Email and password required' }), { headers: corsHeaders, status: 400 });
           }
@@ -189,40 +192,39 @@ export default {
             if (hash !== storedHash) {
               return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
             }
-            const token = await issueSession(env, user.id);
-            return new Response(JSON.stringify({ 
-              success: true, 
-              token, 
+            // Email 2FA for common users — code only via e-mail
+            await ensureEmailOtpTable();
+            const code = sixDigit();
+            const challenge = crypto.randomUUID();
+            await env.AUTH_DB.prepare(
+              "INSERT INTO email_otp (email, user_id, code, challenge, purpose, expires_at) VALUES (?, ?, ?, ?, 'login', datetime('now', '+10 minutes'))"
+            ).bind(user.email, user.id, code, challenge).run();
+            const mc = mailCopy(lang, 'user_2fa', code);
+            const mail = await sendSystemEmail(env, user.email, mc.subject, mc.text, lang);
+            const echo = env.LAB_OTP_ECHO === '1';
+            return new Response(JSON.stringify({
+              success: true,
+              requires_2fa: true,
+              challenge,
+              channel: 'email',
               type: 'user',
-              role: user.clearance_level || 'basic',
-              clearance: user.clearance_level || 'basic',
+              lang,
+              message: mail.ok
+                ? (lang === 'en' ? 'Password OK. Code sent by email. Not shown on this screen.' : 'Password OK. Código enviado por e-mail. Não é mostrado neste ecrã.')
+                : (lang === 'en' ? 'Password OK. Failed to send 2FA email.' : 'Password OK. Falha ao enviar e-mail 2FA.'),
+              email_sent: !!mail.ok,
               email: user.email,
-              wallet: user.strata_address,
-              verification_status: user.verification_status
+              lab_otp: echo ? code : undefined,
             }), { headers: corsHeaders });
           }
           
-          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE email = ?').bind(email).first();
+          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE lower(email) = lower(?)').bind(email).first();
           if (staff) {
-            const [salt, storedHash] = staff.password_hash.split(':');
-            const enc = new TextEncoder();
-            const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-            const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
-            const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
-            if (hash !== storedHash) {
-              return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
-            }
-            const token = crypto.randomUUID();
-            await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
-            await env.AUTH_DB.prepare("INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))").bind(-staff.id, token, token).run();
-            return new Response(JSON.stringify({ 
-              success: true, 
-              token, 
-              type: 'staff',
-              role: staff.role || 'staff',
-              clearance: staff.clearance_level || 'INTERNAL',
-              email: staff.email
-            }), { headers: corsHeaders });
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'Use /staff/login for staff accounts (email 2FA required)',
+              staff_login: '/api/auth/staff/login',
+            }), { headers: corsHeaders, status: 400 });
           }
           
           return new Response(JSON.stringify({ success: false, error: 'User not found' }), { headers: corsHeaders, status: 404 });
@@ -231,6 +233,295 @@ export default {
         }
       }
       
+
+
+
+      function resolveLang(body, request) {
+        const b = body || {};
+        let l = b.lang || b.locale || b.language || '';
+        if (!l && request) {
+          const al = request.headers.get('Accept-Language') || '';
+          if (al.toLowerCase().startsWith('en')) l = 'en';
+        }
+        l = String(l || 'pt').toLowerCase();
+        if (l.startsWith('en')) return 'en';
+        return 'pt';
+      }
+
+      function mailCopy(lang, kind, code) {
+        const en = lang === 'en';
+        if (kind === 'staff_2fa') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Orchestrator — staff 2FA code'
+              : 'Nó Calhegas Morais · Orquestrador — código 2FA (pessoal/staff)',
+            text: en
+              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour staff verification code is: ' + code + '\n\nValid for 10 minutes.\nIf you did not request this access, ignore this email.')
+              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu código de verificação (pessoal/staff) é: ' + code + '\n\nVálido 10 minutos.\nSe não solicitou este acesso, ignore este email.'),
+          };
+        }
+        if (kind === 'user_2fa') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Orchestrator — verification code'
+              : 'Nó Calhegas Morais · Orquestrador — código de verificação',
+            text: en
+              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour verification code is: ' + code + '\n\nValid for 10 minutes.\nIf you did not try to sign in, ignore this email.')
+              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu código de verificação é: ' + code + '\n\nVálido 10 minutos.\nSe não tentou iniciar sessão, ignore este email.'),
+          };
+        }
+        if (kind === 'invite') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Orchestrator — set your password'
+              : 'Nó Calhegas Morais · Orquestrador — definir a sua palavra-passe',
+            text: en
+              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYou requested an account (or were registered) with this email.\nOpen this link within 1 hour to set your password for the first time:\n\n' + code + '\n\nIf you did not request this, ignore this email.')
+              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nFoi iniciado um registo com este e-mail.\nAbra este link no prazo de 1 hora para definir a palavra-passe pela primeira vez:\n\n' + code + '\n\nSe não solicitou isto, ignore este e-mail.'),
+          };
+        }
+        if (kind === 'reset') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Orchestrator — password reset'
+              : 'Nó Calhegas Morais · Orquestrador — redefinição de palavra-passe',
+            text: en
+              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nOpen this link within 1 hour to set a new password:\n\n' + code + '\n\nIf you did not request a reset, ignore this email.')
+              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nAbra este link no prazo de 1 hora para definir uma nova palavra-passe:\n\n' + code + '\n\nSe não pediu a redefinição, ignore este e-mail.'),
+          };
+        }
+        if (kind === 'register') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Orchestrator — registration received'
+              : 'Nó Calhegas Morais · Orquestrador — confirmação de registo',
+            text: en
+              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour registration as a standard user has been received.\nKYC / identity verification status: pending staff approval.\n\nEmail confirmation code (optional at this step): ' + code + '\n\nYou may sign in; elevated features require KYC review in the staff panel.')
+              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu registo como utilizador comum foi recebido.\nEstado KYC / verificação: pendente de aprovação pelo pessoal.\n\nCódigo de confirmação de e-mail (opcional neste passo): ' + code + '\n\nPode iniciar sessão; funcionalidades elevadas dependem da revisão KYC no painel de pessoal.'),
+          };
+        }
+        return { subject: en ? 'Calhegas Morais Node' : 'Nó Calhegas Morais', text: String(code || '') };
+      }
+
+      async function notifyOrchMail(env, subject, meta) {
+        try {
+          const msg = 'Sistema de correio do Nó: ' + subject + (meta ? ' · ' + meta : '');
+          const payload = { message: msg, channel: 'email-system', lang: 'pt', clearance: 'internal' };
+          if (env.ORCH && typeof env.ORCH.fetch === 'function') {
+            await env.ORCH.fetch(new Request('https://orch.internal/chat', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+            }));
+          } else {
+            await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+            });
+          }
+        } catch (_) {}
+      }
+
+      async function sendSystemEmail(env, to, subject, text, lang) {
+        const from = env.MAIL_FROM || 'noreply@eni.calhegasmorais.pt';
+        const payload = { from, to, subject, text, formal: true, fingerprint: false, lang: lang || 'pt' };
+        let result = { ok: false };
+        try {
+          if (env.DEOMAIL && typeof env.DEOMAIL.fetch === 'function') {
+            const r = await env.DEOMAIL.fetch(new Request('https://deomail.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }));
+            result = { ok: r.ok, body: await r.json().catch(() => ({})) };
+          }
+        } catch (_) {}
+        if (!result.ok) {
+          try {
+            const r = await fetch('https://stratamesh-deomail.stratamesh.workers.dev/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            result = { ok: r.ok, body: await r.json().catch(() => ({})) };
+          } catch (e) {
+            result = { ok: false, error: String(e.message || e) };
+          }
+        }
+        if (result.ok) {
+          await notifyOrchMail(env, subject, 'to=' + to);
+        }
+        return result;
+      }
+
+      function sixDigit() {
+        return String(Math.floor(100000 + Math.random() * 900000));
+      }
+
+      async function ensurePasswordTokenTable() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS password_tokens (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL,
+          user_id INTEGER,
+          token TEXT NOT NULL UNIQUE,
+          purpose TEXT NOT NULL,
+          expires_at TEXT NOT NULL,
+          used INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        try { await env.AUTH_DB.prepare('CREATE INDEX IF NOT EXISTS idx_pw_token ON password_tokens(token)').run(); } catch (_) {}
+      }
+
+
+      async function ensureKycColumns() {
+        const alters = [
+          'ALTER TABLE users ADD COLUMN username TEXT',
+          'ALTER TABLE users ADD COLUMN sovereign_id TEXT',
+          'ALTER TABLE users ADD COLUMN full_name_legal TEXT',
+          'ALTER TABLE users ADD COLUMN terms_accepted_at TEXT',
+          'ALTER TABLE users ADD COLUMN terms_version TEXT',
+          'ALTER TABLE users ADD COLUMN kyc_step INTEGER DEFAULT 0',
+          'ALTER TABLE users ADD COLUMN kyc_auto_score REAL',
+          'ALTER TABLE users ADD COLUMN kyc_auto_report TEXT',
+          'ALTER TABLE users ADD COLUMN panel_unlocked INTEGER DEFAULT 0',
+        ];
+        for (const sql of alters) {
+          try { await env.AUTH_DB.prepare(sql).run(); } catch (_) {}
+        }
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS kyc_submissions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          doc_type TEXT NOT NULL,
+          sovereign_id TEXT NOT NULL,
+          issuing_country TEXT,
+          full_name_claimed TEXT,
+          mrz_line1 TEXT,
+          mrz_line2 TEXT,
+          mrz_line3 TEXT,
+          doc_meta_json TEXT,
+          auto_valid INTEGER DEFAULT 0,
+          auto_score REAL,
+          auto_report TEXT,
+          status TEXT DEFAULT 'submitted',
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        try { await env.AUTH_DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_sovereign ON users(sovereign_id) WHERE sovereign_id IS NOT NULL AND sovereign_id != ""').run(); } catch (_) {}
+        try { await env.AUTH_DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != ""').run(); } catch (_) {}
+      }
+
+      function validateUsername(u) {
+        const s = String(u || '').trim();
+        if (s.length < 3 || s.length > 32) return { ok: false, error: 'username_length' };
+        if (!/^[a-zA-Z][a-zA-Z0-9_\.]+$/.test(s)) return { ok: false, error: 'username_charset' };
+        const banned = ['admin','root','staff','system','orchestrator','null','undefined','calhegas','stratamesh'];
+        if (banned.includes(s.toLowerCase())) return { ok: false, error: 'username_reserved' };
+        return { ok: true, username: s };
+      }
+
+      /** ICAO 9303 check digit (open standard — no proprietary API). */
+      function icaoCheckDigit(data) {
+        const weights = [7, 3, 1];
+        const map = {};
+        for (let i = 0; i <= 9; i++) map[String(i)] = i;
+        for (let i = 0; i < 26; i++) map[String.fromCharCode(65 + i)] = 10 + i;
+        map['<'] = 0;
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const ch = data[i].toUpperCase();
+          const v = map[ch];
+          if (v === undefined) return null;
+          sum += v * weights[i % 3];
+        }
+        return String(sum % 10);
+      }
+
+      function parseAndValidateMRZ(line1, line2) {
+        const L1 = String(line1 || '').toUpperCase().replace(/\s+/g, '');
+        const L2 = String(line2 || '').toUpperCase().replace(/\s+/g, '');
+        const report = { standard: 'ICAO_9303', format: null, checks: [], ok: false };
+        if (!L1 || !L2) {
+          report.checks.push({ field: 'mrz', ok: false, detail: 'MRZ lines required for automated passport/ID check' });
+          return report;
+        }
+        // TD3 passport: 2 x 44
+        if (L1.length === 44 && L2.length === 44 && (L1.startsWith('P') || L1.startsWith('IP'))) {
+          report.format = 'TD3';
+          const names = L1.slice(5);
+          const docNum = L2.slice(0, 9);
+          const docCd = L2[9];
+          const nationality = L2.slice(10, 13);
+          const birth = L2.slice(13, 19);
+          const birthCd = L2[19];
+          const sex = L2[20];
+          const expiry = L2.slice(21, 27);
+          const expiryCd = L2[27];
+          const optional = L2.slice(28, 42);
+          const optionalCd = L2[42];
+          const compositeCd = L2[43];
+          const c1 = icaoCheckDigit(docNum) === docCd;
+          const c2 = icaoCheckDigit(birth) === birthCd;
+          const c3 = icaoCheckDigit(expiry) === expiryCd;
+          const c4 = icaoCheckDigit(optional) === optionalCd;
+          const composite = docNum + docCd + birth + birthCd + expiry + expiryCd + optional + optionalCd;
+          const c5 = icaoCheckDigit(composite) === compositeCd;
+          report.checks.push({ field: 'document_number', ok: c1, value_masked: docNum.slice(0, 3) + '******' });
+          report.checks.push({ field: 'birth_date', ok: c2 });
+          report.checks.push({ field: 'expiry', ok: c3 });
+          report.checks.push({ field: 'optional', ok: c4 });
+          report.checks.push({ field: 'composite', ok: c5 });
+          report.document_number = docNum.replace(/</g, '');
+          report.nationality = nationality.replace(/</g, '');
+          report.sex = sex;
+          const nameParts = names.split('<<');
+          report.surname = (nameParts[0] || '').replace(/</g, ' ').trim();
+          report.given_names = (nameParts[1] || '').replace(/</g, ' ').trim();
+          report.full_name = (report.surname + ' ' + report.given_names).trim();
+          report.ok = c1 && c2 && c3 && c5;
+          report.score = [c1, c2, c3, c4, c5].filter(Boolean).length / 5;
+          return report;
+        }
+        // TD1 ID card: 3 x 30 — accept line1+line2 minimal
+        if (L1.length === 30 && L2.length === 30) {
+          report.format = 'TD1';
+          const docNum = L1.slice(5, 14);
+          const docCd = L1[14];
+          const c1 = icaoCheckDigit(docNum) === docCd;
+          report.checks.push({ field: 'document_number', ok: c1 });
+          report.document_number = docNum.replace(/</g, '');
+          report.ok = c1;
+          report.score = c1 ? 0.7 : 0.2;
+          return report;
+        }
+        report.checks.push({ field: 'mrz', ok: false, detail: 'Unsupported MRZ length (need TD3 44+44 or TD1 30+30)' });
+        report.score = 0;
+        return report;
+      }
+
+      /** Portuguese NIF checksum (open algorithm). */
+      function validatePortugueseNIF(nif) {
+        const s = String(nif || '').replace(/\s/g, '');
+        if (!/^\d{9}$/.test(s)) return { ok: false, score: 0 };
+        const n = s.split('').map(Number);
+        let sum = 0;
+        for (let i = 0; i < 8; i++) sum += n[i] * (9 - i);
+        let check = 11 - (sum % 11);
+        if (check >= 10) check = 0;
+        const ok = check === n[8];
+        return { ok, score: ok ? 1 : 0, standard: 'PT_NIF' };
+      }
+
+      async function ensureEmailOtpTable() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS email_otp (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL,
+          user_id INTEGER,
+          staff_id INTEGER,
+          code TEXT NOT NULL,
+          challenge TEXT NOT NULL,
+          purpose TEXT DEFAULT 'login',
+          expires_at TEXT NOT NULL,
+          used INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+      }
+
 
       // --- STAFF-only login (separate from public users / future CMD) ---
       
@@ -292,7 +583,10 @@ export default {
 
       if ((path === '/staff/login' || path === '/staff-login') && request.method === 'POST') {
         try {
-          const { email, password } = await request.json();
+          const staffBody = await request.json();
+          const email = staffBody.email;
+          const password = staffBody.password;
+          const lang = resolveLang(staffBody, request);
           if (!email || !password) {
             return new Response(JSON.stringify({ success: false, error: 'Email and password required' }), { headers: corsHeaders, status: 400 });
           }
@@ -325,7 +619,7 @@ export default {
               role: staff.role,
             }), { headers: corsHeaders });
           }
-          // Lab fallback: one-time code (echo when LAB_OTP_ECHO=1)
+          // Email OTP (never return code in API body unless LAB_OTP_ECHO=1)
           await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS staff_otp (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             staff_id INTEGER NOT NULL,
@@ -335,18 +629,24 @@ export default {
             used INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now'))
           )`).run();
-          const code = String(Math.floor(100000 + Math.random() * 900000));
+          const code = sixDigit();
           const challenge = crypto.randomUUID();
           await env.AUTH_DB.prepare(
             "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
           ).bind(staff.id, code, challenge).run();
-          const echo = env.LAB_OTP_ECHO !== '0';
+          const mc = mailCopy(lang, 'staff_2fa', code);
+          const mail = await sendSystemEmail(env, staff.email, mc.subject, mc.text, lang);
+          const echo = env.LAB_OTP_ECHO === '1';
           return new Response(JSON.stringify({
             success: true,
             requires_2fa: true,
             challenge,
-            channel: env.STAFF_2FA_CHANNEL || 'email',
-            message: 'Staff password OK. Enter the 6-digit lab code.',
+            channel: 'email',
+            lang,
+            message: mail.ok
+              ? (lang === 'en' ? 'Password OK. Code sent by email. Not shown on this screen.' : 'Password OK. Código enviado por e-mail. Não é mostrado neste ecrã.')
+              : (lang === 'en' ? 'Password OK. Failed to send 2FA email — contact the operator.' : 'Password OK. Falha ao enviar e-mail 2FA — contacte o operador.'),
+            email_sent: !!mail.ok,
             lab_otp: echo ? code : undefined,
             email: staff.email,
             role: staff.role,
@@ -400,6 +700,83 @@ export default {
 
       
       
+
+      if ((path === '/auth/email/verify' || path === '/email/verify' || path === '/2fa/email') && request.method === 'POST') {
+        try {
+          await ensureEmailOtpTable();
+          const body = await request.json();
+          const challenge = body.challenge;
+          const code = String(body.code || '').trim();
+          if (!challenge || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'challenge and code required' }), { headers: corsHeaders, status: 400 });
+          }
+          const row = await env.AUTH_DB.prepare(
+            "SELECT * FROM email_otp WHERE challenge = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+          ).bind(challenge).first();
+          if (!row || String(row.code) !== code) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid or expired code' }), { headers: corsHeaders, status: 401 });
+          }
+          await env.AUTH_DB.prepare('UPDATE email_otp SET used = 1 WHERE id = ?').bind(row.id).run();
+          const user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE id = ?').bind(row.user_id).first();
+          if (!user) {
+            return new Response(JSON.stringify({ success: false, error: 'User not found' }), { headers: corsHeaders, status: 404 });
+          }
+          const token = await issueSession(env, user.id);
+          return new Response(JSON.stringify({
+            success: true,
+            token,
+            type: 'user',
+            role: user.clearance_level || 'basic',
+            clearance: user.clearance_level || 'basic',
+            email: user.email,
+            wallet: user.strata_address,
+            verification_status: user.verification_status,
+            panel_unlocked: !!user.panel_unlocked,
+            kyc_step: user.kyc_step || 0,
+            username: user.username || null,
+            message: 'Session issued after email 2FA',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      // Broadcast notices by clearance (staff/orchestrator)
+      if ((path === '/notify/broadcast' || path === '/broadcast') && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const subject = body.subject || 'Aviso — Nó Calhegas Morais';
+          const text = body.text || body.message || '';
+          const clearance = body.clearance || body.clearance_level || null; // e.g. PUBLIC, INTERNAL, all
+          if (!text) {
+            return new Response(JSON.stringify({ success: false, error: 'text required' }), { headers: corsHeaders, status: 400 });
+          }
+          let q = 'SELECT email, clearance_level FROM users WHERE email IS NOT NULL AND email != ""';
+          let rows;
+          if (clearance && String(clearance).toLowerCase() !== 'all') {
+            rows = await env.AUTH_DB.prepare(q + ' AND upper(clearance_level) = upper(?)').bind(clearance).all();
+          } else {
+            rows = await env.AUTH_DB.prepare(q).all();
+          }
+          const list = (rows && rows.results) || [];
+          let sent = 0, failed = 0;
+          for (const u of list) {
+            const r = await sendSystemEmail(env, u.email, subject, text);
+            if (r.ok) sent++; else failed++;
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            recipients: list.length,
+            sent,
+            failed,
+            clearance: clearance || 'all',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+
       // --- Phone OTP (common users): SMS primary, password optional second factor ---
       async function ensurePhoneTables() {
         await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS phone_otp (
@@ -621,6 +998,7 @@ export default {
       }
 
 
+
       if (path === '/register' && request.method === 'POST') {
         try {
           let body = {};
@@ -632,24 +1010,136 @@ export default {
             try { body = await request.json(); } catch (_) { body = {}; }
           }
           const email = String(body.email || '').trim().toLowerCase();
-          const password = String(body.password || '');
-          const wallet_address = body.wallet_address || body.strata_address || null;
-          const doc_type = String(body.doc_type || body.document_type || 'passport').slice(0, 64);
+          const lang = resolveLang(body, request);
+          const portalBase = (env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '');
+          const pathSet = lang === 'en' ? '/en/portal' : '/portal';
           if (!email || !email.includes('@')) {
-            return new Response(JSON.stringify({ success: false, error: 'Valid email required' }), { headers: corsHeaders, status: 400 });
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Valid email required' : 'E-mail válido obrigatório' }), { headers: corsHeaders, status: 400 });
+          }
+          const termsOk = body.terms_accepted === true || body.terms_accepted === 'true' || body.accept_terms === true || body.accept_terms === '1';
+          if (!termsOk) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: lang === 'en'
+                ? 'You must accept the Node terms and conditions to register.'
+                : 'Tem de aceitar os termos e condições do Nó para se registar.',
+              code: 'terms_required',
+              terms_url: 'https://calhegasmorais.pt/terms',
+            }), { headers: corsHeaders, status: 400 });
+          }
+          let username = null;
+          if (body.username) {
+            const uv = validateUsername(body.username);
+            if (!uv.ok) {
+              return new Response(JSON.stringify({ success: false, error: 'Invalid username', code: uv.error }), { headers: corsHeaders, status: 400 });
+            }
+            username = uv.username;
+          }
+          await ensureKycColumns();
+          // optional password ignored for new flow; invite link only
+          const labReg = env.LAB_REGISTER === '1' && request.headers.get('X-Lab-Register') === '1';
+          if (!labReg) {
+            const tsToken = body['cf-turnstile-response'] || body.turnstile_token || body.turnstile || '';
+            const ip = request.headers.get('CF-Connecting-IP') || '';
+            const ts = await verifyTurnstile(env, tsToken, ip);
+            if (!ts.ok) {
+              return new Response(JSON.stringify({ success: false, error: ts.error || 'turnstile_failed', codes: ts.codes || [] }), { headers: corsHeaders, status: 400 });
+            }
+          }
+          await ensurePasswordTokenTable();
+          let user = await env.AUTH_DB.prepare('SELECT id, email, password_hash, verification_status FROM users WHERE lower(email) = lower(?)').bind(email).first();
+          if (user && user.password_hash && String(user.password_hash).length > 10) {
+            // already has password — suggest reset
+            return new Response(JSON.stringify({
+              success: false,
+              error: lang === 'en' ? 'Email already registered. Use password recovery.' : 'E-mail já registado. Use a recuperação de palavra-passe.',
+              code: 'already_registered',
+            }), { headers: corsHeaders, status: 409 });
+          }
+          if (!user) {
+            const doc_hash = 'pending_' + crypto.randomUUID().replace(/-/g, '');
+            await env.AUTH_DB.prepare(
+              'INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            ).bind(email, '', null, 'pending', 'passport', doc_hash, 'basic', 0).run();
+            try {
+              await env.AUTH_DB.prepare("UPDATE users SET terms_accepted_at = datetime('now'), terms_version = ?, username = ?, kyc_step = 0, panel_unlocked = 0 WHERE lower(email) = lower(?)").bind(body.terms_version || 'node-1.0', username, email).run();
+            } catch (_) {}
+            user = await env.AUTH_DB.prepare('SELECT id, email, verification_status, clearance_level FROM users WHERE lower(email) = lower(?)').bind(email).first();
+          }
+          const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'invite', datetime('now', '+1 hour'))"
+          ).bind(email, user.id, token).run();
+          const link = portalBase + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
+          const mc = mailCopy(lang, 'invite', link);
+          await sendSystemEmail(env, email, mc.subject, mc.text, lang);
+          return new Response(JSON.stringify({
+            success: true,
+            message: lang === 'en'
+              ? 'Check your email for a one-hour link to set your password. KYC remains pending staff approval.'
+              : 'Consulte o e-mail: link de 1 hora para definir a palavra-passe. O KYC continua pendente de aprovação pelo pessoal.',
+            email_sent: true,
+            channel: 'email',
+            expires_in: 3600,
+            user: { id: user.id, email: user.email, verification_status: user.verification_status || 'pending' },
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 400 });
+        }
+      }
+
+
+
+      async function sessionWithClearance(env, token) {
+        if (!token) return null;
+        const th = await sha256Hex(token);
+        let session = await env.AUTH_DB.prepare(
+          "SELECT s.*, u.clearance_level AS user_clearance FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')"
+        ).bind(th, token).first();
+        if (!session) return null;
+        const uid = session.user_id;
+        if (uid != null && Number(uid) < 0) {
+          const sid = Math.abs(Number(uid));
+          const staff = await env.AUTH_DB.prepare('SELECT id, email, role, clearance_level FROM staff WHERE id = ?').bind(sid).first();
+          if (staff) {
+            session.clearance_level = staff.clearance_level || 'INTERNAL';
+            session.staff_id = staff.id;
+            session.staff_email = staff.email;
+            session.staff_role = staff.role;
+            session.is_staff = true;
+          }
+        } else {
+          session.clearance_level = session.user_clearance || session.clearance_level || 'basic';
+          session.is_staff = false;
+        }
+        return session;
+      }
+
+      function staffClearanceOK(session, minLevels) {
+        if (!session) return false;
+        const c = String(session.clearance_level || '').toUpperCase();
+        const allowed = (minLevels || ['INTERNAL', 'CONFIDENTIAL', 'SECRET', 'TOP_SECRET']).map((x) => x.toUpperCase());
+        return allowed.includes(c);
+      }
+
+      if ((path === '/auth/set-password' || path === '/set-password' || path === '/password/set') && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const token = String(body.token || body.setpw || '').trim();
+          const password = String(body.password || '');
+          const lang = resolveLang(body, request);
+          if (!token) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Token required' : 'Token obrigatório' }), { headers: corsHeaders, status: 400 });
           }
           if (!password || password.length < 8) {
-            return new Response(JSON.stringify({ success: false, error: 'Password must be at least 8 characters' }), { headers: corsHeaders, status: 400 });
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Password must be at least 8 characters' : 'A palavra-passe deve ter pelo menos 8 caracteres' }), { headers: corsHeaders, status: 400 });
           }
-          const tsToken = body['cf-turnstile-response'] || body.turnstile_token || body.turnstile || '';
-          const ip = request.headers.get('CF-Connecting-IP') || '';
-          const ts = await verifyTurnstile(env, tsToken, ip);
-          if (!ts.ok) {
-            return new Response(JSON.stringify({ success: false, error: ts.error || 'turnstile_failed', codes: ts.codes || [] }), { headers: corsHeaders, status: 400 });
-          }
-          const existing = await env.AUTH_DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-          if (existing) {
-            return new Response(JSON.stringify({ success: false, error: 'Email already registered' }), { headers: corsHeaders, status: 409 });
+          await ensurePasswordTokenTable();
+          const row = await env.AUTH_DB.prepare(
+            "SELECT * FROM password_tokens WHERE token = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+          ).bind(token).first();
+          if (!row) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Invalid or expired link' : 'Link inválido ou expirado' }), { headers: corsHeaders, status: 401 });
           }
           const salt = crypto.randomUUID();
           const enc = new TextEncoder();
@@ -657,74 +1147,239 @@ export default {
           const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' }, keyMat, 256);
           const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
           const password_hash = salt + ':' + hash;
-          const doc_hash = 'pending_' + crypto.randomUUID().replace(/-/g, '');
-          await env.AUTH_DB.prepare(
-            'INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-          ).bind(email, password_hash, wallet_address || null, 'pending', doc_type, doc_hash, 'basic', 0).run();
-          const user = await env.AUTH_DB.prepare('SELECT id, email, verification_status, clearance_level FROM users WHERE email = ?').bind(email).first();
+          await env.AUTH_DB.prepare("UPDATE users SET password_hash = ?, email_confirmed = 1 WHERE id = ?").bind(password_hash, row.user_id).run();
+          await env.AUTH_DB.prepare('UPDATE password_tokens SET used = 1 WHERE id = ?').bind(row.id).run();
           return new Response(JSON.stringify({
             success: true,
-            message: 'Registration successful. Verification pending. You can log in; elevated clearance requires review.',
-            user
+            message: lang === 'en' ? 'Password set. You may sign in (2FA code will be emailed).' : 'Palavra-passe definida. Pode iniciar sessão (o código 2FA será enviado por e-mail).',
+            email: row.email,
           }), { headers: corsHeaders });
         } catch (e) {
-          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 400 });
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
       }
-      
-      if (path === '/pending' && request.method === 'GET') {
+
+      if ((path === '/auth/forgot-password' || path === '/forgot-password' || path === '/password/forgot') && request.method === 'POST') {
         try {
-          const authHeader = request.headers.get('Authorization');
-          if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
-          const token = authHeader.replace('Bearer ', '');
-          const th = await sha256Hex(token);
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
-          if (!session || (session.clearance_level !== 'INTERNAL' && session.clearance_level !== 'CONFIDENTIAL' && session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
-            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance' }), { headers: corsHeaders, status: 403 });
+          const body = await request.json().catch(() => ({}));
+          const email = String(body.email || '').trim().toLowerCase();
+          const lang = resolveLang(body, request);
+          const portalBase = (env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '');
+          const pathSet = lang === 'en' ? '/en/portal' : '/portal';
+          if (!email || !email.includes('@')) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Valid email required' : 'E-mail válido obrigatório' }), { headers: corsHeaders, status: 400 });
           }
-          const results = await env.AUTH_DB.prepare("SELECT id, email, strata_address as wallet_address, created_at, verification_status FROM users WHERE verification_status = ?").bind('pending').all();
-          return new Response(JSON.stringify({ success: true, pending: results.results }), { headers: corsHeaders });
+          await ensurePasswordTokenTable();
+          const user = await env.AUTH_DB.prepare('SELECT id, email FROM users WHERE lower(email) = lower(?)').bind(email).first();
+          if (user) {
+            const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+            await env.AUTH_DB.prepare(
+              "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'reset', datetime('now', '+1 hour'))"
+            ).bind(email, user.id, token).run();
+            const link = portalBase + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
+            const mc = mailCopy(lang, 'reset', link);
+            await sendSystemEmail(env, email, mc.subject, mc.text, lang);
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            message: lang === 'en'
+              ? 'If the email is registered, a one-hour reset link has been sent.'
+              : 'Se o e-mail estiver registado, foi enviado um link de redefinição válido por 1 hora.',
+            email_sent: true,
+          }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
       }
-      
-      if (path === '/verify' && request.method === 'POST') {
+
+
+      if ((path === '/kyc/submit' || path === '/kyc/document') && request.method === 'POST') {
         try {
+          await ensureKycColumns();
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
           const th = await sha256Hex(token);
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
-          if (!session || (session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
-            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance: SECRET required' }), { headers: corsHeaders, status: 403 });
+          const session = await env.AUTH_DB.prepare(
+            "SELECT s.*, u.id as uid FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')"
+          ).bind(th, token).first();
+          if (!session || session.user_id < 0) {
+            return new Response(JSON.stringify({ success: false, error: 'User session required' }), { headers: corsHeaders, status: 401 });
           }
-          const { user_id, action, strata_address } = await request.json();
-          const status = action === 'approve' ? 'verified' : 'rejected';
-          await env.AUTH_DB.prepare('UPDATE users SET verification_status = ?, strata_address = ? WHERE id = ?').bind(status, strata_address || null, user_id).run();
-          return new Response(JSON.stringify({ success: true, status }), { headers: corsHeaders });
+          const body = await request.json().catch(() => ({}));
+          const lang = resolveLang(body, request);
+          const doc_type = String(body.doc_type || body.document_type || 'passport').toLowerCase();
+          const sovereign_id = String(body.sovereign_id || body.document_number || body.passport_number || body.citizen_number || '').trim().toUpperCase().replace(/\s+/g, '');
+          const issuing_country = String(body.issuing_country || body.country || 'PRT').toUpperCase().slice(0, 3);
+          const full_name_claimed = String(body.full_name || body.full_name_claimed || '').trim();
+          const mrz1 = body.mrz_line1 || body.mrz1 || '';
+          const mrz2 = body.mrz_line2 || body.mrz2 || '';
+          let username = body.username ? validateUsername(body.username) : null;
+          if (body.username && username && !username.ok) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid username', code: username.error }), { headers: corsHeaders, status: 400 });
+          }
+          if (!sovereign_id || sovereign_id.length < 5) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Document number required' : 'Número de documento obrigatório' }), { headers: corsHeaders, status: 400 });
+          }
+          // uniqueness of sovereign_id
+          const clash = await env.AUTH_DB.prepare(
+            'SELECT id, email FROM users WHERE sovereign_id = ? AND id != ?'
+          ).bind(sovereign_id, session.user_id).first();
+          if (clash) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'This document identity is already registered on StrataMesh' : 'Esta identidade documental já está registada na StrataMesh', code: 'sovereign_id_taken' }), { headers: corsHeaders, status: 409 });
+          }
+          // Automated verification — ICAO 9303 MRZ (open standard) and/or PT NIF structure
+          let report = { ok: false, score: 0, method: 'none' };
+          if (mrz1 && mrz2) {
+            report = parseAndValidateMRZ(mrz1, mrz2);
+            report.method = 'ICAO_9303_MRZ';
+            if (report.document_number && report.document_number !== sovereign_id.replace(/</g, '')) {
+              // allow if sovereign is prefix/contains
+              if (!sovereign_id.includes(report.document_number.replace(/</g, '')) && !report.document_number.includes(sovereign_id.slice(0, 6))) {
+                report.checks.push({ field: 'sovereign_match', ok: false, detail: 'Document number does not match MRZ' });
+                report.ok = false;
+                report.score = Math.min(report.score, 0.4);
+              }
+            }
+          } else if (doc_type === 'nif' || (issuing_country === 'PRT' && /^\d{9}$/.test(sovereign_id))) {
+            const nif = validatePortugueseNIF(sovereign_id);
+            report = { ok: nif.ok, score: nif.score, method: 'PT_NIF', checks: [{ field: 'nif_checksum', ok: nif.ok }] };
+          } else {
+            // structural minimum for national ID without MRZ (lab): length + charset
+            const structural = /^[A-Z0-9]{5,20}$/.test(sovereign_id);
+            report = {
+              ok: false,
+              score: structural ? 0.35 : 0,
+              method: 'STRUCTURAL_ONLY',
+              checks: [{ field: 'structure', ok: structural, detail: 'MRZ recommended for automated passport verification (ICAO 9303). Without MRZ, status stays pending_review.' }],
+            };
+          }
+          const full_name_legal = (report.full_name && report.ok) ? report.full_name : (full_name_claimed || null);
+          const auto_valid = report.ok && report.score >= 0.8 ? 1 : 0;
+          const status = auto_valid ? 'verified' : 'pending_review';
+          const kyc_step = auto_valid ? 3 : 2;
+          const panel_unlocked = auto_valid ? 1 : 0;
+          await env.AUTH_DB.prepare(
+            `INSERT INTO kyc_submissions (user_id, doc_type, sovereign_id, issuing_country, full_name_claimed, mrz_line1, mrz_line2, doc_meta_json, auto_valid, auto_score, auto_report, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            session.user_id, doc_type, sovereign_id, issuing_country, full_name_claimed || null,
+            mrz1 || null, mrz2 || null, JSON.stringify({ issuing_country, doc_type }).slice(0, 500),
+            auto_valid, report.score || 0, JSON.stringify(report).slice(0, 4000), status
+          ).run();
+          await env.AUTH_DB.prepare(
+            `UPDATE users SET sovereign_id = ?, full_name_legal = COALESCE(?, full_name_legal), doc_type = ?, verification_status = ?,
+             kyc_step = ?, kyc_auto_score = ?, kyc_auto_report = ?, panel_unlocked = ?,
+             username = COALESCE(?, username), updated_at = datetime('now') WHERE id = ?`
+          ).bind(
+            sovereign_id, full_name_legal, doc_type, status,
+            kyc_step, report.score || 0, JSON.stringify(report).slice(0, 2000), panel_unlocked,
+            username && username.ok ? username.username : null,
+            session.user_id
+          ).run();
+          return new Response(JSON.stringify({
+            success: true,
+            automated: true,
+            verification_standard: report.method,
+            auto_valid: !!auto_valid,
+            score: report.score,
+            verification_status: status,
+            panel_unlocked: !!panel_unlocked,
+            kyc_step,
+            sovereign_id,
+            full_name_legal: full_name_legal || undefined,
+            message: auto_valid
+              ? (lang === 'en'
+                ? 'Document checks passed (ICAO 9303 / open algorithms). Panel tools unlocked. Legal name stored internally (not public).'
+                : 'Verificação documental automática OK (ICAO 9303 / algoritmos abertos). Ferramentas do painel desbloqueadas. Nome legal guardado internamente (não público).')
+              : (lang === 'en'
+                ? 'Submission received. Automated checks incomplete — pending_review (staff may assist). Panel remains locked until verified.'
+                : 'Submissão recebida. Verificação automática incompleta — pending_review. Painel bloqueado até verificação.'),
+            report: { ok: report.ok, score: report.score, method: report.method, checks: report.checks },
+          }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
       }
-      
-      if (path === '/verified' && request.method === 'GET') {
+
+      if ((path === '/terms' || path === '/auth/terms') && request.method === 'GET') {
+        const lang = (new URL(request.url).searchParams.get('lang') || 'pt').toLowerCase().startsWith('en') ? 'en' : 'pt';
+        const version = 'node-1.0';
+        if (lang === 'en') {
+          return new Response(JSON.stringify({
+            success: true, version, lang: 'en-GB',
+            title: 'Calhegas Morais Node — Terms and Conditions',
+            body: 'By registering you accept: (1) the Node is a laboratory StrataMesh reference node operated under AMCM ENI; (2) credentials are bound to a verified sovereign identity document after automated checks (ICAO 9303 MRZ and/or open national checksums); (3) legal full name and document numbers are internal, not public profile data; (4) username is public-facing within Node rules; (5) misuse, false documents or attacks may result in suspension without STRATA reward; (6) panel tools unlock only after successful automated (or elevated) verification.',
+            terms_url: 'https://calhegasmorais.pt/terms',
+          }), { headers: corsHeaders });
+        }
+        return new Response(JSON.stringify({
+          success: true, version, lang: 'pt-PT',
+          title: 'Nó Calhegas Morais — Termos e Condições',
+          body: 'Ao registar-se aceita: (1) o Nó é um nó de referência StrataMesh em laboratório sob AMCM ENI; (2) as credenciais ficam ligadas a identidade documental soberana após verificação automatizada (MRZ ICAO 9303 e/ou checksums nacionais abertos); (3) nome legal completo e números de documento são dados internos, não públicos; (4) o nome de utilizador é a identidade pública no Nó, dentro das regras; (5) abuso, documentos falsos ou ataques podem implicar suspensão sem recompensa em STRATA; (6) as ferramentas do painel só se desbloqueiam após verificação automática (ou elevação autorizada) bem-sucedida.',
+          terms_url: 'https://calhegasmorais.pt/terms',
+        }), { headers: corsHeaders });
+      }
+
+      if ((path === '/pending' || path === '/kyc/pending') && request.method === 'GET') {
         try {
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
-          const th = await sha256Hex(token);
-          const session = await env.AUTH_DB.prepare("SELECT s.*, u.clearance_level FROM sessions s LEFT JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
-          if (!session || (session.clearance_level !== 'INTERNAL' && session.clearance_level !== 'CONFIDENTIAL' && session.clearance_level !== 'SECRET' && session.clearance_level !== 'TOP_SECRET')) {
-            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance' }), { headers: corsHeaders, status: 403 });
+          const session = await sessionWithClearance(env, token);
+          if (!staffClearanceOK(session)) {
+            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance', clearance: session && session.clearance_level }), { headers: corsHeaders, status: 403 });
           }
-          const results = await env.AUTH_DB.prepare("SELECT id, email, verification_status, strata_address FROM users WHERE verification_status = ?").bind('verified').all();
-          return new Response(JSON.stringify({ success: true, verified: results.results }), { headers: corsHeaders });
+          const results = await env.AUTH_DB.prepare(
+            "SELECT id, email, strata_address as wallet_address, created_at, verification_status, clearance_level, doc_type, email_confirmed FROM users WHERE lower(verification_status) = 'pending' ORDER BY id ASC"
+          ).all();
+          const list = (results && results.results) || [];
+          return new Response(JSON.stringify({ success: true, pending: list, users: list, count: list.length }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
       }
-      
+
+      if ((path === '/verified' || path === '/kyc/verified') && request.method === 'GET') {
+        try {
+          const authHeader = request.headers.get('Authorization');
+          if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
+          const token = authHeader.replace('Bearer ', '');
+          const session = await sessionWithClearance(env, token);
+          if (!staffClearanceOK(session)) {
+            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance', clearance: session && session.clearance_level }), { headers: corsHeaders, status: 403 });
+          }
+          const results = await env.AUTH_DB.prepare(
+            "SELECT id, email, verification_status, strata_address as wallet_address, clearance_level, created_at FROM users WHERE lower(verification_status) = 'verified' ORDER BY id ASC"
+          ).all();
+          const list = (results && results.results) || [];
+          return new Response(JSON.stringify({ success: true, verified: list, users: list, count: list.length }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      if ((path === '/verify' || path === '/kyc/verify') && request.method === 'POST') {
+        try {
+          const authHeader = request.headers.get('Authorization');
+          if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
+          const token = authHeader.replace('Bearer ', '');
+          const session = await sessionWithClearance(env, token);
+          if (!staffClearanceOK(session, ['SECRET', 'TOP_SECRET', 'INTERNAL', 'CONFIDENTIAL'])) {
+            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance for KYC action', clearance: session && session.clearance_level }), { headers: corsHeaders, status: 403 });
+          }
+          const body = await request.json();
+          const user_id = body.user_id || body.id;
+          const action = body.action || body.status;
+          const strata_address = body.strata_address || null;
+          const status = action === 'reject' || action === 'rejected' ? 'rejected' : 'verified';
+          await env.AUTH_DB.prepare('UPDATE users SET verification_status = ?, strata_address = COALESCE(?, strata_address) WHERE id = ?').bind(status, strata_address, user_id).run();
+          return new Response(JSON.stringify({ success: true, user_id, verification_status: status }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
       if (path === '/wallet' && request.method === 'GET') {
         try {
           const authHeader = request.headers.get('Authorization');

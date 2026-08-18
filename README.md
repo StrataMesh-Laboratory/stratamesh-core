@@ -89,3 +89,11 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 
 Public site: [calhegasmorais.pt](https://calhegasmorais.pt/) · CLP UI: [/clp](https://calhegasmorais.pt/clp)
 
+
+
+## KYC · OCR + ICAO 9303
+
+- **Worker:** `stratamesh-kyc-ocr` — Workers AI `@cf/llava-hf/llava-1.5-7b-hf` extracts MRZ from passport photos; ICAO Doc 9303 check digits validate structure (open standard, same family as OmniMRZ / mrz-fast).
+- **Auth:** `POST /kyc/submit` binds `sovereign_id`, internal `full_name_legal`, unlocks panel when auto score ≥ 0.8.
+- **Register:** requires `terms_accepted`; invite link sets password; login uses email 2FA.
+- **Endpoints:** `POST https://stratamesh-kyc-ocr.stratamesh.workers.dev/ocr` (multipart `image`), `/kyc-from-image` with Bearer to chain into auth.

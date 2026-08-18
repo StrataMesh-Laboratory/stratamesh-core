@@ -145,6 +145,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button type="button" data-panel="clp" onclick="showPanel('clp',this)">CLP</button>
     <button type="button" data-panel="profile" onclick="showPanel('profile',this)">Perfil</button>
     <!-- Pessoal only -->
+    <button type="button" data-panel="kyc-user" onclick="showPanel('kyc-user',this)">KYC</button>
     <button type="button" data-panel="kyc" data-staff="1" onclick="showPanel('kyc',this)" style="display:none">Fila KYC</button>
     <button type="button" data-panel="users" data-staff="1" onclick="showPanel('users',this)" style="display:none">Utilizadores</button>
     <button type="button" data-panel="system" data-staff="1" data-min-clearance="secret" onclick="showPanel('system',this)" style="display:none">Sistema</button>
@@ -268,6 +269,31 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <pre id="holonPath" style="margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;font-size:.75rem;overflow:auto;color:var(--muted)"></pre>
     <button type="button" class="btn" onclick="loadHolonsPanel()" style="margin-top:.75rem;padding:.6rem 1rem;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Actualizar</button>
+  </div>
+
+  
+  <div class="panel" id="panel-kyc-user" style="display:none">
+    <h2>Verificação de conta (KYC)</h2>
+    <p style="color:var(--muted);font-size:.9rem">Aceite dos termos no registo. Para desbloquear o painel: fotografia do passaporte (MRZ) ou linhas MRZ. Validação automática <strong>ICAO 9303</strong> (padrão aberto; OCR via Workers AI LLaVA). Nome legal fica <em>interno</em>.</p>
+    <div style="margin:12px 0">
+      <label>Fotografia do documento (passaporte / ID)</label>
+      <input type="file" id="kycImage" accept="image/*" capture="environment" />
+    </div>
+    <div style="margin:8px 0">
+      <label>Nº documento (sovereign_id)</label>
+      <input id="kycSovereign" placeholder="Nº passaporte / cidadão" style="width:100%;padding:8px" />
+    </div>
+    <div style="margin:8px 0">
+      <label>MRZ linha 1 (opcional se enviar foto)</label>
+      <input id="kycMrz1" placeholder="P&lt;..." style="width:100%;padding:8px;font-family:monospace;font-size:.8rem" />
+    </div>
+    <div style="margin:8px 0">
+      <label>MRZ linha 2</label>
+      <input id="kycMrz2" placeholder="..." style="width:100%;padding:8px;font-family:monospace;font-size:.8rem" />
+    </div>
+    <button type="button" id="kycOcrBtn" onclick="runKycOcr()">OCR da fotografia</button>
+    <button type="button" id="kycSubmitBtn" onclick="runKycSubmit()">Submeter verificação</button>
+    <pre id="kycResult" style="margin-top:12px;font-size:.75rem;white-space:pre-wrap;color:var(--muted)"></pre>
   </div>
 
   <div class="panel" id="panel-kyc">
@@ -534,7 +560,7 @@ async function handleAuth(){
     if(errEl){ errEl.textContent=msg||''; errEl.style.display=msg?'block':'none'; }
     try{ if(msg) showToast(msg,'error'); }catch(_){}
   }
-  if(!e||!p){ setErr('Email and password required'); return; }
+  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório','Email required'):'Email required'); return; } } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios','Email and password required'):'Email and password required'); return; } }
   setErr('');
   if(btn){btn.disabled=true;btn.textContent='A autenticar…';}
   const path=isRegister?'/register':'/login';
@@ -548,7 +574,7 @@ async function handleAuth(){
       try{
         const ctrl=new AbortController();
         const timer=setTimeout(()=>ctrl.abort(),12000);
-        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:e,password:p,'cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}),signal:ctrl.signal});
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(isRegister?{email:e,lang:'pt','cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}:{email:e,password:p,lang:'pt','cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}),signal:ctrl.signal});
         clearTimeout(timer);
         const j=await r.json().catch(()=>({}));
         if(j.token || (j.success && j.session_token)){
@@ -1137,7 +1163,7 @@ async function staffAuth(){
     if (!staffChallenge) {
       const r = await fetch(AUTH_BASE + '/staff/login', {
         method: 'POST', headers: {'Content-Type':'application/json','Accept':'application/json'},
-        body: JSON.stringify({email, password: pass})
+        body: JSON.stringify({email, password: pass, lang: 'pt'})
       });
       const j = await r.json().catch(()=>({}));
       if (!j.success) throw new Error(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')'));
@@ -1909,4 +1935,44 @@ window.showPanel = function(name, btn){
 
 </script>
 </body>
+
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var tok = params.get('setpw');
+  if (!tok) return;
+  var lang = params.get('lang') || 'pt';
+  var AUTH = (window.SVC && SVC.auth) || (window.AUTH_BASE) || 'https://stratamesh-auth.stratamesh.workers.dev';
+  var title = lang === 'en' ? 'Set password' : 'Definir palavra-passe';
+  var hint = lang === 'en' ? 'Choose a password (min. 8 characters). Link expires in 1 hour.' : 'Escolha uma palavra-passe (mín. 8 caracteres). O link expira em 1 hora.';
+  var box = document.createElement('div');
+  box.id = 'setpw-overlay';
+  box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  box.innerHTML = '<div style="background:#111;border:1px solid #333;padding:24px;max-width:400px;width:100%;color:#eee;font-family:system-ui,sans-serif">'
+    + '<h2 style="margin:0 0 8px;font-size:1.1rem">'+title+'</h2>'
+    + '<p style="color:#aaa;font-size:.9rem">'+hint+'</p>'
+    + '<input id="setpw-pass" type="password" style="width:100%;padding:10px;margin:8px 0;background:#1a1a1a;border:1px solid #444;color:#fff" />'
+    + '<input id="setpw-pass2" type="password" placeholder="'+(lang==='en'?'Confirm':'Confirmar')+'" style="width:100%;padding:10px;margin:8px 0;background:#1a1a1a;border:1px solid #444;color:#fff" />'
+    + '<p id="setpw-err" style="color:#f66;font-size:.85rem"></p>'
+    + '<button id="setpw-go" style="padding:10px 16px;cursor:pointer">OK</button></div>';
+  document.addEventListener('DOMContentLoaded', function(){
+    document.body.appendChild(box);
+    document.getElementById('setpw-go').onclick = async function(){
+      var p1 = document.getElementById('setpw-pass').value;
+      var p2 = document.getElementById('setpw-pass2').value;
+      var err = document.getElementById('setpw-err');
+      if (p1.length < 8) { err.textContent = lang==='en'?'Min. 8 characters':'Mín. 8 caracteres'; return; }
+      if (p1 !== p2) { err.textContent = lang==='en'?'Passwords do not match':'As palavras-passe não coincidem'; return; }
+      try {
+        var r = await fetch(AUTH + '/set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: tok, password: p1, lang: lang })});
+        var j = await r.json();
+        if (!j.success) { err.textContent = j.error || 'Error'; return; }
+        box.innerHTML = '<div style="background:#111;padding:24px;color:#eee"><p>'+(j.message||'OK')+'</p></div>';
+        history.replaceState({}, '', location.pathname);
+      } catch (e) { err.textContent = String(e.message||e); }
+    };
+  });
+})();
+</script>
+
 </html>
