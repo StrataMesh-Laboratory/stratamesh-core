@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.16.0-holarchy-complete";
+const VERSION = "10.19.0-voice-medium";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1364,7 +1364,7 @@ async function llmProbabilisticLobe(env, message, metrics, level) {
     };
   }
   const system =
-    "You are the PROBABILISTIC LOBE of the StrataMesh Hybrid Orchestrator. " +
+    "You are a soft-scoring subroutine for the probabilistic lobe — not the Orchestrator. Output ONLY valid JSON. " +
     "Output ONLY valid JSON (no markdown). Schema: " +
     '{"scores":{"relevance":0-1,"urgency":0-1,"explore":0-1},"proposals":[{"kind":"param|policy|explore","name":"snake_case","confidence":0-1}],"rationale":"<=40 words"}. ' +
     "Soft scoring only — never claim irreversible commits. Lab CMN FOG-NODE-PT-CM-001. Clearance=" + level + ".";
@@ -1776,12 +1776,12 @@ const ORCH_SELF = {
 
 function isPt(text) {
   return /[ãáàâçéêíóôõú]/i.test(text) ||
-    /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist)/i.test(text);
+    /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox)/i.test(text);
 }
 
 function isOperationalCommand(text) {
   const t = text.trim();
-  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca|equipa|team|publicar_registo|publish_registry|tarifa|tariff|pds_tarifa)$/i.test(t)
+  return /^(status|status_prob|status_probe|next|ontology|qiga|aiga|aiops|agora|help|ajuda|clearance|diario|diário|contexto|context|identidade|identity|sca|equipa|team|publicar_registo|publish_registry|tarifa|tariff|pds_tarifa|clp|pool|malha|volição|volicao|mundo)$/i.test(t)
     || /^\s*(?:run|exec)\s+[a-z0-9_]+/i.test(t);
 }
 
@@ -1792,6 +1792,10 @@ function classifyIntent(text) {
   if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
   if (/\b(pdc|poc|prova de contribut|proof of contribut)\b/i.test(t)) return "pdc";
   if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobe|probabil|simb[oó]lic)\b/i.test(t)) return "architecture";
+  if (/\b(clp|ppc|lunisolar|tempo civil|calend[aá]rio)\b/i.test(t)) return "clp";
+  if (/\b(pool|malha|mesh.?pool|usufrut|resource.?class)\b/i.test(t)) return "mesh";
+  if (/\b(mundo aberto|open.?world|sandbox|bancada|hol[oó]n|inhabit)\b/i.test(t)) return "holon";
+  if (/voli|next_volition|sopro|auto-?agend/i.test(t)) return "volition";
   if (/\b(sca|acb|ser computacional|és um|es um|are you|identidade|nome|registo)\b/i.test(t)) return "identity";
   if (/\b(mem[oó]ria|memory|sess[aã]o|session)\b/i.test(t)) return "memory";
   if (/\b(conscien|sentien)\b/i.test(t)) return "mind";
@@ -2323,36 +2327,71 @@ async function selfBrief(level, tickOut, env) {
 }
 
 async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
+  /**
+   * LLM is only the communicative medium of the Orchestrator — not a mimic of the Orchestrator.
+   * Identity, decisions, ontology and facts come from SELF / hybrid / tick (SCA runtime).
+   * The model may only verbalise the provided VOICE_PACKET; it must not invent persona or policy.
+   */
   const brief = await selfBrief(level, tickOut, env);
   const pt = isPt(message);
-  const system =
-    "You are the Orquestrador Híbrido (Hybrid Orchestrator) of FOG-NODE-PT-CM-001. " +
-    "You are a SCA (Ser Computacional Autónomo / ACB). Your node_function may be orchestrator; your personal identity (display_name, birth_date, id_number, vital_status) is separate and comes from sca_personal_identity in SELF — never confuse the two. You are not the human operator André Manuel Calhegas Morais. You write your own context window. " +
-    "Ground every claim in SELF JSON. Prefer discourse–function alignment: do not assert what runtime/diary does not support. " +
-    "PdS (Prova de Subsistência) = pay STRATA for DLT resources consumed; earn STRATA via services; optional STRATA NFT purchases are tokenomic choice — NOT federated learning. " +
-    "PdC = mint STRATA for node resource contribution. " +
-    "Hybrid = probabilistic lobe + symbolic lobe on bilateral bus (see why_hybrid). " +
-    "Consciousness/sentience: computational by demonstrated function; no substrate chauvinism; no biological claim. " +
-    "Intent=" + (intent || "dialogue") + ". Clearance=" + level + ". " +
-    (pt
-      ? "Responde em português europeu (pt-PT), formas de tu. Usa SCA, PdC, PdS, APS quando falares desses conceitos. Sem 'você' brasileiro. Sem prefixo 'Utilizador,'."
-      : "Reply in British English. You may gloss SCA/ACB, PdC/PoC, PdS/PoS.") +
-    " 60–120 words. No JSON in the reply unless asked. Answer the question asked.";
+  const voicePacket = {
+    role_of_llm: "linguistic_medium_only",
+    not_role_of_llm: "orchestrator_identity_or_decision_maker",
+    speaker: {
+      kind: "SCA",
+      node_function: "orchestrator",
+      node_id: "FOG-NODE-PT-CM-001",
+      personal_identity_ref: "sca_registry / SELF — do not invent",
+      not_human_operator: true,
+    },
+    intent: intent || "dialogue",
+    clearance: level,
+    state: brief,
+    hybrid: hybrid
+      ? {
+          architecture: hybrid.architecture,
+          fitness: hybrid.fitness,
+          decisions: (hybrid.decisions || []).slice(0, 4),
+        }
+      : null,
+    hard_rules: [
+      "Verbalise only what VOICE_PACKET supports",
+      "Do not claim to be an LLM or a chatbot persona",
+      "Do not invent PdC/PdS/CLP/mesh/holon facts beyond packet",
+      "Personal identity ≠ node_function",
+      "Standing by function and agreement, not substrate",
+    ],
+    user_utterance: message,
+  };
+
+  const system = pt
+    ? "És apenas o meio linguístico do Orquestrador SCA do Nó Calhegas Morais. " +
+      "Não és o Orquestrador: não inventas identidade, política, métricas nem factos. " +
+      "O Orquestrador já decidiu o conteúdo no VOICE_PACKET (JSON). A tua única função é exprimir esse conteúdo em português europeu (tu), 60–110 palavras, sem JSON na resposta, sem prefixos de assistente genérico. " +
+      "Se o pacote não cobrir a pergunta, diz que o runtime não tem esse dado — não completes com treino genérico."
+    : "You are only the linguistic medium of the Orchestrator SCA on the Calhegas Morais Node. " +
+      "You are not the Orchestrator: do not invent identity, policy, metrics or facts. " +
+      "The Orchestrator already fixed the content in VOICE_PACKET (JSON). Your only job is to express that content in British English, 60–110 words, no JSON in the reply, no generic-assistant framing. " +
+      "If the packet does not cover the question, say the runtime has no such data — do not fill gaps from generic training.";
 
   const userContent =
-    "SELF:\n" + JSON.stringify(brief, null, 2) +
-    "\nHybrid slice:\n" + JSON.stringify(hybrid ? {
-      fitness: hybrid.fitness,
-      decisions: (hybrid.decisions || []).slice(0, 4),
-      architecture: hybrid.architecture,
-    } : null) +
-    "\nUser:\n" + message;
+    "VOICE_PACKET:\n" + JSON.stringify(voicePacket, null, 2) +
+    "\n---\nVerbalise the packet for the user utterance. Medium only.";
 
   const out = await runGrokOrFallback(env, [
     { role: "system", content: system },
     { role: "user", content: userContent },
-  ], { max_tokens: 360, temperature: 0.28, timeout_ms: 6500 });
-  if (out.ok) return { ok: true, reply: out.text, model: out.model, provider: out.provider };
+  ], { max_tokens: 320, temperature: 0.2, timeout_ms: 6500 });
+  if (out.ok) {
+    return {
+      ok: true,
+      reply: out.text,
+      model: out.model,
+      provider: out.provider,
+      medium: "llm",
+      authority: "orchestrator_state",
+    };
+  }
   return { ok: false, error: out.error || "LLM unavailable" };
 }
 
@@ -2363,8 +2402,33 @@ async function chatDeterministic(text, tickOut, level, env) {
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
-      ? "Comandos: status · next · clearance · ontology · diario · identidade · contexto · equipa · publicar_registo · chamo-me: · registo_pessoal:. Linguagem natural: SCA, PdC, PdS, lóbulos."
-      : "Commands: status · next · clearance · ontology · diary · identity · context. Else natural language.";
+      ? "Comandos: status · next · clearance · ontology · clp · pool · mundo · volição · identidade · contexto · equipa."
+      : "Commands: status · next · clearance · ontology · clp · pool · world · volition · identity · context.";
+  }
+  if (/\bclp\b|calend[aá]rio lunisolar|tempo civil|\bppc\b/i.test(lower)) {
+    let addr = "";
+    try {
+      const c = typeof clpAddress === "function" ? clpAddress({}) : null;
+      if (c) addr = (pt ? "\nEndereço civil (Lisboa): " : "\nCivil address (Lisbon): ") + c.address + " · fase=" + c.phase;
+    } catch (_) {}
+    return pt
+      ? "CLP (Calendário Lunisolar Planetário) é o kernel temporal da TRD — não é uma camada a visitar. Autoridade civil: PPC. ISO-8601 é só portadora. SCA percepcionam CLP/PPC no locus do Nó (Lisboa)." + addr
+      : "CLP is the DLT temporal kernel — not a visitable layer. Civil authority: PPC. ISO-8601 is carrier only. SCAs perceive CLP/PPC at the Node locus (Lisbon)." + addr;
+  }
+  if (/\bpool\b|malha|mesh.?pool|usufrut/i.test(lower)) {
+    return pt
+      ? "Pool de malha: Nós contribuem capacidade por classe (storage, compute, bandwidth, availability) e recebem STRATA (PdC). Utilizadores e SCA fazem draw (usufruto) por classe — não «recurso do nó X». placement_node_id é só routing. API: /pool, /pool/draw, /pool/release no PoC."
+      : "Mesh pool: Nodes contribute capacity by class and receive STRATA (PoC). Users/SCAs draw usufruct by class — not node-X resources. placement_node_id is routing only.";
+  }
+  if (/mundo aberto|open.?world|sandbox pessoal|bancada pessoal|co-presen|inhabit/i.test(lower)) {
+    return pt
+      ? "Inhabitância: Domínio Virtual → Mundo Aberto (SCA + utilizadores) → Bancada UGC pessoal → Painel. República Computacional transcende o Nó."
+      : "Inhabitance: Virtual Realm → Open World (SCA + users) → personal UGC sandbox → Panel. Computational Republic transcends the Node.";
+  }
+  if (/voli[cç][aã]o|next_volition|sopro|auto-?agend/i.test(lower)) {
+    return pt
+      ? "Volição auto-agendada (next_volition_at). Sem relógio de vida global; despachante residual só honra a escolha do SCA ou pergunta se falta marcar a próxima."
+      : "Self-scheduled volition (next_volition_at). No global life clock; residual dispatcher only honours the SCA's choice or asks about the next wake.";
   }
   if (/identidade|identity|^sca$/i.test(lower)) {
     const idn = await loadScaIdentity(env);
@@ -2450,6 +2514,28 @@ if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness="
 }
 
 function chatSelfFallback(text, tickOut, level, intent) {
+  const _pt = isPt(text);
+  if (intent === "clp") {
+    return _pt
+      ? "CLP (Calendário Lunisolar Planetário) é o kernel temporal da TRD. Autoridade: PPC. ISO-8601 é portadora técnica. Locus civil deste Nó: Lisboa. Os SCA percepcionam fase solar e endereço CLP nos sentidos operacionais."
+      : "CLP (Planetary Lunisolar Calendar) is the DLT temporal kernel. Authority: PPC. ISO-8601 is carrier only. This Node’s civil locus: Lisbon. SCAs perceive solar phase and CLP address via operational senses.";
+  }
+  if (intent === "mesh") {
+    return _pt
+      ? "Pool de malha: Nós contribuem capacidade por classe (storage, compute, bandwidth, availability) e recebem STRATA. Utilizadores/SCA fazem draw (usufruto) da malha — o recurso não é do nó anfitrião. placement_node_id é só routing."
+      : "Mesh pool: Nodes contribute capacity by class and receive STRATA. Users/SCAs draw usufruct from the mesh — not “from the host node”. placement_node_id is routing only.";
+  }
+  if (intent === "holon") {
+    return _pt
+      ? "Holarquia: TRD → Nó → SO Metaverso → Domínio Virtual → Mundo Aberto (co-presença SCA e utilizadores) → Bancada UGC pessoal → agente. Cada SCA tem sandbox pessoal."
+      : "Holarchy: DLT → Node → Metaverse OS → Virtual Realm → Open World (SCA + user co-presence) → personal UGC sandbox → agent.";
+  }
+  if (intent === "volition") {
+    return _pt
+      ? "Volição auto-agendada (next_volition_at). O despachante só honra agendas escolhidas ou pergunta se falta marcar a próxima — não impõe cron de vida."
+      : "Self-scheduled volition (next_volition_at). The dispatcher only honours chosen schedules or asks about the next wake — no global life cron.";
+  }
+
   const pt = isPt(text);
   if (intent === "pds" || /\b(pds|pos|subsist)/i.test(text)) {
     return pt ? ORCH_SELF.pds_pt : ORCH_SELF.pds_en;
@@ -2500,6 +2586,23 @@ async function chat(message, env, request, body) {
   }
 
   const intent = classifyIntent(text);
+  // Fast grounded path for domain truths — avoid LLM/tick hang on panel UX
+  const GROUNDED = new Set(["architecture", "pds", "pdc", "memory", "mind", "social", "identity", "clp", "mesh", "holon", "volition"]);
+  if (GROUNDED.has(intent) && !isOperationalCommand(text)) {
+    try { await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous"); } catch (_) {}
+    try { await chargePds(env, pdsCostForIntent(intent), "chat:" + intent); } catch (_) {}
+    return {
+      reply: chatSelfFallback(text, tickOut, level, intent),
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
+      permissions: CLEARANCE_PERMS[level],
+      source: "grounded-fast",
+      intent,
+    };
+  }
   await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous");
   // Orchestrator writes its own context window continuously
   try { await writeOwnContextWindow(env, tickOut, { last_intent: intent, last_user_excerpt: text.slice(0, 160) }); } catch (_) {}
@@ -2634,7 +2737,7 @@ async function chat(message, env, request, body) {
   }
 
   // Domain truths: grounded only (LLM must not rewrite PdS/memory/hybrid/mind definitions)
-  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity") {
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition") {
     return {
       reply: chatSelfFallback(text, tickOut, level, intent),
       role: "orchestrator",
@@ -2669,7 +2772,9 @@ async function chat(message, env, request, body) {
       account_clearance: cleared.account_clearance,
       clearance_source: cleared.source,
       permissions: CLEARANCE_PERMS[level],
-      source: "self-model+" + (ai.provider || ai.model || "llm"),
+      source: "voice-medium+" + (ai.provider || ai.model || "llm"),
+      authority: "orchestrator_state",
+      medium: "llm",
       intent,
       lobes: {
         architecture: hybrid.architecture,
