@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.20.2-tdra";
+const VERSION = "10.21.0-ops";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1774,6 +1774,12 @@ const ORCH_SELF = {
   mainnet: false,
 };
 
+function preferredLang(text, body) {
+  if (body && (body.lang === "pt" || body.lang === "pt-PT" || body.locale === "pt-PT")) return "pt";
+  if (body && (body.lang === "en" || body.lang === "en-GB" || body.locale === "en-GB")) return "en";
+  return isPt(text, body) ? "pt" : "en";
+}
+
 function isPt(text, body) {
   if (body && (body.lang === "pt" || body.lang === "pt-PT" || body.locale === "pt-PT")) return true;
   if (body && (body.lang === "en" || body.lang === "en-GB" || body.locale === "en-GB")) return false;
@@ -2429,10 +2435,10 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
   return { ok: false, error: out.error || "LLM unavailable" };
 }
 
-async function chatDeterministic(text, tickOut, level, env) {
+async function chatDeterministic(text, tickOut, level, env, body) {
   const metrics = (tickOut && tickOut.tick && tickOut.tick.metrics) || {};
   const lower = text.toLowerCase().trim();
-  const pt = isPt(text);
+  const pt = isPt(text, body);
 
   if (/^help$|^ajuda$/i.test(lower)) {
     return pt
@@ -2562,8 +2568,8 @@ if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness="
   return lines.join("\n");
 }
 
-function chatSelfFallback(text, tickOut, level, intent) {
-  const _pt = isPt(text);
+function chatSelfFallback(text, tickOut, level, intent, body) {
+  const _pt = isPt(text, body);
   if (intent === "clp") {
     return _pt
       ? "CLP (Calendário Lunisolar Planetário) é o kernel temporal da TRD. Autoridade: PPC. ISO-8601 é portadora técnica. Locus civil deste Nó: Lisboa. Os SCA percepcionam fase solar e endereço CLP nos sentidos operacionais."
@@ -2668,7 +2674,7 @@ async function chat(message, env, request, body) {
     try { await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous"); } catch (_) {}
     try { await chargePds(env, pdsCostForIntent(intent), "chat:" + intent); } catch (_) {}
     return {
-      reply: chatSelfFallback(text, tickOut, level, intent),
+      reply: chatSelfFallback(text, tickOut, level, intent, body),
       role: "orchestrator",
       version: VERSION,
       clearance: level,
@@ -2798,7 +2804,7 @@ async function chat(message, env, request, body) {
   }
 
   if (isOperationalCommand(text)) {
-    const det = await chatDeterministic(text, tickOut, level, env);
+    const det = await chatDeterministic(text, tickOut, level, env, body);
     return {
       reply: det,
       role: "orchestrator",
@@ -2814,9 +2820,9 @@ async function chat(message, env, request, body) {
 
   // Domain truths: grounded only (LLM must not rewrite PdS/memory/hybrid/mind definitions)
   if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "standing" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition" || intent === "strata") {
-    const groundedDet = await chatDeterministic(text, tickOut, level, env);
+    const groundedDet = await chatDeterministic(text, tickOut, level, env, body);
     return {
-      reply: groundedDet || chatSelfFallback(text, tickOut, level, intent),
+      reply: groundedDet || chatSelfFallback(text, tickOut, level, intent, body),
       role: "orchestrator",
       version: VERSION,
       clearance: level,
@@ -2830,7 +2836,7 @@ async function chat(message, env, request, body) {
 
   // Domain knowledge first (STRATA, CLP, pool, …) — LLM is voice only, not authority
   {
-    const domainDet = await chatDeterministic(text, tickOut, level, env);
+    const domainDet = await chatDeterministic(text, tickOut, level, env, body);
     if (domainDet && !isOperationalCommand(text)) {
       const domainHit = /\b(strata|clp|ppc|pool|malha|mundo|volição|volicao|cgu|ugc|nft|pd[cs]|poc|pos)\b/i.test(text);
       if (domainHit) {
@@ -2868,7 +2874,7 @@ async function chat(message, env, request, body) {
       /Você está a falar sobre/i.test(raw));
     if (badMedium || !raw) {
       return {
-        reply: chatSelfFallback(text, tickOut, level, intent || "dialogue"),
+        reply: chatSelfFallback(text, tickOut, level, intent || "dialogue", body),
         role: "orchestrator",
         version: VERSION,
         clearance: level,
@@ -2903,7 +2909,7 @@ async function chat(message, env, request, body) {
   }
 
   return {
-    reply: chatSelfFallback(text, tickOut, level, intent),
+    reply: chatSelfFallback(text, tickOut, level, intent, body),
     role: "orchestrator",
     version: VERSION,
     clearance: level,
@@ -3171,6 +3177,36 @@ export default {
       return json({ path, version: VERSION, stub: false, tick: out.tick });
     }
 
-    return json({ error: "not_found", path, version: VERSION }, 404);
+    
+    if (path === "/tdra" || path === "/diagnostic" || path === "/rca") {
+      const services = ["token","poc","auth","dag","sandbox","realms","acb","agora","aiops","ipfs","holons","spa","status","republic","edge","iot"];
+      const results = [];
+      for (const s of services) {
+        const name = "stratamesh-" + s;
+        try {
+          const binding = env[s.toUpperCase()] || env[s] || env[name.replace(/-/g,"_").toUpperCase()];
+          // probe via public URL only for diagnostic snapshot (client-facing)
+          results.push({ service: name, probe: "listed" });
+        } catch (e) {
+          results.push({ service: name, error: String(e.message || e).slice(0, 80) });
+        }
+      }
+      let tickOut = null;
+      try { tickOut = await withTimeout(tick(env), 4000, "tick"); } catch (e) { tickOut = { error: String(e.message || e) }; }
+      return json({
+        version: VERSION,
+        diagnostic: true,
+        node_id: "FOG-NODE-PT-CM-001",
+        operator: "André Manuel Calhegas Morais",
+        tick: tickOut && tickOut.tick ? { fitness: tickOut.tick.fitness, metrics: tickOut.tick.metrics } : tickOut,
+        ontology: { standing: "by function and agreement, not substrate" },
+        monetary: { poles: ["#mint", "#0"], flow: "PoC → #mint → circulating → resource use → #0" },
+        chat: { grounded_intents: ["social","identity","standing","architecture","strata","pds","pdc","clp","mesh","holon","volition","mind","memory"], llm_role: "linguistic_medium_only" },
+        services_lab: results,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+return json({ error: "not_found", path, version: VERSION }, 404);
   },
 };

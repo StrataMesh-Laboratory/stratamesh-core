@@ -1046,7 +1046,7 @@ async function sendOrchChat(){
   try{
     const tok=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
     const prior=window.__orchPriorIntent||undefined;
-    const payload={message:msg,token:tok,prior_intent:prior};
+    const payload={message:msg,token:tok,prior_intent:prior,lang:(typeof LANG!=='undefined'&&LANG==='en')?'en-GB':'pt-PT'};
     const ctrl=new AbortController();
     const timer=setTimeout(function(){ctrl.abort();},25000);
     let r;try{r=await fetch('/api/orchestrator/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});if(!r.ok)throw new Error('proxy '+r.status);}catch(_e){r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});}

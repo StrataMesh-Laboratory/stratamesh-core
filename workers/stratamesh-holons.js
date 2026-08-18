@@ -215,7 +215,7 @@ function holonicContext(overrides = {}) {
     rules: {
       metaverse_os_shared_across_nodes: true,
       painel_dentro_bancada_ugc: true,
-      clp_embutido_na_rdl: true,
+      clp_embutido_na_trd: true,
       clp_nao_e_camada: true,
       worlds_inside_realms: true,
       standing_by_function_not_substrate: true,
@@ -416,7 +416,7 @@ const HOLON_CONTRACTS = {
     invariants: ["substrate_not_standing", "resource_not_function_label"],
     emite: ["no.pulso", "contributo.pedido", "aps.opt_out"],
     emits: ["node.pulse", "contribution.claim", "spa.opt_out"],
-    consome: ["rdl.peso", "so.agendar", "vertice.anexado"],
+    consome: ["trd.peso", "so.agendar", "vertice.anexado"],
     consumes: ["dlt.weight", "os.schedule", "vertex.attached"],
     a_montante: "dlt",
     upstream: "dlt",
@@ -560,7 +560,7 @@ function holonStackPath(ids) {
 
 
 
-const VERSION = "1.2.0-painel-bancada-clp-rdl";
+const VERSION = "1.2.1-painel-bancada-clp-trd";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -864,7 +864,7 @@ export default {
         interoperabilidade: {
           barramento: "stratamesh-holons /emitir + /syscall",
           temporal: "PPC selado por holão (ppcCompact)",
-          rdl: "GDA com temporal antes do hash",
+          trd: "GDA com temporal antes do hash",
         },
       });
     }

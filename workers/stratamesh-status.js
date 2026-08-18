@@ -589,7 +589,7 @@ export default {
     if (env.STATUS_KV) {
       try { const live = await env.STATUS_KV.get('live'); if (live) data = JSON.parse(live); } catch(_){}
     }
-    if (url.pathname === '/status' || url.pathname === '/v1/status') {
+    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status') {
       const foundation = typeof holonicContext === 'function' ? holonicContext() : null;
       const clp = typeof clpAddress === 'function' ? clpAddress() : null;
       const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
