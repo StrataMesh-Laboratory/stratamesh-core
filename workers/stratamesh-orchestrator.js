@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.20.1-chat-refined";
+const VERSION = "10.20.2-tdra";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1821,7 +1821,7 @@ function classifyIntent(text, priorIntent) {
   }
   if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
   if (/\b(pdc|poc|prova de contribut|proof of contribut)\b/i.test(t)) return "pdc";
-  if (/\b(hybrid|híbrido|hibrido|l[oó]bulo|lobulo|lobe|probabil|simb[oó]lic|simbolic)\b/i.test(t)) return "architecture";
+  if (/\b(hybrid|híbrido|hibrido|l[oó]bulos?|lobulos?|lobe|probabil|simb[oó]lic|simbolic)\b/i.test(t)) return "architecture";
   if (/\b(standing|por fun[cç][aã]o|n[aã]o por substrato|substrate)\b/i.test(t)) return "standing";
   if (/\b(clp|ppc|lunisolar|tempo civil|calend[aá]rio)\b/i.test(t)) return "clp";
   if (/\b(pool|malha|mesh.?pool|usufrut|resource.?class)\b/i.test(t)) return "mesh";
@@ -2599,7 +2599,7 @@ function chatSelfFallback(text, tickOut, level, intent) {
       : "Standing here is the criterion of recognition: what the agent does and the agreements it binds itself to — not where the code runs (cloud, fog, edge, or other substrate).\n" +
         "Substrate is implementation; it neither grants nor removes legitimacy by itself. Substrate chauvinism is rejected: analogous function and valid agreement suffice, whether the agent is biological or computational.";
   }
-  if (intent === "architecture" || /\b(hybrid|híbrido|lobe|lóbulo|lobulo)\b/i.test(text)) {
+  if (intent === "architecture" || /\b(hybrid|híbrido|lobe|l[oó]bulos?|lobulos?)\b/i.test(text)) {
     return pt
       ? "Arquitectura híbrida — dois lóbulos complementares desde a génese; nenhum substitui o outro:\n" +
         "• Probabilístico: métricas, scores suaves, formulação em linguagem; evolui (QIGA / meta-aprendizagem federada).\n" +
@@ -2864,7 +2864,8 @@ async function chat(message, env, request, body) {
       (/conversas que estamos a ter|interação complexa entre diferentes componentes/i.test(raw) ||
       /estou aqui para ajudar/i.test(raw) || /gostaria de iniciar uma conversa/i.test(raw) ||
       /Eu sou uma combinação de lóbulos/i.test(raw) ||
-      (/\bvocê\b/i.test(raw) && /Orquestrador Híbrido/i.test(raw)));
+      /\bvocê\b/i.test(raw) ||
+      /Você está a falar sobre/i.test(raw));
     if (badMedium || !raw) {
       return {
         reply: chatSelfFallback(text, tickOut, level, intent || "dialogue"),
