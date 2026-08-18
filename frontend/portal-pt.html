@@ -335,7 +335,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Mensagem ao Orquestrador…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
       <button id="orchSend" onclick="sendOrchChat()" style="padding:12px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer">Enviar</button>
     </div>
-    <p style="color:#555;font-size:11px;margin-top:8px">Experimente: status · aiops · next · mesh</p>
+    <p style="color:#555;font-size:11px;margin-top:8px">Experimente: status · clp · pool · mundo · volição · identidade · ontology</p>
   </div>
 
   
@@ -990,21 +990,21 @@ async function verify(id,status){var sa=document.getElementById('sa'+id);var bod
 
 /* DIAGNOSTIC WIZARD */
 const WORKERS = [
-  {name:'stratamesh-auth',path:'https://stratamesh-auth.stratamesh.workers.dev/health',fallback:'/api/auth/health',desc:'Authentication Service'},
-  {name:'stratamesh-spa',path:'/dashboard',desc:'Portal SPA',skipJson:true},
-  {name:'stratamesh-dag-gateway',path:'https://stratamesh-dag-gateway.stratamesh.workers.dev/api/v1/status',fallback:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'DAG Gateway'},
-  {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'DAG Core'},
-  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/orchestrator/health',desc:'Orquestrador de tarefas'},
-  {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps Monitoring'},
-  {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',fallback:'https://stratamesh-ipfs-pinner.stratamesh.workers.dev/ipfs/health',desc:'IPFS (CID storage)'},
-  {name:'stratamesh-pq-keys',path:'https://stratamesh-pq-keys.stratamesh.workers.dev/health',fallback:'https://stratamesh-pq-keys.stratamesh.workers.dev/pq/status',desc:'Post-Quantum Keys'},
-  {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/health',desc:'Proof of Contribution'},
-  {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/health',fallback:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Agora market'}
+  {name:'stratamesh-auth',path:'https://stratamesh-auth.stratamesh.workers.dev/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'https://stratamesh-auth.stratamesh.workers.dev/health'},
+  {name:'stratamesh-spa',path:'/dashboard',desc:'Portal SPA',skipJson:true,open:'/dashboard'},
+  {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',fallback:'https://stratamesh-dag-gateway.stratamesh.workers.dev/health',desc:'DAG / gateway',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
+  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'https://stratamesh-orchestrator.stratamesh.workers.dev/chat'},
+  {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps',open:'https://stratamesh-aiops.stratamesh.workers.dev/health'},
+  {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',desc:'IPFS',open:'https://stratamesh-ipfs.stratamesh.workers.dev/health'},
+  {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/health',desc:'Prova de Contributo + pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
+  {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/health',fallback:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
+  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / registo',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
+  {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/health',desc:'Tokens / auditoria lab',open:'https://stratamesh-token.stratamesh.workers.dev/emission-audit'}
 ];
 
 async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='A executar…';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Diagnóstico completo'}
 
-function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Análise de causa raiz (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' problema(s) detectado(s):</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Acções recomendadas:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">Diagnóstico executado em '+new Date().toLocaleString()+' pelo utilizador <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>Todos os sistemas operacionais</h4><p style="color:#888">Nenhum problema detectado em '+results.length+' services.</p></div>'}out.innerHTML=html}
+function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+(r.worker.open?(' · <a href="'+r.worker.open+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir</a>'):'')+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Análise de causa raiz (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' problema(s) detectado(s):</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Acções recomendadas:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">Diagnóstico executado em '+new Date().toLocaleString()+' pelo utilizador <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>Todos os sistemas operacionais</h4><p style="color:#888">Nenhum problema detectado em '+results.length+' services.</p></div>'}out.innerHTML=html}
 
 if(token){loadUser()}
 
@@ -1044,7 +1044,7 @@ async function sendOrchChat(){
     const tok=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
     const ctrl=new AbortController();
     const timer=setTimeout(function(){ctrl.abort();},25000);
-    const r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:msg,token:tok}),signal:ctrl.signal});
+    let r;try{r=await fetch('/api/orchestrator/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:msg,token:tok}),signal:ctrl.signal});if(!r.ok)throw new Error('proxy '+r.status);}catch(_e){r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:msg,token:tok}),signal:ctrl.signal});}
     clearTimeout(timer);
     const j=await r.json().catch(function(){return {};});
     if(!r.ok && !j.reply) add('System', j.error||('HTTP '+r.status));
@@ -1582,26 +1582,34 @@ window.loadWallet=loadWallet;window.loadAgora=loadAgora;window.loadDAO=loadDAO;
 window.loadSPA=loadSPA;window.loadSandbox=loadSandbox;window.loadACB=loadACB;
 window.loadEconomy=loadEconomy;window.loadKYC=loadKYC;
 window.loadUsersPanel=loadUsersPanel;window.loadSystemPanel=loadSystemPanel;
-(function(){
-  var _sp = window.showPanel;
-  window.showPanel = function(name, btn){
-    if(typeof _sp === 'function') _sp(name, btn);
-    try {
-      var n = String(name||'');
-      if(n==='wallet') loadWallet();
-      else if(n==='agora') loadAgora();
-      else if(n==='economy') loadEconomy();
-      else if(n==='sandbox' || n==='spa') loadSPA();
-      else if(n==='dao') loadDAO();
-      else if(n==='acb') loadACB();
-      else if(n==='iot') loadIot();
-      else if(n==='holons') loadHolonsPanel();
-      else if(n==='kyc') loadKYC();
-      else if(n==='users') loadUsersPanel();
-      else if(n==='system') loadSystemPanel();
-    } catch (e) { console.warn('panel load', e); }
-  };
-})();
+window.showPanel = function(name, btn){
+  try {
+    var n = String(name || 'wallet');
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('#mainNav button, .nav button, nav button[data-panel]').forEach(function(b){ b.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + n);
+    if(panel) panel.classList.add('active');
+    if(btn && btn.classList) btn.classList.add('active');
+    else {
+      var nb = document.querySelector('[data-panel="'+n+'"]');
+      if(nb) nb.classList.add('active');
+    }
+    if(n==='wallet') loadWallet();
+    else if(n==='agora') loadAgora();
+    else if(n==='economy') loadEconomy();
+    else if(n==='sandbox') { if(typeof loadSandbox==='function') loadSandbox(); else loadSPA(); }
+    else if(n==='spa') loadSPA();
+    else if(n==='dao') loadDAO();
+    else if(n==='acb') loadACB();
+    else if(n==='iot') loadIot();
+    else if(n==='holons') loadHolonsPanel();
+    else if(n==='kyc') loadKYC();
+    else if(n==='users') loadUsersPanel();
+    else if(n==='system') loadSystemPanel();
+    else if(n==='diagnostics') { /* idle until user runs */ }
+    else if(n==='clp' && typeof loadClpPanel==='function') loadClpPanel();
+  } catch (e) { console.warn('showPanel', e); }
+};
 // boot panels if session already visible
 try{
   if(localStorage.getItem('token')||localStorage.getItem('sm_token')){

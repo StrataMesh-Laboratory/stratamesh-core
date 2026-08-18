@@ -503,6 +503,13 @@ async function credit(db, node_id, amount, meta) {
         quality_factor: meta.quality_factor,
         strata_minted: amount,
       });
+      try {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS strata_origin_ledger (
+          id TEXT PRIMARY KEY, account TEXT, amount REAL, origin TEXT, transit_eligible INTEGER, lab_only INTEGER, meta_json TEXT, created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        await db.prepare(`INSERT INTO strata_origin_ledger (id, account, amount, origin, transit_eligible, lab_only, meta_json) VALUES (?,?,?,?,1,0,?)`)
+          .bind('so_'+crypto.randomUUID().slice(0,12), node_id, amount, 'poc_contribution', JSON.stringify({proof_hash: meta.proof_hash})).run();
+      } catch (_) {}
     }
   } catch (_) {}
 

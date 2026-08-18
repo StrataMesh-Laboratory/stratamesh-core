@@ -81,6 +81,69 @@ async function dagSubmit(env, payload, content) {
   }
 }
 
+
+async function ensureLabOrigin(db) {
+  if (!db) return;
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS strata_origin_ledger (
+      id TEXT PRIMARY KEY,
+      account TEXT NOT NULL,
+      amount REAL NOT NULL,
+      origin TEXT NOT NULL,
+      transit_eligible INTEGER NOT NULL DEFAULT 0,
+      lab_only INTEGER NOT NULL DEFAULT 1,
+      meta_json TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`).run();
+  } catch (_) {}
+  try {
+    await db.prepare(`ALTER TABLE token_balances ADD COLUMN lab_balance REAL DEFAULT 0`).run();
+  } catch (_) {}
+  try {
+    await db.prepare(`ALTER TABLE token_balances ADD COLUMN poc_balance REAL DEFAULT 0`).run();
+  } catch (_) {}
+}
+
+async function recordOrigin(db, account, amount, origin, meta) {
+  await ensureLabOrigin(db);
+  const lab_only = origin === 'lab_bootstrap' || origin === 'lab_grant' ? 1 : 0;
+  const transit = origin === 'poc_contribution' ? 1 : 0;
+  const id = 'so_' + crypto.randomUUID().slice(0, 12);
+  await db.prepare(
+    `INSERT INTO strata_origin_ledger (id, account, amount, origin, transit_eligible, lab_only, meta_json)
+     VALUES (?,?,?,?,?,?,?)`
+  ).bind(id, account, amount, origin, transit, lab_only, JSON.stringify(meta || {})).run();
+  // Update split balances
+  const col = transit ? 'poc_balance' : 'lab_balance';
+  try {
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned, lab_balance, poc_balance)
+       VALUES (?, 'STRATA', ?, ?, 0, ?, ?)
+       ON CONFLICT(account, token_type) DO UPDATE SET
+         balance = balance + excluded.balance,
+         total_minted = COALESCE(token_balances.total_minted,0) + excluded.total_minted,
+         lab_balance = COALESCE(token_balances.lab_balance,0) + excluded.lab_balance,
+         poc_balance = COALESCE(token_balances.poc_balance,0) + excluded.poc_balance`
+    ).bind(
+      account,
+      amount,
+      amount,
+      transit ? 0 : amount,
+      transit ? amount : 0,
+    ).run();
+  } catch (e) {
+    // fallback without columns
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', ?, ?, 0)
+       ON CONFLICT(account, token_type) DO UPDATE SET
+         balance = balance + excluded.balance,
+         total_minted = COALESCE(token_balances.total_minted,0) + excluded.total_minted`
+    ).bind(account, amount, amount).run();
+  }
+  return { id, account, amount, origin, transit_eligible: !!transit, lab_only: !!lab_only };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -150,6 +213,38 @@ export default {
     }
 
 
+    
+    if ((path === '/lab/grant' || path === '/lab/bootstrap') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const account = body.account || body.beneficiary;
+      const amount = Number(body.amount);
+      if (!account || !(amount > 0)) return json({ error: 'account and amount > 0 required' }, 400);
+      const rec = await recordOrigin(db, account, amount, body.origin === 'lab_grant' ? 'lab_grant' : 'lab_bootstrap', {
+        note: body.note || 'laboratory initial offer',
+        environment: 'lab',
+      });
+      return json({
+        success: true,
+        ...rec,
+        warning: 'LAB ONLY — this STRATA does not transit to post-lab published network',
+        transit_eligible: false,
+      });
+    }
+
+    if (path === '/lab/policy' || path === '/emission-policy') {
+      return json({
+        environment: 'laboratory',
+        strata: {
+          lab_bootstrap_or_grant: { valid_in: 'lab_only', transit_to_post_lab: false },
+          poc_contribution: { valid_in: 'lab_and_post_lab', transit_to_post_lab: true, sole_protocol_mint: true },
+          agora_transfer: { valid_in: 'depends_on_source_units', note: 'transfer does not change origin of units when tracked' },
+        },
+        rule: 'Initial laboratory STRATA not earned via Node PoC is lab-only. Only PoC-earned STRATA by Nodes transit to the published version.',
+      });
+    }
+
+
     if (path === '/emission-audit' || path === '/audit') {
       let balances = [];
       let mints = [];
@@ -162,13 +257,25 @@ export default {
         mints = m.results || [];
       } catch (_) {}
       const pre_policy = balances.filter((x) => !mints.some((m) => m.node_id === x.account) && Number(x.balance) > 0);
+      let origin_rows = [];
+      try {
+        await ensureLabOrigin(db);
+        origin_rows = (await db.prepare('SELECT origin, SUM(amount) as total, SUM(transit_eligible) as transit_rows FROM strata_origin_ledger GROUP BY origin').all()).results || [];
+      } catch (_) {}
       return json({
         success: true,
-        policy: 'STRATA mint only via PoC; acquire via Agora P2P external value',
+        environment: 'laboratory',
+        policy: {
+          sole_protocol_mint: 'poc_contribution via stratamesh-poc',
+          lab_bootstrap: 'lab-only STRATA; valid only in laboratory version; does NOT transit to post-lab',
+          post_lab_transit: 'only balances with origin=poc_contribution (Node PdC) are eligible to transit',
+          agora: 'P2P acquisition of existing STRATA — does not create protocol mint',
+        },
         balances,
         recent_poc_mints: mints,
+        origin_aggregates: origin_rows,
         pre_policy_or_unattributed: pre_policy.map((x) => x.account),
-        note: 'pre_policy balances are lab genesis/test — not new emission path',
+        note: 'Lab initial offer / grants are lab_only. Post-lab published network recognises only PoC-earned STRATA.',
       });
     }
 
@@ -187,7 +294,24 @@ export default {
           .prepare('SELECT token_type, balance, total_minted, total_burned FROM token_balances WHERE account = ?')
           .bind(account)
           .all();
-        return json({ success: true, account, balances: rows.results || [] });
+        let origins = [];
+        try {
+          await ensureLabOrigin(db);
+          origins = (await db.prepare('SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account = ? GROUP BY origin').bind(account).all()).results || [];
+        } catch (_) {}
+        const lab = origins.filter((o) => o.origin === 'lab_bootstrap' || o.origin === 'lab_grant').reduce((a, o) => a + Number(o.amount || 0), 0);
+        const poc = origins.filter((o) => o.origin === 'poc_contribution').reduce((a, o) => a + Number(o.amount || 0), 0);
+        return json({
+          success: true,
+          account,
+          balances: rows.results || [],
+          lab_policy: {
+            lab_only_balance: lab,
+            transit_eligible_poc_balance: poc,
+            note: 'Only PoC-earned STRATA transit to post-lab; lab offer is laboratory-only',
+          },
+          origin_breakdown: origins,
+        });
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
