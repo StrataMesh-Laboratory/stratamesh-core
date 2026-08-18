@@ -573,11 +573,14 @@ function page(s) {
 }
 
 
-async function svcJson(env, bindingName, path) {
+async function svcJson(env, bindingName, path, timeoutMs = 2500) {
   const b = env && env[bindingName];
   if (!b || typeof b.fetch !== 'function') return { ok: false, missing_binding: bindingName };
   try {
-    const r = await b.fetch(new Request('https://binding.internal' + path));
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
+    const r = await b.fetch(new Request('https://binding.internal' + path, { signal: ac.signal }));
+    clearTimeout(timer);
     const text = await r.text();
     let json = null;
     try { json = JSON.parse(text); } catch (_) {}
@@ -602,7 +605,7 @@ async function buildLiveStatus(env) {
     svcJson(env, 'DAG', '/health'),
     svcJson(env, 'REPUBLIC', '/health'),
     svcJson(env, 'AGORA', '/health'),
-    svcJson(env, 'AIOPS', '/last'),
+    svcJson(env, 'AIOPS', '/health'),
   ]);
 
   const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
@@ -665,10 +668,9 @@ async function buildLiveStatus(env) {
     agora: agoraH.json && agoraH.ok ? { version: agoraH.json.version, status: agoraH.json.status || 'ok' } : null,
     aiops: aiopsLast.json ? {
       ok: !!aiopsLast.ok,
-      last_cycle_id: aiopsLast.json.cycle_id || aiopsLast.json.id,
-      budgeted: aiopsLast.json.budgeted,
-      at: aiopsLast.json.at || aiopsLast.json.timestamp,
-      team: aiopsLast.json.team,
+      version: aiopsLast.json.version,
+      service: aiopsLast.json.service || aiopsLast.json.status,
+      note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
     versions: {
       orchestrator: orchH.json && (orchH.json.version || orchH.json.service),
