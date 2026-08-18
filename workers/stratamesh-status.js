@@ -593,7 +593,7 @@ async function buildLiveStatus(env) {
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH] = await Promise.all([
+  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast] = await Promise.all([
     svcJson(env, 'TOKEN', '/monetary'),
     svcJson(env, 'TOKEN', '/architecture'),
     svcJson(env, 'POC', '/pool'),
@@ -602,6 +602,7 @@ async function buildLiveStatus(env) {
     svcJson(env, 'DAG', '/health'),
     svcJson(env, 'REPUBLIC', '/health'),
     svcJson(env, 'AGORA', '/health'),
+    svcJson(env, 'AIOPS', '/last'),
   ]);
 
   const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
@@ -653,6 +654,7 @@ async function buildLiveStatus(env) {
       dag: dagH.ok,
       republic: repH.ok,
       agora: agoraH.ok,
+      aiops: aiopsLast.ok,
     },
     republic: repH.json && repH.ok ? {
       version: repH.json.version,
@@ -661,6 +663,13 @@ async function buildLiveStatus(env) {
       citizens_are: repH.json.citizens_are,
     } : null,
     agora: agoraH.json && agoraH.ok ? { version: agoraH.json.version, status: agoraH.json.status || 'ok' } : null,
+    aiops: aiopsLast.json ? {
+      ok: !!aiopsLast.ok,
+      last_cycle_id: aiopsLast.json.cycle_id || aiopsLast.json.id,
+      budgeted: aiopsLast.json.budgeted,
+      at: aiopsLast.json.at || aiopsLast.json.timestamp,
+      team: aiopsLast.json.team,
+    } : null,
     versions: {
       orchestrator: orchH.json && (orchH.json.version || orchH.json.service),
       acb: acbH.json && acbH.json.version,

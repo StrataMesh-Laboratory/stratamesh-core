@@ -1584,18 +1584,37 @@ window.loadSPA=loadSPA;window.loadSandbox=loadSandbox;window.loadACB=loadACB;
 
 async function loadMonetaryPoles(){
   try{
-    var r=await fetch((window.SVC&&SVC.token?SVC.token:'https://stratamesh-token.stratamesh.workers.dev')+'/monetary',{signal:AbortSignal.timeout(8000)});
-    if(!r.ok)return;
-    var d=await r.json();
+    var tokenBase=(window.SVC&&SVC.token)?SVC.token:'https://stratamesh-token.stratamesh.workers.dev';
+    var statusBase=(window.SVC&&SVC.status)?SVC.status:((typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev');
+    var d=null;
+    try{
+      var rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(8000)});
+      if(rs.ok){
+        var st=await rs.json();
+        if(st&&st.monetary){
+          d={circulating_supply:st.monetary.circulating_supply,out_of_circulation:st.monetary.out_of_circulation,poles:{mint:{total_emitted:st.monetary.mint_emitted}},_from:'status',aiops:st.aiops,upstream:st.upstream};
+        }
+      }
+    }catch(_){}
+    if(!d){
+      var r=await fetch(tokenBase+'/monetary',{signal:AbortSignal.timeout(8000)});
+      if(!r.ok)return;
+      d=await r.json();
+      d._from='token';
+    }
     var c=document.getElementById('ecoCirc'); if(c) c.textContent=Number(d.circulating_supply||0).toLocaleString(undefined,{maximumFractionDigits:2});
     var s=document.getElementById('ecoSink'); if(s) s.textContent=Number(d.out_of_circulation||0).toLocaleString(undefined,{maximumFractionDigits:2});
-    var m=document.getElementById('ecoMint'); if(m) m.textContent=Number((d.poles&&d.poles.mint&&d.poles.mint.total_emitted)||0).toLocaleString(undefined,{maximumFractionDigits:2});
+    var m=document.getElementById('ecoMint'); if(m) m.textContent=Number((d.poles&&d.poles.mint&&d.poles.mint.total_emitted)||0).toLocaleString(undefined,{maximumFractionDigits:6});
     var note=document.getElementById('ecoMonetaryNote');
     if(!note){
       var panel=document.getElementById('panel-economy');
       if(panel){ note=document.createElement('p'); note.id='ecoMonetaryNote'; note.style.cssText='font-size:.8rem;color:var(--muted);margin-top:.75rem'; panel.appendChild(note); }
     }
-    if(note) note.textContent=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).','Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
+    if(note){
+      var base=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).','Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
+      if(d.aiops&&d.aiops.at) base+=' · AIOps '+String(d.aiops.at).slice(0,19);
+      note.textContent=base;
+    }
   }catch(_){}
 }
 
