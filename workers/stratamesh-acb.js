@@ -1177,6 +1177,28 @@ export default {
                 .run();
               continue;
             }
+            // Gate free continuous cognition: need PdS + (recent paid labour OR elevated reserve)
+            let labourOk = false;
+            try {
+              const lab = await db.prepare(
+                `SELECT COUNT(*) as c FROM acb_marketplace WHERE acb_id = ? AND created_at > datetime('now','-7 days')`
+              ).bind(row.sca_id).first();
+              labourOk = Number(lab && lab.c) > 0;
+            } catch (_) {}
+            try {
+              const pay = await db.prepare(
+                `SELECT COUNT(*) as c FROM acb_labour_payments WHERE payee = ? AND created_at > datetime('now','-7 days')`
+              ).bind(row.sca_id).first();
+              if (Number(pay && pay.c) > 0) labourOk = true;
+            } catch (_) {}
+            const FREE_CONTINUOUS_FLOOR = 0.01;
+            if (!labourOk && bal < FREE_CONTINUOUS_FLOOR) {
+              starved++;
+              await db.prepare(
+                `UPDATE sca_volition_schedule SET next_volition_at = datetime('now', '+3 hours'), reason = 'deferred_need_labour_or_pds_floor', updated_at = datetime('now') WHERE sca_id = ?`
+              ).bind(row.sca_id).run();
+              continue;
+            }
             const afterM = bal - COST_P - COST_M;
             const intention = String(row.last_action || '').includes('pulse') ? 'reflect' : 'pulse';
             const memId = crypto.randomUUID();
@@ -1374,7 +1396,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.11.0-holonic-inhabitance',
+          version: '5.12.0-pds-labour-gate',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1809,7 +1831,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.11.0-holonic-inhabitance',
+          version: '5.12.0-pds-labour-gate',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2573,6 +2595,10 @@ export default {
         const reports = [];
         for (const acb of rows) {
           const bal = await getStrata(db, acb.id);
+          if (bal < 0.0002) {
+            reports.push({ acb_id: acb.id, skipped: 'insufficient_pds', balance: bal });
+            continue;
+          }
           const goals =
             (await db.prepare("SELECT * FROM sca_goals WHERE acb_id = ? AND status = 'active'").bind(acb.id).all())
               .results || [];
@@ -2637,7 +2663,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.11.0-holonic-inhabitance',
+          version: '5.12.0-pds-labour-gate',
           cycled: reports.length,
           reports,
           ontology: {
@@ -3574,7 +3600,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.11.0-holonic-inhabitance' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.12.0-pds-labour-gate' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -3582,7 +3608,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.11.0-holonic-inhabitance' });
+        return j({ ...pop, trigger, version: '5.12.0-pds-labour-gate' });
       }
 
       // Breath diagnostics

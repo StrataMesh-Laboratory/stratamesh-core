@@ -565,6 +565,77 @@ async function globalAvg(db, resource_class) {
   return { quote_asset: g.quote_asset, avg_per_unit: g.avg_per_unit, source: 'lab_proxy', unit: g.unit };
 }
 
+
+/** Measurement receipt — binds evidence hash so mint cannot use bare self-asserted units alone. */
+async function ensureMeasurementSchema(db) {
+  await db.prepare(`CREATE TABLE IF NOT EXISTS measurement_receipts (
+    id TEXT PRIMARY KEY,
+    node_id TEXT NOT NULL,
+    evidence_hash TEXT NOT NULL,
+    sources_json TEXT,
+    score REAL,
+    peer_confirms INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`).run();
+}
+
+async function issueMeasurementReceipt(db, node_id, onchain, peer_confirms = 0) {
+  await ensureMeasurementSchema(db);
+  const sources = onchain && onchain.sources ? onchain.sources : onchain;
+  const material = JSON.stringify({ node_id, sources, t: Math.floor(Date.now() / 60000) });
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material));
+  const evidence_hash = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  // Score: more non-zero evidence fields + peer confirms
+  let fields = 0;
+  const src = sources || {};
+  for (const k of Object.keys(src)) {
+    const v = src[k];
+    if (v && typeof v === 'object') {
+      if (Number(v.count || v.mb || v.units || 0) > 0) fields++;
+    } else if (Number(v) > 0) fields++;
+  }
+  const score = Math.min(1, 0.2 * fields + 0.15 * Number(peer_confirms || 0));
+  const id = 'meas_' + crypto.randomUUID().slice(0, 12);
+  await db.prepare(
+    `INSERT INTO measurement_receipts (id, node_id, evidence_hash, sources_json, score, peer_confirms, created_at)
+     VALUES (?,?,?,?,?,?,datetime('now'))`
+  ).bind(id, node_id, evidence_hash, JSON.stringify(sources || {}), score, peer_confirms).run();
+  return { id, evidence_hash, score, peer_confirms, node_id };
+}
+
+async function requireMeasurementForMint(db, node_id, body) {
+  await ensureMeasurementSchema(db);
+  // Lab policy: mint scale blocked without receipt score ≥ 0.25 OR explicit measurement_id
+  const mid = body.measurement_id || body.receipt_id;
+  if (mid) {
+    const row = await db.prepare('SELECT * FROM measurement_receipts WHERE id = ? AND node_id = ?').bind(mid, node_id).first();
+    if (!row) return { ok: false, error: 'measurement_receipt_not_found' };
+    if (Number(row.score) < 0.15) return { ok: false, error: 'measurement_score_too_low', score: row.score };
+    return { ok: true, receipt: row };
+  }
+  // Auto-issue from onchain measure + mesh ledger contributes from this node (edges)
+  const onchain = await measureOnchain(db, node_id);
+  let peer_confirms = 0;
+  try {
+    const edges = await db.prepare(
+      `SELECT COUNT(DISTINCT node_id) as c FROM mesh_pool_ledger
+       WHERE node_id LIKE 'EDGE-%' AND created_at > datetime('now','-1 day')`
+    ).first();
+    peer_confirms = Number(edges && edges.c) || 0;
+  } catch (_) {}
+  const receipt = await issueMeasurementReceipt(db, node_id, onchain, peer_confirms);
+  if (receipt.score < 0.15 && !body.allow_lab_low_score) {
+    return {
+      ok: false,
+      error: 'insufficient_measurement_for_mint',
+      policy: 'Unforgeable-ish lab gate: need evidence hash receipt score ≥ 0.15 (multi-source or edge contributes)',
+      receipt,
+    };
+  }
+  return { ok: true, receipt, onchain };
+}
+
+
 function priceContribution({ units, avg, quality, strata_per_quote }) {
   const global_avg_value = units * avg.avg_per_unit;
   const value_after_quality = global_avg_value * quality.factor;
@@ -894,7 +965,7 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.8.0-mesh-pool',
+          version: '5.9.0-measurement-gate',
           sole_mint_path: true,
           resource_vs_function: 'Price by resource class only; function/purpose never defines rate; quality is the only intra-resource premium/discount',
           resource_classes: Object.keys(GLOBAL_RESOURCE_AVG),
@@ -1028,6 +1099,11 @@ export default {
 
       if (path === '/mint' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
+        const _measGate = await requireMeasurementForMint(db, body.node_id || 'FOG-NODE-PT-CM-001', body);
+        if (!_measGate.ok) {
+          return j({ success: false, ..._measGate, version: '5.9.0-measurement-gate' }, 403);
+        }
+        body._measurement_receipt = _measGate.receipt;
         const node_id = body.node_id;
         let contribution_type = normalizeResourceClass(body.contribution_type || body.resource_class || body.resource);
         let units = Number(body.contribution_points || body.units || 0);
@@ -1095,7 +1171,7 @@ export default {
             success: true,
             amount_minted_total: 0,
             incremental: true,
-            version: '5.8.0-mesh-pool',
+            version: '5.9.0-measurement-gate',
             gross_units,
             baseline_already_rewarded: baseline,
             message: 'No new on-chain contribution since last confirmed PoC for this class',
@@ -1295,7 +1371,7 @@ export default {
             placement: 'placement_node_id is optional routing — not resource identity for consumer',
             resource_not_function: true,
           },
-          version: '5.8.0-mesh-pool',
+          version: '5.9.0-measurement-gate',
         });
       }
 
@@ -1303,7 +1379,7 @@ export default {
         await ensure(db);
         const body = await request.json().catch(() => ({}));
         const r = await meshContribute(db, body.resource_class || body.class, body.units, body.node_id, body.meta || {});
-        return j({ ...r, version: '5.8.0-mesh-pool' }, r.ok ? 200 : 400);
+        return j({ ...r, version: '5.9.0-measurement-gate' }, r.ok ? 200 : 400);
       }
 
       if ((path === '/pool/draw' || path === '/mesh/pool/draw') && request.method === 'POST') {
@@ -1329,7 +1405,7 @@ export default {
         await ensure(db);
         const body = await request.json().catch(() => ({}));
         const r = await meshRelease(db, body.draw_id || body.id);
-        return j({ ...r, version: '5.8.0-mesh-pool' }, r.ok ? 200 : 404);
+        return j({ ...r, version: '5.9.0-measurement-gate' }, r.ok ? 200 : 404);
       }
 
       if (path === '/history') {

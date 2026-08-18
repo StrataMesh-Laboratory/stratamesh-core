@@ -1,27 +1,95 @@
+/**
+ * Independent validator node — tip weight contributor (not the CMN fog operator process).
+ * node_id: NODE-VAL-PT-CM-002
+ */
+const NODE_ID = 'NODE-VAL-PT-CM-002';
+const VERSION = '2.0.0-independent-validator';
+const DAG = 'https://stratamesh-dag.stratamesh.workers.dev';
+
+function j(d, s = 200) {
+  return new Response(JSON.stringify(d, null, 2), {
+    status: s,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+  });
+}
+
+async function sha256hex(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s || '')));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname;
-    const j = (d, s = 200) => new Response(JSON.stringify(d), {
-      status: s,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
-    if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': '*' } });
-    if (path === '/health' || path === '/' || path === '') {
-      return j({ status: 'ok', service: 'stratamesh-node-2', node_type: 'fog', version: '1.2.0', repaired: true });
+    const path = url.pathname.replace(/\/+$/, '') || '/';
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+          'Access-Control-Allow-Headers': '*',
+        },
+      });
     }
+
+    if (path === '/health' || path === '/' || path === '/identity') {
+      return j({
+        status: 'ok',
+        service: 'stratamesh-node-2',
+        node_id: NODE_ID,
+        node_type: 'independent_validator',
+        operator: 'lab-validator-2',
+        independent_of_fog_operator: true,
+        tip_weight: true,
+        version: VERSION,
+      });
+    }
+
     if ((path === '/validate' || path === '/pin' || path === '/broadcast') && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const material = body.hash || body.payload_hash || body.cid || body.id || JSON.stringify(body).slice(0, 200);
+      const local_hash = await sha256hex(NODE_ID + ':' + material);
+      const tips = [];
+      if (body.tip) tips.push(body.tip);
+      if (body.id) tips.push(body.id);
+      if (Array.isArray(body.tips)) tips.push(...body.tips);
+      const vertex_ids = [...new Set(tips.filter(Boolean))].slice(0, 4);
+
+      let weight = null;
+      if (vertex_ids.length) {
+        try {
+          const dag = env.DAG;
+          const init = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ peer_id: NODE_ID, vertex_ids, delta: 1 }),
+          };
+          let resp;
+          if (dag && typeof dag.fetch === 'function') {
+            resp = await dag.fetch(new Request('https://binding.internal/peer-weight', init));
+          } else {
+            resp = await fetch(DAG + '/peer-weight', init);
+          }
+          weight = await resp.json().catch(() => ({}));
+        } catch (e) {
+          weight = { ok: false, error: String(e.message || e).slice(0, 80) };
+        }
+      }
+
       return j({
         ok: true,
-        peer: 'node-2',
+        peer: NODE_ID,
         accepted: true,
+        local_hash,
         id: body.id || body.vertex_id || null,
         hash: body.hash || body.payload_hash || null,
         cid: body.cid || null,
-        validated_at: new Date().toISOString()
+        tip_weight: weight,
+        validated_at: new Date().toISOString(),
+        version: VERSION,
       });
     }
-    return j({ error: 'Not found', endpoints: ['/health','/validate','/pin'] }, 404);
-  }
+
+    return j({ error: 'not_found', endpoints: ['/health', '/validate', '/pin'] }, 404);
+  },
 };
