@@ -376,6 +376,10 @@ const SVC = {
   holons: 'https://stratamesh-holons.stratamesh.workers.dev',
   auth: 'https://stratamesh-auth.stratamesh.workers.dev',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
+  spa: 'https://stratamesh-spa.stratamesh.workers.dev',
+  gate: 'https://stratamesh-gate.stratamesh.workers.dev',
+  iot: 'https://stratamesh-iot.stratamesh.workers.dev',
+  dag: 'https://stratamesh-dag.stratamesh.workers.dev',
 };
 const LANG = (function(){
   try {
@@ -1672,6 +1676,226 @@ try{
     setTimeout(function(){ try{ loadWallet(); }catch(e){} }, 400);
   }
 }catch(e){}
+
+/* ===== Operational panel loaders (definitive overrides) ===== */
+async function loadClpPanel(){
+  var el=document.getElementById('clpContent')||document.getElementById('clpStatus')||document.querySelector('#panel-clp .panel-body')||document.getElementById('panel-clp');
+  if(!el) return;
+  var target=document.getElementById('clpContent');
+  if(!target){
+    target=document.createElement('div'); target.id='clpContent'; target.style.cssText='margin-top:1rem;font-size:.85rem;color:var(--muted)';
+    var panel=document.getElementById('panel-clp'); if(panel) panel.appendChild(target);
+  }
+  target.innerHTML='<p>'+T('A carregar CLP/PPC…','Loading CLP/PPC…')+'</p>';
+  try{
+    var r=await fetch((SVC.status||'https://stratamesh-status.stratamesh.workers.dev')+'/status',{signal:AbortSignal.timeout(14000)});
+    var d=r.ok?await r.json():{};
+    var clp=d.clp||{};
+    var ppc=d.ppc||{};
+    var solar=(ppc.solar)||{};
+    target.innerHTML=
+      '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.6rem">'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.season||ppc.clp&&ppc.clp.season||'—')+'</div><div class="label">'+T('Estação','Season')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.phase||(ppc.clp&&ppc.clp.phase)||'—')+'</div><div class="label">'+T('Fase','Phase')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.75rem">'+(d.location&&d.location.label||'Lisboa')+'</div><div class="label">'+T('Local','Locality')+'</div></div>'+
+      '</div>'+
+      '<p style="margin-top:1rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted);line-height:1.5">'+
+      esc(clp.address||(ppc.clp&&ppc.clp.address)||'')+'</p>'+
+      '<p style="font-size:.78rem;color:var(--muted)">'+T('Autoridade temporal: PPC · portadora ISO','Temporal authority: PPC · ISO carrier')+' · '+(d.temporal&&d.temporal.authority||'PPC')+'</p>'+
+      (solar.sunrise?'<p style="font-size:.75rem;color:var(--muted)">'+T('Nascer','Sunrise')+' '+String(solar.sunrise).slice(11,19)+' · '+T('Zénite','Noon')+' '+String(solar.noon||'').slice(11,19)+' · '+T('Ocaso','Sunset')+' '+String(solar.sunset||'').slice(11,19)+'</p>':'');
+  }catch(e){
+    target.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
+  }
+}
+
+async function loadProfilePanel(){
+  var pe=document.getElementById('profileEmail');
+  var pr=document.getElementById('profileRole');
+  var pc=document.getElementById('profileClearance');
+  if(pe) pe.textContent=(currentUser&&currentUser.email)||localStorage.getItem('sm_email')||'—';
+  if(pr) pr.textContent=(currentUser&&(currentUser.role||currentUser.type))||(isStaffUser&&isStaffUser()?'staff':'user')||'—';
+  if(pc) pc.textContent=(currentUser&&(currentUser.clearance||currentUser.clearance_level))||localStorage.getItem('clearance')||'public';
+  var extra=document.getElementById('profileExtra');
+  if(!extra){
+    var panel=document.getElementById('panel-profile');
+    if(panel){ extra=document.createElement('div'); extra.id='profileExtra'; extra.style.marginTop='1rem'; panel.appendChild(extra); }
+  }
+  if(extra){
+    extra.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+
+      (isStaffUser&&isStaffUser()?T('Conta de pessoal — secções administrativas desbloqueadas conforme clearance.','Staff account — admin sections unlocked by clearance.'):
+        T('Conta de utilizador comum — carteira, ágora, bancada, SCA, orquestrador (leitura).','Common user — wallet, agora, sandbox, SCA, orchestrator (read).'))+
+      '</p>';
+  }
+}
+
+async function loadWallet(){
+  var b=document.getElementById('strataBalance');
+  var c=document.getElementById('txCount');
+  var rank=document.getElementById('nodeRank');
+  var list=document.getElementById('txList');
+  try{
+    var account=(currentUser&&(currentUser.strata_address||currentUser.id||currentUser.email))||'FOG-NODE-PT-CM-001';
+    var bal=null, mon=null;
+    try{
+      var r=await fetch(SVC.token+'/balance?account='+encodeURIComponent(account),{signal:AbortSignal.timeout(8000)});
+      if(r.ok) bal=await r.json();
+    }catch(_){}
+    try{
+      var r2=await fetch(SVC.token+'/monetary',{signal:AbortSignal.timeout(8000)});
+      if(r2.ok) mon=await r2.json();
+    }catch(_){}
+    var strata=(bal&&bal.balances&&bal.balances[0]&&bal.balances[0].balance);
+    if(strata==null&&bal) strata=bal.balance;
+    if(b) b.textContent=strata!=null?Number(strata).toLocaleString(undefined,{maximumFractionDigits:5}):(mon?Number(mon.circulating_supply||0).toLocaleString(undefined,{maximumFractionDigits:0}):'—');
+    if(c) c.textContent=mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—';
+    if(rank) rank.textContent='CMN';
+    if(list){
+      list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede','Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
+        ' · #mint '+(mon&&mon.poles&&mon.poles.mint?mon.poles.mint.total_emitted:'—')+
+        ' · #0 '+(mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):'—')+'</p>';
+    }
+  }catch(e){
+    if(b) b.textContent='—';
+    if(list) list.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
+  }
+}
+
+async function loadAgora(){
+  var el=document.getElementById('agoraBook')||document.getElementById('agoraStatus')||document.getElementById('ecoAgoraRate');
+  var rateEl=document.getElementById('agoraRate')||document.getElementById('ecoAgoraRate');
+  try{
+    var r=await fetch(SVC.agora+'/agora/rate?quote=EUR',{signal:AbortSignal.timeout(10000)});
+    var j=r.ok?await r.json():{};
+    if(rateEl) rateEl.textContent=j.strata_per_quote!=null?Number(j.strata_per_quote).toFixed(4):'—';
+    var box=document.getElementById('agoraBook');
+    if(!box){
+      var panel=document.getElementById('panel-agora');
+      if(panel){ box=document.createElement('div'); box.id='agoraBook'; box.style.marginTop='1rem'; panel.appendChild(box); }
+    }
+    if(box){
+      box.innerHTML='<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(8rem,1fr));gap:.6rem">'+
+        '<div class="stat-card"><div class="value">'+(j.strata_per_quote!=null?Number(j.strata_per_quote).toFixed(2):'—')+'</div><div class="label">STRATA/EUR</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.quote_per_strata!=null?Number(j.quote_per_strata).toFixed(2):'—')+'</div><div class="label">EUR/STRATA</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.liquidity_strata!=null?j.liquidity_strata:'—')+'</div><div class="label">'+T('Liquidez','Liquidity')+'</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.listings!=null?j.listings:'—')+'</div><div class="label">'+T('Listagens','Listings')+'</div></div>'+
+        '</div><p style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">'+esc(j.source||j.note||'')+'</p>';
+    }
+  }catch(e){
+    if(rateEl) rateEl.textContent='—';
+  }
+}
+
+async function loadDAO(){
+  var el=document.getElementById('proposalList')||document.getElementById('daoList');
+  if(!el){
+    var panel=document.getElementById('panel-dao');
+    if(panel){ el=document.createElement('div'); el.id='daoList'; panel.appendChild(el); }
+  }
+  if(!el) return;
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  try{
+    var daos=[], props=[];
+    try{ var r=await fetch(SVC.dao+'/dao/list',{signal:AbortSignal.timeout(10000)}); if(r.ok){ var j=await r.json(); daos=j.daos||[]; } }catch(_){}
+    try{ var r2=await fetch(SVC.dao+'/proposals',{signal:AbortSignal.timeout(8000)}); if(r2.ok){ var j2=await r2.json(); props=j2.proposals||[]; } }catch(_){}
+    var html='';
+    if(daos.length){
+      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">DAO</h4>';
+      html+=daos.map(function(d){
+        return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px"><strong>'+esc(d.name||d.dao_id)+'</strong>'+
+          '<div style="font-size:.75rem;color:var(--muted)">'+esc(d.kind||'')+' · '+esc(d.dao_id||'')+'</div></div>';
+      }).join('');
+    }
+    if(props.length){
+      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1rem">'+T('Propostas','Proposals')+'</h4>';
+      html+=props.map(function(pr){
+        return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px">'+esc(pr.title||pr.id)+'</div>';
+      }).join('');
+    }
+    if(!html) html='<p style="color:var(--muted)">'+T('Sem DAOs/propostas neste laboratório.','No DAOs/proposals in this laboratory.')+'</p>';
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+}
+
+async function loadSPA(){
+  var el=document.getElementById('spaList');
+  if(!el){ var panel=document.getElementById('panel-spa'); if(panel){ el=document.createElement('div'); el.id='spaList'; panel.appendChild(el);} }
+  if(!el) return;
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  try{
+    var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
+    var j=r.ok?await r.json():{};
+    var list=j.sandboxes||j.items||[];
+    if(!list.length){ el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada listada.','No sandboxes listed.')+'</p>'; return; }
+    el.innerHTML=list.map(function(s){
+      return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px"><strong>'+esc(s.title||s.name||s.id)+'</strong>'+
+        '<div style="font-size:.75rem;color:var(--muted)">'+esc(s.id)+' · '+esc(s.parent_world_id||'')+' · '+esc(s.isolation||'')+'</div></div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+}
+
+async function loadSandbox(){ return loadSPA(); }
+
+async function loadACB(){
+  var el=document.getElementById('acbList');
+  if(!el){ var panel=document.getElementById('panel-acb'); if(panel){ el=document.createElement('div'); el.id='acbList'; panel.appendChild(el);} }
+  if(!el) return;
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCA…')+'</p>';
+  try{
+    var r=await fetch(SVC.acb+'/acb/status',{signal:AbortSignal.timeout(12000)});
+    var j=r.ok?await r.json():{};
+    var list=j.acbs||j.members||[];
+    if(!list.length){
+      try{ var r2=await fetch(SVC.acb+'/health',{signal:AbortSignal.timeout(8000)}); var h=r2.ok?await r2.json():{}; el.innerHTML='<p style="color:var(--muted)">'+esc(h.version||'ok')+' · '+T('sem lista detalhada','no detail list')+'</p>'; return; }catch(_){}
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCA listed.')+'</p>'; return;
+    }
+    el.innerHTML=list.slice(0,40).map(function(a){
+      var id=a.id||a.acb_id||a.sca_id||'—';
+      var st=a.status||'—';
+      var bal=a.balance!=null?Number(a.balance).toFixed(4):'—';
+      return '<div class="card" style="margin:.4rem 0;padding:.7rem;border:1px solid var(--line);border-radius:4px;display:flex;justify-content:space-between;gap:1rem">'+
+        '<div><strong>'+esc(a.name||id)+'</strong><div style="font-size:.72rem;color:var(--muted)">'+esc(id)+' · '+esc(a.personality||'')+'</div></div>'+
+        '<div style="text-align:right;font-size:.78rem"><span class="sca-status">'+esc(st)+'</span><div style="color:var(--muted)">'+bal+' STRATA</div></div></div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+}
+
+window.loadClpPanel=loadClpPanel;
+window.loadProfilePanel=loadProfilePanel;
+window.loadWallet=loadWallet;
+window.loadAgora=loadAgora;
+window.loadDAO=loadDAO;
+window.loadSPA=loadSPA;
+window.loadSandbox=loadSandbox;
+window.loadACB=loadACB;
+
+window.showPanel = function(name, btn){
+  try {
+    var n = String(name || 'wallet');
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('#mainNav button, .nav button, nav button[data-panel]').forEach(function(b){ b.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + n);
+    if(panel) panel.classList.add('active');
+    if(btn && btn.classList) btn.classList.add('active');
+    else { var nb = document.querySelector('[data-panel="'+n+'"]'); if(nb) nb.classList.add('active'); }
+    if(n==='wallet') loadWallet();
+    else if(n==='agora') loadAgora();
+    else if(n==='economy'){ loadEconomy(); if(typeof loadMonetaryPoles==='function') loadMonetaryPoles(); }
+    else if(n==='sandbox') loadSandbox();
+    else if(n==='spa') loadSPA();
+    else if(n==='dao') loadDAO();
+    else if(n==='acb') loadACB();
+    else if(n==='iot') { if(typeof loadIot==='function') loadIot(); }
+    else if(n==='holons') { if(typeof loadHolonsPanel==='function') loadHolonsPanel(); }
+    else if(n==='kyc') { if(typeof loadKYC==='function') loadKYC(); }
+    else if(n==='users') { if(typeof loadUsersPanel==='function') loadUsersPanel(); }
+    else if(n==='system') { if(typeof loadSystemPanel==='function') loadSystemPanel(); }
+    else if(n==='diagnostics') { /* user runs */ }
+    else if(n==='clp') loadClpPanel();
+    else if(n==='profile') loadProfilePanel();
+    else if(n==='orch') { /* chat ready */ }
+  } catch (e) { console.warn('showPanel', e); }
+};
+
 </script>
 </body>
 </html>
