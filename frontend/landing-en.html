@@ -41,8 +41,10 @@ h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(
 .map-num{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 .map-card strong{font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:.92rem;color:var(--fg);letter-spacing:-.01em}
 .map-card span{font-size:.82rem;color:var(--muted);line-height:1.45}
-.toc{max-width:44rem;margin:0 auto;padding:1rem 1.5rem 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(6.5rem,1fr));gap:.45rem}
-.toc a{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:.45rem .55rem;text-align:center;background:var(--card)}
+.toc{max-width:44rem;margin:0 auto;padding:1rem 1.5rem 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(5.75rem,1fr));gap:.45rem}
+.toc a{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:.5rem .4rem;text-align:center;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;line-height:1.25;min-height:2.85rem;white-space:normal}
+.toc a .toc-n{display:block;color:var(--accent);font-size:.55rem;letter-spacing:.12em}
+.toc a .toc-t{display:block;max-width:100%;overflow-wrap:anywhere}
 .toc a:hover{color:var(--accent);border-color:var(--line2)}
 .section{margin-bottom:2.75rem;padding-bottom:2.5rem;border-bottom:1px solid var(--line)}
 .section:last-of-type{border-bottom:none}
@@ -78,14 +80,14 @@ footer .mono{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spaci
 </div>
 
 <nav class="toc" aria-label="Sections">
-  <a href="#map">00 Map</a>
-  <a href="#network">01 Network</a>
-  <a href="#value">02 Value</a>
-  <a href="#node">03 Node</a>
-  <a href="#who">04 Who</a>
-  <a href="#architecture">05 Architecture</a>
-  <a href="#status">06 Status</a>
-  <a href="#enter">07 Enter</a>
+  <a href="#map"><span class="toc-n">00</span><span class="toc-t">Map</span></a>
+  <a href="#network"><span class="toc-n">01</span><span class="toc-t">Network</span></a>
+  <a href="#value"><span class="toc-n">02</span><span class="toc-t">Value</span></a>
+  <a href="#node"><span class="toc-n">03</span><span class="toc-t">Node</span></a>
+  <a href="#who"><span class="toc-n">04</span><span class="toc-t">Who</span></a>
+  <a href="#architecture"><span class="toc-n">05</span><span class="toc-t">Architecture</span></a>
+  <a href="#status"><span class="toc-n">06</span><span class="toc-t">Status</span></a>
+  <a href="#enter"><span class="toc-n">07</span><span class="toc-t">Enter</span></a>
 </nav>
 
 <main class="wrap">
