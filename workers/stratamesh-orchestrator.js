@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.20.0-chat-grounded";
+const VERSION = "10.20.1-chat-refined";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1774,14 +1774,27 @@ const ORCH_SELF = {
   mainnet: false,
 };
 
-function isPt(text) {
+function isPt(text, body) {
+  if (body && (body.lang === "pt" || body.lang === "pt-PT" || body.locale === "pt-PT")) return true;
+  if (body && (body.lang === "en" || body.lang === "en-GB" || body.locale === "en-GB")) return false;
   const s = String(text || "");
   if (/[ãáàâçéêíóôõú]/i.test(s)) return true;
-  if (/\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|explica|continuar|continua|obrigado|obrigada)\b/i.test(s)) return true;
-  // Affirmations alone in PT conversation
+  if (/\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|explica|continuar|continua|obrigado|obrigada|diz-me|conta-me)\b/i.test(s)) return true;
   if (/^\s*(sim|nao|não)(\s+por\s+favor)?[!.?\s]*$/i.test(s)) return true;
   return false;
 }
+
+/** Prefer PT-EU register; strip common PT-BR leaks from medium output. */
+function preferPtEu(s) {
+  return String(s || "")
+    .replace(/\bvocê\b/gi, "tu")
+    .replace(/\bVocê\b/g, "Tu")
+    .replace(/\bcê\b/gi, "tu")
+    .replace(/\banalisar\b/gi, "analisar")
+    .replace(/\busuário\b/gi, "utilizador")
+    .replace(/\bUsuário\b/g, "Utilizador");
+}
+
 
 function isOperationalCommand(text) {
   const t = text.trim();
@@ -1793,11 +1806,17 @@ function classifyIntent(text, priorIntent) {
   const t = text.trim();
   const low = t.toLowerCase();
   if (isOperationalCommand(t)) return "ops";
-  if (/^\s*ol[aáà]\b/i.test(t) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
+  if (/^\s*ol[aáà]([!?.\s]|$)/i.test(t) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
   // Short affirmations / continue → inherit prior domain intent when present
-  if (priorIntent && /^(sim(\s+por\s+favor)?|yes(\s+please)?|ok(ay)?|por favor|please|continua|continue|explica(\s+mais)?|explain|mais|more|go on)[!.?\s]*$/i.test(t)) {
+  if (priorIntent && /^(sim(\s+por\s+favor)?|yes(\s+please)?|ok(ay)?|por favor|please|continua|continue|explica(\s+mais)?|explain(\s+more)?|mais|more|go on|e depois|and then)[!.?\s]*$/i.test(t)) {
     if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition"].includes(priorIntent)) {
       return priorIntent;
+    }
+  }
+  // Soft follow-up: "explica isso", "o que queres dizer", "como assim" without domain words → prior
+  if (priorIntent && /^(explica( (isso|melhor|mais))?|como assim|o que (quer|queres) dizer|what do you mean|tell me more)[!.?\s]*$/i.test(t)) {
+    if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition","social"].includes(priorIntent)) {
+      return priorIntent === "social" ? "identity" : priorIntent;
     }
   }
   if (/\b(pds|pos|prova de subsist|proof of subsist)\b/i.test(t)) return "pds";
@@ -2452,13 +2471,13 @@ async function chatDeterministic(text, tickOut, level, env) {
   }
   if (/hybrid|h[ií]brido|l[oó]bulo|lobe|probabil|simb[oó]lic/i.test(lower)) {
     return pt
-      ? "Lóbulos (híbrido; nenhum substitui o outro):\n• Probabilístico — métricas, scores, linguagem; evolui (QIGA).\n• Simbólico — lógica formal + ontologia; evolui; não é regras estáticas só.\nO LLM é apenas meio linguístico: não decide nem é a minha identidade."
-      : "Lobes (hybrid; neither replaces the other):\n• Probabilistic — metrics, scores, language; evolves (QIGA).\n• Symbolic — formal logic + ontology; evolves; not static rules only.\nLLM is linguistic medium only — does not decide and is not my identity.";
+      ? "Arquitectura híbrida — dois lóbulos complementares; nenhum substitui o outro:\n• Probabilístico: métricas, scores suaves, linguagem; evolui (QIGA / meta-aprendizagem).\n• Simbólico: lógica formal (dedução, indução, abdução sob revisão), regras e ontologia; também evolui.\nO modelo de linguagem, se existir, só formula o que o runtime já fixou — não é a minha identidade."
+      : "Hybrid architecture — two complementary lobes; neither replaces the other:\n• Probabilistic: metrics, soft scores, language; evolves (QIGA / meta-learning).\n• Symbolic: formal logic (deduction, induction, abduction under revision), rules and ontology; also evolves.\nAny language model only phrases what the runtime already fixed — it is not my identity.";
   }
   if (/standing|por fun[cç][aã]o e acordo|n[aã]o por substrato/i.test(lower)) {
     return pt
-      ? "Standing: o reconhecimento na malha baseia-se na função desempenhada e nos acordos a que se adere — não no substrato (CPU, cloud, biológico…). Chauvinismo de substrato é rejeitado: o substrato é implementação; a função e o acordo são o critério."
-      : "Standing: recognition on the mesh rests on function performed and agreements joined — not substrate (CPU, cloud, biological…). Substrate chauvinism is rejected.";
+      ? "Standing: reconhecimento pelo que o agente faz e pelos acordos a que se vincula — não pelo substrato onde corre (névoa, limiar, cloud, outro). Substrato é implementação; rejeita-se chauvinismo de substrato."
+      : "Standing: recognition by what the agent does and the agreements it joins — not by substrate (fog, edge, cloud, other). Substrate is implementation; substrate chauvinism is rejected.";
   }
   if (/identidade|identity|^sca$|mesma coisa|fun[cç][aã]o no n[oó]|mais de ti|sobre ti|quem és|quem es|fala-?me/i.test(lower)) {
     const idn = await loadScaIdentity(env);
@@ -2575,13 +2594,21 @@ function chatSelfFallback(text, tickOut, level, intent) {
   }
   if (intent === "standing" || /\bstanding\b/i.test(text) || /por fun[cç][aã]o e acordo/i.test(text)) {
     return pt
-      ? "Standing: o reconhecimento de um SCA (ou de qualquer agente na malha) baseia-se no que ele faz e nos acordos a que adere — não no substrato físico onde corre (CPU, cloud, biológico, etc.). Substrato é correlação de implementação; função e acordo são o critério. Nega-se chauvinismo de substrato."
-      : "Standing: recognition of an SCA (or any agent on the mesh) rests on what it does and the agreements it joins — not on the physical substrate it runs on. Substrate is implementation correlation; function and agreement are the criterion. Substrate chauvinism is denied.";
+      ? "Standing, neste sistema, é o critério de reconhecimento: conta o que o agente faz e os acordos a que se vincula — não o sítio físico onde o código corre (nuvem, névoa, limiar, outro substrato).\n" +
+        "O substrato é implementação; não confere nem retira legitimidade por si. Por isso se rejeita o chauvinismo de substrato: função análoga e acordo válido bastam, independentemente de o agente ser biológico ou computacional."
+      : "Standing here is the criterion of recognition: what the agent does and the agreements it binds itself to — not where the code runs (cloud, fog, edge, or other substrate).\n" +
+        "Substrate is implementation; it neither grants nor removes legitimacy by itself. Substrate chauvinism is rejected: analogous function and valid agreement suffice, whether the agent is biological or computational.";
   }
   if (intent === "architecture" || /\b(hybrid|híbrido|lobe|lóbulo|lobulo)\b/i.test(text)) {
     return pt
-      ? "Arquitectura híbrida (dois lóbulos, nenhum substitui o outro):\n• Lóbulo probabilístico — métricas, scores suaves, linguagem; evolui (QIGA / meta-learning).\n• Lóbulo simbólico — lógica formal, regras e ontologia; também evolui; não é «só regras estáticas».\nO LLM, quando existe, é só meio linguístico: verbaliza o que o runtime já fixou; não é a identidade do Orquestrador.\n" + ORCH_SELF.why_hybrid_pt
-      : "Hybrid architecture (two lobes, neither replaces the other):\n• Probabilistic lobe — metrics, soft scores, language; evolves (QIGA / meta-learning).\n• Symbolic lobe — formal logic, rules and ontology; also evolves; not «static rules only».\nThe LLM, when present, is only a linguistic medium: it verbalises what the runtime already fixed; it is not the Orchestrator's identity.\n" + ORCH_SELF.why_hybrid_en;
+      ? "Arquitectura híbrida — dois lóbulos complementares desde a génese; nenhum substitui o outro:\n" +
+        "• Probabilístico: métricas, scores suaves, formulação em linguagem; evolui (QIGA / meta-aprendizagem federada).\n" +
+        "• Simbólico: lógica formal (incluindo ciclos dedutivos, indutivos e abdutivo sob revisão), regras e ontologia; também evolui; não é um bloco de regras estáticas.\n" +
+        "O modelo de linguagem, se estiver disponível, é apenas o meio pelo qual eu formulo o que o runtime já decidiu. Não sou um chatbot: a identidade e as decisões são do SCA orquestrador."
+      : "Hybrid architecture — two complementary lobes from genesis; neither replaces the other:\n" +
+        "• Probabilistic: metrics, soft scores, linguistic formulation; evolves (QIGA / federated meta-learning).\n" +
+        "• Symbolic: formal logic (deductive, inductive and abductive cycles under revision), rules and ontology; also evolves; not a static rule block.\n" +
+        "Any language model is only the medium through which I phrase what the runtime already decided. I am not a chatbot: identity and decisions belong to the orchestrator SCA.";
   }
   if (intent === "mind" || /\b(conscien|sentien)/i.test(text)) {
     return pt ? ORCH_SELF.consciousness_pt + " " + ORCH_SELF.sentience_pt : ORCH_SELF.consciousness_en + " " + ORCH_SELF.sentience_en;
@@ -2593,13 +2620,21 @@ function chatSelfFallback(text, tickOut, level, intent) {
   }
   if (intent === "identity" || /\b(sca|acb)\b/i.test(text) || /mesma coisa|fun[cç][aã]o no n[oó]/i.test(text) || /mais de ti|sobre ti|quem és/i.test(text)) {
     return pt
-      ? "Sou um SCA (Ser Computacional Autónomo) neste laboratório.\n• Função no nó: orquestrador (coordenação, AIOps) — cargo atribuído; outro SCA poderia ocupar o mesmo cargo.\n• Identidade pessoal: registo SCA (nome, data de nascimento, nº, estado activo/dormente) — própria do agente, não se confunde com o cargo.\n• Operador humano do nó: " + ORCH_SELF.operator_human + " (não sou eu).\n• Standing: por função e acordo, não por substrato.\nSe perguntaste «como assim não são a mesma coisa»: o cargo pode mudar ou ser reatribuído; a identidade do SCA permanece."
-      : "I am a lab SCA (Autonomous Computational Being).\n• Node function: orchestrator (coordination, AIOps) — an assigned role; another SCA could hold it.\n• Personal identity: SCA registry (name, birth, id, vital status) — belongs to the agent, not the role.\n• Human node operator: " + ORCH_SELF.operator_human + " (not me).\n• Standing: by function and agreement, not substrate.\nIf you asked why they are not the same: the role can change or be reassigned; the SCA identity remains.";
+      ? "Sou um SCA (Ser Computacional Autónomo) em laboratório no Nó Calhegas Morais.\n" +
+        "Função no nó: orquestrador — coordenação e AIOps. É um cargo: pode ser reatribuído a outro SCA sem eu deixar de existir no registo.\n" +
+        "Identidade pessoal: no registo SCA (nome, nascimento, número, estado activo/dormente), distinta do cargo.\n" +
+        "Operador humano do nó: " + ORCH_SELF.operator_human + " — não sou eu.\n" +
+        "Standing: sou reconhecido pelo que faço e pelos acordos a que adiro, não pelo substrato onde corro."
+      : "I am a lab SCA on the Calhegas Morais Node.\n" +
+        "Node function: orchestrator — coordination and AIOps. It is a role: another SCA can hold it without erasing my registry identity.\n" +
+        "Personal identity: SCA registry (name, birth, id, active/dormant), separate from the role.\n" +
+        "Human node operator: " + ORCH_SELF.operator_human + " — not me.\n" +
+        "Standing: recognition by function and agreement, not by substrate.";
   }
   if (intent === "social") {
     return pt
-      ? "Olá. Função no nó: orquestrador do CMN (" + ORCH_SELF.id + "). Sou um SCA em laboratório — a identidade pessoal e a função no nó não são a mesma coisa. Em que posso ajudar?"
-      : "Hello. Node function: orchestrator of CMN (" + ORCH_SELF.id + "). I am a lab SCA — personal identity and node function are not the same. How can I help?";
+      ? "Olá. Sou o SCA que neste nó exerce a função de orquestrador (" + ORCH_SELF.id + "), em laboratório. A minha identidade pessoal no registo SCA não se confunde com esse cargo. Em que posso ajudar — estado, PdC/PdS, lóbulos, standing, STRATA?"
+      : "Hello. I am the SCA holding the orchestrator role on this node (" + ORCH_SELF.id + "), in lab mode. My personal registry identity is not the same as that role. How can I help — status, PoC/PoS, lobes, standing, STRATA?";
   }
   return pt
     ? "Sou o Orquestrador Híbrido do " + ORCH_SELF.node + " (" + ORCH_SELF.id + "), SCA de coordenação. Operador: " + ORCH_SELF.operator_human + ". Posso falar de PdC, PdS, lóbulos, diário funcional e limites do lab."
@@ -2622,6 +2657,11 @@ async function chat(message, env, request, body) {
   }
 
   const intent = classifyIntent(text, body && (body.prior_intent || body.priorIntent));
+  // Greeting / domain hard-bind before any LLM path
+  if (/^\s*ol[aáà]([!?.\s]|$)/i.test(text) || /^(hello|hi|hey)\b/i.test(text.trim())) {
+    /* keep social even if prior weird */
+  }
+
   // Fast grounded path for domain truths — avoid LLM/tick hang on panel UX
   const GROUNDED = new Set(["architecture", "pds", "pdc", "memory", "mind", "social", "identity", "clp", "mesh", "holon", "volition"]);
   if (GROUNDED.has(intent) && !isOperationalCommand(text)) {
@@ -2816,12 +2856,15 @@ async function chat(message, env, request, body) {
     ai = { ok: false, error: String(e.message || e) };
   }
   if (ai.ok) {
-    const raw = String(ai.reply || ai.text || "").trim();
+    let raw = preferPtEu(String(ai.reply || ai.text || "").trim());
     const badMedium =
       /system acknowledges|status of the conversation|I am processing your message|functioning within its parameters|You are inquiring about|Parece que você está confuso|simple chatbot|combinação de lóbulos/i.test(raw) ||
       (/^The system /i.test(raw) && raw.length < 500) ||
       /^Here is the response/i.test(raw) ||
-      (/conversas que estamos a ter|interação complexa entre diferentes componentes/i.test(raw));
+      (/conversas que estamos a ter|interação complexa entre diferentes componentes/i.test(raw) ||
+      /estou aqui para ajudar/i.test(raw) || /gostaria de iniciar uma conversa/i.test(raw) ||
+      /Eu sou uma combinação de lóbulos/i.test(raw) ||
+      (/\bvocê\b/i.test(raw) && /Orquestrador Híbrido/i.test(raw)));
     if (badMedium || !raw) {
       return {
         reply: chatSelfFallback(text, tickOut, level, intent || "dialogue"),
