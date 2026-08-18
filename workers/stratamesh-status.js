@@ -573,18 +573,21 @@ function page(s) {
 }
 
 
-async function svcJson(env, bindingName, path, timeoutMs = 2500) {
+async function svcJson(env, bindingName, path, timeoutMs = 5000) {
   const b = env && env[bindingName];
   if (!b || typeof b.fetch !== 'function') return { ok: false, missing_binding: bindingName };
   try {
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), timeoutMs);
-    const r = await b.fetch(new Request('https://binding.internal' + path, { signal: ac.signal }));
-    clearTimeout(timer);
-    const text = await r.text();
-    let json = null;
-    try { json = JSON.parse(text); } catch (_) {}
-    return { ok: r.ok, status: r.status, json };
+    const work = (async () => {
+      const r = await b.fetch(new Request('https://binding.internal' + path));
+      const text = await r.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch (_) {}
+      return { ok: r.ok, status: r.status, json };
+    })();
+    const timed = new Promise((resolve) =>
+      setTimeout(() => resolve({ ok: false, error: 'timeout_' + bindingName }), timeoutMs)
+    );
+    return await Promise.race([work, timed]);
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e).slice(0, 120) };
   }
