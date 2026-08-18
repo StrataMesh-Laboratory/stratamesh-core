@@ -471,12 +471,7 @@ export default {
         return j({ events, metrics_summary: metrics.totals, version: VERSION });
       }
 
-      if (path === '/metrics' || path === '/absorption/metrics' || path === '/metrics/absorption') {
-        const metrics = await computeAbsorptionMetrics(db);
-        return j(metrics);
-      }
-
-      if (path === '/metrics/summary') {
+      if (path === '/metrics/summary' || path === '/absorption/summary') {
         const metrics = await computeAbsorptionMetrics(db);
         return j({
           version: VERSION,
@@ -486,6 +481,11 @@ export default {
           last_24h: metrics.last_24h,
           mesh_absorb_node: metrics.mesh_absorb_node,
         });
+      }
+
+      if (path === '/metrics' || path === '/absorption/metrics' || path === '/metrics/absorption') {
+        const metrics = await computeAbsorptionMetrics(db);
+        return j(metrics);
       }
 
       return j({
