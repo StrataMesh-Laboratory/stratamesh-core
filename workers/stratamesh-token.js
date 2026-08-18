@@ -152,12 +152,16 @@ export default {
     const url = new URL(request.url);
     let path = url.pathname;
     // normalize prefixes
-    for (const pfx of ['/api/v1/token', '/api/v1/nft', '/token', '/nft']) {
+    // Longer prefixes first; never strip bare "/token" from "/tokenisation…"
+    for (const pfx of ['/api/v1/token', '/api/v1/nft', '/token/', '/nft/']) {
+      if (path === pfx.slice(0, -1)) { path = '/'; break; }
       if (path.startsWith(pfx)) {
-        path = path.slice(pfx.length) || '/';
+        path = path.slice(pfx.length - 1) || '/'; // keep leading /
+        if (!path.startsWith('/')) path = '/' + path;
         break;
       }
     }
+    if (path === '/token' || path === '/nft') path = '/';
     if (request.method === 'OPTIONS') return json({ ok: true });
 
     const db = env.STRATAMESH_LEDGER || env.LEDGER || env.DB;
@@ -166,7 +170,7 @@ export default {
     // WHITEPAPLE: base STRATA is minted ONLY via Proof of Contribution (stratamesh-poc).
     // This worker tokenises assets (NFT) and tracks balances — it does NOT emit STRATA.
     
-    if (path === '/tokenisation/kinds' || path === '/nft/kinds') {
+    if (path === '/tokenisation/kinds' || path === '/tokenisation' || path === '/nft/kinds' || path === '/kinds') {
       return json({
         foundational_token: 'STRATA',
         forms: {
@@ -738,9 +742,12 @@ export default {
         'GET /balance?account=',
         'GET /list?owner=',
         'GET /get?id=',
+        'GET /tokenisation/kinds',
+        'GET /lab/policy',
         'POST /mint',
         'POST /import',
         'POST /transfer',
+        'POST /lab/grant',
       ],
     }, 404);
   },
