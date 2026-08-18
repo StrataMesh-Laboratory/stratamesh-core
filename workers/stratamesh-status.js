@@ -589,6 +589,8 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
   <div class="card"><div class="v">${mon.out_of_circulation!=null?Number(mon.out_of_circulation).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—'}</div><div class="l">#0 queima</div></div>
   <div class="card"><div class="v">${mon.mint_emitted!=null?Number(mon.mint_emitted).toLocaleString('pt-PT',{maximumFractionDigits:6}):'—'}</div><div class="l">#mint emitido</div></div>
   <div class="card"><div class="v">${sum.mesh_classes||0}</div><div class="l">Classes malha</div></div>
+  <div class="card"><div class="v">${(s.agora&&s.agora.rate&&s.agora.rate.strata_per_quote!=null)?Number(s.agora.rate.strata_per_quote).toFixed(2):'—'}</div><div class="l">STRATA/EUR</div></div>
+  <div class="card"><div class="v">${(s.auth&&s.auth.users!=null)?s.auth.users:'—'}</div><div class="l">Utilizadores</div></div>
 </div>
 <p class="muted">${(mon.flow||'')}</p>
 <p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a></p>
@@ -657,7 +659,7 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.4-mesh-pulse',
+    version: '0.3.5-refined',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -741,8 +743,13 @@ async function buildLiveStatus(env) {
       upstream_total: 11,
       circulating: mon ? mon.circulating_supply : null,
       burned: mon ? mon.out_of_circulation : null,
-      mint_emitted: mon && mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : (mon && mon.mint_emitted),
+      mint_emitted: (mon && mon.poles && mon.poles.mint && mon.poles.mint.total_emitted != null)
+        ? mon.poles.mint.total_emitted
+        : (mon && mon.mint_emitted != null ? mon.mint_emitted : null),
       mesh_classes: pool && pool.pool ? pool.pool.length : 0,
+      agora_strata_per_eur: agoraRate.json && agoraRate.ok ? agoraRate.json.strata_per_quote : null,
+      auth_users: authH.json && authH.ok && authH.json.checks && authH.json.checks.database
+        ? authH.json.checks.database.users : null,
       operational: true,
     },
     versions: {
@@ -791,21 +798,42 @@ export default {
     if (url.pathname === '/live' || url.pathname === '/widget')
       return new Response(LIVE_HTML, {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
 
-    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
+    if (url.pathname === '/health') {
+      // Lightweight probe for diagnostics — no multi-binding fan-out
+      return new Response(JSON.stringify({
+        status: 'ok',
+        service: 'stratamesh-status',
+        version: '0.3.5-refined',
+        node_id: 'FOG-NODE-PT-CM-001',
+        timestamp: new Date().toISOString(),
+      }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
+    }
+    if (url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
       const live = await buildLiveStatus(env);
       if (url.pathname === '/' && (request.headers.get('Accept') || '').includes('text/html')) {
         return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
       }
-      if (url.pathname === '/summary' || url.pathname === '/health') {
+      if (url.pathname === '/summary') {
         const slim = {
           version: live.version,
           status: live.status,
           timestamp: live.timestamp,
+          node_id: live.node_id,
+          name_pt: live.name_pt,
           summary: live.summary,
-          monetary: live.monetary,
+          monetary: live.monetary && {
+            circulating_supply: live.monetary.circulating_supply,
+            out_of_circulation: live.monetary.out_of_circulation,
+            mint_emitted: live.monetary.mint_emitted,
+            burn_sink: live.monetary.burn_sink,
+            mint_source: live.monetary.mint_source,
+            flow: live.monetary.flow,
+          },
           agora_rate: live.agora && live.agora.rate,
           upstream: live.upstream,
           auth: live.auth,
+          ipfs_ok: !!(live.upstream && live.upstream.ipfs),
+          holons_ok: !!(live.upstream && live.upstream.holons),
         };
         return new Response(JSON.stringify(slim, null, 2), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },

@@ -998,7 +998,8 @@ async function verify(id,status){var sa=document.getElementById('sa'+id);var bod
 
 /* DIAGNOSTIC WIZARD */
 const WORKERS = [
-  {name:'stratamesh-status',path:'https://stratamesh-status.stratamesh.workers.dev/status',desc:'Estado ao vivo do nó',open:'https://stratamesh-status.stratamesh.workers.dev/'},
+  {name:'stratamesh-status',path:'https://stratamesh-status.stratamesh.workers.dev/health',desc:'Estado (health)',open:'https://stratamesh-status.stratamesh.workers.dev/'},
+  {name:'stratamesh-status-pulse',path:'https://stratamesh-status.stratamesh.workers.dev/summary',desc:'Pulse resumido do nó',open:'https://stratamesh-status.stratamesh.workers.dev/summary'},
   {name:'stratamesh-auth',path:'https://stratamesh-auth.stratamesh.workers.dev/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'https://stratamesh-auth.stratamesh.workers.dev/health'},
   {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/monetary',desc:'STRATA / monetary poles',open:'https://stratamesh-token.stratamesh.workers.dev/monetary'},
   {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/pool',desc:'PdC · pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
@@ -1019,9 +1020,9 @@ async function runDiagnostics(){const out=document.getElementById('diagResults')
 function renderDiagnostics(results){const out=document.getElementById('diagResults');
 let pulse='';
 try{
-  const st=results.find(function(r){return r.worker&&r.worker.name==='stratamesh-status'&&r.ok&&r.data;});
+  const st=results.find(function(r){return r.worker&&(r.worker.name==='stratamesh-status-pulse'||r.worker.name==='stratamesh-status')&&r.ok&&r.data&&(r.data.monetary||r.data.summary);});
   if(st&&st.data){
-    const d=st.data; const mon=d.monetary||{}; const sum=d.summary||{}; const ag=(d.agora&&d.agora.rate)||{};
+    const d=st.data; const mon=d.monetary||{}; const sum=d.summary||{}; const ag=d.agora_rate||(d.agora&&d.agora.rate)||{};
     pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó','Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
       esc(d.version||'')+' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
       ' · #mint '+(mon.mint_emitted!=null?mon.mint_emitted:'—')+
