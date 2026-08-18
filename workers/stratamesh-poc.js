@@ -494,6 +494,198 @@ async function credit(db, node_id, amount, meta) {
       )
       .run();
   } catch (_) {}
+  // Mesh pool: capacity is mesh-level by class; node_id is payee of mint only
+  try {
+    const cls = normalizeResourceClass(meta.contribution_type) || meta.contribution_type;
+    if (cls && meta.units > 0) {
+      await meshContribute(db, cls, meta.units, node_id, {
+        proof_hash: meta.proof_hash,
+        quality_factor: meta.quality_factor,
+        strata_minted: amount,
+      });
+    }
+  } catch (_) {}
+
+}
+
+
+/**
+ * Mesh resource pool — universal capacity of the DLT mesh.
+ * Contribution credits class capacity (who is paid = node_id).
+ * Usufruct draws class capacity for beneficiary (user|sca|spa|system).
+ * placement_node_id is optional physical placement — never the identity of the resource for the consumer.
+ */
+async function ensureMeshPool(db) {
+  if (!db) return;
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS mesh_resource_pool (
+        resource_class TEXT PRIMARY KEY,
+        capacity_contributed REAL DEFAULT 0,
+        capacity_reserved REAL DEFAULT 0,
+        updated_at TEXT DEFAULT (datetime('now'))
+      )`
+    )
+    .run();
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS mesh_pool_ledger (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        resource_class TEXT NOT NULL,
+        units REAL NOT NULL,
+        node_id TEXT,
+        beneficiary_id TEXT,
+        beneficiary_kind TEXT,
+        placement_node_id TEXT,
+        purpose TEXT,
+        status TEXT,
+        meta_json TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`
+    )
+    .run();
+  for (const cls of Object.keys(GLOBAL_RESOURCE_AVG)) {
+    try {
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO mesh_resource_pool (resource_class, capacity_contributed, capacity_reserved, updated_at)
+           VALUES (?, 0, 0, datetime('now'))`
+        )
+        .bind(cls)
+        .run();
+    } catch (_) {}
+  }
+}
+
+async function meshContribute(db, resource_class, units, node_id, meta = {}) {
+  await ensureMeshPool(db);
+  const cls = normalizeResourceClass(resource_class) || resource_class;
+  const u = Math.max(0, Number(units) || 0);
+  if (!(u > 0)) return { ok: false, reason: 'zero_units' };
+  await db
+    .prepare(
+      `INSERT INTO mesh_resource_pool (resource_class, capacity_contributed, capacity_reserved, updated_at)
+       VALUES (?, ?, 0, datetime('now'))
+       ON CONFLICT(resource_class) DO UPDATE SET
+         capacity_contributed = capacity_contributed + excluded.capacity_contributed,
+         updated_at = datetime('now')`
+    )
+    .bind(cls, u)
+    .run();
+  const id = 'mpc_' + crypto.randomUUID().slice(0, 12);
+  await db
+    .prepare(
+      `INSERT INTO mesh_pool_ledger (id, kind, resource_class, units, node_id, status, meta_json)
+       VALUES (?, 'contribute', ?, ?, ?, 'settled', ?)`
+    )
+    .bind(id, cls, u, node_id || null, JSON.stringify(meta || {}))
+    .run();
+  return { ok: true, id, resource_class: cls, units: u, node_id };
+}
+
+async function meshDraw(db, opts) {
+  await ensureMeshPool(db);
+  const cls = normalizeResourceClass(opts.resource_class) || opts.resource_class;
+  const u = Math.max(0, Number(opts.units) || 0);
+  if (!(u > 0) || !cls) return { ok: false, error: 'resource_class and units required' };
+  const beneficiary_id = opts.beneficiary_id || opts.account || opts.sca_id || opts.user_id;
+  const beneficiary_kind = opts.beneficiary_kind || (opts.sca_id ? 'sca' : opts.user_id ? 'user' : 'system');
+  if (!beneficiary_id) return { ok: false, error: 'beneficiary_id required' };
+
+  const row = await db.prepare('SELECT * FROM mesh_resource_pool WHERE resource_class = ?').bind(cls).first();
+  const contributed = Number(row?.capacity_contributed || 0);
+  const reserved = Number(row?.capacity_reserved || 0);
+  const available = contributed - reserved;
+  // Soft mesh: allow draw even if slightly over if pool empty in lab bootstrap — prefer hard fail when strict
+  const strict = opts.strict !== false && opts.strict !== 0;
+  if (strict && available < u) {
+    return {
+      ok: false,
+      error: 'insufficient_mesh_capacity',
+      resource_class: cls,
+      requested: u,
+      available,
+      contributed,
+      reserved,
+      note: 'Usufruct is from mesh pool by class — not from a host node identity',
+    };
+  }
+  await db
+    .prepare(
+      `INSERT INTO mesh_resource_pool (resource_class, capacity_contributed, capacity_reserved, updated_at)
+       VALUES (?, 0, ?, datetime('now'))
+       ON CONFLICT(resource_class) DO UPDATE SET
+         capacity_reserved = capacity_reserved + excluded.capacity_reserved,
+         updated_at = datetime('now')`
+    )
+    .bind(cls, u)
+    .run();
+  const id = 'mpd_' + crypto.randomUUID().slice(0, 12);
+  // placement is optional physical detail only
+  const placement = opts.placement_node_id || opts.placement || null;
+  await db
+    .prepare(
+      `INSERT INTO mesh_pool_ledger (id, kind, resource_class, units, beneficiary_id, beneficiary_kind, placement_node_id, purpose, status, meta_json)
+       VALUES (?, 'draw', ?, ?, ?, ?, ?, ?, 'active', ?)`
+    )
+    .bind(
+      id,
+      cls,
+      u,
+      beneficiary_id,
+      beneficiary_kind,
+      placement,
+      String(opts.purpose || '').slice(0, 200),
+      JSON.stringify({ abstraction: 'mesh_pool', host_not_identity: true })
+    )
+    .run();
+  return {
+    ok: true,
+    draw_id: id,
+    resource_class: cls,
+    units: u,
+    beneficiary_id,
+    beneficiary_kind,
+    placement_node_id: placement,
+    ontology: 'Consumer draws mesh capacity by class; placement_node_id is routing only',
+  };
+}
+
+async function meshRelease(db, draw_id) {
+  await ensureMeshPool(db);
+  const row = await db.prepare(`SELECT * FROM mesh_pool_ledger WHERE id = ? AND kind = 'draw'`).bind(draw_id).first();
+  if (!row) return { ok: false, error: 'draw_not_found' };
+  if (row.status === 'released') return { ok: true, already: true, draw_id };
+  const u = Number(row.units) || 0;
+  const cls = row.resource_class;
+  await db
+    .prepare(
+      `UPDATE mesh_resource_pool SET capacity_reserved = MAX(0, capacity_reserved - ?), updated_at = datetime('now') WHERE resource_class = ?`
+    )
+    .bind(u, cls)
+    .run();
+  await db
+    .prepare(`UPDATE mesh_pool_ledger SET status = 'released' WHERE id = ?`)
+    .bind(draw_id)
+    .run();
+  return { ok: true, draw_id, released_units: u, resource_class: cls };
+}
+
+async function meshPoolSnapshot(db) {
+  await ensureMeshPool(db);
+  const rows = (await db.prepare('SELECT * FROM mesh_resource_pool ORDER BY resource_class').all()).results || [];
+  return rows.map((r) => {
+    const c = Number(r.capacity_contributed) || 0;
+    const res = Number(r.capacity_reserved) || 0;
+    return {
+      resource_class: r.resource_class,
+      capacity_contributed: c,
+      capacity_reserved: res,
+      capacity_available: c - res,
+      updated_at: r.updated_at,
+    };
+  });
 }
 
 async function syncNetworkDemand(db) {
@@ -554,11 +746,12 @@ export default {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
-          version: '5.7.0-resource-not-function',
+          version: '5.8.0-mesh-pool',
           sole_mint_path: true,
           resource_vs_function: 'Price by resource class only; function/purpose never defines rate; quality is the only intra-resource premium/discount',
           resource_classes: Object.keys(GLOBAL_RESOURCE_AVG),
-          process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount_within_resource', 'agora_fx', 'allocate', 'settle', 'dag_anchor'],
+          process: ['measure_onchain', 'value_global_avg', 'quality_premium_discount_within_resource', 'agora_fx', 'allocate', 'settle', 'dag_anchor', 'mesh_pool'],
+          mesh_pool: 'contribute capacity by class; draw usufruct by beneficiary; placement_node optional routing only',
         });
       }
 
@@ -754,7 +947,7 @@ export default {
             success: true,
             amount_minted_total: 0,
             incremental: true,
-            version: '5.7.0-resource-not-function',
+            version: '5.8.0-mesh-pool',
             gross_units,
             baseline_already_rewarded: baseline,
             message: 'No new on-chain contribution since last confirmed PoC for this class',
@@ -936,6 +1129,50 @@ export default {
         return j({ contribution_types: types });
       }
 
+
+      if ((path === '/pool' || path === '/mesh/pool') && request.method === 'GET') {
+        await ensure(db);
+        const pool = await meshPoolSnapshot(db);
+        let recent = [];
+        try {
+          recent = (await db.prepare('SELECT * FROM mesh_pool_ledger ORDER BY created_at DESC LIMIT 40').all()).results || [];
+        } catch (_) {}
+        return j({
+          success: true,
+          pool,
+          recent,
+          ontology: {
+            contribute: 'Nodes add capacity to mesh by resource class and receive STRATA',
+            draw: 'Users/SCAs/system draw capacity from mesh by class (usufruct)',
+            placement: 'placement_node_id is optional routing — not resource identity for consumer',
+            resource_not_function: true,
+          },
+          version: '5.8.0-mesh-pool',
+        });
+      }
+
+      if ((path === '/pool/contribute' || path === '/mesh/pool/contribute') && request.method === 'POST') {
+        await ensure(db);
+        const body = await request.json().catch(() => ({}));
+        const r = await meshContribute(db, body.resource_class || body.class, body.units, body.node_id, body.meta || {});
+        return j({ ...r, version: '5.8.0-mesh-pool' }, r.ok ? 200 : 400);
+      }
+
+      if ((path === '/pool/draw' || path === '/mesh/pool/draw') && request.method === 'POST') {
+        await ensure(db);
+        const body = await request.json().catch(() => ({}));
+        const r = await meshDraw(db, body);
+        const code = r.ok ? 200 : r.error === 'insufficient_mesh_capacity' ? 409 : 400;
+        return j({ ...r, version: '5.8.0-mesh-pool' }, code);
+      }
+
+      if ((path === '/pool/release' || path === '/mesh/pool/release') && request.method === 'POST') {
+        await ensure(db);
+        const body = await request.json().catch(() => ({}));
+        const r = await meshRelease(db, body.draw_id || body.id);
+        return j({ ...r, version: '5.8.0-mesh-pool' }, r.ok ? 200 : 404);
+      }
+
       if (path === '/history') {
         const node_id = url.searchParams.get('node_id');
         const events = node_id
@@ -962,6 +1199,10 @@ export default {
             '/contribution-types',
             '/balance',
             '/history',
+            '/pool',
+            '/pool/contribute',
+            '/pool/draw',
+            '/pool/release',
           ],
         },
         404

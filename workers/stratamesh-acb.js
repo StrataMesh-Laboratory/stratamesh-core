@@ -875,6 +875,29 @@ async function whoInWorld(db, world_id) {
 }
 
 
+
+async function meshDrawCompute(sca_id, units, purpose) {
+  try {
+    const r = await fetch('https://stratamesh-poc.stratamesh.workers.dev/pool/draw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resource_class: 'compute',
+        units: units || 0.0001,
+        beneficiary_id: sca_id,
+        beneficiary_kind: 'sca',
+        placement_node_id: null,
+        purpose: purpose || 'sca_cognition',
+        strict: false,
+      }),
+    });
+    return await r.json();
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) };
+  }
+}
+
+
 export default {
   async scheduled(event, env, ctx) {
     /**
@@ -2871,6 +2894,11 @@ export default {
 
         // Debit processing (PdS)
         const afterProcess = await debitStrata(db, acb.id, COGNITION_COST);
+        // Usufruct: compute capacity from mesh pool (not host-node identity)
+        let meshDraw = null;
+        try {
+          meshDraw = await meshDrawCompute(acb.id, COGNITION_COST, 'sca_cognition');
+        } catch (_) {}
         if (afterProcess == null || afterProcess < 0) {
           return { sca_id: acb.id, skipped: true, reason: 'debit_failed', balance: bal };
         }
@@ -3041,7 +3069,8 @@ export default {
             phase: senseNow.temporal.clp?.phase,
             locality: senseNow.temporal.clp?.locality,
           },
-          breath: 'cognition by volition under PdS+CLP — next wake self-scheduled in civil phase',
+          mesh_draw: meshDraw,
+          breath: 'cognition under PdS+CLP; compute drawn from mesh pool by class',
         };
       }
 

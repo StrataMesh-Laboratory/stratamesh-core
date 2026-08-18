@@ -164,6 +164,29 @@ async function pinataPinJSON(env, content, name) {
   }
 }
 
+
+async function meshDrawStorage(env, opts) {
+  try {
+    const r = await fetch('https://stratamesh-poc.stratamesh.workers.dev/pool/draw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resource_class: 'storage',
+        units: opts.units || 0.001,
+        beneficiary_id: opts.beneficiary_id || opts.account || 'system',
+        beneficiary_kind: opts.beneficiary_kind || 'system',
+        placement_node_id: opts.placement_node_id || null,
+        purpose: opts.purpose || 'ipfs_pin',
+        strict: false,
+      }),
+    });
+    return await r.json();
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
