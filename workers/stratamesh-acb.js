@@ -98,9 +98,9 @@ const TEMPORAL_POLICY = {
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
   name: "Calhegas Morais Node",
-  lat: 40.6566,
-  lon: -7.9122,
-  locality: "Viseu, Portugal",
+  lat: 38.7169,
+  lon: -9.1427,
+  locality: "Lisboa, Portugal",
   realm_id: "realm_1f20890b",
   world_id: "world_b787cfe9-c",
   sandbox_id: "sbx_9bed54e8-880",
