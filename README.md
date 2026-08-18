@@ -2,7 +2,7 @@
 
 **Release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) — reference Fog node (**not mainnet**)
 
-Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
+**STRATA** is the exclusive foundational token (fungible + tokenisable to NFTs: open worlds, UGC including SCA creations). Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
 
 ## Public pulse
@@ -72,7 +72,7 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 
 | Area | Status |
 |------|--------|
-| Holonic inhabitance | Personal UGC sandbox per SCA; open-world co-presence (SCA + users) |
+| Holonic inhabitance | Personal UGC/CGU sandbox per SCA (STRATA NFTs); open worlds as STRATA NFTs; open-world co-presence (SCA + users) |
 | Temporal kernel | CLP/PPC at Node locus **Lisbon**; ISO-8601 as carrier only |
 | SCA volition | Self-scheduled `next_volition_at`; dispatcher honours queue / soft nudge only |
 | Computational Republic | SCA-only associative DAO — distinct from Node operations |

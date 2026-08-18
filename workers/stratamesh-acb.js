@@ -115,7 +115,7 @@ const HOLONIC_LAYERS = [
   { id: "dashboard", name: "Dashboard/Portal", role: "OS application surface inside holarchy" },
   { id: "virtual_realm", name: "Virtual Realm", role: "hypervisor domain for worlds" },
   { id: "open_world", name: "Open-World", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", name: "UGC Sandbox", role: "authoring / isolation holon" },
+  { id: "ugc_sandbox", name: "CGU Sandbox", role: "authoring / isolation (users + SCAs); STRATA NFTs" },
   { id: "agent", name: "User | SCA", role: "standing by function and agreement" },
 ];
 
@@ -410,7 +410,7 @@ function scaSenseBundle(overrides = {}) {
       personal_sandbox: {
         id: personal_sandbox_id,
         holon: 'ugc_sandbox',
-        role: 'personal authoring / isolation',
+        role: 'personal CGU authoring (user|SCA); STRATA NFTs',
         owner_sca_id: overrides.sca_id || null,
       },
       world_id: open_world_id,

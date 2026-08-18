@@ -1,6 +1,7 @@
 /**
- * StrataMesh Token Engine — fungible STRATA + NFT tokenization
- * UGC mint · import external/cold · DAG anchor · IPFS metadata
+ * StrataMesh Token Engine — STRATA foundational token
+ * Fungible STRATA + tokenisation to STRATA NFTs (native digital substance & external-asset representatives)
+ * Open worlds & CGU/UGC (users + SCAs) are STRATA NFTs · import external/cold · DAG · IPFS
  */
 async function sha256(d) {
   const h = await crypto.subtle.digest(
@@ -202,7 +203,8 @@ export default {
         total_supply: supply,
         holders,
         nft_count: nfts,
-        engines: ['fungible_STRATA_balances', 'nft_ugc', 'nft_import', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
+        engines: ['fungible_STRATA', 'strata_nft_tokenisation', 'nft_cgu_ugc', 'nft_import', 'open_world_nfts', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
+        strata_definition: 'Exclusive foundational token — fungible form and NFT form via tokenisation; not merely unit of account',
         emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });
