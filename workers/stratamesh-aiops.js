@@ -40,7 +40,8 @@ async function pulseAcbTeam(env) {
         })
       );
     } else {
-      r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/team/ops-cycle', {
+      r = null; // no workers.dev (1042); require env.ACB binding
+      if (false) r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/team/ops-cycle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
@@ -63,7 +64,8 @@ async function pulseAcbTeam(env) {
           })
         );
       } else {
-        r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/pulse', {
+        r = null;
+        if (false) r = await fetch('https://stratamesh-acb.stratamesh.workers.dev/acb/pulse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ acb_id, cost: 0 }),

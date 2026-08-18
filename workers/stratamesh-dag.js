@@ -472,8 +472,8 @@ async function ipfsAddPayload(env, payloadStr, node_id, meta = {}) {
       /* fall through */
     }
   }
-  // 2) HTTP to workers.dev (same account)
-  try {
+  // 2) No workers.dev fallback from Worker (CF 1042) — require IPFS binding
+  if (false) try {
     const resp = await fetch('https://stratamesh-ipfs.stratamesh.workers.dev/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -959,10 +959,7 @@ export default {
             }));
             holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
           } else {
-            const hr = await fetch('https://stratamesh-holons.stratamesh.workers.dev/emitir', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-            });
-            holon_event = await hr.json().catch(() => ({ aceite: hr.ok }));
+            holon_event = { aceite: false, erro: 'HOLONS_binding_required' };
           }
         } catch (e) {
           holon_event = { aceite: false, erro: String(e.message || e).slice(0, 80) };

@@ -876,27 +876,49 @@ async function whoInWorld(db, world_id) {
 
 
 
-async function meshDrawCompute(sca_id, units, purpose) {
+async function meshDrawCompute(env, sca_id, units, purpose, resource_class) {
   try {
-    const r = await fetch('https://stratamesh-poc.stratamesh.workers.dev/pool/draw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        resource_class: 'compute',
-        units: units || 0.0001,
-        beneficiary_id: sca_id,
-        beneficiary_kind: 'sca',
-        placement_node_id: null,
-        purpose: purpose || 'sca_cognition',
-        strict: false,
-      }),
+    const body = JSON.stringify({
+      beneficiary_id: sca_id,
+      beneficiary_kind: 'sca',
+      resource_class: resource_class || 'compute',
+      units: Number(units) || 0.01,
+      purpose: purpose || 'cognition',
     });
-    return await r.json();
+    let r;
+    if (env && env.POC && typeof env.POC.fetch === 'function') {
+      r = await env.POC.fetch(new Request('https://poc.internal/pool/draw', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      }));
+    } else if (env && env.PoC && typeof env.PoC.fetch === 'function') {
+      r = await env.PoC.fetch(new Request('https://poc.internal/pool/draw', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      }));
+    } else {
+      return { ok: false, error: 'POC_binding_required' };
+    }
+    const j = await r.json().catch(() => ({}));
+    return Object.assign({ ok: r.ok }, j);
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) };
   }
 }
 
+
+
+/** Internal worker call — service binding only (*.workers.dev from Worker → CF 1042). */
+async function svcFetch(env, bindingName, path, init = {}) {
+  const b = env && env[bindingName];
+  if (!b || typeof b.fetch !== 'function') {
+    return { ok: false, error: 'missing_binding_' + bindingName, status: 0, json: null, text: '' };
+  }
+  const url = 'https://binding.internal' + (path.startsWith('/') ? path : '/' + path);
+  const r = await b.fetch(new Request(url, init));
+  const text = await r.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+  return { ok: r.ok, status: r.status, json, text };
+}
 
 export default {
   async scheduled(event, env, ctx) {
@@ -2897,7 +2919,7 @@ export default {
         // Usufruct: compute capacity from mesh pool (not host-node identity)
         let meshDraw = null;
         try {
-          meshDraw = await meshDrawCompute(acb.id, COGNITION_COST, 'sca_cognition');
+          meshDraw = await meshDrawCompute(env, acb.id, COGNITION_COST, 'sca_cognition');
         } catch (_) {}
         if (afterProcess == null || afterProcess < 0) {
           return { sca_id: acb.id, skipped: true, reason: 'debit_failed', balance: bal };
