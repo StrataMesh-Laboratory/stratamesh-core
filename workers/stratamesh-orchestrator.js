@@ -3130,7 +3130,17 @@ export default {
       try {
         body = await request.json();
       } catch (_) {}
+      // WhatsApp Business (AMCM ENI +44 7404 796458) — channel tag for concise automation
+      if (String(body.channel || "").toLowerCase() === "whatsapp") {
+        body._channel = "whatsapp";
+        body._wa_from = body.from_e164 || body.from || "";
+        if (!body.lang) body.lang = "pt";
+      }
       const out = await chat(body.message || body.text || body.prompt || "", env, request, body);
+      if (body._channel === "whatsapp" && out && typeof out === "object") {
+        out.channel = "whatsapp";
+        out.eni_whatsapp = "+44 7404 796458";
+      }
       return json(out);
     }
 
