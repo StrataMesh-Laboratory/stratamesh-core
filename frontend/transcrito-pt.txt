@@ -15,7 +15,7 @@ EN
 Laboratório · Lisboa, Portugal
 Calhegas Morais
 Porta de entrada pública do
-Nó Fog Calhegas Morais
+Nó de Névoa Calhegas Morais
 — nó de referência da
 StrataMesh
 , uma rede de registo distribuído orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.
@@ -88,8 +88,8 @@ Quem precisa de recursos da rede paga em STRATA (incluindo a prova de subsistên
 03 · Este sítio
 O que é o Nó Calhegas Morais?
 É um
-nó Fog de referência
-da StrataMesh, operado a partir de Lisboa. “Fog” significa capacidade na periferia da rede (perto de utilizadores e dispositivos), não só num centro de dados remoto.
+nó de Névoa de referência
+da StrataMesh, operado a partir de Lisboa. “Névoa” (Fog) significa capacidade na periferia da rede (perto de utilizadores e dispositivos), não só num centro de dados remoto.
 Nesta fase de laboratório, o nó:
 Expõe serviços
 Portal, autenticação, orquestração, registo GDA, mercado e ferramentas de diagnóstico — em ambiente de teste.
