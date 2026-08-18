@@ -572,6 +572,124 @@ function page(s) {
 </body></html>`;
 }
 
+
+async function svcJson(env, bindingName, path) {
+  const b = env && env[bindingName];
+  if (!b || typeof b.fetch !== 'function') return { ok: false, missing_binding: bindingName };
+  try {
+    const r = await b.fetch(new Request('https://binding.internal' + path));
+    const text = await r.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch (_) {}
+    return { ok: r.ok, status: r.status, json };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e).slice(0, 120) };
+  }
+}
+
+async function buildLiveStatus(env) {
+  const now = new Date().toISOString();
+  const foundation = typeof holonicContext === 'function' ? holonicContext() : null;
+  const clp = typeof clpAddress === 'function' ? clpAddress() : null;
+  const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
+
+  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH] = await Promise.all([
+    svcJson(env, 'TOKEN', '/monetary'),
+    svcJson(env, 'TOKEN', '/architecture'),
+    svcJson(env, 'POC', '/pool'),
+    svcJson(env, 'ACB', '/health'),
+    svcJson(env, 'ORCH', '/health'),
+    svcJson(env, 'DAG', '/health'),
+    svcJson(env, 'REPUBLIC', '/health'),
+    svcJson(env, 'AGORA', '/health'),
+  ]);
+
+  const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
+  const pool = (pocPool.json && pocPool.ok) ? pocPool.json : null;
+
+  // Optional KV overlay (lab ingest) — never overrides live monetary/pool clocks
+  let kv = null;
+  if (env.STATUS_KV) {
+    try {
+      const live = await env.STATUS_KV.get('live');
+      if (live) kv = JSON.parse(live);
+    } catch (_) {}
+  }
+
+  return {
+    node_id: 'FOG-NODE-PT-CM-001',
+    name: 'Calhegas Morais',
+    name_pt: 'Nó de Névoa Calhegas Morais',
+    operator: 'André Manuel Calhegas Morais',
+    location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
+    version: '0.3.0-live-status',
+    phase: (kv && kv.phase) || '2',
+    phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
+    status: 'operational',
+    timestamp: now,
+    lab: true,
+    source: 'live-aggregation+bindings',
+    monetary: mon ? {
+      circulating_supply: mon.circulating_supply,
+      out_of_circulation: mon.out_of_circulation,
+      mint_emitted: mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : null,
+      burn_sink: '#0',
+      mint_source: '#mint',
+      flow: mon.flow,
+    } : { error: 'TOKEN binding or /monetary unavailable' },
+    mesh_pool: pool && pool.pool ? {
+      classes: pool.pool.map((x) => ({
+        resource_class: x.resource_class,
+        capacity_available: x.capacity_available,
+        capacity_contributed: x.capacity_contributed,
+      })),
+      ontology: pool.ontology || null,
+    } : null,
+    upstream: {
+      token: tokenMon.ok,
+      poc: pocPool.ok,
+      acb: acbH.ok,
+      orchestrator: orchH.ok,
+      dag: dagH.ok,
+      republic: repH.ok,
+      agora: agoraH.ok,
+    },
+    republic: repH.json && repH.ok ? {
+      version: repH.json.version,
+      kind: repH.json.kind,
+      vote: repH.json.vote,
+      citizens_are: repH.json.citizens_are,
+    } : null,
+    agora: agoraH.json && agoraH.ok ? { version: agoraH.json.version, status: agoraH.json.status || 'ok' } : null,
+    versions: {
+      orchestrator: orchH.json && (orchH.json.version || orchH.json.service),
+      acb: acbH.json && acbH.json.version,
+      dag: dagH.json && dagH.json.version,
+      token: tokenArch.json && tokenArch.json.version,
+    },
+    foundation,
+    clp,
+    ppc,
+    temporal: {
+      phase: 1,
+      authority: 'PPC',
+      civil: 'CLP',
+      wire_carrier: 'ISO-8601',
+      note: 'PPC is planetary truth; ISO is interop carrier only',
+    },
+    holonic_path: foundation && foundation.path,
+    links: {
+      site: 'https://calhegasmorais.pt/',
+      portal: 'https://calhegasmorais.pt/dashboard',
+      tdra: 'https://stratamesh-orchestrator.stratamesh.workers.dev/tdra',
+      monetary: 'https://stratamesh-token.stratamesh.workers.dev/monetary',
+      repo: 'https://github.com/amcmorais/stratamesh-core',
+    },
+    // retain non-conflicting kv fields if present
+    kv_ingest_present: !!kv,
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -585,29 +703,18 @@ export default {
     }
     if (url.pathname === '/live' || url.pathname === '/widget')
       return new Response(LIVE_HTML, {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
-    let data = SNAPSHOT;
-    if (env.STATUS_KV) {
-      try { const live = await env.STATUS_KV.get('live'); if (live) data = JSON.parse(live); } catch(_){}
-    }
-    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status') {
-      const foundation = typeof holonicContext === 'function' ? holonicContext() : null;
-      const clp = typeof clpAddress === 'function' ? clpAddress() : null;
-      const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
-      const enriched = Object.assign({}, data, {
-        foundation,
-        clp,
-        ppc,
-        temporal: {
-          phase: 1,
-          authority: 'PPC',
-          civil: 'CLP',
-          wire_carrier: 'ISO-8601',
-          note: 'PPC is planetary truth; ISO is interop carrier only',
-        },
-        holonic_path: foundation && foundation.path,
+
+    if (url.pathname === '/health' || url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/') {
+      const live = await buildLiveStatus(env);
+      if (url.pathname === '/' && (request.headers.get('Accept') || '').includes('text/html')) {
+        return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+      }
+      return new Response(JSON.stringify(live, null, 2), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
       });
-      return new Response(JSON.stringify(enriched, null, 2), {headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':'no-cache'}});
     }
-    return new Response(page(data), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+    const live = await buildLiveStatus(env);
+    return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
   }
 };
+
