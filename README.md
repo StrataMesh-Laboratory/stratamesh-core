@@ -2,8 +2,17 @@
 
 **Release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) — reference Fog node (**not mainnet**)
 
-**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
+**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
+
+## Monetary poles (STRATA)
+| Address | Role |
+|---------|------|
+| `#mint` | Emission source only — creates via PoC; never receives; no spendable balance |
+| Wallets | Circulation (nodes, users, SCAs) |
+| `#0` | Burn sink — receives on resource use; never transfers out |
+
+API: `GET https://stratamesh-token.stratamesh.workers.dev/monetary` · `POST /burn`
 
 ## Public pulse
 - Status JSON: https://stratamesh-status.stratamesh.workers.dev/status

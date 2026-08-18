@@ -180,6 +180,9 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div class="stat-grid">
       <div class="stat-card"><div class="value" id="ecoFogBal">--</div><div class="label">FOG STRATA</div></div>
+      <div class="stat-card"><div class="value" id="ecoCirc">--</div><div class="label">Circulating</div></div>
+      <div class="stat-card"><div class="value" id="ecoSink">--</div><div class="label">#0 burn</div></div>
+      <div class="stat-card"><div class="value" id="ecoMint">--</div><div class="label">#mint emitted</div></div>
       <div class="stat-card"><div class="value" id="ecoAgoraRate">--</div><div class="label">Agora STRATA/EUR</div></div>
       <div class="stat-card"><div class="value" id="ecoPins">--</div><div class="label">On-chain IPFS pins</div></div>
       <div class="stat-card"><div class="value" id="ecoListings">--</div><div class="label">SCA listings open</div></div>
@@ -1575,7 +1578,26 @@ async function iotPing(mode){
 window.loadIot=loadIot;window.iotPing=iotPing;
 window.loadWallet=loadWallet;window.loadAgora=loadAgora;window.loadDAO=loadDAO;
 window.loadSPA=loadSPA;window.loadSandbox=loadSandbox;window.loadACB=loadACB;
-window.loadEconomy=loadEconomy;window.loadKYC=loadKYC;
+
+async function loadMonetaryPoles(){
+  try{
+    var r=await fetch((window.SVC&&SVC.token?SVC.token:'https://stratamesh-token.stratamesh.workers.dev')+'/monetary',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)return;
+    var d=await r.json();
+    var c=document.getElementById('ecoCirc'); if(c) c.textContent=Number(d.circulating_supply||0).toLocaleString(undefined,{maximumFractionDigits:2});
+    var s=document.getElementById('ecoSink'); if(s) s.textContent=Number(d.out_of_circulation||0).toLocaleString(undefined,{maximumFractionDigits:2});
+    var m=document.getElementById('ecoMint'); if(m) m.textContent=Number((d.poles&&d.poles.mint&&d.poles.mint.total_emitted)||0).toLocaleString(undefined,{maximumFractionDigits:2});
+    var note=document.getElementById('ecoMonetaryNote');
+    if(!note){
+      var panel=document.getElementById('panel-economy');
+      if(panel){ note=document.createElement('p'); note.id='ecoMonetaryNote'; note.style.cssText='font-size:.8rem;color:var(--muted);margin-top:.75rem'; panel.appendChild(note); }
+    }
+    if(note) note.textContent=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).','Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
+  }catch(_){}
+}
+
+window.loadEconomy=loadEconomy;
+window.loadMonetaryPoles=loadMonetaryPoles;window.loadKYC=loadKYC;
 window.loadUsersPanel=loadUsersPanel;window.loadSystemPanel=loadSystemPanel;
 window.showPanel = function(name, btn){
   try {
@@ -1591,7 +1613,7 @@ window.showPanel = function(name, btn){
     }
     if(n==='wallet') loadWallet();
     else if(n==='agora') loadAgora();
-    else if(n==='economy') loadEconomy();
+    else if(n==='economy'){ loadEconomy(); if(typeof loadMonetaryPoles==='function') loadMonetaryPoles(); }
     else if(n==='sandbox') { if(typeof loadSandbox==='function') loadSandbox(); else loadSPA(); }
     else if(n==='spa') loadSPA();
     else if(n==='dao') loadDAO();
