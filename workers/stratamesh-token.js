@@ -1,10 +1,17 @@
 /**
- * STRATA — exclusive foundational token of StrataMesh.
- * Fungible form: settle value (PoC mint only via stratamesh-poc; Agora P2P; PoS).
- * Non-fungible form: tokenisation of native digital substance OR external-asset representatives on the DLT.
- * Open worlds = STRATA NFTs. CGU/UGC (users + SCAs) = STRATA NFTs.
+ * STRATA functional engine — exclusive foundational token of StrataMesh.
+ *
+ * FUNGIBLE:
+ *   - Base STRATA: settlement, PoS, Agora; mint only via Node PoC (stratamesh-poc).
+ *   - World sub-tokens: fungible tokens scoped to an open world, collateralised (lastrados)
+ *     by locked STRATA — not free emission of base STRATA.
+ *
+ * NON-FUNGIBLE (STRATA NFT):
+ *   - Building blocks of open worlds and CGU sandboxes (users + SCAs).
+ *   - External-asset representatives and imports anchored on the DLT.
+ *
+ * Worlds and sandboxes are not decorative metadata: their structure is composed of STRATA NFTs.
  */
-
 async function sha256(d) {
   const h = await crypto.subtle.digest(
     'SHA-256',
@@ -147,6 +154,132 @@ async function recordOrigin(db, account, amount, origin, meta) {
   return { id, account, amount, origin, transit_eligible: !!transit, lab_only: !!lab_only };
 }
 
+
+async function ensureStrataFunctionalSchema(db) {
+  if (!db) return;
+  const stmts = [
+    `CREATE TABLE IF NOT EXISTS strata_nfts (
+      id TEXT PRIMARY KEY, owner TEXT, name TEXT, description TEXT, asset_type TEXT,
+      metadata_json TEXT, content_cid TEXT, dag_vertex TEXT, role TEXT, world_id TEXT, sandbox_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS nft_assets (
+      id TEXT PRIMARY KEY, owner TEXT, name TEXT, description TEXT, asset_type TEXT,
+      metadata_json TEXT, content_cid TEXT, dag_vertex TEXT, role TEXT, world_id TEXT, sandbox_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS world_structures (
+      world_id TEXT PRIMARY KEY, title TEXT, realm_id TEXT, owner TEXT, genesis_nft_id TEXT,
+      block_count INTEGER DEFAULT 0, status TEXT DEFAULT 'active',
+      meta_json TEXT, created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS world_nft_blocks (
+      block_id TEXT PRIMARY KEY, world_id TEXT NOT NULL, nft_id TEXT NOT NULL,
+      block_role TEXT NOT NULL, ordinal INTEGER DEFAULT 0, meta_json TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS world_fungible_tokens (
+      symbol TEXT PRIMARY KEY, world_id TEXT NOT NULL, name TEXT, issuer TEXT,
+      supply REAL NOT NULL, lock_strata REAL NOT NULL, collateral_account TEXT,
+      dag_vertex TEXT, created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS world_token_balances (
+      account TEXT NOT NULL, symbol TEXT NOT NULL, balance REAL NOT NULL DEFAULT 0,
+      PRIMARY KEY (account, symbol)
+    )`,
+    `CREATE TABLE IF NOT EXISTS cgu_records (
+      cgu_id TEXT PRIMARY KEY, nft_id TEXT NOT NULL, sandbox_id TEXT, world_id TEXT,
+      author_kind TEXT, author_id TEXT, title TEXT, status TEXT DEFAULT 'draft',
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+  ];
+  for (const s of stmts) {
+    try { await db.prepare(s).run(); } catch (_) {}
+  }
+  for (const a of [
+    "ALTER TABLE nft_assets ADD COLUMN role TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN world_id TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN sandbox_id TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN name TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN description TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN asset_type TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN metadata_json TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN content_cid TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN dag_vertex TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN owner TEXT",
+    "ALTER TABLE nft_assets ADD COLUMN created_at TEXT",
+  ]) {
+    try { await db.prepare(a).run(); } catch (_) {}
+  }
+}
+
+async function mintStrataNft(db, env, {
+  owner, name, description, role, world_id, sandbox_id, kind, attributes, authors,
+}) {
+  await ensureStrataFunctionalSchema(db);
+  const id = 'nft_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+  const metadata = {
+    name, description: description || '',
+    foundational_token: 'STRATA',
+    form: 'non_fungible',
+    role: role || kind || 'building_block',
+    kind: kind || role || 'building_block',
+    world_id: world_id || null,
+    sandbox_id: sandbox_id || null,
+    attributes: attributes || {},
+    authors: authors || [],
+    cgu_includes_sca: true,
+    standard: 'strata-nft-1',
+    node: 'FOG-NODE-PT-CM-001',
+    created_at: new Date().toISOString(),
+  };
+  const content = JSON.stringify(metadata);
+  const cid = await contentCid(content);
+  const dag = await dagSubmit(env, {
+    type: 'strata_nft',
+    id, owner, role: metadata.role, world_id, sandbox_id,
+  }, content);
+  const metaStr = JSON.stringify(metadata);
+  await db.prepare(
+    `INSERT INTO strata_nfts (id, owner, name, description, asset_type, metadata_json, content_cid, dag_vertex, role, world_id, sandbox_id)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+  ).bind(
+    id, owner, name, description || '', metadata.role, metaStr, cid,
+    dag.vertex_id || null, metadata.role, world_id || null, sandbox_id || null,
+  ).run();
+  // best-effort mirror into legacy nft_assets if compatible
+  try {
+    await db.prepare(
+      `INSERT INTO nft_assets (id, metadata_json) VALUES (?,?)`
+    ).bind(id, metaStr).run();
+  } catch (_) {}
+  return { nft_id: id, content_cid: cid, dag_vertex: dag.vertex_id || null, metadata, table: 'strata_nfts' };
+}
+
+async function lockStrataCollateral(db, issuer, amount, vaultAccount) {
+  const br = await db.prepare(
+    "SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')"
+  ).bind(issuer).first().catch(() => null);
+  const bal = Number(br?.balance || 0);
+  if (bal < amount) {
+    return { ok: false, balance: bal, required: amount };
+  }
+  await db.prepare(
+    "UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')"
+  ).bind(amount, issuer).run();
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA_LOCKED', ?, 0, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+  ).bind(vaultAccount, amount).run().catch(async () => {
+    await db.prepare(
+      "INSERT INTO token_balances (account, token_type, balance) VALUES (?, 'STRATA_LOCKED', ?)"
+    ).bind(vaultAccount, amount).run().catch(() => {});
+  });
+  return { ok: true, locked: amount, vault: vaultAccount };
+}
+
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -224,12 +357,12 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '2.5.1-app-token',
+        version: '3.0.0-strata-functional',
         total_supply: supply,
         holders,
         nft_count: nfts,
-        engines: ['fungible_STRATA', 'strata_nft_tokenisation', 'nft_cgu_ugc', 'nft_import', 'open_world_nfts', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
-        strata_definition: 'Exclusive foundational token of StrataMesh (not a mere unit of account). Fungible settles value; tokenisation yields STRATA NFTs for native digital substance and external-asset representatives on the DLT. Open worlds are entirely STRATA NFTs. CGU/UGC includes human users and SCAs; creations are STRATA NFTs. New fungible mint only via Node PoC.',
+        engines: ['fungible_STRATA', 'world_sub_tokens_collateralised', 'strata_nft_world_blocks', 'strata_nft_cgu', 'nft_import', 'dag_anchor', 'ipfs_metadata'],
+        strata_definition: 'Functional: base STRATA fungible (PoC mint) + world sub-tokens fungible collateralised in STRATA; STRATA NFTs are the building blocks of open worlds and CGU sandboxes (users+SCAs).',
         emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });
@@ -734,16 +867,243 @@ export default {
       });
     }
 
+
+    // ========== STRATA FUNCTIONAL ENGINE ==========
+    await ensureStrataFunctionalSchema(db);
+
+    if (path === '/architecture' || path === '/strata/architecture') {
+      return json({
+        foundational_token: 'STRATA',
+        fungible: {
+          base_STRATA: {
+            role: 'settlement, PoS, Agora, contribution metering',
+            mint: 'Node PoC only (stratamesh-poc)',
+          },
+          world_sub_tokens: {
+            role: 'fungible tokens developed inside open worlds',
+            collateral: 'must lock base STRATA (lastrado) — not free base emission',
+            endpoint: 'POST /world-token',
+          },
+        },
+        non_fungible: {
+          role: 'building blocks of open worlds and CGU sandboxes; external-asset representatives',
+          open_world: 'composed of STRATA NFT blocks (POST /world/compose, /world/block)',
+          cgu: 'CGU creations (users + SCAs) are STRATA NFTs (POST /cgu/mint)',
+          endpoint_kinds: 'GET /tokenisation/kinds',
+        },
+        invariant: 'World structure and sandbox CGU are not metadata — they are STRATA NFTs. Sub-tokens in worlds are STRATA-collateralised fungibles.',
+      });
+    }
+
+    // Compose open world as genesis STRATA NFT + block registry
+    if ((path === '/world/compose' || path === '/open-world/compose') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      try {
+      const body = await request.json().catch(() => ({}));
+      const world_id = body.world_id || body.id || ('world_' + crypto.randomUUID().slice(0, 10));
+      const owner = body.owner || body.operator || body.account || 'FOG-NODE-PT-CM-001';
+      const title = body.title || body.name || world_id;
+      const realm_id = body.realm_id || null;
+      const genesis = await mintStrataNft(db, env, {
+        owner, name: title + ' · genesis',
+        description: body.description || 'Open-world genesis block (STRATA NFT)',
+        role: 'world_genesis', kind: 'open_world',
+        world_id, attributes: { genesis: true, realm_id },
+      });
+      await db.prepare(
+        `INSERT INTO world_structures (world_id, title, realm_id, owner, genesis_nft_id, block_count, status, meta_json)
+         VALUES (?,?,?,?,?,1,'active',?)
+         ON CONFLICT(world_id) DO UPDATE SET title=excluded.title, genesis_nft_id=excluded.genesis_nft_id, block_count=excluded.block_count`
+      ).bind(world_id, title, realm_id, owner, genesis.nft_id, JSON.stringify({ realm_id, composed_at: new Date().toISOString() })).run().catch(async () => {
+        await db.prepare(
+          `INSERT OR REPLACE INTO world_structures (world_id, title, realm_id, owner, genesis_nft_id, block_count, status, meta_json)
+           VALUES (?,?,?,?,?,1,'active',?)`
+        ).bind(world_id, title, realm_id, owner, genesis.nft_id, JSON.stringify({ realm_id })).run();
+      });
+      const block_id = 'blk_' + crypto.randomUUID().slice(0, 12);
+      await db.prepare(
+        `INSERT INTO world_nft_blocks (block_id, world_id, nft_id, block_role, ordinal, meta_json)
+         VALUES (?,?,?,?,0,?)`
+      ).bind(block_id, world_id, genesis.nft_id, 'genesis', JSON.stringify({ genesis: true })).run();
+      return json({
+        success: true,
+        world_id, title, owner, realm_id,
+        structure: 'open_world_as_strata_nfts',
+        genesis_nft: genesis,
+        block_id,
+        next: ['POST /world/block', 'POST /world-token', 'POST /cgu/mint'],
+      });
+      } catch (e) {
+        return json({ success: false, error: String(e.message || e), stack: String(e.stack || '').slice(0, 300) }, 500);
+      }
+    }
+
+    // Add building-block STRATA NFT to an open world
+    if ((path === '/world/block' || path === '/open-world/block') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      try {
+      const body = await request.json().catch(() => ({}));
+      const world_id = body.world_id;
+      if (!world_id) return json({ error: 'world_id required' }, 400);
+      const owner = body.owner || body.account || 'FOG-NODE-PT-CM-001';
+      const role = body.block_role || body.role || 'building_block';
+      const name = body.name || body.title || (role + ' block');
+      const nft = await mintStrataNft(db, env, {
+        owner, name, description: body.description || '',
+        role, kind: 'open_world_block', world_id,
+        attributes: body.attributes || {},
+      });
+      const ordinal = Number(body.ordinal || 0);
+      const block_id = 'blk_' + crypto.randomUUID().slice(0, 12);
+      await db.prepare(
+        `INSERT INTO world_nft_blocks (block_id, world_id, nft_id, block_role, ordinal, meta_json) VALUES (?,?,?,?,?,?)`
+      ).bind(block_id, world_id, nft.nft_id, role, ordinal, JSON.stringify(body.attributes || {})).run();
+      try {
+        await db.prepare('UPDATE world_structures SET block_count = COALESCE(block_count,0) + 1 WHERE world_id = ?').bind(world_id).run();
+      } catch (_) {}
+      return json({ success: true, world_id, block_id, nft, role: 'strata_nft_building_block' });
+      } catch (e) {
+        return json({ success: false, error: String(e.message || e) }, 500);
+      }
+    }
+
+    if (path === '/world/structure' || path === '/open-world/structure') {
+      if (!db) return json({ world: null, blocks: [] });
+      const world_id = url.searchParams.get('world_id') || url.searchParams.get('id');
+      if (!world_id) return json({ error: 'world_id required' }, 400);
+      const world = await db.prepare('SELECT * FROM world_structures WHERE world_id = ?').bind(world_id).first().catch(() => null);
+      const blocks = await db.prepare(
+        'SELECT * FROM world_nft_blocks WHERE world_id = ? ORDER BY ordinal, created_at'
+      ).bind(world_id).all().catch(() => ({ results: [] }));
+      return json({
+        success: true,
+        world_id,
+        structure: world || null,
+        blocks: blocks.results || [],
+        note: 'Open world is composed of these STRATA NFT blocks',
+      });
+    }
+
+    // CGU creation as STRATA NFT (users + SCAs)
+    if ((path === '/cgu/mint' || path === '/ugc/mint' || path === '/sandbox/cgu') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      try {
+      const body = await request.json().catch(() => ({}));
+      const author_id = body.author_id || body.owner || body.account || body.sca_id || 'anonymous';
+      const author_kind = body.author_kind || (body.sca_id ? 'sca' : body.user_id ? 'user' : 'user');
+      const sandbox_id = body.sandbox_id || null;
+      const world_id = body.world_id || body.parent_world_id || null;
+      const title = body.title || body.name || 'CGU';
+      const nft = await mintStrataNft(db, env, {
+        owner: author_id, name: title, description: body.description || '',
+        role: 'cgu', kind: 'cgu', world_id, sandbox_id,
+        attributes: body.attributes || {},
+        authors: [{ kind: author_kind, id: author_id }],
+      });
+      const cgu_id = 'cgu_' + crypto.randomUUID().slice(0, 12);
+      await db.prepare(
+        `INSERT INTO cgu_records (cgu_id, nft_id, sandbox_id, world_id, author_kind, author_id, title, status)
+         VALUES (?,?,?,?,?,?,?,?)`
+      ).bind(cgu_id, nft.nft_id, sandbox_id, world_id, author_kind, author_id, title, body.status || 'draft').run();
+      return json({
+        success: true,
+        cgu_id,
+        nft,
+        author_kind,
+        author_id,
+        note: 'CGU is a STRATA NFT; authors may be users or SCAs',
+      });
+      } catch (e) {
+        return json({ success: false, error: String(e.message || e) }, 500);
+      }
+    }
+
+    // Fungible sub-token inside an open world, collateralised by base STRATA
+    if ((path === '/world-token' || path === '/world/token' || path === '/sub-token') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const world_id = body.world_id;
+      const issuer = body.issuer || body.owner || body.account;
+      const symbol = String(body.symbol || body.ticker || '').toUpperCase().slice(0, 16);
+      const name = body.name || symbol;
+      const supply = Number(body.supply || 0);
+      const lock_strata = Number(body.lock_strata != null ? body.lock_strata : Math.max(1, Math.ceil(supply / 100)));
+      if (!world_id || !issuer || !symbol || supply <= 0) {
+        return json({ error: 'world_id, issuer, symbol, supply > 0 required' }, 400);
+      }
+      const vault = `world:${world_id}:token:${symbol}`;
+      const lock = await lockStrataCollateral(db, issuer, lock_strata, vault);
+      if (!lock.ok) {
+        return json({
+          success: false,
+          error: 'insufficient_STRATA_collateral',
+          required_lock: lock_strata,
+          balance: lock.balance,
+          rule: 'World fungible sub-tokens must be lastrados (collateralised) in base STRATA',
+        }, 402);
+      }
+      await db.prepare(
+        `INSERT INTO world_fungible_tokens (symbol, world_id, name, issuer, supply, lock_strata, collateral_account, dag_vertex)
+         VALUES (?,?,?,?,?,?,?,?)
+         ON CONFLICT(symbol) DO UPDATE SET supply = excluded.supply, lock_strata = world_fungible_tokens.lock_strata + excluded.lock_strata`
+      ).bind(symbol, world_id, name, issuer, supply, lock_strata, vault, null).run();
+      await db.prepare(
+        `INSERT INTO world_token_balances (account, symbol, balance) VALUES (?,?,?)
+         ON CONFLICT(account, symbol) DO UPDATE SET balance = balance + excluded.balance`
+      ).bind(issuer, symbol, supply).run();
+      const dag = await dagSubmit(env, {
+        type: 'world_fungible_token', world_id, symbol, supply, lock_strata, issuer,
+      }, JSON.stringify({ symbol, world_id, supply, lock_strata }));
+      return json({
+        success: true,
+        symbol, world_id, name, supply,
+        collateral: { token: 'STRATA', locked: lock_strata, vault },
+        form: 'fungible_sub_token_lastrado_em_STRATA',
+        dag_vertex: dag.vertex_id || null,
+        note: 'Not base STRATA emission — open-world fungible backed by locked STRATA',
+      });
+    }
+
+    if (path === '/world-token/balance' || path === '/world/token/balance') {
+      const account = url.searchParams.get('account');
+      const symbol = url.searchParams.get('symbol');
+      if (!account) return json({ error: 'account required' }, 400);
+      let q, binds;
+      if (symbol) {
+        q = 'SELECT * FROM world_token_balances WHERE account = ? AND symbol = ?';
+        binds = [account, symbol];
+      } else {
+        q = 'SELECT * FROM world_token_balances WHERE account = ?';
+        binds = [account];
+      }
+      const rows = await db.prepare(q).bind(...binds).all().catch(() => ({ results: [] }));
+      return json({ success: true, account, balances: rows.results || [] });
+    }
+
+    if (path === '/world-token/list' || path === '/world/tokens') {
+      const world_id = url.searchParams.get('world_id');
+      const rows = world_id
+        ? await db.prepare('SELECT * FROM world_fungible_tokens WHERE world_id = ?').bind(world_id).all().catch(() => ({ results: [] }))
+        : await db.prepare('SELECT * FROM world_fungible_tokens ORDER BY created_at DESC LIMIT 100').all().catch(() => ({ results: [] }));
+      return json({ success: true, tokens: rows.results || [], note: 'Fungible sub-tokens lastrados em STRATA within open worlds' });
+    }
+
+
     return json({
       error: 'not found',
       endpoints: [
         'GET /health',
+        'GET /architecture',
         'GET /supply',
         'GET /balance?account=',
         'GET /list?owner=',
-        'GET /get?id=',
+        'GET /world/structure?world_id=',
+        'GET /world-token/list',
         'GET /tokenisation/kinds',
-        'GET /lab/policy',
+        'POST /world/compose',
+        'POST /world/block',
+        'POST /cgu/mint',
+        'POST /world-token',
         'POST /mint',
         'POST /import',
         'POST /transfer',

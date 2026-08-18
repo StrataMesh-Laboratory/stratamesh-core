@@ -2,6 +2,7 @@
  * Holon 5 — Bancada CGU / UGC Sandbox (users + SCAs)
  * Creations are STRATA NFTs · Parent: open_world (STRATA NFTs) · Children: agent
  */
+const TOKEN_URL = "https://stratamesh-token.stratamesh.workers.dev";
 const HOLON = {
   id: "ugc_sandbox",
   order: 5,
@@ -189,6 +190,24 @@ export default {
           const tx = await hr.text();
           try { holon_event = JSON.parse(tx); } catch { holon_event = { aceite: hr.ok, http: hr.status, raw: tx.slice(0, 100) }; }
         } catch (e) { holon_event = { aceite: false, erro: String(e.message || e).slice(0, 100) }; }
+        let strata_nft = null;
+        try {
+          const tr = await fetch(TOKEN_URL + "/cgu/mint", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sandbox_id: id,
+              world_id: parent,
+              title: title || id,
+              author_id: body.owner_id || body.owner || "portal",
+              author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") ? "sca" : "user"),
+              status: "isolated",
+            }),
+          });
+          strata_nft = await tr.json().catch(() => null);
+        } catch (e) {
+          strata_nft = { error: String(e.message || e).slice(0, 120) };
+        }
         return j({
           success: true,
           id,
@@ -197,7 +216,9 @@ export default {
           holon: HOLON,
           event: "sandbox.created",
           holon_event,
-          seamless: { next: "POST /attach-sandbox on worlds; later /publish" },
+          strata_cgu: strata_nft,
+          structure: "sandbox_cgu_is_strata_nft",
+          seamless: { next: "POST /publish; world blocks via token /world/block" },
         });
       }
 

@@ -1,3 +1,4 @@
+const TOKEN_URL = "https://stratamesh-token.stratamesh.workers.dev";
 /**
  * Holon 3 — Virtual Realm (hypervisor) · open structures as STRATA NFTs
  * Parent: metaverse_os · Children: open_world
@@ -66,6 +67,21 @@ async function ensureSchema(db) {
     } catch (_) {}
   }
 }
+
+
+      // STRATA: open world structure is STRATA NFT blocks
+      async function ensureWorldStrataStructure(world_id, owner, title, realm_id) {
+        try {
+          const res = await fetch(TOKEN_URL + "/world/compose", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ world_id, owner, title, realm_id }),
+          });
+          return await res.json();
+        } catch (e) {
+          return { error: String(e.message || e) };
+        }
+      }
 
 export default {
   async fetch(request, env) {
@@ -293,8 +309,13 @@ export default {
         } catch (e) {
           holon_event = { aceite: false, erro: String(e.message || e).slice(0, 120) };
         }
-        return j({
-          success: true,
+        
+        const _wid = body.world_id || body.id || world_id;
+        const strata_structure = await ensureWorldStrataStructure(
+          _wid, body.owner || body.operator || "FOG-NODE-PT-CM-001", body.title || body.name || _wid, id || body.realm_id
+        );
+return j({
+          success: true, strata_structure,
           realm_id,
           world_id,
           event: "realm.host_world",
