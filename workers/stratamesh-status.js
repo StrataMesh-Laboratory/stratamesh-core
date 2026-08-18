@@ -623,7 +623,7 @@ async function buildLiveStatus(env) {
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH] = await Promise.all([
+  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH] = await Promise.all([
     svcJson(env, 'TOKEN', '/monetary'),
     svcJson(env, 'TOKEN', '/architecture'),
     svcJson(env, 'POC', '/pool'),
@@ -632,6 +632,7 @@ async function buildLiveStatus(env) {
     svcJson(env, 'DAG', '/health'),
     svcJson(env, 'REPUBLIC', '/health'),
     svcJson(env, 'AGORA', '/health'),
+    svcJson(env, 'AGORA', '/agora/rate?quote=EUR'),
     svcJson(env, 'AIOPS', '/health'),
     svcJson(env, 'AUTH', '/health'),
   ]);
@@ -654,7 +655,7 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.2-pulse',
+    version: '0.3.3-agora-rate',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -706,7 +707,23 @@ async function buildLiveStatus(env) {
       vote: repH.json.vote,
       citizens_are: repH.json.citizens_are,
     } : null,
-    agora: agoraH.json && agoraH.ok ? { version: agoraH.json.version, status: agoraH.json.status || 'ok' } : null,
+    agora: {
+      health_ok: !!agoraH.ok,
+      version: agoraH.json && agoraH.json.version,
+      status: agoraH.json && (agoraH.json.status || 'ok'),
+      rate: agoraRate.json && agoraRate.ok ? {
+        quote_asset: agoraRate.json.quote_asset || 'EUR',
+        strata_per_quote: agoraRate.json.strata_per_quote,
+        quote_per_strata: agoraRate.json.quote_per_strata,
+        source: agoraRate.json.source,
+        liquidity_strata: agoraRate.json.liquidity_strata,
+        listings: agoraRate.json.listings,
+      } : null,
+    },
+    acb: acbH.json && acbH.ok ? {
+      version: acbH.json.version,
+      service: acbH.json.service,
+    } : null,
     aiops: aiopsLast.json ? {
       ok: !!aiopsLast.ok,
       version: aiopsLast.json.version,

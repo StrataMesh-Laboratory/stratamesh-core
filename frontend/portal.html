@@ -1003,21 +1003,39 @@ async function verify(id,status){var sa=document.getElementById('sa'+id);var bod
 
 /* DIAGNOSTIC WIZARD */
 const WORKERS = [
+  {name:'stratamesh-status',path:'https://stratamesh-status.stratamesh.workers.dev/status',desc:'Estado ao vivo do nó',open:'https://stratamesh-status.stratamesh.workers.dev/'},
   {name:'stratamesh-auth',path:'https://stratamesh-auth.stratamesh.workers.dev/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'https://stratamesh-auth.stratamesh.workers.dev/health'},
+  {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/monetary',desc:'STRATA / monetary poles',open:'https://stratamesh-token.stratamesh.workers.dev/monetary'},
+  {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/pool',desc:'PdC · pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
+  {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora taxa EUR',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
   {name:'stratamesh-spa',path:'/dashboard',desc:'Portal SPA',skipJson:true,open:'/dashboard'},
-  {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',fallback:'https://stratamesh-dag-gateway.stratamesh.workers.dev/health',desc:'DAG / gateway',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
+  {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'GDA / DAG',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
   {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'https://stratamesh-orchestrator.stratamesh.workers.dev/chat'},
   {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps',open:'https://stratamesh-aiops.stratamesh.workers.dev/health'},
+  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
+  {name:'stratamesh-republic',path:'https://stratamesh-republic.stratamesh.workers.dev/health',desc:'República Computacional',open:'https://stratamesh-republic.stratamesh.workers.dev/health'},
   {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',desc:'IPFS',open:'https://stratamesh-ipfs.stratamesh.workers.dev/health'},
-  {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/health',desc:'Prova de Contributo + pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
-  {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/health',fallback:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
-  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / registo',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
-  {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/health',desc:'Tokens / auditoria lab',open:'https://stratamesh-token.stratamesh.workers.dev/emission-audit'}
+  {name:'stratamesh-holons',path:'https://stratamesh-holons.stratamesh.workers.dev/health',desc:'Holons / SO Metaverso',open:'https://stratamesh-holons.stratamesh.workers.dev/health'},
 ];
+
 
 async function runDiagnostics(){const out=document.getElementById('diagResults');const btn=document.getElementById('diagRunBtn');btn.disabled=true;btn.textContent='A executar…';out.innerHTML='<p style="color:#888">Running diagnostics...</p>';const results=[];for(const w of WORKERS){let ok=false,status=0,data=null,error=null;const urls=[w.path].concat(w.fallback?[w.fallback]:[]);for(const u of urls){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);const r=await fetch(u,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal});clearTimeout(t);status=r.status;ok=r.ok;try{if(!w.skipJson)data=await r.json()}catch(e){}if(ok){error=null;break;}error='HTTP '+r.status;}catch(e){error=e.message||String(e);status=0;ok=false;}}results.push({worker:w,ok,status,data,error});}renderDiagnostics(results);btn.disabled=false;btn.textContent='Diagnóstico completo'}
 
-function renderDiagnostics(results){const out=document.getElementById('diagResults');let html='<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+(r.worker.open?(' · <a href="'+r.worker.open+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir</a>'):'')+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Análise de causa raiz (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' problema(s) detectado(s):</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Acções recomendadas:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">Diagnóstico executado em '+new Date().toLocaleString()+' pelo utilizador <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>Todos os sistemas operacionais</h4><p style="color:#888">Nenhum problema detectado em '+results.length+' services.</p></div>'}out.innerHTML=html}
+function renderDiagnostics(results){const out=document.getElementById('diagResults');
+let pulse='';
+try{
+  const st=results.find(function(r){return r.worker&&r.worker.name==='stratamesh-status'&&r.ok&&r.data;});
+  if(st&&st.data){
+    const d=st.data; const mon=d.monetary||{}; const sum=d.summary||{}; const ag=(d.agora&&d.agora.rate)||{};
+    pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó','Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
+      esc(d.version||'')+' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
+      ' · #mint '+(mon.mint_emitted!=null?mon.mint_emitted:'—')+
+      ' · #0 '+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+
+      (ag.strata_per_quote!=null?(' · Ágora '+ag.strata_per_quote+' STRATA/EUR'):'')+
+      '</p></div>';
+  }
+}catch(_){}
+let html=pulse+'<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+(r.worker.open?(' · <a href="'+r.worker.open+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir</a>'):'')+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Análise de causa raiz (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' problema(s) detectado(s):</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Acções recomendadas:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">Diagnóstico executado em '+new Date().toLocaleString()+' pelo utilizador <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>Todos os sistemas operacionais</h4><p style="color:#888">Nenhum problema detectado em '+results.length+' services.</p></div>'}out.innerHTML=html}
 
 if(token){loadUser()}
 
