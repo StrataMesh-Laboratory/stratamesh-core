@@ -1775,8 +1775,12 @@ const ORCH_SELF = {
 };
 
 function isPt(text) {
-  return /[ãáàâçéêíóôõú]/i.test(text) ||
-    /\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|sim|explica|continuar|continua)/i.test(text);
+  const s = String(text || "");
+  if (/[ãáàâçéêíóôõú]/i.test(s)) return true;
+  if (/\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|explica|continuar|continua|obrigado|obrigada)\b/i.test(s)) return true;
+  // Affirmations alone in PT conversation
+  if (/^\s*(sim|nao|não)(\s+por\s+favor)?[!.?\s]*$/i.test(s)) return true;
+  return false;
 }
 
 function isOperationalCommand(text) {
