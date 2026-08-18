@@ -782,49 +782,8 @@ async function loadACB(){
   }
 }
 
-async function loadEconomy(){
-  var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','Loading…');
-  try{
-    var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
-    var live=null;
-    try{
-      var rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(12000)});
-      if(rs.ok) live=await rs.json();
-    }catch(_){}
-    var loc=LANG==='en'?'en-GB':'pt-PT';
-    var fmt=function(n,d){ return n==null||n===''?'—':Number(n).toLocaleString(loc,{maximumFractionDigits:d==null?2:d}); };
-    if(live && live.monetary){
-      var m=live.monetary;
-      var el;
-      el=document.getElementById('ecoCirc'); if(el) el.textContent=fmt(m.circulating_supply,2);
-      el=document.getElementById('ecoSink'); if(el) el.textContent=fmt(m.out_of_circulation,4);
-      el=document.getElementById('ecoMint'); if(el) el.textContent=fmt(m.mint_emitted,6);
-      el=document.getElementById('ecoSupply'); if(el) el.textContent=fmt(m.circulating_supply,2);
-      var sum=live.summary||{};
-      var up=live.upstream||{};
-      var upOk=sum.upstream_ok!=null?sum.upstream_ok:Object.keys(up).filter(function(k){return up[k];}).length;
-      var upTot=sum.upstream_total||Object.keys(up).length||8;
-      if(st) st.textContent=T('Estado ao vivo','Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19)+'Z';
-      if(typeof loadMonetaryPoles==='function'){ /* poles note already filled by status path in loadMonetaryPoles */ }
-    } else {
-      if(st) st.textContent=T('Status indisponível — a usar endpoints directos','Status unavailable — using direct endpoints');
-    }
-    // Node névoa balance (best-effort)
-    try{
-      var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
-      var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
-      if(rb.ok){
-        var bj=await rb.json();
-        var strata=(bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance;
-        var ef=document.getElementById('ecoFogBal'); if(ef&&strata!=null) ef.textContent=fmt(strata,5);
-      }
-    }catch(_){}
-    if(typeof loadMonetaryPoles==='function') await loadMonetaryPoles();
-  }catch(e){
-    if(st) st.textContent=String(e.message||e);
-  }
-}
+async function loadEconomy(){ /* superseded — see definitive loadEconomy below */ }
+
 
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
@@ -1168,74 +1127,8 @@ const ECO = {
   acb: 'https://stratamesh-acb.stratamesh.workers.dev',
   dao: 'https://stratamesh-dao.stratamesh.workers.dev',
 };
-async function loadEconomy(){
-  const st = document.getElementById('ecoStatus');
-  if(st) st.textContent = 'a carregar…';
-  try {
-    // Free-tier: reuse client cache 5 min to avoid repeat multi-Worker fan-out
-    try {
-      const cached = JSON.parse(sessionStorage.getItem('eco_cache')||'null');
-      if (cached && cached.ts && Date.now()-cached.ts < 300000) {
-        if(st) st.textContent = 'cached (5m) — click Refresh to force';
-        // still allow first paint skip only when already rendered once
-        if (cached.rendered) return;
-      }
-    } catch(_){}
+async function loadEconomy(){ /* superseded — see definitive loadEconomy below */ }
 
-    const [bal, onchain, avg, rate, mkt, daos, infoA, infoC] = await Promise.all([
-      fetch(ECO.token + '/balance?account=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.poc + '/onchain?node_id=FOG-NODE-PT-CM-001').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.poc + '/global-avg').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.agora + '/agora/rate?quote=EUR').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.acb + '/acb/marketplace').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.dao + '/dao/list').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.dao + '/dao/info?dao_id=DAO-CMN-ASSOCIATIVE').then(r=>r.json()).catch(()=>({})),
-      fetch(ECO.dao + '/dao/info?dao_id=DAO-CMN-CORPORATE').then(r=>r.json()).catch(()=>({})),
-    ]);
-    const strata = (bal.balances && bal.balances[0] && bal.balances[0].balance) || bal.balance || 0;
-    const el = (id,v)=>{ const n=document.getElementById(id); if(n) n.textContent = v; };
-    el('ecoFogBal', typeof strata==='number' ? strata.toFixed(5) : strata);
-    el('ecoAgoraRate', rate.strata_per_quote != null ? Number(rate.strata_per_quote).toFixed(4) : '—');
-    const pins = onchain.measurement && onchain.measurement.sources && onchain.measurement.sources.ipfs_pins;
-    el('ecoPins', pins ? (pins.count + ' / ' + Number(pins.mb||0).toFixed(4) + ' MB') : '—');
-    const listings = (mkt.listings||[]).filter(x => /AIOPS|ORCH/.test(x.acb_id||''));
-    el('ecoListings', listings.length || (mkt.listings||[]).length || 0);
-    const pocEl = document.getElementById('ecoPoc');
-    if(pocEl) pocEl.textContent = JSON.stringify(onchain.measurement || onchain, null, 2);
-    const avgBody = document.getElementById('ecoAvgBody');
-    if(avgBody){
-      const rows = avg.averages || [];
-      avgBody.innerHTML = rows.length ? rows.map(a =>
-        '<tr><td>'+a.resource_class+'</td><td>'+a.avg_per_unit+' '+a.quote_asset+'</td><td style="font-size:.65rem">'+((a.source||'').slice(0,48))+'</td></tr>'
-      ).join('') : '<tr><td colspan="3">—</td></tr>';
-    }
-    const acbBody = document.getElementById('ecoAcbBody');
-    if(acbBody){
-      const rows = listings.length ? listings : (mkt.listings||[]).slice(0,8);
-      acbBody.innerHTML = rows.length ? rows.map(x =>
-        '<tr><td>'+x.acb_id+'</td><td>'+x.hourly_rate+'</td><td>'+x.availability+'</td><td>'+(x.completed_jobs||0)+'</td><td>'+(x.rating||0)+'</td></tr>'
-      ).join('') : '<tr><td colspan="5">—</td></tr>';
-    }
-    const daoBody = document.getElementById('ecoDaoBody');
-    if(daoBody){
-      const pack = [];
-      for (const info of [infoA, infoC]) {
-        if(info && info.dao){
-          const r = info.rules || {};
-          pack.push('<tr><td>'+info.dao.dao_id+'</td><td>'+info.dao.kind+'</td><td>'+info.dao.quorum+'</td><td style="font-size:.65rem">quotas='+(r.quotas||'?')+'; profit='+r.profit_distribution+'</td></tr>');
-        }
-      }
-      if(!pack.length && daos.daos){
-        daos.daos.forEach(d => pack.push('<tr><td>'+d.dao_id+'</td><td>'+d.kind+'</td><td>'+d.quorum+'</td><td>—</td></tr>'));
-      }
-      daoBody.innerHTML = pack.length ? pack.join('') : '<tr><td colspan="4">—</td></tr>';
-    }
-    try{sessionStorage.setItem('eco_cache',JSON.stringify({ts:Date.now(),rendered:true}));}catch(_){}
-    if(st) st.textContent = 'updated ' + new Date().toISOString().slice(11,19) + 'Z';
-  } catch(e) {
-    if(st) st.textContent = 'error: ' + (e.message||e);
-  }
-}
 ;
 
 </script>
