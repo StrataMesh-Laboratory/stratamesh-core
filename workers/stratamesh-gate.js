@@ -17,7 +17,7 @@
  *  POST /check-mint — mint eligibility under anti-fragility
  */
 
-const VERSION = '2.0.0-antifragile';
+const VERSION = '2.1.0-absorption-metrics';
 
 function j(d, s = 200) {
   return new Response(JSON.stringify(d, null, 2), {
@@ -155,7 +155,7 @@ async function absorbIntoMesh(env, subject, absorption, reason) {
   return results;
 }
 
-async function record(db, subject, classif, absorbed_ok) {
+async function record(db, subject, classif, absorbed_ok, absorptionResults) {
   if (!db) return null;
   await ensure(db);
   const id = 'af_' + crypto.randomUUID().slice(0, 12);
@@ -177,9 +177,34 @@ async function record(db, subject, classif, absorbed_ok) {
       absorbed_ok ? 1 : 0,
       classif.adversarial ? 0 : 1,
       (classif.reasons || []).join(','),
-      JSON.stringify(classif)
+      JSON.stringify({ ...classif, absorption_results: absorptionResults || [] })
     )
     .run();
+
+  // Per-class metric rows (queryable absorption metrics)
+  if (classif.adversarial && classif.absorption) {
+    for (const [resource_class, u] of Object.entries(classif.absorption)) {
+      if (!(Number(u) > 0)) continue;
+      const okRow = (absorptionResults || []).find((r) => r.resource_class === resource_class);
+      await db
+        .prepare(
+          `INSERT INTO antifragile_events (id, subject, class, resource_class, units, absorbed, strata_eligible, reason, meta_json, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,datetime('now'))`
+        )
+        .bind(
+          id + '_' + resource_class.slice(0, 4),
+          subject || 'anonymous',
+          'adversarial_class',
+          resource_class,
+          Number(u),
+          okRow && okRow.ok ? 1 : absorbed_ok ? 1 : 0,
+          0,
+          'class_breakdown',
+          JSON.stringify({ parent_event: id, pool_id: okRow && okRow.body && okRow.body.id })
+        )
+        .run();
+    }
+  }
 
   if (classif.adversarial) {
     const until = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
@@ -198,6 +223,142 @@ async function record(db, subject, classif, absorbed_ok) {
       .run();
   }
   return id;
+}
+
+async function computeAbsorptionMetrics(db) {
+  await ensure(db);
+  const empty = {
+    version: VERSION,
+    totals: { events: 0, absorbed_events: 0, units_absorbed: 0, subjects_flagged: 0, strikes: 0 },
+    by_resource_class: {},
+    by_subject: [],
+    last_24h: { events: 0, units: 0 },
+    mesh_node: 'MESH-ANTIFRAGILE-ABSORB',
+  };
+  if (!db) return empty;
+
+  let totals = { events: 0, absorbed_events: 0, units_absorbed: 0 };
+  try {
+    const r = await db
+      .prepare(
+        `SELECT COUNT(*) as events,
+                SUM(CASE WHEN absorbed = 1 THEN 1 ELSE 0 END) as absorbed_events,
+                SUM(CASE WHEN absorbed = 1 THEN units ELSE 0 END) as units_absorbed
+         FROM antifragile_events WHERE class IN ('adversarial','adversarial_class')`
+      )
+      .first();
+    totals = {
+      events: Number(r && r.events) || 0,
+      absorbed_events: Number(r && r.absorbed_events) || 0,
+      units_absorbed: Number(r && r.units_absorbed) || 0,
+    };
+  } catch (_) {}
+
+  const by_resource_class = {};
+  try {
+    const rows =
+      (
+        await db
+          .prepare(
+            `SELECT resource_class,
+                    COUNT(*) as n,
+                    SUM(units) as units,
+                    SUM(CASE WHEN absorbed = 1 THEN units ELSE 0 END) as units_ok
+             FROM antifragile_events
+             WHERE class = 'adversarial_class' OR (class = 'adversarial' AND resource_class != 'mixed')
+             GROUP BY resource_class`
+          )
+          .all()
+      ).results || [];
+    for (const row of rows) {
+      by_resource_class[row.resource_class] = {
+        events: Number(row.n) || 0,
+        units: Number(row.units) || 0,
+        units_absorbed_ok: Number(row.units_ok) || 0,
+      };
+    }
+  } catch (_) {}
+
+  // Fallback: parse mixed events meta for class breakdown if no class rows yet
+  if (!Object.keys(by_resource_class).length) {
+    try {
+      const mixed =
+        (
+          await db
+            .prepare(
+              `SELECT meta_json FROM antifragile_events WHERE class = 'adversarial' AND resource_class = 'mixed' LIMIT 200`
+            )
+            .all()
+        ).results || [];
+      for (const m of mixed) {
+        let meta = {};
+        try {
+          meta = JSON.parse(m.meta_json || '{}');
+        } catch (_) {}
+        const abs = meta.absorption || {};
+        for (const [rc, u] of Object.entries(abs)) {
+          if (!(Number(u) > 0)) continue;
+          if (!by_resource_class[rc]) by_resource_class[rc] = { events: 0, units: 0, units_absorbed_ok: 0 };
+          by_resource_class[rc].events += 1;
+          by_resource_class[rc].units += Number(u);
+          by_resource_class[rc].units_absorbed_ok += Number(u);
+        }
+      }
+    } catch (_) {}
+  }
+
+  let by_subject = [];
+  try {
+    by_subject =
+      (
+        await db
+          .prepare(
+            `SELECT subject, strikes, absorbed_units, last_class, no_mint_until, updated_at
+             FROM antifragile_subjects ORDER BY absorbed_units DESC LIMIT 30`
+          )
+          .all()
+      ).results || [];
+  } catch (_) {}
+
+  let subjects_flagged = by_subject.length;
+  let strikes = by_subject.reduce((a, s) => a + (Number(s.strikes) || 0), 0);
+
+  let last_24h = { events: 0, units: 0 };
+  try {
+    const h = await db
+      .prepare(
+        `SELECT COUNT(*) as n, COALESCE(SUM(units),0) as u FROM antifragile_events
+         WHERE class IN ('adversarial','adversarial_class')
+           AND created_at > datetime('now','-1 day')`
+      )
+      .first();
+    last_24h = { events: Number(h && h.n) || 0, units: Number(h && h.u) || 0 };
+  } catch (_) {}
+
+  const absorption_rate =
+    totals.events > 0 ? Number((totals.absorbed_events / totals.events).toFixed(4)) : null;
+
+  return {
+    version: VERSION,
+    generated_at: new Date().toISOString(),
+    paradigm: 'attack_resources_absorbed_by_mesh_no_strata_to_adversary',
+    mesh_absorb_node: 'MESH-ANTIFRAGILE-ABSORB',
+    totals: {
+      ...totals,
+      subjects_flagged,
+      strikes,
+      absorption_success_rate: absorption_rate,
+    },
+    by_resource_class,
+    by_subject: by_subject.map((s) => ({
+      subject: s.subject,
+      strikes: s.strikes,
+      absorbed_units: s.absorbed_units,
+      no_mint_until: s.no_mint_until,
+      mint_blocked: s.no_mint_until && new Date(s.no_mint_until).getTime() > Date.now(),
+    })),
+    last_24h,
+  };
 }
 
 export default {
@@ -253,7 +414,7 @@ export default {
         if (classif.adversarial) {
           absorption = await absorbIntoMesh(env, subject, classif.absorption, classif.reasons.join(','));
         }
-        const event_id = await record(db, subject, classif, absorption.some((a) => a.ok));
+        const event_id = await record(db, subject, classif, absorption.some((a) => a.ok), absorption);
         return j({
           version: VERSION,
           subject,
@@ -306,10 +467,31 @@ export default {
                 .all()
             ).results || [];
         } catch (_) {}
-        return j({ events, version: VERSION });
+        const metrics = await computeAbsorptionMetrics(db);
+        return j({ events, metrics_summary: metrics.totals, version: VERSION });
       }
 
-      return j({ error: 'not_found', endpoints: ['/health', '/policy', '/observe', '/admit', '/check-mint', '/absorbed'] }, 404);
+      if (path === '/metrics' || path === '/absorption/metrics' || path === '/metrics/absorption') {
+        const metrics = await computeAbsorptionMetrics(db);
+        return j(metrics);
+      }
+
+      if (path === '/metrics/summary') {
+        const metrics = await computeAbsorptionMetrics(db);
+        return j({
+          version: VERSION,
+          generated_at: metrics.generated_at,
+          totals: metrics.totals,
+          by_resource_class: metrics.by_resource_class,
+          last_24h: metrics.last_24h,
+          mesh_absorb_node: metrics.mesh_absorb_node,
+        });
+      }
+
+      return j({
+        error: 'not_found',
+        endpoints: ['/health', '/policy', '/observe', '/admit', '/check-mint', '/absorbed', '/metrics', '/metrics/summary'],
+      }, 404);
     } catch (e) {
       return j({ error: String(e.message || e), version: VERSION }, 500);
     }
