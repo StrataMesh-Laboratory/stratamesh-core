@@ -789,22 +789,43 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','A carregar…');
+  if(st) st.textContent=T('A carregar…','Loading…');
   try{
-    var poc=null, tok=null, ag=null;
-    try{ var r1=await fetch(SVC.poc+'/health',{signal:AbortSignal.timeout(8000)}); if(r1.ok) poc=await r1.json(); }catch(_){}
-    try{ var r2=await fetch(SVC.token+'/health',{signal:AbortSignal.timeout(8000)}); if(r2.ok) tok=await r2.json(); }catch(_){}
-    try{ var r3=await fetch(SVC.agora+'/health',{signal:AbortSignal.timeout(8000)}); if(r3.ok) ag=await r3.json(); }catch(_){}
-    var bits=[];
-    if(poc) bits.push(T('PdC ','PoC ')+ (poc.version||'ok') + ' · ' + T('classes','classes') + ' ' + (poc.resource_classes||[]).join(', '));
-    if(tok) bits.push('STRATA ' + T('oferta','supply') + ' ' + Number(tok.total_supply||0).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}));
-    if(ag) bits.push(T('Ágora ','Agora ') + (ag.version||'ok'));
-    if(st) st.textContent = bits.length ? bits.join(' · ') : T('Serviços de economia em laboratório','Economy services in laboratory mode');
-    // fill known eco fields if present
-    var el;
-    el=document.getElementById('ecoPoc'); if(el) el.textContent = poc ? (poc.sole_mint_path?T('única via de emissão','sole mint path'):'ok') : '—';
-    el=document.getElementById('ecoSupply'); if(el) el.textContent = tok && tok.total_supply!=null ? Number(tok.total_supply).toFixed(2) : '—';
-    el=document.getElementById('ecoHolders'); if(el) el.textContent = tok && tok.holders!=null ? tok.holders : '—';
+    var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
+    var live=null;
+    try{
+      var rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(12000)});
+      if(rs.ok) live=await rs.json();
+    }catch(_){}
+    var loc=LANG==='en'?'en-GB':'pt-PT';
+    var fmt=function(n,d){ return n==null||n===''?'—':Number(n).toLocaleString(loc,{maximumFractionDigits:d==null?2:d}); };
+    if(live && live.monetary){
+      var m=live.monetary;
+      var el;
+      el=document.getElementById('ecoCirc'); if(el) el.textContent=fmt(m.circulating_supply,2);
+      el=document.getElementById('ecoSink'); if(el) el.textContent=fmt(m.out_of_circulation,4);
+      el=document.getElementById('ecoMint'); if(el) el.textContent=fmt(m.mint_emitted,6);
+      el=document.getElementById('ecoSupply'); if(el) el.textContent=fmt(m.circulating_supply,2);
+      var sum=live.summary||{};
+      var up=live.upstream||{};
+      var upOk=sum.upstream_ok!=null?sum.upstream_ok:Object.keys(up).filter(function(k){return up[k];}).length;
+      var upTot=sum.upstream_total||Object.keys(up).length||8;
+      if(st) st.textContent=T('Estado ao vivo','Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19)+'Z';
+      if(typeof loadMonetaryPoles==='function'){ /* poles note already filled by status path in loadMonetaryPoles */ }
+    } else {
+      if(st) st.textContent=T('Status indisponível — a usar endpoints directos','Status unavailable — using direct endpoints');
+    }
+    // Node névoa balance (best-effort)
+    try{
+      var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
+      var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
+      if(rb.ok){
+        var bj=await rb.json();
+        var strata=(bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance;
+        var ef=document.getElementById('ecoFogBal'); if(ef&&strata!=null) ef.textContent=fmt(strata,5);
+      }
+    }catch(_){}
+    if(typeof loadMonetaryPoles==='function') await loadMonetaryPoles();
   }catch(e){
     if(st) st.textContent=String(e.message||e);
   }

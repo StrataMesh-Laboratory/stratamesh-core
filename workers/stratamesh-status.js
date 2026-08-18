@@ -563,12 +563,36 @@ function holonStackPath(ids) {
 
 
 function page(s) {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StrataMesh Status</title>
-<style>body{font-family:system-ui;background:#0b0f14;color:#e6edf3;padding:2rem}a{color:#3b82f6}.pill{color:#86efac}</style></head>
-<body><h1>${s.name||'Calhegas Morais'} · ${s.node_id||''}</h1>
-<p class="pill">v${s.version||'0.2.1-lab'} · Phase ${s.phase} — ${s.phase_name||''}</p>
-<p><a href="/live">Live dashboard</a> · <a href="/status">JSON</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a></p>
-<pre style="background:#141a22;padding:1rem;border-radius:8px;overflow:auto">${JSON.stringify(s,null,2)}</pre>
+  const sum = s.summary || {};
+  const mon = s.monetary || {};
+  const up = s.upstream || {};
+  const upLine = Object.keys(up).map((k) => k + ':' + (up[k] ? 'ok' : '—')).join(' · ');
+  return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estado · ${s.name_pt||s.name||'CMN'}</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0b0f14;color:#e6edf3;padding:1.5rem;line-height:1.45;max-width:52rem;margin:0 auto}
+a{color:#93c5fd}h1{font-size:1.25rem;font-weight:600;margin:0 0 .5rem}
+.pill{display:inline-block;color:#86efac;font-family:ui-monospace,monospace;font-size:.75rem;margin:.25rem 0 1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.75rem;margin:1rem 0}
+.card{background:#141a22;border:1px solid #243044;border-radius:8px;padding:.75rem}
+.card .v{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}
+.card .l{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:#9aa4b2;margin-top:.25rem}
+pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.72rem;border:1px solid #243044}
+.muted{color:#9aa4b2;font-size:.85rem}
+</style></head>
+<body>
+<h1>${s.name_pt||s.name||'Calhegas Morais'} · ${s.node_id||''}</h1>
+<p class="pill">v${s.version||''} · fase ${s.phase||''} — ${s.phase_name||''} · ${s.status||''}</p>
+<p class="muted">${s.timestamp||''} · fonte ${s.source||''}</p>
+<p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||8} · ${upLine}</p>
+<div class="grid">
+  <div class="card"><div class="v">${mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'}</div><div class="l">Circulação</div></div>
+  <div class="card"><div class="v">${mon.out_of_circulation!=null?Number(mon.out_of_circulation).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—'}</div><div class="l">#0 queima</div></div>
+  <div class="card"><div class="v">${mon.mint_emitted!=null?Number(mon.mint_emitted).toLocaleString('pt-PT',{maximumFractionDigits:6}):'—'}</div><div class="l">#mint emitido</div></div>
+  <div class="card"><div class="v">${sum.mesh_classes||0}</div><div class="l">Classes malha</div></div>
+</div>
+<p class="muted">${(mon.flow||'')}</p>
+<p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a></p>
+<details><summary class="muted">JSON completo</summary><pre>${JSON.stringify(s,null,2).replace(/</g,'&lt;')}</pre></details>
 </body></html>`;
 }
 
@@ -629,7 +653,7 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.0-live-status',
+    version: '0.3.1-refined',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -639,10 +663,13 @@ async function buildLiveStatus(env) {
     monetary: mon ? {
       circulating_supply: mon.circulating_supply,
       out_of_circulation: mon.out_of_circulation,
-      mint_emitted: mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : null,
+      mint_emitted: (mon.poles && mon.poles.mint && mon.poles.mint.total_emitted != null)
+        ? mon.poles.mint.total_emitted
+        : (mon.mint_emitted != null ? mon.mint_emitted : null),
       burn_sink: '#0',
       mint_source: '#mint',
       flow: mon.flow,
+      poles: mon.poles || null,
     } : { error: 'TOKEN binding or /monetary unavailable' },
     mesh_pool: pool && pool.pool ? {
       classes: pool.pool.map((x) => ({
@@ -675,11 +702,23 @@ async function buildLiveStatus(env) {
       service: aiopsLast.json.service || aiopsLast.json.status,
       note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
+    summary: {
+      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast].filter((x) => x && x.ok).length,
+      upstream_total: 8,
+      circulating: mon ? mon.circulating_supply : null,
+      burned: mon ? mon.out_of_circulation : null,
+      mint_emitted: mon && mon.poles && mon.poles.mint ? mon.poles.mint.total_emitted : (mon && mon.mint_emitted),
+      mesh_classes: pool && pool.pool ? pool.pool.length : 0,
+      operational: true,
+    },
     versions: {
       orchestrator: orchH.json && (orchH.json.version || orchH.json.service),
       acb: acbH.json && acbH.json.version,
       dag: dagH.json && dagH.json.version,
-      token: tokenArch.json && tokenArch.json.version,
+      token: (tokenArch.json && tokenArch.json.version) || (tokenMon.json && tokenMon.json.version),
+      aiops: aiopsLast.json && aiopsLast.json.version,
+      republic: repH.json && repH.json.version,
+      agora: agoraH.json && agoraH.json.version,
     },
     foundation,
     clp,
