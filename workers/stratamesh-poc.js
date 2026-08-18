@@ -1129,6 +1129,32 @@ export default {
           return j({ success: false, ..._measGate, version: '5.9.0-measurement-gate' }, 403);
         }
         body._measurement_receipt = _measGate.receipt;
+
+        // Anti-fragility: adversarial subjects do not receive STRATA (resources already absorbed by mesh)
+        try {
+          const gate = env.GATE;
+          const ginit = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject: body.node_id, node_id: body.node_id }),
+          };
+          let gresp;
+          if (gate && typeof gate.fetch === 'function') {
+            gresp = await gate.fetch(new Request('https://binding.internal/check-mint', ginit));
+          } else {
+            gresp = await fetch('https://stratamesh-gate.stratamesh.workers.dev/check-mint', ginit);
+          }
+          const gj = await gresp.json().catch(() => ({}));
+          if (gj && gj.eligible === false) {
+            return j({
+              success: false,
+              error: 'antifragile_no_mint',
+              policy: gj.policy || 'Adversarial subject: mesh absorbed attack resources; STRATA withheld',
+              gate: gj,
+              version: '5.10.0-antifragile',
+            }, 403);
+          }
+        } catch (_) {}
         const node_id = body.node_id;
         let contribution_type = normalizeResourceClass(body.contribution_type || body.resource_class || body.resource);
         let units = Number(body.contribution_points || body.units || 0);
