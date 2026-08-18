@@ -4,7 +4,7 @@
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada CGU (Painel dentro) → Utilizador|SCA
+ *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto (NFT STRATA) → Bancada CGU (Painel dentro) → Utilizador|SCA
  * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
  * Painel/Portal não é camada acima: vive na Bancada CGU.
  *

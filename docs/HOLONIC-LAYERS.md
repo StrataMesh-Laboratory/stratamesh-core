@@ -10,7 +10,7 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
       └ SO do Metaverso Web3           ← SO partilhado entre nós
           └ Domínio Virtual            ← infraestrutura (hipervisor / domínio computacional)
               └ Mundo Aberto           ← ambiente persistente de acesso
-                  └ Bancada UGC        ← espaço isolado de criação (+ Painel / Portal)
+                  └ Bancada CGU        ← espaço isolado de criação (+ Painel / Portal)
                       └ Utilizador | SCA
 ```
 
@@ -19,7 +19,7 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
 | Termo | Papel |
 |--------|--------|
 | **CLP / PPC** | Kernel temporal **embutido na TRD** — data e acompanha o fluxo em todas as camadas |
-| **Painel / Portal** | Superfície de aplicações **na Bancada UGC** |
+| **Painel / Portal** | Superfície de aplicações **na Bancada CGU** |
 
 ### Terminologia
 
@@ -27,7 +27,7 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
 |--------|-----------|
 | **Domínio Virtual** | Camada de infraestrutura (hipervisor): organiza e isola capacidade para mundos |
 | **Mundo Aberto** | Ambiente persistente multi-utilizador, hospedado num Domínio Virtual |
-| **Bancada UGC** | Espaço isolado de criação de conteúdo gerado pelo utilizador |
+| **Bancada CGU** | Espaço isolado de criação de CGU (utilizadores e SCA); criações = NFT STRATA |
 | **SO do Metaverso Web3** | Sistema operativo partilhado entre nós |
 
 ### Funções por camada
@@ -39,7 +39,7 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
 | **SO Metaverso** | Sistema operativo | Syscalls, barramento, orquestrador, AIOps |
 | **Domínio Virtual** | Infraestrutura | Hipervisor: capacidade e soberania de mundos |
 | **Mundo Aberto** | Experiência | Regras, habitantes, anexar bancadas |
-| **Bancada UGC** | Criação | Rascunhos, publish/integrate, Painel, Portal, chat |
+| **Bancada CGU** | Criação | Rascunhos, publish/integrate, Painel, Portal, chat |
 | **Utilizador \| SCA** | Agentes | Identidade, trabalho, PdS |
 
 ### IDs técnicos

@@ -406,7 +406,7 @@ function scaSenseBundle(overrides = {}) {
         role: 'persistent multi-user inhabitance',
         interacts_with: ['sca', 'user'],
       },
-      // Personal UGC sandbox (child of open world / agent locus)
+      // Personal CGU sandbox (STRATA NFTs) (child of open world / agent locus)
       personal_sandbox: {
         id: personal_sandbox_id,
         holon: 'ugc_sandbox',

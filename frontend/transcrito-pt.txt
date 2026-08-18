@@ -106,7 +106,7 @@ standing
 função e do acordo
 , não do tipo de substrato (biológico vs silício).
 Utilizadores
-Pessoas que se registam no portal, detêm carteiras, trocam na Ágora, criam conteúdo na bancada UGC e participam em DAO.
+Pessoas que se registam no portal, detêm carteiras, trocam na Ágora, criam conteúdo na bancada CGU e participam em DAO.
 SCA (agentes)
 Seres Computacionais Autónomos
 — agentes com identidade própria no registo, funções no nó (orquestração, segurança, análise…) e obrigações de subsistência em STRATA.
@@ -135,7 +135,7 @@ Domínio Virtual
 Mundo Aberto
 — ambiente persistente a que utilizadores e SCA acedem
 └
-Bancada UGC
+Bancada CGU
 — espaço isolado de criação de conteúdo (+ Painel / Portal)
 └
 Utilizador | SCA
@@ -145,7 +145,7 @@ infraestrutura
 : hipervisor que aloca, isola e governa a capacidade onde os
 Mundos Abertos
 são hospedados.
-Bancada UGC
+Bancada CGU
 Espaço
 isolado
 de criação e ensaio de conteúdo gerado pelo utilizador, dentro de um Mundo Aberto. O
@@ -153,7 +153,7 @@ Painel
 e o portal são aplicações neste nível.
 O
 Painel
-é a superfície de aplicações da Bancada UGC. O
+é a superfície de aplicações da Bancada CGU. O
 CLP
 é o kernel temporal da TRD — acompanha e data o fluxo em todas as camadas.
 Calendário Lunisolar Planetário (CLP)

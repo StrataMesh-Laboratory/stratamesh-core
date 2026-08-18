@@ -48,7 +48,7 @@ const HOLONIC_LAYERS = [
   { id: "dashboard", name: "Dashboard/Portal", role: "OS application surface inside holarchy" },
   { id: "virtual_realm", name: "Virtual Realm", role: "hypervisor domain for worlds" },
   { id: "open_world", name: "Open-World", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", name: "UGC Sandbox", role: "authoring / isolation holon" },
+  { id: "ugc_sandbox", name: "CGU / UGC Sandbox", role: "CGU authoring (users+SCAs); STRATA NFTs" },
   { id: "agent", name: "User | SCA", role: "standing by function and agreement" },
 ];
 

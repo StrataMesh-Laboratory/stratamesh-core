@@ -1,6 +1,6 @@
 /**
- * Holon 5 — UGC Sandbox
- * Parent: open_world · Children: agent (inhabitance)
+ * Holon 5 — Bancada CGU / UGC Sandbox (users + SCAs)
+ * Creations are STRATA NFTs · Parent: open_world (STRATA NFTs) · Children: agent
  */
 const HOLON = {
   id: "ugc_sandbox",
@@ -106,7 +106,7 @@ export default {
       if (path === "/contract") {
         return j({
           holon: HOLON,
-          nome: "Bancada UGC",
+          nome: "Bancada CGU",
           lingua: "pt-PT",
           superficie: ["painel", "portal", "chat"],
           nota: "Painel/Portal vivem nesta bancada — não são camada acima",

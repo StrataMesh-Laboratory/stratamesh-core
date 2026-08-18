@@ -224,7 +224,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-spa">
-    <h3>APS · Bancada UGC</h3>
+    <h3>APS · Bancada CGU</h3>
     <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">On-graph SPAs · pin market · compliance · opt-out</p>
     <div class="stat-grid">
       <div class="stat-card"><div class="value" id="spaActive">0</div><div class="label">Active SPAs</div></div>
@@ -719,7 +719,7 @@ async function loadSPA(){
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada UGC listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){
@@ -1373,7 +1373,7 @@ async function loadSPA(){
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada UGC listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){

@@ -1,5 +1,5 @@
 /**
- * Holon 3 — Virtual Realm (hypervisor)
+ * Holon 3 — Virtual Realm (hypervisor) · open structures as STRATA NFTs
  * Parent: metaverse_os · Children: open_world
  * Contract: worlds live inside realms; realm ≠ world.
  */

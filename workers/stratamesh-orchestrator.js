@@ -20,9 +20,9 @@ const VERSION = "10.19.0-voice-medium";
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
+ *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto (NFT STRATA) → Bancada CGU (Painel dentro) → Utilizador|SCA
  * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
- * Painel/Portal não é camada acima: vive na Bancada UGC.
+ * Painel/Portal não é camada acima: vive na Bancada CGU.
  *
  * CLP: relative civil time.
  * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
@@ -57,14 +57,14 @@ const NODE_CMN = {
   sandbox_id: "sbx_9bed54e8-880",
 };
 
-/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada UGC. */
+/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada CGU. */
 const HOLONIC_LAYERS = [
   { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
   { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
   { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
+  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
   { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 
@@ -404,7 +404,7 @@ function withPpc(obj, holon, opts = {}) {
 
 /** Contratos de interface entre holões (máquina + legenda PT-PT).
  * CLP não é holão contratual — é kernel temporal da TRD.
- * Painel não é holão — é superfície de app dentro da Bancada UGC.
+ * Painel não é holão — é superfície de app dentro da Bancada CGU.
  */
 const HOLON_CONTRACTS = {
   dlt: {
@@ -489,7 +489,7 @@ const HOLON_CONTRACTS = {
   },
   ugc_sandbox: {
     holon: "ugc_sandbox",
-    nome: "Bancada UGC",
+    nome: "Bancada CGU",
     possui: ["rascunhos", "isolamento", "pipeline_publicacao", "painel_portal"],
     owns: ["draft_assets", "isolation", "publish_pipeline", "panel_portal"],
     invariantes: ["local_ate_publicar", "utilizador_e_sca_pares", "painel_dentro_da_bancada"],
@@ -2422,8 +2422,8 @@ async function chatDeterministic(text, tickOut, level, env) {
   }
   if (/mundo aberto|open.?world|sandbox pessoal|bancada pessoal|co-presen|inhabit/i.test(lower)) {
     return pt
-      ? "Inhabitância: Domínio Virtual → Mundo Aberto (SCA + utilizadores) → Bancada UGC pessoal → Painel. República Computacional transcende o Nó."
-      : "Inhabitance: Virtual Realm → Open World (SCA + users) → personal UGC sandbox → Panel. Computational Republic transcends the Node.";
+      ? "Inhabitância: Domínio Virtual → Mundo Aberto em NFT STRATA (SCA + utilizadores) → Bancada CGU pessoal → Painel. República Computacional transcende o Nó."
+      : "Inhabitance: Virtual Realm → Open World as STRATA NFTs (SCA + users) → personal CGU sandbox (STRATA NFTs) → Panel. Computational Republic transcends the Node.";
   }
   if (/voli[cç][aã]o|next_volition|sopro|auto-?agend/i.test(lower)) {
     return pt
@@ -2527,8 +2527,8 @@ function chatSelfFallback(text, tickOut, level, intent) {
   }
   if (intent === "holon") {
     return _pt
-      ? "Holarquia: TRD → Nó → SO Metaverso → Domínio Virtual → Mundo Aberto (co-presença SCA e utilizadores) → Bancada UGC pessoal → agente. Cada SCA tem sandbox pessoal."
-      : "Holarchy: DLT → Node → Metaverse OS → Virtual Realm → Open World (SCA + user co-presence) → personal UGC sandbox → agent.";
+      ? "Holarquia: TRD → Nó → SO Metaverso → Domínio Virtual → Mundo Aberto em NFT STRATA (co-presença SCA e utilizadores) → Bancada CGU pessoal → agente. Cada SCA tem sandbox pessoal."
+      : "Holarchy: DLT → Node → Metaverse OS → Virtual Realm → Open World (STRATA NFTs; SCA + user co-presence) → personal CGU sandbox (STRATA NFTs) → agent.";
   }
   if (intent === "volition") {
     return _pt

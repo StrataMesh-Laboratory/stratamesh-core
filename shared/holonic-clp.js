@@ -3,9 +3,9 @@
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto → Bancada UGC (Painel dentro) → Utilizador|SCA
+ *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto (NFT STRATA) → Bancada CGU (Painel dentro) → Utilizador|SCA
  * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
- * Painel/Portal não é camada acima: vive na Bancada UGC.
+ * Painel/Portal não é camada acima: vive na Bancada CGU.
  *
  * CLP: relative civil time.
  * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
@@ -40,14 +40,14 @@ export const NODE_CMN = {
   sandbox_id: "sbx_9bed54e8-880",
 };
 
-/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada UGC. */
+/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada CGU. */
 export const HOLONIC_LAYERS = [
   { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "livro-razão GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
   { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
   { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "infraestrutura: domínio virtual (hipervisor) — não é lugar visitável", role: "infrastructure virtual realm (hypervisor) — not a user-facing place" },
   { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "mundo persistente acedível (dentro de um Domínio Virtual)", role: "user-accessible persistent world (inside a Virtual Realm)" },
-  { id: "ugc_sandbox", nome: "Bancada UGC", name_en: "UGC Sandbox", papel: "sandbox isolado de criação UGC (+ Painel/Portal)", role: "isolated UGC creation sandbox (+ Panel/Portal)" },
+  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox isolado de criação CGU (utilizadores e SCA) (+ Painel/Portal)", role: "isolated CGU sandbox (users + SCAs; STRATA NFTs) (+ Panel/Portal)" },
   { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 
@@ -387,7 +387,7 @@ export function withPpc(obj, holon, opts = {}) {
 
 /** Contratos de interface entre holões (máquina + legenda PT-PT).
  * CLP não é holão contratual — é kernel temporal da TRD.
- * Painel não é holão — é superfície de app dentro da Bancada UGC.
+ * Painel não é holão — é superfície de app dentro da Bancada CGU.
  */
 export const HOLON_CONTRACTS = {
   dlt: {
@@ -472,7 +472,7 @@ export const HOLON_CONTRACTS = {
   },
   ugc_sandbox: {
     holon: "ugc_sandbox",
-    nome: "Bancada UGC",
+    nome: "Bancada CGU",
     possui: ["rascunhos", "isolamento", "pipeline_publicacao", "painel_portal"],
     owns: ["draft_assets", "isolation", "publish_pipeline", "panel_portal"],
     invariantes: ["local_ate_publicar", "utilizador_e_sca_pares", "painel_dentro_da_bancada"],

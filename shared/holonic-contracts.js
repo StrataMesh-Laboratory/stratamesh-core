@@ -113,7 +113,7 @@ export const HOLON_CONTRACTS = {
   },
   ugc_sandbox: {
     order: 5,
-    name: "UGC Sandbox",
+    name: "CGU / UGC Sandbox",
     parent: "open_world",
     children: ["agent"],
     role: "Authoring / isolation cell; publish integrates into parent world",

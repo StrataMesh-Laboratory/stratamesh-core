@@ -1,5 +1,5 @@
 /**
- * Holon 4 — Open-World
+ * Holon 4 — Open-World · open structures as STRATA NFTs
  * Parent: virtual_realm · Children: ugc_sandbox
  */
 const HOLON = {

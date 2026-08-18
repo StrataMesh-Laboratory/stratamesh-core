@@ -204,7 +204,7 @@ export default {
         holders,
         nft_count: nfts,
         engines: ['fungible_STRATA', 'strata_nft_tokenisation', 'nft_cgu_ugc', 'nft_import', 'open_world_nfts', 'dag_anchor', 'ipfs_metadata', 'app_token_factory'],
-        strata_definition: 'Exclusive foundational token — fungible form and NFT form via tokenisation; not merely unit of account',
+        strata_definition: 'Exclusive foundational token of StrataMesh. Fungible form settles value; tokenisation yields STRATA NFTs (native digital substance and external-asset representatives). Open worlds and CGU/UGC (users+SCAs) are STRATA NFTs. Fungible mint only via Node PoC.',
         emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
         timestamp: new Date().toISOString(),
       });

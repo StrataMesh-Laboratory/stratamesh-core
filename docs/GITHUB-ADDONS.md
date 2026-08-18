@@ -122,7 +122,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 | Projecto | Função | Encaixe CMN |
 |----------|--------|-------------|
-| [automerge/automerge](https://github.com/automerge/automerge) | CRDT | Bancada UGC offline-first |
+| [automerge/automerge](https://github.com/automerge/automerge) | CRDT | Bancada CGU offline-first |
 | [yjs/yjs](https://github.com/yjs/yjs) | CRDT colaboração | Mundo Aberto / edição partilhada |
 | [ipld/js-dag-json](https://github.com/ipld/js-dag-json) | IPLD JSON | Vértices legíveis + CID |
 | [orbitdb/orbitdb](https://github.com/orbitdb/orbitdb) | DB sobre IPFS | Lab fog (não no Worker free) |
@@ -163,13 +163,13 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 | [formatjs/formatjs](https://github.com/formatjs/formatjs) | i18n robusto | PT-PT / EN-GB |
 | [kentcdodds/mdx-bundler](https://github.com/kentcdodds/mdx-bundler) | Docs MDX | Whitepaper no portal |
 | [shikijs/shiki](https://github.com/shikijs/shiki) | Syntax highlight | Docs técnicas |
-| [WICG/sanitizer-api](https://github.com/WICG/sanitizer-api) | Sanitizar HTML | Bancada UGC |
+| [WICG/sanitizer-api](https://github.com/WICG/sanitizer-api) | Sanitizar HTML | Bancada CGU |
 
 ### Próximas integrações recomendadas (ordem prática no Free)
 
 1. **suncalc** — cruzar com CLP (confiança astronómica)  
 2. **ipld/js-dag-json** ou **dag-cbor** — payloads GDA tipados + CID  
-3. **yjs** ou **automerge** — Bancada UGC colaborativa (lab)  
+3. **yjs** ou **automerge** — Bancada CGU colaborativa (lab)  
 4. **cosign + SLSA** no GitHub Actions do `stratamesh-core`  
 5. **formatjs** — i18n portal sem strings soltas  
 6. **healthchecks** — watchdog dos ciclos AIOps  
