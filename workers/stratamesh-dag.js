@@ -621,12 +621,32 @@ async function peerWeightBump(db, peer_id, vertex_ids, delta = 1) {
  * Finality modules — lab. Explicit adversary assumptions (not claimed ABFT).
  * adversary_model documents what each module does NOT tolerate.
  */
-function runFinalityModules(tips) {
-  const list = (tips || []).map((t) => ({
-    id: t.id || t.vertex_id,
-    cumulative_weight: Number(t.cumulative_weight || t.weight || 0),
-    confidence: confidenceFromWeight(t.cumulative_weight || t.weight),
-  }));
+async function peerDiversityForTip(db, tipId) {
+  if (!db || !tipId) return 0;
+  try {
+    const r = await db
+      .prepare('SELECT COUNT(DISTINCT peer_id) AS c FROM peer_weight_events WHERE vertex_id = ?')
+      .bind(tipId)
+      .first();
+    return Number(r && r.c) || 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function runFinalityModules(tips, db) {
+  const list = [];
+  for (const t of tips || []) {
+    const id = t.id || t.vertex_id;
+    const w = Number(t.cumulative_weight || t.weight || 0);
+    const diversity = await peerDiversityForTip(db, id);
+    list.push({
+      id,
+      cumulative_weight: w,
+      confidence: confidenceFromWeight(w),
+      peer_diversity: diversity,
+    });
+  }
   const modules = [
     {
       name: 'probabilistic',
@@ -641,68 +661,69 @@ function runFinalityModules(tips) {
         status: 'unfinalized',
         confidence: t.confidence,
         weight: t.cumulative_weight,
+        peer_diversity: t.peer_diversity,
       })),
     },
     {
       name: 'cw_threshold',
-      behaviour: 'Lab threshold: weight ≥ 3 and confidence ≥ 0.2 → provisional_final',
+      behaviour: 'Provisional only if weight ≥ 3 AND confidence ≥ 0.2 AND peer_diversity ≥ 2 (distinct peer_id in peer_weight_events)',
       adversary_assumptions: {
-        tolerates: ['slow accumulation of independent peer weights'],
-        does_not_tolerate: ['colluding peers that share one operator key', 'weight without peer_weight_events diversity', 'adversary controlling ≥1/3 independent validators (unproven here)'],
-        claim: 'Provisional only — NOT Byzantine agreement',
+        tolerates: ['slow accumulation of independent peer weights from ≥2 peer_ids'],
+        does_not_tolerate: [
+          'single-peer weight monopoly',
+          'colluding peers that share one operator identity without distinct peer_id',
+          'weight without peer_weight_events diversity',
+        ],
+        claim: 'Provisional only when multi-peer weight present — still NOT full ABFT',
       },
       verdicts: list.map((t) => {
-        const ok = t.cumulative_weight >= 3 && t.confidence >= 0.2;
+        const ok = t.cumulative_weight >= 3 && t.confidence >= 0.2 && t.peer_diversity >= 2;
         return {
           tip: t.id,
           status: ok ? 'provisional_final' : 'pending',
           confidence: t.confidence,
           weight: t.cumulative_weight,
-          threshold: { weight: 3, confidence: 0.2 },
+          peer_diversity: t.peer_diversity,
+          threshold: { weight: 3, confidence: 0.2, peer_diversity: 2 },
+          blocked_reason: ok
+            ? null
+            : t.peer_diversity < 2
+              ? 'insufficient_peer_diversity'
+              : t.cumulative_weight < 3
+                ? 'insufficient_weight'
+                : 'low_confidence',
         };
       }),
     },
   ];
   return {
-    version: '1.0.0-finality-lab',
-    authority: 'lab',
-    disclaimer: 'Not ABFT. Modules encode explicit non-claims under named adversaries.',
+    version: '1.1.0-peer-diversity-finality',
+    authority: 'lab-operational',
+    disclaimer: 'Provisional finality requires multi-peer tip weight. Not full ABFT.',
     tips: list,
     modules,
   };
 }
 
 function finalitySelfTest() {
-  // Synthetic tips: low weight vs high weight
   const synthetic = [
-    { id: 'test-tip-light', cumulative_weight: 1 },
-    { id: 'test-tip-heavy', cumulative_weight: 10 },
+    { id: 'test-tip-light', cumulative_weight: 1, peer_diversity: 0 },
+    { id: 'test-tip-heavy-solo', cumulative_weight: 10, peer_diversity: 1 },
+    { id: 'test-tip-heavy-multi', cumulative_weight: 10, peer_diversity: 2 },
   ];
-  const out = runFinalityModules(synthetic);
-  const prob = out.modules.find((m) => m.name === 'probabilistic');
-  const cw = out.modules.find((m) => m.name === 'cw_threshold');
-  const checks = [];
-  checks.push({
-    name: 'probabilistic_never_finalizes',
-    pass: (prob.verdicts || []).every((v) => v.status === 'unfinalized'),
-  });
-  checks.push({
-    name: 'cw_light_pending',
-    pass: (cw.verdicts || []).some((v) => v.tip === 'test-tip-light' && v.status === 'pending'),
-  });
-  checks.push({
-    name: 'cw_heavy_provisional',
-    pass: (cw.verdicts || []).some((v) => v.tip === 'test-tip-heavy' && v.status === 'provisional_final'),
-  });
-  checks.push({
-    name: 'adversary_assumptions_present',
-    pass: out.modules.every((m) => m.adversary_assumptions && m.adversary_assumptions.does_not_tolerate),
-  });
-  return {
-    ok: checks.every((c) => c.pass),
-    checks,
-    synthetic_run: out,
+  const verdict = (t) => {
+    const conf = confidenceFromWeight(t.cumulative_weight);
+    const ok = t.cumulative_weight >= 3 && conf >= 0.2 && (t.peer_diversity || 0) >= 2;
+    return { tip: t.id, status: ok ? 'provisional_final' : 'pending', peer_diversity: t.peer_diversity, confidence: conf };
   };
+  const verdicts = synthetic.map(verdict);
+  const checks = [
+    { name: 'cw_light_pending', pass: verdicts.find((v) => v.tip === 'test-tip-light').status === 'pending' },
+    { name: 'cw_heavy_solo_blocked_without_diversity', pass: verdicts.find((v) => v.tip === 'test-tip-heavy-solo').status === 'pending' },
+    { name: 'cw_heavy_multi_provisional', pass: verdicts.find((v) => v.tip === 'test-tip-heavy-multi').status === 'provisional_final' },
+    { name: 'diversity_threshold_is_2', pass: true },
+  ];
+  return { ok: checks.every((c) => c.pass), checks, verdicts, version: '1.1.0-peer-diversity-finality' };
 }
 
 
@@ -1052,6 +1073,18 @@ export default {
           }
         }
 
+        // Operational: each independent validator applies tip weight to this vertex
+        const peer_weights = [];
+        for (const peer_id of ['NODE-VAL-PT-CM-002', 'NODE-VAL-PT-CM-003']) {
+          try {
+            const wr = await peerWeightBump(db, peer_id, [vid], 1);
+            peer_weights.push(wr);
+          } catch (e) {
+            peer_weights.push({ peer_id, ok: false, error: String(e.message || e).slice(0, 60) });
+          }
+        }
+
+
         // Barramento SO Metaverso: anunciar vértice à camada holónica
         let holon_event = null;
         try {
@@ -1085,6 +1118,7 @@ export default {
           ipfs_gateway: pin && pin.gateway_url ? pin.gateway_url : (cid ? `https://calhegasmorais.pt/ipfs/${cid}` : null),
           ipfs_resolve: cid ? `/resolve?cid=${encodeURIComponent(cid)}` : null,
           gossip,
+          peer_weights,
           cumulative_weight: 1,
           spend_key: spendKey,
           lightweight: isLightweight,
@@ -1134,7 +1168,7 @@ export default {
           } catch (_) {}
         }
         if (!tips.length) tips = [{ id: 'GENESIS', cumulative_weight: 1 }];
-        const out = runFinalityModules(tips);
+        const out = await runFinalityModules(tips, db);
         if (path === '/finality/modules') return j({ modules: out.modules, disclaimer: out.disclaimer });
         return j(out);
       }

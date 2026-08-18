@@ -1199,19 +1199,28 @@ export default {
               ).bind(row.sca_id).run();
               continue;
             }
-            const afterM = bal - COST_P - COST_M;
+            const costTotal = COST_P + COST_M;
+            let afterM = bal - costTotal;
+            let burn = null;
+            if (typeof burnStrataToSink === 'function') {
+              try {
+                burn = await burnStrataToSink(db, row.sca_id, costTotal, 'sca_autonomous_cognition', {
+                  sca_id: row.sca_id,
+                  intention: 'self_volition',
+                });
+                if (burn && burn.ok && burn.from_balance != null) afterM = burn.from_balance;
+              } catch (_) {}
+            } else {
+              try {
+                await db.prepare(`UPDATE token_balances SET balance = ? WHERE account = ? AND token_type = 'STRATA'`).bind(afterM, row.sca_id).run();
+              } catch (_) {}
+            }
             const intention = String(row.last_action || '').includes('pulse') ? 'reflect' : 'pulse';
             const memId = crypto.randomUUID();
             await db
               .prepare(`UPDATE acb_registry SET balance = ?, last_action = 'autonomous_cognition' WHERE id = ?`)
               .bind(afterM, row.sca_id)
               .run();
-            try {
-              await db
-                .prepare(`UPDATE token_balances SET balance = ? WHERE account = ? AND token_type = 'STRATA'`)
-                .bind(afterM, row.sca_id)
-                .run();
-            } catch (_) {}
             await db
               .prepare(`INSERT INTO sca_memory (id, sca_id, kind, content, cost) VALUES (?,?,?,?,?)`)
               .bind(
@@ -1396,7 +1405,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.12.0-pds-labour-gate',
+          version: '5.13.0-pds-burn-ops',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1831,7 +1840,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.12.0-pds-labour-gate',
+          version: '5.13.0-pds-burn-ops',
           lead,
           lead_balance_after: await getStrata(db, lead),
           topups: results,
@@ -2663,7 +2672,7 @@ export default {
         }
         return j({
           success: true,
-          version: '5.12.0-pds-labour-gate',
+          version: '5.13.0-pds-burn-ops',
           cycled: reports.length,
           reports,
           ontology: {
@@ -3600,7 +3609,7 @@ export default {
             cognition_cost: body.cognition_cost,
             memory_cost: body.memory_cost,
           });
-          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.12.0-pds-labour-gate' });
+          return j({ success: !report.skipped, report, trigger: report.trigger || trigger, version: '5.13.0-pds-burn-ops' });
         }
         const pop = await populationAutonomousCognition({
           trigger,
@@ -3608,7 +3617,7 @@ export default {
           cognition_cost: body.cognition_cost,
           memory_cost: body.memory_cost,
         });
-        return j({ ...pop, trigger, version: '5.12.0-pds-labour-gate' });
+        return j({ ...pop, trigger, version: '5.13.0-pds-burn-ops' });
       }
 
       // Breath diagnostics

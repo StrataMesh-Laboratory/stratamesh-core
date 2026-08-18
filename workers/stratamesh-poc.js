@@ -594,7 +594,7 @@ async function issueMeasurementReceipt(db, node_id, onchain, peer_confirms = 0) 
       if (Number(v.count || v.mb || v.units || 0) > 0) fields++;
     } else if (Number(v) > 0) fields++;
   }
-  const score = Math.min(1, 0.2 * fields + 0.15 * Number(peer_confirms || 0));
+  const score = Math.min(1, 0.15 * fields + 0.2 * Number(peer_confirms || 0) + (Number(peer_confirms || 0) >= 2 ? 0.15 : 0));
   const id = 'meas_' + crypto.randomUUID().slice(0, 12);
   await db.prepare(
     `INSERT INTO measurement_receipts (id, node_id, evidence_hash, sources_json, score, peer_confirms, created_at)
@@ -605,34 +605,59 @@ async function issueMeasurementReceipt(db, node_id, onchain, peer_confirms = 0) 
 
 async function requireMeasurementForMint(db, node_id, body) {
   await ensureMeasurementSchema(db);
-  // Lab policy: mint scale blocked without receipt score ≥ 0.25 OR explicit measurement_id
+  const MIN_SCORE = 0.25;
   const mid = body.measurement_id || body.receipt_id;
   if (mid) {
     const row = await db.prepare('SELECT * FROM measurement_receipts WHERE id = ? AND node_id = ?').bind(mid, node_id).first();
     if (!row) return { ok: false, error: 'measurement_receipt_not_found' };
-    if (Number(row.score) < 0.15) return { ok: false, error: 'measurement_score_too_low', score: row.score };
+    if (Number(row.score) < MIN_SCORE && !body.allow_lab_low_score) {
+      return { ok: false, error: 'measurement_score_too_low', score: row.score, min: MIN_SCORE };
+    }
     return { ok: true, receipt: row };
   }
-  // Auto-issue from onchain measure + mesh ledger contributes from this node (edges)
   const onchain = await measureOnchain(db, node_id);
-  let peer_confirms = 0;
+  let edge_nodes = 0;
+  let edge_units = 0;
   try {
     const edges = await db.prepare(
-      `SELECT COUNT(DISTINCT node_id) as c FROM mesh_pool_ledger
-       WHERE node_id LIKE 'EDGE-%' AND created_at > datetime('now','-1 day')`
+      `SELECT COUNT(DISTINCT node_id) as c, COALESCE(SUM(units),0) as u FROM mesh_pool_ledger
+       WHERE kind = 'contribute' AND created_at > datetime('now','-1 day')
+         AND (node_id LIKE 'EDGE-%' OR node_id LIKE 'NODE-VAL-%')`
     ).first();
-    peer_confirms = Number(edges && edges.c) || 0;
+    edge_nodes = Number(edges && edges.c) || 0;
+    edge_units = Number(edges && edges.u) || 0;
   } catch (_) {}
-  const receipt = await issueMeasurementReceipt(db, node_id, onchain, peer_confirms);
-  if (receipt.score < 0.15 && !body.allow_lab_low_score) {
+  // Validator peer confirms from DAG peer_weight if same DB, else edge_nodes proxy
+  let peer_confirms = edge_nodes;
+  try {
+    const pw = await db.prepare(
+      `SELECT COUNT(DISTINCT peer_id) as c FROM peer_weight_events WHERE created_at > datetime('now','-1 day')`
+    ).first();
+    if (pw && Number(pw.c) > peer_confirms) peer_confirms = Number(pw.c);
+  } catch (_) {}
+  const receipt = await issueMeasurementReceipt(db, node_id, {
+    ...onchain,
+    sources: {
+      ...(onchain && onchain.sources ? onchain.sources : {}),
+      edge_contributors_24h: edge_nodes,
+      edge_units_24h: edge_units,
+      peer_confirms,
+    },
+  }, peer_confirms);
+  // Operational gate: deny by default under min score
+  if (receipt.score < MIN_SCORE && !body.allow_lab_low_score) {
     return {
       ok: false,
       error: 'insufficient_measurement_for_mint',
-      policy: 'Unforgeable-ish lab gate: need evidence hash receipt score ≥ 0.15 (multi-source or edge contributes)',
+      policy: {
+        min_score: MIN_SCORE,
+        how: 'Need edge/validator contributes in last 24h and/or multi-source on-graph evidence',
+        issue_receipt: 'GET /measure?node_id=... then pass measurement_id',
+      },
       receipt,
     };
   }
-  return { ok: true, receipt, onchain };
+  return { ok: true, receipt, onchain, edge_nodes, peer_confirms };
 }
 
 
