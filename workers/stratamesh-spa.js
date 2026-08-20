@@ -196,6 +196,10 @@ export default {
       return new Response('Icon unavailable', { status: 404 });
     }
 
+    if (path === '/terms' || path === '/termos' || path === '/en/terms') {
+      const lang = path.startsWith('/en') || url.searchParams.get('lang') === 'en' ? 'en' : 'pt';
+      return Response.redirect('https://stratamesh-auth.stratamesh.workers.dev/terms?lang=' + lang, 302);
+    }
     if (path === '/health' || path === '/dashboard/health') {
       return jsonResponse({
         status: 'ok',
@@ -354,8 +358,23 @@ if (path.startsWith('/api/')) {
       return serveClp(request, env, corsHeaders);
     }
 
-    if (path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard/')) {
+    if (path === '/chat' || path === '/chat/' || path === '/orquestrador' || path === '/orchestrator') {
+      return serveNodeChat(request, env, 'pt');
+    }
+    if (path === '/en/chat' || path === '/en/chat/' || path === '/en/orchestrator') {
+      return serveNodeChat(request, env, 'en');
+    }
+    if (path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard/') ||
+        path === '/portal' || path === '/portal/' || path.startsWith('/portal/') ||
+        path === '/en/dashboard' || path === '/en/dashboard/' || path.startsWith('/en/dashboard/') ||
+        path === '/en/portal' || path === '/en/portal/' || path.startsWith('/en/portal/') ||
+        path === '/painel' || path === '/painel/' || path === '/en/painel' || path === '/en/painel/') {
       return servePortal(request, env, corsHeaders);
+    }
+
+    if (path === '/roadmap' || path === '/roadmap/' || path === '/mapa' || path === '/mapa/' ||
+        path === '/en/roadmap' || path === '/en/roadmap/' || path === '/en/mapa' || path === '/en/mapa/') {
+      return serveRoadmap(request, env, corsHeaders);
     }
 
     if (
@@ -397,7 +416,7 @@ async function proxyApi(request, env, path, url, corsHeaders) {
       ['/api/v1/acb', 'ACB', 'https://stratamesh-acb.stratamesh.workers.dev', '/acb'],
       ['/api/v1/orchestrator', 'ORCH', 'https://stratamesh-orchestrator.stratamesh.workers.dev', ''],
       ['/api/v1/token', 'TOKEN', 'https://stratamesh-token.stratamesh.workers.dev', ''],
-      ['/api/v1/nft', 'TOKEN', 'https://stratamesh-token.stratamesh.workers.dev', ''],
+      ['/api/v1/nft', 'TOKEN', 'https://stratamesh-token.stratamesh.workers.dev', '/nft'],
       ['/api/v1/poc', 'POC', 'https://stratamesh-poc.stratamesh.workers.dev', ''],
       ['/api/v1/scout', 'SCOUT', 'https://stratamesh-scout.stratamesh.workers.dev', ''],
       ['/api/v1/sandbox', 'SANDBOX', 'https://stratamesh-sandbox.stratamesh.workers.dev', ''],
@@ -520,6 +539,41 @@ function pickLang(request) {
 
 
 
+
+async function serveRoadmap(request, env, corsHeaders) {
+  const lang = pickLang(request);
+  const keys = [`roadmap-${lang}`, lang === 'en' ? 'roadmap-pt' : 'roadmap-en', 'roadmap'];
+  try {
+    if (env.LEDGER) {
+      for (const key of keys) {
+        try {
+          const { results: chunks } = await env.LEDGER.prepare(
+            "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+          ).bind(key).all();
+          if (chunks && chunks.length) {
+            const html = chunks.map((c) => c.value || "").join("");
+            if (html) {
+              return new Response(html, {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  "Content-Type": "text/html; charset=utf-8",
+                  "Cache-Control": "public, max-age=60",
+                  "Content-Language": lang === "en" ? "en-GB" : "pt-PT",
+                  "X-Home-Source": "site_content_chunks",
+                },
+              });
+            }
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    console.error("roadmap LEDGER", e);
+  }
+  return new Response("Not Found", { status: 404, headers: corsHeaders });
+}
+
 async function serveClp(request, env, corsHeaders) {
   try {
     if (env.LEDGER) {
@@ -636,6 +690,128 @@ function fallbackHome(lang) {
   return `<!DOCTYPE html><html lang="${isPt ? "pt-PT" : "en-GB"}"><head><meta charset="UTF-8"><title>${title}</title>
 <style>body{font-family:system-ui;background:#0a0a0b;color:#e8e6e3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
 .box{max-width:28rem;padding:2rem}a{color:#c4b5a0}</style></head><body><div class="box">${body}</div></body></html>`;
+}
+
+
+function serveNodeChat(request, env, lang) {
+  const pt = lang !== 'en';
+  const title = pt ? 'Chat · Orquestrador · Nó Calhegas Morais' : 'Chat · Orchestrator · Calhegas Morais Node';
+  const html = `<!DOCTYPE html>
+<html lang="${pt ? 'pt-PT' : 'en-GB'}">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${title}</title>
+<link rel="icon" href="/favicon.ico"/>
+<style>
+:root{--bg:#0a0a0c;--fg:#e8e8ea;--muted:#8a8780;--line:#2a2a30;--accent:#8b9cf7;--card:#121216}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{padding:1rem 1.25rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+header a{color:var(--muted);text-decoration:none;font-size:.8rem}
+header a:hover{color:var(--accent)}
+h1{font-size:1.1rem;font-weight:500;margin:0}
+.meta{font-size:.72rem;color:var(--muted);font-family:ui-monospace,monospace}
+main{flex:1;display:flex;flex-direction:column;max-width:48rem;width:100%;margin:0 auto;padding:1rem 1.25rem 1.5rem}
+#log{flex:1;min-height:50vh;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);padding:1rem;margin-bottom:.75rem}
+.msg{margin-bottom:1rem}
+.msg .who{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+.msg .body{white-space:pre-wrap;word-break:break-word;line-height:1.55;font-size:.95rem}
+.row{display:flex;gap:.5rem}
+input#q{flex:1;padding:.85rem 1rem;border-radius:6px;border:1px solid var(--line);background:#1a1a1f;color:var(--fg);font-size:.95rem}
+button{padding:.85rem 1.1rem;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase}
+button:hover{background:var(--accent);color:#111}
+button:disabled{opacity:.4;cursor:not-allowed}
+.badge{display:inline-block;padding:.2rem .5rem;border:1px solid var(--line);border-radius:4px;font-size:.65rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>${pt ? 'Orquestrador' : 'Orchestrator'}</h1>
+    <div class="meta">FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001</div>
+  </div>
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+    <span class="badge" id="clr">clearance: …</span>
+    <a href="/dashboard">${pt ? 'Painel' : 'Panel'}</a>
+    <a href="/">${pt ? 'Início' : 'Home'}</a>
+  </div>
+</header>
+<main>
+  <div id="log"></div>
+  <div class="row">
+    <input id="q" type="text" placeholder="${pt ? 'Mensagem ao Orquestrador…' : 'Message the Orchestrator…'}" autocomplete="off"/>
+    <button type="button" id="go">${pt ? 'Enviar' : 'Send'}</button>
+  </div>
+</main>
+<script>
+const ORCH = '/api/orchestrator/chat';
+const AUTH = 'https://stratamesh-auth.stratamesh.workers.dev';
+const token = localStorage.getItem('sm_token') || localStorage.getItem('token') || '';
+const log = document.getElementById('log');
+const clr = document.getElementById('clr');
+function add(who, text) {
+  const d = document.createElement('div');
+  d.className = 'msg';
+  d.innerHTML = '<div class="who">'+who+'</div><div class="body"></div>';
+  d.querySelector('.body').textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+async function refreshClearance() {
+  if (!token) { clr.textContent = 'clearance: public (anónimo)'; return; }
+  try {
+    const r = await fetch(AUTH + '/me', { headers: { Authorization: 'Bearer ' + token } });
+    const j = await r.json();
+    let c = String(j.clearance_level || j.clearance || j.role || '').toLowerCase().replace(/[\s-]+/g,'_');
+    if (['top_secret','topsecret','ts','root','god','root_admin'].includes(c)) c = 'top_secret';
+    else if (['secret','admin'].includes(c)) c = 'secret';
+    else if (['confidential','staff'].includes(c)) c = 'confidential';
+    else if (token && (!c || c === 'public' || c === 'basic')) c = c === 'basic' ? 'internal' : (c && c !== 'public' ? c : 'internal');
+    else if (!token) c = 'public';
+    clr.textContent = 'clearance: ' + c + (j.email ? ' · ' + j.email : '');
+  } catch (e) {
+    clr.textContent = 'clearance: ?';
+  }
+}
+refreshClearance();
+document.getElementById('go').onclick = async function () {
+  const q = document.getElementById('q');
+  const msg = (q.value || '').trim();
+  if (!msg) return;
+  q.value = '';
+  add('${pt ? "Você" : "You"}', msg);
+  const btn = document.getElementById('go');
+  btn.disabled = true;
+  try {
+    const r = await fetch(ORCH, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: token ? 'Bearer ' + token : '',
+      },
+      body: JSON.stringify({ message: msg, token: token, lang: '${pt ? "pt" : "en"}' }),
+    });
+    const j = await r.json();
+    if (j.account_clearance || j.clearance) {
+      clr.textContent = 'clearance: ' + (j.account_clearance || j.clearance) + (j.clearance_source ? ' · ' + j.clearance_source : '');
+    }
+    add('${pt ? "Orquestrador" : "Orchestrator"}', j.reply || j.error || JSON.stringify(j));
+  } catch (e) {
+    add('System', String(e.message || e));
+  } finally {
+    btn.disabled = false;
+  }
+};
+document.getElementById('q').addEventListener('keydown', function (ev) {
+  if (ev.key === 'Enter') document.getElementById('go').click();
+});
+</script>
+</body>
+</html>`;
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
 }
 
 async function servePortal(request, env, corsHeaders) {
