@@ -14,7 +14,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '1.0.0-akash-render-parallel';
+const VERSION = '1.1.0-sdl-lite';
 const RESOURCE_CLASSES = ['storage', 'compute', 'bandwidth', 'render', 'memory'];
 
 function j(data, status = 200) {
@@ -59,6 +59,24 @@ async function ensureSchema(db) {
 
 function id(prefix) {
   return `${prefix}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+}
+
+
+function parseSdlLite(sdl) {
+  if (!sdl) return null;
+  if (typeof sdl === 'object') return sdl;
+  const text = String(sdl);
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*([a-zA-Z0-9_]+)\s*:\s*(.+?)\s*$/);
+    if (!m) continue;
+    const k = m[1], v = m[2].replace(/^["']|["']$/g, '');
+    if (k === 'resource_class' || k === 'resource') out.resource_class = v.toLowerCase();
+    else if (k === 'quantity' || k === 'count') out.quantity = Number(v);
+    else if (k === 'max_price_strata' || k === 'max_price') out.max_price_strata = Number(v);
+    else if (k === 'tenant') out.tenant = v;
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 export default {
@@ -143,6 +161,13 @@ export default {
 
     if (path === '/orders/create' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const sdl = parseSdlLite(body.sdl || body.manifest || body.deploy);
+      if (sdl) {
+        if (sdl.resource_class) body.resource_class = sdl.resource_class;
+        if (sdl.quantity != null) body.quantity = sdl.quantity;
+        if (sdl.max_price_strata != null) body.max_price_strata = sdl.max_price_strata;
+        if (sdl.tenant) body.tenant = sdl.tenant;
+      }
       const rc = String(body.resource_class || 'compute').toLowerCase();
       if (!RESOURCE_CLASSES.includes(rc)) return j({ error: 'invalid_resource_class', allowed: RESOURCE_CLASSES }, 400);
       const order = {
