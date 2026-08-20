@@ -1,0 +1,1 @@
+async function e(){return{text:``,provenance:`UNAVAILABLE`}}async function t(){return{ok:!1}}async function n(){return{ok:!1}}export{n as enrollKycRow,e as formulateResult,t as saveChatLine};

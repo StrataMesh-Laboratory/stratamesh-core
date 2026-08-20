@@ -364,11 +364,16 @@ if (path.startsWith('/api/')) {
     if (path === '/en/chat' || path === '/en/chat/' || path === '/en/orchestrator') {
       return serveNodeChat(request, env, 'en');
     }
+    if (path.startsWith('/os/')) {
+      return serveOsAsset(request, env, corsHeaders, path);
+    }
+    if (path === '/painel' || path === '/painel/' || path === '/en/painel' || path === '/en/painel/') {
+      return serveOs(request, env, corsHeaders);
+    }
     if (path === '/dashboard' || path === '/dashboard/' || path.startsWith('/dashboard/') ||
         path === '/portal' || path === '/portal/' || path.startsWith('/portal/') ||
         path === '/en/dashboard' || path === '/en/dashboard/' || path.startsWith('/en/dashboard/') ||
-        path === '/en/portal' || path === '/en/portal/' || path.startsWith('/en/portal/') ||
-        path === '/painel' || path === '/painel/' || path === '/en/painel' || path === '/en/painel/') {
+        path === '/en/portal' || path === '/en/portal/' || path.startsWith('/en/portal/')) {
       return servePortal(request, env, corsHeaders);
     }
 
@@ -539,6 +544,62 @@ function pickLang(request) {
 
 
 
+
+
+async function serveOs(request, env, corsHeaders) {
+  try {
+    const bucket = env.ASSETS || env.R2 || env.FOG_BUCKET;
+    if (bucket) {
+      const obj = await bucket.get("os/os.html");
+      if (obj) {
+        let html = await obj.text();
+        const lang = pickLang(request);
+        if (lang === "en") {
+          html = html.replace('lang="pt-PT"', 'lang="en-GB"').replace("Painel · Nó Calhegas Morais", "Panel · Calhegas Morais Node");
+        }
+        return new Response(html, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "Content-Language": lang === "en" ? "en-GB" : "pt-PT",
+            "X-Painel-Source": "r2-os",
+          },
+        });
+      }
+    }
+  } catch (e) {
+    console.error("serveOs", e);
+  }
+  return new Response("Painel OS indisponível", { status: 503, headers: corsHeaders });
+}
+
+async function serveOsAsset(request, env, corsHeaders, path) {
+  try {
+    const bucket = env.ASSETS || env.R2 || env.FOG_BUCKET;
+    if (!bucket) return new Response("Not Found", { status: 404, headers: corsHeaders });
+    const key = path.replace(/^\//, "");
+    const obj = await bucket.get(key);
+    if (!obj) return new Response("Not Found", { status: 404, headers: corsHeaders });
+    const type = key.endsWith(".css")
+      ? "text/css; charset=utf-8"
+      : key.endsWith(".js")
+        ? "application/javascript; charset=utf-8"
+        : "application/octet-stream";
+    return new Response(obj.body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": type,
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+  } catch (e) {
+    console.error("serveOsAsset", e);
+    return new Response("Not Found", { status: 404, headers: corsHeaders });
+  }
+}
 
 async function serveRoadmap(request, env, corsHeaders) {
   const lang = pickLang(request);
