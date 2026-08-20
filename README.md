@@ -97,3 +97,18 @@ Public site: [calhegasmorais.pt](https://calhegasmorais.pt/) · CLP UI: [/clp](h
 - **Auth:** `POST /kyc/submit` binds `sovereign_id`, internal `full_name_legal`, unlocks panel when auto score ≥ 0.8.
 - **Register:** requires `terms_accepted`; invite link sets password; login uses email 2FA.
 - **Endpoints:** `POST https://stratamesh-kyc-ocr.stratamesh.workers.dev/ocr` (multipart `image`), `/kyc-from-image` with Bearer to chain into auth.
+
+
+## Technological parallels (lab)
+
+StrataMesh absorbs **mechanics** from adjacent systems without copying their ontology:
+
+| Parallel | StrataMesh surface |
+|----------|-------------------|
+| IOTA Tangle | DAG cumulative weight, MCMC tip selection, confirmation confidence — `/api/v1/consensus` |
+| Hedera Hashgraph | Gossip-about-gossip events + lab virtual voting — `/api/v1/gossip`, consensus `virtual_voting` |
+| Akash / Render | DePIN reverse auction, STRATA escrow leases — `/api/v1/depin` |
+| Fetch.ai / Olas | Multi-SCA agent services + shared-state gadget — `/api/v1/agent-services` |
+| Urbit | Holonic Fog→Edge identity; Metaverse OS layers |
+
+Details: [`docs/PARALLELS.md`](docs/PARALLELS.md). STRATA mint remains **PoC-only**.
