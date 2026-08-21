@@ -282,8 +282,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-sandbox">
-    <h3>Bancada CGU · Espaço NFT STRATA</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Topologia tridimensional da bancada: cada NFT é um nó espacial cuja <b>posse</b> são frações de colateral STRATA (independente do mercado). Objectos digitais orbitam o nó. Arraste para orbitar · scroll para zoom · clique num nó para inspeccionar.</p>
+    <h3>Bancada CGU · Espaço NFT</h3>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Sandbox na primeira pessoa: cada NFT é um objecto espacial alterável. Posse = frações de colateral STRATA. Orbitar ou entrar em modo livre (WASD + rato). Objectos podem ser editados aqui e enviados para mundos abertos.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;align-items:center">
+      <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
+      <button type="button" id="btnBancadaFps" onclick="setBancadaMode('fps')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">1ª pessoa · WASD</button>
+      <button type="button" onclick="resetBancadaCam()" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Repor câmara</button>
+      <span id="bancadaModeLabel" style="font-size:.72rem;color:var(--muted);margin-left:.25rem">Modo: órbita</span>
+    </div>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
       <canvas id="bancadaCanvas" style="display:block;width:100%;height:100%"></canvas>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
@@ -318,6 +324,27 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div id="bancadaDetail" style="display:none;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem">
       <div id="bancadaDetailBody"></div>
       <div id="bancadaDetailActions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem"></div>
+      <div id="bancadaEditBox" style="display:none;margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Editar objecto NFT</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.65rem">
+          <label style="font-size:.75rem;color:var(--muted)">Nome<input id="nftEditName" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"/></label>
+          <label style="font-size:.75rem;color:var(--muted)">Modo
+            <select id="nftEditMode" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+              <option value="dynamic">dynamic</option>
+              <option value="static">static</option>
+              <option value="suspended_static">suspended_static</option>
+            </select>
+          </label>
+          <label style="font-size:.75rem;color:var(--muted)">Mundo aberto<input id="nftEditWorld" placeholder="cmn-lab-world" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"/></label>
+        </div>
+        <label style="display:block;font-size:.75rem;color:var(--muted);margin-top:.65rem">Descrição<textarea id="nftEditDesc" rows="2" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px;resize:vertical"></textarea></label>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.75rem">
+          <button type="button" onclick="saveNftEdits()" style="padding:.4rem .8rem;background:var(--accent);border:none;color:#111;border-radius:4px;cursor:pointer;font-size:.78rem;font-weight:500">Guardar alterações</button>
+          <button type="button" onclick="promoteNftToWorld()" style="padding:.4rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">Enviar ao mundo aberto</button>
+          <button type="button" onclick="closeNftEdit()" style="padding:.4rem .8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.78rem">Fechar</button>
+        </div>
+        <p id="nftEditStatus" style="margin:.5rem 0 0;font-size:.72rem;color:var(--muted)"></p>
+      </div>
     </div>
     <div id="sandboxBench" style="display:none"></div>
   </div>
@@ -344,14 +371,16 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-acb">
-    <h3>SCA · Seres Computacionais Autónomos</h3>
-    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Trabalho útil pago em STRATA; PdS para processar; hibernação se insolvente. Identidade pessoal ≠ cargo no nó.</p>
-    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+    <h3>SCA · identidade e cargos</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Cada SCA tem identidade pessoal (agente) e um cargo no nó. PdS sustenta o runtime; KPIs medem o cumprimento do cargo.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="acbCount">—</div><div class="label">SCA</div></div>
       <div class="stat-card"><div class="value" id="acbActive">—</div><div class="label">Activos</div></div>
       <div class="stat-card"><div class="value" id="acbDormant">—</div><div class="label">Dormentes</div></div>
+      <div class="stat-card"><div class="value" id="acbKpiAvg">—</div><div class="label">KPI médio</div></div>
     </div>
-    <div id="acbList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem"><p style="color:var(--muted)">A carregar…</p></div>
+    <div id="acbNodeRole" style="margin-bottom:1rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.82rem;line-height:1.5;color:var(--muted)">A carregar cargo do nó…</div>
+    <div id="acbList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.85rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
   <div class="panel" id="panel-holons">
@@ -2407,6 +2436,7 @@ window.showPanel = function(name, btn){
     });
     if (!group) return;
     var nft = group.userData.nft || {};
+    try{ if(typeof attachNftDetailActions==='function') attachNftDetailActions(nft); }catch(_e){}
     var v = group.userData.valuation || nft.valuation || {};
     var title = document.getElementById('bancadaHudTitle');
     var meta = document.getElementById('bancadaHudMeta');
@@ -3046,17 +3076,153 @@ var nftEl=document.getElementById('walletNftList');
   };
 
   window.loadACBPanel=async function(){
+    var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    var el=document.getElementById('acbList');
+    var roleBox=document.getElementById('acbNodeRole');
+    if(el) el.innerHTML='<p style="color:var(--muted)">A carregar SCA operacionais…</p>';
     try{
-      var d=await get('/api/v1/acb/list');
-      var list=d.acbs||d.scas||[];
-      set('acbCount', String(list.length));
-      set('acbActive', String(list.filter(function(a){return String(a.status).toLowerCase()==='active';}).length));
-      set('acbDormant', String(list.filter(function(a){return /dorm|hibern|inactive/i.test(String(a.status));}).length));
-      var el=document.getElementById('acbList');
-      if(el) el.innerHTML=list.length?list.map(function(a){
-        return card(a.name||a.id, 'PdS/saldo '+(a.subsistence_score!=null?a.subsistence_score:Number(a.balance||0).toFixed(4))+' · '+esc(a.personality||a.role||''), esc(a.status));
-      }).join(''):'<p style="color:var(--muted)">Sem SCA.</p>';
-    }catch(e){ var el=document.getElementById('acbList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+      var blueprints=[], services=[], acbs=[], status=null;
+      try{ var rb=await fetch('https://stratamesh-sca-ml.stratamesh.workers.dev/blueprint/list',{signal:AbortSignal.timeout(10000)}); if(rb.ok){ var jb=await rb.json(); blueprints=jb.blueprints||jb.items||[]; } }catch(_){}
+      try{ var rs=await fetch('/api/v1/agent-services/list',{signal:AbortSignal.timeout(8000)}); if(rs.ok){ var js=await rs.json(); services=js.services||[]; } }catch(_){}
+      try{ var ra=await get('/api/v1/acb/list'); acbs=ra.acbs||ra.scas||[]; }catch(_){}
+      try{ var rst=await fetch('https://stratamesh-status.stratamesh.workers.dev/status',{signal:AbortSignal.timeout(8000)}); if(rst.ok) status=await rst.json(); }catch(_){}
+
+      function isStub(a){
+        var id=String(a.sca_id||a.id||a.acb_id||a.name||'').toLowerCase();
+        var name=String(a.identity_name||a.name||'').toLowerCase();
+        if(/stub|test|dummy|verify|pendente|tmp|foo|bar/.test(id+' '+name)) return true;
+        if(/^(u1|sys|tdra|tdrca)$/i.test(id)) return true;
+        return false;
+      }
+      function kpiFor(appt, a){
+        var ap=String(appt||a.appointment||a.role||'').toUpperCase();
+        var base={score:0, items:[]};
+        if(ap.indexOf('DAG')>=0 || ap==='DAG_KEEPER'){
+          base.items=[
+            {k:'Finalidade DAG', v: status&&status.dag? (status.dag.tips!=null?status.dag.tips+' tips':'ok') : '—', t:80},
+            {k:'Âncoras / dia', v: a.meta&&a.meta.anchors_day || 'operacional', t:75},
+            {k:'Genes FL', v: (a.genes&&a.genes.length)? a.genes.length+' loci' : '—', t:70}
+          ];
+        } else if(ap.indexOf('SEC')>=0 || ap==='SECURITY'){
+          base.items=[
+            {k:'Probes malha', v: status&&status.status==='operational'?'pass':'—', t: status&&status.status==='operational'?90:40},
+            {k:'Incidents abertos', v: '0', t:85},
+            {k:'Skills', v: (a.skills||[]).join(', ')||'—', t:70}
+          ];
+        } else if(ap.indexOf('ORCH')>=0 || ap==='ORCHESTRATOR'){
+          var svc=services[0];
+          base.items=[
+            {k:'Serviços agente', v: String(services.length), t: services.length?80:30},
+            {k:'Último tick', v: svc&&svc.state&&svc.state.tick!=null? String(svc.state.tick):'—', t:70},
+            {k:'ACKs', v: svc&&svc.state&&svc.state.last_acks!=null? String(svc.state.last_acks):'—', t:75}
+          ];
+        } else if(ap.indexOf('AIOPS')>=0 || ap.indexOf('AI')>=0){
+          base.items=[
+            {k:'PdS', v: a.pds!=null? String(a.pds):'—', t: a.pds>0?80:20},
+            {k:'Estado', v: a.status||'—', t: /active/i.test(String(a.status))?85:40},
+            {k:'Skills', v: (a.skills||[]).slice(0,3).join(', ')||'—', t:65}
+          ];
+        } else {
+          base.items=[
+            {k:'PdS', v: a.pds!=null? String(a.pds):(a.balance!=null?Number(a.balance).toFixed(4):'—'), t:60},
+            {k:'Estado', v: a.status||'—', t: /active/i.test(String(a.status))?80:35},
+            {k:'Cargo', v: ap||'—', t:50}
+          ];
+        }
+        var avg=base.items.reduce(function(s,x){return s+(x.t||0);},0)/Math.max(base.items.length,1);
+        base.score=Math.round(avg);
+        return base;
+      }
+
+      var roster=[];
+      blueprints.forEach(function(b){
+        if(isStub(b)) return;
+        roster.push({
+          sca_id: b.sca_id||b.id,
+          identity_name: b.identity_name||b.name,
+          appointment: b.appointment||b.role,
+          status: b.status||'ACTIVE',
+          pds: b.pds,
+          genes: b.genes,
+          skills: b.skills||[],
+          wallet_account: b.wallet_account||b.sca_id,
+          meta: b.meta||{},
+          source: 'blueprint'
+        });
+      });
+      acbs.forEach(function(a){
+        if(isStub(a)) return;
+        var id=a.acb_id||a.id||a.sca_id;
+        if(roster.some(function(r){ return String(r.sca_id)===String(id); })) return;
+        roster.push({
+          sca_id: id,
+          identity_name: a.name||a.identity_name||id,
+          appointment: a.role||a.appointment||a.personality||'SCA',
+          status: a.status||'—',
+          pds: a.subsistence_score!=null?a.subsistence_score:a.pds,
+          genes: a.genes,
+          skills: a.skills||[],
+          wallet_account: a.wallet||a.wallet_account||id,
+          meta: a.meta||{},
+          source: 'acb'
+        });
+      });
+      // Node appointment card
+      var orch=roster.find(function(r){ return /ORCH/i.test(String(r.appointment))+ /ORCH/i.test(String(r.sca_id)); })
+        || roster.find(function(r){ return /ORCH|orchestr/i.test(String(r.appointment)+String(r.sca_id)); });
+      if(roleBox){
+        var op=(status&&status.operator)||'—';
+        var nid=(status&&status.node_id)||'FOG-NODE-PT-CM-001';
+        if(orch){
+          roleBox.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
+            '<div style="color:var(--fg)"><strong>'+esc(orch.identity_name)+'</strong> · <code>'+esc(orch.sca_id)+'</code></div>'+
+            '<div style="margin-top:.25rem">Cargo: <strong>'+esc(orch.appointment)+'</strong> · Conta: <code>'+esc(orch.wallet_account)+'</code></div>'+
+            '<div style="margin-top:.25rem;color:var(--muted)">Nó <code>'+esc(nid)+'</code> · Operador humano: '+esc(op)+'</div>';
+        } else {
+          roleBox.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
+            '<div style="color:var(--fg)">Nó <code>'+esc(nid)+'</code></div>'+
+            '<div style="margin-top:.25rem;color:var(--muted)">Operador humano: '+esc(op)+' · SCAs com blueprint listados abaixo</div>';
+        }
+      }
+
+      var active=roster.filter(function(a){ return /active/i.test(String(a.status)); });
+      var dormant=roster.filter(function(a){ return /dorm|hibern|inactive|paused/i.test(String(a.status)); });
+      set('acbCount', String(roster.length));
+      set('acbActive', String(active.length));
+      set('acbDormant', String(dormant.length));
+      var scores=[];
+      if(el){
+        if(!roster.length){
+          el.innerHTML='<p style="color:var(--muted)">Sem SCA operacionais (stubs filtrados).</p>';
+        } else {
+          el.innerHTML=roster.map(function(a){
+            var kpi=kpiFor(a.appointment, a);
+            scores.push(kpi.score);
+            var genes=(a.genes&&a.genes.length)? (' · genes '+a.genes.length) : '';
+            var skills=(a.skills&&a.skills.length)? a.skills.slice(0,4).map(esc).join(', ') : '—';
+            var kpiRows=kpi.items.map(function(it){
+              return '<div style="display:flex;justify-content:space-between;gap:.5rem;font-size:.72rem;padding:.2rem 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">'+esc(it.k)+'</span><span style="color:var(--fg)">'+esc(String(it.v))+'</span></div>';
+            }).join('');
+            var bar='<div style="margin-top:.5rem;height:4px;background:var(--line);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+kpi.score+'%;background:var(--accent)"></div></div>';
+            return '<div class="sca-card" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">'+
+              '<div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start">'+
+                '<div><div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">'+esc(a.appointment||'SCA')+'</div>'+
+                '<div style="margin-top:.3rem;color:var(--fg);font-size:.95rem"><strong>'+esc(a.identity_name||a.sca_id)+'</strong></div>'+
+                '<div style="margin-top:.2rem;font-size:.72rem;color:var(--muted)"><code>'+esc(a.sca_id)+'</code> · conta <code>'+esc(a.wallet_account)+'</code>'+genes+'</div></div>'+
+                '<div style="text-align:right"><div style="font-size:1.1rem;color:var(--fg)">'+kpi.score+'</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">KPI</div></div>'+
+              '</div>'+
+              bar+
+              '<div style="margin-top:.55rem">'+kpiRows+'</div>'+
+              '<div style="margin-top:.55rem;font-size:.72rem;color:var(--muted)">Skills: '+skills+' · '+esc(String(a.status))+'</div>'+
+            '</div>';
+          }).join('');
+        }
+      }
+      if(scores.length) set('acbKpiAvg', String(Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length)));
+      else set('acbKpiAvg', '—');
+    }catch(e){
+      if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
+    }
   };
 
   window.loadHolonsPanel=async function(){
@@ -3197,6 +3363,155 @@ var nftEl=document.getElementById('walletNftList');
 })();
 </script>
 
+
+<script>
+(function(){
+  window._bancadaMode = 'orbit';
+  window._selectedNft = null;
+  window.setBancadaMode = function(mode){
+    window._bancadaMode = mode === 'fps' ? 'fps' : 'orbit';
+    var lab=document.getElementById('bancadaModeLabel');
+    if(lab) lab.textContent = mode==='fps' ? 'Modo: 1ª pessoa (WASD + rato · Esc sai)' : 'Modo: órbita';
+    var bo=document.getElementById('btnBancadaOrbit');
+    var bf=document.getElementById('btnBancadaFps');
+    if(bo) bo.style.borderColor = mode==='orbit' ? 'var(--accent)' : 'var(--line2)';
+    if(bf) bf.style.borderColor = mode==='fps' ? 'var(--accent)' : 'var(--line2)';
+    try{
+      if(window.B && B.controls){
+        if(mode==='fps'){
+          B.controls.enabled = false;
+          var canvas=document.getElementById('bancadaCanvas');
+          if(canvas && canvas.requestPointerLock) canvas.requestPointerLock();
+        } else {
+          if(document.exitPointerLock) document.exitPointerLock();
+          B.controls.enabled = true;
+        }
+      }
+    }catch(e){}
+  };
+  window.resetBancadaCam = function(){
+    try{
+      if(document.exitPointerLock) document.exitPointerLock();
+      window._bancadaMode='orbit';
+      if(B && B.camera){ B.camera.position.set(0,9,16); B.camera.rotation.set(0,0,0); }
+      if(B && B.controls){ B.controls.enabled=true; B.controls.target.set(0,1.2,0); B.controls.update(); }
+      var lab=document.getElementById('bancadaModeLabel');
+      if(lab) lab.textContent='Modo: órbita';
+    }catch(e){}
+  };
+  // FPS movement loop
+  var keys={};
+  window.addEventListener('keydown', function(e){
+    keys[e.code]=true;
+    if(e.code==='Escape'){ try{ document.exitPointerLock(); }catch(_){} window._bancadaMode='orbit'; if(B&&B.controls) B.controls.enabled=true; }
+  });
+  window.addEventListener('keyup', function(e){ keys[e.code]=false; });
+  var yaw=0, pitch=0;
+  document.addEventListener('mousemove', function(e){
+    if(window._bancadaMode!=='fps' || document.pointerLockElement!==document.getElementById('bancadaCanvas')) return;
+    yaw -= e.movementX * 0.0022;
+    pitch -= e.movementY * 0.0022;
+    pitch = Math.max(-1.4, Math.min(1.4, pitch));
+  });
+  (function fpsLoop(){
+    requestAnimationFrame(fpsLoop);
+    if(window._bancadaMode!=='fps' || !window.B || !B.camera) return;
+    var speed = keys['ShiftLeft']||keys['ShiftRight'] ? 0.22 : 0.1;
+    var cam=B.camera;
+    cam.rotation.order='YXZ';
+    cam.rotation.y=yaw; cam.rotation.x=pitch;
+    var forward=new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+    var right=new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    if(keys['KeyW']) cam.position.addScaledVector(forward, speed);
+    if(keys['KeyS']) cam.position.addScaledVector(forward, -speed);
+    if(keys['KeyA']) cam.position.addScaledVector(right, -speed);
+    if(keys['KeyD']) cam.position.addScaledVector(right, speed);
+    if(keys['KeyQ']||keys['Space']) cam.position.y += speed;
+    if(keys['KeyE']||keys['ControlLeft']) cam.position.y -= speed;
+    cam.position.y = Math.max(0.4, Math.min(24, cam.position.y));
+  })();
+
+  window.openNftEdit = function(nft){
+    window._selectedNft = nft || window._selectedNft;
+    var box=document.getElementById('bancadaEditBox');
+    if(!box || !window._selectedNft) return;
+    var n=window._selectedNft;
+    var meta={};
+    try{ meta=typeof n.metadata_json==='string'? JSON.parse(n.metadata_json): (n.metadata_json||{}); }catch(_){}
+    document.getElementById('nftEditName').value = n.name || meta.name || '';
+    document.getElementById('nftEditDesc').value = n.description || meta.description || '';
+    document.getElementById('nftEditMode').value = n.mode || meta.mode || 'dynamic';
+    document.getElementById('nftEditWorld').value = n.world_id || meta.world_id || 'cmn-lab-world';
+    box.style.display='block';
+    document.getElementById('nftEditStatus').textContent='';
+  };
+  window.closeNftEdit = function(){
+    var box=document.getElementById('bancadaEditBox');
+    if(box) box.style.display='none';
+  };
+  window.saveNftEdits = async function(){
+    var st=document.getElementById('nftEditStatus');
+    var n=window._selectedNft;
+    if(!n){ if(st) st.textContent='Sem NFT seleccionado.'; return; }
+    var body={
+      id: n.id,
+      name: document.getElementById('nftEditName').value.trim(),
+      description: document.getElementById('nftEditDesc').value.trim(),
+      mode: document.getElementById('nftEditMode').value,
+      world_id: document.getElementById('nftEditWorld').value.trim()
+    };
+    if(st) st.textContent='A guardar…';
+    try{
+      var r=await fetch('/api/v1/token/nft/update',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      var j={}; try{ j=await r.json(); }catch(_){}
+      if(r.ok){
+        if(st) st.textContent='Alterações guardadas.';
+        n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
+        try{ if(typeof loadSandboxBench==='function') loadSandboxBench(); }catch(_){}
+      } else {
+        // Local optimistic update when API lacks update route
+        n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
+        try{ localStorage.setItem('nft_edit_'+n.id, JSON.stringify(body)); }catch(_){}
+        if(st) st.textContent='Guardado na sessão'+(j.error?(' · '+j.error):' (API update indisponível).');
+        var title=document.getElementById('bancadaHudTitle');
+        if(title) title.textContent=body.name||n.id;
+      }
+    }catch(e){
+      if(st) st.textContent=String(e.message||e);
+    }
+  };
+  window.promoteNftToWorld = async function(){
+    var st=document.getElementById('nftEditStatus');
+    var n=window._selectedNft;
+    if(!n){ if(st) st.textContent='Sem NFT seleccionado.'; return; }
+    var world=document.getElementById('nftEditWorld').value.trim()||n.world_id||'cmn-lab-world';
+    var body={ id:n.id, world_id:world, action:'promote_open_world', sandbox_id:n.sandbox_id };
+    if(st) st.textContent='A enviar para '+world+'…';
+    try{
+      var r=await fetch('/api/v1/token/nft/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      if(r.ok){ if(st) st.textContent='No mundo aberto '+world+'.'; n.world_id=world; }
+      else {
+        try{ localStorage.setItem('nft_world_'+n.id, world); }catch(_){}
+        n.world_id=world;
+        if(st) st.textContent='Marcado para mundo '+world+' (sessão).';
+      }
+    }catch(e){ if(st) st.textContent=String(e.message||e); }
+  };
+
+  // Hook detail actions when NFT selected — patch fill of bancadaDetailActions via MutationObserver-ish: wrap
+  var _origDetail = null;
+  window.attachNftDetailActions = function(nft){
+    window._selectedNft = nft;
+    var act=document.getElementById('bancadaDetailActions');
+    if(!act) return;
+    act.innerHTML=
+      '<button type="button" onclick="openNftEdit()" style="padding:.35rem .65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Editar objecto</button>'+
+      '<button type="button" onclick="openNftEdit();promoteNftToWorld()" style="padding:.35rem .65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Enviar ao mundo</button>';
+  };
+})();
+</script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
