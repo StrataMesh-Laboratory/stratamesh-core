@@ -653,7 +653,7 @@ function showPortal(user){
     var ui=document.getElementById('userInfo');
     if(ui)ui.style.display='flex';
     var ue=document.getElementById('userEmail');
-    if(ue)ue.textContent=(currentUser&&currentUser.email)||'';
+    if(ue){ue.textContent=(currentUser&&currentUser.email)||''; try{ if(currentUser&&currentUser.email) localStorage.setItem('sm_email', String(currentUser.email)); if(currentUser&&currentUser.strata_address) localStorage.setItem('strata_address', String(currentUser.strata_address)); }catch(e){} }
     var rb=document.getElementById('userRole');
     if(rb){
       var role=(currentUser&&currentUser.role)||'user';
@@ -2699,13 +2699,39 @@ window.__bancadaOnShow = function(){
   }
 
   window.loadWallet = async function(){
-    var account=meAccount();
     var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
     var meta=document.getElementById('walletAccountMeta');
-    if(meta){
-      if(!account){ meta.innerHTML='Conta: <b style="color:var(--muted)">—</b>'; }
-      else { meta.innerHTML='Conta: <b style="color:var(--fg)">'+esc(account)+'</b>'; }
+    var account=meAccount();
+
+    if(!account){
+      try{
+        var tokS=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');
+        if(tokS){
+          var meUrls=[authBase()+'/me','https://stratamesh-auth.stratamesh.workers.dev/me'];
+          for(var ui=0;ui<meUrls.length && !account;ui++){
+            try{
+              var rMe=await fetch(meUrls[ui],{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
+              if(!rMe.ok) continue;
+              var ju=await rMe.json();
+              if(!(ju&&(ju.success||ju.email||ju.id||ju.strata_address))) continue;
+              window.currentUser=Object.assign({},window.currentUser||{},ju);
+              try{
+                if(ju.email) localStorage.setItem('sm_email', String(ju.email));
+                if(ju.strata_address) localStorage.setItem('strata_address', String(ju.strata_address));
+              }catch(_){}
+              account=meAccount()||ju.email||ju.strata_address||ju.wallet||ju.id||ju.username||'';
+              if(account && String(account).indexOf('FOG-NODE')===0) account='';
+            }catch(_){}
+          }
+        }
+      }catch(_){}
     }
+
+    if(meta){
+      if(account) meta.innerHTML='Conta: <b style="color:var(--fg)">'+esc(account)+'</b>';
+      else meta.innerHTML='Conta: <b style="color:var(--muted)">—</b>';
+    }
+    set('nodeRank', 'FOG-NODE-PT-CM-001');
 
     var bal=null, mon=null, tok=null, nfts=[], me=null;
     try{
@@ -2713,12 +2739,14 @@ window.__bancadaOnShow = function(){
       if(rt.ok) tok=await rt.json();
     }catch(_){}
     try{
-      var rb=await fetch(tokenBase()+'/balance?account='+encodeURIComponent(account),{signal:AbortSignal.timeout(10000)});
-      if(rb.ok) bal=await rb.json();
+      if(account){
+        var rb=await fetch(tokenBase()+'/balance?account='+encodeURIComponent(account),{signal:AbortSignal.timeout(10000)});
+        if(rb.ok) bal=await rb.json();
+      }
     }catch(_){}
     try{
-      var rm=await fetch(tokenBase()+'/monetary',{signal:AbortSignal.timeout(10000)});
-      if(rm.ok) mon=await rm.json();
+      var rMon=await fetch(tokenBase()+'/monetary',{signal:AbortSignal.timeout(10000)});
+      if(rMon.ok) mon=await rMon.json();
     }catch(_){}
     try{
       var rn=await fetch(tokenBase()+'/list?limit=40',{signal:AbortSignal.timeout(12000)});
@@ -2728,6 +2756,18 @@ window.__bancadaOnShow = function(){
       var rw=await fetch(authBase()+'/wallet',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
       if(rw.ok) me=await rw.json();
     }catch(_){}
+
+    if(me){
+      var a2=me.email||me.account||me.strata_address||me.wallet||me.user_id||me.id;
+      if(a2 && String(a2).indexOf('FOG-NODE')!==0){
+        account=String(a2);
+        if(meta) meta.innerHTML='Conta: <b style="color:var(--fg)">'+esc(account)+'</b>';
+        try{
+          localStorage.setItem('sm_email', account);
+          window.currentUser=Object.assign({},window.currentUser||{},{email:account});
+        }catch(_){}
+      }
+    }
 
     var strata=null;
     if(bal&&bal.balances&&bal.balances[0]) strata=bal.balances[0].balance;
@@ -2744,8 +2784,8 @@ window.__bancadaOnShow = function(){
     nfts.forEach(function(n){
       var v=n.valuation||{};
       var fr=(v.possession&&v.possession.fractions)||[];
-      var mine=fr.filter(function(f){ return String(f.holder)===String(account); });
-      if(mine.length || n.owner===account){
+      var mine=fr.filter(function(f){ return account && String(f.holder)===String(account); });
+      if(mine.length || (account && n.owner===account)){
         var units=mine.reduce(function(a,f){return a+Number(f.strata_units||0);},0);
         fracSum+=units;
         myNfts.push({n:n,v:v,units:units,share:mine[0]?mine[0].share_pct:null});
@@ -2753,13 +2793,12 @@ window.__bancadaOnShow = function(){
     });
     set('walletNftCount', String(myNfts.length));
     set('walletFracUnits', fracSum?fracSum.toFixed(6):'0');
-    set('txCount', tok&&tok.holders!=null?String(tok.holders):(mon?'—':'—'));
-    set('walletMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):(tok?'—':'—'));
+    set('txCount', tok&&tok.holders!=null?String(tok.holders):'—');
+    set('walletMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):'—');
     set('walletBurn', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(4):'—'));
     set('walletCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):(tok&&tok.total_supply!=null?Number(tok.total_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'));
-    set('nodeRank', 'FOG-NODE-PT-CM-001');
 
-    var nftEl=document.getElementById('walletNftList');
+var nftEl=document.getElementById('walletNftList');
     if(nftEl){
       if(!myNfts.length){
         nftEl.innerHTML='<p style="color:var(--muted);margin:0">Sem NFT com frações nesta conta. Crie ou adquira colateral na Bancada CGU.</p>';
