@@ -77,8 +77,22 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);color:var(--fg);padding:.65rem 1.1rem;border-radius:4px;font-size:.85rem;display:none;z-index:200;max-width:90vw}
 .toast.show{display:block}.toast.error{border-color:var(--danger);color:var(--danger)}
 @media(max-width:560px){.header{padding:1rem}.login-box h2{font-size:1.7rem}.portal{padding:1rem 1rem 3rem}}
+
+.login-box input[type="checkbox"]{width:auto!important;min-width:1rem;max-width:1.15rem;height:1.15rem;margin:0.15rem 0.5rem 0 0;padding:0;flex-shrink:0;accent-color:var(--accent)}
+#termsRow{display:none;margin:0.75rem 0;padding:0.85rem 1rem;border:1px solid var(--line2);border-radius:4px;background:var(--card);box-sizing:border-box;width:100%;max-width:100%}
+#termsRow.on{display:block}
+#termsRow label.terms-lab{display:flex;flex-direction:row;align-items:flex-start;gap:0.65rem;cursor:pointer;font-size:0.85rem;line-height:1.45;color:var(--fg);margin:0;width:100%;box-sizing:border-box}
+#termsLabel{display:block;flex:1 1 auto;min-width:0;width:auto;max-width:100%;text-align:left;white-space:normal;word-break:normal;overflow-wrap:anywhere;letter-spacing:normal;writing-mode:horizontal-tb}
+#termsRow .terms-more{margin:0.5rem 0 0 1.75rem;font-size:0.75rem;color:var(--muted);line-height:1.4}
+#termsRow .terms-more a{color:var(--accent);text-decoration:none}
+#termsRow .terms-more a:hover{text-decoration:underline}
+
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous"></script>
+
 </head>
 <body>
 <div class="header">
@@ -97,10 +111,23 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <input type="email" id="email" placeholder="Email" autocomplete="email">
     <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+    <div id="user2faRow" style="display:none;margin:.5rem 0">
+      <input id="userOtp" type="text" inputmode="numeric" placeholder="2FA code (6 digits from email)" autocomplete="one-time-code">
+      <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem"></p>
+    </div>
+
     <div class="error" id="loginError"></div>
-    <div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
+            <div id="termsRow" class="terms-box">
+      <label class="terms-lab" for="termsAccept">
+        <input type="checkbox" id="termsAccept" />
+        <span id="termsLabel"></span>
+      </label>
+      <p class="terms-more"><a href="https://stratamesh-auth.stratamesh.workers.dev/terms?lang=pt" target="_blank" rel="noopener" id="termsLink">Ler termos completos</a></p>
+    </div>
+<div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
     <button type="button" onclick="handleAuth()" id="authBtn">Continue</button>
     <div class="toggle" onclick="toggleMode()" id="toggleText">Need an account? Register</div>
+    <div class="toggle" onclick="forgotPassword()" id="resetPwToggle">Reset password</div>
 
     <div id="socialLogin">
       <p>Common users</p>
@@ -125,7 +152,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
     <p class="login-foot">
       <a href="https://stratamesh-spa.stratamesh.workers.dev/">← Site</a>
-      · <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat">Orchestrator</a>
+      · <a href="/chat">Orchestrator</a>
     </p>
   </div>
 </div>
@@ -153,213 +180,280 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
   <p id="panelModeHint" style="font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.06em;color:var(--muted);margin:.35rem 0 0.75rem;text-transform:uppercase"></p>
 
-  <div class="panel active" id="panel-wallet">
-    <h3>Carteira STRATA / STRATA wallet</h3>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="strataBalance">0</div><div class="label">Saldo STRATA</div></div>
-      <div class="stat-card"><div class="value" id="txCount">0</div><div class="label">Movimentos / Holders</div></div>
-      <div class="stat-card"><div class="value" id="nodeRank">--</div><div class="label">Contexto do nó</div></div>
+  <div class="panel" id="panel-wallet">
+    <h3>STRATA wallet</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Fungible balance, NFT collateral fractions and monetary poles (#mint emission · #0 burn). NFT possession is measured by collateral fractions, not market price.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem">
+      <div class="stat-card"><div class="value" id="strataBalance">—</div><div class="label">Fungible balance</div></div>
+      <div class="stat-card"><div class="value" id="walletLabBal">—</div><div class="label">Lab offer</div></div>
+      <div class="stat-card"><div class="value" id="walletPocBal">—</div><div class="label">PoC transferable</div></div>
+      <div class="stat-card"><div class="value" id="walletNftCount">—</div><div class="label">NFT (possession)</div></div>
+      <div class="stat-card"><div class="value" id="walletFracUnits">—</div><div class="label">Collateral held</div></div>
+      <div class="stat-card"><div class="value" id="txCount">—</div><div class="label">Network holders</div></div>
     </div>
-    <h3 style="margin-top:20px">Actividade recente</h3>
-    <table class="tx-list"><thead><tr><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody id="txList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Sem movimentos ainda</td></tr></tbody></table>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.25rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Monetary poles</div>
+        <div style="margin-top:.65rem;font-size:.82rem;line-height:1.55">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:.35rem 0"><span>#mint emitted</span><strong id="walletMint">—</strong></div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:.35rem 0"><span>#0 out of circulation</span><strong id="walletBurn">—</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:.35rem 0"><span>Circulating</span><strong id="walletCirc">—</strong></div>
+        </div>
+        <p style="margin:.65rem 0 0;font-size:.72rem;color:var(--muted);line-height:1.4">#mint só emite via PdC e nunca recebe. #0 só recebe queimas e nunca transfere.</p>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Transfer STRATA</div>
+        <div style="margin-top:.65rem;display:flex;flex-direction:column;gap:.5rem">
+          <input id="walletTo" placeholder="Recipient (account)" style="padding:.6rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2,#333);color:var(--fg);border-radius:4px">
+          <input id="walletAmt" type="number" step="0.0001" min="0" placeholder="Amount" style="padding:.6rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2,#333);color:var(--fg);border-radius:4px">
+          <button type="button" onclick="walletTransfer()" style="padding:.6rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Send</button>
+        </div>
+        <p id="walletTxMsg" style="margin:.5rem 0 0;font-size:.72rem;color:var(--muted)"></p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.25rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:180px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem">
+          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">NFT · possession by fractions</div>
+          <button type="button" onclick="loadWallet()" style="padding:.3rem .55rem;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.68rem">Refresh</button>
+        </div>
+        <div id="walletNftList" style="font-size:.8rem"><p style="color:var(--muted)">A carregar…</p></div>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:180px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Account</div>
+        <div id="walletAccountMeta" style="font-size:.8rem;line-height:1.55;color:var(--muted)">—</div>
+        <div class="stat-card" style="margin-top:.75rem"><div class="value" id="nodeRank" style="font-size:1rem">—</div><div class="label">Context</div></div>
+      </div>
+    </div>
+    <h3 style="margin-top:.5rem;font-size:1.05rem">Recent activity</h3>
+    <div style="overflow:auto;border:1px solid var(--line);border-radius:8px">
+      <table class="tx-list" style="width:100%;margin:0"><thead><tr><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+      <tbody id="txList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">—</td></tr></tbody></table>
+    </div>
   </div>
 
   <div class="panel" id="panel-agora">
-    <h3>Ágora STRATA · câmbio P2P</h3>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="agoraPrice">--</div><div class="label">Cotação / versão</div></div>
-      <div class="stat-card"><div class="value" id="agoraVolume">0</div><div class="label">Volume 24h</div></div>
-      <div class="stat-card"><div class="value" id="agoraOrders">0</div><div class="label">Ordens abertas</div></div>
+    <h3>Ágora · câmbio P2P</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Mercado onde detentores listam STRATA por valor externo (EUR). Não emite STRATA — só troca P2P.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="agoraPrice">—</div><div class="label">EUR / STRATA</div></div>
+      <div class="stat-card"><div class="value" id="agoraStrataPer">—</div><div class="label">STRATA / EUR</div></div>
+      <div class="stat-card"><div class="value" id="agoraVolume">—</div><div class="label">Liquidez STRATA</div></div>
+      <div class="stat-card"><div class="value" id="agoraOrders">—</div><div class="label">Listagens activas</div></div>
     </div>
-    <div class="order-book">
-      <div class="order-side"><h4 class="bid">Compras (bids)</h4><div id="bidList">—</div></div>
-      <div class="order-side"><h4 class="ask">Vendas (asks)</h4><div id="askList">—</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:160px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Livro · listagens</div>
+        <div id="agoraBook"><p style="color:var(--muted);font-size:.82rem">A sincronizar…</p></div>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:160px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Cotação</div>
+        <div id="agoraQuoteMeta" style="font-size:.82rem;line-height:1.55;color:var(--muted)">—</div>
+      </div>
     </div>
   </div>
 
-
   <div class="panel" id="panel-economy">
-    <h3>Economia · PdC · Trabalho · DAO</h3>
-    <p class="lead">Live CMN meters — market-priced PoC, SCA labour, associative vs corporate DAOs. No faucets.</p>
+    <h3>Economia · PdC · malha</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Dois motores: contribuição de recursos (Q_C) e serviços de valor acrescentado. Mint só por PdC.</p>
     <div style="margin-bottom:1rem">
-      <button type="button" onclick="loadEconomy()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase">Refresh</button>
-      <span id="ecoStatus" style="margin-left:.75rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted)"></span>
+      <button type="button" onclick="loadEconomyPanel()" style="padding:.45rem .85rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Actualizar</button>
+      <span id="ecoStatus" style="margin-left:.75rem;font-family:IBM Plex Mono,monospace;font-size:.68rem;color:var(--muted)"></span>
     </div>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="ecoFogBal">--</div><div class="label">FOG STRATA</div></div>
-      <div class="stat-card"><div class="value" id="ecoCirc">--</div><div class="label">Circulating</div></div>
-      <div class="stat-card"><div class="value" id="ecoSink">--</div><div class="label">#0 burn</div></div>
-      <div class="stat-card"><div class="value" id="ecoMint">--</div><div class="label">#mint emitted</div></div>
-      <div class="stat-card"><div class="value" id="ecoAgoraRate">--</div><div class="label">Agora STRATA/EUR</div></div>
-      <div class="stat-card"><div class="value" id="ecoPins">--</div><div class="label">On-chain IPFS pins</div></div>
-      <div class="stat-card"><div class="value" id="ecoListings">--</div><div class="label">SCA listings open</div></div>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Névoa STRATA</div></div>
+      <div class="stat-card"><div class="value" id="ecoCirc">—</div><div class="label">Circulação</div></div>
+      <div class="stat-card"><div class="value" id="ecoSink">—</div><div class="label">#0 queima</div></div>
+      <div class="stat-card"><div class="value" id="ecoMint">—</div><div class="label">#mint</div></div>
+      <div class="stat-card"><div class="value" id="ecoAgoraRate">—</div><div class="label">Ágora EUR</div></div>
+      <div class="stat-card"><div class="value" id="ecoDepin">—</div><div class="label">Providers DePIN</div></div>
+      <div class="stat-card"><div class="value" id="ecoServices">—</div><div class="label">Serviços SCA</div></div>
     </div>
-    <h3 style="margin-top:1.5rem;font-size:1.15rem">PoC measurement</h3>
-    <pre id="ecoPoc" style="background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;overflow:auto;max-height:220px;color:var(--muted)">—</pre>
-    <h3 style="margin-top:1.25rem;font-size:1.15rem">Global resource averages (EUR)</h3>
-    <table class="tx-list"><thead><tr><th>Resource</th><th>Avg / unit</th><th>Source</th></tr></thead><tbody id="ecoAvgBody"><tr><td colspan="3" style="color:var(--muted)">—</td></tr></tbody></table>
-    <h3 style="margin-top:1.25rem;font-size:1.15rem">SCA labour market (CMN team)</h3>
-    <table class="tx-list"><thead><tr><th>SCA</th><th>Rate</th><th>Avail</th><th>Jobs</th><th>Rating</th></tr></thead><tbody id="ecoAcbBody"><tr><td colspan="5" style="color:var(--muted)">—</td></tr></tbody></table>
-    <h3 style="margin-top:1.25rem;font-size:1.15rem">DAOs</h3>
-    <table class="tx-list"><thead><tr><th>DAO</th><th>Kind</th><th>Quorum</th><th>Rules</th></tr></thead><tbody id="ecoDaoBody"><tr><td colspan="4" style="color:var(--muted)">—</td></tr></tbody></table>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">PdC / pool</div>
+        <pre id="ecoPoc" style="margin:0;font-family:IBM Plex Mono,monospace;font-size:.72rem;color:var(--muted);white-space:pre-wrap;max-height:200px;overflow:auto">—</pre>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Mercado laboral SCA</div>
+        <div id="ecoAcbBody" style="font-size:.8rem">—</div>
+      </div>
+    </div>
   </div>
 
   <div class="panel" id="panel-sandbox">
-    <h3>Web3 Sandbox</h3>
-    <p style="color:var(--muted);margin-bottom:16px">Create and mint digital assets on StrataMesh.</p>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value">0</div><div class="label">Assets Created</div></div>
-      <div class="stat-card"><div class="value">0</div><div class="label">NFTs Minted</div></div>
+    <h3>CGU Sandbox · STRATA NFT space</h3>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Three-dimensional sandbox topology: each NFT is a spatial node whose <b>possession</b> is STRATA collateral fractions (independent of market). Digital objects orbit the node. Drag to orbit · scroll to zoom · click a node to inspect.</p>
+    <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
+      <canvas id="bancadaCanvas" style="display:block;width:100%;height:100%"></canvas>
+      <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
+        <div style="pointer-events:none;background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);backdrop-filter:blur(8px)">
+          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Immersive sandbox</div>
+          <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:var(--fg)">—</div>
+          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">Loading topology…</div>
+        </div>
+        <div style="pointer-events:auto;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end">
+          <div style="background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:var(--muted)">
+            <span id="bancadaCount">0</span> nós · <span id="bancadaObjCount">0</span> objectos
+          </div>
+          <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Reset camera</button>
+        </div>
+      </div>
+      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in the sandbox — create the first node below.</div>
     </div>
-    <p style="color:#555;text-align:center;margin-top:20px">Sandbox environment initializing...</p>
+    <div class="stat-grid" style="margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Bancadas</div></div>
+      <div class="stat-card"><div class="value" id="nftCount">—</div><div class="label">NFT STRATA</div></div>
+    </div>
+    <div style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.5rem">
+      <input id="sbxTitle" placeholder="Creation title" style="flex:1;min-width:160px;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+      <input id="sbxColl" type="number" step="0.001" min="0.001" value="0.01" title="Colateral STRATA" style="width:7rem;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+      <select id="sbxMode" style="padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+        <option value="static">Static</option>
+        <option value="dynamic">Dynamic</option>
+      </select>
+      <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Create NFT node</button>
+      <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh space</button>
+    </div>
+    <div id="bancadaDetail" style="display:none;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem">
+      <div id="bancadaDetailBody"></div>
+      <div id="bancadaDetailActions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem"></div>
+    </div>
+    <div id="sandboxBench" style="display:none"></div>
   </div>
 
   <div class="panel" id="panel-dao">
-    <h3>DAO Governance</h3>
-    <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Foundational · Enterprise · Consortium templates — proposals anchored on DAG</p>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="daoProposals">0</div><div class="label">Proposals</div></div>
-      <div class="stat-card"><div class="value" id="daoTemplates">3</div><div class="label">Templates</div></div>
+    <h3>DAO · associativas e corporativas</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Associativas: quotas iguais, sem distribuição de lucros. Corporativas: participações e redistribuição conforme capital social externo.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="daoCount">—</div><div class="label">DAOs</div></div>
+      <div class="stat-card"><div class="value" id="daoAssoc">—</div><div class="label">Associativas</div></div>
+      <div class="stat-card"><div class="value" id="daoCorp">—</div><div class="label">Corporativas</div></div>
     </div>
-    <div style="margin:1rem 0;display:flex;flex-wrap:wrap;gap:.5rem">
-      <input id="propTitle" placeholder="Proposal title" style="flex:1;min-width:160px;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
-      <select id="propTemplate" style="padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
-        <option value="foundational">foundational</option>
-        <option value="enterprise">enterprise</option>
-        <option value="consortium">consortium</option>
-      </select>
-      <button onclick="createProposal()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Propose</button>
-    </div>
-    <div id="proposalList"><p style="color:var(--muted)">A carregar propostas…</p></div>
+    <div id="daoList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
   <div class="panel" id="panel-spa">
-    <h3>APS · Bancada CGU</h3>
-    <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">On-graph SPAs · pin market · compliance · opt-out</p>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="spaActive">0</div><div class="label">Active SPAs</div></div>
-      <div class="stat-card"><div class="value" id="spaOffers">0</div><div class="label">Pin offers</div></div>
+    <h3>APS · acordos de serviço</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Service Participation Agreements on-graph — fog, pinner e papéis de nó. Distintos de contratos de trabalho SCA.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="spaActive">—</div><div class="label">APS activas</div></div>
+      <div class="stat-card"><div class="value" id="spaOffers">—</div><div class="label">Tipos de serviço</div></div>
     </div>
-    <div style="margin:1rem 0;display:flex;gap:.5rem;flex-wrap:wrap">
-      <button onclick="registerSpa()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Register SPA</button>
-      <button onclick="loadSPA()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh</button>
-    </div>
-    <div id="spaList"><p style="color:var(--muted)">A carregar APS / bancadas…</p></div>
-    <h4 style="margin-top:1.25rem;font-weight:400;color:var(--muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase">Mercado de afixação</h4>
-    <div id="pinMarket"><p style="color:var(--muted)">—</p></div>
+    <div id="spaList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
   <div class="panel" id="panel-acb">
-    <h3>SCA · Autonomous Computational Beings</h3>
-    <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Proof of Subsistence — earn · pay compute · hibernate if insolvent</p>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
-      <button onclick="registerAcb()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Registar SCA</button>
-      <button onclick="loadACB()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh</button>
+    <h3>SCA · Seres Computacionais Autónomos</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Trabalho útil pago em STRATA; PdS para processar; hibernação se insolvente. Identidade pessoal ≠ cargo no nó.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="acbCount">—</div><div class="label">SCA</div></div>
+      <div class="stat-card"><div class="value" id="acbActive">—</div><div class="label">Activos</div></div>
+      <div class="stat-card"><div class="value" id="acbDormant">—</div><div class="label">Dormentes</div></div>
     </div>
-    <div id="acbList"><p style="color:var(--muted)">A carregar estado dos SCA…</p></div>
+    <div id="acbList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
   <div class="panel" id="panel-holons">
-    <h3>Holões · SO do Metaverso</h3>
-    <p class="lead">Vista pessoal (clearance ≥ confidential): pilha holónica, syscalls e barramento.</p>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="value" id="holonBoot">--</div><div class="label">Boot SO</div></div>
-      <div class="stat-card"><div class="value" id="holonLayers">--</div><div class="label">Camadas</div></div>
-      <div class="stat-card"><div class="value" id="holonEvents">--</div><div class="label">Eventos</div></div>
+    <h3>Camadas holónicas · SO Metaverso</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">TRD → SO Metaverso → Domínio Virtual → Mundo Aberto → Bancada CGU → agente/utilizador. CLP embutido na TRD.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="holonVersion">—</div><div class="label">Versão</div></div>
+      <div class="stat-card"><div class="value" id="holonLayers">—</div><div class="label">Camadas</div></div>
+      <div class="stat-card"><div class="value" id="holonStatus">—</div><div class="label">Estado</div></div>
     </div>
-    <pre id="holonPath" style="margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;font-size:.75rem;overflow:auto;color:var(--muted)"></pre>
-    <button type="button" class="btn" onclick="loadHolonsPanel()" style="margin-top:.75rem;padding:.6rem 1rem;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Refresh</button>
+    <div id="holonStack" style="display:flex;flex-direction:column;gap:.5rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
-  
-  <div class="panel" id="panel-kyc-user" style="display:none">
-    <h2>Account verification (KYC)</h2>
-    <p style="color:var(--muted);font-size:.9rem">Terms accepted at registration. To unlock the panel: passport photo (MRZ) or MRZ lines. Automated <strong>ICAO 9303</strong> checks (open standard; OCR via Workers AI LLaVA). Legal name is stored <em>internally</em>.</p>
-    <div style="margin:12px 0">
-      <label>Document photo (passport / ID)</label>
-      <input type="file" id="kycImage" accept="image/*" capture="environment" />
+  <div class="panel" id="panel-kyc-user">
+    <h3>Account verification</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Desbloqueia ferramentas do painel após validação automática (MRZ ICAO 9303). Nome legal e números de documento são <em>internos</em>, não públicos. O nome de utilizador é a identidade pública no Nó.</p>
+    <div id="kycUserStatus" style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.82rem;color:var(--muted)">A verificar estado…</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Documento</div>
+        <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Fotografia (passaporte / ID)</label>
+        <input type="file" id="kycImage" accept="image/*" capture="environment" style="width:100%;margin-bottom:.75rem;font-size:.8rem">
+        <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Nº documento (identificador soberano)</label>
+        <input id="kycSovereign" placeholder="Nº passaporte / cidadão" style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;box-sizing:border-box">
+        <button type="button" id="kycOcrBtn" onclick="runKycOcr()" style="width:100%;padding:.6rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">OCR da fotografia</button>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">MRZ (opcional)</div>
+        <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Linha 1</label>
+        <input id="kycMrz1" placeholder="P&lt;UTO..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:IBM Plex Mono,monospace;font-size:.75rem;box-sizing:border-box">
+        <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Linha 2</label>
+        <input id="kycMrz2" placeholder="..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:IBM Plex Mono,monospace;font-size:.75rem;box-sizing:border-box">
+        <button type="button" id="kycSubmitBtn" onclick="runKycSubmit()" style="width:100%;padding:.6rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Submeter verificação</button>
+      </div>
     </div>
-    <div style="margin:8px 0">
-      <label>Document number (sovereign_id)</label>
-      <input id="kycSovereign" placeholder="Passport / national ID number" style="width:100%;padding:8px" />
-    </div>
-    <div style="margin:8px 0">
-      <label>MRZ line 1 (optional if photo uploaded)</label>
-      <input id="kycMrz1" placeholder="P&lt;..." style="width:100%;padding:8px;font-family:monospace;font-size:.8rem" />
-    </div>
-    <div style="margin:8px 0">
-      <label>MRZ line 2</label>
-      <input id="kycMrz2" placeholder="..." style="width:100%;padding:8px;font-family:monospace;font-size:.8rem" />
-    </div>
-    <button type="button" id="kycOcrBtn" onclick="runKycOcr()">OCR from photo</button>
-    <button type="button" id="kycSubmitBtn" onclick="runKycSubmit()">Submit verification</button>
-    <pre id="kycResult" style="margin-top:12px;font-size:.75rem;white-space:pre-wrap;color:var(--muted)"></pre>
+    <pre id="kycResult" style="margin:0;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.72rem;white-space:pre-wrap;color:var(--muted);min-height:3rem"></pre>
   </div>
 
   <div class="panel" id="panel-kyc">
-    <h3>Fila de verificação (KYC)</h3>
-    <div id="kycPending"><p style="color:var(--muted)">A carregar verificações pendentes…</p></div>
-    <h3 style="margin-top:24px">Verified Users</h3>
-    <div id="kycVerified"><p style="color:var(--muted)">A carregar utilizadores verificados…</p></div>
+    <h3>Verification queue (KYC)</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Aprovação e acompanhamento de verificações. A validação automática (MRZ / OCR) corre no worker; esta fila é a vista de pessoal.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1.25rem">
+      <div class="stat-card"><div class="value" id="kycStatPending">—</div><div class="label">Pending</div></div>
+      <div class="stat-card"><div class="value" id="kycStatVerified">—</div><div class="label">Verified</div></div>
+      <div class="stat-card"><div class="value" id="kycStatTotal">—</div><div class="label">Total</div></div>
+      <div class="stat-card"><div class="value" id="kycStatRejected">—</div><div class="label">Rejected</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem">
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:200px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Pending</div>
+          <button type="button" onclick="loadKycQueue()" style="padding:.3rem .55rem;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.68rem">Refresh</button>
+        </div>
+        <div id="kycPending"><p style="color:var(--muted);font-size:.82rem">A carregar…</p></div>
+      </div>
+      <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:200px">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.75rem">Verified</div>
+        <div id="kycVerified"><p style="color:var(--muted);font-size:.82rem">A carregar…</p></div>
+      </div>
+    </div>
   </div>
 
   <div class="panel" id="panel-users">
     <h3>Gestão de utilizadores</h3>
-    <div class="admin-grid">
-      <div class="admin-card">
-        <h4>Statistics</h4>
-        <div class="stat-grid">
-          <div class="stat-card"><div class="value" id="totalUsers">--</div><div class="label">Total Users</div></div>
-          <div class="stat-card"><div class="value" id="pendingUsers">--</div><div class="label">Pending</div></div>
-          <div class="stat-card"><div class="value" id="verifiedUsers">--</div><div class="label">Verified</div></div>
-        </div>
-      </div>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem">Estatísticas da base de contas do Nó (requer sessão de pessoal).</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="totalUsers">—</div><div class="label">Total</div></div>
+      <div class="stat-card"><div class="value" id="pendingUsers">—</div><div class="label">Pendentes</div></div>
+      <div class="stat-card"><div class="value" id="verifiedUsers">—</div><div class="label">Verificados</div></div>
     </div>
+    <div id="usersNote" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.82rem;color:var(--muted)">A carregar…</div>
   </div>
 
   <div class="panel" id="panel-system">
-    <h3>System Status</h3>
-    <div class="admin-grid">
-      <div class="admin-card">
-        <h4>Node Health</h4>
-        <p style="color:var(--muted)">All systems operational</p>
-      </div>
-      <div class="admin-card">
-        <h4>SCA Labour Market</h4>
-        <p style="color:var(--muted)">View SCA task distribution and node utilization</p>
-      </div>
-    </div>
+    <h3>Estado do sistema</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem">Pulse dos serviços do Nó — não um gráfico vazio; grelha de saúde em tempo quase real.</p>
+    <div id="systemHealthGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.65rem"><p style="color:var(--muted)">A sondar…</p></div>
+    <button type="button" onclick="loadSystemPanel()" style="margin-top:1rem;padding:.5rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Actualizar</button>
   </div>
 
-  <!-- DIAGNOSTIC WIZARD -->
-  
   <div class="panel" id="panel-iot">
-    <h2 data-i18n="iot_title">IoT · Edge</h2>
-    <p class="lead">Universal edge ingest — ACK imediato, GDA em background, identidade por função (não por substrato).</p>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0">
-      <button type="button" onclick="loadIot()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Actualizar</button>
-      <a href="https://stratamesh-iot.stratamesh.workers.dev/compat" target="_blank" rel="noopener" style="padding:.55rem 1rem;border:1px solid var(--line2);border-radius:4px;color:var(--accent);text-decoration:none;font-size:.85rem">/compat</a>
+    <h3>IoT · Limiar</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Ingestão universal no limiar — impacto nulo no dispositivo; identidade por função, não por substrato.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="iotAgentsN">—</div><div class="label">Agentes</div></div>
+      <div class="stat-card"><div class="value" id="iotMode">—</div><div class="label">Modo</div></div>
+      <div class="stat-card"><div class="value" id="iotVersion">—</div><div class="label">Versão</div></div>
     </div>
-    <div id="iotStats" style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted);margin-bottom:1rem">A carregar…</div>
-    <h3 style="font-size:1rem;margin:.5rem 0">Agentes recentes</h3>
-    <div id="iotAgents" style="overflow:auto"></div>
-    <h3 style="font-size:1rem;margin:1rem 0 .5rem">Quick test</h3>
-    <p style="font-size:.82rem;color:var(--muted)">POST de telemetria de teste (não controla aparelhos).</p>
-    <button type="button" onclick="iotPing()" style="padding:.55rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Send lab ping</button>
-    <pre id="iotPingOut" style="margin-top:.75rem;font-size:.75rem;color:var(--muted);white-space:pre-wrap"></pre>
+    <div id="iotAgents" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.65rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
   <div class="panel" id="panel-diagnostics">
     <h3>Troubleshooting · RCA</h3>
-    <p style="color:var(--muted);margin-bottom:16px">End-to-end diagnostics across StrataMesh services. Results are shared between users and the Orchestrator.</p>
-    <button class="diag-run-btn" onclick="runDiagnostics()" id="diagRunBtn">Full diagnostic</button>
-    <div id="diagResults"></div>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem">Diagnóstico de ponta a ponta. Resultados em cartões — não gráficos vazios.</p>
+    <button type="button" id="diagRunBtn" onclick="runDiagnosticsPanel()" style="padding:.5rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500;margin-bottom:1rem">Diagnóstico completo</button>
+    <div id="diagResults" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.65rem"><p style="color:var(--muted);font-size:.82rem">Execute o diagnóstico para ver o pulse dos serviços.</p></div>
   </div>
 
-  
   <div class="panel" id="panel-orch">
     <h3>Orchestrator</h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="https://stratamesh-orchestrator.stratamesh.workers.dev/chat" target="_blank" rel="noopener" style="color:var(--accent)">Open full chat</a></p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Hybrid Orchestrator chat. <a href="/chat" target="_blank" rel="noopener" style="color:var(--accent)">Open full chat</a></p>
+    <p style="font-size:.72rem;color:var(--muted);margin:0 0 .5rem">Clearance: <span id="orchClearance">—</span> · <a href="/chat" style="color:var(--accent)">Chat completo</a></p>
     <div id="orchChat" style="height:320px;overflow-y:auto;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5"></div>
     <div style="display:flex;gap:8px">
       <input id="orchInput" style="flex:1;min-width:0;max-width:100%" type="text" placeholder="Message the Orchestrator…" style="flex:1;padding:12px;background:var(--card);border:1px solid var(--line2);border-radius:8px;color:#e0e0e0;font-size:14px">
@@ -370,17 +464,16 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   
   <div class="panel" id="panel-clp">
-    <h2>Temporalidade CLP</h2>
-    <p class="hint" style="color:var(--muted);font-size:.88rem;margin-bottom:1rem;line-height:1.55">
-      Calendário Lunisolar Planetário — kernel temporal do <strong>Web3 Metaverse OS</strong> (partilhado entre nós).
-      O dashboard vive <em>dentro</em> das camadas holónicas; o CLP calibra o endereço temporal relativo e a matriz PPC.
-    </p>
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
-      <a href="/clp" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.5rem .9rem;border:1px solid var(--line2);border-radius:4px;color:var(--accent);text-decoration:none">Abrir CLP a ecrã completo</a>
+    <h3>Temporalidade CLP</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Calendário Lunisolar Planetário — kernel temporal partilhado. Não é uma camada holónica separada; calibra o endereço temporal na TRD.</p>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="clpSunrise" style="font-size:1rem">—</div><div class="label">Nascer</div></div>
+      <div class="stat-card"><div class="value" id="clpZenith" style="font-size:1rem">—</div><div class="label">Zénite</div></div>
+      <div class="stat-card"><div class="value" id="clpSunset" style="font-size:1rem">—</div><div class="label">Ocaso</div></div>
+      <div class="stat-card"><div class="value" id="clpLocale" style="font-size:.85rem">Lisboa</div><div class="label">PPC local</div></div>
     </div>
-    <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050505;min-height:70vh">
-      <iframe src="/clp" title="Sistema Temporal CLP" style="width:100%;height:75vh;border:0;display:block" loading="lazy"></iframe>
-    </div>
+    <div id="clpAddress" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.82rem;line-height:1.5;color:var(--muted);margin-bottom:1rem">A calcular endereço temporal…</div>
+    <a href="/clp" style="display:inline-block;padding:.5rem 1rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Abrir calendário completo</a>
   </div>
 
   <div class="panel" id="panel-profile">
@@ -398,20 +491,21 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
 const API=(location.pathname.startsWith('/dashboard')?'/api/auth':'/api/auth');
 const SVC = {
-  agora: 'https://stratamesh-agora.stratamesh.workers.dev',
-  acb: 'https://stratamesh-acb.stratamesh.workers.dev',
-  dao: 'https://stratamesh-dao.stratamesh.workers.dev',
-  token: 'https://stratamesh-token.stratamesh.workers.dev',
-  poc: 'https://stratamesh-poc.stratamesh.workers.dev',
-  sandbox: 'https://stratamesh-sandbox.stratamesh.workers.dev',
-  orch: 'https://stratamesh-orchestrator.stratamesh.workers.dev',
+  agora: '/api/v1/agora',
+  acb: '/api/v1/acb',
+  dao: '/api/v1/dao',
+  token: '/api/v1/token',
+  poc: '/api/v1/poc',
+  sandbox: '/api/v1/sandbox',
+  orch: '/api/v1/orchestrator',
   holons: 'https://stratamesh-holons.stratamesh.workers.dev',
   auth: 'https://stratamesh-auth.stratamesh.workers.dev',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
-  spa: 'https://stratamesh-spa.stratamesh.workers.dev',
+  spa: '',
   gate: 'https://stratamesh-gate.stratamesh.workers.dev',
   iot: 'https://stratamesh-iot.stratamesh.workers.dev',
   dag: 'https://stratamesh-dag.stratamesh.workers.dev',
+  nft: '/api/v1/token',
 };
 const LANG = (function(){
   try {
@@ -429,11 +523,34 @@ else { try { document.documentElement.lang = 'en-GB'; } catch (e) {} }
 
 function T(pt, en){ return LANG==='en' ? en : pt; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-let isRegister=false,currentUser=null,token=localStorage.getItem('sm_token')||localStorage.getItem('token');
+let isRegister=false,userChallenge=null,currentUser=null,token=localStorage.getItem('sm_token')||localStorage.getItem('token');
 
 function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e||'success');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 
-function toggleMode(){isRegister=!isRegister;document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');document.getElementById('toggleText').textContent=isRegister?T('Already have an account? Sign in','Already have an account? Sign in'):T('Need an account? Register','Need an account? Register');document.getElementById('loginError').style.display='none'}
+function toggleMode(){
+  isRegister=!isRegister;
+  document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');
+  document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');
+  document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar','Already have an account? Sign in'):T('Precisa de conta? Registar','Need an account? Register');
+  document.getElementById('loginError').style.display='none';
+  var pw=document.getElementById('password');
+  if(pw){ pw.style.display=isRegister?'none':'block'; if(isRegister) pw.value=''; }
+  var terms=document.getElementById('termsRow');
+  if(terms){ terms.style.display=isRegister?'block':'none'; terms.classList.toggle('on', !!isRegister); }
+  var ta=document.getElementById('termsAccept');
+  if(ta) ta.checked=false;
+  var lab=document.getElementById('termsLabel');
+  if(lab) lab.textContent=LANG==='en'
+    ? 'I accept the Calhegas Morais Node terms and conditions (version node-1.0).'
+    : 'Aceito os termos e condições do Nó Calhegas Morais (versão node-1.0).';
+  var link=document.getElementById('termsLink');
+  if(link){ link.href='https://stratamesh-auth.stratamesh.workers.dev/terms?lang='+(LANG==='en'?'en':'pt'); link.textContent=LANG==='en'?'Read full terms':'Ler termos completos'; }
+  var reset=document.getElementById('resetPwToggle');
+  if(reset) reset.style.display=isRegister?'none':'block';
+  var u2=document.getElementById('user2faRow');
+  if(u2) u2.style.display='none';
+  userChallenge=null;
+}
 
 
 
@@ -448,11 +565,27 @@ function clearanceRank(c){
   var m={public:0,internal:1,confidential:2,secret:3,top_secret:4};
   return m[String(c||'public').toLowerCase().replace(/-/g,'_')]||0;
 }
+function mapCl(raw){
+  var s=String(raw||'').toLowerCase().replace(/[\s-]+/g,'_');
+  if(!s) return '';
+  if(['top_secret','topsecret','ts','root','god','root_admin','superadmin','owner'].indexOf(s)>=0) return 'top_secret';
+  if(['secret','sec','admin'].indexOf(s)>=0) return 'secret';
+  if(['confidential','conf','staff'].indexOf(s)>=0) return 'confidential';
+  if(['internal','intl','operator','lab','basic','user','verified','member'].indexOf(s)>=0) return 'internal';
+  if(['public','pub','guest','anonymous','anon'].indexOf(s)>=0) return 'public';
+  return 'internal';
+}
 function currentClearance(){
   try{
-    return (currentUser&&(currentUser.clearance||currentUser.clearance_level))||localStorage.getItem('clearance')||'public';
+    var tok=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
+    var raw=(currentUser&&(currentUser.clearance_level||currentUser.clearance||currentUser.role))||localStorage.getItem('clearance')||localStorage.getItem('clearance_level')||'';
+    var cl=mapCl(raw);
+    if(tok && (!cl || cl==='public')) cl='internal';
+    if(!tok) cl='public';
+    return cl||'public';
   }catch(e){ return 'public'; }
 }
+
 /** Pessoal = todas as funções do comum + extras; extras filtrados por clearance da conta */
 function applyNavPermissions(){
   var staff=isStaffUser();
@@ -493,6 +626,14 @@ async function loadHolonsPanel(){
 }
 
 function showPortal(user){
+  if(user){
+    currentUser=Object.assign({}, currentUser||{}, user);
+    var cl=mapCl(user.clearance_level||user.clearance||user.role||'');
+    if((localStorage.getItem('sm_token')||localStorage.getItem('token')) && (!cl||cl==='public')) cl='internal';
+    if(cl){ try{ localStorage.setItem('clearance', cl); localStorage.setItem('clearance_level', cl); }catch(e){} }
+    currentUser.clearance=cl; currentUser.clearance_level=cl;
+  }
+
   try{
     if(user && typeof user === 'object'){
       currentUser = Object.assign({}, currentUser||{}, user);
@@ -530,7 +671,7 @@ function showPortal(user){
     }
     var pe=document.getElementById('profileEmail'); if(pe)pe.textContent=(currentUser&&currentUser.email)||'--';
     var pr=document.getElementById('profileRole'); if(pr)pr.textContent=(currentUser&&currentUser.role)||'--';
-    var pc=document.getElementById('profileClearance'); if(pc)pc.textContent=(currentUser&&(currentUser.clearance||currentUser.clearance_level))||localStorage.getItem('clearance')||'--';
+    var pc=document.getElementById('profileClearance'); if(pc)pc.textContent=currentClearance();
     try{ loadWallet(); }catch(e){}
   }catch(ex){ console.error('showPortal',ex); try{showToast(String(ex.message||ex),'error');}catch(_){} }
 }
@@ -546,6 +687,31 @@ function logout(){
   if(ui)ui.style.display='none';
 }
 
+
+function getTurnstileToken(){
+  try{
+    var el=document.querySelector('[name="cf-turnstile-response"]');
+    if(el && el.value && el.value.length>10) return el.value;
+  }catch(_){}
+  try{
+    if(window.turnstile && typeof window.turnstile.getResponse==='function'){
+      var t=window.turnstile.getResponse();
+      if(t && t.length>10) return t;
+    }
+  }catch(_){}
+  try{
+    var widgets=document.querySelectorAll('.cf-turnstile');
+    for(var i=0;i<widgets.length;i++){
+      var id=widgets[i].getAttribute('data-widget-id')||widgets[i].id;
+      if(window.turnstile && id){
+        var t2=window.turnstile.getResponse(id);
+        if(t2 && t2.length>10) return t2;
+      }
+    }
+  }catch(_){}
+  return '';
+}
+
 async function handleAuth(){
   const e=(document.getElementById('email').value||'').trim();
   const p=document.getElementById('password').value||'';
@@ -555,9 +721,38 @@ async function handleAuth(){
     if(errEl){ errEl.textContent=msg||''; errEl.style.display=msg?'block':'none'; }
     try{ if(msg) showToast(msg,'error'); }catch(_){}
   }
-  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório','Email required'):'Email required'); return; } } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios','Email and password required'):'Email and password required'); return; } }
+  // Complete 2FA if challenge pending
+  if(userChallenge && !isRegister){
+    const code=(document.getElementById('userOtp')&&document.getElementById('userOtp').value||'').trim();
+    if(code.length>=6){
+      if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Verifying…':'A verificar…';}
+      try{
+        const AUTH=(window.SVC&&SVC.auth)||'https://stratamesh-auth.stratamesh.workers.dev';
+        const r=await fetch(AUTH+'/auth/email/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:userChallenge,code:code,lang:LANG==='en'?'en':'pt'})});
+        const j=await r.json().catch(function(){return {};});
+        if(j.success && (j.token||j.session_token)){
+          token=j.token||j.session_token;userChallenge=null;
+          try{ localStorage.setItem('token',token); localStorage.setItem('sm_token',token); localStorage.setItem('auth_type','user'); }catch(_){}
+          currentUser=Object.assign({type:'user',email:e}, j);
+          showPortal(currentUser); return;
+        }
+        setErr(j.error||j.message||'2FA failed');
+      }catch(ex){ setErr(String(ex.message||ex)); }
+      finally{ if(btn){btn.disabled=false;btn.textContent=LANG==='en'?'Verify 2FA':'Verificar 2FA';} }
+      return;
+    }
+  }
+  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório','Email required'):'Email required'); return; }
+    if(!(document.getElementById('termsAccept')&&document.getElementById('termsAccept').checked)){
+      setErr(LANG==='en'?'You must accept the Node terms and conditions.':'Tem de aceitar os termos e condições do Nó.'); return;
+    }
+  } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios','Email and password required'):'Email and password required'); return; } }
   setErr('');
-  if(btn){btn.disabled=true;btn.textContent='A autenticar…';}
+  if(isRegister && !getTurnstileToken()){
+    setErr(LANG==='en'?'Complete the security check (Turnstile) first.':'Complete primeiro a verificação de segurança (Turnstile).');
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Signing in…':'A autenticar…';}
   const path=isRegister?'/register':'/login';
   const urls=[
     'https://stratamesh-auth.stratamesh.workers.dev'+path,
@@ -568,10 +763,23 @@ async function handleAuth(){
     for(const url of urls){
       try{
         const ctrl=new AbortController();
-        const timer=setTimeout(()=>ctrl.abort(),12000);
-        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(isRegister?{email:e,lang:'en','cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}:{email:e,password:p,lang:'en','cf-turnstile-response':(document.querySelector('[name=cf-turnstile-response]')||{}).value||(window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'')||''}),signal:ctrl.signal});
+        const timer=setTimeout(()=>ctrl.abort(),8000);
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(isRegister?{email:e,lang:'en',terms_accepted:!!(document.getElementById('termsAccept')&&document.getElementById('termsAccept').checked),terms_version:'node-1.0','cf-turnstile-response':getTurnstileToken()}:{email:e,password:p,lang:'en','cf-turnstile-response':getTurnstileToken()}),signal:ctrl.signal});
         clearTimeout(timer);
         const j=await r.json().catch(()=>({}));
+        if(j.requires_2fa && j.challenge){
+          userChallenge=j.challenge;
+          var row2=document.getElementById('user2faRow');
+          if(row2) row2.style.display='block';
+          var hint=document.getElementById('userOtpHint');
+          if(hint) hint.textContent=j.message||(LANG==='en'?'Enter the 6-digit code from your email.':'Introduza o código de 6 dígitos do e-mail.');
+          var otpEl=document.getElementById('userOtp');
+          if(otpEl){ otpEl.focus(); }
+          if(btn){btn.disabled=false;btn.textContent=LANG==='en'?'Verify 2FA':'Verificar 2FA';}
+          setErr('');
+          try{ showToast(LANG==='en'?'Check your email for the code':'Consulte o e-mail para o código'); }catch(_){}
+          return;
+        }
         if(j.token || (j.success && j.session_token)){
           token=j.token||j.session_token;
           try{ localStorage.setItem('token',token); localStorage.setItem('sm_token',token); localStorage.setItem('auth_type','user'); }catch(_){}
@@ -1042,7 +1250,7 @@ const WORKERS = [
   {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora taxa EUR',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
   {name:'stratamesh-spa',path:'/dashboard',desc:'Portal SPA',skipJson:true,open:'/dashboard'},
   {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'GDA / DAG',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
-  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'https://stratamesh-orchestrator.stratamesh.workers.dev/chat'},
+  {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'/chat'},
   {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps',open:'https://stratamesh-aiops.stratamesh.workers.dev/health'},
   {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
   {name:'stratamesh-republic',path:'https://stratamesh-republic.stratamesh.workers.dev/health',desc:'República Computacional',open:'https://stratamesh-republic.stratamesh.workers.dev/health'},
@@ -1106,15 +1314,15 @@ async function sendOrchChat(){
   try{
     const tok=localStorage.getItem('sm_token')||localStorage.getItem('token')||'';
     const prior=window.__orchPriorIntent||undefined;
-    const payload={message:msg,token:tok,prior_intent:prior,lang:(typeof LANG!=='undefined'&&LANG==='en')?'en-GB':'pt-PT'};
+    const payload={message:msg,token:tok,prior_intent:prior,lang:(typeof LANG!=='undefined'&&LANG==='en')?'en-GB':'pt-PT',clearance:(currentUser&&(currentUser.clearance_level||currentUser.clearance))||localStorage.getItem('clearance')||undefined};
     const ctrl=new AbortController();
     const timer=setTimeout(function(){ctrl.abort();},25000);
-    let r;try{r=await fetch('/api/orchestrator/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});if(!r.ok)throw new Error('proxy '+r.status);}catch(_e){r=await fetch('https://stratamesh-orchestrator.stratamesh.workers.dev/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});}
+    let r;try{r=await fetch('/api/orchestrator/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});if(!r.ok)throw new Error('proxy '+r.status);}catch(_e){r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(payload),signal:ctrl.signal});}
     clearTimeout(timer);
     const j=await r.json().catch(function(){return {};});
     if(j.intent) window.__orchPriorIntent=j.intent;
     if(!r.ok && !j.reply) add('System', j.error||('HTTP '+r.status));
-    else add('Orquestrador', j.reply||j.error||JSON.stringify(j));
+    else { var meta=(j.account_clearance||j.clearance)?(' ['+(j.account_clearance||j.clearance)+']'):''; add('Orquestrador'+meta, j.reply||j.error||JSON.stringify(j)); var clEl=document.getElementById('orchClearance'); if(clEl) clEl.textContent=(j.account_clearance||j.clearance||'—')+(j.clearance_source?(' · '+j.clearance_source):''); }
   }catch(e){
     add('System', (e&&e.name==='AbortError')?T('Tempo esgotado — o Orquestrador não respondeu a tempo. Experimente status ou abra o chat completo.','Timeout — Orchestrator did not answer in time.'):String(e.message||e));
   }finally{
@@ -1174,7 +1382,7 @@ async function staffAuth(){
       }
       if (j.token) {
         token = j.token;
-        try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
+        try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
         currentUser = Object.assign({ type:'staff', email: email }, j);
         try{ showToast('Staff access concedido'); }catch(_){}
         showPortal(currentUser);
@@ -1190,7 +1398,7 @@ async function staffAuth(){
       const j = await r.json().catch(()=>({}));
       if (!j.success || !j.token) throw new Error(j.error||'2FA failed');
       token = j.token;
-      try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', j.clearance||''); } catch(e){}
+      try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
       currentUser = Object.assign({ type:'staff', email: email }, j);
       staffChallenge = null;
       try{ showToast('Staff access concedido'); }catch(_){}
@@ -1746,7 +1954,7 @@ async function loadProfilePanel(){
   var pc=document.getElementById('profileClearance');
   if(pe) pe.textContent=(currentUser&&currentUser.email)||localStorage.getItem('sm_email')||'—';
   if(pr) pr.textContent=(currentUser&&(currentUser.role||currentUser.type))||(isStaffUser&&isStaffUser()?'staff':'user')||'—';
-  if(pc) pc.textContent=(currentUser&&(currentUser.clearance||currentUser.clearance_level))||localStorage.getItem('clearance')||'public';
+  if(pc) pc.textContent=currentClearance();
   var extra=document.getElementById('profileExtra');
   if(!extra){
     var panel=document.getElementById('panel-profile');
@@ -1766,7 +1974,7 @@ async function loadWallet(){
   var rank=document.getElementById('nodeRank');
   var list=document.getElementById('txList');
   try{
-    var account=(currentUser&&(currentUser.strata_address||currentUser.id||currentUser.email))||'FOG-NODE-PT-CM-001';
+    var account=(currentUser&&(currentUser.strata_address||currentUser.id||currentUser.email))||meAccount()||'';
     var bal=null, mon=null;
     try{
       var r=await fetch(SVC.token+'/balance?account='+encodeURIComponent(account),{signal:AbortSignal.timeout(8000)});
@@ -1929,7 +2137,1013 @@ window.showPanel = function(name, btn){
 };
 
 </script>
-</body>
+
+
+
+
+<script>
+(function(){
+  if (window.SVC) {
+    SVC.agora='/api/v1/agora'; SVC.acb='/api/v1/acb'; SVC.dao='/api/v1/dao';
+    SVC.token='/api/v1/token'; SVC.poc='/api/v1/poc'; SVC.sandbox='/api/v1/sandbox';
+    SVC.orch='/api/v1/orchestrator'; SVC.nft='/api/v1/token';
+  }
+  function esc2(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]);}); }
+  function me(){ return (function(){try{var em=window.__SESSION_EMAIL||window.__USER_EMAIL||localStorage.getItem('sm_email')||localStorage.getItem('email');if(em)return em;}catch(_){}return '';})(); }
+
+  var B = {
+    scene: null, camera: null, renderer: null, controls: null,
+    raycaster: null, mouse: null, root: null, nodes: [],
+    selected: null, anim: 0, nfts: [], running: false
+  };
+
+  function modeColor(mode){
+    mode = String(mode||'static').toLowerCase();
+    if (mode === 'dynamic') return 0x34d399;
+    if (mode === 'suspended_static') return 0xf59e0b;
+    return 0xa1a1aa;
+  }
+
+  function ensureThree(){
+    return typeof THREE !== 'undefined' && THREE.OrbitControls;
+  }
+
+  function initBancada3D(){
+    var canvas = document.getElementById('bancadaCanvas');
+    var stage = document.getElementById('bancadaStage');
+    if (!canvas || !stage || !ensureThree()) {
+      var hud = document.getElementById('bancadaHudMeta');
+      if (hud) hud.textContent = 'Three.js indisponível — a usar vista de lista.';
+      return false;
+    }
+    if (B.renderer) return true;
+    var w = Math.max(stage.clientWidth || 0, 640);
+    var h = Math.max(stage.clientHeight || 0, 480);
+    B.scene = new THREE.Scene();
+    B.scene.fog = new THREE.FogExp2(0x050508, 0.028);
+    B.scene.background = new THREE.Color(0x050508);
+    B.camera = new THREE.PerspectiveCamera(50, w/h, 0.1, 200);
+    B.camera.position.set(0, 9, 16);
+    B.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    B.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    B.renderer.setSize(w, h, false);
+    B.controls = new THREE.OrbitControls(B.camera, canvas);
+    B.controls.enableDamping = true;
+    B.controls.dampingFactor = 0.06;
+    B.controls.minDistance = 4;
+    B.controls.maxDistance = 48;
+    B.controls.maxPolarAngle = Math.PI * 0.49;
+    B.controls.target.set(0, 1.2, 0);
+    B.raycaster = new THREE.Raycaster();
+    B.mouse = new THREE.Vector2();
+    B.root = new THREE.Group();
+    B.scene.add(B.root);
+
+    // Floor grid (bancada surface)
+    var grid = new THREE.GridHelper(40, 40, 0x2a2a35, 0x16161c);
+    grid.position.y = 0;
+    B.scene.add(grid);
+    var floorMat = new THREE.MeshStandardMaterial({ color: 0x0c0c10, metalness: 0.4, roughness: 0.85, transparent: true, opacity: 0.9 });
+    var floor = new THREE.Mesh(new THREE.CircleGeometry(18, 64), floorMat);
+    floor.rotation.x = -Math.PI/2;
+    floor.position.y = -0.02;
+    B.scene.add(floor);
+
+    // Ambient + key lights
+    B.scene.add(new THREE.AmbientLight(0x6b7280, 0.55));
+    var key = new THREE.DirectionalLight(0xe4e4e7, 0.85);
+    key.position.set(6, 12, 8);
+    B.scene.add(key);
+    var rim = new THREE.PointLight(0x6366f1, 1.1, 40);
+    rim.position.set(-8, 6, -6);
+    B.scene.add(rim);
+    var accent = new THREE.PointLight(0x34d399, 0.55, 30);
+    accent.position.set(8, 4, 4);
+    B.scene.add(accent);
+
+    // Central axis marker
+    var axis = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.6, 12),
+      new THREE.MeshStandardMaterial({ color: 0x6366f1, emissive: 0x312e81, emissiveIntensity: 0.6 })
+    );
+    axis.position.y = 0.3;
+    B.scene.add(axis);
+
+    canvas.addEventListener('pointerdown', onPointer);
+    window.addEventListener('resize', onResize);
+    if (!B.running) {
+      B.running = true;
+      animate();
+    }
+    return true;
+  }
+
+  function onResize(){
+    var stage = document.getElementById('bancadaStage');
+    if (!stage || !B.renderer || !B.camera) return;
+    var w = stage.clientWidth, h = stage.clientHeight;
+    B.camera.aspect = w/Math.max(h,1);
+    B.camera.updateProjectionMatrix();
+    B.renderer.setSize(w, h, false);
+  }
+
+  function clearNodes(){
+    if (!B.root) return;
+    while (B.root.children.length) {
+      var c = B.root.children[0];
+      B.root.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) {
+        if (Array.isArray(c.material)) c.material.forEach(function(m){ m.dispose && m.dispose(); });
+        else c.material.dispose && c.material.dispose();
+      }
+    }
+    B.nodes = [];
+  }
+
+  function buildTopology(nfts){
+    clearNodes();
+    B.nfts = nfts || [];
+    var n = B.nfts.length;
+    var empty = document.getElementById('bancadaEmpty');
+    if (empty) empty.style.display = n ? 'none' : 'flex';
+    var objTotal = 0;
+    for (var i = 0; i < n; i++) {
+      var nft = B.nfts[i];
+      var v = nft.valuation || {};
+      var coll = Math.max(0, Number(v.collateral_strata != null ? v.collateral_strata : nft.collateral_strata || 0));
+      var mode = String(v.mode || nft.mode || 'static');
+      var color = modeColor(mode);
+      var scale = 0.55 + Math.min(1.8, Math.log10(1 + coll * 1000) * 0.55);
+      // Spiral / golden-angle topology on the bancada plane
+      var angle = i * 2.399963229728653; // golden angle
+      var radius = 2.2 + Math.sqrt(i + 1) * 1.55;
+      var x = Math.cos(angle) * radius;
+      var z = Math.sin(angle) * radius;
+      var y = 1.1 + (i % 5) * 0.15 + scale * 0.35;
+
+      var group = new THREE.Group();
+      group.position.set(x, y, z);
+      group.userData = { nft: nft, valuation: v, index: i };
+
+      // Core crystal (NFT node)
+      var geo = new THREE.OctahedronGeometry(scale * 0.55, 0);
+      var mat = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: mode === 'dynamic' ? 0.35 : 0.12,
+        metalness: 0.55,
+        roughness: 0.28,
+        transparent: true,
+        opacity: 0.92
+      });
+      var core = new THREE.Mesh(geo, mat);
+      core.userData.pick = true;
+      group.add(core);
+
+      // Wireframe shell
+      var shell = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(scale * 0.72, 1)),
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 })
+      );
+      group.add(shell);
+
+      // Pedestal beam to floor
+      var beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.08, y, 8),
+        new THREE.MeshStandardMaterial({ color: 0x27272a, transparent: true, opacity: 0.55 })
+      );
+      beam.position.y = -y/2;
+      group.add(beam);
+
+      // Fraction holders as orbital orbs
+      var fracs = (v.possession && v.possession.fractions) || [];
+      for (var f = 0; f < fracs.length; f++) {
+        var fu = Number(fracs[f].strata_units || 0);
+        var fr = 0.12 + Math.min(0.35, Math.sqrt(fu) * 0.5);
+        var orb = new THREE.Mesh(
+          new THREE.SphereGeometry(fr, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x4338ca, emissiveIntensity: 0.4, metalness: 0.3, roughness: 0.4 })
+        );
+        var fa = (f / Math.max(fracs.length, 1)) * Math.PI * 2;
+        orb.position.set(Math.cos(fa) * scale * 1.15, 0.15, Math.sin(fa) * scale * 1.15);
+        orb.userData.orbit = { r: scale * 1.15, a: fa, speed: 0.25 + f * 0.05 };
+        group.add(orb);
+        objTotal++;
+      }
+
+      // Digital objects nested in the NFT (attributes / CGU payload as spatial props)
+      var objCount = 2 + (i % 3);
+      for (var o = 0; o < objCount; o++) {
+        var og = (o % 2 === 0)
+          ? new THREE.BoxGeometry(0.18, 0.18, 0.18)
+          : new THREE.TetrahedronGeometry(0.16, 0);
+        var om = new THREE.Mesh(
+          og,
+          new THREE.MeshStandardMaterial({ color: 0xd4d4d8, metalness: 0.7, roughness: 0.25, emissive: 0x3f3f46, emissiveIntensity: 0.15 })
+        );
+        var oa = o * 1.7 + i * 0.3;
+        om.position.set(Math.cos(oa) * scale * 0.85, 0.45 + (o % 3) * 0.2, Math.sin(oa) * scale * 0.85);
+        om.userData.bob = { baseY: om.position.y, phase: oa };
+        group.add(om);
+        objTotal++;
+      }
+
+      // Label sprite (canvas texture)
+      var label = makeLabel(nft.name || nft.id || ('NFT ' + i), mode);
+      label.position.y = scale * 0.75 + 0.45;
+      group.add(label);
+
+      B.root.add(group);
+      B.nodes.push(group);
+    }
+    var cc = document.getElementById('bancadaCount');
+    var oc = document.getElementById('bancadaObjCount');
+    if (cc) cc.textContent = String(n);
+    if (oc) oc.textContent = String(objTotal);
+    var sc = document.getElementById('sbxCount');
+    var nc = document.getElementById('nftCount');
+    if (nc) nc.textContent = String(n);
+    if (!B.selected && n) selectNode(B.nodes[0]);
+  }
+
+  function makeLabel(text, mode){
+    var c = document.createElement('canvas');
+    c.width = 512; c.height = 128;
+    var ctx = c.getContext('2d');
+    ctx.clearRect(0,0,512,128);
+    ctx.fillStyle = 'rgba(10,10,12,0.75)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 8, 24, 496, 80, 12);
+    ctx.fill(); ctx.stroke();
+    ctx.font = '600 28px IBM Plex Sans, system-ui, sans-serif';
+    ctx.fillStyle = '#e4e4e7';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(text).slice(0, 28), 256, 58);
+    ctx.font = '12px IBM Plex Mono, monospace';
+    ctx.fillStyle = mode === 'dynamic' ? '#34d399' : mode === 'suspended_static' ? '#f59e0b' : '#a1a1aa';
+    ctx.fillText(String(mode || 'static').toUpperCase(), 256, 84);
+    var tex = new THREE.CanvasTexture(c);
+    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    var spr = new THREE.Sprite(mat);
+    spr.scale.set(2.4, 0.6, 1);
+    return spr;
+  }
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function selectNode(group){
+    B.selected = group;
+    B.nodes.forEach(function(g){
+      g.scale.setScalar(g === group ? 1.12 : 1);
+    });
+    if (!group) return;
+    var nft = group.userData.nft || {};
+    var v = group.userData.valuation || nft.valuation || {};
+    var title = document.getElementById('bancadaHudTitle');
+    var meta = document.getElementById('bancadaHudMeta');
+    if (title) title.textContent = nft.name || nft.id || 'NFT';
+    var fracs = (v.possession && v.possession.fractions) || [];
+    var myFrac = 0;
+    fracs.forEach(function(f){ if (f.holder === me()) myFrac = Number(f.strata_units||0); });
+    if (meta) {
+      meta.innerHTML =
+        'Colateral <b style="color:var(--fg)">' + Number(v.collateral_strata||0).toFixed(6) + ' STRATA</b><br>' +
+        'Mercado <b style="color:var(--fg)">' + (v.market_strata==null?'UNAVAILABLE':Number(v.market_strata).toFixed(4)+' STRATA') + '</b><br>' +
+        'Modo <b style="color:var(--fg)">' + esc2(v.mode||nft.mode||'static') + '</b> · Posse por frações · a sua fatia <b style="color:var(--fg)">' + myFrac.toFixed(6) + '</b>';
+    }
+    renderDetail(nft, v, myFrac);
+  }
+
+  function renderDetail(nft, v, myFrac){
+    var box = document.getElementById('bancadaDetail');
+    var body = document.getElementById('bancadaDetailBody');
+    var actions = document.getElementById('bancadaDetailActions');
+    if (!box || !body || !actions) return;
+    box.style.display = 'block';
+    var fracs = (v.possession && v.possession.fractions) || [];
+    var mode = String(v.mode || nft.mode || 'static');
+    var html = '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Nó seleccionado</div>';
+    html += '<div style="margin-top:.35rem;font-size:1.05rem">' + esc2(nft.name||nft.id) + '</div>';
+    html += '<div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">' + esc2(nft.id) + '</div>';
+    html += '<div style="margin-top:.65rem;font-size:.82rem;line-height:1.5">Colateral total <b>' + Number(v.collateral_strata||0).toFixed(6) + '</b> · Mercado <b>' + (v.market_strata==null?'UNAVAILABLE':Number(v.market_strata).toFixed(4)) + '</b> · Modo <b>' + esc2(mode) + '</b></div>';
+    if (fracs.length) {
+      html += '<div style="margin-top:.5rem;font-size:.75rem">Titulares (posse = colateral):</div>';
+      fracs.forEach(function(f){
+        html += '<div style="display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px solid var(--line);padding:.2rem 0"><span>' + esc2(f.holder) + '</span><span>' + Number(f.strata_units||0).toFixed(6) + ' · ' + Number(f.share_pct||0).toFixed(1) + '%</span></div>';
+      });
+    }
+    body.innerHTML = html;
+    var btns = '';
+    btns += '<button onclick="topupNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Top-up</button>';
+    if (myFrac > 0) btns += '<button onclick="sellFraction(\''+esc2(nft.id)+'\','+myFrac+')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Vender fração</button>';
+    if (mode !== 'dynamic') btns += '<button onclick="setNftMode(\''+esc2(nft.id)+'\',\'dynamic\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">→ Dinâmico</button>';
+    if (mode === 'dynamic') btns += '<button onclick="setNftMode(\''+esc2(nft.id)+'\',\'static\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">→ Estático</button>';
+    if (mode === 'dynamic') btns += '<button onclick="tickNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Tick burn</button>';
+    if (v.redeemable && nft.status !== 'redeemed' && myFrac > 0) btns += '<button onclick="redeemNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Resgatar fração</button>';
+    actions.innerHTML = btns;
+  }
+
+  function onPointer(ev){
+    if (!B.renderer || !B.camera) return;
+    var rect = B.renderer.domElement.getBoundingClientRect();
+    B.mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    B.mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    B.raycaster.setFromCamera(B.mouse, B.camera);
+    var hits = B.raycaster.intersectObjects(B.root.children, true);
+    for (var i = 0; i < hits.length; i++) {
+      var o = hits[i].object;
+      while (o && o.parent && !o.userData.nft) o = o.parent;
+      if (o && o.userData && o.userData.nft) {
+        selectNode(o);
+        return;
+      }
+    }
+  }
+
+  function animate(){
+    if (!B.running) return;
+    requestAnimationFrame(animate);
+    B.anim += 0.012;
+    B.nodes.forEach(function(g, i){
+      g.rotation.y += 0.004 + (i % 3) * 0.001;
+      g.children.forEach(function(ch){
+        if (ch.userData && ch.userData.orbit) {
+          var orb = ch.userData.orbit;
+          orb.a += orb.speed * 0.01;
+          ch.position.x = Math.cos(orb.a) * orb.r;
+          ch.position.z = Math.sin(orb.a) * orb.r;
+        }
+        if (ch.userData && ch.userData.bob) {
+          ch.position.y = ch.userData.bob.baseY + Math.sin(B.anim * 1.5 + ch.userData.bob.phase) * 0.08;
+          ch.rotation.x += 0.01;
+          ch.rotation.y += 0.012;
+        }
+      });
+    });
+    if (B.controls) B.controls.update();
+    if (B.renderer && B.scene && B.camera) B.renderer.render(B.scene, B.camera);
+  }
+
+  window.resetBancadaCam = function(){
+    if (!B.camera || !B.controls) return;
+    B.camera.position.set(0, 9, 16);
+    B.controls.target.set(0, 1.2, 0);
+    B.controls.update();
+  };
+
+  window.createSandboxNft = async function(){
+    var title=(document.getElementById('sbxTitle')||{}).value || 'Criação CGU';
+    var coll=Number((document.getElementById('sbxColl')||{}).value || 0.01);
+    var modeEl=document.getElementById('sbxMode');
+    var mode=modeEl?modeEl.value:'static';
+    try{
+      var r=await fetch('/api/v1/sandbox/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,owner_id:me(),collateral_strata:coll,mode:mode,burn_rate_per_hour:mode==='dynamic'?0.0001:0,parent_world_id:'cmn-lab-world'})});
+      var j=await r.json();
+      if(!r.ok || j.error){ alert(j.error||JSON.stringify(j.detail)||('HTTP '+r.status)); }
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+  window.redeemNft = async function(id){
+    try{
+      var r=await fetch('/api/v1/token/nft/redeem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,holder:me()})});
+      var j=await r.json();
+      if(!r.ok){ alert(j.error||j.rule||('HTTP '+r.status)); }
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+  window.topupNft = async function(id){
+    var amt=Number(prompt('Colateral STRATA a adicionar (aumenta a sua fração de posse)','0.01')||0);
+    if(!(amt>0)) return;
+    try{
+      var r=await fetch('/api/v1/token/nft/topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,amount:amt,resume_dynamic:true,owner:me()})});
+      var j=await r.json();
+      if(!r.ok){ alert(j.error||('HTTP '+r.status)); }
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+  window.setNftMode = async function(id, mode){
+    try{
+      var r=await fetch('/api/v1/token/nft/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,mode:mode})});
+      var j=await r.json();
+      if(!r.ok){ alert(j.error||j.rule||('HTTP '+r.status)); }
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+  window.tickNft = async function(id){
+    try{
+      var r=await fetch('/api/v1/token/nft/tick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id})});
+      var j=await r.json();
+      if(!r.ok){ alert(j.error||('HTTP '+r.status)); }
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+  window.sellFraction = async function(id, maxUnits){
+    var units=Number(prompt('Unidades de colateral STRATA a vender (máx ~'+Number(maxUnits||0).toFixed(6)+')', String(Math.min(0.01, Number(maxUnits||0.01))))||0);
+    if(!(units>0)) return;
+    var buyer=prompt('Comprador (account id)','buyer-lab-001');
+    if(!buyer) return;
+    var price=Number(prompt('Preço de mercado em STRATA (capitalização da venda)', String((units*2).toFixed(4)))||0);
+    try{
+      var r=await fetch('/api/v1/token/nft/sell-fraction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,from:me(),to:buyer,strata_units:units,price_strata:price})});
+      var j=await r.json();
+      if(!r.ok){ alert(j.error||('HTTP '+r.status)); }
+      else alert('Venda capitalizada: '+units+' unidades · preço '+price+' STRATA');
+      await loadSandboxBench();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+
+  window.loadSandboxBench = async function(){
+    var meta = document.getElementById('bancadaHudMeta');
+    if (meta) meta.textContent = 'A sincronizar topologia NFT…';
+    try{
+      var [sb, nf] = await Promise.all([
+        fetch('/api/v1/sandbox/list',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
+        fetch('/api/v1/token/list?limit=40',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
+      ]);
+      var sandboxes = sb.sandboxes || [];
+      var nfts = nf.nfts || [];
+      var sc = document.getElementById('sbxCount');
+      if (sc) sc.textContent = String(sandboxes.length);
+      if (!initBancada3D()) {
+        // fallback text list
+        var el = document.getElementById('sandboxBench');
+        if (el) {
+          el.style.display = 'block';
+          el.innerHTML = nfts.map(function(n){
+            var v=n.valuation||{};
+            return '<div class="card" style="margin:.5rem 0;padding:.75rem">'+esc2(n.name||n.id)+' · col '+Number(v.collateral_strata||0).toFixed(4)+'</div>';
+          }).join('') || '<p style="color:var(--muted)">Sem NFT</p>';
+        }
+        return;
+      }
+      buildTopology(nfts);
+      if (meta && !nfts.length) meta.textContent = 'Espaço vazio — crie o primeiro nó NFT.';
+      else if (meta && !B.selected) meta.textContent = nfts.length + ' nós na topologia. Clique para inspeccionar.';
+    }catch(e){
+      if (meta) meta.textContent = String(e.message||e);
+    }
+  };
+  window.loadSPA = function(){ return loadSandboxBench(); };
+  window.loadSandbox = function(){ return loadSandboxBench(); };
+
+  function boot(){
+    // Wait a tick for Three scripts
+    var tries = 0;
+    (function wait(){
+      tries++;
+      if (ensureThree() || tries > 40) {
+        loadSandboxBench();
+        return;
+      }
+      setTimeout(wait, 100);
+    })();
+  }
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', boot);
+})();
+</script>
+
+
+<script>
+(function(){
+  // Hook showPanel so 3D bancada resizes when panel becomes visible
+  var _sp = window.showPanel;
+  if (typeof _sp === 'function') {
+    window.showPanel = function(id, el) {
+      var r = _sp.apply(this, arguments);
+      if (id === 'sandbox' || id === 'spa') {
+        setTimeout(function(){
+          try {
+            if (typeof onResize === 'function') {}
+            var stage = document.getElementById('bancadaStage');
+            if (stage && window.__bancadaOnShow) window.__bancadaOnShow();
+            else if (typeof loadSandboxBench === 'function') loadSandboxBench();
+          } catch (e) {}
+        }, 50);
+      }
+      return r;
+    };
+  }
+})();
+</script>
+
+<script>
+window.__bancadaOnShow = function(){
+  try {
+    var stage = document.getElementById('bancadaStage');
+    var canvas = document.getElementById('bancadaCanvas');
+    if (!stage || !canvas || typeof THREE === 'undefined') return;
+    // force visible size
+    if (stage.clientWidth < 10) return;
+    if (typeof loadSandboxBench === 'function') loadSandboxBench();
+  } catch (e) {}
+};
+</script>
+
+
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]);}); }
+  function meAccount(){
+    try{
+      if(window.currentUser){
+        var a=currentUser.strata_address||currentUser.id||currentUser.email||currentUser.username;
+        if(a && String(a).indexOf('FOG-NODE')!==0) return a;
+      }
+    }catch(_){}
+    try{
+      var em=window.__SESSION_EMAIL||window.__USER_EMAIL||localStorage.getItem('sm_email')||localStorage.getItem('email');
+      if(em) return em;
+    }catch(_){}
+    return '';
+  }
+  function authHeaders(){
+    var h={'Accept':'application/json'};
+    try{
+      var t=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');
+      if(t) h['Authorization']='Bearer '+t;
+    }catch(_){}
+    return h;
+  }
+  function authBase(){
+    if(window.SVC&&SVC.auth) return SVC.auth;
+    return '/api/auth';
+  }
+  function tokenBase(){
+    if(window.SVC&&SVC.token) return SVC.token;
+    return '/api/v1/token';
+  }
+
+  window.loadWallet = async function(){
+    var account=meAccount();
+    var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    var meta=document.getElementById('walletAccountMeta');
+    if(meta){
+      if(!account){ meta.innerHTML='Conta: <b style="color:var(--muted)">inicie sessão — o Nó fornece contas; o Nó não tem conta</b>'; }
+      else { meta.innerHTML='Conta: <b style="color:var(--fg)">'+esc(account)+'</b>'; }
+    }
+
+    var bal=null, mon=null, tok=null, nfts=[], me=null;
+    try{
+      var rt=await fetch(tokenBase()+'/health',{signal:AbortSignal.timeout(10000)});
+      if(rt.ok) tok=await rt.json();
+    }catch(_){}
+    try{
+      var rb=await fetch(tokenBase()+'/balance?account='+encodeURIComponent(account),{signal:AbortSignal.timeout(10000)});
+      if(rb.ok) bal=await rb.json();
+    }catch(_){}
+    try{
+      var rm=await fetch(tokenBase()+'/monetary',{signal:AbortSignal.timeout(10000)});
+      if(rm.ok) mon=await rm.json();
+    }catch(_){}
+    try{
+      var rn=await fetch(tokenBase()+'/list?limit=40',{signal:AbortSignal.timeout(12000)});
+      if(rn.ok){ var nj=await rn.json(); nfts=nj.nfts||[]; }
+    }catch(_){}
+    try{
+      var rw=await fetch(authBase()+'/wallet',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
+      if(rw.ok) me=await rw.json();
+    }catch(_){}
+
+    var strata=null;
+    if(bal&&bal.balances&&bal.balances[0]) strata=bal.balances[0].balance;
+    else if(bal&&bal.balance!=null) strata=bal.balance;
+    else if(me&&me.balance!=null) strata=me.balance;
+
+    set('strataBalance', strata!=null?Number(strata).toLocaleString('pt-PT',{maximumFractionDigits:5}):'—');
+    var lab=(bal&&bal.lab_policy&&bal.lab_policy.lab_only_balance);
+    var poc=(bal&&bal.lab_policy&&bal.lab_policy.transit_eligible_poc_balance);
+    set('walletLabBal', lab!=null?Number(lab).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—');
+    set('walletPocBal', poc!=null?Number(poc).toLocaleString('pt-PT',{maximumFractionDigits:6}):'—');
+
+    var myNfts=[], fracSum=0;
+    nfts.forEach(function(n){
+      var v=n.valuation||{};
+      var fr=(v.possession&&v.possession.fractions)||[];
+      var mine=fr.filter(function(f){ return String(f.holder)===String(account); });
+      if(mine.length || n.owner===account){
+        var units=mine.reduce(function(a,f){return a+Number(f.strata_units||0);},0);
+        fracSum+=units;
+        myNfts.push({n:n,v:v,units:units,share:mine[0]?mine[0].share_pct:null});
+      }
+    });
+    set('walletNftCount', String(myNfts.length));
+    set('walletFracUnits', fracSum?fracSum.toFixed(6):'0');
+    set('txCount', tok&&tok.holders!=null?String(tok.holders):(mon?'—':'—'));
+    set('walletMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):(tok?'—':'—'));
+    set('walletBurn', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(4):'—'));
+    set('walletCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):(tok&&tok.total_supply!=null?Number(tok.total_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'));
+    set('nodeRank', 'Fog anfitrião · FOG-NODE-PT-CM-001');
+
+    var nftEl=document.getElementById('walletNftList');
+    if(nftEl){
+      if(!myNfts.length){
+        nftEl.innerHTML='<p style="color:var(--muted);margin:0">Sem NFT com frações nesta conta. Crie ou adquira colateral na Bancada CGU.</p>';
+      } else {
+        nftEl.innerHTML=myNfts.map(function(x){
+          var n=x.n,v=x.v;
+          return '<div style="border-bottom:1px solid var(--line);padding:.45rem 0">'+
+            '<div style="display:flex;justify-content:space-between;gap:.5rem"><strong style="color:var(--fg)">'+esc(n.name||n.id)+'</strong><span style="font-size:.72rem;color:var(--muted)">'+esc(v.mode||n.mode||'static')+'</span></div>'+
+            '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">Colateral '+Number(v.collateral_strata||0).toFixed(6)+
+            ' · Sua fração '+Number(x.units||0).toFixed(6)+
+            (x.share!=null?' ('+Number(x.share).toFixed(1)+'%)':'')+
+            ' · Mercado '+(v.market_strata==null?'n/d':Number(v.market_strata).toFixed(4))+'</div></div>';
+        }).join('');
+      }
+    }
+
+    var list=document.getElementById('txList');
+    if(list){
+      if(me&&me.transactions&&me.transactions.length){
+        list.innerHTML=me.transactions.map(function(tx){
+          return '<tr><td>'+esc(tx.type||'—')+'</td><td>'+esc(tx.amount)+'</td><td>'+esc(tx.date||tx.at||'')+'</td><td>'+esc(tx.status||'ok')+'</td></tr>';
+        }).join('');
+      } else if(bal&&bal.balances&&bal.balances[0]){
+        var bb=bal.balances[0];
+        list.innerHTML='<tr><td>saldo</td><td>'+Number(bb.balance||0).toFixed(6)+'</td><td>—</td><td>activo</td></tr>'+
+          '<tr><td>total mintado (conta)</td><td>'+Number(bb.total_minted||0).toFixed(6)+'</td><td>—</td><td>—</td></tr>'+
+          '<tr><td>total queimado (conta)</td><td>'+Number(bb.total_burned||0).toFixed(6)+'</td><td>—</td><td>—</td></tr>';
+      } else {
+        list.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted)">Sem movimentos locais — saldo e pólos acima reflectem o estado da rede.</td></tr>';
+      }
+    }
+  };
+
+  window.walletTransfer = async function(){
+    var to=(document.getElementById('walletTo')||{}).value;
+    var amt=Number((document.getElementById('walletAmt')||{}).value||0);
+    var msg=document.getElementById('walletTxMsg');
+    if(!to||!(amt>0)){ if(msg) msg.textContent='Indique destinatário e quantidade.'; return; }
+    try{
+      var r=await fetch(tokenBase()+'/transfer',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
+        body:JSON.stringify({from:meAccount(),to:to,amount:amt,token_type:'STRATA'})});
+      var j=await r.json().catch(function(){return {};});
+      if(!r.ok){ if(msg) msg.textContent=j.error||j.message||('HTTP '+r.status); return; }
+      if(msg) msg.textContent='Transferência registada.';
+      loadWallet();
+    }catch(e){ if(msg) msg.textContent=String(e.message||e); }
+  };
+
+  window.loadKycQueue = async function(){
+    var pend=document.getElementById('kycPending');
+    var ver=document.getElementById('kycVerified');
+    var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    function card(u, kind){
+      var email=u.email||u.user_email||u.id||'—';
+      var st=u.status||u.kyc_status||kind;
+      var when=u.updated_at||u.created_at||u.submitted_at||'';
+      var id=u.id||u.user_id||email;
+      var actions='';
+      if(kind==='pending'){
+        actions='<div style="margin-top:.5rem;display:flex;gap:.35rem;flex-wrap:wrap">'+
+          '<button type="button" onclick="kycDecide(\''+esc(id)+'\',\'approve\')" style="padding:.35rem .6rem;font-size:.72rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer">Aprovar</button>'+
+          '<button type="button" onclick="kycDecide(\''+esc(id)+'\',\'reject\')" style="padding:.35rem .6rem;font-size:.72rem;background:transparent;border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Recusar</button></div>';
+      }
+      return '<div style="border:1px solid var(--line);border-radius:6px;padding:.65rem;margin-bottom:.5rem">'+
+        '<div style="font-size:.85rem;color:var(--fg)">'+esc(email)+'</div>'+
+        '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">'+esc(st)+(when?' · '+esc(when):'')+'</div>'+actions+'</div>';
+    }
+    try{
+      var stats=null, pending=[], verified=[];
+      try{
+        var rs=await fetch(authBase()+'/kyc/stats',{headers:authHeaders(),signal:AbortSignal.timeout(10000)});
+        if(rs.ok) stats=await rs.json();
+      }catch(_){}
+      try{
+        var rp=await fetch(authBase()+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(10000)});
+        if(rp.ok){ var pj=await rp.json(); pending=pj.pending||pj.items||pj.users||(Array.isArray(pj)?pj:[]); }
+        else if(pend) pend.innerHTML='<p style="color:var(--muted);font-size:.82rem">'+(rp.status===401?'Sessão necessária (pessoal).':'Sem permissão ou fila vazia.')+'</p>';
+      }catch(e){ if(pend) pend.innerHTML='<p style="color:var(--muted);font-size:.82rem">'+esc(String(e.message||e))+'</p>'; }
+      try{
+        var rv=await fetch(authBase()+'/kyc/verified',{headers:authHeaders(),signal:AbortSignal.timeout(10000)});
+        if(rv.ok){ var vj=await rv.json(); verified=vj.verified||vj.items||vj.users||(Array.isArray(vj)?vj:[]); }
+      }catch(_){}
+
+      if(stats){
+        var s=stats.stats||stats;
+        set('kycStatPending', s.pending!=null?s.pending:(pending.length||'—'));
+        set('kycStatVerified', s.verified!=null?s.verified:(verified.length||'—'));
+        set('kycStatTotal', s.total!=null?s.total:'—');
+        set('kycStatRejected', s.rejected!=null?s.rejected:'—');
+      } else {
+        set('kycStatPending', String(pending.length));
+        set('kycStatVerified', String(verified.length));
+        set('kycStatTotal', String(pending.length+verified.length));
+        set('kycStatRejected', '—');
+      }
+      if(pend && !(pend.innerHTML||'').includes('Sessão necessária')){
+        pend.innerHTML=pending.length?pending.map(function(u){return card(u,'pending');}).join('')
+          :'<p style="color:var(--muted);font-size:.82rem;margin:0">Nenhuma verificação pendente.</p>';
+      }
+      if(ver){
+        ver.innerHTML=verified.length?verified.map(function(u){return card(u,'verified');}).join('')
+          :'<p style="color:var(--muted);font-size:.82rem;margin:0">Ainda sem utilizadores verificados listados.</p>';
+      }
+    }catch(e){
+      if(pend) pend.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
+    }
+  };
+
+  window.kycDecide = async function(id, action){
+    try{
+      var r=await fetch(authBase()+'/kyc/verify',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
+        body:JSON.stringify({user_id:id,id:id,action:action,decision:action})});
+      var j=await r.json().catch(function(){return {};});
+      if(!r.ok) alert(j.error||j.message||('HTTP '+r.status));
+      loadKycQueue();
+    }catch(e){ alert(String(e.message||e)); }
+  };
+
+  window.loadKycUserStatus = async function(){
+    var el=document.getElementById('kycUserStatus');
+    if(!el) return;
+    try{
+      var r=await fetch(authBase()+'/wallet',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
+      if(r.status===401){ el.textContent='Inicie sessão para ver o estado da verificação.'; return; }
+      if(r.ok){
+        var j=await r.json();
+        var st=j.kyc_status||j.verification||j.status||'—';
+        el.innerHTML='Estado: <strong style="color:var(--fg)">'+esc(st)+'</strong>'+(j.email?' · '+esc(j.email):'');
+        return;
+      }
+    }catch(_){}
+    el.textContent='Submeta o documento para iniciar a verificação automática.';
+  };
+
+  // Hook showPanel
+  var _sp=window.showPanel;
+  if(typeof _sp==='function'){
+    window.showPanel=function(id, el){
+      var r=_sp.apply(this, arguments);
+      try{
+        if(id==='wallet') loadWallet();
+        if(id==='kyc') loadKycQueue();
+        if(id==='kyc-user') loadKycUserStatus();
+      }catch(e){}
+      return r;
+    };
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]);});}
+  function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+  function authH(){var h={'Accept':'application/json'};try{var t=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');if(t)h['Authorization']='Bearer '+t;}catch(_){}return h;}
+  async function get(url){var r=await fetch(url,{headers:authH(),signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+  function card(title, body, meta){
+    return '<div style="padding:.85rem;background:var(--card);border:1px solid var(--line);border-radius:8px">'+
+      '<div style="font-size:.88rem;color:var(--fg);font-weight:500">'+esc(title)+'</div>'+
+      (meta?'<div style="font-size:.7rem;color:var(--muted);margin-top:.2rem">'+meta+'</div>':'')+
+      (body?'<div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;line-height:1.45">'+body+'</div>':'')+'</div>';
+  }
+
+  window.loadAgoraPanel=async function(){
+    try{
+      var rate=await get('/api/v1/agora/rate');
+      var book=await get('/api/v1/agora/book').catch(function(){return {listings:[]};});
+      set('agoraPrice', rate.quote_per_strata!=null?Number(rate.quote_per_strata).toFixed(4):'—');
+      set('agoraStrataPer', rate.strata_per_quote!=null?Number(rate.strata_per_quote).toFixed(2):'—');
+      set('agoraVolume', rate.liquidity_strata!=null?Number(rate.liquidity_strata).toLocaleString('pt-PT'):'—');
+      var list=book.listings||book.orders||[];
+      set('agoraOrders', String(list.length));
+      var meta=document.getElementById('agoraQuoteMeta');
+      if(meta) meta.innerHTML='Par <b style="color:var(--fg)">STRATA/'+esc(rate.quote_asset||'EUR')+'</b><br>VWAP '+esc(rate.vwap_quote_per_strata)+' · mediana '+esc(rate.median_quote_per_strata)+'<br>Fonte: serviço Ágora (não mint).';
+      var bookEl=document.getElementById('agoraBook');
+      if(bookEl){
+        bookEl.innerHTML=list.length?list.slice(0,12).map(function(L){
+          return card((L.token_amount||L.amount||'?')+' STRATA @ '+(L.price_per_token||L.price||'?')+' '+(L.reference_currency||'EUR'),
+            esc(L.node_id||L.seller||''), esc(L.status||'active')+' · '+esc(L.listing_id||L.id||''));
+        }).join(''):'<p style="color:var(--muted);font-size:.82rem;margin:0">Sem listagens activas no livro.</p>';
+      }
+    }catch(e){
+      set('agoraPrice','—');
+      var bookEl=document.getElementById('agoraBook');
+      if(bookEl) bookEl.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
+    }
+  };
+
+  window.loadEconomyPanel=async function(){
+    set('ecoStatus','a sincronizar…');
+    try{
+      var mon=await get('/api/v1/token/monetary').catch(function(){return null;});
+      var rate=await get('/api/v1/agora/rate').catch(function(){return null;});
+      var poc=await get('/api/v1/poc/health').catch(function(){return null;});
+      var acb=await get('/api/v1/acb/list').catch(function(){return {acbs:[]};});
+      var depin=await get('/api/v1/depin/providers').catch(function(){return {providers:[]};});
+      var svc=await get('/api/v1/agent-services/list').catch(function(){return {services:[]};});
+      var bal=await get('/api/v1/token/balance?account=FOG-NODE-PT-CM-001').catch(function(){return null;});
+      var fog=bal&&bal.balances&&bal.balances[0]?bal.balances[0].balance:null;
+      set('ecoFogBal', fog!=null?Number(fog).toFixed(4):'—');
+      set('ecoCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:0}):'—');
+      set('ecoSink', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(3):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(3):'—'));
+      set('ecoMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):'—');
+      set('ecoAgoraRate', rate&&rate.quote_per_strata!=null?Number(rate.quote_per_strata).toFixed(3):'—');
+      set('ecoDepin', String((depin.providers||[]).length));
+      set('ecoServices', String((svc.services||[]).length));
+      var pocEl=document.getElementById('ecoPoc');
+      if(pocEl) pocEl.textContent=poc?JSON.stringify({version:poc.version,sole_mint:poc.sole_mint_path,resource_vs_function:poc.resource_vs_function,classes:poc.resource_classes},null,2):'PdC indisponível';
+      var acbs=acb.acbs||acb.scas||[];
+      var acbEl=document.getElementById('ecoAcbBody');
+      if(acbEl) acbEl.innerHTML=acbs.length?acbs.slice(0,8).map(function(a){
+        return '<div style="border-bottom:1px solid var(--line);padding:.35rem 0;display:flex;justify-content:space-between"><span>'+esc(a.name||a.id)+'</span><span style="color:var(--muted)">PdS '+(a.subsistence_score!=null?a.subsistence_score:(a.balance!=null?Number(a.balance).toFixed(2):'—'))+'</span></div>';
+      }).join(''):'<span style="color:var(--muted)">Sem SCA listados</span>';
+      set('ecoStatus', 'actualizado '+new Date().toLocaleTimeString('pt-PT'));
+    }catch(e){ set('ecoStatus', String(e.message||e)); }
+  };
+
+  window.loadDAOPanel=async function(){
+    try{
+      var d=await get('/api/v1/dao/list');
+      var daos=d.daos||[];
+      set('daoCount', String(daos.length));
+      set('daoAssoc', String(daos.filter(function(x){return String(x.kind||'').indexOf('assoc')>=0;}).length));
+      set('daoCorp', String(daos.filter(function(x){return String(x.kind||'')==='corporate';}).length));
+      var el=document.getElementById('daoList');
+      if(el) el.innerHTML=daos.length?daos.map(function(x){
+        return card(x.name||x.dao_id, 'Quorum '+(x.quorum!=null?x.quorum:'—')+' · template '+esc(x.template||'—'), esc(x.kind||'')+' · '+esc(x.dao_id||''));
+      }).join(''):'<p style="color:var(--muted)">Sem DAOs.</p>';
+    }catch(e){ var el=document.getElementById('daoList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+  };
+
+  window.loadSPAPanel=async function(){
+    try{
+      var d=await get('/api/v1/dao/spa/list');
+      var spas=d.spas||[];
+      set('spaActive', String(spas.filter(function(s){return s.status==='active';}).length));
+      var types={}; spas.forEach(function(s){types[s.service_type||'n/d']=1;});
+      set('spaOffers', String(Object.keys(types).length));
+      var el=document.getElementById('spaList');
+      if(el) el.innerHTML=spas.length?spas.map(function(s){
+        return card(s.service_type||s.spa_id, esc((s.roles||[]).join(', ')), esc(s.status)+' · '+esc(s.spa_id));
+      }).join(''):'<p style="color:var(--muted)">Sem APS.</p>';
+    }catch(e){ var el=document.getElementById('spaList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+  };
+
+  window.loadACBPanel=async function(){
+    try{
+      var d=await get('/api/v1/acb/list');
+      var list=d.acbs||d.scas||[];
+      set('acbCount', String(list.length));
+      set('acbActive', String(list.filter(function(a){return String(a.status).toLowerCase()==='active';}).length));
+      set('acbDormant', String(list.filter(function(a){return /dorm|hibern|inactive/i.test(String(a.status));}).length));
+      var el=document.getElementById('acbList');
+      if(el) el.innerHTML=list.length?list.map(function(a){
+        return card(a.name||a.id, 'PdS/saldo '+(a.subsistence_score!=null?a.subsistence_score:Number(a.balance||0).toFixed(4))+' · '+esc(a.personality||a.role||''), esc(a.status));
+      }).join(''):'<p style="color:var(--muted)">Sem SCA.</p>';
+    }catch(e){ var el=document.getElementById('acbList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+  };
+
+  window.loadHolonsPanel=async function(){
+    var stack=[
+      {n:'TRD / GDA', d:'Registo distribuído · tip weight · IPFS'},
+      {n:'SO Metaverso Web3', d:'Sistema operativo partilhado entre nós'},
+      {n:'Domínio Virtual', d:'Infraestrutura / hipervisor'},
+      {n:'Mundo Aberto', d:'Mundos acessíveis a utilizadores e SCA'},
+      {n:'Bancada CGU', d:'Criação · NFT STRATA · frações de colateral'},
+      {n:'Agente / Utilizador', d:'SCA e humanos no mesmo holon terminal'},
+    ];
+    try{
+      var h=await get('/api/v1/holons/health').catch(function(){return get('https://stratamesh-holons.stratamesh.workers.dev/health');});
+      set('holonVersion', h.version||'—');
+      set('holonLayers', String(stack.length));
+      set('holonStatus', h.status||h.servico||'ok');
+    }catch(_){ set('holonVersion','1.x'); set('holonLayers',String(stack.length)); set('holonStatus','local'); }
+    var el=document.getElementById('holonStack');
+    if(el) el.innerHTML=stack.map(function(s,i){
+      return '<div style="padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;display:flex;gap:.75rem;align-items:flex-start">'+
+        '<span style="font-family:IBM Plex Mono,monospace;font-size:.7rem;color:var(--accent)">0'+i+'</span>'+
+        '<div><div style="color:var(--fg);font-size:.9rem">'+esc(s.n)+'</div><div style="color:var(--muted);font-size:.75rem;margin-top:.15rem">'+esc(s.d)+'</div></div></div>';
+    }).join('');
+  };
+
+  window.loadUsersPanel=async function(){
+    try{
+      var s=await get('/api/auth/users/stats');
+      var st=s.stats||s;
+      set('totalUsers', st.total!=null?st.total:'—');
+      set('pendingUsers', st.pending!=null?st.pending:'—');
+      set('verifiedUsers', st.verified!=null?st.verified:'—');
+      var note=document.getElementById('usersNote');
+      if(note) note.textContent='Estatísticas autenticadas do serviço de contas.';
+    }catch(e){
+      set('totalUsers','—'); set('pendingUsers','—'); set('verifiedUsers','—');
+      var note=document.getElementById('usersNote');
+      if(note) note.innerHTML='Sessão de pessoal necessária para estatísticas de contas. A fila KYC detalhada está em <b>Fila KYC</b>.';
+    }
+  };
+
+  window.loadSystemPanel=async function(){
+    var services=[
+      ['token','/api/v1/token/health'],['agora','/api/v1/agora/health'],['poc','/api/v1/poc/health'],
+      ['acb','/api/v1/acb/health'],['dao','/api/v1/dao/health'],['sandbox','/api/v1/sandbox/health'],
+      ['iot','/api/v1/iot/health'],['consensus','/api/v1/consensus/health'],['gossip','/api/v1/gossip/health'],
+      ['depin','/api/v1/depin/health'],['agent-services','/api/v1/agent-services/health'],['orchestrator','/api/v1/orchestrator/health'],
+      ['status','/api/v1/status'],['integrations','/api/v1/integrations/health']
+    ];
+    var el=document.getElementById('systemHealthGrid');
+    if(!el) return;
+    el.innerHTML='<p style="color:var(--muted);font-size:.82rem">A sondar '+services.length+' serviços…</p>';
+    var html='';
+    for(var i=0;i<services.length;i++){
+      var name=services[i][0], url=services[i][1], ok=false, ver='';
+      try{
+        var r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+        ok=r.ok;
+        if(r.ok){var j=await r.json(); ver=j.version||j.status||'ok';}
+        else ver='HTTP '+r.status;
+      }catch(e){ ver=String(e.message||e).slice(0,40); }
+      html+='<div style="padding:.75rem;border:1px solid var(--line);border-radius:8px;background:var(--card)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.82rem">'+esc(name)+'</strong>'+
+        '<span style="font-size:.68rem;font-family:IBM Plex Mono,monospace;color:'+(ok?'#34d399':'#f59e0b')+'">'+(ok?'OK':'ERR')+'</span></div>'+
+        '<div style="font-size:.7rem;color:var(--muted);margin-top:.35rem">'+esc(ver)+'</div></div>';
+    }
+    el.innerHTML=html;
+  };
+
+  window.loadIotPanel=async function(){
+    try{
+      var h=await get('/api/v1/iot/health');
+      var a=await get('/api/v1/iot/agents');
+      set('iotAgentsN', h.agents_known!=null?h.agents_known:(a.agents||[]).length);
+      set('iotMode', h.mode||'edge');
+      set('iotVersion', h.version||'—');
+      var agents=a.agents||[];
+      var el=document.getElementById('iotAgents');
+      if(el) el.innerHTML=agents.length?agents.map(function(x){
+        return card(x.agent_id||x.id, 'eventos '+(x.event_count!=null?x.event_count:'—'), esc(x.last_seen||''));
+      }).join(''):'<p style="color:var(--muted)">Sem agentes IoT recentes.</p>';
+    }catch(e){ var el=document.getElementById('iotAgents'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
+  };
+
+  window.loadClpPanel=async function(){
+    // Approximate solar times for Lisbon today via open formula (no key)
+    try{
+      var now=new Date();
+      // Use simple seasonal approx if no API: Lisbon summer/winter
+      var month=now.getUTCMonth();
+      var rise, zen, set;
+      if(month>=3&&month<=8){ rise='06:20'; zen='13:35'; set='20:40'; }
+      else { rise='07:45'; zen='12:40'; set='17:35'; }
+      set('clpSunrise', rise); set('clpZenith', zen); set('clpSunset', set); set('clpLocale','Lisboa');
+      var el=document.getElementById('clpAddress');
+      if(el) el.innerHTML='Endereço temporal (lab): <b style="color:var(--fg)">Lisboa</b>, dia corrente do mês lunisolar · PPC Atlântico (Almendres / Lisboa). '+
+        'Valores de nascer/zénite/ocaso são <em>aproximações de laboratório</em> — calendário completo em <a href="/clp" style="color:var(--accent)">/clp</a>.';
+    }catch(e){ set('clpAddress', String(e.message||e)); }
+  };
+
+  window.runDiagnosticsPanel=async function(){
+    var el=document.getElementById('diagResults');
+    if(el) el.innerHTML='<p style="color:var(--muted)">A executar…</p>';
+    await loadSystemPanel();
+    var grid=document.getElementById('systemHealthGrid');
+    if(el&&grid) el.innerHTML=grid.innerHTML;
+  };
+
+  // aliases used by older markup
+  window.loadAgora=window.loadAgoraPanel;
+  window.loadEconomy=window.loadEconomyPanel;
+  window.loadDAO=window.loadDAOPanel;
+  window.loadSPA=window.loadSPAPanel;
+  window.loadACB=window.loadACBPanel;
+  window.loadHolons=window.loadHolonsPanel;
+  window.loadUsers=window.loadUsersPanel;
+  window.loadSystem=window.loadSystemPanel;
+  window.loadIot=window.loadIotPanel;
+  window.loadClp=window.loadClpPanel;
+
+  var map={
+    agora:loadAgoraPanel, economy:loadEconomyPanel, dao:loadDAOPanel, spa:loadSPAPanel,
+    acb:loadACBPanel, holons:loadHolonsPanel, users:loadUsersPanel, system:loadSystemPanel,
+    iot:loadIotPanel, clp:loadClpPanel, diagnostics:runDiagnosticsPanel,
+    wallet:function(){ if(typeof loadWallet==='function') loadWallet(); },
+    kyc:function(){ if(typeof loadKycQueue==='function') loadKycQueue(); },
+    'kyc-user':function(){ if(typeof loadKycUserStatus==='function') loadKycUserStatus(); },
+    sandbox:function(){ if(typeof loadSandboxBench==='function') loadSandboxBench(); }
+  };
+  var _sp=window.showPanel;
+  if(typeof _sp==='function'){
+    window.showPanel=function(id, el){
+      var r=_sp.apply(this, arguments);
+      try{ if(map[id]) setTimeout(map[id], 30); }catch(e){}
+      return r;
+    };
+  }
+})();
+</script>
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e846d979ba0cf8',t:'MTc4NzMwMTAzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){
@@ -1968,6 +3182,37 @@ window.showPanel = function(name, btn){
     };
   });
 })();
+</script>
+
+
+<script>
+async function forgotPassword(){
+  var emailEl = document.getElementById('email');
+  var err = document.getElementById('loginError');
+  var email = (emailEl && emailEl.value || '').trim().toLowerCase();
+  var lang = (typeof LANG !== 'undefined' && LANG) || ((document.documentElement.lang||'').indexOf('en')===0 ? 'en' : 'pt');
+  if(!email || email.indexOf('@') < 0){
+    if(err){ err.style.display='block'; err.textContent = lang==='en' ? 'Enter your email above, then tap Reset password.' : 'Indique o e-mail acima e depois toque em Repor palavra-passe.'; }
+    return;
+  }
+  var AUTH = (window.SVC && SVC.auth) || window.AUTH_BASE || 'https://stratamesh-auth.stratamesh.workers.dev';
+  if(err){ err.style.display='block'; err.style.color='var(--muted)'; err.textContent = lang==='en' ? 'Sending reset link…' : 'A enviar link de reposição…'; }
+  try{
+    var r = await fetch(AUTH + '/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email: email, lang: lang })
+    });
+    var j = await r.json().catch(function(){ return {}; });
+    if(err){
+      err.style.display='block';
+      err.style.color = j.success ? 'var(--muted)' : 'var(--danger)';
+      err.textContent = j.message || j.error || (lang==='en' ? 'If the email is registered, a one-hour link was sent.' : 'Se o e-mail estiver registado, foi enviado um link (1 hora).');
+    }
+  }catch(e){
+    if(err){ err.style.display='block'; err.style.color='var(--danger)'; err.textContent = String(e.message||e); }
+  }
+}
 </script>
 
 </html>
