@@ -1,7 +1,6 @@
 # Portal account identity
 
-- The Fog Node provides accounts. It does not hold a user account.
-- `meAccount()` must never return `FOG-NODE-PT-CM-001`.
-- `nodeRank` is Fog host context only (`Fog anfitrião · FOG-NODE-PT-CM-001`).
-- Live D1 keys: `portal`, `portal-pt`, `portal-en` (chunked `site_content_chunks`).
-- Published live 2026-08-21; Conta = session user/SCA, not Fog id.
+Product UI shows the signed-in account id (email / strata address / wallet).
+When there is no session, Conta shows an em dash.
+Contexto shows the Fog node id that hosts the session (FOG-NODE-PT-CM-001).
+The Fog node is the host; it is not listed as the user account.

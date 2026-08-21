@@ -2656,13 +2656,28 @@ window.__bancadaOnShow = function(){
   function meAccount(){
     try{
       if(window.currentUser){
-        var a=currentUser.strata_address||currentUser.id||currentUser.email||currentUser.username;
-        if(a && String(a).indexOf('FOG-NODE')!==0) return a;
+        var a=currentUser.strata_address||currentUser.wallet||currentUser.id||currentUser.email||currentUser.username;
+        if(a && String(a).indexOf('FOG-NODE')!==0) return String(a);
       }
     }catch(_){}
     try{
-      var em=window.__SESSION_EMAIL||window.__USER_EMAIL||localStorage.getItem('sm_email')||localStorage.getItem('email');
-      if(em) return em;
+      var keys=['sm_email','email','sm_user','user_email','strata_address','sm_wallet'];
+      for(var i=0;i<keys.length;i++){
+        var v=localStorage.getItem(keys[i]);
+        if(v && String(v).indexOf('FOG-NODE')!==0) return v;
+      }
+    }catch(_){}
+    try{
+      if(window.__SESSION_EMAIL) return window.__SESSION_EMAIL;
+      if(window.__USER_EMAIL) return window.__USER_EMAIL;
+    }catch(_){}
+    try{
+      var t=localStorage.getItem('sm_token')||localStorage.getItem('token');
+      if(t && t.split('.').length>=2){
+        var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        var a=p.email||p.sub||p.strata_address||p.wallet||p.user_id||p.uid;
+        if(a && String(a).indexOf('FOG-NODE')!==0) return String(a);
+      }
     }catch(_){}
     return '';
   }
@@ -2688,7 +2703,7 @@ window.__bancadaOnShow = function(){
     var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
     var meta=document.getElementById('walletAccountMeta');
     if(meta){
-      if(!account){ meta.innerHTML='Conta: <b style="color:var(--muted)">inicie sessão — o Nó fornece contas; o Nó não tem conta</b>'; }
+      if(!account){ meta.innerHTML='Conta: <b style="color:var(--muted)">—</b>'; }
       else { meta.innerHTML='Conta: <b style="color:var(--fg)">'+esc(account)+'</b>'; }
     }
 
@@ -2742,7 +2757,7 @@ window.__bancadaOnShow = function(){
     set('walletMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):(tok?'—':'—'));
     set('walletBurn', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(4):'—'));
     set('walletCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):(tok&&tok.total_supply!=null?Number(tok.total_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'));
-    set('nodeRank', 'Fog anfitrião · FOG-NODE-PT-CM-001');
+    set('nodeRank', 'FOG-NODE-PT-CM-001');
 
     var nftEl=document.getElementById('walletNftList');
     if(nftEl){
