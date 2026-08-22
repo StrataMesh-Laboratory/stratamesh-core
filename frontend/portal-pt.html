@@ -285,7 +285,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-sandbox">
     <h3 id="bancadaPanelTitle">Bancada CGU · Espaço NFT</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Sandbox na primeira pessoa: cada NFT é um objecto espacial alterável. Posse = frações de colateral STRATA. Orbitar ou entrar em modo livre (WASD + rato). Objectos podem ser editados aqui e enviados para mundos abertos.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">1ª pessoa é uma modalidade da bancada: o ponto de vista é um NFT Avatar (identidade figural de utilizador ou SCA). Sala com chão, paredes e tecto. WASD andar. Porta para o mundo aberto onde a bancada está endereçada. Criar NFT escolhe o tipo — Avatar ou criação.</p>
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;align-items:center">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
       <button type="button" id="btnBancadaFps" onclick="setBancadaMode('fps')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">1ª pessoa · WASD</button>
@@ -294,11 +294,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
       <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
-      <div id="bancadaLockHint" onclick="setBancadaMode('fps')" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Clique para entrar em 1ª pessoa · WASD andar · rato olhar · E na porta do mundo</div>
+      <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Clique para entrar em 1ª pessoa · WASD andar · rato olhar · E na porta do mundo</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
         <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Porta do mundo aberto</div>
         <div id="bancadaWorldName" style="margin-top:.75rem;font-size:1.4rem;color:var(--fg)">cmn-lab-world</div>
-        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">A bancada desta conta está endereçada a este mundo. O NFT Avatar segue pela porta.</p>
+        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">A bancada está endereçada a este mundo. O ponto de vista 1ª pessoa (NFT Avatar) segue pela porta.</p>
         <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Voltar à bancada</button>
       </div>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
@@ -327,8 +327,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <option value="static">Estático</option>
         <option value="dynamic">Dinâmico</option>
       </select>
+      <select id="sbxKind" style="padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+        <option value="creation">Criação</option>
+        <option value="avatar">Avatar · identidade figural</option>
+      </select>
       <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Criar NFT</button>
-      <button onclick="developAvatar()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-weight:500">Desenvolver Avatar</button>
       <input id="sbxWorld" placeholder="mundo aberto (cmn-lab-world)" style="min-width:160px;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
       <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Actualizar espaço</button>
     </div>
@@ -2714,8 +2717,13 @@ window.showPanel = function(name, btn){
     var coll=Number((document.getElementById('sbxColl')||{}).value || 0.01);
     var modeEl=document.getElementById('sbxMode');
     var mode=modeEl?modeEl.value:'static';
+    var kindEl=document.getElementById('sbxKind');
+    var kind=kindEl?kindEl.value:'creation';
+    if(kind==='avatar'){ mode='static'; }
+    var worldEl=document.getElementById('sbxWorld');
+    var world=(worldEl&&worldEl.value.trim())||'cmn-lab-world';
     try{
-      var r=await fetch('/api/v1/sandbox/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,owner_id:me(),collateral_strata:coll,mode:mode,burn_rate_per_hour:mode==='dynamic'?0.0001:0,parent_world_id:'cmn-lab-world'})});
+      var r=await fetch('/api/v1/sandbox/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,owner_id:me(),collateral_strata:coll,mode:mode,kind:kind,role:kind==='avatar'?'avatar':'cgu',burn_rate_per_hour:mode==='dynamic'?0.0001:0,parent_world_id:world})});
       var j=await r.json();
       if(!r.ok || j.error){ alert(j.error||JSON.stringify(j.detail)||('HTTP '+r.status)); }
       await loadSandboxBench();
@@ -3672,8 +3680,7 @@ window.loadACBPanel=async function(){
       ? ('WASD andar · rato olhar · E na porta → '+worldId())
       : 'Órbita da sala · clique 1ª pessoa para entrar no avatar';
     if (hint){
-      var locked = document.pointerLockElement === document.getElementById('bancadaCanvas');
-      hint.style.display = (window._bancadaMode==='fps' && !locked) ? 'flex' : 'none';
+      if (window._bancadaMode!=='fps') hint.style.display = 'none';
     }
     var bo=document.getElementById('btnBancadaOrbit');
     var bf=document.getElementById('btnBancadaFps');
@@ -3716,18 +3723,6 @@ window.loadACBPanel=async function(){
     if (b && b.camera){ b.camera.position.set(0, 6.5, 11); b.camera.rotation.set(0,0,0); }
     if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.2, 0); b.controls.update(); }
     hudFps();
-  };
-
-  window.developAvatar = function(){
-    var name = (document.getElementById('sbxTitle')||{}).value || (accountKey()+' avatar');
-    var av = avatarStore() || { id: 'AVT-'+Math.random().toString(36).slice(2,8).toUpperCase(), name: name, kind: 'avatar', mode: 'static', world_id: worldId() };
-    av.name = name; av.kind = 'avatar'; av.mode = 'static'; av.world_id = worldId();
-    saveAvatar(av);
-    try{ localStorage.setItem('bancada_world_'+accountKey(), worldId()); }catch(_){}
-    hudFps();
-    enterFps();
-    var st = document.getElementById('bancadaHudMeta');
-    if (st) st.textContent = 'Avatar '+av.name+' · figura desta conta · porta '+worldId();
   };
 
   window.addEventListener('keydown', function(e){

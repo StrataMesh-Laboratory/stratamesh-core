@@ -285,14 +285,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-sandbox">
     <h3>CGU Sandbox · STRATA NFT space</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First-person sandbox: each NFT is an editable spatial object. Possession = STRATA collateral fractions. Orbit or free-look (WASD + mouse). Objects can be edited here and sent to open worlds.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First person is a sandbox modality: the viewpoint is an Avatar NFT (figural identity of a user or SCA). Room with floor, walls, ceiling. WASD to walk. Door to the open world the sandbox is addressed to. Mint NFT chooses kind — Avatar or creation.</p>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
       <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
-      <div id="bancadaLockHint" onclick="setBancadaMode('fps')" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
+      <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
         <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Open-world door</div>
         <div id="bancadaWorldName" style="margin-top:.75rem;font-size:1.4rem;color:var(--fg)">cmn-lab-world</div>
-        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">This account’s sandbox is addressed to this world. The Avatar NFT walks through the door.</p>
+        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">The sandbox is addressed to this world. The 1st-person viewpoint (Avatar NFT) continues through the door.</p>
         <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Back to sandbox</button>
       </div>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
@@ -321,8 +321,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <option value="static">Static</option>
         <option value="dynamic">Dynamic</option>
       </select>
+      <select id="sbxKind" style="padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
+        <option value="creation">Creation</option>
+        <option value="avatar">Avatar · figural identity</option>
+      </select>
       <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Create NFT</button>
-      <button onclick="developAvatar()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-weight:500">Develop Avatar</button>
       <input id="sbxWorld" placeholder="open world (cmn-lab-world)" style="min-width:160px;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
       <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh space</button>
     </div>
@@ -2674,8 +2677,13 @@ window.showPanel = function(name, btn){
     var coll=Number((document.getElementById('sbxColl')||{}).value || 0.01);
     var modeEl=document.getElementById('sbxMode');
     var mode=modeEl?modeEl.value:'static';
+    var kindEl=document.getElementById('sbxKind');
+    var kind=kindEl?kindEl.value:'creation';
+    if(kind==='avatar'){ mode='static'; }
+    var worldEl=document.getElementById('sbxWorld');
+    var world=(worldEl&&worldEl.value.trim())||'cmn-lab-world';
     try{
-      var r=await fetch('/api/v1/sandbox/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,owner_id:me(),collateral_strata:coll,mode:mode,burn_rate_per_hour:mode==='dynamic'?0.0001:0,parent_world_id:'cmn-lab-world'})});
+      var r=await fetch('/api/v1/sandbox/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:title,owner_id:me(),collateral_strata:coll,mode:mode,kind:kind,role:kind==='avatar'?'avatar':'cgu',burn_rate_per_hour:mode==='dynamic'?0.0001:0,parent_world_id:world})});
       var j=await r.json();
       if(!r.ok || j.error){ alert(j.error||JSON.stringify(j.detail)||('HTTP '+r.status)); }
       await loadSandboxBench();
@@ -3632,8 +3640,7 @@ window.loadACBPanel=async function(){
       ? ('WASD andar · rato olhar · E na porta → '+worldId())
       : 'Órbita da sala · clique 1ª pessoa para entrar no avatar';
     if (hint){
-      var locked = document.pointerLockElement === document.getElementById('bancadaCanvas');
-      hint.style.display = (window._bancadaMode==='fps' && !locked) ? 'flex' : 'none';
+      if (window._bancadaMode!=='fps') hint.style.display = 'none';
     }
     var bo=document.getElementById('btnBancadaOrbit');
     var bf=document.getElementById('btnBancadaFps');
@@ -3676,18 +3683,6 @@ window.loadACBPanel=async function(){
     if (b && b.camera){ b.camera.position.set(0, 6.5, 11); b.camera.rotation.set(0,0,0); }
     if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.2, 0); b.controls.update(); }
     hudFps();
-  };
-
-  window.developAvatar = function(){
-    var name = (document.getElementById('sbxTitle')||{}).value || (accountKey()+' avatar');
-    var av = avatarStore() || { id: 'AVT-'+Math.random().toString(36).slice(2,8).toUpperCase(), name: name, kind: 'avatar', mode: 'static', world_id: worldId() };
-    av.name = name; av.kind = 'avatar'; av.mode = 'static'; av.world_id = worldId();
-    saveAvatar(av);
-    try{ localStorage.setItem('bancada_world_'+accountKey(), worldId()); }catch(_){}
-    hudFps();
-    enterFps();
-    var st = document.getElementById('bancadaHudMeta');
-    if (st) st.textContent = 'Avatar '+av.name+' · figura desta conta · porta '+worldId();
   };
 
   window.addEventListener('keydown', function(e){
