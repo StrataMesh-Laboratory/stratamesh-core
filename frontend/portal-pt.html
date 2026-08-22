@@ -298,16 +298,16 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <div style="pointer-events:none;background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);backdrop-filter:blur(8px)">
           <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Bancada imersiva</div>
           <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:var(--fg)">—</div>
-          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">A carregar topologia…</div>
+          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">A carregar o espaço…</div>
         </div>
         <div style="pointer-events:auto;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end">
           <div style="background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:var(--muted)">
-            <span id="bancadaCount">0</span> nós · <span id="bancadaObjCount">0</span> objectos
+            <span id="bancadaCount">0</span> NFT · <span id="bancadaObjCount">0</span> objectos
           </div>
           <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Repor câmara</button>
         </div>
       </div>
-      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">Sem NFT na bancada — crie o primeiro nó abaixo.</div>
+      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">Sem NFT nesta bancada — crie o primeiro objecto abaixo.</div>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Bancadas</div></div>
@@ -320,7 +320,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <option value="static">Estático</option>
         <option value="dynamic">Dinâmico</option>
       </select>
-      <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Criar nó NFT</button>
+      <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Criar NFT</button>
       <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Actualizar espaço</button>
     </div>
     <div id="bancadaDetail" style="display:none;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem">
@@ -2411,7 +2411,7 @@ window.showPanel = function(name, btn){
       group.position.set(x, y, z);
       group.userData = { nft: nft, valuation: v, index: i };
 
-      // Core crystal (NFT node)
+      // Core crystal (NFT object)
       var geo = new THREE.OctahedronGeometry(scale * 0.55, 0);
       var mat = new THREE.MeshStandardMaterial({
         color: color,
@@ -3740,7 +3740,7 @@ window.loadACBPanel=async function(){
   };
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0eff56e97e645',t:'MTc4NzM5MTg0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){

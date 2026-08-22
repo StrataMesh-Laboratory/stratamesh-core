@@ -285,23 +285,23 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-sandbox">
     <h3>CGU Sandbox · STRATA NFT space</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Three-dimensional sandbox topology: each NFT is a spatial node whose <b>possession</b> is STRATA collateral fractions (independent of market). Digital objects orbit the node. Drag to orbit · scroll to zoom · click a node to inspect.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First-person sandbox: each NFT is an editable spatial object. Possession = STRATA collateral fractions. Orbit or free-look (WASD + mouse). Objects can be edited here and sent to open worlds.</p>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
       <canvas id="bancadaCanvas" style="display:block;width:100%;height:100%"></canvas>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
         <div style="pointer-events:none;background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);backdrop-filter:blur(8px)">
           <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Immersive sandbox</div>
           <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:var(--fg)">—</div>
-          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">Loading topology…</div>
+          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">Loading the space…</div>
         </div>
         <div style="pointer-events:auto;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end">
           <div style="background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:var(--muted)">
-            <span id="bancadaCount">0</span> nós · <span id="bancadaObjCount">0</span> objectos
+            <span id="bancadaCount">0</span> NFTs · <span id="bancadaObjCount">0</span> objects
           </div>
           <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Reset camera</button>
         </div>
       </div>
-      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in the sandbox — create the first node below.</div>
+      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in this sandbox — create the first object below.</div>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Bancadas</div></div>
@@ -314,7 +314,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <option value="static">Static</option>
         <option value="dynamic">Dynamic</option>
       </select>
-      <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Create NFT node</button>
+      <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Create NFT</button>
       <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh space</button>
     </div>
     <div id="bancadaDetail" style="display:none;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem">
@@ -2377,7 +2377,7 @@ window.showPanel = function(name, btn){
       group.position.set(x, y, z);
       group.userData = { nft: nft, valuation: v, index: i };
 
-      // Core crystal (NFT node)
+      // Core crystal (NFT object)
       var geo = new THREE.OctahedronGeometry(scale * 0.55, 0);
       var mat = new THREE.MeshStandardMaterial({
         color: color,
@@ -3706,7 +3706,7 @@ window.loadACBPanel=async function(){
   };
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e846d979ba0cf8',t:'MTc4NzMwMTAzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e846d979ba0cf8',t:'MTc4NzMwMTAzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0f088bf7cf2c6',t:'MTc4NzM5MTg3Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){
