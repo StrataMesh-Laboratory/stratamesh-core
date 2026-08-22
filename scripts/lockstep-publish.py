@@ -336,9 +336,27 @@ def publish_live(email: str, token: str, spa: Path | None) -> dict:
         "pt": TWIN / "artifacts/stratamesh/frontend/portal-pt.html",
         "en": TWIN / "artifacts/stratamesh/frontend/portal-en.html",
     }
+    portal_fallback = {
+        "pt": [TWIN / "dist/portal-pt.html", Path("/tmp/portal-pt.html")],
+        "en": [TWIN / "dist/portal-en.html", Path("/tmp/portal-en.html")],
+    }
     for lang, keys in (("pt", L.PORTAL_KEYS_PT), ("en", L.PORTAL_KEYS_EN)):
         src = portal_src[lang]
-        if not src.is_file():
+        readable = False
+        try:
+            readable = src.is_file()
+        except OSError:
+            readable = False
+        if not readable:
+            for alt in portal_fallback[lang]:
+                try:
+                    if alt.is_file():
+                        src = alt
+                        readable = True
+                        break
+                except OSError:
+                    continue
+        if not readable:
             report.setdefault("portal", []).append(f"SKIP {lang}: missing {src}")
             continue
         html = src.read_text(encoding="utf-8")

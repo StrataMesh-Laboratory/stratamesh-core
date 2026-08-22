@@ -2413,31 +2413,59 @@ window.showPanel = function(name, btn){
     }
     lantern(-4.2,-4.2); lantern(4.2,-4.2); lantern(-4.2,4.2); lantern(4.2,4.2);
 
-    function limb(w,h,d,c){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), toonMat(c)); }
+
+    function inkMesh(mesh, s){
+      s = s || 1.07;
+      var ol = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ color: 0x140804, side: THREE.BackSide }));
+      ol.scale.setScalar(s);
+      mesh.add(ol);
+    }
+    function cap(r,len,c){
+      var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), toonMat(c));
+      inkMesh(m, 1.07);
+      var top = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), toonMat(c));
+      top.position.y = len/2; inkMesh(top, 1.06); m.add(top);
+      var bot = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), toonMat(c));
+      bot.position.y = -len/2; inkMesh(bot, 1.06); m.add(bot);
+      return m;
+    }
     var avatarRoot=new THREE.Group();
-    var hips=new THREE.Group(); hips.position.y=0.92;
-    var shirt=0x1a4a52, pants=0x2a1c14, skin=0xe8c4a0;
-    var torso=limb(0.34,0.44,0.2,shirt); torso.position.y=0.22;
-    var head=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.24,0.22), toonMat(skin)); head.position.y=0.58;
-    var hair=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.08,0.24), toonMat(0x1a1008)); hair.position.y=0.7;
-    hips.add(torso); hips.add(head); hips.add(hair);
+    var hips=new THREE.Group(); hips.position.y=0.9;
+    var jacket=0x1e5c66, pants=0x4a2c22, skin=0xf0c4a0, hairC=0x1a120c;
+    var pelvis=new THREE.Mesh(new THREE.SphereGeometry(0.13,16,12), toonMat(pants));
+    pelvis.scale.set(1,0.75,0.85); inkMesh(pelvis,1.06);
+    var torso=cap(0.145,0.3,jacket); torso.position.y=0.32;
+    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,10), toonMat(skin)); neck.position.y=0.56;
+    var head=new THREE.Mesh(new THREE.SphereGeometry(0.145,20,16), toonMat(skin)); head.position.y=0.68; inkMesh(head,1.06);
+    var hair=new THREE.Mesh(new THREE.SphereGeometry(0.152,16,12), toonMat(hairC));
+    hair.position.set(0,0.73,-0.015); hair.scale.set(1.05,0.72,1.08); inkMesh(hair,1.04);
+    var bang=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,8), toonMat(hairC)); bang.position.set(0,0.76,0.1); bang.scale.set(1.4,0.45,0.5);
+    var eyeM=toonMat(0x1a1008), sclera=toonMat(0xfff6e4);
+    var sL=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,8), sclera); sL.position.set(-0.048,0.02,0.118);
+    var sR=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,8), sclera); sR.position.set(0.048,0.02,0.118);
+    var eL=new THREE.Mesh(new THREE.SphereGeometry(0.022,8,8), eyeM); eL.position.set(-0.048,0.02,0.125);
+    var eR=new THREE.Mesh(new THREE.SphereGeometry(0.022,8,8), eyeM); eR.position.set(0.048,0.02,0.125);
+    head.add(sL); head.add(sR); head.add(eL); head.add(eR);
+    hips.add(pelvis); hips.add(torso); hips.add(neck); hips.add(head); hips.add(hair); hips.add(bang);
     function mkArm(side){
-      var r=new THREE.Group(); r.position.set(0.22*side,0.38,0);
-      var up=limb(0.08,0.28,0.08,shirt); up.position.y=-0.14;
-      var lo=limb(0.07,0.26,0.07,skin); lo.position.y=-0.40;
+      var r=new THREE.Group(); r.position.set(0.2*side,0.42,0);
+      var up=cap(0.042,0.2,jacket); up.position.y=-0.12;
+      var lo=cap(0.036,0.18,skin); lo.position.y=-0.36;
       r.add(up); r.add(lo); hips.add(r); return r;
     }
     function mkLeg(side){
-      var r=new THREE.Group(); r.position.set(0.1*side,0,0);
-      var up=limb(0.11,0.38,0.12,pants); up.position.y=-0.2;
-      var lo=limb(0.1,0.34,0.11,pants); lo.position.y=-0.54;
-      var shoe=limb(0.12,0.08,0.2,0x1a1008); shoe.position.set(0,-0.74,0.04);
+      var r=new THREE.Group(); r.position.set(0.09*side,0.02,0);
+      var up=cap(0.055,0.26,pants); up.position.y=-0.2;
+      var lo=cap(0.045,0.24,pants); lo.position.y=-0.52;
+      var shoe=new THREE.Mesh(new THREE.SphereGeometry(0.055,10,8), toonMat(hairC));
+      shoe.scale.set(1,0.55,1.45); shoe.position.set(0,-0.7,0.03); inkMesh(shoe,1.05);
       r.add(up); r.add(lo); r.add(shoe); hips.add(r); return r;
     }
     B.armL=mkArm(-1); B.armR=mkArm(1); B.legL=mkLeg(-1); B.legR=mkLeg(1);
-    avatarRoot.add(hips); outlineObj(avatarRoot);
+    avatarRoot.add(hips);
     B.avatar=avatarRoot; B.avatarHips=hips; B.gait=0; B.carryId=null; B.walkTo=null;
     B.scene.add(avatarRoot);
+
 
 
 
@@ -2806,7 +2834,7 @@ window.showPanel = function(name, btn){
       });
     });
     drawBancadaRadar();
-    if (window._bancadaMode !== 'fps' && B.controls) B.controls.update();
+    if (window._bancadaMode !== 'fps' && B.controls) { B.controls.update(); if (B.camera) { B.camera.up.set(0,1,0); B.camera.rotation.z = 0; } }
     if (B.camera && B.HALF){
       var m = B.HALF - 0.55, H = (B.HEIGHT||3.4) - 0.38;
       B.camera.position.x = Math.max(-m, Math.min(m, B.camera.position.x));
@@ -3942,7 +3970,7 @@ window.loadACBPanel=async function(){
     }
     if (b.avatar){
       b.avatar.position.set(b.px, 0, b.pz);
-      b.avatar.rotation.y = b.yaw||0;
+      b.avatar.rotation.y = (b.yaw||0)+Math.PI;
       b.gait = (b.gait||0) + (moving? 0.18 : 0);
       var sw = moving ? Math.sin(b.gait)*0.55 : 0;
       if(b.legL) b.legL.rotation.x = sw;
@@ -3964,10 +3992,9 @@ window.loadACBPanel=async function(){
       pr.textContent = nearDoor ? ('pt'==='en'?'E · exit to open world':'E · sair para o mundo aberto') : (b.carryId? ('pt'==='en'?'F · set down on grid':'F · pousar na grelha') : ('pt'==='en'?'E use · F pick up · click NFT to walk':'E usar · F pegar · clique num NFT para ir até ele'));
     }
     if (window._bancadaMode==='fps'){
+      b.camera.up.set(0,1,0);
       b.camera.position.set(b.px, b.py, b.pz);
-      b.camera.rotation.order = 'YXZ';
-      b.camera.rotation.y = yaw;
-      b.camera.rotation.x = b.pitch || 0;
+      b.camera.rotation.set(b.pitch||0, b.yaw||0, 0, 'YXZ');
     }
     window.__controlsTest = {
       getYaw: function(){ return b.yaw||0; },
@@ -4038,7 +4065,7 @@ window.loadACBPanel=async function(){
   else window.addEventListener('load', hudFps);
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0eff56e97e645',t:'MTc4NzM5MTg0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f120552ad0062d',t:'MTc4NzM5MzgzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0eff56e97e645',t:'MTc4NzM5MTg0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f120552ad0062d',t:'MTc4NzM5MzgzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f181e08ec6f2c6',t:'MTc4NzM5NzgyNg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){

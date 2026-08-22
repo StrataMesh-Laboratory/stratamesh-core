@@ -266,31 +266,78 @@ export function BancadaCanvas({
       }
       rebuild(nfts);
 
-      function limb(w: number, h: number, d: number, color: number) {
-        return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), toon(color));
+      function ink(mesh: InstanceType<typeof THREE.Mesh>, s = 1.07) {
+        const ol = new THREE.Mesh(
+          mesh.geometry,
+          new THREE.MeshBasicMaterial({ color: 0x140804, side: THREE.BackSide }),
+        );
+        ol.scale.setScalar(s);
+        mesh.add(ol);
+      }
+      function cap(r: number, len: number, color: number) {
+        const mesh = new THREE.Mesh(
+          THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(r, len, 6, 14) : new THREE.CylinderGeometry(r, r, len + r * 2, 14),
+          toon(color),
+        );
+        ink(mesh);
+        return mesh;
       }
       const avatarRoot = new THREE.Group();
       const hips = new THREE.Group();
-      hips.position.y = 0.92;
-      const shirt = 0x1a4a52;
-      const pants = 0x2a1c14;
-      const skin = 0xe8c4a0;
-      const torso = limb(0.34, 0.44, 0.2, shirt);
-      torso.position.y = 0.22;
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.24, 0.22), toon(skin));
-      head.position.y = 0.58;
-      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.24), toon(0x1a1008));
-      hair.position.y = 0.7;
+      hips.position.y = 0.9;
+      const jacket = 0x1e5c66;
+      const pants = 0x4a2c22;
+      const skin = 0xf0c4a0;
+      const hairC = 0x1a120c;
+      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), toon(pants));
+      pelvis.scale.set(1, 0.75, 0.85);
+      ink(pelvis, 1.06);
+      const torso = cap(0.145, 0.3, jacket);
+      torso.position.y = 0.32;
+      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), toon(0xf3e2c4));
+      collar.position.y = 0.5;
+      collar.scale.set(1, 0.35, 0.9);
+      ink(collar, 1.05);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.08, 10), toon(skin));
+      neck.position.y = 0.56;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 20, 16), toon(skin));
+      head.position.y = 0.68;
+      ink(head, 1.06);
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.152, 16, 12), toon(hairC));
+      hair.position.set(0, 0.73, -0.015);
+      hair.scale.set(1.05, 0.72, 1.08);
+      ink(hair, 1.04);
+      const bang = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), toon(hairC));
+      bang.position.set(0, 0.76, 0.1);
+      bang.scale.set(1.4, 0.45, 0.5);
+      const eyeM = toon(0x1a1008);
+      const eL = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeM);
+      eL.position.set(-0.048, 0.02, 0.125);
+      const eR = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeM);
+      eR.position.set(0.048, 0.02, 0.125);
+      const sclera = toon(0xfff6e4);
+      const sL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), sclera);
+      sL.position.set(-0.048, 0.02, 0.118);
+      const sR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), sclera);
+      sR.position.set(0.048, 0.02, 0.118);
+      head.add(sL);
+      head.add(sR);
+      head.add(eL);
+      head.add(eR);
+      hips.add(pelvis);
       hips.add(torso);
+      hips.add(collar);
+      hips.add(neck);
       hips.add(head);
       hips.add(hair);
+      hips.add(bang);
       function arm(side: number) {
         const rootA = new THREE.Group();
-        rootA.position.set(0.22 * side, 0.38, 0);
-        const up = limb(0.08, 0.28, 0.08, shirt);
-        up.position.y = -0.14;
-        const lo = limb(0.07, 0.26, 0.07, skin);
-        lo.position.y = -0.4;
+        rootA.position.set(0.2 * side, 0.42, 0);
+        const up = cap(0.042, 0.2, jacket);
+        up.position.y = -0.12;
+        const lo = cap(0.036, 0.18, skin);
+        lo.position.y = -0.36;
         rootA.add(up);
         rootA.add(lo);
         hips.add(rootA);
@@ -298,13 +345,15 @@ export function BancadaCanvas({
       }
       function leg(side: number) {
         const rootL = new THREE.Group();
-        rootL.position.set(0.1 * side, 0, 0);
-        const up = limb(0.11, 0.38, 0.12, pants);
+        rootL.position.set(0.09 * side, 0.02, 0);
+        const up = cap(0.055, 0.26, pants);
         up.position.y = -0.2;
-        const lo = limb(0.1, 0.34, 0.11, pants);
-        lo.position.y = -0.54;
-        const shoe = limb(0.12, 0.08, 0.2, 0x1a1008);
-        shoe.position.set(0, -0.74, 0.04);
+        const lo = cap(0.045, 0.24, pants);
+        lo.position.y = -0.52;
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), toon(hairC));
+        shoe.scale.set(1, 0.55, 1.45);
+        shoe.position.set(0, -0.7, 0.03);
+        ink(shoe, 1.05);
         rootL.add(up);
         rootL.add(lo);
         rootL.add(shoe);
@@ -316,16 +365,18 @@ export function BancadaCanvas({
       const legL = leg(-1);
       const legR = leg(1);
       avatarRoot.add(hips);
-      outline(avatarRoot);
       scene.add(avatarRoot);
 
       const hands = new THREE.Group();
-      const hL = limb(0.05, 0.05, 0.14, skin);
-      hL.position.set(-0.18, -0.16, -0.32);
-      const hR = limb(0.05, 0.05, 0.14, skin);
-      hR.position.set(0.18, -0.16, -0.32);
-      hands.add(hL);
-      hands.add(hR);
+      const palm = (sx: number) => {
+        const h = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), toon(skin));
+        h.scale.set(0.9, 0.7, 1.3);
+        h.position.set(sx, -0.18, -0.34);
+        ink(h, 1.08);
+        return h;
+      };
+      hands.add(palm(-0.16));
+      hands.add(palm(0.16));
       camera.add(hands);
       scene.add(camera);
 
@@ -431,23 +482,23 @@ export function BancadaCanvas({
 
       function applyCam() {
         avatarRoot.position.set(pos.x, 0, pos.z);
-        avatarRoot.rotation.y = yaw.v;
+        avatarRoot.rotation.y = yaw.v + Math.PI;
         const p = presenceRef.current;
+        const fx = -Math.sin(yaw.v);
+        const fz = -Math.cos(yaw.v);
         hands.visible = p === "inhabit";
+        camera.up.set(0, 1, 0);
         if (p === "inhabit") {
           camera.position.set(pos.x, pos.y, pos.z);
-          camera.rotation.order = "YXZ";
-          camera.rotation.y = yaw.v;
-          camera.rotation.x = pitch.v;
+          camera.rotation.set(pitch.v, yaw.v, 0, "YXZ");
           hips.visible = false;
         } else {
           hips.visible = true;
-          const fx = -Math.sin(yaw.v);
-          const fz = -Math.cos(yaw.v);
           const dist = p === "compose" ? 2.4 : 2.05;
-          const c = clampInterior(pos.x - fx * dist, p === "compose" ? 2.05 : 1.78, pos.z - fz * dist);
+          const height = p === "compose" ? 2.05 : 1.78;
+          const c = clampInterior(pos.x - fx * dist, height, pos.z - fz * dist);
           camera.position.set(c.x, c.y, c.z);
-          camera.lookAt(pos.x, 1.15, pos.z);
+          camera.rotation.set(p === "compose" ? -0.28 : -0.22, yaw.v, 0, "YXZ");
         }
       }
 
