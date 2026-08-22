@@ -4,6 +4,7 @@ import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
 import { COLL, INV_SLOTS, OAM_MAX, REACH, TILE, actorOnTile, blockedAabb, cellAt, facingTile, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
+import { HOMEBREW_CARTS } from "@/lib/cgu-carts";
 import { ScriptQ } from "@/lib/cgu-script";
 
 declare global {
@@ -462,6 +463,24 @@ export function BancadaCanvas({
       camera.add(hands);
       scene.add(camera);
 
+      const carts = new THREE.Group();
+      scene.add(carts);
+      HOMEBREW_CARTS.forEach((c, i) => {
+        const g = new THREE.Group();
+        g.position.set(-4.5 + i * 1.28, 0, -5.5);
+        g.userData.nftId = c.id;
+        g.userData.title = `${c.title} · ${c.lesson}`;
+        g.userData.cart = c.file;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.7, 0.1), toon(0x8a2a1a, 0xd4a017, 0.18));
+        body.position.y = 0.48;
+        ink(body, 1.04);
+        g.add(body);
+        carts.add(g);
+        const cell = worldToTile(g.position.x, g.position.z, HALF, TILE);
+        occupy(occ, tilesN, cell.tx, cell.tz, COLL.SOLID);
+      });
+      const keyPad = worldToTile(0, -2.7, HALF, TILE);
+      occupy(occ, tilesN, keyPad.tx, keyPad.tz, COLL.TRIGGER);
       const sprites = new THREE.Group();
       scene.add(sprites);
       function placeAtlas(
@@ -639,11 +658,14 @@ export function BancadaCanvas({
         }
         return false;
       }
+      function allActors() {
+        return [...objects.children, ...carts.children];
+      }
       function facingActor() {
         const face = facingTile(pos.x, pos.z, yaw.v, HALF, TILE);
-        const list = objects.children.map((g) => ({ id: String(g.userData.nftId || ""), x: g.position.x, z: g.position.z, ref: g }));
+        const list = allActors().map((g) => ({ id: String(g.userData.nftId || ""), x: g.position.x, z: g.position.z }));
         const hit = actorOnTile(list, face.tx, face.tz, HALF, TILE);
-        if (hit) return objects.children.find((g) => String(g.userData.nftId) === hit.id) || null;
+        if (hit) return allActors().find((g) => String(g.userData.nftId) === hit.id) || null;
         return null;
       }
       function tryMove(dx: number, dz: number) {
@@ -669,7 +691,7 @@ export function BancadaCanvas({
       function nearestNft() {
         let best: Object3D | null = null;
         let bd = 1.35;
-        objects.children.forEach((g) => {
+        allActors().forEach((g) => {
           const d = Math.hypot(g.position.x - pos.x, g.position.z - pos.z);
           if (d < bd) {
             bd = d;
@@ -896,6 +918,14 @@ export function BancadaCanvas({
               setLoadingWorld(true);
               onEnterRef.current?.(worldId);
             });
+          } else if (kind === COLL.TRIGGER) {
+            if (inv.includes("cart-castle")) {
+              pos.x = -pos.x;
+              pos.z = Math.max(-HALF + 1.4, Math.min(HALF - 1.8, -pos.z * 0.4));
+              scripts.push({ op: "say", text: pt ? "Sala 2 · chave aceite" : "Room 2 · key accepted", dur: 1.4 });
+            } else {
+              scripts.push({ op: "say", text: pt ? "Porta interior · falta a chave (Castle Escape)" : "Inner door · need Castle Escape cart", dur: 1.6 });
+            }
           } else {
             const faced = facingActor();
             const n = faced || nearestNft();
