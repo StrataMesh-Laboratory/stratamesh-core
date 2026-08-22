@@ -122,12 +122,14 @@ const STRATA_MINT_SOURCE = '#mint';
 const STRATA_BURN_SINK = '#0';
 const NODE_WALLET = 'FOG-NODE-PT-CM-001';
 const LEGACY_TREASURY_ALIAS = 'treasury';
-/** SPA/APS (acordo de serviço): specialised STRATA NFT template.
- *  Static until execution; dynamic while running; terminates at ≤ SPA_MIN_COLLATERAL (0.1 STRATA)
- *  or when execution completes. Competes with ETH smart contracts functionally — no ETH ontology. */
-const SPA_MIN_COLLATERAL = 0.1;
+/**
+ * Smart-contract STRATA NFT: static ↔ dynamic operational lifecycle.
+ * APS/SPA is one kind of such NFT — not a separate architectural layer.
+ * No EVM ontology imported.
+ */
+const CONTRACT_KINDS = new Set(['smart_contract', 'contract', 'spa', 'aps', 'service_agreement']);
 
-function isSpaNft(nft) {
+function isSmartContractNft(nft) {
   if (!nft) return false;
   const role = String(nft.role || '').toLowerCase();
   const asset = String(nft.asset_type || '').toLowerCase();
@@ -135,15 +137,10 @@ function isSpaNft(nft) {
   try {
     kind = String(JSON.parse(nft.metadata_json || '{}').kind || '').toLowerCase();
   } catch (_) {}
-  return (
-    role === 'spa' ||
-    role === 'aps' ||
-    asset === 'spa' ||
-    asset === 'aps' ||
-    kind === 'spa' ||
-    kind === 'aps' ||
-    kind === 'service_agreement'
-  );
+  return CONTRACT_KINDS.has(role) || CONTRACT_KINDS.has(asset) || CONTRACT_KINDS.has(kind);
+}
+function isSpaNft(nft) {
+  return isSmartContractNft(nft);
 }
 
 function isNodeWallet(account) {
@@ -643,10 +640,10 @@ async function burnStrataFromVault(db, vaultAccount, amount) {
 }
 
 /**
- * Terminate SPA/APS: unlock residual collateral to fractional holders, status=terminated.
- * Triggered when execution completes or collateral ≤ SPA_MIN_COLLATERAL (0.1 STRATA).
+ * Optional final close of a smart-contract NFT: unlock residual to holders, status=terminated.
+ * Normal operation prefers pause (static) and re-trigger rather than immediate terminate.
  */
-async function terminateSpa(db, env, nft, reason) {
+async function terminateContract(db, env, nft, reason) {
   if (!nft || nft.status === 'redeemed' || nft.status === 'terminated') {
     return { ok: true, already_done: true, nft };
   }
@@ -658,7 +655,6 @@ async function terminateSpa(db, env, nft, reason) {
     for (const f of fracs) {
       const units = Number(f.strata_units || 0);
       if (units <= 0) continue;
-      // Scale fraction to residual (fractions may already equal residual)
       const slice = Math.min(units, residual);
       const un = await unlockStrataCollateral(db, vault, slice, f.holder);
       distributions.push({ holder: f.holder, strata: slice, unlocked: un.unlocked });
@@ -690,14 +686,14 @@ async function terminateSpa(db, env, nft, reason) {
     meta.mode = 'static';
     meta.collateral_strata = 0;
     meta.terminated_at = iso;
-    meta.termination_reason = reason || 'spa_terminated';
-    meta.spa_phase = 'terminated';
+    meta.termination_reason = reason || 'contract_closed';
+    meta.contract_phase = 'terminated';
     await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft.id).run();
   } catch (_) {}
   try {
     await dagSubmit(
       env,
-      { type: 'spa_terminated', nft_id: nft.id, reason },
+      { type: 'contract_terminated', nft_id: nft.id, reason },
       JSON.stringify({ nft_id: nft.id, reason, distributions })
     );
   } catch (_) {}
@@ -708,17 +704,18 @@ async function terminateSpa(db, env, nft, reason) {
     ok: true,
     nft_id: nft.id,
     status: 'terminated',
-    reason: reason || 'spa_terminated',
+    reason: reason || 'contract_closed',
     distributions,
-    note: 'SPA/APS terminated — residual STRATA returned to holders. Template lifecycle ended.',
+    note: 'Smart-contract STRATA NFT closed — residual STRATA returned to holders.',
   };
 }
+const terminateSpa = terminateContract;
 
 /**
  * Dynamic NFT: burn ongoing resource cost from collateral into #0.
- * Generic NFT: collateral → 0 → suspended_static until top-up.
- * SPA/APS: burns only above SPA_MIN_COLLATERAL (0.1); at floor → terminate (not suspend).
- * Static NFTs do not burn. Lazy-applied on read/tick.
+ * When collateral is exhausted → suspended_static (may top-up / resume).
+ * Smart-contract NFTs use the same static|dynamic modes; pause returns them to static
+ * without terminating. Static NFTs do not burn. Lazy-applied on read/tick.
  */
 async function applyDynamicResourceBurn(db, nft, opts) {
   if (!nft || nft.status === 'redeemed' || nft.status === 'terminated') return { nft, burned: 0, changed: false };
@@ -726,8 +723,6 @@ async function applyDynamicResourceBurn(db, nft, opts) {
   if (mode !== 'dynamic') {
     return { nft, burned: 0, changed: false, mode };
   }
-  const spa = isSpaNft(nft);
-  const floor = spa ? SPA_MIN_COLLATERAL : 0;
   const rate = Math.max(0, Number(nft.burn_rate_per_hour || 0));
   if (rate <= 0) return { nft, burned: 0, changed: false, mode };
   const now = Date.now();
@@ -737,21 +732,9 @@ async function applyDynamicResourceBurn(db, nft, opts) {
   let due = rate * hours;
   if (opts && opts.force_amount != null) due = Math.max(0, Number(opts.force_amount));
   const coll = Math.max(0, Number(nft.collateral_strata || 0));
-
-  // SPA already at or below floor while dynamic → terminate
-  if (spa && coll <= floor + 1e-12) {
-    const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
-    return { nft: term.nft || nft, burned: 0, changed: true, mode: 'static', status: 'terminated', termination: term };
-  }
-
-  const burnable = Math.max(0, coll - floor);
-  const burnAmt = Math.min(burnable, due);
+  const burnAmt = Math.min(coll, due);
   if (burnAmt <= 0 && hours > 0) {
-    if (coll <= floor + 1e-12) {
-      if (spa) {
-        const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
-        return { nft: term.nft || nft, burned: 0, changed: true, mode: 'static', status: 'terminated', termination: term };
-      }
+    if (coll <= 1e-12) {
       await db
         .prepare("UPDATE strata_nfts SET mode = 'suspended_static', last_burn_at = ?, collateral_strata = 0 WHERE id = ?")
         .bind(new Date(now).toISOString(), nft.id)
@@ -767,11 +750,10 @@ async function applyDynamicResourceBurn(db, nft, opts) {
 
   const vault = nft.collateral_vault || ('nft:' + nft.id + ':collateral');
   await burnStrataFromVault(db, vault, burnAmt);
-  const newColl = Math.max(floor, coll - burnAmt);
+  const newColl = Math.max(0, coll - burnAmt);
   const totalBurned = Math.max(0, Number(nft.total_resource_burned || 0)) + burnAmt;
   let newMode = 'dynamic';
-  let status = nft.status || 'active';
-  if (!spa && newColl <= 1e-12) {
+  if (newColl <= 1e-12) {
     newMode = 'suspended_static';
   }
   const iso = new Date(now).toISOString();
@@ -802,60 +784,51 @@ async function applyDynamicResourceBurn(db, nft, opts) {
     meta.mode = newMode;
     meta.total_resource_burned = totalBurned;
     meta.last_burn_at = iso;
-    if (spa) meta.spa_phase = 'executing';
+    if (isSmartContractNft(nft)) meta.contract_phase = newMode === 'suspended_static' ? 'exhausted' : 'executing';
     await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft.id).run();
   } catch (_) {}
   nft.collateral_strata = newColl;
   nft.mode = newMode;
   nft.last_burn_at = iso;
   nft.total_resource_burned = totalBurned;
-
-  // SPA hit floor after this burn → terminate
-  if (spa && newColl <= floor + 1e-12) {
-    const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
-    return {
-      nft: term.nft || nft,
-      burned: burnAmt,
-      changed: true,
-      mode: 'static',
-      status: 'terminated',
-      hours,
-      termination: term,
-    };
-  }
   return { nft, burned: burnAmt, changed: true, mode: newMode, hours };
 }
 
-/** Mint SPA/APS as specialised STRATA NFT template — always starts static. */
-async function mintSpa(db, env, body) {
+/**
+ * Mint a smart-contract STRATA NFT (static template).
+ * kind may be smart_contract | spa | aps | service_agreement — APS is one kind, not a separate layer.
+ */
+async function mintSmartContract(db, env, body) {
   const owner = body.owner || body.account || body.issuer;
   if (!owner) return { ok: false, error: 'owner required' };
   let coll = Number(body.collateral_strata != null ? body.collateral_strata : body.collateral);
-  if (!(coll > 0)) coll = SPA_MIN_COLLATERAL;
-  if (coll < SPA_MIN_COLLATERAL) {
-    return { ok: false, error: 'collateral_below_spa_minimum', minimum: SPA_MIN_COLLATERAL, provided: coll };
-  }
+  if (!(coll > 0)) coll = 0.1;
+  const kindRaw = String(body.kind || body.type || body.role || 'smart_contract').toLowerCase();
+  const kind = CONTRACT_KINDS.has(kindRaw) ? kindRaw : 'smart_contract';
+  const role = kind === 'aps' || kind === 'service_agreement' ? 'spa' : kind === 'spa' ? 'spa' : 'smart_contract';
   const template = body.template || body.template_json || body.agreement || {};
-  const name = body.name || body.title || 'SPA';
+  const name = body.name || body.title || (role === 'spa' ? 'APS' : 'Contract');
   const description =
     body.description ||
-    'SPA/APS — acordo de serviço como STRATA NFT template (estático até execução; termina a ≤0.1 STRATA).';
+    (role === 'spa'
+      ? 'APS — acordo de serviço como contrato inteligente STRATA NFT (estático ↔ dinâmico).'
+      : 'Contrato inteligente STRATA NFT — estático até gatilho; dinâmico em operação; pode pausar de novo a estático.');
   const minted = await mintStrataNft(db, env, {
     owner,
     name,
     description,
-    role: 'spa',
-    kind: 'spa',
+    role,
+    kind: role === 'spa' ? 'spa' : 'smart_contract',
     world_id: body.world_id || null,
     sandbox_id: body.sandbox_id || null,
     attributes: {
-      spa: true,
-      aps: true,
-      kind: 'spa',
-      spa_phase: 'template',
+      smart_contract: true,
+      spa: role === 'spa',
+      aps: role === 'spa',
+      kind: role === 'spa' ? 'spa' : 'smart_contract',
+      contract_phase: 'static',
       template,
       template_cid: body.template_cid || null,
-      min_collateral: SPA_MIN_COLLATERAL,
       competes_with: 'eth_smart_contracts_functionally',
       eth_ontology: false,
       parties: body.parties || template.parties || null,
@@ -866,28 +839,33 @@ async function mintSpa(db, env, body) {
     mode: 'static',
     burn_rate_per_hour: body.burn_rate_per_hour != null ? Number(body.burn_rate_per_hour) : 0.0001,
   });
-  // Force asset_type spa
   try {
-    await db.prepare("UPDATE strata_nfts SET asset_type = 'spa', role = 'spa' WHERE id = ?").bind(minted.nft_id).run();
+    await db
+      .prepare('UPDATE strata_nfts SET asset_type = ?, role = ? WHERE id = ?')
+      .bind(role === 'spa' ? 'spa' : 'smart_contract', role, minted.nft_id)
+      .run();
   } catch (_) {}
   return {
     ok: true,
     ...minted,
-    spa_phase: 'template',
+    kind: role === 'spa' ? 'spa' : 'smart_contract',
+    contract_phase: 'static',
     mode: 'static',
-    min_collateral: SPA_MIN_COLLATERAL,
-    note: 'SPA/APS minted as static STRATA NFT template. Remains static until POST /spa/execute. Terminates on complete or collateral ≤ 0.1 STRATA.',
+    note: 'Smart-contract STRATA NFT minted static. Execute → dynamic; pause → static again until next trigger; collateral exhaustion ends operation.',
   };
 }
+const mintSpa = (db, env, body) => mintSmartContract(db, env, { ...body, kind: body.kind || 'spa' });
 
-async function executeSpa(db, env, { nft_id, actor }) {
+async function executeContract(db, env, { nft_id, actor }) {
   const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
   if (!nft) return { ok: false, error: 'nft_not_found' };
-  if (!isSpaNft(nft)) return { ok: false, error: 'not_a_spa' };
-  if (nft.status === 'terminated' || nft.status === 'redeemed') return { ok: false, error: 'spa_already_ended', status: nft.status };
+  if (!isSmartContractNft(nft)) return { ok: false, error: 'not_a_smart_contract_nft' };
+  if (nft.status === 'terminated' || nft.status === 'redeemed') {
+    return { ok: false, error: 'contract_ended', status: nft.status };
+  }
   const coll = Number(nft.collateral_strata || 0);
-  if (coll <= SPA_MIN_COLLATERAL + 1e-12) {
-    return { ok: false, error: 'collateral_at_or_below_floor', minimum: SPA_MIN_COLLATERAL, collateral: coll };
+  if (coll <= 1e-12) {
+    return { ok: false, error: 'collateral_exhausted', collateral: coll };
   }
   const iso = new Date().toISOString();
   await db
@@ -900,30 +878,70 @@ async function executeSpa(db, env, { nft_id, actor }) {
       meta = JSON.parse(nft.metadata_json || '{}');
     } catch (_) {}
     meta.mode = 'dynamic';
-    meta.spa_phase = 'executing';
+    meta.contract_phase = 'executing';
     meta.executed_at = iso;
     meta.executed_by = actor || null;
     await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft_id).run();
   } catch (_) {}
   try {
-    await dagSubmit(env, { type: 'spa_execute', nft_id }, JSON.stringify({ nft_id, actor, at: iso }));
+    await dagSubmit(env, { type: 'contract_execute', nft_id }, JSON.stringify({ nft_id, actor, at: iso }));
   } catch (_) {}
   return {
     ok: true,
     nft_id,
-    spa_phase: 'executing',
+    contract_phase: 'executing',
     mode: 'dynamic',
     collateral_strata: coll,
-    note: 'SPA/APS now dynamic — resource burn from collateral above 0.1 STRATA floor. Completes via POST /spa/complete or auto-terminates at floor.',
+    note: 'Contract NFT now dynamic. Pause returns to static and waits for the next trigger; operation ends when collateral is exhausted.',
+  };
+}
+const executeSpa = executeContract;
+
+/** Pause: dynamic → static, keep collateral, wait for next trigger. */
+async function pauseContract(db, env, { nft_id, actor }) {
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (!isSmartContractNft(nft)) return { ok: false, error: 'not_a_smart_contract_nft' };
+  if (nft.status === 'terminated' || nft.status === 'redeemed') {
+    return { ok: false, error: 'contract_ended', status: nft.status };
+  }
+  const iso = new Date().toISOString();
+  await db.prepare("UPDATE strata_nfts SET mode = 'static', last_burn_at = ? WHERE id = ?").bind(iso, nft_id).run();
+  try {
+    let meta = {};
+    try {
+      meta = JSON.parse(nft.metadata_json || '{}');
+    } catch (_) {}
+    meta.mode = 'static';
+    meta.contract_phase = 'paused';
+    meta.paused_at = iso;
+    meta.paused_by = actor || null;
+    await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft_id).run();
+  } catch (_) {}
+  try {
+    await dagSubmit(env, { type: 'contract_pause', nft_id }, JSON.stringify({ nft_id, actor, at: iso }));
+  } catch (_) {}
+  return {
+    ok: true,
+    nft_id,
+    contract_phase: 'paused',
+    mode: 'static',
+    collateral_strata: Number(nft.collateral_strata || 0),
+    note: 'Paused to static — waiting for the next execute trigger. Collateral preserved.',
   };
 }
 
-async function completeSpa(db, env, { nft_id, actor, result }) {
+async function completeContract(db, env, { nft_id, actor, result, close }) {
   const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
   if (!nft) return { ok: false, error: 'nft_not_found' };
-  if (!isSpaNft(nft)) return { ok: false, error: 'not_a_spa' };
+  if (!isSmartContractNft(nft)) return { ok: false, error: 'not_a_smart_contract_nft' };
   if (nft.status === 'terminated' || nft.status === 'redeemed') {
     return { ok: true, already_terminated: true, nft_id, status: nft.status };
+  }
+  // Default: pause back to static (re-triggerable). Explicit close=true terminates.
+  if (!close) {
+    const p = await pauseContract(db, env, { nft_id, actor });
+    return { ok: true, ...p, completion_result: result || null, closed: false };
   }
   try {
     let meta = {};
@@ -935,9 +953,10 @@ async function completeSpa(db, env, { nft_id, actor, result }) {
     await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft_id).run();
     nft.metadata_json = JSON.stringify(meta);
   } catch (_) {}
-  const term = await terminateSpa(db, env, nft, 'execution_complete');
-  return { ok: true, ...term, completed_by: actor || null };
+  const term = await terminateContract(db, env, nft, 'execution_complete');
+  return { ok: true, ...term, completed_by: actor || null, closed: true };
 }
+const completeSpa = (db, env, args) => completeContract(db, env, args);
 
 
 async function listNftFractions(db, nftId) {
@@ -1583,17 +1602,30 @@ export default {
             kinds: [
               { id: 'open_world', note: 'Open worlds composed of STRATA NFTs' },
               { id: 'cgu', aliases: ['ugc'], note: 'User-Generated Creations including SCA authors' },
+                            {
+                id: 'smart_contract',
+                aliases: ['contract'],
+                note: 'Contrato inteligente STRATA NFT: estático ↔ dinâmico. Mint estático; execute → dinâmico; pause → estático de novo até novo gatilho; operação até o colateral esgotar. Alternativa funcional a smart contracts ETH sem ontologia EVM.',
+                lifecycle: 'static → execute(dynamic) → pause(static) → … until collateral exhausted',
+                endpoints: {
+                  mint: 'POST /contract/mint',
+                  execute: 'POST /contract/execute',
+                  pause: 'POST /contract/pause',
+                  complete: 'POST /contract/complete',
+                  list: 'GET /contract/list',
+                },
+              },
               {
                 id: 'spa',
                 aliases: ['aps', 'service_agreement'],
-                note: 'SPA/APS — specialised STRATA NFT: automated service-agreement template. Static until execute → dynamic; terminates on complete or collateral ≤ 0.1 STRATA. Competes with ETH smart contracts functionally; no ETH ontology.',
-                lifecycle: 'template(static) → execute(dynamic) → complete|floor_0.1(terminated)',
-                min_collateral: 0.1,
+                note: 'APS/SPA — um kind de contrato inteligente STRATA NFT (acordo de serviço), não uma camada separada. Mesmo ciclo static|dynamic.',
+                parent_kind: 'smart_contract',
                 endpoints: {
                   mint: 'POST /spa/mint',
                   execute: 'POST /spa/execute',
+                  pause: 'POST /spa/pause',
                   complete: 'POST /spa/complete',
-                  list: 'GET /spa/list?owner=',
+                  list: 'GET /spa/list',
                 },
               },
               { id: 'external_asset', note: 'Representative of off-DLT asset anchored on DLT' },
@@ -1678,7 +1710,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '3.5.1-spa-aps',
+        version: '3.5.2-smart-contract',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -1706,7 +1738,7 @@ export default {
           'nft_redeem_if_market_below_collateral',
           'nft_majority_liquidation',
           'nft_bundle_composition',
-          'spa_aps_template',
+          'smart_contract_nft',
           'nft_import',
           'dag_anchor',
         ],
@@ -2305,8 +2337,8 @@ export default {
           role: 'building blocks of open worlds and CGU sandboxes; external-asset representatives; SPA/APS templates',
           open_world: 'composed of STRATA NFT blocks (POST /world/compose, /world/block)',
           cgu: 'CGU creations (users + SCAs) are STRATA NFTs (POST /cgu/mint)',
-          spa_aps:
-            'Specialised STRATA NFT service-agreement templates. Static until execute → dynamic while running; terminate on complete or collateral ≤ 0.1 STRATA. Functional alternative to ETH smart contracts — no ETH ontology imported. POST /spa/mint | /spa/execute | /spa/complete',
+          smart_contract:
+            'STRATA NFT contratos inteligentes: static ↔ dynamic. APS/SPA é um kind, não uma camada. POST /contract/mint | /execute | /pause | /complete',
           endpoint_kinds: 'GET /tokenisation/kinds',
         },
         invariant:
@@ -2579,28 +2611,29 @@ export default {
     // --- Ontology contract (architectural semantics operationalised) ---
     if (path === '/ontology/nft' || path === '/ontology' || path === '/architecture/nft') {
       const o = strataNftOntology();
-      o.spa_aps = {
+      o.smart_contract = {
         definition:
-          'SPA/APS (acordo de serviço) is a specialised STRATA NFT: an automated service-agreement template. It is an object, not an agent and not an imported ETH smart contract.',
+          'A smart-contract STRATA NFT is a STRATA NFT with static ↔ dynamic operational lifecycle. APS/SPA is one kind of such NFT.',
         lifecycle: {
-          template: 'minted static — dormant template with locked collateral ≥ 0.1 STRATA',
-          execute: 'POST /spa/execute → mode dynamic; burns resource cost from collateral above the 0.1 floor',
-          terminate: 'POST /spa/complete or collateral ≤ 0.1 → status terminated; residual STRATA returned to holders',
+          static: 'minted or paused — waiting for the next action trigger',
+          execute: 'POST /contract/execute → mode dynamic; burns from collateral while running',
+          pause: 'POST /contract/pause → mode static again; collateral preserved; awaits next trigger',
+          exhaust: 'when collateral is depleted → suspended_static until top-up or close',
         },
-        min_collateral: SPA_MIN_COLLATERAL,
-        eth_relation: 'Competes functionally with ETH smart contracts; does not import ETH/EVM ontology, opcodes, or gas model',
+        aps: 'APS/SPA is a service-agreement kind under smart_contract — same static|dynamic categories',
+        eth_relation: 'Competes functionally with ETH smart contracts; does not import EVM ontology',
       };
       return json({ success: true, ontology: o });
     }
 
     // --- SPA/APS: specialised STRATA NFT service-agreement templates ---
-    if ((path === '/spa/mint' || path === '/aps/mint' || path === '/spa/create') && request.method === 'POST') {
+    if ((path === '/spa/mint' || path === '/aps/mint' || path === '/spa/create' || path === '/contract/mint' || path === '/smart-contract/mint') && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
       const r = await mintSpa(db, env, body);
       return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
     }
-    if ((path === '/spa/execute' || path === '/aps/execute') && request.method === 'POST') {
+    if ((path === '/spa/execute' || path === '/aps/execute' || path === '/contract/execute' || path === '/smart-contract/execute') && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
       const r = await executeSpa(db, env, {
@@ -2609,17 +2642,27 @@ export default {
       });
       return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
     }
-    if ((path === '/spa/complete' || path === '/aps/complete' || path === '/spa/terminate') && request.method === 'POST') {
+    if ((path === '/spa/pause' || path === '/aps/pause' || path === '/contract/pause' || path === '/smart-contract/pause') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const r = await pauseContract(db, env, {
+        nft_id: body.nft_id || body.id || body.spa_id,
+        actor: body.actor || body.owner || body.account,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if ((path === '/spa/complete' || path === '/aps/complete' || path === '/spa/terminate' || path === '/contract/complete' || path === '/smart-contract/complete') && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
       const r = await completeSpa(db, env, {
         nft_id: body.nft_id || body.id || body.spa_id,
         actor: body.actor || body.owner || body.account,
         result: body.result || body.outcome || null,
+        close: body.close === true || body.terminate === true,
       });
       return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
     }
-    if (path === '/spa/list' || path === '/aps/list' || path === '/spa') {
+    if (path === '/spa/list' || path === '/aps/list' || path === '/spa' || path === '/contract/list' || path === '/smart-contract/list' || path === '/contract') {
       if (!db) return json({ spas: [] });
       await ensureStrataFunctionalSchema(db);
       const owner = url.searchParams.get('owner');
@@ -2634,7 +2677,7 @@ export default {
       if (owner) {
         rows = await db
           .prepare(
-            "SELECT * FROM strata_nfts WHERE (role IN ('spa','aps') OR asset_type IN ('spa','aps')) AND owner = ? ORDER BY created_at DESC LIMIT 50"
+            "SELECT * FROM strata_nfts WHERE (role IN ('spa','aps','smart_contract','contract') OR asset_type IN ('spa','aps','smart_contract','contract')) AND owner = ? ORDER BY created_at DESC LIMIT 50"
           )
           .bind(owner)
           .all()
@@ -2642,7 +2685,7 @@ export default {
       } else {
         rows = await db
           .prepare(
-            "SELECT * FROM strata_nfts WHERE role IN ('spa','aps') OR asset_type IN ('spa','aps') ORDER BY created_at DESC LIMIT 50"
+            "SELECT * FROM strata_nfts WHERE role IN ('spa','aps','smart_contract','contract') OR asset_type IN ('spa','aps','smart_contract','contract') ORDER BY created_at DESC LIMIT 50"
           )
           .all()
           .catch(() => ({ results: [] }));
@@ -2650,8 +2693,7 @@ export default {
       return json({
         success: true,
         spas: rows.results || [],
-        min_collateral: SPA_MIN_COLLATERAL,
-        lifecycle: 'template(static) → execute(dynamic) → complete|floor_0.1(terminated)',
+        lifecycle: 'static → execute(dynamic) → pause(static) → … until collateral exhausted',
       });
     }
 

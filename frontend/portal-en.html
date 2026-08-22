@@ -359,8 +359,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-spa">
-    <h3>SPA · STRATA NFT service agreement</h3>
-    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">SPA/APS are specialised STRATA NFTs: automated service-agreement templates. Static until execution; dynamic while running; terminate when execution ends or collateral hits 0.1 STRATA. Functional alternative to ETH smart contracts — no EVM ontology.</p>
+    <h3>SPA · smart-contract STRATA NFT</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">SPA is one kind of smart-contract STRATA NFT (service agreement) — not a separate layer. Smart-contract NFTs use static ↔ dynamic: minted static; execute dynamic; may pause back to static and wait for the next trigger until collateral is exhausted. Functional alternative to ETH smart contracts, no EVM ontology.</p>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="spaActive">—</div><div class="label">Templates / active</div></div>
       <div class="stat-card"><div class="value" id="spaOffers">—</div><div class="label">Executing</div></div>
@@ -3367,13 +3367,14 @@ var nftEl=document.getElementById('walletNftList');
         var btns='';
         if(st!=='terminated' && st!=='redeemed'){
           if(mode!=='dynamic') btns+='<button type="button" onclick="execSpaNft(\''+esc(id)+'\')" style="padding:.35rem .6rem;margin:.15rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Execute</button>';
-          btns+='<button type="button" onclick="completeSpaNft(\''+esc(id)+'\')" style="padding:.35rem .6rem;margin:.15rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Complete</button>';
+          btns+='<button type="button" onclick="pauseSpaNft(\''+esc(id)+'\')" style="padding:.35rem .6rem;margin:.15rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Pause</button>';
+          btns+='<button type="button" onclick="completeSpaNft(\''+esc(id)+'\')" style="padding:.35rem .6rem;margin:.15rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Close</button>';
         }
         return '<div style="border:1px solid var(--line2);padding:.75rem;border-radius:6px;background:var(--card)">'
           +'<div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap"><strong style="color:var(--fg)">'+esc(s.name||id)+'</strong><span style="font-size:.72rem;color:var(--muted)">'+esc(phase)+'</span></div>'
           +'<div style="font-size:.72rem;color:var(--muted);margin-top:.35rem;font-family:ui-monospace,monospace">'+esc(id)+'</div>'
           +'<div style="font-size:.78rem;margin-top:.4rem">Collateral <strong>'+coll+'</strong> STRATA · modo '+esc(mode)+' · '+esc(st)+'</div>'
-          +'<div style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Termination floor 0.1 STRATA · template → execute → complete</div>'
+          +'<div style="font-size:.72rem;color:var(--muted);margin-top:.25rem">static ↔ dynamic · pause keeps collateral · exhaustion ends operation</div>'
           +'<div style="margin-top:.5rem">'+btns+'</div></div>';
       }).join('');
     }catch(e){ var el=document.getElementById('spaList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
@@ -3406,9 +3407,9 @@ var nftEl=document.getElementById('walletNftList');
     var msg=document.getElementById('spaMsg');
     try{
       if(msg) msg.textContent='Completing…';
-      var r=await fetch('/api/v1/token/spa/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,actor:(typeof me==='function'&&me())||'FOG-NODE-PT-CM-001'})});
+      var r=await fetch('/api/v1/token/spa/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nft_id:id,actor:(typeof me==='function'&&me())||'FOG-NODE-PT-CM-001',close:true})});
       var j=await r.json();
-      if(msg) msg.textContent=j.success?('Terminated · '+id):(j.error||'falha');
+      if(msg) msg.textContent=j.success?('Closed · '+id):(j.error||'failed');
       loadSPAPanel();
     }catch(e){ if(msg) msg.textContent=String(e.message||e); }
   };
