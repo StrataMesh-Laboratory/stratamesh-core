@@ -2403,6 +2403,19 @@ window.showPanel = function(name, btn){
     }
     B.armL=mkArm(-1); B.armR=mkArm(1); B.legL=mkLeg(-1); B.legR=mkLeg(1);
     avatarRoot.add(hips); outlineObj(avatarRoot);
+    // Gema de identidade acima da cabeça (segue o avatar; não é objecto de chão)
+    var gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.11, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0x67e8f9, emissive: 0x0891b2, emissiveIntensity: 0.55,
+        metalness: 0.65, roughness: 0.2, transparent: true, opacity: 0.95
+      })
+    );
+    gem.position.set(0, 1.58, 0);
+    gem.userData.avatarGem = true;
+    gem.userData.bob = { baseY: 1.58, phase: 0 };
+    avatarRoot.add(gem);
+    B.avatarGem = gem;
     B.avatar=avatarRoot; B.avatarHips=hips; B.gait=0; B.carryId=null; B.walkTo=null;
     B.scene.add(avatarRoot);
 
@@ -2500,20 +2513,21 @@ window.showPanel = function(name, btn){
       var coll = Math.max(0, Number(v.collateral_strata != null ? v.collateral_strata : nft.collateral_strata || 0));
       var mode = String(v.mode || nft.mode || 'static');
       var color = modeColor(mode);
-      var scale = 0.55 + Math.min(1.8, Math.log10(1 + coll * 1000) * 0.55);
-      // Spiral / golden-angle topology on the bancada plane
-      var angle = i * 2.399963229728653; // golden angle
-      var radius = Math.min(5.4, 1.6 + Math.sqrt(i + 1) * 1.05);
+      // Escala compacta — evita gemas gigantes no chão
+      var scale = 0.35 + Math.min(0.55, Math.log10(1 + Math.max(0, coll) * 100) * 0.22);
+      var angle = i * 2.399963229728653;
+      var radius = Math.min(5.0, 1.4 + Math.sqrt(i + 1) * 0.95);
       var x = Math.cos(angle) * radius;
       var z = Math.sin(angle) * radius;
-      var y = 0.55 + scale * 0.25;
+      // Flutuar claramente acima do chão (não colidir com avatar/gema de cabeça)
+      var y = 1.05 + scale * 0.35;
 
       var group = new THREE.Group();
       group.position.set(x, y, z);
       group.userData = { nft: nft, valuation: v, index: i };
 
-      // Core crystal (NFT object)
-      var geo = new THREE.OctahedronGeometry(scale * 0.55, 0);
+      // Core crystal (objecto NFT na sala — distinto da gema do avatar)
+      var geo = new THREE.OctahedronGeometry(scale * 0.42, 0);
       var mat = new THREE.MeshStandardMaterial({
         color: color,
         emissive: color,
@@ -2525,6 +2539,7 @@ window.showPanel = function(name, btn){
       });
       var core = new THREE.Mesh(geo, mat);
       core.userData.pick = true;
+      core.userData.bob = { baseY: 0, phase: i * 0.7 };
       group.add(core);
       try {
         var meta={}; try { meta = typeof nft.metadata_json==='string' ? JSON.parse(nft.metadata_json) : (nft.metadata_json||{}); } catch(_){}
@@ -2622,7 +2637,7 @@ window.showPanel = function(name, btn){
     var tex = new THREE.CanvasTexture(c);
     var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     var spr = new THREE.Sprite(mat);
-    spr.scale.set(2.4, 0.6, 1);
+    spr.scale.set(1.35, 0.34, 1);
     return spr;
   }
   function roundRect(ctx,x,y,w,h,r){
@@ -2772,6 +2787,13 @@ window.showPanel = function(name, btn){
         }
       });
     });
+    // Gema do avatar: bob + spin acima da cabeça (filho do avatarRoot → segue movimento)
+    if (B.avatarGem && B.avatarGem.userData && B.avatarGem.userData.bob) {
+      var gb = B.avatarGem.userData.bob;
+      B.avatarGem.position.y = gb.baseY + Math.sin(B.anim * 2.2) * 0.06;
+      B.avatarGem.rotation.y += 0.03;
+      B.avatarGem.rotation.x = Math.sin(B.anim * 1.1) * 0.15;
+    }
     drawBancadaRadar();
     if (window._bancadaMode !== 'fps' && B.controls) B.controls.update();
     if (B.camera && B.HALF){
@@ -3982,7 +4004,7 @@ window.loadACBPanel=async function(){
     if (b.carryId && b.root){
       b.root.children.forEach(function(g){
         if(g.userData && g.userData.nft && (g.userData.nft.id===b.carryId)){
-          g.position.x = b.px + fx*0.7; g.position.z = b.pz + fz*0.7; g.position.y = 1.0;
+          g.position.x = b.px + fx*0.7; g.position.z = b.pz + fz*0.7; g.position.y = 1.35;
         }
       });
     }
