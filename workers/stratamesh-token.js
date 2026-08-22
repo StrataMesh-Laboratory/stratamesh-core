@@ -8,7 +8,14 @@
  *
  * NON-FUNGIBLE (STRATA NFT):
  *   - Building blocks of open worlds and CGU sandboxes (users + SCAs).
- *   - External-asset representatives and imports anchored on the DLT.
+ *   - Collateral in fungible STRATA is distinct from Agora market value.
+ *   - If market < collateral, holder may redeem the composing STRATA (burn NFT, unlock vault).
+ *   - Modes: static | dynamic | suspended_static.
+ *     Dynamic: ongoing resource burn from collateral into #0.
+ *     Collateral depleted → suspended_static until top-up; may resume dynamic.
+ *   - Possession of an NFT is measured by fractions of locked STRATA collateral,
+ *     independent of market price. Selling a fraction transfers that collateral slice
+ *     (and thus that part of the NFT); the sale capitalizes at the agreed market price.
  *
  * Worlds and sandboxes are not decorative metadata: their structure is composed of STRATA NFTs.
  */
@@ -93,13 +100,62 @@ async function dagSubmit(env, payload, content) {
 
 
 
-/** STRATA monetary poles (protocol addresses on the shared ledger).
+/** STRATA monetary poles (TRD layer — protocol addresses on the shared ledger).
  *  #mint — emission source: only creates STRATA; never receives; spendable balance always 0.
  *  #0    — burn sink: only accepts STRATA when resources are consumed; never transfers out.
- *  Circulating = sum(balances) − balance(#0); emission tracked on #mint.total_minted.
+ *
+ * Fog holon (not an entity, no user/SCA account):
+ *  NODE_WALLET = FOG-NODE-PT-CM-001 — carteira / tesouraria do Nó.
+ *  What the Node produces (PdC) and spends (operation) goes through this wallet.
+ *  LEGACY_TREASURY_ALIAS ("treasury") is a historical ledger row for the same Fog treasury —
+ *  not a separate entity. Prefer NODE_WALLET.
+ *
+ * STRATA units themselves may be:
+ *  lab_only — laboratory version, not transitável to the published network
+ *  poc_contribution — transit-eligible protocol mint via stratamesh-poc
+ * The "stub" character is of the lab STRATA units, not of the Fog wallet.
+ *
+ * User / SCA accounts are a distinct holonic layer (entities with Painel + Bancada).
+ * Do not conflate TRD poles, Fog wallet, and user/SCA account wallets.
  */
 const STRATA_MINT_SOURCE = '#mint';
 const STRATA_BURN_SINK = '#0';
+const NODE_WALLET = 'FOG-NODE-PT-CM-001';
+const LEGACY_TREASURY_ALIAS = 'treasury';
+/** SPA/APS (acordo de serviço): specialised STRATA NFT template.
+ *  Static until execution; dynamic while running; terminates at ≤ SPA_MIN_COLLATERAL (0.1 STRATA)
+ *  or when execution completes. Competes with ETH smart contracts functionally — no ETH ontology. */
+const SPA_MIN_COLLATERAL = 0.1;
+
+function isSpaNft(nft) {
+  if (!nft) return false;
+  const role = String(nft.role || '').toLowerCase();
+  const asset = String(nft.asset_type || '').toLowerCase();
+  let kind = '';
+  try {
+    kind = String(JSON.parse(nft.metadata_json || '{}').kind || '').toLowerCase();
+  } catch (_) {}
+  return (
+    role === 'spa' ||
+    role === 'aps' ||
+    asset === 'spa' ||
+    asset === 'aps' ||
+    kind === 'spa' ||
+    kind === 'aps' ||
+    kind === 'service_agreement'
+  );
+}
+
+function isNodeWallet(account) {
+  const a = String(account || '');
+  return a === NODE_WALLET || a === LEGACY_TREASURY_ALIAS;
+}
+
+function resolveWalletAccount(account) {
+  const a = String(account || '');
+  if (a === LEGACY_TREASURY_ALIAS) return NODE_WALLET;
+  return a;
+}
 
 async function ensureMonetaryPoles(db) {
   if (!db) return;
@@ -327,10 +383,78 @@ async function ensureStrataFunctionalSchema(db) {
       account TEXT NOT NULL, symbol TEXT NOT NULL, balance REAL NOT NULL DEFAULT 0,
       PRIMARY KEY (account, symbol)
     )`,
+    `CREATE TABLE IF NOT EXISTS nft_market_quotes (
+      nft_id TEXT PRIMARY KEY,
+      market_strata REAL NOT NULL,
+      source TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`,
     `CREATE TABLE IF NOT EXISTS cgu_records (
       cgu_id TEXT PRIMARY KEY, nft_id TEXT NOT NULL, sandbox_id TEXT, world_id TEXT,
       author_kind TEXT, author_id TEXT, title TEXT, status TEXT DEFAULT 'draft',
       created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS nft_resource_burns (
+      id TEXT PRIMARY KEY,
+      nft_id TEXT NOT NULL,
+      amount REAL NOT NULL,
+      mode_after TEXT,
+      reason TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS nft_fractions (
+      id TEXT PRIMARY KEY,
+      nft_id TEXT NOT NULL,
+      holder TEXT NOT NULL,
+      strata_units REAL NOT NULL,
+      share_bps INTEGER,
+      acquired_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS nft_fraction_trades (
+      id TEXT PRIMARY KEY,
+      nft_id TEXT NOT NULL,
+      from_holder TEXT NOT NULL,
+      to_holder TEXT NOT NULL,
+      strata_units REAL NOT NULL,
+      price_strata REAL,
+      capitalized REAL,
+      dag_vertex TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
+    /* Bundle: first-class structural relation NFT → child NFTs (recursive composition) */
+    `CREATE TABLE IF NOT EXISTS nft_bundle_edges (
+      id TEXT PRIMARY KEY,
+      parent_nft_id TEXT NOT NULL,
+      child_nft_id TEXT NOT NULL,
+      ordinal INTEGER DEFAULT 0,
+      role TEXT,
+      actor TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(parent_nft_id, child_nft_id)
+    )`,
+    /* Majority liquidation: fractional holders vote; aye weight > 50% executes proportional redeem */
+    `CREATE TABLE IF NOT EXISTS nft_liquidation_proposals (
+      id TEXT PRIMARY KEY,
+      nft_id TEXT NOT NULL,
+      proposer TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      aye_weight REAL DEFAULT 0,
+      nay_weight REAL DEFAULT 0,
+      threshold REAL DEFAULT 0.5,
+      created_at TEXT DEFAULT (datetime('now')),
+      executed_at TEXT,
+      meta_json TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS nft_liquidation_votes (
+      id TEXT PRIMARY KEY,
+      proposal_id TEXT NOT NULL,
+      nft_id TEXT NOT NULL,
+      holder TEXT NOT NULL,
+      strata_units REAL NOT NULL,
+      ballot TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(proposal_id, holder)
     )`,
   ];
   for (const s of stmts) {
@@ -348,16 +472,45 @@ async function ensureStrataFunctionalSchema(db) {
     "ALTER TABLE nft_assets ADD COLUMN dag_vertex TEXT",
     "ALTER TABLE nft_assets ADD COLUMN owner TEXT",
     "ALTER TABLE nft_assets ADD COLUMN created_at TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN collateral_strata REAL",
+    "ALTER TABLE strata_nfts ADD COLUMN collateral_vault TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN status TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN redeemed_at TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN mode TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN burn_rate_per_hour REAL",
+    "ALTER TABLE strata_nfts ADD COLUMN last_burn_at TEXT",
+    "ALTER TABLE strata_nfts ADD COLUMN total_resource_burned REAL",
+    "ALTER TABLE cgu_records ADD COLUMN collateral_strata REAL",
   ]) {
     try { await db.prepare(a).run(); } catch (_) {}
   }
 }
 
 async function mintStrataNft(db, env, {
-  owner, name, description, role, world_id, sandbox_id, kind, attributes, authors,
+  owner, name, description, role, world_id, sandbox_id, kind, attributes, authors, collateral_strata,
+  mode, burn_rate_per_hour,
 }) {
   await ensureStrataFunctionalSchema(db);
   const id = 'nft_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+  const collateral = Math.max(0, Number(collateral_strata != null ? collateral_strata : 0.01));
+  let modeNorm = String(mode || 'static').toLowerCase();
+  if (modeNorm !== 'dynamic' && modeNorm !== 'static') modeNorm = 'static';
+  if (modeNorm === 'dynamic' && collateral <= 0) modeNorm = 'static';
+  // Lab-realistic default: 0.0001 STRATA/hour when dynamic (~0.0024/day)
+  const burnRate = modeNorm === 'dynamic'
+    ? Math.max(0, Number(burn_rate_per_hour != null ? burn_rate_per_hour : 0.0001))
+    : Math.max(0, Number(burn_rate_per_hour != null ? burn_rate_per_hour : 0));
+  const vault = 'nft:' + id + ':collateral';
+  let lock = { ok: true, locked: 0, vault };
+  if (collateral > 0) {
+    lock = await lockStrataCollateral(db, owner, collateral, vault);
+    if (!lock.ok) {
+      const err = new Error('insufficient_STRATA_collateral');
+      err.detail = { required: collateral, balance: lock.balance, owner };
+      throw err;
+    }
+  }
+  const nowIso = new Date().toISOString();
   const metadata = {
     name, description: description || '',
     foundational_token: 'STRATA',
@@ -366,12 +519,17 @@ async function mintStrataNft(db, env, {
     kind: kind || role || 'building_block',
     world_id: world_id || null,
     sandbox_id: sandbox_id || null,
+    collateral_strata: collateral,
+    collateral_vault: vault,
+    mode: modeNorm,
+    burn_rate_per_hour: burnRate,
+    market_distinct_from_collateral: true,
     attributes: attributes || {},
     authors: authors || [],
     cgu_includes_sca: true,
-    standard: 'strata-nft-1',
+    standard: 'strata-nft-3-static-dynamic',
     node: 'FOG-NODE-PT-CM-001',
-    created_at: new Date().toISOString(),
+    created_at: nowIso,
   };
   const content = JSON.stringify(metadata);
   const cid = await contentCid(content);
@@ -381,11 +539,12 @@ async function mintStrataNft(db, env, {
   }, content);
   const metaStr = JSON.stringify(metadata);
   await db.prepare(
-    `INSERT INTO strata_nfts (id, owner, name, description, asset_type, metadata_json, content_cid, dag_vertex, role, world_id, sandbox_id)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO strata_nfts (id, owner, name, description, asset_type, metadata_json, content_cid, dag_vertex, role, world_id, sandbox_id, collateral_strata, collateral_vault, status, mode, burn_rate_per_hour, last_burn_at, total_resource_burned)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).bind(
     id, owner, name, description || '', metadata.role, metaStr, cid,
     dag.vertex_id || null, metadata.role, world_id || null, sandbox_id || null,
+    collateral, vault, 'active', modeNorm, burnRate, nowIso, 0,
   ).run();
   // best-effort mirror into legacy nft_assets if compatible
   try {
@@ -393,7 +552,26 @@ async function mintStrataNft(db, env, {
       `INSERT INTO nft_assets (id, metadata_json) VALUES (?,?)`
     ).bind(id, metaStr).run();
   } catch (_) {}
-  return { nft_id: id, content_cid: cid, dag_vertex: dag.vertex_id || null, metadata, table: 'strata_nfts' };
+  // Possession = fractions of locked STRATA collateral (not market price)
+  const fracId = 'frac_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  try {
+    await db.prepare(
+      `INSERT INTO nft_fractions (id, nft_id, holder, strata_units, share_bps, acquired_at, updated_at)
+       VALUES (?,?,?,?,?,?,?)`
+    ).bind(fracId, id, owner, collateral, collateral > 0 ? 10000 : 0, nowIso, nowIso).run();
+  } catch (_) {}
+  return {
+    nft_id: id, content_cid: cid, dag_vertex: dag.vertex_id || null, metadata, table: 'strata_nfts',
+    collateral_strata: collateral, collateral_vault: vault, mode: modeNorm,
+    burn_rate_per_hour: burnRate, lock,
+    possession: {
+      by: 'collateral_fractions',
+      holder: owner,
+      strata_units: collateral,
+      share_bps: collateral > 0 ? 10000 : 0,
+      note: 'Posse do NFT = frações de colateral STRATA; independente do valor de mercado',
+    },
+  };
 }
 
 async function lockStrataCollateral(db, issuer, amount, vaultAccount) {
@@ -419,18 +597,970 @@ async function lockStrataCollateral(db, issuer, amount, vaultAccount) {
   return { ok: true, locked: amount, vault: vaultAccount };
 }
 
+async function unlockStrataCollateral(db, vaultAccount, amount, toAccount) {
+  const amt = Number(amount) || 0;
+  if (amt <= 0) return { ok: false, error: 'amount' };
+  try {
+    await db.prepare(
+      "UPDATE token_balances SET balance = MAX(0, balance - ?) WHERE account = ? AND token_type = 'STRATA_LOCKED'"
+    ).bind(amt, vaultAccount).run();
+  } catch (_) {}
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', ?, 0, 0)
+     ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+  ).bind(toAccount, amt).run().catch(async () => {
+    await db.prepare(
+      "INSERT INTO token_balances (account, token_type, balance) VALUES (?, 'STRATA', ?)"
+    ).bind(toAccount, amt).run().catch(() => {});
+  });
+  return { ok: true, unlocked: amt, to: toAccount };
+}
+
+
+/** True burn: remove STRATA from circulation into pole #0 (never leaves). */
+async function burnStrataFromVault(db, vaultAccount, amount) {
+  const amt = Number(amount) || 0;
+  if (amt <= 0) return { ok: false, burned: 0 };
+  try {
+    await db.prepare(
+      "UPDATE token_balances SET balance = MAX(0, balance - ?) WHERE account = ? AND token_type = 'STRATA_LOCKED'"
+    ).bind(amt, vaultAccount).run();
+  } catch (_) {}
+  // Accumulate at #0 burn pole (accept-only; never transferable out by policy)
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES ('#0', 'STRATA', 0, 0, ?)
+     ON CONFLICT(account, token_type) DO UPDATE SET total_burned = COALESCE(token_balances.total_burned,0) + excluded.total_burned`
+  ).bind(amt).run().catch(async () => {
+    try {
+      await db.prepare(
+        "INSERT INTO token_balances (account, token_type, balance, total_burned) VALUES ('#0', 'STRATA', 0, ?)"
+      ).bind(amt).run();
+    } catch (_) {}
+  });
+  return { ok: true, burned: amt };
+}
+
+/**
+ * Terminate SPA/APS: unlock residual collateral to fractional holders, status=terminated.
+ * Triggered when execution completes or collateral ≤ SPA_MIN_COLLATERAL (0.1 STRATA).
+ */
+async function terminateSpa(db, env, nft, reason) {
+  if (!nft || nft.status === 'redeemed' || nft.status === 'terminated') {
+    return { ok: true, already_done: true, nft };
+  }
+  const fracs = await ensureOwnerFraction(db, nft).catch(() => []);
+  const vault = nft.collateral_vault || ('nft:' + nft.id + ':collateral');
+  const residual = Math.max(0, Number(nft.collateral_strata || 0));
+  const distributions = [];
+  if (residual > 0 && fracs.length) {
+    for (const f of fracs) {
+      const units = Number(f.strata_units || 0);
+      if (units <= 0) continue;
+      // Scale fraction to residual (fractions may already equal residual)
+      const slice = Math.min(units, residual);
+      const un = await unlockStrataCollateral(db, vault, slice, f.holder);
+      distributions.push({ holder: f.holder, strata: slice, unlocked: un.unlocked });
+    }
+  } else if (residual > 0) {
+    const owner = nft.owner || NODE_WALLET;
+    const un = await unlockStrataCollateral(db, vault, residual, owner);
+    distributions.push({ holder: owner, strata: residual, unlocked: un.unlocked });
+  }
+  const iso = new Date().toISOString();
+  await db
+    .prepare(
+      "UPDATE strata_nfts SET collateral_strata = 0, mode = 'static', status = 'terminated', redeemed_at = ?, last_burn_at = ? WHERE id = ?"
+    )
+    .bind(iso, iso, nft.id)
+    .run();
+  try {
+    await db.prepare('DELETE FROM nft_fractions WHERE nft_id = ?').bind(nft.id).run();
+  } catch (_) {}
+  try {
+    await db.prepare('DELETE FROM nft_bundle_edges WHERE parent_nft_id = ? OR child_nft_id = ?').bind(nft.id, nft.id).run();
+  } catch (_) {}
+  try {
+    let meta = {};
+    try {
+      meta = JSON.parse(nft.metadata_json || '{}');
+    } catch (_) {}
+    meta.status = 'terminated';
+    meta.mode = 'static';
+    meta.collateral_strata = 0;
+    meta.terminated_at = iso;
+    meta.termination_reason = reason || 'spa_terminated';
+    meta.spa_phase = 'terminated';
+    await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft.id).run();
+  } catch (_) {}
+  try {
+    await dagSubmit(
+      env,
+      { type: 'spa_terminated', nft_id: nft.id, reason },
+      JSON.stringify({ nft_id: nft.id, reason, distributions })
+    );
+  } catch (_) {}
+  nft.status = 'terminated';
+  nft.mode = 'static';
+  nft.collateral_strata = 0;
+  return {
+    ok: true,
+    nft_id: nft.id,
+    status: 'terminated',
+    reason: reason || 'spa_terminated',
+    distributions,
+    note: 'SPA/APS terminated — residual STRATA returned to holders. Template lifecycle ended.',
+  };
+}
+
+/**
+ * Dynamic NFT: burn ongoing resource cost from collateral into #0.
+ * Generic NFT: collateral → 0 → suspended_static until top-up.
+ * SPA/APS: burns only above SPA_MIN_COLLATERAL (0.1); at floor → terminate (not suspend).
+ * Static NFTs do not burn. Lazy-applied on read/tick.
+ */
+async function applyDynamicResourceBurn(db, nft, opts) {
+  if (!nft || nft.status === 'redeemed' || nft.status === 'terminated') return { nft, burned: 0, changed: false };
+  const mode = String(nft.mode || 'static').toLowerCase();
+  if (mode !== 'dynamic') {
+    return { nft, burned: 0, changed: false, mode };
+  }
+  const spa = isSpaNft(nft);
+  const floor = spa ? SPA_MIN_COLLATERAL : 0;
+  const rate = Math.max(0, Number(nft.burn_rate_per_hour || 0));
+  if (rate <= 0) return { nft, burned: 0, changed: false, mode };
+  const now = Date.now();
+  const last = nft.last_burn_at ? Date.parse(nft.last_burn_at) : now;
+  const elapsedH = Math.max(0, (now - (Number.isFinite(last) ? last : now)) / 3600000);
+  const hours = Math.min(elapsedH, Number(opts && opts.max_hours != null ? opts.max_hours : 24));
+  let due = rate * hours;
+  if (opts && opts.force_amount != null) due = Math.max(0, Number(opts.force_amount));
+  const coll = Math.max(0, Number(nft.collateral_strata || 0));
+
+  // SPA already at or below floor while dynamic → terminate
+  if (spa && coll <= floor + 1e-12) {
+    const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
+    return { nft: term.nft || nft, burned: 0, changed: true, mode: 'static', status: 'terminated', termination: term };
+  }
+
+  const burnable = Math.max(0, coll - floor);
+  const burnAmt = Math.min(burnable, due);
+  if (burnAmt <= 0 && hours > 0) {
+    if (coll <= floor + 1e-12) {
+      if (spa) {
+        const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
+        return { nft: term.nft || nft, burned: 0, changed: true, mode: 'static', status: 'terminated', termination: term };
+      }
+      await db
+        .prepare("UPDATE strata_nfts SET mode = 'suspended_static', last_burn_at = ?, collateral_strata = 0 WHERE id = ?")
+        .bind(new Date(now).toISOString(), nft.id)
+        .run()
+        .catch(() => {});
+      nft.mode = 'suspended_static';
+      nft.collateral_strata = 0;
+      return { nft, burned: 0, changed: true, mode: 'suspended_static', reason: 'collateral_depleted' };
+    }
+    return { nft, burned: 0, changed: false, mode };
+  }
+  if (burnAmt <= 0) return { nft, burned: 0, changed: false, mode };
+
+  const vault = nft.collateral_vault || ('nft:' + nft.id + ':collateral');
+  await burnStrataFromVault(db, vault, burnAmt);
+  const newColl = Math.max(floor, coll - burnAmt);
+  const totalBurned = Math.max(0, Number(nft.total_resource_burned || 0)) + burnAmt;
+  let newMode = 'dynamic';
+  let status = nft.status || 'active';
+  if (!spa && newColl <= 1e-12) {
+    newMode = 'suspended_static';
+  }
+  const iso = new Date(now).toISOString();
+  await db
+    .prepare(
+      `UPDATE strata_nfts SET collateral_strata = ?, mode = ?, last_burn_at = ?, total_resource_burned = ? WHERE id = ?`
+    )
+    .bind(newColl, newMode, iso, totalBurned, nft.id)
+    .run();
+  try {
+    await db
+      .prepare(`INSERT INTO nft_resource_burns (id, nft_id, amount, mode_after, reason) VALUES (?,?,?,?,?)`)
+      .bind(
+        'burn_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12),
+        nft.id,
+        burnAmt,
+        newMode,
+        newMode === 'suspended_static' ? 'resource_burn_depleted' : 'resource_burn'
+      )
+      .run();
+  } catch (_) {}
+  try {
+    let meta = {};
+    try {
+      meta = JSON.parse(nft.metadata_json || '{}');
+    } catch (_) {}
+    meta.collateral_strata = newColl;
+    meta.mode = newMode;
+    meta.total_resource_burned = totalBurned;
+    meta.last_burn_at = iso;
+    if (spa) meta.spa_phase = 'executing';
+    await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft.id).run();
+  } catch (_) {}
+  nft.collateral_strata = newColl;
+  nft.mode = newMode;
+  nft.last_burn_at = iso;
+  nft.total_resource_burned = totalBurned;
+
+  // SPA hit floor after this burn → terminate
+  if (spa && newColl <= floor + 1e-12) {
+    const term = await terminateSpa(db, opts && opts.env, nft, 'collateral_floor_0.1');
+    return {
+      nft: term.nft || nft,
+      burned: burnAmt,
+      changed: true,
+      mode: 'static',
+      status: 'terminated',
+      hours,
+      termination: term,
+    };
+  }
+  return { nft, burned: burnAmt, changed: true, mode: newMode, hours };
+}
+
+/** Mint SPA/APS as specialised STRATA NFT template — always starts static. */
+async function mintSpa(db, env, body) {
+  const owner = body.owner || body.account || body.issuer;
+  if (!owner) return { ok: false, error: 'owner required' };
+  let coll = Number(body.collateral_strata != null ? body.collateral_strata : body.collateral);
+  if (!(coll > 0)) coll = SPA_MIN_COLLATERAL;
+  if (coll < SPA_MIN_COLLATERAL) {
+    return { ok: false, error: 'collateral_below_spa_minimum', minimum: SPA_MIN_COLLATERAL, provided: coll };
+  }
+  const template = body.template || body.template_json || body.agreement || {};
+  const name = body.name || body.title || 'SPA';
+  const description =
+    body.description ||
+    'SPA/APS — acordo de serviço como STRATA NFT template (estático até execução; termina a ≤0.1 STRATA).';
+  const minted = await mintStrataNft(db, env, {
+    owner,
+    name,
+    description,
+    role: 'spa',
+    kind: 'spa',
+    world_id: body.world_id || null,
+    sandbox_id: body.sandbox_id || null,
+    attributes: {
+      spa: true,
+      aps: true,
+      kind: 'spa',
+      spa_phase: 'template',
+      template,
+      template_cid: body.template_cid || null,
+      min_collateral: SPA_MIN_COLLATERAL,
+      competes_with: 'eth_smart_contracts_functionally',
+      eth_ontology: false,
+      parties: body.parties || template.parties || null,
+      terms: body.terms || template.terms || null,
+    },
+    authors: body.authors || [owner],
+    collateral_strata: coll,
+    mode: 'static',
+    burn_rate_per_hour: body.burn_rate_per_hour != null ? Number(body.burn_rate_per_hour) : 0.0001,
+  });
+  // Force asset_type spa
+  try {
+    await db.prepare("UPDATE strata_nfts SET asset_type = 'spa', role = 'spa' WHERE id = ?").bind(minted.nft_id).run();
+  } catch (_) {}
+  return {
+    ok: true,
+    ...minted,
+    spa_phase: 'template',
+    mode: 'static',
+    min_collateral: SPA_MIN_COLLATERAL,
+    note: 'SPA/APS minted as static STRATA NFT template. Remains static until POST /spa/execute. Terminates on complete or collateral ≤ 0.1 STRATA.',
+  };
+}
+
+async function executeSpa(db, env, { nft_id, actor }) {
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (!isSpaNft(nft)) return { ok: false, error: 'not_a_spa' };
+  if (nft.status === 'terminated' || nft.status === 'redeemed') return { ok: false, error: 'spa_already_ended', status: nft.status };
+  const coll = Number(nft.collateral_strata || 0);
+  if (coll <= SPA_MIN_COLLATERAL + 1e-12) {
+    return { ok: false, error: 'collateral_at_or_below_floor', minimum: SPA_MIN_COLLATERAL, collateral: coll };
+  }
+  const iso = new Date().toISOString();
+  await db
+    .prepare("UPDATE strata_nfts SET mode = 'dynamic', last_burn_at = ?, status = 'active' WHERE id = ?")
+    .bind(iso, nft_id)
+    .run();
+  try {
+    let meta = {};
+    try {
+      meta = JSON.parse(nft.metadata_json || '{}');
+    } catch (_) {}
+    meta.mode = 'dynamic';
+    meta.spa_phase = 'executing';
+    meta.executed_at = iso;
+    meta.executed_by = actor || null;
+    await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft_id).run();
+  } catch (_) {}
+  try {
+    await dagSubmit(env, { type: 'spa_execute', nft_id }, JSON.stringify({ nft_id, actor, at: iso }));
+  } catch (_) {}
+  return {
+    ok: true,
+    nft_id,
+    spa_phase: 'executing',
+    mode: 'dynamic',
+    collateral_strata: coll,
+    note: 'SPA/APS now dynamic — resource burn from collateral above 0.1 STRATA floor. Completes via POST /spa/complete or auto-terminates at floor.',
+  };
+}
+
+async function completeSpa(db, env, { nft_id, actor, result }) {
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (!isSpaNft(nft)) return { ok: false, error: 'not_a_spa' };
+  if (nft.status === 'terminated' || nft.status === 'redeemed') {
+    return { ok: true, already_terminated: true, nft_id, status: nft.status };
+  }
+  try {
+    let meta = {};
+    try {
+      meta = JSON.parse(nft.metadata_json || '{}');
+    } catch (_) {}
+    meta.completion_result = result || null;
+    meta.completed_by = actor || null;
+    await db.prepare('UPDATE strata_nfts SET metadata_json = ? WHERE id = ?').bind(JSON.stringify(meta), nft_id).run();
+    nft.metadata_json = JSON.stringify(meta);
+  } catch (_) {}
+  const term = await terminateSpa(db, env, nft, 'execution_complete');
+  return { ok: true, ...term, completed_by: actor || null };
+}
+
+
+async function listNftFractions(db, nftId) {
+  const rows = await db.prepare(
+    'SELECT * FROM nft_fractions WHERE nft_id = ? AND strata_units > 1e-15 ORDER BY strata_units DESC'
+  ).bind(nftId).all().catch(() => ({ results: [] }));
+  const list = rows.results || [];
+  const total = list.reduce((a, r) => a + Number(r.strata_units || 0), 0);
+  return list.map((r) => ({
+    ...r,
+    share_pct: total > 0 ? (Number(r.strata_units) / total) * 100 : 0,
+    share_bps: total > 0 ? Math.round((Number(r.strata_units) / total) * 10000) : 0,
+  }));
+}
+
+async function ensureOwnerFraction(db, nft) {
+  const fracs = await listNftFractions(db, nft.id);
+  if (fracs.length) return fracs;
+  const coll = Math.max(0, Number(nft.collateral_strata || 0));
+  if (coll <= 0) return [];
+  const fracId = 'frac_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const nowIso = new Date().toISOString();
+  try {
+    await db.prepare(
+      `INSERT INTO nft_fractions (id, nft_id, holder, strata_units, share_bps, acquired_at, updated_at)
+       VALUES (?,?,?,?,?,?,?)`
+    ).bind(fracId, nft.id, nft.owner, coll, 10000, nowIso, nowIso).run();
+  } catch (_) {}
+  return listNftFractions(db, nft.id);
+}
+
+/**
+ * Transfer strata_units of collateral fraction from seller to buyer.
+ * Possession of the NFT moves with the fraction, independent of market price.
+ * Optional price_strata: buyer pays seller in liquid STRATA (capitalization of the sale).
+ */
+async function transferNftFraction(db, env, {
+  nft_id, from, to, strata_units, price_strata,
+}) {
+  const units = Number(strata_units);
+  if (!nft_id || !from || !to || !(units > 0)) {
+    return { ok: false, error: 'nft_id, from, to, strata_units > 0 required' };
+  }
+  if (from === to) return { ok: false, error: 'same_holder' };
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (nft.status === 'redeemed') return { ok: false, error: 'already_redeemed' };
+
+  await ensureOwnerFraction(db, nft);
+  const sellerRow = await db.prepare(
+    'SELECT * FROM nft_fractions WHERE nft_id = ? AND holder = ?'
+  ).bind(nft_id, from).first();
+  const have = Number(sellerRow?.strata_units || 0);
+  if (have + 1e-15 < units) {
+    return { ok: false, error: 'insufficient_fraction', have, required: units };
+  }
+
+  const price = price_strata != null ? Number(price_strata) : null;
+  if (price != null && price > 0) {
+    // Capitalization: buyer pays liquid STRATA to seller for the fraction sold
+    const br = await db.prepare(
+      "SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')"
+    ).bind(to).first().catch(() => null);
+    const bal = Number(br?.balance || 0);
+    if (bal < price) {
+      return { ok: false, error: 'insufficient_STRATA_for_purchase', balance: bal, required: price };
+    }
+    await db.prepare(
+      "UPDATE token_balances SET balance = balance - ? WHERE account = ? AND token_type IN ('STRATA','strata')"
+    ).bind(price, to).run();
+    await db.prepare(
+      `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+       VALUES (?, 'STRATA', ?, 0, 0)
+       ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
+    ).bind(from, price).run().catch(async () => {
+      await db.prepare(
+        "INSERT INTO token_balances (account, token_type, balance) VALUES (?, 'STRATA', ?)"
+      ).bind(from, price).run().catch(() => {});
+    });
+  }
+
+  const newSeller = have - units;
+  const nowIso = new Date().toISOString();
+  if (newSeller <= 1e-15) {
+    await db.prepare('DELETE FROM nft_fractions WHERE nft_id = ? AND holder = ?').bind(nft_id, from).run();
+  } else {
+    await db.prepare(
+      'UPDATE nft_fractions SET strata_units = ?, updated_at = ? WHERE nft_id = ? AND holder = ?'
+    ).bind(newSeller, nowIso, nft_id, from).run();
+  }
+
+  const buyerRow = await db.prepare(
+    'SELECT * FROM nft_fractions WHERE nft_id = ? AND holder = ?'
+  ).bind(nft_id, to).first();
+  if (buyerRow) {
+    await db.prepare(
+      'UPDATE nft_fractions SET strata_units = strata_units + ?, updated_at = ? WHERE nft_id = ? AND holder = ?'
+    ).bind(units, nowIso, nft_id, to).run();
+  } else {
+    const fracId = 'frac_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+    await db.prepare(
+      `INSERT INTO nft_fractions (id, nft_id, holder, strata_units, share_bps, acquired_at, updated_at)
+       VALUES (?,?,?,?,0,?,?)`
+    ).bind(fracId, nft_id, to, units, nowIso, nowIso).run();
+  }
+
+  // Primary owner field = largest fraction holder (possession by collateral share)
+  const fracs = await listNftFractions(db, nft_id);
+  const primary = fracs[0]?.holder || to;
+  try {
+    await db.prepare('UPDATE strata_nfts SET owner = ? WHERE id = ?').bind(primary, nft_id).run();
+  } catch (_) {}
+
+  let dag = {};
+  try {
+    dag = await dagSubmit(env, {
+      type: 'nft_fraction_transfer', nft_id, from, to, strata_units: units, price_strata: price,
+    }, JSON.stringify({ nft_id, from, to, units, price }));
+  } catch (_) {}
+
+  const tradeId = 'trd_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  try {
+    await db.prepare(
+      `INSERT INTO nft_fraction_trades (id, nft_id, from_holder, to_holder, strata_units, price_strata, capitalized, dag_vertex)
+       VALUES (?,?,?,?,?,?,?,?)`
+    ).bind(tradeId, nft_id, from, to, units, price, price != null && price > 0 ? 1 : 0, dag.vertex_id || null).run();
+  } catch (_) {}
+
+  return {
+    ok: true,
+    trade_id: tradeId,
+    nft_id,
+    from,
+    to,
+    strata_units: units,
+    price_strata: price,
+    capitalized: !!(price != null && price > 0),
+    primary_owner: primary,
+    fractions: fracs,
+    dag_vertex: dag.vertex_id || null,
+    rule: 'Posse do NFT = frações de colateral STRATA. Venda de fração transfere a fatia de colateral e capitaliza ao preço de mercado acordado.',
+  };
+}
+
+/**
+ * Proportional redeem of holder's fraction when market < collateral (or market unavailable).
+ * Unlocks holder's strata_units from vault back to holder; burns that fraction of the NFT.
+ */
+async function redeemNftFraction(db, env, { nft_id, holder, strata_units }) {
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (nft.status === 'redeemed') return { ok: false, error: 'already_redeemed' };
+
+  const v = await nftValuation(db, nft);
+  if (!v.redeemable) {
+    return { ok: false, error: 'market_not_below_collateral', valuation: v };
+  }
+
+  await ensureOwnerFraction(db, nft);
+  const row = await db.prepare(
+    'SELECT * FROM nft_fractions WHERE nft_id = ? AND holder = ?'
+  ).bind(nft_id, holder).first();
+  const have = Number(row?.strata_units || 0);
+  const units = strata_units != null ? Number(strata_units) : have;
+  if (!(units > 0) || units > have + 1e-15) {
+    return { ok: false, error: 'insufficient_fraction', have, required: units };
+  }
+
+  const vault = nft.collateral_vault || ('nft:' + nft_id + ':collateral');
+  const un = await unlockStrataCollateral(db, vault, units, holder);
+  const newColl = Math.max(0, Number(nft.collateral_strata || 0) - units);
+  const nowIso = new Date().toISOString();
+
+  if (have - units <= 1e-15) {
+    await db.prepare('DELETE FROM nft_fractions WHERE nft_id = ? AND holder = ?').bind(nft_id, holder).run();
+  } else {
+    await db.prepare(
+      'UPDATE nft_fractions SET strata_units = ?, updated_at = ? WHERE nft_id = ? AND holder = ?'
+    ).bind(have - units, nowIso, nft_id, holder).run();
+  }
+
+  if (newColl <= 1e-15) {
+    await db.prepare(
+      "UPDATE strata_nfts SET collateral_strata = 0, status = 'redeemed', redeemed_at = ?, mode = 'static' WHERE id = ?"
+    ).bind(nowIso, nft_id).run();
+  } else {
+    await db.prepare(
+      'UPDATE strata_nfts SET collateral_strata = ? WHERE id = ?'
+    ).bind(newColl, nft_id).run();
+  }
+
+  try {
+    await dagSubmit(env, { type: 'nft_fraction_redeem', nft_id, holder, units }, JSON.stringify({ nft_id, holder, units }));
+  } catch (_) {}
+
+  return {
+    ok: true,
+    nft_id,
+    holder,
+    unlocked_strata: un.unlocked,
+    remaining_collateral: newColl,
+    fully_redeemed: newColl <= 1e-15,
+    note: 'Fração resgatada no colateral STRATA (mercado abaixo do piso ou UNAVAILABLE).',
+  };
+}
+
+/** --- Bundle: recursive NFT → NFT composition (not metadata; each child keeps identity) --- */
+async function bundleWouldCycle(db, parentId, childId) {
+  if (parentId === childId) return true;
+  // Walk ancestors of parent; if child is among them, attaching child under parent cycles
+  const seen = new Set();
+  let frontier = [parentId];
+  while (frontier.length) {
+    const cur = frontier.pop();
+    if (seen.has(cur)) continue;
+    seen.add(cur);
+    if (cur === childId) return true;
+    const rows = await db
+      .prepare('SELECT parent_nft_id FROM nft_bundle_edges WHERE child_nft_id = ?')
+      .bind(cur)
+      .all()
+      .catch(() => ({ results: [] }));
+    for (const r of rows.results || []) frontier.push(r.parent_nft_id);
+  }
+  return false;
+}
+
+async function bundleAttach(db, env, { parent_nft_id, child_nft_id, role, actor, ordinal }) {
+  await ensureStrataFunctionalSchema(db);
+  if (!parent_nft_id || !child_nft_id) return { ok: false, error: 'parent_nft_id and child_nft_id required' };
+  if (parent_nft_id === child_nft_id) return { ok: false, error: 'self_bundle_forbidden' };
+  const parent = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(parent_nft_id).first();
+  const child = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(child_nft_id).first();
+  if (!parent || !child) return { ok: false, error: 'nft_not_found' };
+  if (parent.status === 'redeemed' || child.status === 'redeemed') return { ok: false, error: 'redeemed_nft' };
+  if (await bundleWouldCycle(db, parent_nft_id, child_nft_id)) return { ok: false, error: 'cycle_forbidden' };
+  const id = 'bnd_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const ord = ordinal != null ? Number(ordinal) : 0;
+  try {
+    await db
+      .prepare(
+        `INSERT INTO nft_bundle_edges (id, parent_nft_id, child_nft_id, ordinal, role, actor, created_at)
+         VALUES (?,?,?,?,?,?,datetime('now'))`
+      )
+      .bind(id, parent_nft_id, child_nft_id, ord, role || null, actor || null)
+      .run();
+  } catch (e) {
+    return { ok: false, error: 'already_in_bundle_or_constraint', detail: String(e.message || e) };
+  }
+  try {
+    await dagSubmit(
+      env,
+      { type: 'nft_bundle_attach', parent_nft_id, child_nft_id },
+      JSON.stringify({ parent_nft_id, child_nft_id, role, actor })
+    );
+  } catch (_) {}
+  return {
+    ok: true,
+    edge_id: id,
+    parent_nft_id,
+    child_nft_id,
+    role: role || null,
+    note: 'Bundle: relação estrutural entre objectos NFT; cada filho mantém identidade, colateral e estado próprios.',
+  };
+}
+
+async function bundleDetach(db, env, { parent_nft_id, child_nft_id, actor }) {
+  await ensureStrataFunctionalSchema(db);
+  const r = await db
+    .prepare('DELETE FROM nft_bundle_edges WHERE parent_nft_id = ? AND child_nft_id = ?')
+    .bind(parent_nft_id, child_nft_id)
+    .run()
+    .catch(() => null);
+  try {
+    await dagSubmit(
+      env,
+      { type: 'nft_bundle_detach', parent_nft_id, child_nft_id },
+      JSON.stringify({ parent_nft_id, child_nft_id, actor })
+    );
+  } catch (_) {}
+  return {
+    ok: true,
+    parent_nft_id,
+    child_nft_id,
+    removed: r ? true : true,
+    note: 'Aresta de bundle removida; objectos permanecem no ledger.',
+  };
+}
+
+async function bundleChildren(db, parent_nft_id) {
+  await ensureStrataFunctionalSchema(db);
+  const rows = await db
+    .prepare(
+      `SELECT e.*, n.name as child_name, n.status as child_status, n.mode as child_mode, n.collateral_strata as child_collateral
+       FROM nft_bundle_edges e
+       LEFT JOIN strata_nfts n ON n.id = e.child_nft_id
+       WHERE e.parent_nft_id = ?
+       ORDER BY e.ordinal ASC, e.created_at ASC`
+    )
+    .bind(parent_nft_id)
+    .all()
+    .catch(() => ({ results: [] }));
+  return rows.results || [];
+}
+
+async function bundleTree(db, root_id, depth = 0, maxDepth = 8, seen) {
+  if (!seen) seen = new Set();
+  if (depth > maxDepth || seen.has(root_id)) return { nft_id: root_id, cycle_or_depth: true, children: [] };
+  seen.add(root_id);
+  const kids = await bundleChildren(db, root_id);
+  const children = [];
+  for (const k of kids) {
+    const sub = await bundleTree(db, k.child_nft_id, depth + 1, maxDepth, seen);
+    children.push({
+      edge_id: k.id,
+      role: k.role,
+      ordinal: k.ordinal,
+      child_name: k.child_name,
+      child_status: k.child_status,
+      child_mode: k.child_mode,
+      child_collateral: k.child_collateral,
+      ...sub,
+    });
+  }
+  return { nft_id: root_id, children };
+}
+
+/** --- Majority liquidation: ownership-weighted vote → proportional collateral distribution --- */
+async function proposeLiquidation(db, env, { nft_id, proposer }) {
+  await ensureStrataFunctionalSchema(db);
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (nft.status === 'redeemed') return { ok: false, error: 'already_redeemed' };
+  const fracs = await ensureOwnerFraction(db, nft);
+  const propFrac = fracs.find((f) => f.holder === proposer);
+  if (!propFrac || Number(propFrac.strata_units || 0) <= 0) {
+    return { ok: false, error: 'proposer_not_holder' };
+  }
+  const open = await db
+    .prepare("SELECT id FROM nft_liquidation_proposals WHERE nft_id = ? AND status = 'open'")
+    .bind(nft_id)
+    .first()
+    .catch(() => null);
+  if (open) return { ok: false, error: 'proposal_already_open', proposal_id: open.id };
+  const id = 'liq_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  await db
+    .prepare(
+      `INSERT INTO nft_liquidation_proposals (id, nft_id, proposer, status, aye_weight, nay_weight, threshold, created_at)
+       VALUES (?,?,?,'open',0,0,0.5,datetime('now'))`
+    )
+    .bind(id, nft_id, proposer)
+    .run();
+  // Proposer auto-votes aye with their weight
+  const vote = await voteLiquidation(db, env, { proposal_id: id, holder: proposer, ballot: 'aye' });
+  return {
+    ok: true,
+    proposal_id: id,
+    nft_id,
+    proposer,
+    auto_vote: vote,
+    rule: 'Maioria simples das participações (peso = strata_units / collateral_total). Aye > 50% executa liquidação e distribui colateral proporcionalmente.',
+  };
+}
+
+async function voteLiquidation(db, env, { proposal_id, holder, ballot }) {
+  await ensureStrataFunctionalSchema(db);
+  const prop = await db.prepare('SELECT * FROM nft_liquidation_proposals WHERE id = ?').bind(proposal_id).first();
+  if (!prop) return { ok: false, error: 'proposal_not_found' };
+  if (prop.status !== 'open') return { ok: false, error: 'proposal_not_open', status: prop.status };
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(prop.nft_id).first();
+  if (!nft || nft.status === 'redeemed') return { ok: false, error: 'nft_unavailable' };
+  const fracs = await ensureOwnerFraction(db, nft);
+  const row = fracs.find((f) => f.holder === holder);
+  const units = Number(row?.strata_units || 0);
+  if (!(units > 0)) return { ok: false, error: 'not_a_holder' };
+  const b = String(ballot || '').toLowerCase();
+  if (b !== 'aye' && b !== 'nay') return { ok: false, error: 'ballot_must_be_aye_or_nay' };
+  const total = fracs.reduce((s, f) => s + Number(f.strata_units || 0), 0) || Number(nft.collateral_strata || 0) || 1;
+  const vid = 'lqv_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  try {
+    await db
+      .prepare(
+        `INSERT INTO nft_liquidation_votes (id, proposal_id, nft_id, holder, strata_units, ballot, created_at)
+         VALUES (?,?,?,?,?,?,datetime('now'))`
+      )
+      .bind(vid, proposal_id, prop.nft_id, holder, units, b)
+      .run();
+  } catch (_) {
+    await db
+      .prepare(
+        `UPDATE nft_liquidation_votes SET ballot = ?, strata_units = ?, created_at = datetime('now')
+         WHERE proposal_id = ? AND holder = ?`
+      )
+      .bind(b, units, proposal_id, holder)
+      .run();
+  }
+  const votes = (
+    await db.prepare('SELECT * FROM nft_liquidation_votes WHERE proposal_id = ?').bind(proposal_id).all()
+  ).results || [];
+  let aye = 0,
+    nay = 0;
+  for (const v of votes) {
+    if (v.ballot === 'aye') aye += Number(v.strata_units || 0);
+    else nay += Number(v.strata_units || 0);
+  }
+  const aye_w = aye / total;
+  const nay_w = nay / total;
+  await db
+    .prepare('UPDATE nft_liquidation_proposals SET aye_weight = ?, nay_weight = ? WHERE id = ?')
+    .bind(aye_w, nay_w, proposal_id)
+    .run();
+  const threshold = Number(prop.threshold != null ? prop.threshold : 0.5);
+  if (aye_w > threshold) {
+    const exec = await executeLiquidation(db, env, prop);
+    return {
+      ok: true,
+      proposal_id,
+      holder,
+      ballot: b,
+      aye_weight: aye_w,
+      nay_weight: nay_w,
+      threshold,
+      majority_reached: true,
+      execution: exec,
+    };
+  }
+  return {
+    ok: true,
+    proposal_id,
+    holder,
+    ballot: b,
+    aye_weight: aye_w,
+    nay_weight: nay_w,
+    threshold,
+    majority_reached: false,
+    note: 'Voto registado. Maioria simples ainda não atingida.',
+  };
+}
+
+async function executeLiquidation(db, env, prop) {
+  const nft_id = prop.nft_id;
+  const nft = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(nft_id).first();
+  if (!nft) return { ok: false, error: 'nft_not_found' };
+  if (nft.status === 'redeemed') {
+    await db
+      .prepare("UPDATE nft_liquidation_proposals SET status = 'executed', executed_at = datetime('now') WHERE id = ?")
+      .bind(prop.id)
+      .run();
+    return { ok: true, already_redeemed: true };
+  }
+  const fracs = await ensureOwnerFraction(db, nft);
+  const vault = nft.collateral_vault || ('nft:' + nft_id + ':collateral');
+  const distributions = [];
+  for (const f of fracs) {
+    const units = Number(f.strata_units || 0);
+    if (units <= 0) continue;
+    const un = await unlockStrataCollateral(db, vault, units, f.holder);
+    distributions.push({ holder: f.holder, strata: units, unlocked: un.unlocked });
+  }
+  const nowIso = new Date().toISOString();
+  await db
+    .prepare(
+      "UPDATE strata_nfts SET collateral_strata = 0, status = 'redeemed', redeemed_at = ?, mode = 'static' WHERE id = ?"
+    )
+    .bind(nowIso, nft_id)
+    .run();
+  try {
+    await db.prepare('DELETE FROM nft_fractions WHERE nft_id = ?').bind(nft_id).run();
+  } catch (_) {}
+  // Detach from bundles (object extinguished)
+  try {
+    await db.prepare('DELETE FROM nft_bundle_edges WHERE parent_nft_id = ? OR child_nft_id = ?').bind(nft_id, nft_id).run();
+  } catch (_) {}
+  await db
+    .prepare("UPDATE nft_liquidation_proposals SET status = 'executed', executed_at = datetime('now') WHERE id = ?")
+    .bind(prop.id)
+    .run();
+  try {
+    await dagSubmit(
+      env,
+      { type: 'nft_majority_liquidation', nft_id, proposal_id: prop.id },
+      JSON.stringify({ nft_id, distributions })
+    );
+  } catch (_) {}
+  return {
+    ok: true,
+    nft_id,
+    status: 'redeemed',
+    distributions,
+    note: 'Liquidação por maioria: objecto extinto; colateral STRATA distribuído proporcionalmente às participações.',
+  };
+}
+
+function strataNftOntology() {
+  return {
+    version: '1.0.0-object-economy',
+    equation:
+      'STRATA NFT = NonFungibleObject + FractionalEconomicOwnership + Collateral + (Optional) StateMachine + Actions + (Optional) Bundle',
+    agents: 'User | SCA',
+    relation: 'Agent owns/operates NFT — never NFT owns Agent',
+    dimensions: {
+      identity: 'Individually identifiable; NFT-A ≠ NFT-B even with identical content or collateral',
+      content: 'CID-backed; identity and economic position separated from payload',
+      ownership: 'ownership_i = collateral_i / collateral_total (fractional; object remains non-fungible)',
+      collateral: 'Fungible STRATA locked under the object; floor position, not market price',
+      market: 'P_market independent of C_collateral; premium or discount',
+      state: 'static | dynamic | suspended_static',
+      actions: 'Authorised operations may transition state and burn STRATA from collateral',
+      bundle: 'First-class structural edges parent→child; recursive composition; each child keeps own identity/collateral/state',
+      liquidation:
+        'Simple majority of participation weight (aye > 50%) may extinguish the object and distribute collateral proportionally',
+      redeem_individual: 'When P_market < C (or market UNAVAILABLE), a holder may redeem their fraction without majority',
+    },
+    not: [
+      'Not an SCA (agent/subject)',
+      'Not fungible STRATA',
+      'Not merely a file (content may be external via CID)',
+      'Not necessarily static',
+      'Not necessarily economically indivisible',
+      'Not necessarily an isolated object (may be a bundle)',
+    ],
+    holonic_separation: {
+      trd: 'Poles #mint / #0',
+      fog: 'NODE_WALLET treasury — not a user/SCA account',
+      accounts: 'User and SCA wallets with Panel + Bancada',
+      strata: 'Fungible unit (lab_only vs transitável via PoC)',
+      strata_nft: 'Non-fungible object collateralised in STRATA',
+    },
+  };
+}
+
+function nftRenderSvg(nft, valuation) {
+  const c = Math.max(0, Number((valuation && valuation.collateral_strata) || nft.collateral_strata || 0));
+  const m = valuation && valuation.market_strata != null ? Number(valuation.market_strata) : null;
+  const mode = String((valuation && valuation.mode) || nft.mode || 'static').toLowerCase();
+  const hue = Math.floor((c * 9973 + (nft.id || '').length * 13) % 360);
+  const w = 72 + Math.min(88, Math.log10(1 + c * 1000) * 36);
+  const h = 72;
+  const redeemable = !!(valuation && valuation.redeemable);
+  const stroke = mode === 'dynamic' ? '#34d399' : mode === 'suspended_static' ? '#f59e0b' : (redeemable ? '#f59e0b' : '#a1a1aa');
+  const title = String(nft.name || nft.id || 'NFT STRATA').slice(0, 22);
+  const modeLabel = mode === 'dynamic' ? 'DINÂMICO' : mode === 'suspended_static' ? 'SUSPENSO→ESTÁTICO' : 'ESTÁTICO';
+  return (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120" width="220" height="120" role="img" aria-label="NFT STRATA">' +
+    '<rect width="220" height="120" fill="#0a0a0a"/>' +
+    '<rect x="12" y="24" width="' + w.toFixed(1) + '" height="' + h + '" rx="6" fill="hsl(' + hue + ',42%,28%)" stroke="' + stroke + '" stroke-width="2"/>' +
+    '<text x="12" y="16" fill="#e4e4e7" font-size="10" font-family="IBM Plex Mono,monospace">' + title.replace(/[<>&]/g, '') + '</text>' +
+    '<text x="150" y="16" fill="' + stroke + '" font-size="8" font-family="IBM Plex Mono,monospace">' + modeLabel + '</text>' +
+    '<text x="12" y="112" fill="#a1a1aa" font-size="9" font-family="IBM Plex Mono,monospace">colateral ' + c.toFixed(4) + ' · mercado ' + (m == null ? '—' : m.toFixed(4)) + ' · fr ' + String((valuation && valuation.possession && valuation.possession.holders) || 1) + '</text>' +
+    '</svg>'
+  );
+}
+
+async function nftValuation(db, nft) {
+  // Lazy resource burn for dynamic NFTs
+  try {
+    const br = await applyDynamicResourceBurn(db, nft);
+    if (br && br.nft) nft = br.nft;
+  } catch (_) {}
+  const collateral = Number(nft.collateral_strata || 0);
+  const mode = String(nft.mode || 'static').toLowerCase();
+  let market = null;
+  let source = null;
+  try {
+    const q = await db.prepare('SELECT market_strata, source FROM nft_market_quotes WHERE nft_id = ?').bind(nft.id).first();
+    if (q && q.market_strata != null) {
+      market = Number(q.market_strata);
+      source = q.source || 'quote';
+    }
+  } catch (_) {}
+  const redeemable = nft.status !== 'redeemed' && (market == null || market < collateral);
+  let fractions = [];
+  try {
+    fractions = await ensureOwnerFraction(db, nft);
+  } catch (_) {
+    try { fractions = await listNftFractions(db, nft.id); } catch (_) {}
+  }
+  const totalFrac = fractions.reduce((a, f) => a + Number(f.strata_units || 0), 0);
+  return {
+    nft_id: nft.id,
+    collateral_strata: collateral,
+    market_strata: market,
+    market_source: source,
+    mode,
+    burn_rate_per_hour: Number(nft.burn_rate_per_hour || 0),
+    total_resource_burned: Number(nft.total_resource_burned || 0),
+    last_burn_at: nft.last_burn_at || null,
+    distinct: true,
+    redeemable,
+    can_resume_dynamic: mode === 'suspended_static' && collateral > 0,
+    possession: {
+      by: 'collateral_fractions',
+      total_strata_units: totalFrac || collateral,
+      holders: fractions.length,
+      fractions: fractions.map((f) => ({
+        holder: f.holder,
+        strata_units: Number(f.strata_units || 0),
+        share_pct: Number(f.share_pct || 0),
+        share_bps: Number(f.share_bps || 0),
+      })),
+      note: 'A posse do NFT mede-se pelas frações de colateral STRATA, não pelo preço de mercado.',
+    },
+    rule: 'Colateral STRATA ≠ valor de mercado. Posse = frações de colateral. Venda de fração capitaliza ao preço acordado e transfere a fatia. Dinâmico queima recursos do colateral → #0. Resgate se mercado < colateral.',
+    rule_en: 'STRATA collateral ≠ market value. Possession = collateral fractions. Selling a fraction capitalizes at agreed price and transfers that slice. Dynamic burns resources from collateral → #0. Redeem if market < collateral.',
+  };
+}
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     let path = url.pathname;
-    // normalize prefixes
-    // Longer prefixes first; never strip bare "/token" from "/tokenisation…"
-    for (const pfx of ['/api/v1/token', '/api/v1/nft', '/token/', '/nft/']) {
-      if (path === pfx.slice(0, -1)) { path = '/'; break; }
+    // normalize prefixes — exact prefix length (no off-by-one)
+    // Longer / more specific first; never strip bare "/token" from "/tokenisation…"
+    const prefixes = ['/api/v1/token/', '/api/v1/nft/', '/api/v1/token', '/api/v1/nft', '/token/', '/nft/'];
+    for (const pfx of prefixes) {
+      if (path === pfx || path === pfx.replace(/\/$/, '')) {
+        path = '/';
+        break;
+      }
       if (path.startsWith(pfx)) {
-        path = path.slice(pfx.length - 1) || '/'; // keep leading /
-        if (!path.startsWith('/')) path = '/' + path;
+        let rest = path.slice(pfx.length);
+        if (!rest.startsWith('/')) rest = '/' + rest;
+        path = rest || '/';
         break;
       }
     }
@@ -453,6 +1583,19 @@ export default {
             kinds: [
               { id: 'open_world', note: 'Open worlds composed of STRATA NFTs' },
               { id: 'cgu', aliases: ['ugc'], note: 'User-Generated Creations including SCA authors' },
+              {
+                id: 'spa',
+                aliases: ['aps', 'service_agreement'],
+                note: 'SPA/APS — specialised STRATA NFT: automated service-agreement template. Static until execute → dynamic; terminates on complete or collateral ≤ 0.1 STRATA. Competes with ETH smart contracts functionally; no ETH ontology.',
+                lifecycle: 'template(static) → execute(dynamic) → complete|floor_0.1(terminated)',
+                min_collateral: 0.1,
+                endpoints: {
+                  mint: 'POST /spa/mint',
+                  execute: 'POST /spa/execute',
+                  complete: 'POST /spa/complete',
+                  list: 'GET /spa/list?owner=',
+                },
+              },
               { id: 'external_asset', note: 'Representative of off-DLT asset anchored on DLT' },
               { id: 'import', note: 'Import from other DLT or cold storage as STRATA NFT' },
             ],
@@ -475,16 +1618,54 @@ export default {
 
     // --- supply / health ---
     let supply = 0,
-      holders = 0;
+      holders = 0,
+      lab_only_supply = 0,
+      transit_eligible_supply = 0,
+      fog_wallet_balance = 0;
     if (db) {
       try {
         const r = await db
           .prepare(
-            "SELECT COALESCE(SUM(balance),0) as s, COUNT(*) as c FROM token_balances WHERE token_type IN ('STRATA','strata')"
+            "SELECT COALESCE(SUM(balance),0) as s, COUNT(*) as c FROM token_balances WHERE token_type IN ('STRATA','strata') AND account NOT IN (?, ?)"
+          )
+          .bind(STRATA_MINT_SOURCE, STRATA_BURN_SINK)
+          .first();
+        supply = Number(r?.s ?? 0);
+        holders = Number(r?.c ?? 0);
+      } catch (_) {
+        try {
+          const r = await db
+            .prepare(
+              "SELECT COALESCE(SUM(balance),0) as s, COUNT(*) as c FROM token_balances WHERE token_type IN ('STRATA','strata')"
+            )
+            .first();
+          supply = Number(r?.s ?? 0);
+          holders = Number(r?.c ?? 0);
+        } catch (_) {}
+      }
+      try {
+        await ensureLabOrigin(db);
+        const labR = await db
+          .prepare(
+            "SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE origin IN ('lab_bootstrap','lab_grant')"
           )
           .first();
-        supply = r?.s ?? 0;
-        holders = r?.c ?? 0;
+        const pocR = await db
+          .prepare(
+            "SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE origin = 'poc_contribution'"
+          )
+          .first();
+        lab_only_supply = Number(labR?.s || 0);
+        transit_eligible_supply = Number(pocR?.s || 0);
+      } catch (_) {}
+      try {
+        const fog = await db
+          .prepare(
+            "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account IN (?, ?)"
+          )
+          .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
+          .first();
+        fog_wallet_balance = Number(fog?.s || 0);
       } catch (_) {}
     }
 
@@ -497,19 +1678,59 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '3.1.0-mint-burn-poles',
+        version: '3.5.1-spa-aps',
         total_supply: supply,
         holders,
         nft_count: nfts,
-        engines: ['fungible_STRATA', 'world_sub_tokens_collateralised', 'strata_nft_world_blocks', 'strata_nft_cgu', 'nft_import', 'dag_anchor', 'ipfs_metadata'],
-        strata_definition: 'Functional: base STRATA fungible (PoC mint) + world sub-tokens fungible collateralised in STRATA; STRATA NFTs are the building blocks of open worlds and CGU sandboxes (users+SCAs).',
-        emission_policy: 'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value',
+        breakdown: {
+          lab_only_strata: lab_only_supply,
+          transit_eligible_poc: transit_eligible_supply,
+          fog_wallet: {
+            address: NODE_WALLET,
+            role: 'node_treasury',
+            balance: fog_wallet_balance,
+            note: 'Carteira/tesouraria do Nó Fog — not a user/SCA account. Lab units on this wallet are laboratory version; only PoC units transit to published.',
+          },
+        },
+        engines: [
+          'fungible_STRATA',
+          'world_sub_tokens_collateralised',
+          'strata_nft_world_blocks',
+          'strata_nft_cgu',
+          'nft_collateral_vs_market',
+          'nft_static_dynamic',
+          'nft_resource_burn_from_collateral',
+          'nft_suspended_static',
+          'nft_fractions_possession',
+          'nft_fraction_sale_capitalization',
+          'nft_redeem_if_market_below_collateral',
+          'nft_majority_liquidation',
+          'nft_bundle_composition',
+          'spa_aps_template',
+          'nft_import',
+          'dag_anchor',
+        ],
+        strata_definition:
+          'STRATA NFT = NonFungibleObject + FractionalEconomicOwnership + Collateral + (Optional) StateMachine + Actions + (Optional) Bundle. Agents (User|SCA) own/operate NFTs.',
+        emission_policy:
+          'STRATA mint only via PoC (stratamesh-poc); acquire via Agora P2P for external value. Lab bootstrap is laboratory-only and does not transit.',
+        holonic_note:
+          'TRD poles (#mint/#0) ≠ Fog wallet (NODE_WALLET) ≠ user/SCA account wallets. The Node has a treasury wallet without being an account-holding entity.',
+        ontology: '/ontology/nft',
         timestamp: new Date().toISOString(),
       });
     }
 
     if (path === '/supply' || path === '/status') {
-      return json({ success: true, total_supply: supply, holders, status: 'active' });
+      return json({
+        success: true,
+        total_supply: supply,
+        holders,
+        status: 'active',
+        lab_only_strata: lab_only_supply,
+        transit_eligible_poc: transit_eligible_supply,
+        fog_wallet: { address: NODE_WALLET, balance: fog_wallet_balance, role: 'node_treasury' },
+      });
     }
 
 
@@ -517,17 +1738,21 @@ export default {
     if ((path === '/lab/grant' || path === '/lab/bootstrap') && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
-      const account = body.account || body.beneficiary;
+      // Lab STRATA for the Fog sit on NODE_WALLET (tesouraria do Nó). Do not invent a separate "treasury" entity.
+      const rawAccount = body.account || body.beneficiary || NODE_WALLET;
+      const account = resolveWalletAccount(rawAccount);
       const amount = Number(body.amount);
       if (!account || !(amount > 0)) return json({ error: 'account and amount > 0 required' }, 400);
       const rec = await recordOrigin(db, account, amount, body.origin === 'lab_grant' ? 'lab_grant' : 'lab_bootstrap', {
-        note: body.note || 'laboratory initial offer',
+        note: body.note || 'laboratory initial offer on Fog treasury wallet',
         environment: 'lab',
+        wallet_role: isNodeWallet(account) ? 'node_treasury' : 'account_wallet',
       });
       return json({
         success: true,
         ...rec,
-        warning: 'LAB ONLY — this STRATA does not transit to post-lab published network',
+        wallet_role: isNodeWallet(account) ? 'node_treasury' : 'account_wallet',
+        warning: 'LAB ONLY — these STRATA units are laboratory version; they do not transit to the published network',
         transit_eligible: false,
       });
     }
@@ -581,37 +1806,75 @@ export default {
 
     // --- fungible balance ---
     if (path === '/wallet' || path === '/balance') {
-      const account = url.searchParams.get('account') || url.searchParams.get('owner');
-      if (!account || !db) {
+      const rawAccount = url.searchParams.get('account') || url.searchParams.get('owner');
+      if (!rawAccount || !db) {
         return json({
           success: true,
           balance: 0,
-          note: 'pass ?account=… ; PoC /balance for contribution wallet',
+          note: 'pass ?account=… ; Fog treasury = FOG-NODE-PT-CM-001; user/SCA accounts are separate',
         });
       }
+      const account = resolveWalletAccount(rawAccount);
       try {
-        const rows = await db
-          .prepare('SELECT token_type, balance, total_minted, total_burned FROM token_balances WHERE account = ?')
-          .bind(account)
-          .all();
+        // Fog treasury: merge NODE_WALLET + legacy "treasury" row (same holon, not a second entity)
+        let rows;
+        if (isNodeWallet(rawAccount)) {
+          rows = await db
+            .prepare(
+              "SELECT token_type, SUM(balance) as balance, SUM(total_minted) as total_minted, SUM(total_burned) as total_burned FROM token_balances WHERE account IN (?, ?) GROUP BY token_type"
+            )
+            .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
+            .all();
+        } else {
+          rows = await db
+            .prepare('SELECT token_type, balance, total_minted, total_burned FROM token_balances WHERE account = ?')
+            .bind(account)
+            .all();
+        }
         let origins = [];
         try {
           await ensureLabOrigin(db);
-          origins = (await db.prepare('SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account = ? GROUP BY origin').bind(account).all()).results || [];
+          if (isNodeWallet(rawAccount)) {
+            origins = (
+              await db
+                .prepare(
+                  'SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account IN (?, ?) GROUP BY origin'
+                )
+                .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
+                .all()
+            ).results || [];
+          } else {
+            origins =
+              (await db.prepare('SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account = ? GROUP BY origin').bind(account).all())
+                .results || [];
+          }
         } catch (_) {}
         const lab = origins.filter((o) => o.origin === 'lab_bootstrap' || o.origin === 'lab_grant').reduce((a, o) => a + Number(o.amount || 0), 0);
         const poc = origins.filter((o) => o.origin === 'poc_contribution').reduce((a, o) => a + Number(o.amount || 0), 0);
-        return json({
+        const out = {
           success: true,
-          account,
+          account: isNodeWallet(rawAccount) ? NODE_WALLET : account,
           balances: rows.results || [],
           lab_policy: {
             lab_only_balance: lab,
             transit_eligible_poc_balance: poc,
-            note: 'Only PoC-earned STRATA transit to post-lab; lab offer is laboratory-only',
+            note: 'Lab STRATA units are laboratory version (not transitável). Only PoC-earned STRATA transit to the published network.',
           },
           origin_breakdown: origins,
-        });
+        };
+        if (isNodeWallet(rawAccount)) {
+          out.wallet_role = 'node_treasury';
+          out.holon = 'fog';
+          out.note =
+            'Carteira/tesouraria do Nó Fog. O Nó não é entidade e não tem conta de utilizador/SCA; tem carteira. Linha legada "treasury" no ledger é a mesma tesouraria.';
+          if (String(rawAccount) === LEGACY_TREASURY_ALIAS) {
+            out.resolved_from_alias = LEGACY_TREASURY_ALIAS;
+          }
+        } else {
+          out.wallet_role = 'account_wallet';
+          out.holon = account.startsWith('SCA-') ? 'sca' : 'user';
+        }
+        return json(out);
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
@@ -643,7 +1906,12 @@ export default {
             rows = await db.prepare('SELECT * FROM nft_assets ORDER BY rowid DESC LIMIT ?').bind(limit).all();
           }
         }
-        return json({ success: true, nfts: rows.results || [], count: (rows.results || []).length, source: 'strata_nfts' });
+        const out = [];
+        for (const n of rows.results || []) {
+          const v = await nftValuation(db, n);
+          out.push({ ...n, valuation: v, render: { svg: nftRenderSvg(n, v) } });
+        }
+        return json({ success: true, nfts: out, count: out.length, source: 'strata_nfts' });
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
@@ -1034,12 +2302,15 @@ export default {
           },
         },
         non_fungible: {
-          role: 'building blocks of open worlds and CGU sandboxes; external-asset representatives',
+          role: 'building blocks of open worlds and CGU sandboxes; external-asset representatives; SPA/APS templates',
           open_world: 'composed of STRATA NFT blocks (POST /world/compose, /world/block)',
           cgu: 'CGU creations (users + SCAs) are STRATA NFTs (POST /cgu/mint)',
+          spa_aps:
+            'Specialised STRATA NFT service-agreement templates. Static until execute → dynamic while running; terminate on complete or collateral ≤ 0.1 STRATA. Functional alternative to ETH smart contracts — no ETH ontology imported. POST /spa/mint | /spa/execute | /spa/complete',
           endpoint_kinds: 'GET /tokenisation/kinds',
         },
-        invariant: 'World structure and sandbox CGU are not metadata — they are STRATA NFTs. Sub-tokens in worlds are STRATA-collateralised fungibles.',
+        invariant:
+          'World structure and sandbox CGU are not metadata — they are STRATA NFTs. SPA/APS are STRATA NFTs, not a separate virtual-machine ontology. Sub-tokens in worlds are STRATA-collateralised fungibles.',
       });
     }
 
@@ -1147,6 +2418,9 @@ export default {
         role: 'cgu', kind: 'cgu', world_id, sandbox_id,
         attributes: body.attributes || {},
         authors: [{ kind: author_kind, id: author_id }],
+        collateral_strata: body.collateral_strata != null ? body.collateral_strata : 0.01,
+        mode: body.mode || 'static',
+        burn_rate_per_hour: body.burn_rate_per_hour,
       });
       const cgu_id = 'cgu_' + crypto.randomUUID().slice(0, 12);
       await db.prepare(
@@ -1159,11 +2433,450 @@ export default {
         nft,
         author_kind,
         author_id,
-        note: 'CGU is a STRATA NFT; authors may be users or SCAs',
+        collateral_strata: nft.collateral_strata,
+        note: 'CGU is a STRATA NFT; static|dynamic; dynamic burns resource cost from collateral to #0; depleted → suspended_static',
       });
       } catch (e) {
-        return json({ success: false, error: String(e.message || e) }, 500);
+        const msg = String(e.message || e);
+        if (msg === 'insufficient_STRATA_collateral') {
+          return json({ success: false, error: msg, detail: e.detail || null }, 402);
+        }
+        return json({ success: false, error: msg }, 500);
       }
+    }
+
+    if (path === '/nft/list' || path === '/nfts' || path === '/list-enriched') {
+      await ensureStrataFunctionalSchema(db);
+      const sandbox_id = url.searchParams.get('sandbox_id');
+      const owner = url.searchParams.get('owner');
+      let rows;
+      if (sandbox_id) {
+        rows = await db.prepare("SELECT * FROM strata_nfts WHERE sandbox_id = ? ORDER BY created_at DESC LIMIT 80").bind(sandbox_id).all().catch(() => ({ results: [] }));
+      } else if (owner) {
+        rows = await db.prepare("SELECT * FROM strata_nfts WHERE owner = ? ORDER BY created_at DESC LIMIT 80").bind(owner).all().catch(() => ({ results: [] }));
+      } else {
+        rows = await db.prepare("SELECT * FROM strata_nfts ORDER BY created_at DESC LIMIT 80").all().catch(() => ({ results: [] }));
+      }
+      const list = [];
+      for (const n of rows.results || []) {
+        const v = await nftValuation(db, n);
+        list.push({ ...n, valuation: v, render: { svg: nftRenderSvg(n, v) } });
+      }
+      return json({ success: true, nfts: list, count: list.length });
+    }
+
+    if (path === '/nft/value' || path === '/value' || path === '/nft/valuation' || path === '/valuation') {
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id');
+      if (!id) return json({ error: 'id required' }, 400);
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      if (!n) return json({ error: 'not_found' }, 404);
+      const v = await nftValuation(db, n);
+      return json({ success: true, nft: n, valuation: v, render: { svg: nftRenderSvg(n, v) } });
+    }
+
+    if ((path === '/nft/quote' || path === '/quote' || path === '/nft/market') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const id = body.nft_id || body.id;
+      const market = Number(body.market_strata);
+      if (!id || !Number.isFinite(market) || market < 0) return json({ error: 'nft_id and market_strata >= 0 required' }, 400);
+      await ensureStrataFunctionalSchema(db);
+      await db.prepare(
+        `INSERT INTO nft_market_quotes (nft_id, market_strata, source, updated_at) VALUES (?,?,?, datetime('now'))
+         ON CONFLICT(nft_id) DO UPDATE SET market_strata=excluded.market_strata, source=excluded.source, updated_at=datetime('now')`
+      ).bind(id, market, body.source || 'agora_manual').run();
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      const v = n ? await nftValuation(db, n) : null;
+      return json({ success: true, nft_id: id, valuation: v });
+    }
+
+    if ((path === '/nft/redeem' || path === '/redeem' || path === '/nft/unwind' || path === '/unwind') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const id = body.nft_id || body.id;
+      if (!id) return json({ error: 'nft_id required' }, 400);
+      const holder = body.holder || body.owner || body.account;
+      // Fractional redeem when holder specified or strata_units given
+      if (holder || body.strata_units != null) {
+        const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+        if (!n) return json({ error: 'not_found' }, 404);
+        const h = holder || n.owner;
+        const rr = await redeemNftFraction(db, env, {
+          nft_id: id, holder: h, strata_units: body.strata_units,
+        });
+        if (!rr.ok) return json({ success: false, ...rr }, rr.error === 'market_not_below_collateral' ? 409 : 400);
+        return json({ success: true, ...rr });
+      }
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      if (!n) return json({ error: 'not_found' }, 404);
+      if (n.status === 'redeemed') return json({ error: 'already_redeemed' }, 409);
+      const v = await nftValuation(db, n);
+      if (!v.redeemable) {
+        return json({
+          success: false,
+          error: 'market_not_below_collateral',
+          valuation: v,
+          rule: 'Resgate só quando o valor de mercado está abaixo do colateral em STRATA fungível.',
+        }, 409);
+      }
+      const coll = Number(n.collateral_strata || 0);
+      const owner = body.owner || n.owner;
+      const vault = n.collateral_vault || ('nft:' + id + ':collateral');
+      const un = coll > 0 ? await unlockStrataCollateral(db, vault, coll, owner) : { ok: true, unlocked: 0 };
+      await db.prepare("UPDATE strata_nfts SET status = 'redeemed', redeemed_at = datetime('now'), collateral_strata = 0 WHERE id = ?").bind(id).run();
+      try { await db.prepare('DELETE FROM nft_fractions WHERE nft_id = ?').bind(id).run(); } catch (_) {}
+      try { await dagSubmit(env, { type: 'strata_nft_redeem', id, owner, collateral: coll }, JSON.stringify({ id, coll })); } catch (_) {}
+      return json({
+        success: true,
+        nft_id: id,
+        redeemed: true,
+        unlocked_strata: un.unlocked,
+        to: owner,
+        valuation: v,
+        note: 'NFT resgatado por completo; STRATA de colateral regressou ao titular.',
+      });
+    }
+
+    // List holders / fractions (possession by collateral share)
+    if (path === '/nft/holders' || path === '/holders' || path === '/nft/fractions' || path === '/fractions') {
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id');
+      if (!id) return json({ error: 'id required' }, 400);
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      if (!n) return json({ error: 'not_found' }, 404);
+      const fracs = await ensureOwnerFraction(db, n);
+      const v = await nftValuation(db, n);
+      return json({
+        success: true,
+        nft_id: id,
+        collateral_strata: Number(n.collateral_strata || 0),
+        market_strata: v.market_strata,
+        possession_by: 'collateral_fractions',
+        holders: fracs,
+        valuation: v,
+        rule: 'Posse = frações de colateral STRATA, independente do valor de mercado.',
+      });
+    }
+
+    // Sell / transfer fraction — capitalizes at agreed market price; transfers possession slice
+    if ((path === '/nft/fraction/transfer' || path === '/nft/sell-fraction' || path === '/fraction/transfer' || path === '/sell-fraction') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const result = await transferNftFraction(db, env, {
+        nft_id: body.nft_id || body.id,
+        from: body.from || body.seller || body.owner,
+        to: body.to || body.buyer,
+        strata_units: body.strata_units || body.units || body.amount,
+        price_strata: body.price_strata != null ? body.price_strata : body.price,
+      });
+      if (!result.ok) {
+        const code = result.error === 'insufficient_fraction' || result.error === 'insufficient_STRATA_for_purchase' ? 402 : 400;
+        return json({ success: false, ...result }, code);
+      }
+      return json({
+        success: true,
+        ...result,
+        note: 'Fração vendida: posse (fatia de colateral) transferida; preço em STRATA capitaliza a venda no mercado.',
+      });
+    }
+
+    // --- Ontology contract (architectural semantics operationalised) ---
+    if (path === '/ontology/nft' || path === '/ontology' || path === '/architecture/nft') {
+      const o = strataNftOntology();
+      o.spa_aps = {
+        definition:
+          'SPA/APS (acordo de serviço) is a specialised STRATA NFT: an automated service-agreement template. It is an object, not an agent and not an imported ETH smart contract.',
+        lifecycle: {
+          template: 'minted static — dormant template with locked collateral ≥ 0.1 STRATA',
+          execute: 'POST /spa/execute → mode dynamic; burns resource cost from collateral above the 0.1 floor',
+          terminate: 'POST /spa/complete or collateral ≤ 0.1 → status terminated; residual STRATA returned to holders',
+        },
+        min_collateral: SPA_MIN_COLLATERAL,
+        eth_relation: 'Competes functionally with ETH smart contracts; does not import ETH/EVM ontology, opcodes, or gas model',
+      };
+      return json({ success: true, ontology: o });
+    }
+
+    // --- SPA/APS: specialised STRATA NFT service-agreement templates ---
+    if ((path === '/spa/mint' || path === '/aps/mint' || path === '/spa/create') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const r = await mintSpa(db, env, body);
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if ((path === '/spa/execute' || path === '/aps/execute') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const r = await executeSpa(db, env, {
+        nft_id: body.nft_id || body.id || body.spa_id,
+        actor: body.actor || body.owner || body.account,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if ((path === '/spa/complete' || path === '/aps/complete' || path === '/spa/terminate') && request.method === 'POST') {
+      if (!db) return json({ error: 'ledger unavailable' }, 503);
+      const body = await request.json().catch(() => ({}));
+      const r = await completeSpa(db, env, {
+        nft_id: body.nft_id || body.id || body.spa_id,
+        actor: body.actor || body.owner || body.account,
+        result: body.result || body.outcome || null,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if (path === '/spa/list' || path === '/aps/list' || path === '/spa') {
+      if (!db) return json({ spas: [] });
+      await ensureStrataFunctionalSchema(db);
+      const owner = url.searchParams.get('owner');
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id');
+      if (id) {
+        const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+        if (!n || !isSpaNft(n)) return json({ error: 'not_found' }, 404);
+        const v = await nftValuation(db, n);
+        return json({ success: true, spa: n, valuation: v, is_spa: true });
+      }
+      let rows;
+      if (owner) {
+        rows = await db
+          .prepare(
+            "SELECT * FROM strata_nfts WHERE (role IN ('spa','aps') OR asset_type IN ('spa','aps')) AND owner = ? ORDER BY created_at DESC LIMIT 50"
+          )
+          .bind(owner)
+          .all()
+          .catch(() => ({ results: [] }));
+      } else {
+        rows = await db
+          .prepare(
+            "SELECT * FROM strata_nfts WHERE role IN ('spa','aps') OR asset_type IN ('spa','aps') ORDER BY created_at DESC LIMIT 50"
+          )
+          .all()
+          .catch(() => ({ results: [] }));
+      }
+      return json({
+        success: true,
+        spas: rows.results || [],
+        min_collateral: SPA_MIN_COLLATERAL,
+        lifecycle: 'template(static) → execute(dynamic) → complete|floor_0.1(terminated)',
+      });
+    }
+
+    // --- Bundle: attach / detach / list / tree ---
+    if ((path === '/nft/bundle/attach' || path === '/bundle/attach') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const r = await bundleAttach(db, env, {
+        parent_nft_id: body.parent_nft_id || body.parent || body.bundle,
+        child_nft_id: body.child_nft_id || body.child || body.nft_id,
+        role: body.role,
+        actor: body.actor || body.owner || body.account,
+        ordinal: body.ordinal,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if ((path === '/nft/bundle/detach' || path === '/bundle/detach') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const r = await bundleDetach(db, env, {
+        parent_nft_id: body.parent_nft_id || body.parent,
+        child_nft_id: body.child_nft_id || body.child || body.nft_id,
+        actor: body.actor || body.owner,
+      });
+      return json({ success: true, ...r });
+    }
+    if (path === '/nft/bundle' || path === '/bundle' || path === '/nft/bundle/children') {
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id') || url.searchParams.get('parent');
+      if (!id) return json({ error: 'id required' }, 400);
+      const children = await bundleChildren(db, id);
+      return json({
+        success: true,
+        parent_nft_id: id,
+        children,
+        note: 'Bundle children are full STRATA NFTs with own identity, collateral and state.',
+      });
+    }
+    if (path === '/nft/bundle/tree' || path === '/bundle/tree') {
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id') || url.searchParams.get('root');
+      if (!id) return json({ error: 'id required' }, 400);
+      const tree = await bundleTree(db, id);
+      return json({ success: true, root: id, tree });
+    }
+
+    // --- Majority liquidation ---
+    if ((path === '/nft/liquidate/propose' || path === '/liquidate/propose') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const r = await proposeLiquidation(db, env, {
+        nft_id: body.nft_id || body.id,
+        proposer: body.proposer || body.holder || body.account || body.owner,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if ((path === '/nft/liquidate/vote' || path === '/liquidate/vote') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const r = await voteLiquidation(db, env, {
+        proposal_id: body.proposal_id || body.id,
+        holder: body.holder || body.account || body.owner,
+        ballot: body.ballot || body.vote,
+      });
+      return json(r.ok ? { success: true, ...r } : { success: false, ...r }, r.ok ? 200 : 400);
+    }
+    if (path === '/nft/liquidate' || path === '/liquidate' || path === '/nft/liquidation') {
+      const nftId = url.searchParams.get('nft_id') || url.searchParams.get('id');
+      const proposalId = url.searchParams.get('proposal_id');
+      await ensureStrataFunctionalSchema(db);
+      if (proposalId) {
+        const prop = await db.prepare('SELECT * FROM nft_liquidation_proposals WHERE id = ?').bind(proposalId).first();
+        if (!prop) return json({ error: 'not_found' }, 404);
+        const votes =
+          (await db.prepare('SELECT * FROM nft_liquidation_votes WHERE proposal_id = ?').bind(proposalId).all()).results ||
+          [];
+        return json({ success: true, proposal: prop, votes });
+      }
+      if (nftId) {
+        const props =
+          (
+            await db
+              .prepare('SELECT * FROM nft_liquidation_proposals WHERE nft_id = ? ORDER BY created_at DESC LIMIT 20')
+              .bind(nftId)
+              .all()
+          ).results || [];
+        return json({ success: true, nft_id: nftId, proposals: props });
+      }
+      return json({ error: 'nft_id or proposal_id required' }, 400);
+    }
+
+    // Trade history for an NFT
+    if (path === '/nft/trades' || path === '/trades') {
+      const id = url.searchParams.get('id') || url.searchParams.get('nft_id');
+      if (!id) return json({ error: 'id required' }, 400);
+      const rows = await db.prepare(
+        'SELECT * FROM nft_fraction_trades WHERE nft_id = ? ORDER BY created_at DESC LIMIT 50'
+      ).bind(id).all().catch(() => ({ results: [] }));
+      return json({ success: true, nft_id: id, trades: rows.results || [] });
+    }
+
+    // Top-up collateral; optional resume to dynamic when suspended_static
+    if ((path === '/nft/topup' || path === '/topup' || path === '/nft/collateral/topup') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const id = body.nft_id || body.id;
+      const amount = Number(body.amount || body.collateral_strata || 0);
+      if (!id || !(amount > 0)) return json({ error: 'nft_id and amount > 0 required' }, 400);
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      if (!n) return json({ error: 'not_found' }, 404);
+      if (n.status === 'redeemed') return json({ error: 'already_redeemed' }, 409);
+      const payer = body.owner || body.account || n.owner;
+      const vault = n.collateral_vault || ('nft:' + id + ':collateral');
+      const lock = await lockStrataCollateral(db, payer, amount, vault);
+      if (!lock.ok) {
+        return json({ success: false, error: 'insufficient_STRATA_collateral', required: amount, balance: lock.balance }, 402);
+      }
+      const newColl = Number(n.collateral_strata || 0) + amount;
+      let mode = String(n.mode || 'static').toLowerCase();
+      if (body.resume_dynamic || body.mode === 'dynamic') {
+        if (newColl > 0) mode = 'dynamic';
+      } else if (mode === 'suspended_static' && body.resume_dynamic !== false && newColl > 0) {
+        // explicit: only auto-resume if caller asks; default stays suspended_static until mode set
+        mode = mode;
+      }
+      const burnRate = body.burn_rate_per_hour != null ? Number(body.burn_rate_per_hour) : Number(n.burn_rate_per_hour || 0.0001);
+      await db.prepare(
+        `UPDATE strata_nfts SET collateral_strata = ?, mode = ?, burn_rate_per_hour = COALESCE(?, burn_rate_per_hour), last_burn_at = datetime('now') WHERE id = ?`
+      ).bind(newColl, mode, mode === 'dynamic' ? burnRate : n.burn_rate_per_hour, id).run();
+      // Top-up increases payer's possession fraction
+      try {
+        await ensureOwnerFraction(db, { ...n, collateral_strata: newColl });
+        const existing = await db.prepare(
+          'SELECT * FROM nft_fractions WHERE nft_id = ? AND holder = ?'
+        ).bind(id, payer).first();
+        const nowIso = new Date().toISOString();
+        if (existing) {
+          await db.prepare(
+            'UPDATE nft_fractions SET strata_units = strata_units + ?, updated_at = ? WHERE nft_id = ? AND holder = ?'
+          ).bind(amount, nowIso, id, payer).run();
+        } else {
+          const fracId = 'frac_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+          await db.prepare(
+            `INSERT INTO nft_fractions (id, nft_id, holder, strata_units, share_bps, acquired_at, updated_at)
+             VALUES (?,?,?,?,0,?,?)`
+          ).bind(fracId, id, payer, amount, nowIso, nowIso).run();
+        }
+      } catch (_) {}
+      const refreshed = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      const v = await nftValuation(db, refreshed);
+      return json({
+        success: true,
+        nft_id: id,
+        collateral_strata: newColl,
+        mode,
+        valuation: v,
+        note: 'Colateral reforçado e fração de posse do pagador aumentada. resume_dynamic:true reactiva dinâmico.',
+      });
+    }
+
+    // Set mode: static | dynamic (suspended_static is automatic on depletion)
+    if ((path === '/nft/mode' || path === '/mode') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const id = body.nft_id || body.id;
+      let mode = String(body.mode || '').toLowerCase();
+      if (!id || !['static', 'dynamic'].includes(mode)) {
+        return json({ error: 'nft_id and mode static|dynamic required' }, 400);
+      }
+      const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      if (!n) return json({ error: 'not_found' }, 404);
+      if (n.status === 'redeemed') return json({ error: 'already_redeemed' }, 409);
+      const coll = Number(n.collateral_strata || 0);
+      if (mode === 'dynamic' && coll <= 0) {
+        return json({
+          success: false,
+          error: 'insufficient_collateral_for_dynamic',
+          collateral_strata: coll,
+          rule: 'Dinâmico exige colateral > 0 para burn de recursos correntes.',
+        }, 402);
+      }
+      const burnRate = body.burn_rate_per_hour != null
+        ? Number(body.burn_rate_per_hour)
+        : (mode === 'dynamic' ? Number(n.burn_rate_per_hour || 0.0001) : Number(n.burn_rate_per_hour || 0));
+      await db.prepare(
+        `UPDATE strata_nfts SET mode = ?, burn_rate_per_hour = ?, last_burn_at = datetime('now') WHERE id = ?`
+      ).bind(mode, burnRate, id).run();
+      const refreshed = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+      const v = await nftValuation(db, refreshed);
+      return json({
+        success: true,
+        nft_id: id,
+        mode,
+        burn_rate_per_hour: burnRate,
+        collateral_strata: coll,
+        valuation: v,
+        note: mode === 'dynamic'
+          ? 'Dinâmico: recursos correntes são queimados do colateral para #0 à taxa burn_rate_per_hour.'
+          : 'Estático: sem burn de recursos; colateral permanece até resgate ou conversão a dinâmico.',
+      });
+    }
+
+    // Force resource tick / burn for dynamic NFTs
+    if ((path === '/nft/tick' || path === '/tick' || path === '/nft/burn-resources') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const id = body.nft_id || body.id;
+      if (id) {
+        const n = await db.prepare('SELECT * FROM strata_nfts WHERE id = ?').bind(id).first();
+        if (!n) return json({ error: 'not_found' }, 404);
+        const br = await applyDynamicResourceBurn(db, n, {
+          force_amount: body.amount != null ? Number(body.amount) : undefined,
+          max_hours: body.max_hours != null ? Number(body.max_hours) : 24,
+        });
+        const v = await nftValuation(db, br.nft);
+        return json({
+          success: true,
+          nft_id: id,
+          burned: br.burned,
+          mode: br.mode,
+          valuation: v,
+          note: br.mode === 'suspended_static'
+            ? 'Colateral esgotado — NFT suspenso em estático até top-up + resume dynamic.'
+            : 'Burn de recursos aplicado sobre o colateral.',
+        });
+      }
+      // Batch: all dynamic NFTs
+      const rows = await db.prepare("SELECT * FROM strata_nfts WHERE mode = 'dynamic' AND status != 'redeemed' LIMIT 100").all().catch(() => ({ results: [] }));
+      const results = [];
+      for (const n of rows.results || []) {
+        const br = await applyDynamicResourceBurn(db, n, { max_hours: body.max_hours != null ? Number(body.max_hours) : 24 });
+        results.push({ nft_id: n.id, burned: br.burned, mode: br.mode });
+      }
+      return json({ success: true, ticks: results, count: results.length });
     }
 
     // Fungible sub-token inside an open world, collateralised by base STRATA
@@ -1238,21 +2951,55 @@ export default {
 
 
 
-    // --- STRATA monetary system: #mint (emit-only) ↔ circulating ↔ #0 (burn-only) ---
+    // --- STRATA monetary system: TRD poles + Fog treasury + account wallets ---
     if (path === '/monetary' || path === '/monetary-system') {
       await ensureMonetaryPoles(db);
-      let mint = null, sink = null, circulating = 0, total_minted = 0;
+      let mint = null,
+        sink = null,
+        circulating = 0,
+        total_minted = 0,
+        fogBal = 0,
+        labSum = 0,
+        pocSum = 0;
       try {
-        mint = await db.prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_MINT_SOURCE).first();
-        sink = await db.prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_BURN_SINK).first();
-        const circ = await db.prepare(
-          "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account NOT IN (?, ?)"
-        ).bind(STRATA_MINT_SOURCE, STRATA_BURN_SINK).first();
+        mint = await db
+          .prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+          .bind(STRATA_MINT_SOURCE)
+          .first();
+        sink = await db
+          .prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')")
+          .bind(STRATA_BURN_SINK)
+          .first();
+        const circ = await db
+          .prepare(
+            "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account NOT IN (?, ?)"
+          )
+          .bind(STRATA_MINT_SOURCE, STRATA_BURN_SINK)
+          .first();
         circulating = Number(circ?.s || 0);
         total_minted = Number(mint?.total_minted || 0);
+        const fog = await db
+          .prepare(
+            "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account IN (?, ?)"
+          )
+          .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
+          .first();
+        fogBal = Number(fog?.s || 0);
+        await ensureLabOrigin(db);
+        labSum = Number(
+          (await db.prepare("SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE origin IN ('lab_bootstrap','lab_grant')").first())?.s || 0
+        );
+        pocSum = Number(
+          (await db.prepare("SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE origin = 'poc_contribution'").first())?.s || 0
+        );
       } catch (_) {}
       return json({
         success: true,
+        holonic_layers: {
+          trd: 'Poles #mint / #0 — protocol emission and burn on the shared ledger',
+          fog: 'NODE_WALLET — carteira/tesouraria do Nó; not an entity account',
+          accounts: 'User and SCA wallets — entities with Painel + Bancada, distinct from the Fog wallet',
+        },
         poles: {
           mint: {
             address: STRATA_MINT_SOURCE,
@@ -1261,7 +3008,7 @@ export default {
             transfers_out: false,
             spendable_balance: 0,
             total_emitted: total_minted,
-            note: 'Opposite of #0: only creates STRATA via PoC; never holds spendable balance',
+            note: 'TRD pole: creates STRATA via PoC only; never holds spendable balance',
           },
           burn_sink: {
             address: STRATA_BURN_SINK,
@@ -1269,12 +3016,26 @@ export default {
             receives: true,
             transfers_out: false,
             balance: Number(sink?.balance || 0),
-            note: 'When users/SCAs consume resources, STRATA move here and cannot leave',
+            note: 'TRD pole: resource consumption moves STRATA here; they cannot leave',
           },
         },
+        fog_wallet: {
+          address: NODE_WALLET,
+          role: 'node_treasury',
+          balance: fogBal,
+          legacy_alias: LEGACY_TREASURY_ALIAS,
+          note: 'Tesouraria do Nó = carteira do Fog. Linha legada "treasury" no ledger é a mesma carteira, não uma entidade stub.',
+        },
+        strata_versions: {
+          lab_only: labSum,
+          transit_eligible_poc: pocSum,
+          note: 'Lab STRATA are laboratory-version units (not transitável). Only PoC-earned units transit to the published network. The stub character is of those lab units, not of the Fog wallet.',
+        },
         circulating_supply: circulating,
+        circulating_lab_only: labSum,
+        circulating_transit_eligible: pocSum,
         out_of_circulation: Number(sink?.balance || 0),
-        flow: 'PoC → #mint emits → node/user/SCA wallets (circulating) → resource use burns → #0',
+        flow: 'PoC → #mint emits → Fog wallet and/or user/SCA wallets → resource use burns → #0. Lab bootstrap credits the Fog treasury as lab-only units.',
       });
     }
 
@@ -1324,6 +3085,7 @@ export default {
       error: 'not found',
       endpoints: [
         'GET /health',
+        'GET /ontology/nft',
         'GET /architecture',
         'GET /supply',
         'GET /balance?account=',
@@ -1342,6 +3104,15 @@ export default {
         'GET /monetary',
         'POST /burn',
         'POST /transfer-fungible',
+        'POST /nft/bundle/attach',
+        'POST /nft/bundle/detach',
+        'GET /nft/bundle?id=',
+        'GET /nft/bundle/tree?id=',
+        'POST /nft/liquidate/propose',
+        'POST /nft/liquidate/vote',
+        'GET /nft/liquidate?nft_id=',
+        'POST /nft/redeem',
+        'POST /nft/sell-fraction',
       ],
     }, 404);
   },
