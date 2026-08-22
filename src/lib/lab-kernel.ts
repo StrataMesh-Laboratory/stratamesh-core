@@ -6,7 +6,7 @@ import { askSymbolic } from "@/lib/symbolic";
 
 export const NODE_ID = NODE_ACCT;
 export const ORCH_SCA = "SCA-ORCH-CMN-001";
-/** Operator wallet — a person/ENI. Never the Fog Node id. Node ≠ NFT. */
+/** Operator (human ENI) wallet — a person. Distinct from the Fog Node wallet. */
 export const OPERATOR_WALLET = "carteira:AMCM-ENI";
 export const VISITOR_WALLET = "utilizador:visitante";
 
@@ -20,7 +20,10 @@ export function isMeshNodeId(id: string) {
 
 export function holderLabel(id: string, lang: "pt" | "en" = "pt") {
   const pt = lang === "pt";
-  if (isMeshNodeId(id)) return pt ? "erro: Nó ≠ NFT" : "error: Node ≠ NFT";
+  if (/^FOG-NODE-/i.test(id)) return pt ? "Carteira do Nó (Fog)" : "Fog Node wallet";
+  if (/^EDGE-/i.test(id)) return pt ? "Carteira Limiar" : "Edge wallet";
+  if (id === "#mint") return "#mint";
+  if (id === "#0") return "#0";
   if (id === OPERATOR_WALLET) return pt ? "Tesouraria do operador (ENI)" : "Operator treasury (ENI)";
   if (id === VISITOR_WALLET || id === "visitor") return pt ? "Utilizador visitante" : "Visiting user";
   if (id.startsWith("SCA-")) return id;
