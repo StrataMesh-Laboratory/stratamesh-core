@@ -302,7 +302,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <span id="bancadaModeLabel" style="font-size:.72rem;color:var(--muted);margin-left:.25rem">Modo: órbita</span>
     </div>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f4e4c1;margin-bottom:1rem">
-      <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
+      <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair;touch-action:none"></canvas>
       <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Clique para entrar em 1ª pessoa · WASD andar · rato olhar · E na porta do mundo</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
         <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Porta do mundo aberto</div>
@@ -2477,15 +2477,31 @@ window.showPanel = function(name, btn){
         B.world.addBody(gnd);
       }
     } catch(e) {}
-    B.stick = {x:0,y:0};
+    B.stick = {x:0,y:0}; B.look = {x:0,y:0};
+    if (B.controls) B.controls.enabled = false;
     try {
-      if (window.nipplejs && !B.nipple && window.matchMedia('(pointer: coarse)').matches) {
-        var zone=document.createElement('div');
-        zone.style.cssText='position:absolute;left:8px;bottom:56px;width:132px;height:132px;z-index:6';
-        (document.getElementById('bancadaStage')||document.body).appendChild(zone);
-        B.nipple = nipplejs.create({ zone: zone, mode:'static', position:{left:'50%',top:'50%'}, color:'#8a2a1a' });
+      var wantPads = true;
+      try { wantPads = matchMedia('(pointer: coarse)').matches || matchMedia('(max-width: 1024px)').matches || ('ontouchstart' in window); } catch(_){}
+      if (window.nipplejs && !B.nipple && wantPads) {
+        var stageEl = document.getElementById('bancadaStage')||document.body;
+        function mkPad(side, label, color){
+          var zone=document.createElement('div');
+          zone.style.cssText='position:absolute;'+side+':6px;bottom:10px;width:124px;height:124px;z-index:6;touch-action:none;pointer-events:auto';
+          var cap=document.createElement('div');
+          cap.textContent=label;
+          cap.style.cssText='position:absolute;top:-16px;left:0;right:0;text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a2a1a;pointer-events:none';
+          zone.appendChild(cap);
+          stageEl.appendChild(zone);
+          return nipplejs.create({ zone: zone, mode:'static', position:{left:'50%',top:'50%'}, color:color, size:96, restOpacity:0.75 });
+        }
+        var walkLab = (document.documentElement.lang==='en' || (location.pathname||'').indexOf('/en')===0) ? 'Walk' : 'Andar';
+        var lookLab = (document.documentElement.lang==='en' || (location.pathname||'').indexOf('/en')===0) ? 'Look' : 'Olhar';
+        B.nipple = mkPad('left', walkLab, '#8a2a1a');
+        B.nippleLook = mkPad('right', lookLab, '#d4a017');
         B.nipple.on('move', function(_, d){ B.stick.x=d.vector.x; B.stick.y=d.vector.y; });
         B.nipple.on('end', function(){ B.stick.x=0; B.stick.y=0; });
+        B.nippleLook.on('move', function(_, d){ B.look.x=d.vector.x; B.look.y=d.vector.y; });
+        B.nippleLook.on('end', function(){ B.look.x=0; B.look.y=0; });
       }
     } catch(e) {}
     if (B.renderer && B.renderer.domElement) {
@@ -2834,7 +2850,7 @@ window.showPanel = function(name, btn){
       });
     });
     drawBancadaRadar();
-    if (window._bancadaMode !== 'fps' && B.controls) { B.controls.update(); if (B.camera) { B.camera.up.set(0,1,0); B.camera.rotation.z = 0; } }
+    if (B.controls) B.controls.enabled = false;
     if (B.camera && B.HALF){
       var m = B.HALF - 0.55, H = (B.HEIGHT||3.4) - 0.38;
       B.camera.position.x = Math.max(-m, Math.min(m, B.camera.position.x));
@@ -3851,7 +3867,7 @@ window.loadACBPanel=async function(){
       window._bancadaMode = 'orbit';
       try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
       var b = Bref();
-      if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.28, 0); }
+      if (b && b.controls){ b.controls.enabled = false; b.controls.target.set(0, 1.28, 0); }
       if (b && b.camera){ b.camera.position.set(0, 1.72, 3.15); }
       hudFps();
     }
@@ -3862,7 +3878,7 @@ window.loadACBPanel=async function(){
     try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
     if (b){ b.px = 0; b.py = EYE; b.pz = 5.4; b.yaw = 0; b.pitch = 0; }
     if (b && b.camera){ b.camera.position.set(0, 1.72, 3.15); b.camera.rotation.set(0,0,0); }
-    if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.28, 0); b.controls.update(); }
+    if (b && b.controls){ b.controls.enabled = false; b.controls.target.set(0, 1.28, 0); b.controls.update(); }
     hudFps();
   };
 
@@ -3946,6 +3962,12 @@ window.loadACBPanel=async function(){
     if (!b || !b.camera || typeof THREE === 'undefined') return;
     if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
     var dt = 0.016;
+    if (b.look && (b.look.x || b.look.y)) {
+      b.yaw = (b.yaw||0) - b.look.x * 2.55 * dt;
+      b.pitch = (b.pitch||0) - b.look.y * 2.05 * dt;
+      if (b.pitch < -1.15) b.pitch = -1.15;
+      if (b.pitch > 1.15) b.pitch = 1.15;
+    }
     var speed = (keys['ShiftLeft']||keys['ShiftRight'] ? 4.2 : 2.4) * dt;
     var yaw = b.yaw || 0;
     var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
@@ -3991,11 +4013,27 @@ window.loadACBPanel=async function(){
       var nearDoor = Math.abs(b.px)<0.95 && b.pz > ((b.HALF||7.2)-1.35);
       pr.textContent = nearDoor ? ('pt'==='en'?'E · exit to open world':'E · sair para o mundo aberto') : (b.carryId? ('pt'==='en'?'F · set down on grid':'F · pousar na grelha') : ('pt'==='en'?'E use · F pick up · click NFT to walk':'E usar · F pegar · clique num NFT para ir até ele'));
     }
-    if (window._bancadaMode==='fps'){
+    (function applyBancadaCam(){
+      if (!b.camera) return;
       b.camera.up.set(0,1,0);
-      b.camera.position.set(b.px, b.py, b.pz);
-      b.camera.rotation.set(b.pitch||0, b.yaw||0, 0, 'YXZ');
-    }
+      var yaw = b.yaw||0, pitch = b.pitch||0;
+      var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+      if (window._bancadaMode==='fps'){
+        b.camera.position.set(b.px, b.py||1.62, b.pz);
+        b.camera.rotation.set(pitch, yaw, 0, 'YXZ');
+        if (b.avatarHips) b.avatarHips.visible = false;
+      } else {
+        var dist = 2.1, back = dist * Math.max(0.4, Math.cos(pitch));
+        var lift = 1.52 - Math.sin(pitch)*1.25;
+        var m = (b.HALF||7.2)-0.55;
+        var x = Math.max(-m, Math.min(m, (b.px||0) - fx*back));
+        var z = Math.max(-m, Math.min(m, (b.pz||0) - fz*back));
+        var y = Math.max(0.5, Math.min((b.HEIGHT||3.4)-0.38, lift));
+        b.camera.position.set(x,y,z);
+        b.camera.rotation.set(pitch, yaw, 0, 'YXZ');
+        if (b.avatarHips) b.avatarHips.visible = true;
+      }
+    })();
     window.__controlsTest = {
       getYaw: function(){ return b.yaw||0; },
       getSpeed: function(){ return keys['KeyW'] ? 1 : 0; },

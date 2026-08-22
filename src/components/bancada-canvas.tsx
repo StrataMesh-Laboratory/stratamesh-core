@@ -89,6 +89,7 @@ export function BancadaCanvas({
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       renderer.domElement.style.cursor = "crosshair";
+      renderer.domElement.style.touchAction = "none";
       renderer.domElement.tabIndex = 0;
       renderer.domElement.addEventListener("webglcontextlost", (ev) => ev.preventDefault());
       stage.appendChild(renderer.domElement);
@@ -103,6 +104,8 @@ export function BancadaCanvas({
       const gait = { t: 0 };
       const undo: { id: string; x: number; z: number }[] = [];
       const stick = { x: 0, y: 0 };
+      const look = { x: 0, y: 0 };
+      const dragLook = { on: false, lx: 0, ly: 0, moved: 0 };
       let lastHud = "";
       function hud(text: string) {
         if (text === lastHud) return;
@@ -380,35 +383,55 @@ export function BancadaCanvas({
       camera.add(hands);
       scene.add(camera);
 
-      const nippleZone = document.createElement("div");
-      nippleZone.setAttribute("aria-hidden", "true");
-      nippleZone.style.cssText = "position:absolute;left:8px;bottom:56px;width:132px;height:132px;z-index:6;pointer-events:auto";
-      if (window.matchMedia("(pointer: coarse)").matches) stage.appendChild(nippleZone);
-      let nippleMgr: { destroy: () => void } | null = null;
-      void import("nipplejs")
-        .then((nipple) => {
-          if (dead || !nippleZone.isConnected) return;
-          const mgr = nipple.default.create({
-            zone: nippleZone,
-            mode: "static",
-            position: { left: "50%", top: "50%" },
-            color: "#8a2a1a",
-            restOpacity: 0.7,
-          }) as unknown as {
-            on: (ev: string, cb: (e: unknown, data?: { vector?: { x: number; y: number } }) => void) => void;
-            destroy: () => void;
-          };
-          mgr.on("move", (_evt, data) => {
-            stick.x = data?.vector?.x ?? 0;
-            stick.y = data?.vector?.y ?? 0;
-          });
-          mgr.on("end", () => {
-            stick.x = 0;
-            stick.y = 0;
-          });
-          nippleMgr = mgr;
-        })
-        .catch(() => {});
+      function padStyle(side: "left" | "right") {
+        const el = document.createElement("div");
+        el.setAttribute("aria-hidden", "true");
+        el.style.cssText = `position:absolute;${side}:6px;bottom:10px;width:124px;height:124px;z-index:6;pointer-events:auto;touch-action:none`;
+        const capEl = document.createElement("div");
+        capEl.textContent = side === "left" ? (pt ? "Andar" : "Walk") : pt ? "Olhar" : "Look";
+        capEl.style.cssText = "position:absolute;top:-16px;left:0;right:0;text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a2a1a;pointer-events:none";
+        el.appendChild(capEl);
+        return el;
+      }
+      const walkZone = padStyle("left");
+      const lookZone = padStyle("right");
+      const wantPads = window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(max-width: 1024px)").matches || "ontouchstart" in window;
+      if (wantPads) {
+        stage.appendChild(walkZone);
+        stage.appendChild(lookZone);
+      }
+      const pads: Array<{ destroy: () => void }> = [];
+      function bindPad(zone: HTMLDivElement, target: { x: number; y: number }, color: string) {
+        void import("nipplejs")
+          .then((nipple) => {
+            if (dead || !zone.isConnected) return;
+            const mgr = nipple.default.create({
+              zone,
+              mode: "static",
+              position: { left: "50%", top: "50%" },
+              color,
+              restOpacity: 0.75,
+              size: 96,
+            }) as unknown as {
+              on: (ev: string, cb: (e: unknown, data?: { vector?: { x: number; y: number } }) => void) => void;
+              destroy: () => void;
+            };
+            mgr.on("move", (_evt, data) => {
+              target.x = data?.vector?.x ?? 0;
+              target.y = data?.vector?.y ?? 0;
+            });
+            mgr.on("end", () => {
+              target.x = 0;
+              target.y = 0;
+            });
+            pads.push(mgr);
+          })
+          .catch(() => {});
+      }
+      if (wantPads) {
+        bindPad(walkZone, stick, "#8a2a1a");
+        bindPad(lookZone, look, "#d4a017");
+      }
 
       void import("cannon-es")
         .then((CANNON) => {
@@ -494,11 +517,12 @@ export function BancadaCanvas({
           hips.visible = false;
         } else {
           hips.visible = true;
-          const dist = p === "compose" ? 2.4 : 2.05;
-          const height = p === "compose" ? 2.05 : 1.78;
-          const c = clampInterior(pos.x - fx * dist, height, pos.z - fz * dist);
+          const dist = p === "compose" ? 2.45 : 2.1;
+          const back = dist * Math.max(0.4, Math.cos(pitch.v));
+          const lift = 1.52 - Math.sin(pitch.v) * 1.25;
+          const c = clampInterior(pos.x - fx * back, lift, pos.z - fz * back);
           camera.position.set(c.x, c.y, c.z);
-          camera.rotation.set(p === "compose" ? -0.28 : -0.22, yaw.v, 0, "YXZ");
+          camera.rotation.set(pitch.v, yaw.v, 0, "YXZ");
         }
       }
 
@@ -541,6 +565,11 @@ export function BancadaCanvas({
         clock.last = now;
         const sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
         const speed = (sprint ? 4.4 : 2.35) * dt;
+        if (look.x || look.y) {
+          yaw.v -= look.x * 2.55 * dt;
+          pitch.v -= look.y * 2.05 * dt;
+          pitch.v = Math.max(-1.15, Math.min(1.15, pitch.v));
+        }
         const fx = -Math.sin(yaw.v);
         const fz = -Math.cos(yaw.v);
         const rx = Math.cos(yaw.v);
@@ -700,14 +729,40 @@ export function BancadaCanvas({
         keys.delete(e.code);
       }
       function onMove(e: MouseEvent) {
-        if (document.pointerLockElement !== renderer.domElement) return;
-        yaw.v -= e.movementX * 0.0022;
-        pitch.v -= e.movementY * 0.0022;
-        pitch.v = Math.max(-1.2, Math.min(1.2, pitch.v));
+        if (document.pointerLockElement === renderer.domElement) {
+          yaw.v -= e.movementX * 0.0022;
+          pitch.v -= e.movementY * 0.0022;
+          pitch.v = Math.max(-1.15, Math.min(1.15, pitch.v));
+          return;
+        }
+        if (!dragLook.on) return;
+        const dx = e.clientX - dragLook.lx;
+        const dy = e.clientY - dragLook.ly;
+        dragLook.lx = e.clientX;
+        dragLook.ly = e.clientY;
+        dragLook.moved += Math.abs(dx) + Math.abs(dy);
+        yaw.v -= dx * 0.005;
+        pitch.v -= dy * 0.004;
+        pitch.v = Math.max(-1.15, Math.min(1.15, pitch.v));
+      }
+      function onPointerDown(e: PointerEvent) {
+        if (e.target !== renderer.domElement) return;
+        dragLook.on = true;
+        dragLook.lx = e.clientX;
+        dragLook.ly = e.clientY;
+        dragLook.moved = 0;
+      }
+      function onPointerUp() {
+        dragLook.on = false;
       }
       function onClick(e: MouseEvent) {
+        if (dragLook.moved > 12) {
+          dragLook.moved = 0;
+          return;
+        }
         renderer.domElement.focus();
-        if (presenceRef.current === "inhabit") renderer.domElement.requestPointerLock?.();
+        const isTouch = "pointerType" in e && (e as PointerEvent).pointerType === "touch";
+        if (presenceRef.current === "inhabit" && !isTouch) renderer.domElement.requestPointerLock?.();
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -757,6 +812,8 @@ export function BancadaCanvas({
       window.addEventListener("blur", () => keys.clear());
       document.addEventListener("mousemove", onMove);
       document.addEventListener("pointerlockchange", onLock);
+      renderer.domElement.addEventListener("pointerdown", onPointerDown);
+      window.addEventListener("pointerup", onPointerUp);
       renderer.domElement.addEventListener("click", onClick);
       window.addEventListener("resize", size);
 
@@ -769,13 +826,12 @@ export function BancadaCanvas({
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("pointerlockchange", onLock);
         renderer.domElement.removeEventListener("click", onClick);
+        renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+        window.removeEventListener("pointerup", onPointerUp);
         window.removeEventListener("resize", size);
-        try {
-          nippleMgr?.destroy();
-        } catch {
-          /* */
-        }
-        nippleZone.remove();
+        try { pads.forEach((p) => p.destroy()); } catch { /* */ }
+        walkZone.remove();
+        lookZone.remove();
         scene.traverse((ch) => {
           const m = ch as { geometry?: { dispose?: () => void }; material?: { dispose?: () => void } | Array<{ dispose?: () => void }> };
           m.geometry?.dispose?.();
@@ -844,23 +900,10 @@ export function BancadaCanvas({
           {pt ? "Compor" : "Compose"}
         </button>
       </div>
-      <canvas ref={radarRef} width={112} height={112} className="pointer-events-none absolute bottom-3 right-3 border border-[#6b2e1c] bg-[#fff6e4]" aria-hidden />
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-[2] max-w-[90%] -translate-x-1/2 border border-[#d4a017] bg-[#1a1008] px-4 py-2 text-center text-[0.78rem] text-[#ffe6b8]">
+      <canvas ref={radarRef} width={112} height={112} className="pointer-events-none absolute right-3 top-36 border border-[#6b2e1c] bg-[#fff6e4] max-md:top-auto max-md:bottom-[148px]" aria-hidden />
+      <div className="pointer-events-none absolute bottom-[148px] left-1/2 z-[2] max-w-[90%] -translate-x-1/2 border border-[#d4a017] bg-[#1a1008] px-4 py-2 text-center text-[0.78rem] text-[#ffe6b8] md:bottom-3">
         {prompt}
         {placing ? (pt ? " · a colocar" : " · placing") : ""}
-      </div>
-      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 md:hidden">
-        {["W", "A", "S", "D"].map((k) => (
-          <button
-            key={k}
-            type="button"
-            className="btn ghost"
-            onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: `Key${k}` }))}
-            onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { code: `Key${k}` }))}
-          >
-            {k}
-          </button>
-        ))}
       </div>
       {loadingWorld ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#fff6e4]/95 text-center">
