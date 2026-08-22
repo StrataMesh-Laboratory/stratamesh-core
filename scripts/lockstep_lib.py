@@ -46,6 +46,7 @@ GIT_COPY = (
     ("src/lib/cgu-engine.ts", "src/lib/cgu-engine.ts"),
     ("src/lib/cgu-script.ts", "src/lib/cgu-script.ts"),
     ("src/lib/cgu-carts.ts", "src/lib/cgu-carts.ts"),
+    ("src/lib/cgu-face.ts", "src/lib/cgu-face.ts"),
     ("src/lib/lab-kernel.ts", "src/lib/lab-kernel.ts"),
     ("src/components/bancada-canvas.tsx", "src/components/bancada-canvas.tsx"),
     ("src/components/nft-turntable.tsx", "src/components/nft-turntable.tsx"),

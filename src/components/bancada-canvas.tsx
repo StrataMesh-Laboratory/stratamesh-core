@@ -5,6 +5,7 @@ import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
 import { COLL, INV_SLOTS, OAM_MAX, REACH, TILE, actorOnTile, blockedAabb, cellAt, facingTile, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
 import { HOMEBREW_CARTS } from "@/lib/cgu-carts";
+import { paintFaceAtlas, remapSphereFaceUVs } from "@/lib/cgu-face";
 import { ScriptQ } from "@/lib/cgu-script";
 
 declare global {
@@ -372,12 +373,12 @@ export function BancadaCanvas({
       cloth(collar, "shirt.jpg", 2, 2);
       const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.07, 8), toon(0xc9a07e));
       neck.position.y = 0.5;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 16, 12), toon(0xc9a07e));
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 32, 24), toon(0xc9a07e));
       head.position.y = 0.62;
       ink(head, 1.05);
       const hair = new THREE.Mesh(new THREE.SphereGeometry(0.195, 12, 10), toon(0x1a120c));
-      hair.position.set(0, 0.68, -0.045);
-      hair.scale.set(1.06, 0.68, 1.05);
+      hair.position.set(0, 0.72, -0.07);
+      hair.scale.set(1.08, 0.66, 1.12);
       ink(hair, 1.04);
       cloth(hair, "wood-dark.jpg", 1, 1);
       hips.add(pelvis);
@@ -424,18 +425,25 @@ export function BancadaCanvas({
       const legR = leg(1);
       avatarRoot.add(hips);
       scene.add(avatarRoot);
-      let facePlate: InstanceType<typeof THREE.Mesh> | null = null;
+      let faceOnce = false;
       function applyFace(url: string | null) {
         if (!url) return;
         new THREE.TextureLoader().load(url, (tex) => {
           if (dead) return;
-          if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
-          tex.wrapS = THREE.ClampToEdgeWrapping;
-          tex.wrapT = THREE.ClampToEdgeWrapping;
-          if (facePlate) head.remove(facePlate);
-          facePlate = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.32), new THREE.MeshBasicMaterial({ map: tex }));
-          facePlate.position.set(0, 0.01, 0.175);
-          head.add(facePlate);
+          const img = tex.image as CanvasImageSource | undefined;
+          if (!img) return;
+          const atlas = new THREE.CanvasTexture(paintFaceAtlas(img));
+          if ("colorSpace" in atlas && THREE.SRGBColorSpace) (atlas as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+          atlas.needsUpdate = true;
+          if (!faceOnce) {
+            head.geometry = head.geometry.clone();
+            remapSphereFaceUVs(head.geometry as unknown as Parameters<typeof remapSphereFaceUVs>[0]);
+            faceOnce = true;
+          }
+          const mat = head.material as InstanceType<typeof THREE.MeshToonMaterial>;
+          mat.map = atlas;
+          mat.needsUpdate = true;
+          head.visible = true;
           if (!hips.getObjectByName("chain")) {
             const chain = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.008, 8, 20), toon(0xc9cdd1));
             chain.name = "chain";

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Nft } from "@/lib/lab-kernel";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
+import { paintFaceAtlas, remapSphereFaceUVs } from "@/lib/cgu-face";
 
 const TEX = "/os/tex/";
 
@@ -67,11 +68,11 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
         torso.position.y = 0.28;
         const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), toon(0xffffff, pants));
         pelvis.scale.set(1.15, 0.7, 0.95);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 16, 12), toon(0xc9a07e));
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 32, 24), toon(0xc9a07e));
         head.position.y = 0.62;
         const hair = new THREE.Mesh(new THREE.SphereGeometry(0.195, 12, 10), toon(0x1a120c, dark));
-        hair.position.set(0, 0.68, -0.04);
-        hair.scale.set(1.05, 0.7, 1.05);
+        hair.position.set(0, 0.72, -0.07);
+        hair.scale.set(1.08, 0.66, 1.12);
         hips.add(pelvis, torso, head, hair);
         function limb(x: number, y: number, r: number, len: number, tex: InstanceType<typeof THREE.Texture>) {
           const g = new THREE.Group();
@@ -89,12 +90,16 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
         if (faceUrl) {
           loader.load(faceUrl, (tex) => {
             if (dead) return;
-            if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
-            tex.wrapS = THREE.ClampToEdgeWrapping;
-            tex.wrapT = THREE.ClampToEdgeWrapping;
-            const face = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.32), new THREE.MeshBasicMaterial({ map: tex }));
-            face.position.set(0, 0.01, 0.175);
-            head.add(face);
+            const img = tex.image as CanvasImageSource | undefined;
+            if (!img) return;
+            const atlas = new THREE.CanvasTexture(paintFaceAtlas(img));
+            if ("colorSpace" in atlas && THREE.SRGBColorSpace) (atlas as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+            atlas.needsUpdate = true;
+            head.geometry = head.geometry.clone();
+            remapSphereFaceUVs(head.geometry as unknown as Parameters<typeof remapSphereFaceUVs>[0]);
+            const mat = head.material as { map: unknown; needsUpdate: boolean };
+            mat.map = atlas;
+            mat.needsUpdate = true;
           });
         }
         root.add(hips);

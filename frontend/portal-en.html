@@ -2478,20 +2478,44 @@ window.showPanel = function(name, btn){
     B.armL=mkArm(-1); B.armR=mkArm(1); B.legL=mkLeg(-1); B.legR=mkLeg(1);
     avatarRoot.add(hips);
     B.avatar=avatarRoot; B.avatarHips=hips; B.avatarHead=head; B.avatarTorso=torso; B.gait=0; B.carryId=null; B.walkTo=null;
+
+    function remapSphereFaceUVs(geo){
+      var pos=geo.attributes.position, uv=geo.attributes.uv, n=pos.count;
+      var pa=pos.array, ua=uv.array;
+      for(var i=0;i<n;i++){
+        var x=pa[i*3], y=pa[i*3+1], z=pa[i*3+2];
+        var l=Math.hypot(x,y,z)||1;
+        var nx=x/l, ny=y/l, nz=z/l;
+        ua[i*2]=(Math.atan2(nx,nz)/Math.PI)*0.5+0.5;
+        ua[i*2+1]=ny*0.5+0.48;
+      }
+      uv.needsUpdate=true;
+    }
+    function paintFaceAtlas(image, size){
+      size=size||1024;
+      var c=document.createElement('canvas'); c.width=c.height=size;
+      var ctx=c.getContext('2d'); if(!ctx) return c;
+      ctx.fillStyle='#c4a07a'; ctx.fillRect(0,0,size,size);
+      try{
+        var tmp=document.createElement('canvas'); tmp.width=tmp.height=4;
+        var tctx=tmp.getContext('2d');
+        if(tctx){ tctx.drawImage(image,0,0,4,4); var d=tctx.getImageData(2,0,1,1).data; ctx.fillStyle='rgb('+d[0]+','+d[1]+','+d[2]+')'; ctx.fillRect(0,0,size,size); }
+      }catch(_){}
+      var cx=size*0.5, cy=size*0.46, rx=size*0.3, ry=size*0.38;
+      ctx.save(); ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.clip();
+      ctx.drawImage(image, cx-rx, cy-ry, rx*2, ry*2); ctx.restore();
+      return c;
+    }
+
     B.applyAvatarFace = function(url){
       if (!url || !B.avatarHead || !THREE.TextureLoader) return;
       new THREE.TextureLoader().load(url, function(tex){
-        try { if (tex.colorSpace !== undefined && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding; } catch(_){}
-        var geo = new THREE.SphereGeometry(0.152, 28, 20, Math.PI/2 - 0.95, 1.9, 0.38, 1.95);
-        var mat = toonMat(0xc9a07e);
-        mat.map = tex; mat.needsUpdate = true;
-        if (B.avatarFace) B.avatarHips.remove(B.avatarFace);
-        var face = new THREE.Mesh(geo, mat);
-        face.position.copy(B.avatarHead.position);
-        B.avatarFace = face;
-        B.avatarHips.add(face);
-        B.avatarHead.visible = false;
-        if (B.avatarTorso && B.avatarTorso.material && B.avatarTorso.material.color) B.avatarTorso.material.color.setHex(0xf2ebe3);
+        var img=tex.image; if(!img) return;
+        var atlas=new THREE.CanvasTexture(paintFaceAtlas(img));
+        try { if (atlas.encoding !== undefined && THREE.sRGBEncoding) atlas.encoding = THREE.sRGBEncoding; } catch(_){}
+        atlas.needsUpdate=true;
+        if(!B._faceUV){ B.avatarHead.geometry=B.avatarHead.geometry.clone(); remapSphereFaceUVs(B.avatarHead.geometry); B._faceUV=true; }
+        var mat=B.avatarHead.material; mat.map=atlas; mat.needsUpdate=true; B.avatarHead.visible=true;
         if (B.avatarHips && !B.avatarHips.getObjectByName('chain')) {
           var chain = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.008, 8, 20), toonMat(0xc9cdd1));
           chain.name = 'chain'; chain.rotation.x = 1.25; chain.position.y = 0.53;
@@ -3081,8 +3105,10 @@ window.showPanel = function(name, btn){
       var meta={}; try{ meta=typeof nft.metadata_json==='string'?JSON.parse(nft.metadata_json):(nft.metadata_json||{}); }catch(_){}
       var fu=nft.image||meta.image||'/os/account/usr-admin-root/files/avatar-face.jpg';
       loader.load(fu, function(tex){
-        var face=new T.Mesh(new T.PlaneGeometry(0.26,0.32), new T.MeshBasicMaterial({map:tex}));
-        face.position.set(0,0.01,0.175); head.add(face);
+        var img=tex.image; if(!img) return;
+        var atlas=new T.CanvasTexture(paintFaceAtlas(img)); atlas.needsUpdate=true;
+        head.geometry=head.geometry.clone(); remapSphereFaceUVs(head.geometry);
+        head.material.map=atlas; head.material.needsUpdate=true;
       });
       camera.position.set(0,1.05,2.4); camera.lookAt(0,0.95,0);
     } else {
