@@ -2352,13 +2352,40 @@ window.showPanel = function(name, btn){
 
     B.HALF = 7.2; B.HEIGHT = 3.4;
     var HALF = B.HALF, HEIGHT = B.HEIGHT, t = 0.18, hy = HEIGHT/2;
-    var wallMat = new THREE.MeshToonMaterial({ color: 0xf3e2c4 });
-    var floorMat = new THREE.MeshToonMaterial({ color: 0x8a4a24 });
-    var ceilMat = new THREE.MeshToonMaterial({ color: 0xfff6e4 });
+
+    function paintTex(size, rx, ry, draw){
+      var c=document.createElement('canvas'); c.width=c.height=size;
+      var ctx=c.getContext('2d'); if(!ctx) return null;
+      draw(ctx, size);
+      var tex=new THREE.CanvasTexture(c);
+      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+      tex.repeat.set(rx, ry);
+      tex.magFilter=THREE.NearestFilter;
+      tex.minFilter=THREE.NearestFilter;
+      tex.generateMipmaps=false;
+      tex.needsUpdate=true;
+      try{ if(THREE.sRGBEncoding) tex.encoding=THREE.sRGBEncoding; }catch(_){}
+      return tex;
+    }
+    function noiseFill(ctx,n,r,g,b,j){
+      var img=ctx.getImageData(0,0,n,n), d=img.data;
+      for(var i=0;i<d.length;i+=4){ var k=(Math.random()*j)|0; d[i]=Math.max(0,Math.min(255,r+k)); d[i+1]=Math.max(0,Math.min(255,g+k-4)); d[i+2]=Math.max(0,Math.min(255,b+k-8)); d[i+3]=255; }
+      ctx.putImageData(img,0,0);
+    }
+    var texWood=paintTex(128,8,8,function(ctx,n){ noiseFill(ctx,n,122,62,28,28); ctx.globalAlpha=.55; for(var y=0;y<n;y+=16){ ctx.fillStyle=y%32?'#c48a3a':'#4a2410'; ctx.fillRect(0,y,n,2); ctx.fillStyle='#2a1408'; ctx.fillRect(0,y+14,n,1);} ctx.globalAlpha=1; });
+    var texPlaster=paintTex(128,3,2,function(ctx,n){ noiseFill(ctx,n,238,214,176,22); ctx.strokeStyle='rgba(90,40,20,0.12)'; for(var i=0;i<n;i+=8){ ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(n,i+3); ctx.stroke(); } });
+    var texCeil=paintTex(64,2,2,function(ctx,n){ noiseFill(ctx,n,255,244,220,10); });
+    var texShirt=paintTex(64,4,4,function(ctx,n){ noiseFill(ctx,n,242,235,220,14); ctx.strokeStyle='rgba(180,160,130,0.35)'; for(var i=0;i<n;i+=3){ ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,n); ctx.stroke(); } });
+    var texPants=paintTex(64,3,3,function(ctx,n){ noiseFill(ctx,n,58,36,28,16); });
+    var texSkin=paintTex(64,1,1,function(ctx,n){ noiseFill(ctx,n,201,160,126,18); });
+    var texHair=paintTex(64,1,1,function(ctx,n){ noiseFill(ctx,n,22,16,12,10); });
+    var texDoor=paintTex(64,1,2,function(ctx,n){ noiseFill(ctx,n,180,70,55,20); ctx.strokeStyle='#4a1810'; ctx.strokeRect(6,6,n-12,n-12); });
+
+    var wallMat = new THREE.MeshToonMaterial({ color: 0xffffff, map: texPlaster||undefined });
+    var floorMat = new THREE.MeshToonMaterial({ color: 0xffffff, map: texWood||undefined });
+    var ceilMat = new THREE.MeshToonMaterial({ color: 0xffffff, map: texCeil||undefined });
     var floor = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.12, HALF*2), floorMat);
     floor.position.y = -0.06; B.scene.add(floor);
-    var grid = new THREE.GridHelper(HALF*2, 16, 0xd4a017, 0xc48a3a);
-    grid.position.y = 0.01; B.scene.add(grid);
     var ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.1, HALF*2), ceilMat);
     ceil.position.y = HEIGHT; B.scene.add(ceil);
     function wall(w,h,d,x,y,z){ var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,y,z); B.scene.add(m); }
@@ -2371,7 +2398,7 @@ window.showPanel = function(name, btn){
     wall(doorW, HEIGHT-2.2, t, 0, 2.2+(HEIGHT-2.2)/2, HALF);
     B.door = new THREE.Mesh(
       new THREE.BoxGeometry(doorW-0.08, 2.15, 0.08),
-      new THREE.MeshToonMaterial({ color: 0xc45c4a, emissive: 0x7a2018, emissiveIntensity: 0.35 })
+      new THREE.MeshToonMaterial({ color: 0xffffff, map: (typeof texDoor!=="undefined"?texDoor:null), emissive: 0x7a2018, emissiveIntensity: 0.35 })
     );
     B.door.position.set(0, 1.08, HALF-0.12);
     B.scene.add(B.door);
@@ -2420,8 +2447,9 @@ window.showPanel = function(name, btn){
       ol.scale.setScalar(s);
       mesh.add(ol);
     }
-    function cap(r,len,c){
-      var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), toonMat(c));
+    function cap(r,len,c,map){
+      var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), toonMat(c));
+      if(map && m.material){ m.material.map=map; m.material.needsUpdate=true; }
       inkMesh(m, 1.07);
       var top = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), toonMat(c));
       top.position.y = len/2; inkMesh(top, 1.06); m.add(top);
@@ -2431,15 +2459,17 @@ window.showPanel = function(name, btn){
     }
     var avatarRoot=new THREE.Group();
     var hips=new THREE.Group(); hips.position.y=0.9;
-    var jacket=0x1e5c66, pants=0x4a2c22, skin=0xf0c4a0, hairC=0x1a120c;
-    var pelvis=new THREE.Mesh(new THREE.SphereGeometry(0.13,16,12), toonMat(pants));
+    var jacket=0xffffff, pants=0xffffff, skin=0xffffff, hairC=0xffffff;
+    B.texShirt=texShirt; B.texPants=texPants; B.texSkin=texSkin; B.texHair=texHair;
+    var pelvis=new THREE.Mesh(new THREE.SphereGeometry(0.13,10,8), toonMat(0xffffff));
+    if(pelvis.material) pelvis.material.map=texPants;
     pelvis.scale.set(1,0.75,0.85); inkMesh(pelvis,1.06);
-    var torso=cap(0.145,0.3,jacket); torso.position.y=0.32;
-    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,10), toonMat(skin)); neck.position.y=0.56;
-    var head=new THREE.Mesh(new THREE.SphereGeometry(0.145,20,16), toonMat(skin)); head.position.y=0.68; inkMesh(head,1.06);
-    var hair=new THREE.Mesh(new THREE.SphereGeometry(0.152,16,12), toonMat(hairC));
+    var torso=cap(0.145,0.3,0xffffff,texShirt); torso.position.y=0.32;
+    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,8), toonMat(0xffffff)); if(neck.material) neck.material.map=texSkin; neck.position.y=0.56;
+    var head=new THREE.Mesh(new THREE.SphereGeometry(0.145,14,12), toonMat(0xffffff)); if(head.material) head.material.map=texSkin; head.position.y=0.68; inkMesh(head,1.06);
+    var hair=new THREE.Mesh(new THREE.SphereGeometry(0.152,12,10), toonMat(0xffffff)); if(hair.material) hair.material.map=texHair;
     hair.position.set(0,0.73,-0.015); hair.scale.set(1.05,0.72,1.08); inkMesh(hair,1.04);
-    var bang=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,8), toonMat(hairC)); bang.position.set(0,0.76,0.1); bang.scale.set(1.4,0.45,0.5);
+    var bang=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), toonMat(0xffffff)); if(bang.material) bang.material.map=texHair; bang.position.set(0,0.76,0.1); bang.scale.set(1.4,0.45,0.5);
     var eyeM=toonMat(0x1a1008), sclera=toonMat(0xfff6e4);
     var sL=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,8), sclera); sL.position.set(-0.048,0.02,0.118);
     var sR=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,8), sclera); sR.position.set(0.048,0.02,0.118);
@@ -2449,15 +2479,15 @@ window.showPanel = function(name, btn){
     hips.add(pelvis); hips.add(torso); hips.add(neck); hips.add(head); hips.add(hair); hips.add(bang);
     function mkArm(side){
       var r=new THREE.Group(); r.position.set(0.2*side,0.42,0);
-      var up=cap(0.042,0.2,jacket); up.position.y=-0.12;
-      var lo=cap(0.036,0.18,skin); lo.position.y=-0.36;
+      var up=cap(0.042,0.2,0xffffff,texShirt); up.position.y=-0.12;
+      var lo=cap(0.036,0.18,0xffffff,texSkin); lo.position.y=-0.36;
       r.add(up); r.add(lo); hips.add(r); return r;
     }
     function mkLeg(side){
       var r=new THREE.Group(); r.position.set(0.09*side,0.02,0);
-      var up=cap(0.055,0.26,pants); up.position.y=-0.2;
-      var lo=cap(0.045,0.24,pants); lo.position.y=-0.52;
-      var shoe=new THREE.Mesh(new THREE.SphereGeometry(0.055,10,8), toonMat(hairC));
+      var up=cap(0.055,0.26,0xffffff,texPants); up.position.y=-0.2;
+      var lo=cap(0.045,0.24,0xffffff,texPants); lo.position.y=-0.52;
+      var shoe=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,6), toonMat(0xffffff)); if(shoe.material) shoe.material.map=texHair;
       shoe.scale.set(1,0.55,1.45); shoe.position.set(0,-0.7,0.03); inkMesh(shoe,1.05);
       r.add(up); r.add(lo); r.add(shoe); hips.add(r); return r;
     }
@@ -2499,31 +2529,47 @@ window.showPanel = function(name, btn){
         B.world.addBody(gnd);
       }
     } catch(e) {}
-    B.stick = {x:0,y:0}; B.look = {x:0,y:0};
+    B.stick = {x:0,y:0}; B.look = {x:0,y:0}; B.padHeld = 0;
     if (B.controls) B.controls.enabled = false;
     try {
+      var stageEl = document.getElementById('bancadaStage')||document.body;
+      stageEl.style.touchAction = 'none';
+      stageEl.addEventListener('touchmove', function(ev){ ev.preventDefault(); }, {passive:false});
       var wantPads = true;
       try { wantPads = matchMedia('(pointer: coarse)').matches || matchMedia('(max-width: 1024px)').matches || ('ontouchstart' in window); } catch(_){}
-      if (window.nipplejs && !B.nipple && wantPads) {
-        var stageEl = document.getElementById('bancadaStage')||document.body;
-        function mkPad(side, label, color){
-          var zone=document.createElement('div');
-          zone.style.cssText='position:absolute;'+side+':6px;bottom:10px;width:124px;height:124px;z-index:6;touch-action:none;pointer-events:auto';
-          var cap=document.createElement('div');
-          cap.textContent=label;
-          cap.style.cssText='position:absolute;top:-16px;left:0;right:0;text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a2a1a;pointer-events:none';
-          zone.appendChild(cap);
-          stageEl.appendChild(zone);
-          return nipplejs.create({ zone: zone, mode:'static', position:{left:'50%',top:'50%'}, color:color, size:96, restOpacity:0.75 });
+      function bindStick(side, label, color, target){
+        var wrap=document.createElement('div');
+        wrap.style.cssText='position:absolute;'+side+':8px;bottom:12px;z-index:7;width:116px;pointer-events:none;touch-action:none';
+        var lab=document.createElement('div');
+        lab.textContent=label;
+        lab.style.cssText='text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a2a1a;margin-bottom:4px';
+        var base=document.createElement('div');
+        base.style.cssText='position:relative;width:116px;height:116px;border-radius:50%;border:2px solid '+color+';background:rgba(255,246,228,.55);pointer-events:auto;touch-action:none';
+        var knob=document.createElement('div');
+        knob.style.cssText='position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:'+color+';box-shadow:0 2px 0 #1a1008;pointer-events:none';
+        base.appendChild(knob); wrap.appendChild(lab); wrap.appendChild(base); stageEl.appendChild(wrap);
+        var pid=null;
+        function reset(){ pid=null; target.x=0; target.y=0; knob.style.transform='translate(0,0)'; B.padHeld=Math.max(0,(B.padHeld||0)-1); }
+        function aim(e){
+          var r=base.getBoundingClientRect();
+          var cx=r.left+r.width/2, cy=r.top+r.height/2, max=r.width*0.36;
+          var dx=e.clientX-cx, dy=e.clientY-cy;
+          var len=Math.hypot(dx,dy)||1, k=Math.min(1, max/len);
+          dx*=k; dy*=k;
+          target.x = dx/max;
+          target.y = -dy/max;
+          knob.style.transform='translate('+dx+'px,'+dy+'px)';
         }
-        var walkLab = (document.documentElement.lang==='en' || (location.pathname||'').indexOf('/en')===0) ? 'Walk' : 'Andar';
-        var lookLab = (document.documentElement.lang==='en' || (location.pathname||'').indexOf('/en')===0) ? 'Look' : 'Olhar';
-        B.nipple = mkPad('left', walkLab, '#8a2a1a');
-        B.nippleLook = mkPad('right', lookLab, '#d4a017');
-        B.nipple.on('move', function(_, d){ B.stick.x=d.vector.x; B.stick.y=d.vector.y; });
-        B.nipple.on('end', function(){ B.stick.x=0; B.stick.y=0; });
-        B.nippleLook.on('move', function(_, d){ B.look.x=d.vector.x; B.look.y=d.vector.y; });
-        B.nippleLook.on('end', function(){ B.look.x=0; B.look.y=0; });
+        base.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); pid=e.pointerId; B.padHeld=(B.padHeld||0)+1; try{ base.setPointerCapture(e.pointerId); }catch(_){} aim(e); });
+        base.addEventListener('pointermove', function(e){ if(pid!==e.pointerId) return; e.preventDefault(); e.stopPropagation(); aim(e); });
+        base.addEventListener('pointerup', function(e){ if(pid===e.pointerId) reset(); });
+        base.addEventListener('pointercancel', reset);
+      }
+      if (wantPads && !B.padsBound) {
+        B.padsBound = true;
+        var en = (document.documentElement.lang==='en' || (location.pathname||'').indexOf('/en')===0);
+        bindStick('left', en?'Walk':'Andar', '#8a2a1a', B.stick);
+        bindStick('right', en?'Look':'Olhar', '#d4a017', B.look);
       }
     } catch(e) {}
     if (B.renderer && B.renderer.domElement) {

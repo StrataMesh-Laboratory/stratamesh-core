@@ -93,6 +93,8 @@ export function BancadaCanvas({
       renderer.domElement.style.cursor = "crosshair";
       renderer.domElement.style.touchAction = "none";
       renderer.domElement.tabIndex = 0;
+      stage.style.touchAction = "none";
+      stage.style.overflow = "hidden";
       renderer.domElement.addEventListener("webglcontextlost", (ev) => ev.preventDefault());
       stage.appendChild(renderer.domElement);
 
@@ -128,7 +130,7 @@ export function BancadaCanvas({
       const sun = new THREE.DirectionalLight(0xfff4dc, 1.05);
       sun.position.set(3, 7, 4);
       scene.add(sun);
-      const fill = new THREE.PointLight(0xffcc88, 1.15, 18, 2);
+      const fill = new THREE.PointLight(0xffcc88, 0.55, 18, 2);
       fill.position.set(0, HEIGHT - 0.7, 0);
       scene.add(fill);
 
@@ -137,6 +139,104 @@ export function BancadaCanvas({
       grad.magFilter = THREE.NearestFilter;
       grad.minFilter = THREE.NearestFilter;
       grad.needsUpdate = true;
+
+      function paintTex(size: number, repeatX: number, repeatY: number, draw: (ctx: CanvasRenderingContext2D, n: number) => void) {
+        const c = document.createElement("canvas");
+        c.width = c.height = size;
+        const ctx = c.getContext("2d");
+        if (!ctx) return null;
+        draw(ctx, size);
+        const tex = new THREE.CanvasTexture(c);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(repeatX, repeatY);
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.generateMipmaps = false;
+        tex.needsUpdate = true;
+        if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+      function noiseFill(ctx: CanvasRenderingContext2D, n: number, r: number, g: number, b: number, jitter: number) {
+        const img = ctx.getImageData(0, 0, n, n);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const j = (Math.random() * jitter) | 0;
+          d[i] = Math.max(0, Math.min(255, r + j));
+          d[i + 1] = Math.max(0, Math.min(255, g + j - 4));
+          d[i + 2] = Math.max(0, Math.min(255, b + j - 8));
+          d[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+      const texWood = paintTex(128, 8, 8, (ctx, n) => {
+        noiseFill(ctx, n, 122, 62, 28, 28);
+        ctx.globalAlpha = 0.55;
+        for (let y = 0; y < n; y += 16) {
+          ctx.fillStyle = y % 32 ? "#c48a3a" : "#4a2410";
+          ctx.fillRect(0, y, n, 2);
+          ctx.fillStyle = "#2a1408";
+          ctx.fillRect(0, y + 14, n, 1);
+        }
+        ctx.globalAlpha = 0.2;
+        ctx.strokeStyle = "#1a0c04";
+        for (let i = 0; i < 18; i++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * n, 0);
+          ctx.quadraticCurveTo(n * 0.5, Math.random() * n, n, n);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      });
+      const texPlaster = paintTex(128, 3, 2, (ctx, n) => {
+        noiseFill(ctx, n, 238, 214, 176, 22);
+        ctx.strokeStyle = "rgba(90,40,20,0.12)";
+        for (let i = 0; i < n; i += 8) {
+          ctx.beginPath();
+          ctx.moveTo(0, i);
+          ctx.lineTo(n, i + 3);
+          ctx.stroke();
+        }
+      });
+      const texCeil = paintTex(64, 2, 2, (ctx, n) => noiseFill(ctx, n, 255, 244, 220, 10));
+      const texShirt = paintTex(64, 4, 4, (ctx, n) => {
+        noiseFill(ctx, n, 242, 235, 220, 14);
+        ctx.strokeStyle = "rgba(180,160,130,0.35)";
+        for (let i = 0; i < n; i += 3) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, n);
+          ctx.stroke();
+        }
+      });
+      const texPants = paintTex(64, 3, 3, (ctx, n) => {
+        noiseFill(ctx, n, 58, 36, 28, 16);
+        ctx.strokeStyle = "rgba(20,10,6,0.35)";
+        for (let i = 0; i < n; i += 4) {
+          ctx.beginPath();
+          ctx.moveTo(0, i);
+          ctx.lineTo(n, i);
+          ctx.stroke();
+        }
+      });
+      const texSkin = paintTex(64, 1, 1, (ctx, n) => noiseFill(ctx, n, 201, 160, 126, 18));
+      const texHair = paintTex(64, 1, 1, (ctx, n) => {
+        noiseFill(ctx, n, 22, 16, 12, 10);
+        ctx.strokeStyle = "rgba(0,0,0,0.5)";
+        for (let i = 0; i < 30; i++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * n, 0);
+          ctx.quadraticCurveTo(Math.random() * n, n * 0.5, Math.random() * n, n);
+          ctx.stroke();
+        }
+      });
+      const texDoor = paintTex(64, 1, 2, (ctx, n) => {
+        noiseFill(ctx, n, 180, 70, 55, 20);
+        ctx.strokeStyle = "#4a1810";
+        ctx.strokeRect(6, 6, n - 12, n - 12);
+        ctx.strokeRect(14, 14, n - 28, n / 2 - 20);
+      });
+      const texTrim = paintTex(32, 6, 1, (ctx, n) => noiseFill(ctx, n, 90, 40, 22, 12));
 
       function lantern(x: number, z: number) {
         const g = new THREE.Group();
@@ -160,17 +260,14 @@ export function BancadaCanvas({
       lantern(-4.2, 4.2);
       lantern(4.2, 4.2);
 
-      const wallMat = new THREE.MeshToonMaterial({ color: 0xf3e2c4, gradientMap: grad });
-      const trimMat = new THREE.MeshToonMaterial({ color: 0x6b2e1c, gradientMap: grad });
-      const floorMat = new THREE.MeshToonMaterial({ color: 0x8a4a24, gradientMap: grad });
-      const ceilMat = new THREE.MeshToonMaterial({ color: 0xfff6e4, gradientMap: grad });
+      const wallMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texPlaster || undefined });
+      const trimMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texTrim || undefined });
+      const floorMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texWood || undefined });
+      const ceilMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texCeil || undefined });
 
       const floor = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.12, HALF * 2), floorMat);
       floor.position.y = -0.06;
       scene.add(floor);
-      const grid = new THREE.GridHelper(HALF * 2, 16, 0xd4a017, 0xc48a3a);
-      grid.position.y = 0.02;
-      scene.add(grid);
       const ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.1, HALF * 2), ceilMat);
       ceil.position.y = HEIGHT;
       scene.add(ceil);
@@ -193,7 +290,7 @@ export function BancadaCanvas({
 
       const door = new THREE.Mesh(
         new THREE.BoxGeometry(doorW - 0.08, 2.15, 0.08),
-        new THREE.MeshToonMaterial({ color: 0xc45c4a, emissive: 0x7a2018, emissiveIntensity: 0.35, gradientMap: grad }),
+        new THREE.MeshToonMaterial({ color: 0xffffff, emissive: 0x7a2018, emissiveIntensity: 0.2, gradientMap: grad, map: texDoor || undefined }),
       );
       door.position.set(0, 1.08, DOOR_Z);
       door.userData.door = true;
@@ -211,8 +308,8 @@ export function BancadaCanvas({
       const objects = new THREE.Group();
       scene.add(objects);
 
-      function toon(color: number, emissive = 0x000000, em = 0) {
-        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em, gradientMap: grad });
+      function toon(color: number, emissive = 0x000000, em = 0, map: InstanceType<typeof THREE.CanvasTexture> | null = null) {
+        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em, gradientMap: grad, map: map || undefined });
       }
       function outline(mesh: Object3D) {
         mesh.traverse((ch) => {
@@ -241,9 +338,9 @@ export function BancadaCanvas({
             g.userData.nftId = n.id;
             g.userData.mode = n.mode;
             const col = n.mode === "dynamic" ? 0x3d9a6a : n.mode === "suspended_static" ? 0xc45c4a : 0xd4a017;
-            const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), toon(0x6b2e1c));
+            const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), toon(0xffffff, 0, 0, texWood));
             table.position.y = 0.52;
-            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), toon(0x4a2418));
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), toon(0xffffff, 0, 0, texTrim));
             leg.position.y = 0.25;
             const core = new THREE.Mesh(
               new THREE.OctahedronGeometry(0.22 + Math.min(0.35, n.collateral), 0),
@@ -279,10 +376,10 @@ export function BancadaCanvas({
         ol.scale.setScalar(s);
         mesh.add(ol);
       }
-      function cap(r: number, len: number, color: number) {
+      function cap(r: number, len: number, color: number, map: InstanceType<typeof THREE.CanvasTexture> | null = null) {
         const mesh = new THREE.Mesh(
-          THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(r, len, 6, 14) : new THREE.CylinderGeometry(r, r, len + r * 2, 14),
-          toon(color),
+          THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(r, len, 4, 10) : new THREE.CylinderGeometry(r, r, len + r * 2, 10),
+          toon(color, 0, 0, map),
         );
         ink(mesh);
         return mesh;
@@ -290,40 +387,36 @@ export function BancadaCanvas({
       const avatarRoot = new THREE.Group();
       const hips = new THREE.Group();
       hips.position.y = 0.9;
-      const jacket = 0x1e5c66;
-      const pants = 0x4a2c22;
-      const skin = 0xf0c4a0;
-      const hairC = 0x1a120c;
-      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), toon(pants));
+      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(0xffffff, 0, 0, texPants));
       pelvis.scale.set(1, 0.75, 0.85);
       ink(pelvis, 1.06);
-      const torso = cap(0.145, 0.3, jacket);
+      const torso = cap(0.145, 0.3, 0xffffff, texShirt);
       torso.position.y = 0.32;
-      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), toon(0xf3e2c4));
+      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), toon(0xffffff, 0, 0, texShirt));
       collar.position.y = 0.5;
       collar.scale.set(1, 0.35, 0.9);
       ink(collar, 1.05);
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.08, 10), toon(skin));
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.08, 8), toon(0xffffff, 0, 0, texSkin));
       neck.position.y = 0.56;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 20, 16), toon(skin));
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 14, 12), toon(0xffffff, 0, 0, texSkin));
       head.position.y = 0.68;
       ink(head, 1.06);
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.152, 16, 12), toon(hairC));
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.152, 12, 10), toon(0xffffff, 0, 0, texHair));
       hair.position.set(0, 0.73, -0.015);
       hair.scale.set(1.05, 0.72, 1.08);
       ink(hair, 1.04);
-      const bang = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), toon(hairC));
+      const bang = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), toon(0xffffff, 0, 0, texHair));
       bang.position.set(0, 0.76, 0.1);
       bang.scale.set(1.4, 0.45, 0.5);
       const eyeM = toon(0x1a1008);
-      const eL = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeM);
+      const eL = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), eyeM);
       eL.position.set(-0.048, 0.02, 0.125);
-      const eR = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeM);
+      const eR = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), eyeM);
       eR.position.set(0.048, 0.02, 0.125);
       const sclera = toon(0xfff6e4);
-      const sL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), sclera);
+      const sL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 6), sclera);
       sL.position.set(-0.048, 0.02, 0.118);
-      const sR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), sclera);
+      const sR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 6), sclera);
       sR.position.set(0.048, 0.02, 0.118);
       head.add(sL);
       head.add(sR);
@@ -339,9 +432,9 @@ export function BancadaCanvas({
       function arm(side: number) {
         const rootA = new THREE.Group();
         rootA.position.set(0.2 * side, 0.42, 0);
-        const up = cap(0.042, 0.2, jacket);
+        const up = cap(0.042, 0.2, 0xffffff, texShirt);
         up.position.y = -0.12;
-        const lo = cap(0.036, 0.18, skin);
+        const lo = cap(0.036, 0.18, 0xffffff, texSkin);
         lo.position.y = -0.36;
         rootA.add(up);
         rootA.add(lo);
@@ -351,11 +444,11 @@ export function BancadaCanvas({
       function leg(side: number) {
         const rootL = new THREE.Group();
         rootL.position.set(0.09 * side, 0.02, 0);
-        const up = cap(0.055, 0.26, pants);
+        const up = cap(0.055, 0.26, 0xffffff, texPants);
         up.position.y = -0.2;
-        const lo = cap(0.045, 0.24, pants);
+        const lo = cap(0.045, 0.24, 0xffffff, texPants);
         lo.position.y = -0.52;
-        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), toon(hairC));
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), toon(0xffffff, 0, 0, texHair));
         shoe.scale.set(1, 0.55, 1.45);
         shoe.position.set(0, -0.7, 0.03);
         ink(shoe, 1.05);
@@ -410,7 +503,7 @@ export function BancadaCanvas({
 
       const hands = new THREE.Group();
       const palm = (sx: number) => {
-        const h = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), toon(skin));
+        const h = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), toon(0xffffff, 0, 0, texSkin));
         h.scale.set(0.9, 0.7, 1.3);
         h.position.set(sx, -0.18, -0.34);
         ink(h, 1.08);
@@ -421,55 +514,82 @@ export function BancadaCanvas({
       camera.add(hands);
       scene.add(camera);
 
-      function padStyle(side: "left" | "right") {
-        const el = document.createElement("div");
-        el.setAttribute("aria-hidden", "true");
-        el.style.cssText = `position:absolute;${side}:6px;bottom:10px;width:124px;height:124px;z-index:6;pointer-events:auto;touch-action:none`;
+      const padHeld = { v: 0 };
+      function makePad(side: "left" | "right", label: string, color: string, target: { x: number; y: number }) {
+        const wrap = document.createElement("div");
+        wrap.style.cssText = `position:absolute;${side}:8px;bottom:12px;z-index:7;width:116px;pointer-events:none;touch-action:none`;
         const capEl = document.createElement("div");
-        capEl.textContent = side === "left" ? (pt ? "Andar" : "Walk") : pt ? "Olhar" : "Look";
-        capEl.style.cssText = "position:absolute;top:-16px;left:0;right:0;text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8a2a1a;pointer-events:none";
-        el.appendChild(capEl);
-        return el;
+        capEl.textContent = label;
+        capEl.style.cssText = "text-align:center;font:600 10px/1 IBM Plex Mono,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a2a1a;margin-bottom:4px";
+        const base = document.createElement("div");
+        base.style.cssText = `position:relative;width:116px;height:116px;border-radius:50%;border:2px solid ${color};background:rgba(255,246,228,.55);pointer-events:auto;touch-action:none`;
+        const knob = document.createElement("div");
+        knob.style.cssText = `position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:${color};box-shadow:0 2px 0 #1a1008;pointer-events:none`;
+        base.appendChild(knob);
+        wrap.appendChild(capEl);
+        wrap.appendChild(base);
+        let pid: number | null = null;
+        function reset() {
+          pid = null;
+          target.x = 0;
+          target.y = 0;
+          knob.style.transform = "translate(0,0)";
+          padHeld.v = Math.max(0, padHeld.v - 1);
+        }
+        function aim(e: PointerEvent) {
+          const r = base.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const max = r.width * 0.36;
+          let dx = e.clientX - cx;
+          let dy = e.clientY - cy;
+          const len = Math.hypot(dx, dy) || 1;
+          const k = Math.min(1, max / len);
+          dx *= k;
+          dy *= k;
+          target.x = dx / max;
+          target.y = -dy / max;
+          knob.style.transform = `translate(${dx}px,${dy}px)`;
+        }
+        base.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          pid = e.pointerId;
+          padHeld.v += 1;
+          try {
+            base.setPointerCapture(e.pointerId);
+          } catch {
+            /* */
+          }
+          aim(e);
+        });
+        base.addEventListener("pointermove", (e) => {
+          if (pid !== e.pointerId) return;
+          e.preventDefault();
+          e.stopPropagation();
+          aim(e);
+        });
+        base.addEventListener("pointerup", (e) => {
+          if (pid === e.pointerId) reset();
+        });
+        base.addEventListener("pointercancel", reset);
+        return { wrap, destroy: reset };
       }
-      const walkZone = padStyle("left");
-      const lookZone = padStyle("right");
+      const pads: Array<{ destroy: () => void; wrap: HTMLDivElement }> = [];
       const wantPads = window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(max-width: 1024px)").matches || "ontouchstart" in window;
       if (wantPads) {
-        stage.appendChild(walkZone);
-        stage.appendChild(lookZone);
+        const walkPad = makePad("left", pt ? "Andar" : "Walk", "#8a2a1a", stick);
+        const lookPad = makePad("right", pt ? "Olhar" : "Look", "#d4a017", look);
+        stage.appendChild(walkPad.wrap);
+        stage.appendChild(lookPad.wrap);
+        pads.push(walkPad, lookPad);
       }
-      const pads: Array<{ destroy: () => void }> = [];
-      function bindPad(zone: HTMLDivElement, target: { x: number; y: number }, color: string) {
-        void import("nipplejs")
-          .then((nipple) => {
-            if (dead || !zone.isConnected) return;
-            const mgr = nipple.default.create({
-              zone,
-              mode: "static",
-              position: { left: "50%", top: "50%" },
-              color,
-              restOpacity: 0.75,
-              size: 96,
-            }) as unknown as {
-              on: (ev: string, cb: (e: unknown, data?: { vector?: { x: number; y: number } }) => void) => void;
-              destroy: () => void;
-            };
-            mgr.on("move", (_evt, data) => {
-              target.x = data?.vector?.x ?? 0;
-              target.y = data?.vector?.y ?? 0;
-            });
-            mgr.on("end", () => {
-              target.x = 0;
-              target.y = 0;
-            });
-            pads.push(mgr);
-          })
-          .catch(() => {});
-      }
-      if (wantPads) {
-        bindPad(walkZone, stick, "#8a2a1a");
-        bindPad(lookZone, look, "#d4a017");
-      }
+      const blockTouch = (e: TouchEvent) => {
+        if (e.target === renderer.domElement || (e.target as HTMLElement).closest?.("[data-pad]") || pads.length) {
+          if (stage.contains(e.target as Node)) e.preventDefault();
+        }
+      };
+      stage.addEventListener("touchmove", blockTouch, { passive: false });
 
       void import("cannon-es")
         .then((CANNON) => {
@@ -680,7 +800,6 @@ export function BancadaCanvas({
           if (core && g.userData.mode === "dynamic") core.rotation.y += dt * 0.9;
         });
         door.rotation.y = nearDoor() ? -0.4 : 0;
-        grid.visible = presenceRef.current === "compose";
 
         const near = nearestNft();
         const nid = near ? String((near as Object3D).userData.nftId || "") : "";
@@ -785,6 +904,7 @@ export function BancadaCanvas({
         pitch.v = Math.max(-1.15, Math.min(1.15, pitch.v));
       }
       function onPointerDown(e: PointerEvent) {
+        if (padHeld.v > 0) return;
         if (e.target !== renderer.domElement) return;
         dragLook.on = true;
         dragLook.lx = e.clientX;
@@ -868,9 +988,8 @@ export function BancadaCanvas({
         renderer.domElement.removeEventListener("pointerdown", onPointerDown);
         window.removeEventListener("pointerup", onPointerUp);
         window.removeEventListener("resize", size);
-        try { pads.forEach((p) => p.destroy()); } catch { /* */ }
-        walkZone.remove();
-        lookZone.remove();
+        try { pads.forEach((p) => { p.destroy(); p.wrap.remove(); }); } catch { /* */ }
+        stage.removeEventListener("touchmove", blockTouch);
         scene.traverse((ch) => {
           const m = ch as { geometry?: { dispose?: () => void }; material?: { dispose?: () => void } | Array<{ dispose?: () => void }> };
           m.geometry?.dispose?.();
