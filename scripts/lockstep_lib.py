@@ -73,6 +73,8 @@ GIT_COPY = (
     ("artifacts/stratamesh/workers/stratamesh-deomail.js", "workers/stratamesh-deomail.js"),
     ("artifacts/stratamesh/workers/stratamesh-briefing.js", "workers/stratamesh-briefing.js"),
     ("artifacts/stratamesh/workers/stratamesh-auth.js", "workers/stratamesh-auth.js"),
+    ("workers/stratamesh-briefing.js", "workers/stratamesh-briefing.js"),
+    ("workers/stratamesh-deomail.js", "workers/stratamesh-deomail.js"),
     ("artifacts/stratamesh/workers/_foundation_holonic_clp.js", "workers/_foundation_holonic_clp.js"),
 )
 
@@ -273,6 +275,8 @@ def resolve_src(rel: str, twin_root: Path) -> Path | None:
     """Find a twin file, falling back to the git clone if artifacts/ is unreadable."""
     cand = [twin_root / rel]
     mapped = dict(GIT_COPY).get(rel)
+    if "workers/" in rel.replace("\\", "/"):
+        cand.append(twin_root / "workers" / Path(rel).name)
     for root in FALLBACK_ROOTS:
         cand.append(root / rel)
         if mapped:
