@@ -305,10 +305,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
           <div style="background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:#4a3018">
             <span id="bancadaCount">0</span> NFTs · <span id="bancadaObjCount">0</span> objects
           </div>
+          <button type="button" onclick="setBancadaMode('fps')" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Inhabit</button>
+          <button type="button" onclick="setBancadaMode('orbit');document.exitPointerLock&&document.exitPointerLock()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Interior orbit</button>
+          <button type="button" onclick="window._bancadaPresence='compose';setBancadaMode('orbit');document.exitPointerLock&&document.exitPointerLock()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Compose</button>
           <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Reset camera</button>
         </div>
       </div>
       <div id="bancadaPrompt" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:3;background:#1a1008;color:#ffe6b8;border:1px solid #d4a017;padding:.4rem .9rem;font-size:.78rem;pointer-events:none">WASD andar · E usar · F pegar/pousar · clique para ir ao NFT</div>
+      <canvas id="bancadaRadar" width="112" height="112" aria-hidden="true" style="position:absolute;bottom:12px;right:12px;z-index:3;border:1px solid #6b2e1c;background:#fff6e4;pointer-events:none"></canvas>
       <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in this sandbox — create the first object below.</div>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
@@ -2401,6 +2405,30 @@ window.showPanel = function(name, btn){
     return true;
   }
 
+  
+  function drawBancadaRadar(){
+    var cv=document.getElementById('bancadaRadar'); if(!cv||!B) return;
+    var ctx=cv.getContext('2d'); if(!ctx) return;
+    var HALF=B.HALF||7.2, s=cv.width;
+    ctx.fillStyle='#fff6e4'; ctx.fillRect(0,0,s,s);
+    ctx.strokeStyle='#d4a017'; ctx.strokeRect(1,1,s-2,s-2);
+    function map(x,z){ return [((x+HALF)/(HALF*2))*s, ((z+HALF)/(HALF*2))*s]; }
+    var d=map(0, HALF-0.2);
+    ctx.fillStyle='#c45c4a'; ctx.fillRect(d[0]-4,d[1]-3,8,6);
+    if(B.root) B.root.children.forEach(function(g){
+      var p=map(g.position.x, g.position.z);
+      ctx.fillStyle='#d4a017'; ctx.beginPath(); ctx.arc(p[0],p[1],3,0,Math.PI*2); ctx.fill();
+    });
+    var px=B.px||0, pz=B.pz||0, yaw=B.yaw||0;
+    var a=map(px,pz);
+    ctx.fillStyle='#1a1008';
+    ctx.beginPath();
+    ctx.moveTo(a[0]-Math.sin(yaw)*7, a[1]-Math.cos(yaw)*7);
+    ctx.lineTo(a[0]+Math.cos(yaw)*4, a[1]-Math.sin(yaw)*4);
+    ctx.lineTo(a[0]-Math.cos(yaw)*4, a[1]+Math.sin(yaw)*4);
+    ctx.closePath(); ctx.fill();
+  }
+
   function onResize(){
     var stage = document.getElementById('bancadaStage');
     if (!stage || !B.renderer || !B.camera) return;
@@ -2700,6 +2728,7 @@ window.showPanel = function(name, btn){
         }
       });
     });
+    drawBancadaRadar();
     if (window._bancadaMode !== 'fps' && B.controls) B.controls.update();
     if (B.camera && B.HALF){
       var m = B.HALF - 0.55, H = (B.HEIGHT||3.4) - 0.38;
@@ -3733,11 +3762,21 @@ window.loadACBPanel=async function(){
 
   window.addEventListener('keydown', function(e){
     keys[e.code] = true;
+    if (e.code === 'KeyZ'){
+      var b = Bref(); if(!b || !b.undo || !b.undo.length) return;
+      var u=b.undo.pop();
+      if (b.root) b.root.children.forEach(function(g){
+        if(g.userData && g.userData.nft && g.userData.nft.id===u.id){ g.position.x=u.x; g.position.z=u.z; g.position.y=1.1; }
+      });
+    }
+    if (e.code === 'KeyC'){ window._bancadaPresence='compose'; setBancadaMode('orbit'); }
+    if (e.code === 'KeyV'){ window._bancadaPresence='inhabit'; setBancadaMode('fps'); }
     if (e.code === 'KeyF'){
       var b = Bref(); if(!b) return;
       if (b.carryId){
         if (b.root) b.root.children.forEach(function(g){
           if(g.userData && g.userData.nft && g.userData.nft.id===b.carryId){
+            b.undo = b.undo || []; b.undo.push({id:b.carryId,x:g.position.x,z:g.position.z});
             g.position.x=Math.round(g.position.x*2)/2; g.position.z=Math.round(g.position.z*2)/2; g.position.y=1.1;
           }
         });
