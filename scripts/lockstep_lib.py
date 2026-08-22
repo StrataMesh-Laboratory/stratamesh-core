@@ -45,6 +45,7 @@ GIT_COPY = (
     ("src/lib/bancada-ipfs.ts", "src/lib/bancada-ipfs.ts"),
     ("src/lib/lab-kernel.ts", "src/lib/lab-kernel.ts"),
     ("src/components/bancada-canvas.tsx", "src/components/bancada-canvas.tsx"),
+    ("src/components/nft-turntable.tsx", "src/components/nft-turntable.tsx"),
     ("src/components/roadmap-labs.tsx", "src/components/roadmap-labs.tsx"),
     ("artifacts/stratamesh/frontend/portal-pt.html", "frontend/portal-pt.html"),
     ("artifacts/stratamesh/frontend/portal-en.html", "frontend/portal-en.html"),

@@ -67,7 +67,7 @@ export function BancadaCanvas({
       const stage = host.current;
       const HALF = 7.2;
       const HEIGHT = 3.4;
-      const EYE = 1.62;
+      const EYE = 1.4;
       const DOOR_Z = HALF - 0.12;
 
       const scene = new THREE.Scene();
@@ -140,104 +140,6 @@ export function BancadaCanvas({
       grad.minFilter = THREE.NearestFilter;
       grad.needsUpdate = true;
 
-      function paintTex(size: number, repeatX: number, repeatY: number, draw: (ctx: CanvasRenderingContext2D, n: number) => void) {
-        const c = document.createElement("canvas");
-        c.width = c.height = size;
-        const ctx = c.getContext("2d");
-        if (!ctx) return null;
-        draw(ctx, size);
-        const tex = new THREE.CanvasTexture(c);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(repeatX, repeatY);
-        tex.magFilter = THREE.NearestFilter;
-        tex.minFilter = THREE.NearestFilter;
-        tex.generateMipmaps = false;
-        tex.needsUpdate = true;
-        if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
-        return tex;
-      }
-      function noiseFill(ctx: CanvasRenderingContext2D, n: number, r: number, g: number, b: number, jitter: number) {
-        const img = ctx.getImageData(0, 0, n, n);
-        const d = img.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const j = (Math.random() * jitter) | 0;
-          d[i] = Math.max(0, Math.min(255, r + j));
-          d[i + 1] = Math.max(0, Math.min(255, g + j - 4));
-          d[i + 2] = Math.max(0, Math.min(255, b + j - 8));
-          d[i + 3] = 255;
-        }
-        ctx.putImageData(img, 0, 0);
-      }
-      const texWood = paintTex(128, 8, 8, (ctx, n) => {
-        noiseFill(ctx, n, 122, 62, 28, 28);
-        ctx.globalAlpha = 0.55;
-        for (let y = 0; y < n; y += 16) {
-          ctx.fillStyle = y % 32 ? "#c48a3a" : "#4a2410";
-          ctx.fillRect(0, y, n, 2);
-          ctx.fillStyle = "#2a1408";
-          ctx.fillRect(0, y + 14, n, 1);
-        }
-        ctx.globalAlpha = 0.2;
-        ctx.strokeStyle = "#1a0c04";
-        for (let i = 0; i < 18; i++) {
-          ctx.beginPath();
-          ctx.moveTo(Math.random() * n, 0);
-          ctx.quadraticCurveTo(n * 0.5, Math.random() * n, n, n);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-      });
-      const texPlaster = paintTex(128, 3, 2, (ctx, n) => {
-        noiseFill(ctx, n, 238, 214, 176, 22);
-        ctx.strokeStyle = "rgba(90,40,20,0.12)";
-        for (let i = 0; i < n; i += 8) {
-          ctx.beginPath();
-          ctx.moveTo(0, i);
-          ctx.lineTo(n, i + 3);
-          ctx.stroke();
-        }
-      });
-      const texCeil = paintTex(64, 2, 2, (ctx, n) => noiseFill(ctx, n, 255, 244, 220, 10));
-      const texShirt = paintTex(64, 4, 4, (ctx, n) => {
-        noiseFill(ctx, n, 242, 235, 220, 14);
-        ctx.strokeStyle = "rgba(180,160,130,0.35)";
-        for (let i = 0; i < n; i += 3) {
-          ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i, n);
-          ctx.stroke();
-        }
-      });
-      const texPants = paintTex(64, 3, 3, (ctx, n) => {
-        noiseFill(ctx, n, 58, 36, 28, 16);
-        ctx.strokeStyle = "rgba(20,10,6,0.35)";
-        for (let i = 0; i < n; i += 4) {
-          ctx.beginPath();
-          ctx.moveTo(0, i);
-          ctx.lineTo(n, i);
-          ctx.stroke();
-        }
-      });
-      const texSkin = paintTex(64, 1, 1, (ctx, n) => noiseFill(ctx, n, 201, 160, 126, 18));
-      const texHair = paintTex(64, 1, 1, (ctx, n) => {
-        noiseFill(ctx, n, 22, 16, 12, 10);
-        ctx.strokeStyle = "rgba(0,0,0,0.5)";
-        for (let i = 0; i < 30; i++) {
-          ctx.beginPath();
-          ctx.moveTo(Math.random() * n, 0);
-          ctx.quadraticCurveTo(Math.random() * n, n * 0.5, Math.random() * n, n);
-          ctx.stroke();
-        }
-      });
-      const texDoor = paintTex(64, 1, 2, (ctx, n) => {
-        noiseFill(ctx, n, 180, 70, 55, 20);
-        ctx.strokeStyle = "#4a1810";
-        ctx.strokeRect(6, 6, n - 12, n - 12);
-        ctx.strokeRect(14, 14, n - 28, n / 2 - 20);
-      });
-      const texTrim = paintTex(32, 6, 1, (ctx, n) => noiseFill(ctx, n, 90, 40, 22, 12));
-
       function lantern(x: number, z: number) {
         const g = new THREE.Group();
         const bulb = new THREE.Mesh(
@@ -260,10 +162,26 @@ export function BancadaCanvas({
       lantern(-4.2, 4.2);
       lantern(4.2, 4.2);
 
-      const wallMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texPlaster || undefined });
-      const trimMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texTrim || undefined });
-      const floorMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texWood || undefined });
-      const ceilMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: grad, map: texCeil || undefined });
+      const wallMat = new THREE.MeshToonMaterial({ color: 0xe8d4b8, gradientMap: grad });
+      const trimMat = new THREE.MeshToonMaterial({ color: 0x6b3a1c, gradientMap: grad });
+      const floorMat = new THREE.MeshToonMaterial({ color: 0x8a5a28, gradientMap: grad });
+      const ceilMat = new THREE.MeshToonMaterial({ color: 0xf4ead8, gradientMap: grad });
+      function dress(mat: InstanceType<typeof THREE.MeshToonMaterial>, file: string, rx: number, ry: number) {
+        new THREE.TextureLoader().load("/os/tex/" + file, (tex) => {
+          if (dead) return;
+          tex.wrapS = THREE.RepeatWrapping;
+          tex.wrapT = THREE.RepeatWrapping;
+          tex.repeat.set(rx, ry);
+          tex.anisotropy = 8;
+          if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+          mat.map = tex;
+          mat.needsUpdate = true;
+        });
+      }
+      dress(floorMat, "wood-floor.jpg", 6, 6);
+      dress(wallMat, "plaster.jpg", 3, 2);
+      dress(ceilMat, "ceiling.jpg", 2, 2);
+      dress(trimMat, "wood-dark.jpg", 4, 1);
 
       const floor = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.12, HALF * 2), floorMat);
       floor.position.y = -0.06;
@@ -290,7 +208,7 @@ export function BancadaCanvas({
 
       const door = new THREE.Mesh(
         new THREE.BoxGeometry(doorW - 0.08, 2.15, 0.08),
-        new THREE.MeshToonMaterial({ color: 0xffffff, emissive: 0x7a2018, emissiveIntensity: 0.2, gradientMap: grad, map: texDoor || undefined }),
+        new THREE.MeshToonMaterial({ color: 0x8a3a28, emissive: 0x7a2018, emissiveIntensity: 0.2, gradientMap: grad }),
       );
       door.position.set(0, 1.08, DOOR_Z);
       door.userData.door = true;
@@ -303,13 +221,14 @@ export function BancadaCanvas({
       scene.add(frame);
       const skirting = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2 - 0.2, 0.16, HALF * 2 - 0.2), trimMat);
       skirting.position.y = 0.08;
-      scene.add(skirting);
+      dress((door.material as InstanceType<typeof THREE.MeshToonMaterial>), "wood-dark.jpg", 1, 2);
+      dress((frame.material as InstanceType<typeof THREE.MeshToonMaterial>), "wood-table.jpg", 1, 1);
 
       const objects = new THREE.Group();
       scene.add(objects);
 
-      function toon(color: number, emissive = 0x000000, em = 0, map: InstanceType<typeof THREE.CanvasTexture> | null = null) {
-        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em, gradientMap: grad, map: map || undefined });
+      function toon(color: number, emissive = 0x000000, em = 0) {
+        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em, gradientMap: grad });
       }
       function outline(mesh: Object3D) {
         mesh.traverse((ch) => {
@@ -338,9 +257,11 @@ export function BancadaCanvas({
             g.userData.nftId = n.id;
             g.userData.mode = n.mode;
             const col = n.mode === "dynamic" ? 0x3d9a6a : n.mode === "suspended_static" ? 0xc45c4a : 0xd4a017;
-            const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), toon(0xffffff, 0, 0, texWood));
+            const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), toon(0x8a5a28));
             table.position.y = 0.52;
-            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), toon(0xffffff, 0, 0, texTrim));
+            dress(table.material as InstanceType<typeof THREE.MeshToonMaterial>, "wood-table.jpg", 1, 1);
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), toon(0x6b3a1c));
+            dress(leg.material as InstanceType<typeof THREE.MeshToonMaterial>, "wood-dark.jpg", 1, 2);
             leg.position.y = 0.25;
             const core = new THREE.Mesh(
               new THREE.OctahedronGeometry(0.22 + Math.min(0.35, n.collateral), 0),
@@ -376,66 +297,56 @@ export function BancadaCanvas({
         ol.scale.setScalar(s);
         mesh.add(ol);
       }
-      function cap(r: number, len: number, color: number, map: InstanceType<typeof THREE.CanvasTexture> | null = null) {
+      function cap(r: number, len: number, color: number) {
         const mesh = new THREE.Mesh(
           THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(r, len, 4, 10) : new THREE.CylinderGeometry(r, r, len + r * 2, 10),
-          toon(color, 0, 0, map),
+          toon(color),
         );
         ink(mesh);
         return mesh;
       }
+      function cloth(mesh: InstanceType<typeof THREE.Mesh>, file: string, rx = 2, ry = 2) {
+        dress(mesh.material as InstanceType<typeof THREE.MeshToonMaterial>, file, rx, ry);
+      }
       const avatarRoot = new THREE.Group();
       const hips = new THREE.Group();
-      hips.position.y = 0.9;
-      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(0xffffff, 0, 0, texPants));
-      pelvis.scale.set(1, 0.75, 0.85);
-      ink(pelvis, 1.06);
-      const torso = cap(0.145, 0.3, 0xffffff, texShirt);
-      torso.position.y = 0.32;
-      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), toon(0xffffff, 0, 0, texShirt));
-      collar.position.y = 0.5;
-      collar.scale.set(1, 0.35, 0.9);
-      ink(collar, 1.05);
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.08, 8), toon(0xffffff, 0, 0, texSkin));
-      neck.position.y = 0.56;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 14, 12), toon(0xffffff, 0, 0, texSkin));
-      head.position.y = 0.68;
-      ink(head, 1.06);
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.152, 12, 10), toon(0xffffff, 0, 0, texHair));
-      hair.position.set(0, 0.73, -0.015);
-      hair.scale.set(1.05, 0.72, 1.08);
+      hips.position.y = 0.74;
+      const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), toon(0x3a2418));
+      pelvis.scale.set(1.18, 0.68, 0.95);
+      ink(pelvis, 1.05);
+      cloth(pelvis, "pants.jpg", 2, 2);
+      const torso = cap(0.17, 0.26, 0xf2ebe3);
+      torso.position.y = 0.28;
+      cloth(torso, "shirt.jpg", 3, 3);
+      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(0xf2ebe3));
+      collar.position.y = 0.46;
+      collar.scale.set(1.05, 0.32, 0.9);
+      ink(collar, 1.04);
+      cloth(collar, "shirt.jpg", 2, 2);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.07, 8), toon(0xc9a07e));
+      neck.position.y = 0.5;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 16, 12), toon(0xc9a07e));
+      head.position.y = 0.62;
+      ink(head, 1.05);
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.195, 12, 10), toon(0x1a120c));
+      hair.position.set(0, 0.68, -0.045);
+      hair.scale.set(1.06, 0.68, 1.05);
       ink(hair, 1.04);
-      const bang = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), toon(0xffffff, 0, 0, texHair));
-      bang.position.set(0, 0.76, 0.1);
-      bang.scale.set(1.4, 0.45, 0.5);
-      const eyeM = toon(0x1a1008);
-      const eL = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), eyeM);
-      eL.position.set(-0.048, 0.02, 0.125);
-      const eR = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), eyeM);
-      eR.position.set(0.048, 0.02, 0.125);
-      const sclera = toon(0xfff6e4);
-      const sL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 6), sclera);
-      sL.position.set(-0.048, 0.02, 0.118);
-      const sR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 6), sclera);
-      sR.position.set(0.048, 0.02, 0.118);
-      head.add(sL);
-      head.add(sR);
-      head.add(eL);
-      head.add(eR);
+      cloth(hair, "wood-dark.jpg", 1, 1);
       hips.add(pelvis);
       hips.add(torso);
       hips.add(collar);
       hips.add(neck);
       hips.add(head);
       hips.add(hair);
-      hips.add(bang);
       function arm(side: number) {
         const rootA = new THREE.Group();
-        rootA.position.set(0.2 * side, 0.42, 0);
-        const up = cap(0.042, 0.2, 0xffffff, texShirt);
-        up.position.y = -0.12;
-        const lo = cap(0.036, 0.18, 0xffffff, texSkin);
-        lo.position.y = -0.36;
+        rootA.position.set(0.24 * side, 0.38, 0);
+        const up = cap(0.05, 0.16, 0xf2ebe3);
+        up.position.y = -0.1;
+        cloth(up, "shirt.jpg", 2, 2);
+        const lo = cap(0.042, 0.14, 0xc9a07e);
+        lo.position.y = -0.3;
         rootA.add(up);
         rootA.add(lo);
         hips.add(rootA);
@@ -443,15 +354,17 @@ export function BancadaCanvas({
       }
       function leg(side: number) {
         const rootL = new THREE.Group();
-        rootL.position.set(0.09 * side, 0.02, 0);
-        const up = cap(0.055, 0.26, 0xffffff, texPants);
-        up.position.y = -0.2;
-        const lo = cap(0.045, 0.24, 0xffffff, texPants);
-        lo.position.y = -0.52;
-        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), toon(0xffffff, 0, 0, texHair));
-        shoe.scale.set(1, 0.55, 1.45);
-        shoe.position.set(0, -0.7, 0.03);
-        ink(shoe, 1.05);
+        rootL.position.set(0.11 * side, 0.02, 0);
+        const up = cap(0.062, 0.18, 0x3a2418);
+        up.position.y = -0.14;
+        cloth(up, "pants.jpg", 2, 2);
+        const lo = cap(0.05, 0.16, 0x3a2418);
+        lo.position.y = -0.38;
+        cloth(lo, "pants.jpg", 2, 2);
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.058, 8, 6), toon(0x1a120c));
+        shoe.scale.set(1, 0.5, 1.4);
+        shoe.position.set(0, -0.52, 0.03);
+        ink(shoe, 1.04);
         rootL.add(up);
         rootL.add(lo);
         rootL.add(shoe);
@@ -472,26 +385,15 @@ export function BancadaCanvas({
           if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
           tex.wrapS = THREE.ClampToEdgeWrapping;
           tex.wrapT = THREE.ClampToEdgeWrapping;
-          const geo = new THREE.SphereGeometry(0.152, 28, 20, Math.PI / 2 - 0.95, 1.9, 0.38, 1.95);
-          const mat = toon(0xc9a07e);
-          (mat as { map: unknown; needsUpdate: boolean }).map = tex;
-          mat.needsUpdate = true;
-          if (facePlate) hips.remove(facePlate);
-          facePlate = new THREE.Mesh(geo, mat);
-          facePlate.position.copy(head.position);
-          hips.add(facePlate);
-          head.visible = false;
-          eL.visible = false;
-          eR.visible = false;
-          sL.visible = false;
-          sR.visible = false;
-          const shirt = torso.material as { color?: { setHex?: (n: number) => void } };
-          shirt.color?.setHex?.(0xf2ebe3);
+          if (facePlate) head.remove(facePlate);
+          facePlate = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.32), new THREE.MeshBasicMaterial({ map: tex }));
+          facePlate.position.set(0, 0.01, 0.175);
+          head.add(facePlate);
           if (!hips.getObjectByName("chain")) {
-            const chain = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.008, 8, 20), toon(0xc9cdd1));
+            const chain = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.008, 8, 20), toon(0xc9cdd1));
             chain.name = "chain";
             chain.rotation.x = 1.25;
-            chain.position.y = 0.53;
+            chain.position.y = 0.49;
             hips.add(chain);
           }
         });
@@ -503,7 +405,7 @@ export function BancadaCanvas({
 
       const hands = new THREE.Group();
       const palm = (sx: number) => {
-        const h = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), toon(0xffffff, 0, 0, texSkin));
+        const h = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 6), toon(0xc9a07e));
         h.scale.set(0.9, 0.7, 1.3);
         h.position.set(sx, -0.18, -0.34);
         ink(h, 1.08);

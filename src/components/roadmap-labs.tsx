@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BancadaCanvas } from "@/components/bancada-canvas";
+import { NftRoster } from "@/components/nft-turntable";
 import { DagCanvas } from "@/components/dag-canvas";
 import { Meter, useHydratedNode } from "@/components/kernel-ui";
 import { MeshCanvas } from "@/components/mesh-canvas";
@@ -218,6 +219,7 @@ export function NftLab({ lang }: { lang: "pt" | "en" }) {
         onEnterWorld={() => undefined}
         onPlace={(id, x, z) => setTransform(user.id, id, x, z)}
       />
+      <NftRoster nfts={mine.nfts} selectedId={nft?.id} lang={lang} onSelect={setPick} />
       <form
         className="tile mt-4 space-y-2"
         onSubmit={(e) => {

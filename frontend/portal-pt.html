@@ -327,6 +327,15 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <canvas id="bancadaRadar" width="112" height="112" aria-hidden="true" style="position:absolute;bottom:12px;right:12px;z-index:3;border:1px solid #6b2e1c;background:#fff6e4;pointer-events:none"></canvas>
       <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">Sem NFT nesta bancada — crie o primeiro objecto abaixo.</div>
     </div>
+
+    <div id="nftRoster" style="margin:0 0 1.25rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px">
+      <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Inspecionar NFT · arrastar para rodar</div>
+      <p id="nftTurnLabel" style="margin:.4rem 0 .6rem;font-size:.85rem;color:var(--fg)">—</p>
+      <div id="nftTurnStage" style="height:280px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff6e4;touch-action:none">
+        <canvas id="nftTurnCanvas" style="display:block;width:100%;height:100%;cursor:grab"></canvas>
+      </div>
+      <ul id="nftRosterList" style="list-style:none;margin:.75rem 0 0;padding:0"></ul>
+    </div>
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Bancadas</div></div>
       <div class="stat-card"><div class="value" id="nftCount">—</div><div class="label">NFT STRATA</div></div>
@@ -2388,6 +2397,20 @@ window.showPanel = function(name, btn){
     floor.position.y = -0.06; B.scene.add(floor);
     var ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.1, HALF*2), ceilMat);
     ceil.position.y = HEIGHT; B.scene.add(ceil);
+
+    function dress(mat, file, rx, ry){
+      if (!THREE.TextureLoader || !mat) return;
+      new THREE.TextureLoader().load('/os/tex/'+file, function(tex){
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(rx||1, ry||1);
+        try { if (THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding; } catch(_){}
+        mat.map = tex; mat.needsUpdate = true;
+      });
+    }
+    dress(floorMat,'wood-floor.jpg',6,6);
+    dress(wallMat,'plaster.jpg',3,2);
+    dress(ceilMat,'ceiling.jpg',2,2);
+
     function wall(w,h,d,x,y,z){ var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,y,z); B.scene.add(m); }
     wall(HALF*2, HEIGHT, t, 0, hy, -HALF);
     wall(t, HEIGHT, HALF*2, -HALF, hy, 0);
@@ -2458,7 +2481,7 @@ window.showPanel = function(name, btn){
       return m;
     }
     var avatarRoot=new THREE.Group();
-    var hips=new THREE.Group(); hips.position.y=0.9;
+    var hips=new THREE.Group(); hips.position.y=0.74;
     var jacket=0xffffff, pants=0xffffff, skin=0xffffff, hairC=0xffffff;
     B.texShirt=texShirt; B.texPants=texPants; B.texSkin=texSkin; B.texHair=texHair;
     var pelvis=new THREE.Mesh(new THREE.SphereGeometry(0.13,10,8), toonMat(0xffffff));
@@ -2466,7 +2489,7 @@ window.showPanel = function(name, btn){
     pelvis.scale.set(1,0.75,0.85); inkMesh(pelvis,1.06);
     var torso=cap(0.145,0.3,0xffffff,texShirt); torso.position.y=0.32;
     var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,8), toonMat(0xffffff)); if(neck.material) neck.material.map=texSkin; neck.position.y=0.56;
-    var head=new THREE.Mesh(new THREE.SphereGeometry(0.145,14,12), toonMat(0xffffff)); if(head.material) head.material.map=texSkin; head.position.y=0.68; inkMesh(head,1.06);
+    var head=new THREE.Mesh(new THREE.SphereGeometry(0.185,16,12), toonMat(0xffffff)); if(head.material) head.material.map=texSkin; head.position.y=0.68; inkMesh(head,1.06);
     var hair=new THREE.Mesh(new THREE.SphereGeometry(0.152,12,10), toonMat(0xffffff)); if(hair.material) hair.material.map=texHair;
     hair.position.set(0,0.73,-0.015); hair.scale.set(1.05,0.72,1.08); inkMesh(hair,1.04);
     var bang=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), toonMat(0xffffff)); if(bang.material) bang.material.map=texHair; bang.position.set(0,0.76,0.1); bang.scale.set(1.4,0.45,0.5);
@@ -3050,12 +3073,83 @@ window.showPanel = function(name, btn){
         return;
       }
       buildTopology(nfts);
+      if (typeof fillNftRoster==='function') fillNftRoster(nfts);
       if (meta && !nfts.length) meta.textContent = 'Sem NFT desta conta — crie objectos na bancada.';
       else if (meta && !B.selected) meta.textContent = nfts.length + ' objecto(s) desta conta · estático = sem burn · dinâmico = burn_rate do colateral';
     }catch(e){
       if (meta) meta.textContent = String(e.message||e);
     }
   };
+
+  window._inspectNft = null;
+  window.showNftInspect = function(nft){
+    window._inspectNft = nft || window._inspectNft;
+    var lab=document.getElementById('nftTurnLabel');
+    if (lab && window._inspectNft) lab.textContent = (window._inspectNft.name||window._inspectNft.title||window._inspectNft.id)+' · '+(window._inspectNft.role||window._inspectNft.kind||'nft');
+    initNftTurn();
+  };
+  function initNftTurn(){
+    var canvas=document.getElementById('nftTurnCanvas');
+    var stage=document.getElementById('nftTurnStage');
+    var nft=window._inspectNft;
+    if (!canvas || !stage || !ensureThree() || !nft) return;
+    if (window._IT && window._IT.renderer) {
+      try { window._IT.renderer.dispose(); stage.replaceChild(canvas, window._IT.renderer.domElement); } catch(_){}
+    }
+    var T=THREE;
+    var scene=new T.Scene(); scene.background=new T.Color(0xfff6e4);
+    var camera=new T.PerspectiveCamera(38, 1, 0.08, 20);
+    var renderer=new T.WebGLRenderer({ canvas:canvas, antialias:true });
+    renderer.setClearColor(0xfff6e4,1);
+    var w=Math.max(stage.clientWidth,220), h=Math.max(stage.clientHeight,180);
+    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+    scene.add(new T.HemisphereLight(0xffe6b8,0x4a3018,1.1));
+    var sun=new T.DirectionalLight(0xfff4dc,0.9); sun.position.set(2,4,3); scene.add(sun);
+    var root=new T.Group(); scene.add(root);
+    var isAv = (nft.role==='avatar'||nft.kind==='avatar'||nft.asset_type==='avatar');
+    var loader=new T.TextureLoader();
+    function tmap(file,rx,ry){ var t=loader.load('/os/tex/'+file); t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rx||1,ry||1); return t; }
+    if (isAv){
+      var hips=new T.Group(); hips.position.y=0.74;
+      var torso=new T.Mesh(new T.CylinderGeometry(0.17,0.15,0.36,10), new T.MeshToonMaterial({color:0xffffff, map:tmap('shirt.jpg',3,3)})); torso.position.y=0.28;
+      var pelvis=new T.Mesh(new T.SphereGeometry(0.15,10,8), new T.MeshToonMaterial({color:0xffffff, map:tmap('pants.jpg',2,2)})); pelvis.scale.set(1.18,0.68,0.95);
+      var head=new T.Mesh(new T.SphereGeometry(0.185,16,12), new T.MeshToonMaterial({color:0xc9a07e})); head.position.y=0.62;
+      var hair=new T.Mesh(new T.SphereGeometry(0.195,12,10), new T.MeshToonMaterial({color:0x1a120c, map:tmap('wood-dark.jpg',1,1)})); hair.position.set(0,0.68,-0.04); hair.scale.set(1.05,0.7,1.05);
+      hips.add(pelvis,torso,head,hair);
+      root.add(hips);
+      var meta={}; try{ meta=typeof nft.metadata_json==='string'?JSON.parse(nft.metadata_json):(nft.metadata_json||{}); }catch(_){}
+      var fu=nft.image||meta.image||'/os/account/usr-admin-root/files/avatar-face.jpg';
+      loader.load(fu, function(tex){
+        var face=new T.Mesh(new T.PlaneGeometry(0.26,0.32), new T.MeshBasicMaterial({map:tex}));
+        face.position.set(0,0.01,0.175); head.add(face);
+      });
+      camera.position.set(0,1.05,2.4); camera.lookAt(0,0.95,0);
+    } else {
+      var core=new T.Mesh(new T.OctahedronGeometry(0.55,0), new T.MeshToonMaterial({color:0xd4a017}));
+      root.add(core);
+      camera.position.set(0,0.4,2.1); camera.lookAt(0,0.2,0);
+    }
+    var yaw=0.35, drag=false, lx=0;
+    canvas.onpointerdown=function(e){ drag=true; lx=e.clientX; try{canvas.setPointerCapture(e.pointerId)}catch(_){ } };
+    canvas.onpointermove=function(e){ if(!drag) return; yaw+=(e.clientX-lx)*0.01; lx=e.clientX; };
+    canvas.onpointerup=function(){ drag=false; };
+    function tick(){ if(!drag) yaw+=0.006; root.rotation.y=yaw; renderer.render(scene,camera); requestAnimationFrame(tick); }
+    tick();
+    window._IT={renderer:renderer};
+  }
+  function fillNftRoster(nfts){
+    var ul=document.getElementById('nftRosterList'); if(!ul) return;
+    ul.innerHTML='';
+    (nfts||[]).forEach(function(n,i){
+      var li=document.createElement('li');
+      li.style.cssText='display:flex;justify-content:space-between;padding:.45rem 0;border-top:1px solid var(--line);cursor:pointer;font-size:.82rem';
+      li.innerHTML='<span>'+((n.name||n.title||n.id))+'</span><span style="font-family:IBM Plex Mono,monospace;font-size:.68rem;color:var(--muted)">'+(n.role||n.kind||'nft')+'</span>';
+      li.onclick=function(){ showNftInspect(n); if(typeof selectNft==='function') try{selectNft(n);}catch(_){ } };
+      ul.appendChild(li);
+      if(i===0) showNftInspect(n);
+    });
+  }
+
   window.loadSPA = function(){ return loadSandboxBench(); };
   window.loadSandbox = function(){ return loadSandboxBench(); };
 

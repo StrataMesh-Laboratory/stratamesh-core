@@ -379,6 +379,13 @@ def publish_live(email: str, token: str, spa: Path | None) -> dict:
                 put_r2(email, token, key, blob, "image/jpeg")
                 report["r2"].append(key)
                 log(f"  R2 {key}")
+        texdir = TWIN / "tex" / "512"
+        if texdir.is_dir():
+            for p in sorted(texdir.glob("*.jpg")):
+                key = f"os/tex/{p.name}"
+                put_r2(email, token, key, p.read_bytes(), "image/jpeg")
+                report["r2"].append(key)
+                log(f"  R2 {key}")
 
     for name, rel in L.WORKERS:
         src = L.resolve_src(rel, TWIN)
