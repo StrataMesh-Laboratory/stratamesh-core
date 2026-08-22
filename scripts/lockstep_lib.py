@@ -43,6 +43,7 @@ GIT_COPY = (
     ("src/components/holon-strip.tsx", "src/components/holon-strip.tsx"),
     ("src/lib/bancada-store.ts", "src/lib/bancada-store.ts"),
     ("src/lib/bancada-ipfs.ts", "src/lib/bancada-ipfs.ts"),
+    ("src/lib/cgu-engine.ts", "src/lib/cgu-engine.ts"),
     ("src/lib/lab-kernel.ts", "src/lib/lab-kernel.ts"),
     ("src/components/bancada-canvas.tsx", "src/components/bancada-canvas.tsx"),
     ("src/components/nft-turntable.tsx", "src/components/nft-turntable.tsx"),

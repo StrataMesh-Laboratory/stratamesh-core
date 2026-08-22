@@ -293,6 +293,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h3>CGU Sandbox · STRATA NFT space</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First person is a sandbox modality: the viewpoint is an Avatar NFT (figural identity of a user or SCA). Room with floor, walls, ceiling. WASD to walk. Door to the open world the sandbox is addressed to. Mint NFT chooses kind — Avatar or creation.</p>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f4e4c1;margin-bottom:1rem">
+      <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(180deg,rgba(26,16,8,.08) 0 1px,transparent 1px 3px);mix-blend-mode:multiply"></div>
       <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair;touch-action:none"></canvas>
       <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">

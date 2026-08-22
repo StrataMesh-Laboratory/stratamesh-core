@@ -333,12 +333,12 @@ def publish_live(email: str, token: str, spa: Path | None) -> dict:
         frontend.write_text(patched)
 
     portal_src = {
-        "pt": TWIN / "artifacts/stratamesh/frontend/portal-pt.html",
-        "en": TWIN / "artifacts/stratamesh/frontend/portal-en.html",
+        "pt": Path("/tmp/portal-pt.html"),
+        "en": Path("/tmp/portal-en.html"),
     }
     portal_fallback = {
-        "pt": [TWIN / "dist/portal-pt.html", Path("/tmp/portal-pt.html")],
-        "en": [TWIN / "dist/portal-en.html", Path("/tmp/portal-en.html")],
+        "pt": [TWIN / "dist/portal-pt.html", TWIN / "artifacts/stratamesh/frontend/portal-pt.html"],
+        "en": [TWIN / "dist/portal-en.html", TWIN / "artifacts/stratamesh/frontend/portal-en.html"],
     }
     for lang, keys in (("pt", L.PORTAL_KEYS_PT), ("en", L.PORTAL_KEYS_EN)):
         src = portal_src[lang]

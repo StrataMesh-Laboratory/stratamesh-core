@@ -3,6 +3,7 @@ import type { Object3D } from "three";
 import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
+import { TILE, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
 
 declare global {
   interface Window {
@@ -95,6 +96,10 @@ export function BancadaCanvas({
       renderer.domElement.tabIndex = 0;
       stage.style.touchAction = "none";
       stage.style.overflow = "hidden";
+      const scan = document.createElement("div");
+      scan.setAttribute("aria-hidden", "true");
+      scan.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(180deg,rgba(26,16,8,.08) 0 1px,transparent 1px 3px);mix-blend-mode:multiply";
+      stage.appendChild(scan);
       renderer.domElement.addEventListener("webglcontextlost", (ev) => ev.preventDefault());
       stage.appendChild(renderer.domElement);
 
@@ -134,8 +139,8 @@ export function BancadaCanvas({
       fill.position.set(0, HEIGHT - 0.7, 0);
       scene.add(fill);
 
-      const gradData = new Uint8Array([70, 50, 32, 255, 190, 150, 90, 255, 255, 240, 210, 255]);
-      const grad = new THREE.DataTexture(gradData, 3, 1);
+      const gradData = toonRamp(8);
+      const grad = new THREE.DataTexture(gradData, 8, 1);
       grad.magFilter = THREE.NearestFilter;
       grad.minFilter = THREE.NearestFilter;
       grad.needsUpdate = true;
@@ -186,6 +191,30 @@ export function BancadaCanvas({
       const floor = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.12, HALF * 2), floorMat);
       floor.position.y = -0.06;
       scene.add(floor);
+      const tilesN = gridCount(HALF, TILE);
+      const tileGeo = new THREE.PlaneGeometry(TILE * 0.98, TILE * 0.98);
+      tileGeo.rotateX(-Math.PI / 2);
+      const tileMat = floorMat.clone();
+      tileMat.vertexColors = true;
+      const tileMesh = new THREE.InstancedMesh(tileGeo, tileMat, tilesN * tilesN);
+      const dummy = new THREE.Object3D();
+      const tint = new THREE.Color();
+      let ti = 0;
+      for (let tz = 0; tz < tilesN; tz++) {
+        for (let tx = 0; tx < tilesN; tx++) {
+          dummy.position.set(-HALF + TILE * (tx + 0.5), 0.02, -HALF + TILE * (tz + 0.5));
+          dummy.updateMatrix();
+          tileMesh.setMatrixAt(ti, dummy.matrix);
+          tint.setHSL(0.08, 0.42, 0.38 + ((tx + tz) % 3) * 0.07);
+          if (tileMesh.setColorAt) tileMesh.setColorAt(ti, tint);
+          ti++;
+        }
+      }
+      tileMesh.instanceMatrix.needsUpdate = true;
+      if (tileMesh.instanceColor) tileMesh.instanceColor.needsUpdate = true;
+      scene.add(tileMesh);
+      const occ = new Uint8Array(tilesN * tilesN);
+      occupy(occ, tilesN, Math.floor(tilesN / 2), tilesN - 1, 0);
       const ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.1, HALF * 2), ceilMat);
       ceil.position.y = HEIGHT;
       scene.add(ceil);
@@ -244,6 +273,7 @@ export function BancadaCanvas({
 
       function rebuild(list: Nft[]) {
         while (objects.children.length) objects.remove(objects.children[0]);
+        occ.fill(0);
         list
           .filter((n) => n.kind !== "avatar")
           .forEach((n, i) => {
@@ -253,7 +283,9 @@ export function BancadaCanvas({
             const x = saved ? saved.x : Math.max(-HALF + 1.2, Math.min(HALF - 1.2, Math.cos(ang) * r));
             const z = saved ? saved.z : Math.max(-HALF + 1.2, Math.min(HALF - 1.6, Math.sin(ang) * r));
             const g = new THREE.Group();
-            g.position.set(x, 0, z);
+            g.position.set(snap(x), 0, snap(z));
+            const cell = worldToTile(g.position.x, g.position.z, HALF, TILE);
+            occupy(occ, tilesN, cell.tx, cell.tz, 1);
             g.userData.nftId = n.id;
             g.userData.mode = n.mode;
             const col = n.mode === "dynamic" ? 0x3d9a6a : n.mode === "suspended_static" ? 0xc45c4a : 0xd4a017;
@@ -515,6 +547,8 @@ export function BancadaCanvas({
         pos.y = EYE;
       }
       function blocked(nx: number, nz: number) {
+        const cell = worldToTile(nx, nz, HALF, TILE);
+        if (occ[cell.tz * cell.n + cell.tx] === 1) return true;
         for (const g of objects.children) {
           if (g.userData.nftId === carry.id) continue;
           if (Math.hypot(g.position.x - nx, g.position.z - nz) < 0.55) return true;
@@ -554,7 +588,7 @@ export function BancadaCanvas({
         return best;
       }
       function snap(v: number) {
-        return Math.round(v * 2) / 2;
+        return snapTile(v, TILE);
       }
       function commitPlace(g: Object3D) {
         g.position.x = snap(g.position.x);
@@ -594,6 +628,13 @@ export function BancadaCanvas({
         const s = cv.width;
         ctx.fillStyle = "#fff6e4";
         ctx.fillRect(0, 0, s, s);
+        const cell = s / tilesN;
+        for (let tz = 0; tz < tilesN; tz++) {
+          for (let tx = 0; tx < tilesN; tx++) {
+            ctx.fillStyle = occ[tz * tilesN + tx] ? "#c48a3a" : ((tx + tz) % 2 ? "#f3e2c4" : "#e8d0a8");
+            ctx.fillRect(tx * cell, tz * cell, cell - 0.4, cell - 0.4);
+          }
+        }
         ctx.strokeStyle = "#d4a017";
         ctx.strokeRect(1, 1, s - 2, s - 2);
         const map = (x: number, z: number) => [((x + HALF) / (HALF * 2)) * s, ((z + HALF) / (HALF * 2)) * s] as const;
