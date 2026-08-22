@@ -3,7 +3,7 @@ import type { Object3D } from "three";
 import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
-import { COLL, INV_SLOTS, OAM_MAX, TILE, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
+import { COLL, INV_SLOTS, OAM_MAX, REACH, TILE, actorOnTile, blockedAabb, cellAt, facingTile, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
 
 declare global {
   interface Window {
@@ -100,6 +100,16 @@ export function BancadaCanvas({
       scan.setAttribute("aria-hidden", "true");
       scan.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(180deg,rgba(26,16,8,.08) 0 1px,transparent 1px 3px);mix-blend-mode:multiply";
       stage.appendChild(scan);
+      const fade = document.createElement("div");
+      fade.style.cssText = "position:absolute;inset:0;z-index:9;background:#1a1008;opacity:0;pointer-events:none;transition:opacity .28s linear";
+      stage.appendChild(fade);
+      function warpFade(go: () => void) {
+        fade.style.opacity = "1";
+        window.setTimeout(() => {
+          go();
+          fade.style.opacity = "0";
+        }, 280);
+      }
       renderer.domElement.addEventListener("webglcontextlost", (ev) => ev.preventDefault());
       stage.appendChild(renderer.domElement);
 
@@ -214,7 +224,9 @@ export function BancadaCanvas({
       if (tileMesh.instanceColor) tileMesh.instanceColor.needsUpdate = true;
       scene.add(tileMesh);
       const occ = new Uint8Array(tilesN * tilesN);
-      occupy(occ, tilesN, Math.floor(tilesN / 2), tilesN - 1, 0);
+      occupy(occ, tilesN, Math.floor(tilesN / 2), tilesN - 1, COLL.DOOR);
+      const doorCell = worldToTile(0, HALF - 0.35, HALF, TILE);
+      occupy(occ, tilesN, doorCell.tx, doorCell.tz, COLL.DOOR);
       const ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.1, HALF * 2), ceilMat);
       ceil.position.y = HEIGHT;
       scene.add(ceil);
@@ -605,13 +617,19 @@ export function BancadaCanvas({
         pos.y = EYE;
       }
       function blocked(nx: number, nz: number) {
-        const cell = worldToTile(nx, nz, HALF, TILE);
-        if (occ[cell.tz * cell.n + cell.tx] === 1) return true;
+        if (blockedAabb(occ, tilesN, nx, nz, HALF, 0.22, TILE)) return true;
         for (const g of objects.children) {
           if (g.userData.nftId === carry.id) continue;
           if (Math.hypot(g.position.x - nx, g.position.z - nz) < 0.55) return true;
         }
         return false;
+      }
+      function facingActor() {
+        const face = facingTile(pos.x, pos.z, yaw.v, HALF, TILE);
+        const list = objects.children.map((g) => ({ id: String(g.userData.nftId || ""), x: g.position.x, z: g.position.z, ref: g }));
+        const hit = actorOnTile(list, face.tx, face.tz, HALF, TILE);
+        if (hit) return objects.children.find((g) => String(g.userData.nftId) === hit.id) || null;
+        return null;
       }
       function tryMove(dx: number, dz: number) {
         const nx = pos.x + dx;
@@ -693,8 +711,9 @@ export function BancadaCanvas({
             ctx.fillRect(tx * cell, tz * cell, cell - 0.4, cell - 0.4);
           }
         }
-        ctx.strokeStyle = "#d4a017";
-        ctx.strokeRect(1, 1, s - 2, s - 2);
+        const face = facingTile(pos.x, pos.z, yaw.v, HALF, TILE);
+        ctx.fillStyle = "#8a2a1a";
+        ctx.fillRect(face.tx * cell, face.tz * cell, cell, cell);
         const map = (x: number, z: number) => [((x + HALF) / (HALF * 2)) * s, ((z + HALF) / (HALF * 2)) * s] as const;
         ctx.fillStyle = "#c45c4a";
         const [dx, dz] = map(0, HALF - 0.2);
@@ -809,7 +828,7 @@ export function BancadaCanvas({
         if (nearDoor()) hud(pt ? `E · porta · ${worldId}` : `E · door · ${worldId}`);
         else if (carry.id) hud(pt ? "F · pousar na grelha · Z desfazer" : "F · set down on grid · Z undo");
         else if (presenceRef.current === "compose") hud(pt ? "Compor · F pegar · clique no chão para pousar · Z desfazer" : "Compose · F pick up · click floor to set down · Z undo");
-        else if (nid) hud(pt ? "E · usar · F · pegar · clique para ir até ao objecto" : "E · use · F · pick up · click to walk to object");
+        else if (nid) hud(pt ? "E · célula da frente · F pegar · 1–8 inventário" : "E · facing cell · F pick up · 1–8 inventory");
         else hud(pt ? "Habitar · WASD · Shift correr · clique para ir" : "Inhabit · WASD · Shift sprint · click to walk");
 
         applyCam();
@@ -834,17 +853,30 @@ export function BancadaCanvas({
         if (e.repeat) return;
         keys.add(e.code);
         if (e.code === "KeyE") {
-          if (nearDoor()) {
+          const face = facingTile(pos.x, pos.z, yaw.v, HALF, TILE);
+          const kind = cellAt(occ, tilesN, face.tx, face.tz);
+          if (kind === COLL.DOOR || nearDoor()) {
             queue.length = 0;
-            queue.push({ x: 0, z: HALF - 1.1, then: "door" });
+            warpFade(() => {
+              setLoadingWorld(true);
+              onEnterRef.current?.(worldId);
+            });
           } else {
-            const n = nearestNft();
+            const faced = facingActor();
+            const n = faced || nearestNft();
             if (n) {
               const id = String((n as Object3D).userData.nftId);
-              queue.length = 0;
-              queue.push({ x: (n as Object3D).position.x, z: (n as Object3D).position.z, then: "use", id });
+              const d = Math.hypot((n as Object3D).position.x - pos.x, (n as Object3D).position.z - pos.z);
+              if (faced || d < REACH) {
+                queue.length = 0;
+                queue.push({ x: (n as Object3D).position.x, z: (n as Object3D).position.z, then: "use", id });
+              }
             }
           }
+        }
+        if (e.code.startsWith("Digit")) {
+          const i = Number(e.code.replace("Digit", "")) - 1;
+          if (i >= 0 && i < INV_SLOTS && inv[i]) onPickRef.current(inv[i]);
         }
         if (e.code === "KeyF") {
           if (carry.id) {
@@ -933,6 +965,21 @@ export function BancadaCanvas({
         pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(pointer, camera);
+        if (presenceRef.current === "compose") {
+          const fl = raycaster.intersectObject(floor);
+          if (fl[0]) {
+            const p = fl[0].point;
+            const sx = snap(p.x);
+            const sz = snap(p.z);
+            const overlay = new THREE.Mesh(new THREE.PlaneGeometry(TILE * 0.92, TILE * 0.92), toon(0xc48a3a, 0x8a2a1a, 0.15));
+            overlay.rotation.x = -Math.PI / 2;
+            overlay.position.set(sx, 0.04, sz);
+            scene.add(overlay);
+            const c = worldToTile(sx, sz, HALF, TILE);
+            occupy(occ, tilesN, c.tx, c.tz, COLL.TRIGGER);
+            return;
+          }
+        }
         const hits = raycaster.intersectObjects(objects.children, true);
         const hit = hits.find((h: { object: Object3D }) => {
           let o: Object3D | null = h.object;
