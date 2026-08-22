@@ -4,6 +4,7 @@ import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
 import { COLL, INV_SLOTS, OAM_MAX, REACH, TILE, actorOnTile, blockedAabb, cellAt, facingTile, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
+import { ScriptQ } from "@/lib/cgu-script";
 
 declare global {
   interface Window {
@@ -300,6 +301,7 @@ export function BancadaCanvas({
             occupy(occ, tilesN, cell.tx, cell.tz, 1);
             g.userData.nftId = n.id;
             g.userData.mode = n.mode;
+            g.userData.title = n.title;
             const col = n.mode === "dynamic" ? 0x3d9a6a : n.mode === "suspended_static" ? 0xc45c4a : 0xd4a017;
             const table = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), toon(0x8a5a28));
             table.position.y = 0.52;
@@ -481,6 +483,7 @@ export function BancadaCanvas({
             const mesh = new THREE.Mesh(new THREE.PlaneGeometry(cell.w, cell.h), mat);
             mesh.position.set(cell.x, cell.h * 0.5, cell.z);
             mesh.userData.billboard = true;
+            mesh.userData.baseY = cell.h * 0.5;
             sprites.add(mesh);
             const tcell = worldToTile(cell.x, cell.z, HALF, TILE);
             occupy(occ, tilesN, tcell.tx, tcell.tz, COLL.SOLID);
@@ -517,6 +520,18 @@ export function BancadaCanvas({
       }
       paintInv();
       stage.appendChild(invBar);
+
+      const scripts = new ScriptQ();
+      const balloon = document.createElement("div");
+      balloon.style.cssText =
+        "position:absolute;left:50%;bottom:44px;transform:translateX(-50%);z-index:8;max-width:min(92%,420px);padding:.45rem .7rem;background:#fff6e4;border:1px solid #6b2e1c;color:#1a1008;font:500 13px/1.35 IBM Plex Sans,sans-serif;display:none;pointer-events:none";
+      stage.appendChild(balloon);
+      const pause = document.createElement("div");
+      pause.style.cssText =
+        "position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:rgba(26,16,8,.55)";
+      pause.innerHTML = `<div style="background:#fff6e4;border:1px solid #6b2e1c;padding:1rem 1.2rem;min-width:220px;color:#1a1008"><div style="font:600 11px/1 IBM Plex Mono,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a2a1a;margin-bottom:.5rem">${pt ? "Pausa · lote" : "Pause · lot"}</div><div id="pauseInv" style="font:13px/1.5 IBM Plex Sans,sans-serif"></div><p style="margin:.6rem 0 0;font-size:.75rem;color:#6b2e1c">Enter</p></div>`;
+      stage.appendChild(pause);
+      let paused = false;
 
       const padHeld = { v: 0 };
       function makePad(side: "left" | "right", label: string, color: string, target: { x: number; y: number }) {
@@ -741,6 +756,24 @@ export function BancadaCanvas({
         const now = performance.now();
         const dt = Math.min(0.1, (now - clock.last) / 1000);
         clock.last = now;
+        const fired = scripts.step(dt);
+        if (fired?.op === "give" && fired.id && inv.length < INV_SLOTS && !inv.includes(fired.id)) {
+          inv.push(fired.id);
+          paintInv();
+        }
+        if (fired?.op === "warp") {
+          warpFade(() => {
+            setLoadingWorld(true);
+            onEnterRef.current?.(worldId);
+          });
+        }
+        balloon.style.display = scripts.saying ? "block" : "none";
+        if (scripts.saying) balloon.textContent = scripts.saying;
+        if (paused) {
+          applyCam();
+          try { renderer.render(scene, camera); } catch { /* */ }
+          return;
+        }
         const sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
         const speed = (sprint ? 4.4 : 2.35) * dt;
         if (look.x || look.y) {
@@ -819,8 +852,10 @@ export function BancadaCanvas({
           const core = g.children[2];
           if (core && g.userData.mode === "dynamic") core.rotation.y += dt * 0.9;
         });
-        sprites.children.forEach((m) => {
+        sprites.children.forEach((m, i) => {
           m.rotation.y = yaw.v;
+          const base = Number(m.userData.baseY || 0.4);
+          m.position.y = base + Math.sin(gait.t * 0.7 + i) * 0.03;
         });
 
         const near = nearestNft();
@@ -870,7 +905,12 @@ export function BancadaCanvas({
               if (faced || d < REACH) {
                 queue.length = 0;
                 queue.push({ x: (n as Object3D).position.x, z: (n as Object3D).position.z, then: "use", id });
+                const title = String((n as Object3D).userData.title || id);
+                scripts.push({ op: "say", text: title, dur: 1.6 });
+                scripts.push({ op: "give", id });
               }
+            } else {
+              scripts.push({ op: "say", text: pt ? "Lote · célula livre" : "Lot · empty cell", dur: 1.1 });
             }
           }
         }
@@ -920,7 +960,12 @@ export function BancadaCanvas({
           setPresence("inhabit");
           presenceRef.current = "inhabit";
         }
-        if (e.code === "Escape") document.exitPointerLock?.();
+        if (e.code === "Enter" || e.code === "NumpadEnter") {
+          paused = !paused;
+          pause.style.display = paused ? "flex" : "none";
+          const box = pause.querySelector("#pauseInv");
+          if (box) box.textContent = inv.length ? inv.join(" · ") : pt ? "Inventário vazio" : "Inventory empty";
+        }
       }
       function onUp(e: KeyboardEvent) {
         keys.delete(e.code);
