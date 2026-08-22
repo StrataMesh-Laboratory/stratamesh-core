@@ -287,7 +287,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h3>CGU Sandbox · STRATA NFT space</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First-person sandbox: each NFT is an editable spatial object. Possession = STRATA collateral fractions. Orbit or free-look (WASD + mouse). Objects can be edited here and sent to open worlds.</p>
     <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
-      <canvas id="bancadaCanvas" style="display:block;width:100%;height:100%"></canvas>
+      <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
+      <div id="bancadaLockHint" onclick="setBancadaMode('fps')" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
+      <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
+        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Open-world door</div>
+        <div id="bancadaWorldName" style="margin-top:.75rem;font-size:1.4rem;color:var(--fg)">cmn-lab-world</div>
+        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">This account’s sandbox is addressed to this world. The Avatar NFT walks through the door.</p>
+        <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Back to sandbox</button>
+      </div>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
         <div style="pointer-events:none;background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);backdrop-filter:blur(8px)">
           <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Immersive sandbox</div>
@@ -315,6 +322,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <option value="dynamic">Dynamic</option>
       </select>
       <button onclick="createSandboxNft()" style="padding:.65rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Create NFT</button>
+      <button onclick="developAvatar()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-weight:500">Develop Avatar</button>
+      <input id="sbxWorld" placeholder="open world (cmn-lab-world)" style="min-width:160px;padding:.65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px">
       <button onclick="loadSandboxBench()" style="padding:.65rem 1rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Refresh space</button>
     </div>
     <div id="bancadaDetail" style="display:none;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem">
@@ -2245,8 +2254,10 @@ window.showPanel = function(name, btn){
   var B = {
     scene: null, camera: null, renderer: null, controls: null,
     raycaster: null, mouse: null, root: null, nodes: [],
-    selected: null, anim: 0, nfts: [], running: false
+    selected: null, anim: 0, nfts: [], running: false,
+    room: false, yaw: 0, pitch: 0, px: 0, py: 1.62, pz: 5.4
   };
+  window.B = B;
 
   function modeColor(mode){
     mode = String(mode||'static').toLowerCase();
@@ -2290,15 +2301,34 @@ window.showPanel = function(name, btn){
     B.root = new THREE.Group();
     B.scene.add(B.root);
 
-    // Floor grid (bancada surface)
-    var grid = new THREE.GridHelper(40, 40, 0x2a2a35, 0x16161c);
-    grid.position.y = 0;
-    B.scene.add(grid);
-    var floorMat = new THREE.MeshStandardMaterial({ color: 0x0c0c10, metalness: 0.4, roughness: 0.85, transparent: true, opacity: 0.9 });
-    var floor = new THREE.Mesh(new THREE.CircleGeometry(18, 64), floorMat);
-    floor.rotation.x = -Math.PI/2;
-    floor.position.y = -0.02;
-    B.scene.add(floor);
+    B.HALF = 7.2; B.HEIGHT = 3.4;
+    var HALF = B.HALF, HEIGHT = B.HEIGHT, t = 0.18, hy = HEIGHT/2;
+    var wallMat = new THREE.MeshStandardMaterial({ color: 0x161618, metalness: 0.12, roughness: 0.82 });
+    var floorMat = new THREE.MeshStandardMaterial({ color: 0x121214, metalness: 0.35, roughness: 0.7 });
+    var ceilMat = new THREE.MeshStandardMaterial({ color: 0x101012, metalness: 0.2, roughness: 0.9 });
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.12, HALF*2), floorMat);
+    floor.position.y = -0.06; B.scene.add(floor);
+    var grid = new THREE.GridHelper(HALF*2, 16, 0x2a2a2e, 0x1c1c1f);
+    grid.position.y = 0.01; B.scene.add(grid);
+    var ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.1, HALF*2), ceilMat);
+    ceil.position.y = HEIGHT; B.scene.add(ceil);
+    function wall(w,h,d,x,y,z){ var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,y,z); B.scene.add(m); }
+    wall(HALF*2, HEIGHT, t, 0, hy, -HALF);
+    wall(t, HEIGHT, HALF*2, -HALF, hy, 0);
+    wall(t, HEIGHT, HALF*2, HALF, hy, 0);
+    var doorW=1.6, side=(HALF*2-doorW)/2;
+    wall(side, HEIGHT, t, -(HALF-side/2), hy, HALF);
+    wall(side, HEIGHT, t, HALF-side/2, hy, HALF);
+    wall(doorW, HEIGHT-2.2, t, 0, 2.2+(HEIGHT-2.2)/2, HALF);
+    B.door = new THREE.Mesh(
+      new THREE.BoxGeometry(doorW-0.08, 2.15, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0xc4b5a0, emissive: 0x3d3428, emissiveIntensity: 0.55, metalness: 0.45, roughness: 0.35 })
+    );
+    B.door.position.set(0, 1.08, HALF-0.12);
+    B.scene.add(B.door);
+    B.room = true;
+    B.scene.fog = new THREE.Fog(0x0b0b0e, 12, 26);
+    B.scene.background = new THREE.Color(0x0b0b0e);
 
     // Ambient + key lights
     B.scene.add(new THREE.AmbientLight(0x6b7280, 0.55));
@@ -2368,10 +2398,10 @@ window.showPanel = function(name, btn){
       var scale = 0.55 + Math.min(1.8, Math.log10(1 + coll * 1000) * 0.55);
       // Spiral / golden-angle topology on the bancada plane
       var angle = i * 2.399963229728653; // golden angle
-      var radius = 2.2 + Math.sqrt(i + 1) * 1.55;
+      var radius = Math.min(5.4, 1.6 + Math.sqrt(i + 1) * 1.05);
       var x = Math.cos(angle) * radius;
       var z = Math.sin(angle) * radius;
-      var y = 1.1 + (i % 5) * 0.15 + scale * 0.35;
+      var y = 0.55 + scale * 0.25;
 
       var group = new THREE.Group();
       group.position.set(x, y, z);
@@ -2627,7 +2657,8 @@ window.showPanel = function(name, btn){
         }
       });
     });
-    if (B.controls) B.controls.update();
+    if (window._bancadaMode !== 'fps' && B.controls) B.controls.update();
+    if (B.door){ var near = Math.abs(B.px)<0.95 && B.pz > (B.HALF||7.2)-1.35; B.door.rotation.y = near ? -0.35 : 0; }
     if (B.renderer && B.scene && B.camera) B.renderer.render(B.scene, B.camera);
   }
 
@@ -3562,84 +3593,190 @@ window.loadACBPanel=async function(){
 (function(){
   window._bancadaMode = 'orbit';
   window._selectedNft = null;
-  window.setBancadaMode = function(mode){
-    window._bancadaMode = mode === 'fps' ? 'fps' : 'orbit';
-    var lab=document.getElementById('bancadaModeLabel');
-    if(lab) lab.textContent = mode==='fps' ? 'Modo: 1ª pessoa (WASD + rato · Esc sai)' : 'Modo: órbita';
+  window._avatarId = null;
+  var keys = {};
+  var dragging = false, lx = 0, ly = 0;
+  var EYE = 1.62;
+
+  function Bref(){ return window.B; }
+
+  function accountKey(){
+    try{
+      if (typeof meAccount === 'function') { var a = meAccount(); if (a) return a; }
+    }catch(_){}
+    try{ return localStorage.getItem('sm_email') || localStorage.getItem('email') || 'conta'; }catch(_){ return 'conta'; }
+  }
+  function worldId(){
+    var el = document.getElementById('sbxWorld');
+    if (el && el.value.trim()) return el.value.trim();
+    try{ return localStorage.getItem('bancada_world_'+accountKey()) || 'cmn-lab-world'; }catch(_){ return 'cmn-lab-world'; }
+  }
+  function avatarStore(){
+    var k = 'nft_avatar_'+accountKey();
+    try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(_){ return null; }
+  }
+  function saveAvatar(av){
+    try{ localStorage.setItem('nft_avatar_'+accountKey(), JSON.stringify(av)); }catch(_){}
+    window._avatarId = av && av.id;
+  }
+
+  function hudFps(){
+    var lab = document.getElementById('bancadaModeLabel');
+    var hint = document.getElementById('bancadaLockHint');
+    var title = document.getElementById('bancadaHudTitle');
+    var meta = document.getElementById('bancadaHudMeta');
+    var av = avatarStore();
+    if (lab) lab.textContent = window._bancadaMode==='fps' ? 'Modo: 1ª pessoa · avatar' : 'Modo: órbita';
+    if (title) title.textContent = av ? av.name : 'Avatar';
+    if (meta) meta.textContent = window._bancadaMode==='fps'
+      ? ('WASD andar · rato olhar · E na porta → '+worldId())
+      : 'Órbita da sala · clique 1ª pessoa para entrar no avatar';
+    if (hint){
+      var locked = document.pointerLockElement === document.getElementById('bancadaCanvas');
+      hint.style.display = (window._bancadaMode==='fps' && !locked) ? 'flex' : 'none';
+    }
     var bo=document.getElementById('btnBancadaOrbit');
     var bf=document.getElementById('btnBancadaFps');
-    if(bo) bo.style.borderColor = mode==='orbit' ? 'var(--accent)' : 'var(--line2)';
-    if(bf) bf.style.borderColor = mode==='fps' ? 'var(--accent)' : 'var(--line2)';
-    try{
-      if(window.B && B.controls){
-        if(mode==='fps'){
-          B.controls.enabled = false;
-          var canvas=document.getElementById('bancadaCanvas');
-          if(canvas && canvas.requestPointerLock) canvas.requestPointerLock();
-        } else {
-          if(document.exitPointerLock) document.exitPointerLock();
-          B.controls.enabled = true;
-        }
+    if(bo) bo.style.borderColor = window._bancadaMode==='orbit' ? 'var(--accent)' : 'var(--line2)';
+    if(bf) bf.style.borderColor = window._bancadaMode==='fps' ? 'var(--accent)' : 'var(--line2)';
+  }
+
+  function enterFps(){
+    var b = Bref();
+    window._bancadaMode = 'fps';
+    if (b && b.controls) b.controls.enabled = false;
+    if (b){
+      b.px = b.px || 0; b.py = EYE; b.pz = (typeof b.pz==='number'? b.pz : 5.4);
+      if (b.camera){
+        b.yaw = b.yaw || 0;
+        b.pitch = b.pitch || 0;
       }
-    }catch(e){}
+    }
+    var canvas = document.getElementById('bancadaCanvas');
+    try{ if (canvas) { canvas.focus(); canvas.requestPointerLock && canvas.requestPointerLock(); } }catch(_){}
+    hudFps();
+  }
+
+  window.setBancadaMode = function(mode){
+    if (mode === 'fps') enterFps();
+    else {
+      window._bancadaMode = 'orbit';
+      try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
+      var b = Bref();
+      if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.2, 0); }
+      if (b && b.camera){ b.camera.position.set(0, 6.5, 11); }
+      hudFps();
+    }
   };
   window.resetBancadaCam = function(){
-    try{
-      if(document.exitPointerLock) document.exitPointerLock();
-      window._bancadaMode='orbit';
-      if(B && B.camera){ B.camera.position.set(0,9,16); B.camera.rotation.set(0,0,0); }
-      if(B && B.controls){ B.controls.enabled=true; B.controls.target.set(0,1.2,0); B.controls.update(); }
-      var lab=document.getElementById('bancadaModeLabel');
-      if(lab) lab.textContent='Modo: órbita';
-    }catch(e){}
+    var b = Bref();
+    window._bancadaMode = 'orbit';
+    try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
+    if (b){ b.px = 0; b.py = EYE; b.pz = 5.4; b.yaw = 0; b.pitch = 0; }
+    if (b && b.camera){ b.camera.position.set(0, 6.5, 11); b.camera.rotation.set(0,0,0); }
+    if (b && b.controls){ b.controls.enabled = true; b.controls.target.set(0, 1.2, 0); b.controls.update(); }
+    hudFps();
   };
-  // FPS movement loop
-  var keys={};
+
+  window.developAvatar = function(){
+    var name = (document.getElementById('sbxTitle')||{}).value || (accountKey()+' avatar');
+    var av = avatarStore() || { id: 'AVT-'+Math.random().toString(36).slice(2,8).toUpperCase(), name: name, kind: 'avatar', mode: 'static', world_id: worldId() };
+    av.name = name; av.kind = 'avatar'; av.mode = 'static'; av.world_id = worldId();
+    saveAvatar(av);
+    try{ localStorage.setItem('bancada_world_'+accountKey(), worldId()); }catch(_){}
+    hudFps();
+    enterFps();
+    var st = document.getElementById('bancadaHudMeta');
+    if (st) st.textContent = 'Avatar '+av.name+' · figura desta conta · porta '+worldId();
+  };
+
   window.addEventListener('keydown', function(e){
-    keys[e.code]=true;
-    if(e.code==='Escape'){ try{ document.exitPointerLock(); }catch(_){} window._bancadaMode='orbit'; if(B&&B.controls) B.controls.enabled=true; }
+    keys[e.code] = true;
+    if (e.code === 'Escape'){
+      try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
+    }
+    if (e.code === 'KeyE' && window._bancadaMode === 'fps'){
+      var b = Bref();
+      var HALF = (b && b.HALF) || 7.2;
+      if (b && Math.abs(b.px) < 0.95 && b.pz > HALF - 1.35){
+        var box = document.getElementById('bancadaWorldLoad');
+        var nm = document.getElementById('bancadaWorldName');
+        if (nm) nm.textContent = worldId();
+        if (box){ box.style.display = 'flex'; }
+      }
+    }
   });
-  window.addEventListener('keyup', function(e){ keys[e.code]=false; });
-  var yaw=0, pitch=0;
+  window.addEventListener('keyup', function(e){ keys[e.code] = false; });
+  window.addEventListener('blur', function(){ keys = {}; });
+
+  document.addEventListener('pointerlockchange', hudFps);
+
   document.addEventListener('mousemove', function(e){
-    if(window._bancadaMode!=='fps' || document.pointerLockElement!==document.getElementById('bancadaCanvas')) return;
-    yaw -= e.movementX * 0.0022;
-    pitch -= e.movementY * 0.0022;
-    pitch = Math.max(-1.4, Math.min(1.4, pitch));
+    if (window._bancadaMode !== 'fps') return;
+    var canvas = document.getElementById('bancadaCanvas');
+    var b = Bref(); if (!b) return;
+    var locked = document.pointerLockElement === canvas;
+    if (!locked && !dragging) return;
+    var dx = locked ? e.movementX : (e.clientX - lx);
+    var dy = locked ? e.movementY : (e.clientY - ly);
+    if (!locked){ lx = e.clientX; ly = e.clientY; }
+    b.yaw -= dx * 0.0022;
+    b.pitch -= dy * 0.0022;
+    b.pitch = Math.max(-1.2, Math.min(1.2, b.pitch));
   });
-  (function fpsLoop(){
-    requestAnimationFrame(fpsLoop);
-    if(window._bancadaMode!=='fps' || !window.B || !B.camera) return;
-    var speed = keys['ShiftLeft']||keys['ShiftRight'] ? 0.22 : 0.1;
-    var cam=B.camera;
-    cam.rotation.order='YXZ';
-    cam.rotation.y=yaw; cam.rotation.x=pitch;
-    var forward=new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-    var right=new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-    if(keys['KeyW']) cam.position.addScaledVector(forward, speed);
-    if(keys['KeyS']) cam.position.addScaledVector(forward, -speed);
-    if(keys['KeyA']) cam.position.addScaledVector(right, -speed);
-    if(keys['KeyD']) cam.position.addScaledVector(right, speed);
-    if(keys['KeyQ']||keys['Space']) cam.position.y += speed;
-    if(keys['KeyE']||keys['ControlLeft']) cam.position.y -= speed;
-    cam.position.y = Math.max(0.4, Math.min(24, cam.position.y));
+
+  (function bindDrag(){
+    function down(e){
+      if (window._bancadaMode !== 'fps') return;
+      dragging = true; lx = e.clientX; ly = e.clientY;
+    }
+    function up(){ dragging = false; }
+    document.addEventListener('mousedown', down);
+    document.addEventListener('mouseup', up);
   })();
 
-  window.openNftEdit = function(nft){
+  (function fpsLoop(){
+    requestAnimationFrame(fpsLoop);
+    var b = Bref();
+    if (window._bancadaMode !== 'fps' || !b || !b.camera || typeof THREE === 'undefined') return;
+    var dt = 0.016;
+    var speed = (keys['ShiftLeft']||keys['ShiftRight'] ? 4.2 : 2.4) * dt;
+    var yaw = b.yaw || 0;
+    var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    var rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    if (keys['KeyW']||keys['ArrowUp']) { b.px += fx*speed; b.pz += fz*speed; }
+    if (keys['KeyS']||keys['ArrowDown']) { b.px -= fx*speed; b.pz -= fz*speed; }
+    if (keys['KeyA']||keys['ArrowLeft']) { b.px -= rx*speed; b.pz -= rz*speed; }
+    if (keys['KeyD']||keys['ArrowRight']) { b.px += rx*speed; b.pz += rz*speed; }
+    var m = (b.HALF || 7.2) - 0.45;
+    b.px = Math.max(-m, Math.min(m, b.px||0));
+    b.pz = Math.max(-m, Math.min(m, b.pz||0));
+    b.py = EYE;
+    b.camera.position.set(b.px, b.py, b.pz);
+    b.camera.rotation.order = 'YXZ';
+    b.camera.rotation.y = yaw;
+    b.camera.rotation.x = b.pitch || 0;
+    window.__controlsTest = {
+      getYaw: function(){ return b.yaw||0; },
+      getSpeed: function(){ return keys['KeyW'] ? 1 : 0; },
+      setKeys: function(codes){ keys = {}; (codes||[]).forEach(function(c){ keys[c]=true; }); }
+    };
+  })();
+
+  window.openNftEdit = window.openNftEdit || function(nft){
     window._selectedNft = nft || window._selectedNft;
     var box=document.getElementById('bancadaEditBox');
     if(!box || !window._selectedNft) return;
     var n=window._selectedNft;
     var meta={};
     try{ meta=typeof n.metadata_json==='string'? JSON.parse(n.metadata_json): (n.metadata_json||{}); }catch(_){}
-    document.getElementById('nftEditName').value = n.name || meta.name || '';
-    document.getElementById('nftEditDesc').value = n.description || meta.description || '';
-    document.getElementById('nftEditMode').value = n.mode || meta.mode || 'dynamic';
-    document.getElementById('nftEditWorld').value = n.world_id || meta.world_id || 'cmn-lab-world';
+    var ne=document.getElementById('nftEditName'); if(ne) ne.value = n.name || meta.name || '';
+    var de=document.getElementById('nftEditDesc'); if(de) de.value = n.description || meta.description || '';
+    var mo=document.getElementById('nftEditMode'); if(mo) mo.value = n.mode || meta.mode || 'dynamic';
+    var wo=document.getElementById('nftEditWorld'); if(wo) wo.value = n.world_id || meta.world_id || worldId();
     box.style.display='block';
-    document.getElementById('nftEditStatus').textContent='';
   };
-  window.closeNftEdit = function(){
+  window.closeNftEdit = window.closeNftEdit || function(){
     var box=document.getElementById('bancadaEditBox');
     if(box) box.style.display='none';
   };
@@ -3656,54 +3793,36 @@ window.loadACBPanel=async function(){
     };
     if(st) st.textContent='A guardar…';
     try{
-      var r=await fetch('/api/v1/token/nft/update',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      var r=await fetch('/api/v1/token/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
       if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
       var j={}; try{ j=await r.json(); }catch(_){}
-      if(r.ok){
-        if(st) st.textContent='Alterações guardadas.';
-        n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
-        try{ if(typeof loadSandboxBench==='function') loadSandboxBench(); }catch(_){}
-      } else {
-        // Local optimistic update when API lacks update route
-        n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
-        try{ localStorage.setItem('nft_edit_'+n.id, JSON.stringify(body)); }catch(_){}
-        if(st) st.textContent='Guardado na sessão'+(j.error?(' · '+j.error):' (API update indisponível).');
-        var title=document.getElementById('bancadaHudTitle');
-        if(title) title.textContent=body.name||n.id;
-      }
-    }catch(e){
-      if(st) st.textContent=String(e.message||e);
-    }
+      n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
+      try{ localStorage.setItem('nft_edit_'+n.id, JSON.stringify(body)); }catch(_){}
+      if(st) st.textContent=r.ok?'Alterações guardadas.':'Guardado na sessão.';
+    }catch(e){ if(st) st.textContent=String(e.message||e); }
   };
   window.promoteNftToWorld = async function(){
     var st=document.getElementById('nftEditStatus');
     var n=window._selectedNft;
     if(!n){ if(st) st.textContent='Sem NFT seleccionado.'; return; }
-    var world=document.getElementById('nftEditWorld').value.trim()||n.world_id||'cmn-lab-world';
-    var body={ id:n.id, world_id:world, action:'promote_open_world', sandbox_id:n.sandbox_id };
-    if(st) st.textContent='A enviar para '+world+'…';
-    try{
-      var r=await fetch('/api/v1/token/nft/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
-      if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
-      if(r.ok){ if(st) st.textContent='No mundo aberto '+world+'.'; n.world_id=world; }
-      else {
-        try{ localStorage.setItem('nft_world_'+n.id, world); }catch(_){}
-        n.world_id=world;
-        if(st) st.textContent='Marcado para mundo '+world+' (sessão).';
-      }
-    }catch(e){ if(st) st.textContent=String(e.message||e); }
+    var world=(document.getElementById('nftEditWorld')||{}).value || n.world_id || 'cmn-lab-world';
+    world=String(world).trim();
+    n.world_id=world;
+    try{ localStorage.setItem('nft_world_'+n.id, world); localStorage.setItem('bancada_world_'+accountKey(), world); }catch(_){}
+    if(st) st.textContent='Marcado para o mundo '+world+'.';
   };
 
-  // Hook detail actions when NFT selected — patch fill of bancadaDetailActions via MutationObserver-ish: wrap
-  var _origDetail = null;
   window.attachNftDetailActions = function(nft){
     window._selectedNft = nft;
     var act=document.getElementById('bancadaDetailActions');
     if(!act) return;
-    act.innerHTML=
+    act.innerHTML =
       '<button type="button" onclick="openNftEdit()" style="padding:.35rem .65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Editar objecto</button>'+
       '<button type="button" onclick="openNftEdit();promoteNftToWorld()" style="padding:.35rem .65rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Enviar ao mundo</button>';
   };
+
+  if (document.readyState === 'complete') hudFps();
+  else window.addEventListener('load', hudFps);
 })();
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e846d979ba0cf8',t:'MTc4NzMwMTAzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0f088bf7cf2c6',t:'MTc4NzM5MTg3Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
