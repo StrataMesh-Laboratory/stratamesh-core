@@ -165,7 +165,9 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)">Bancada CGU</button>
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)">DAO</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)">APS</button>
-    <button type="button" data-panel="acb" onclick="showPanel('acb',this)">SCA</button>
+    <button type="button" data-panel="acb" data-user="1" onclick="showPanel('acb',this)">SCA</button>
+    <button type="button" data-panel="sca-self" data-sca="1" onclick="showPanel('sca-self',this)" style="display:none">O meu SCA</button>
+    <button type="button" data-panel="sca-bancada" data-sca="1" onclick="showPanel('sandbox',this)" style="display:none">Bancada SCA</button>
     <button type="button" data-panel="iot" onclick="showPanel('iot',this)">IoT</button>
     <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)">Diagnóstico</button>
     <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orquestrador</button>
@@ -282,7 +284,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-sandbox">
-    <h3>Bancada CGU · Espaço NFT</h3>
+    <h3 id="bancadaPanelTitle">Bancada CGU · Espaço NFT</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Sandbox na primeira pessoa: cada NFT é um objecto espacial alterável. Posse = frações de colateral STRATA. Orbitar ou entrar em modo livre (WASD + rato). Objectos podem ser editados aqui e enviados para mundos abertos.</p>
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;align-items:center">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
@@ -370,7 +372,25 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div id="spaList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem"><p style="color:var(--muted)">A carregar…</p></div>
   </div>
 
-  <div class="panel" id="panel-acb">
+  
+  <div class="panel" id="panel-sca-self">
+    <h3>Espaço do SCA · auto-gestão</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Painel da identidade deste agente. Não é um ecrã para utilizadores controlarem SCA — é o posto de trabalho do próprio SCA.</p>
+    <div id="scaSelfIdentity" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:1rem;font-size:.85rem;line-height:1.5;color:var(--muted)">A carregar identidade…</div>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="scaSelfPds">—</div><div class="label">PdS</div></div>
+      <div class="stat-card"><div class="value" id="scaSelfKpi">—</div><div class="label">KPI</div></div>
+      <div class="stat-card"><div class="value" id="scaSelfNfts">—</div><div class="label">NFT criados</div></div>
+      <div class="stat-card"><div class="value" id="scaSelfStatus">—</div><div class="label">Estado</div></div>
+    </div>
+    <h4 style="margin:0 0 .5rem;font-size:.9rem">KPIs do cargo</h4>
+    <div id="scaSelfKpis" style="margin-bottom:1rem"></div>
+    <h4 style="margin:0 0 .5rem;font-size:.9rem">NFT criados por este SCA</h4>
+    <div id="scaSelfNftList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.65rem"><p style="color:var(--muted)">—</p></div>
+    <p style="margin-top:1rem;font-size:.78rem;color:var(--muted)">Bancada: apenas objectos NFT desta conta. <button type="button" onclick="showPanel('sandbox',document.querySelector('[data-panel=sandbox]'))" style="padding:.3rem .6rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Abrir bancada SCA</button></p>
+  </div>
+
+<div class="panel" id="panel-acb">
     <h3>SCA · identidade e cargos</h3>
     <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Cada SCA tem identidade pessoal (agente) e um cargo no nó. PdS sustenta o runtime; KPIs medem o cumprimento do cargo.</p>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1rem">
@@ -590,6 +610,61 @@ function isStaffUser(){
   }catch(e){}
   return false;
 }
+function isScaUser(){
+  try{
+    if(currentUser){
+      var t=String(currentUser.type||currentUser.auth_type||currentUser.role||'').toLowerCase();
+      if(t==='sca'||t==='agent'||t==='acb') return true;
+      var id=String(currentUser.sca_id||currentUser.id||currentUser.email||currentUser.username||'');
+      if(/^SCA-/i.test(id)) return true;
+    }
+    if(localStorage.getItem('auth_type')==='sca') return true;
+    var em=localStorage.getItem('sm_email')||'';
+    if(/^SCA-/i.test(em)) return true;
+  }catch(e){}
+  return false;
+}
+function accountKeys(){
+  var keys=[], seen={};
+  function add(x){ if(!x) return; var s=String(x); if(seen[s]) return; if(s.indexOf('FOG-NODE')===0) return; seen[s]=1; keys.push(s); }
+  try{
+    if(currentUser){
+      add(currentUser.strata_address); add(currentUser.wallet); add(currentUser.sca_id);
+      add(currentUser.id); add(currentUser.email); add(currentUser.username); add(currentUser.wallet_account);
+    }
+  }catch(_){}
+  try{
+    ['sm_email','email','strata_address','sm_wallet','sca_id'].forEach(function(k){ add(localStorage.getItem(k)); });
+  }catch(_){}
+  try{ if(typeof meAccount==='function') add(meAccount()); }catch(_){}
+  return keys;
+}
+function ownsNft(n){
+  if(!n) return false;
+  var keys=accountKeys();
+  if(!keys.length) return false;
+  var owners=[n.owner, n.created_by, n.author];
+  try{
+    var meta=typeof n.metadata_json==='string'?JSON.parse(n.metadata_json):(n.metadata_json||{});
+    if(meta.authors&&meta.authors.length){ meta.authors.forEach(function(a){ owners.push(a.id||a); }); }
+    if(meta.owner) owners.push(meta.owner);
+  }catch(_){}
+  var fr=((n.valuation||{}).possession||{}).fractions||[];
+  fr.forEach(function(f){ owners.push(f.holder); });
+  return owners.some(function(o){ return o && keys.indexOf(String(o))>=0; });
+}
+function createdByMe(n){
+  if(!n) return false;
+  var keys=accountKeys();
+  if(!keys.length) return false;
+  var creators=[n.owner, n.created_by];
+  try{
+    var meta=typeof n.metadata_json==='string'?JSON.parse(n.metadata_json):(n.metadata_json||{});
+    if(meta.authors&&meta.authors[0]) creators.push(meta.authors[0].id||meta.authors[0]);
+  }catch(_){}
+  return creators.some(function(o){ return o && keys.indexOf(String(o))>=0; });
+}
+window.NFT_MIN_COLLATERAL = 0.1;
 function clearanceRank(c){
   var m={public:0,internal:1,confidential:2,secret:3,top_secret:4};
   return m[String(c||'public').toLowerCase().replace(/-/g,'_')]||0;
@@ -618,6 +693,7 @@ function currentClearance(){
 /** Pessoal = todas as funções do comum + extras; extras filtrados por clearance da conta */
 function applyNavPermissions(){
   var staff=isStaffUser();
+  var sca=isScaUser();
   var cl=clearanceRank(currentClearance());
   var nav=document.getElementById('mainNav');
   if(!nav) return;
@@ -627,14 +703,27 @@ function applyNavPermissions(){
     if(ok&&need) ok=cl>=clearanceRank(need);
     btn.style.display=ok?'':'none';
   });
-  // Orquestrador: comum pode ver (read); run/sys só staff high clearance — UI note
+  nav.querySelectorAll('button[data-sca="1"]').forEach(function(btn){
+    btn.style.display=sca?'':'none';
+  });
+  nav.querySelectorAll('button[data-user="1"]').forEach(function(btn){
+    btn.style.display=(!sca || staff)?'':'none';
+  });
+  // SCA workspace: hide user-control-of-SCA roster; show self panels
+  nav.querySelectorAll('button[data-panel="acb"]').forEach(function(btn){
+    if(sca && !staff) btn.style.display='none';
+  });
   var hint=document.getElementById('panelModeHint');
   if(hint){
     if(staff){
-      hint.textContent='Painel de pessoal · clearance '+(currentClearance()||'—')+' · base comum + capacidades administrativas';
+      hint.textContent='Painel de pessoal · clearance '+(currentClearance()||'—');
+      hint.style.color='var(--accent)';
+    }else if(sca){
+      var id=(currentUser&&(currentUser.identity_name||currentUser.sca_id||currentUser.id))||'SCA';
+      hint.textContent='Espaço SCA · '+id+' · auto-gestão (não é painel de controlo por utilizadores)';
       hint.style.color='var(--accent)';
     }else{
-      hint.textContent='Painel de utilizador comum · carteira, ágora, bancada, SCA · clearance '+(currentClearance()||'public');
+      hint.textContent='Conta de utilizador · carteira e bancada desta conta · clearance '+(currentClearance()||'internal');
       hint.style.color='var(--muted)';
     }
   }
@@ -702,6 +791,13 @@ function showPortal(user){
     var pr=document.getElementById('profileRole'); if(pr)pr.textContent=(currentUser&&currentUser.role)||'--';
     var pc=document.getElementById('profileClearance'); if(pc)pc.textContent=currentClearance();
     try{ loadWallet(); }catch(e){}
+    try{
+      if(isScaUser() && !isStaffUser()){
+        var btn=document.querySelector('[data-panel="sca-self"]');
+        if(btn) showPanel('sca-self', btn);
+        else if(typeof loadScaSelfPanel==='function') loadScaSelfPanel();
+      }
+    }catch(e){}
   }catch(ex){ console.error('showPortal',ex); try{showToast(String(ex.message||ex),'error');}catch(_){} }
 }
 
@@ -2460,26 +2556,72 @@ window.showPanel = function(name, btn){
     if (!box || !body || !actions) return;
     box.style.display = 'block';
     var fracs = (v.possession && v.possession.fractions) || [];
-    var mode = String(v.mode || nft.mode || 'static');
-    var html = '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Nó seleccionado</div>';
-    html += '<div style="margin-top:.35rem;font-size:1.05rem">' + esc2(nft.name||nft.id) + '</div>';
-    html += '<div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">' + esc2(nft.id) + '</div>';
-    html += '<div style="margin-top:.65rem;font-size:.82rem;line-height:1.5">Colateral total <b>' + Number(v.collateral_strata||0).toFixed(6) + '</b> · Mercado <b>' + (v.market_strata==null?'UNAVAILABLE':Number(v.market_strata).toFixed(4)) + '</b> · Modo <b>' + esc2(mode) + '</b></div>';
+    var mode = String(v.mode || nft.mode || 'static').toLowerCase();
+    var col = Number(v.collateral_strata != null ? v.collateral_strata : nft.collateral_strata || 0);
+    var burn = Number(v.burn_rate_per_hour != null ? v.burn_rate_per_hour : nft.burn_rate_per_hour || 0);
+    var burned = Number(v.total_resource_burned != null ? v.total_resource_burned : nft.total_resource_burned || 0);
+    var minC = window.NFT_MIN_COLLATERAL || 0.1;
+    var meta = {};
+    try{ meta = typeof nft.metadata_json==='string' ? JSON.parse(nft.metadata_json) : (nft.metadata_json||{}); }catch(_){}
+    var isDynamic = mode === 'dynamic';
+    var isStatic = mode === 'static' || mode === 'suspended_static' || !isDynamic;
+    var belowMin = col < minC;
+    var modeNote = '';
+    if(isStatic && mode === 'suspended_static'){
+      modeNote = 'Suspenso a estático: colateral abaixo do mínimo ('+minC+' STRATA). Sem burn até top-up pelo dono.';
+    } else if(isStatic){
+      modeNote = 'Estático: sem burn de colateral STRATA. Forma fixa na bancada; sem custo contínuo de recursos.';
+    } else {
+      modeNote = 'Dinâmico: burn_rate '+burn+' STRATA/h do colateral (= custo de recursos para manter dinamicidade). Se colateral &lt; '+minC+', regressa a estático até injecção de colateral.';
+    }
+    var html = '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Objecto NFT</div>';
+    html += '<div style="margin-top:.35rem;font-size:1.05rem;color:var(--fg)">' + esc2(nft.name||nft.id) + '</div>';
+    html += '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem"><code>' + esc2(nft.id) + '</code></div>';
+    if(nft.description || meta.description){
+      html += '<p style="margin:.5rem 0 0;font-size:.82rem;color:var(--muted);line-height:1.45">' + esc2(nft.description||meta.description) + '</p>';
+    }
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.5rem;margin-top:.75rem">';
+    html += '<div class="stat-card" style="padding:.55rem .65rem"><div class="label">Modo</div><div class="value" style="font-size:.95rem">'+esc2(mode)+'</div></div>';
+    html += '<div class="stat-card" style="padding:.55rem .65rem"><div class="label">Colateral</div><div class="value" style="font-size:.95rem">'+col.toFixed(6)+'</div></div>';
+    html += '<div class="stat-card" style="padding:.55rem .65rem"><div class="label">Mínimo</div><div class="value" style="font-size:.95rem">'+minC.toFixed(1)+'</div></div>';
+    html += '<div class="stat-card" style="padding:.55rem .65rem"><div class="label">Burn / h</div><div class="value" style="font-size:.95rem">'+(isDynamic?burn:'0')+'</div></div>';
+    html += '</div>';
+    html += '<p style="margin:.65rem 0 0;font-size:.75rem;color:var(--muted);line-height:1.45">'+modeNote+'</p>';
+    if(belowMin && isDynamic){
+      html += '<p style="margin:.4rem 0 0;font-size:.75rem;color:var(--accent)">Colateral sob o mínimo — deve passar a estático até top-up ≥ '+minC+'.</p>';
+    }
+    html += '<div style="margin-top:.75rem;font-size:.78rem;line-height:1.55;color:var(--muted)">';
+    html += '<div>Mercado: <b style="color:var(--fg)">'+(v.market_strata==null?'UNAVAILABLE':Number(v.market_strata).toFixed(4)+' STRATA')+'</b> · distinto do colateral</div>';
+    html += '<div>Queimado acumulado: <b style="color:var(--fg)">'+burned.toFixed(6)+'</b>'+(nft.last_burn_at||v.last_burn_at?(' · último '+esc2(String(nft.last_burn_at||v.last_burn_at).slice(0,19))):'')+'</div>';
+    html += '<div>Dono / criador: <code>'+esc2(nft.owner||'—')+'</code> · sandbox <code>'+esc2(nft.sandbox_id||'—')+'</code></div>';
+    html += '<div>Mundo: <code>'+esc2(nft.world_id||meta.world_id||'—')+'</code> · role <code>'+esc2(nft.role||meta.role||nft.asset_type||'—')+'</code></div>';
+    html += '<div>Estado: <b style="color:var(--fg)">'+esc2(nft.status||'active')+'</b> · form '+(esc2(meta.form||'non_fungible'))+' · standard '+(esc2(meta.standard||'strata-nft'))+'</div>';
+    if(meta.attributes && typeof meta.attributes==='object'){
+      var attrs=Object.keys(meta.attributes);
+      if(attrs.length){
+        html += '<div style="margin-top:.35rem">Atributos: '+attrs.map(function(k){ return esc2(k)+'='+esc2(String(meta.attributes[k])); }).join(' · ')+'</div>';
+      }
+    }
+    html += '</div>';
     if (fracs.length) {
-      html += '<div style="margin-top:.5rem;font-size:.75rem">Titulares (posse = colateral):</div>';
+      html += '<div style="margin-top:.65rem;font-size:.75rem;color:var(--muted)">Posse = frações de colateral (não preço de mercado)</div>';
       fracs.forEach(function(f){
-        html += '<div style="display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px solid var(--line);padding:.2rem 0"><span>' + esc2(f.holder) + '</span><span>' + Number(f.strata_units||0).toFixed(6) + ' · ' + Number(f.share_pct||0).toFixed(1) + '%</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px solid var(--line);padding:.25rem 0"><span>' + esc2(f.holder) + '</span><span>' + Number(f.strata_units||0).toFixed(6) + ' · ' + Number(f.share_pct||0).toFixed(1) + '%</span></div>';
       });
+      html += '<div style="margin-top:.35rem;font-size:.75rem;color:var(--muted)">A sua fatia: <b style="color:var(--fg)">'+Number(myFrac||0).toFixed(6)+'</b></div>';
     }
     body.innerHTML = html;
     var btns = '';
-    btns += '<button onclick="topupNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Top-up</button>';
-    if (myFrac > 0) btns += '<button onclick="sellFraction(\''+esc2(nft.id)+'\','+myFrac+')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Vender fração</button>';
-    if (mode !== 'dynamic') btns += '<button onclick="setNftMode(\''+esc2(nft.id)+'\',\'dynamic\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">→ Dinâmico</button>';
-    if (mode === 'dynamic') btns += '<button onclick="setNftMode(\''+esc2(nft.id)+'\',\'static\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">→ Estático</button>';
-    if (mode === 'dynamic') btns += '<button onclick="tickNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Tick burn</button>';
-    if (v.redeemable && nft.status !== 'redeemed' && myFrac > 0) btns += '<button onclick="redeemNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Resgatar fração</button>';
+    btns += '<button type="button" onclick="openNftEdit && openNftEdit()" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Editar</button>';
+    btns += '<button type="button" onclick="topupNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Top-up colateral</button>';
+    if (myFrac > 0) btns += '<button type="button" onclick="sellFraction(\''+esc2(nft.id)+'\','+myFrac+')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Vender fração</button>';
+    if (!isDynamic) btns += '<button type="button" onclick="setNftMode(\''+esc2(nft.id)+'\',\'dynamic\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">→ Dinâmico</button>';
+    if (isDynamic) btns += '<button type="button" onclick="setNftMode(\''+esc2(nft.id)+'\',\'static\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">→ Estático</button>';
+    if (isDynamic) btns += '<button type="button" onclick="tickNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Tick burn</button>';
+    if (typeof promoteNftToWorld==='function') btns += '<button type="button" onclick="openNftEdit();promoteNftToWorld()" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Mundo aberto</button>';
+    if (v.redeemable && nft.status !== 'redeemed' && myFrac > 0) btns += '<button type="button" onclick="redeemNft(\''+esc2(nft.id)+'\')" style="padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Resgatar</button>';
     actions.innerHTML = btns;
+    try{ if(typeof attachNftDetailActions==='function') attachNftDetailActions(nft); }catch(_){}
   }
 
   function onPointer(ev){
@@ -2593,31 +2735,44 @@ window.showPanel = function(name, btn){
 
   window.loadSandboxBench = async function(){
     var meta = document.getElementById('bancadaHudMeta');
-    if (meta) meta.textContent = 'A sincronizar topologia NFT…';
+    if (meta) meta.textContent = 'A sincronizar NFT desta conta…';
     try{
       var [sb, nf] = await Promise.all([
         fetch('/api/v1/sandbox/list',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
-        fetch('/api/v1/token/list?limit=40',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
+        fetch('/api/v1/token/list?limit=80',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
       ]);
       var sandboxes = sb.sandboxes || [];
-      var nfts = nf.nfts || [];
+      var all = nf.nfts || [];
+      // Bancada: só NFT criados / detidos pela conta actual (user ou SCA) — nunca listagem global aleatória
+      var nfts = all.filter(function(n){
+        if(typeof createdByMe==='function' && createdByMe(n)) return true;
+        if(typeof ownsNft==='function' && ownsNft(n)) return true;
+        return false;
+      });
+      // Staff may toggle full lab view via localStorage
+      try{
+        if(isStaffUser() && localStorage.getItem('bancada_show_all')==='1') nfts = all;
+      }catch(_){}
       var sc = document.getElementById('sbxCount');
       if (sc) sc.textContent = String(sandboxes.length);
+      var title = document.getElementById('bancadaHudTitle');
+      if(title) title.textContent = isScaUser() ? 'Bancada SCA' : 'Bancada da conta';
       if (!initBancada3D()) {
-        // fallback text list
         var el = document.getElementById('sandboxBench');
         if (el) {
           el.style.display = 'block';
           el.innerHTML = nfts.map(function(n){
             var v=n.valuation||{};
-            return '<div class="card" style="margin:.5rem 0;padding:.75rem">'+esc2(n.name||n.id)+' · col '+Number(v.collateral_strata||0).toFixed(4)+'</div>';
-          }).join('') || '<p style="color:var(--muted)">Sem NFT</p>';
+            var mode=String(v.mode||n.mode||'static');
+            var col=Number(v.collateral_strata||n.collateral_strata||0);
+            return '<div class="card" style="margin:.5rem 0;padding:.75rem"><b>'+esc2(n.name||n.id)+'</b> · '+esc2(mode)+' · col '+col.toFixed(4)+(col<(window.NFT_MIN_COLLATERAL||0.1)?' · sob mínimo':'')+'</div>';
+          }).join('') || '<p style="color:var(--muted)">Sem NFT criados por esta conta.</p>';
         }
         return;
       }
       buildTopology(nfts);
-      if (meta && !nfts.length) meta.textContent = 'Espaço vazio — crie o primeiro nó NFT.';
-      else if (meta && !B.selected) meta.textContent = nfts.length + ' nós na topologia. Clique para inspeccionar.';
+      if (meta && !nfts.length) meta.textContent = 'Sem NFT desta conta — crie objectos na bancada.';
+      else if (meta && !B.selected) meta.textContent = nfts.length + ' objecto(s) desta conta · estático = sem burn · dinâmico = burn_rate do colateral';
     }catch(e){
       if (meta) meta.textContent = String(e.message||e);
     }
@@ -3075,7 +3230,80 @@ var nftEl=document.getElementById('walletNftList');
     }catch(e){ var el=document.getElementById('spaList'); if(el) el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
   };
 
-  window.loadACBPanel=async function(){
+  
+window.loadScaSelfPanel = async function(){
+  var box=document.getElementById('scaSelfIdentity');
+  var list=document.getElementById('scaSelfNftList');
+  var kpis=document.getElementById('scaSelfKpis');
+  var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+  if(!isScaUser() && !isStaffUser()){
+    if(box) box.textContent='Esta secção é o posto de trabalho de um SCA autenticado.';
+    return;
+  }
+  try{
+    var id=null;
+    try{ id=meAccount(); }catch(_){}
+    if(currentUser) id=currentUser.sca_id||currentUser.id||currentUser.email||id;
+    var bp=null;
+    try{
+      var rb=await fetch('https://stratamesh-sca-ml.stratamesh.workers.dev/blueprint/list',{signal:AbortSignal.timeout(10000)});
+      if(rb.ok){
+        var jb=await rb.json();
+        var arr=jb.blueprints||[];
+        bp=arr.find(function(b){ return String(b.sca_id)===String(id)||String(b.wallet_account)===String(id)||String(b.identity_name)===String((currentUser&&currentUser.identity_name)||''); })||null;
+      }
+    }catch(_){}
+    var name=(bp&&bp.identity_name)||(currentUser&&(currentUser.identity_name||currentUser.name))||id;
+    var appt=(bp&&bp.appointment)||(currentUser&&currentUser.appointment)||(currentUser&&currentUser.role)||'SCA';
+    var st=(bp&&bp.status)||(currentUser&&currentUser.status)||'ACTIVE';
+    var pds=(bp&&bp.pds!=null)?bp.pds:(currentUser&&currentUser.pds);
+    var skills=(bp&&bp.skills)||[];
+    var wallet=(bp&&bp.wallet_account)||id;
+    if(box){
+      box.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Identidade do agente</div>'+
+        '<div style="color:var(--fg);font-size:1.05rem"><strong>'+esc(name)+'</strong></div>'+
+        '<div style="margin-top:.35rem">ID <code>'+esc(String(id))+'</code> · Conta <code>'+esc(String(wallet))+'</code></div>'+
+        '<div style="margin-top:.25rem">Cargo no nó: <strong>'+esc(String(appt))+'</strong> · '+esc(String(st))+'</div>'+
+        '<div style="margin-top:.25rem;color:var(--muted)">Skills: '+(skills.length?skills.map(esc).join(', '):'—')+'</div>';
+    }
+    set('scaSelfPds', pds!=null?String(pds):'—');
+    set('scaSelfStatus', String(st));
+    // KPIs lightweight from appointment
+    var kpiItems=[];
+    var ap=String(appt).toUpperCase();
+    if(ap.indexOf('ORCH')>=0) kpiItems=[{k:'Decisões de malha',v:'operacional'},{k:'Serviços agente',v:'—'},{k:'PdS',v:pds}];
+    else if(ap.indexOf('DAG')>=0) kpiItems=[{k:'Tips / âncoras',v:'operacional'},{k:'PdS',v:pds}];
+    else if(ap.indexOf('SEC')>=0) kpiItems=[{k:'Probes',v:'pass'},{k:'PdS',v:pds}];
+    else kpiItems=[{k:'PdS',v:pds},{k:'Estado',v:st}];
+    var score= /active/i.test(String(st))?80:40;
+    set('scaSelfKpi', String(score));
+    if(kpis){
+      kpis.innerHTML=kpiItems.map(function(it){
+        return '<div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.8rem"><span style="color:var(--muted)">'+esc(String(it.k))+'</span><span>'+esc(String(it.v))+'</span></div>';
+      }).join('');
+    }
+    // Own NFTs
+    var nf=await fetch('/api/v1/token/list?limit=80',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};});
+    var mine=(nf.nfts||[]).filter(function(n){ return createdByMe(n)||ownsNft(n); });
+    set('scaSelfNfts', String(mine.length));
+    if(list){
+      if(!mine.length) list.innerHTML='<p style="color:var(--muted);font-size:.82rem">Ainda sem NFT criados por este SCA.</p>';
+      else list.innerHTML=mine.map(function(n){
+        var v=n.valuation||{};
+        var mode=String(v.mode||n.mode||'static');
+        var col=Number(v.collateral_strata||n.collateral_strata||0);
+        var burn=Number(v.burn_rate_per_hour||n.burn_rate_per_hour||0);
+        return '<div style="padding:.75rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.8rem">'+
+          '<div style="color:var(--fg)"><strong>'+esc(n.name||n.id)+'</strong></div>'+
+          '<div style="margin-top:.25rem;color:var(--muted)"><code>'+esc(n.id)+'</code></div>'+
+          '<div style="margin-top:.35rem">'+esc(mode)+' · col '+col.toFixed(4)+' · min 0.1'+(mode==='dynamic'?(' · burn '+burn+'/h'):' · sem burn')+'</div></div>';
+      }).join('');
+    }
+  }catch(e){
+    if(box) box.textContent=String(e.message||e);
+  }
+};
+window.loadACBPanel=async function(){
     var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
     var el=document.getElementById('acbList');
     var roleBox=document.getElementById('acbNodeRole');
@@ -3345,7 +3573,7 @@ var nftEl=document.getElementById('walletNftList');
 
   var map={
     agora:loadAgoraPanel, economy:loadEconomyPanel, dao:loadDAOPanel, spa:loadSPAPanel,
-    acb:loadACBPanel, holons:loadHolonsPanel, users:loadUsersPanel, system:loadSystemPanel,
+    acb:loadACBPanel, 'sca-self':loadScaSelfPanel, holons:loadHolonsPanel, users:loadUsersPanel, system:loadSystemPanel,
     iot:loadIotPanel, clp:loadClpPanel, diagnostics:runDiagnosticsPanel,
     wallet:function(){ if(typeof loadWallet==='function') loadWallet(); },
     kyc:function(){ if(typeof loadKycQueue==='function') loadKycQueue(); },
