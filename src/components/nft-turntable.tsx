@@ -25,15 +25,15 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
       if (dead || !host.current) return;
       const stage = host.current;
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xfff6e4);
-      const camera = new THREE.PerspectiveCamera(38, 1, 0.08, 20);
-      camera.position.set(0, 1.15, 3.2);
+      scene.background = new THREE.Color(0xb08958);
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.08, 20);
+      camera.position.set(1.2, 1.15, 2.05);
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) {
         (renderer as { outputColorSpace: string }).outputColorSpace = THREE.SRGBColorSpace;
       }
-      renderer.setClearColor(0xfff6e4, 1);
+      renderer.setClearColor(0xb08958, 1);
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       renderer.domElement.style.touchAction = "none";
@@ -63,16 +63,18 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
         hips.position.y = 0.74;
         const shirt = map(TEX + "shirt.jpg", 3, 3);
         const pants = map(TEX + "pants.jpg", 2, 2);
-        const dark = map(TEX + "wood-dark.jpg", 1, 1);
-        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.26, 4, 10), toon(0xffffff, shirt));
+        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.26, 4, 10), toon(0xf2ebe3, shirt));
         torso.position.y = 0.28;
         const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), toon(0xffffff, pants));
         pelvis.scale.set(1.15, 0.7, 0.95);
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 32, 24), toon(0xc9a07e));
         head.position.y = 0.62;
-        const hair = new THREE.Mesh(new THREE.SphereGeometry(0.195, 12, 10), toon(0x1a120c, dark));
-        hair.position.set(0, 0.72, -0.07);
-        hair.scale.set(1.08, 0.66, 1.12);
+        const hair = new THREE.Mesh(
+          new THREE.SphereGeometry(0.205, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.56),
+          toon(0x1a1008),
+        );
+        hair.rotation.x = 0.48;
+        hair.position.set(0, 0.695, -0.035);
         hips.add(pelvis, torso, head, hair);
         function limb(x: number, y: number, r: number, len: number, tex: InstanceType<typeof THREE.Texture>) {
           const g = new THREE.Group();
@@ -102,9 +104,12 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
             mat.needsUpdate = true;
           });
         }
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(1.6, 24), toon(0x8a5a28));
+        floor.rotation.x = -Math.PI / 2;
+        root.add(floor);
         root.add(hips);
-        camera.position.set(0, 1.05, 2.4);
-        camera.lookAt(0, 0.95, 0);
+        camera.position.set(1.15, 1.2, 1.95);
+        camera.lookAt(0, 0.82, 0);
       } else {
         const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), toon(nft.mode === "dynamic" ? 0x3d9a6a : 0xd4a017));
         root.add(core);
@@ -113,7 +118,7 @@ export function NftTurntable({ nft, lang = "pt" }: { nft: Nft | null; lang?: "pt
         camera.position.set(0, 0.4, 2.1);
         camera.lookAt(0, 0.2, 0);
       }
-      let yaw = 0.35;
+      let yaw = 0;
       let dragging = false;
       let lx = 0;
       const onDown = (e: PointerEvent) => {

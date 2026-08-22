@@ -375,12 +375,13 @@ export function BancadaCanvas({
       neck.position.y = 0.5;
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 32, 24), toon(0xc9a07e));
       head.position.y = 0.62;
-      ink(head, 1.05);
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.195, 12, 10), toon(0x1a120c));
-      hair.position.set(0, 0.72, -0.07);
-      hair.scale.set(1.08, 0.66, 1.12);
-      ink(hair, 1.04);
-      cloth(hair, "wood-dark.jpg", 1, 1);
+      ink(head, 1.03);
+      const hair = new THREE.Mesh(
+        new THREE.SphereGeometry(0.205, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.56),
+        toon(0x1a1008),
+      );
+      hair.rotation.x = 0.48;
+      hair.position.set(0, 0.695, -0.035);
       hips.add(pelvis);
       hips.add(torso);
       hips.add(collar);
@@ -732,10 +733,13 @@ export function BancadaCanvas({
           hips.visible = false;
         } else {
           hips.visible = true;
-          const dist = p === "compose" ? 2.45 : 2.1;
-          const back = dist * Math.max(0.4, Math.cos(pitch.v));
-          const lift = 1.52 - Math.sin(pitch.v) * 1.25;
-          const c = clampInterior(pos.x - fx * back, lift, pos.z - fz * back);
+          const dist = p === "compose" ? 2.45 : 2.2;
+          const back = dist * Math.max(0.45, Math.cos(pitch.v));
+          const lift = 1.35 - Math.sin(pitch.v) * 1.1;
+          const side = 0.95;
+          const rx = Math.cos(yaw.v);
+          const rz = -Math.sin(yaw.v);
+          const c = clampInterior(pos.x - fx * back + rx * side, lift, pos.z - fz * back + rz * side);
           camera.position.set(c.x, c.y, c.z);
           camera.rotation.set(pitch.v, yaw.v, 0, "YXZ");
         }
