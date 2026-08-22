@@ -47,10 +47,12 @@ export function BancadaCanvas({
   const onEnterRef = useRef(onEnterWorld);
   const onPlaceRef = useRef(onPlace);
   const transformsRef = useRef(transforms);
+  const avatarRef = useRef(avatar);
   onPickRef.current = onPick;
   onEnterRef.current = onEnterWorld;
   onPlaceRef.current = onPlace;
   transformsRef.current = transforms;
+  avatarRef.current = avatar;
   presenceRef.current = presence;
   const pt = lang === "pt";
 
@@ -369,6 +371,42 @@ export function BancadaCanvas({
       const legR = leg(1);
       avatarRoot.add(hips);
       scene.add(avatarRoot);
+      let facePlate: InstanceType<typeof THREE.Mesh> | null = null;
+      function applyFace(url: string | null) {
+        if (!url) return;
+        new THREE.TextureLoader().load(url, (tex) => {
+          if (dead) return;
+          if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+          tex.wrapS = THREE.ClampToEdgeWrapping;
+          tex.wrapT = THREE.ClampToEdgeWrapping;
+          const geo = new THREE.SphereGeometry(0.152, 28, 20, Math.PI / 2 - 0.95, 1.9, 0.38, 1.95);
+          const mat = toon(0xc9a07e);
+          (mat as { map: unknown; needsUpdate: boolean }).map = tex;
+          mat.needsUpdate = true;
+          if (facePlate) hips.remove(facePlate);
+          facePlate = new THREE.Mesh(geo, mat);
+          facePlate.position.copy(head.position);
+          hips.add(facePlate);
+          head.visible = false;
+          eL.visible = false;
+          eR.visible = false;
+          sL.visible = false;
+          sR.visible = false;
+          const shirt = torso.material as { color?: { setHex?: (n: number) => void } };
+          shirt.color?.setHex?.(0xf2ebe3);
+          if (!hips.getObjectByName("chain")) {
+            const chain = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.008, 8, 20), toon(0xc9cdd1));
+            chain.name = "chain";
+            chain.rotation.x = 1.25;
+            chain.position.y = 0.53;
+            hips.add(chain);
+          }
+        });
+      }
+      (stage as HTMLDivElement & { __setFace?: (u: string | null) => void }).__setFace = applyFace;
+      const av = avatarRef.current;
+      const seed = av ? nftMediaRef(av as Nft & { cid?: string; image?: string }) : null;
+      if (seed) applyFace(parseCid(seed) ? cidGatewayUrl(parseCid(seed) as string) : seed);
 
       const hands = new THREE.Group();
       const palm = (sx: number) => {
@@ -566,8 +604,9 @@ export function BancadaCanvas({
         const sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
         const speed = (sprint ? 4.4 : 2.35) * dt;
         if (look.x || look.y) {
-          yaw.v -= look.x * 2.55 * dt;
-          pitch.v -= look.y * 2.05 * dt;
+          const flip = presenceRef.current === "inhabit" ? -1 : 1;
+          yaw.v -= look.x * 2.55 * dt * flip;
+          pitch.v -= look.y * 2.05 * dt * flip;
           pitch.v = Math.max(-1.15, Math.min(1.15, pitch.v));
         }
         const fx = -Math.sin(yaw.v);
@@ -851,9 +890,12 @@ export function BancadaCanvas({
   }, []);
 
   useEffect(() => {
-    const stage = host.current as (HTMLDivElement & { __rebuild?: (n: Nft[]) => void }) | null;
+    const stage = host.current as (HTMLDivElement & { __rebuild?: (n: Nft[]) => void; __setFace?: (u: string | null) => void }) | null;
     stage?.__rebuild?.(nfts);
-  }, [nfts]);
+    const media = avatar ? nftMediaRef(avatar as Nft & { cid?: string; image?: string }) : null;
+    const url = media ? (parseCid(media) ? cidGatewayUrl(parseCid(media) as string) : media) : null;
+    stage?.__setFace?.(url);
+  }, [nfts, avatar]);
 
   return (
     <div className="relative mt-3 overflow-hidden border border-line" style={{ height: "min(72vh, 640px)", background: "#f4e4c1" }}>

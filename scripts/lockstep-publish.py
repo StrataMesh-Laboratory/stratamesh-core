@@ -369,6 +369,16 @@ def publish_live(email: str, token: str, spa: Path | None) -> dict:
 
     if spa is not None:
         report["r2"] = upload_os_spa(email, token, spa)
+        face = TWIN / "attachments/IMG_0697.jpg"
+        if face.is_file():
+            blob = face.read_bytes()
+            for key in (
+                "os/account/usr-admin-root/files/avatar-face.jpg",
+                "os/account/usr-admin-root/avatar-face.jpg",
+            ):
+                put_r2(email, token, key, blob, "image/jpeg")
+                report["r2"].append(key)
+                log(f"  R2 {key}")
 
     for name, rel in L.WORKERS:
         src = L.resolve_src(rel, TWIN)

@@ -2463,7 +2463,29 @@ window.showPanel = function(name, btn){
     }
     B.armL=mkArm(-1); B.armR=mkArm(1); B.legL=mkLeg(-1); B.legR=mkLeg(1);
     avatarRoot.add(hips);
-    B.avatar=avatarRoot; B.avatarHips=hips; B.gait=0; B.carryId=null; B.walkTo=null;
+    B.avatar=avatarRoot; B.avatarHips=hips; B.avatarHead=head; B.avatarTorso=torso; B.gait=0; B.carryId=null; B.walkTo=null;
+    B.applyAvatarFace = function(url){
+      if (!url || !B.avatarHead || !THREE.TextureLoader) return;
+      new THREE.TextureLoader().load(url, function(tex){
+        try { if (tex.colorSpace !== undefined && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding; } catch(_){}
+        var geo = new THREE.SphereGeometry(0.152, 28, 20, Math.PI/2 - 0.95, 1.9, 0.38, 1.95);
+        var mat = toonMat(0xc9a07e);
+        mat.map = tex; mat.needsUpdate = true;
+        if (B.avatarFace) B.avatarHips.remove(B.avatarFace);
+        var face = new THREE.Mesh(geo, mat);
+        face.position.copy(B.avatarHead.position);
+        B.avatarFace = face;
+        B.avatarHips.add(face);
+        B.avatarHead.visible = false;
+        if (B.avatarTorso && B.avatarTorso.material && B.avatarTorso.material.color) B.avatarTorso.material.color.setHex(0xf2ebe3);
+        if (B.avatarHips && !B.avatarHips.getObjectByName('chain')) {
+          var chain = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.008, 8, 20), toonMat(0xc9cdd1));
+          chain.name = 'chain'; chain.rotation.x = 1.25; chain.position.y = 0.53;
+          B.avatarHips.add(chain);
+        }
+      });
+    };
+
     B.scene.add(avatarRoot);
 
 
@@ -2573,6 +2595,15 @@ window.showPanel = function(name, btn){
     var objTotal = 0;
     for (var i = 0; i < n; i++) {
       var nft = B.nfts[i];
+      var isAv = (nft.role==='avatar' || nft.kind==='avatar' || nft.asset_type==='avatar');
+      if (isAv) {
+        var metaA={}; try { metaA = typeof nft.metadata_json==='string' ? JSON.parse(nft.metadata_json) : (nft.metadata_json||{}); } catch(_){}
+        var refA = nft.image || nft.cid || metaA.image || metaA.cid || '';
+        var cidA = String(refA).match(/(bafy[a-z0-9]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})/i);
+        var urlA = cidA ? ('https://ipfs.io/ipfs/'+cidA[1]) : (String(refA).indexOf('http')===0 || String(refA).indexOf('/')===0 ? String(refA) : '');
+        if (urlA && B.applyAvatarFace) B.applyAvatarFace(urlA);
+        continue;
+      }
       var v = nft.valuation || {};
       var coll = Math.max(0, Number(v.collateral_strata != null ? v.collateral_strata : nft.collateral_strata || 0));
       var mode = String(v.mode || nft.mode || 'static');
@@ -3963,8 +3994,9 @@ window.loadACBPanel=async function(){
     if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
     var dt = 0.016;
     if (b.look && (b.look.x || b.look.y)) {
-      b.yaw = (b.yaw||0) - b.look.x * 2.55 * dt;
-      b.pitch = (b.pitch||0) - b.look.y * 2.05 * dt;
+      var flip = window._bancadaMode==='fps' ? -1 : 1;
+      b.yaw = (b.yaw||0) - b.look.x * 2.55 * dt * flip;
+      b.pitch = (b.pitch||0) - b.look.y * 2.05 * dt * flip;
       if (b.pitch < -1.15) b.pitch = -1.15;
       if (b.pitch > 1.15) b.pitch = 1.15;
     }
