@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Object3D } from "three";
 import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
+import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
 
 declare global {
   interface Window {
@@ -72,14 +73,24 @@ export function BancadaCanvas({
       scene.fog = new THREE.Fog(0xc9a06a, 16, 32);
 
       const camera = new THREE.PerspectiveCamera(72, 1, 0.08, 80);
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      let renderer: InstanceType<typeof THREE.WebGLRenderer>;
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+      } catch {
+        renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+      }
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) {
+        (renderer as { outputColorSpace: string }).outputColorSpace = THREE.SRGBColorSpace;
+      }
+      renderer.toneMapping = THREE.NoToneMapping;
       renderer.setClearColor(0xf4e4c1, 1);
       renderer.domElement.style.display = "block";
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       renderer.domElement.style.cursor = "crosshair";
       renderer.domElement.tabIndex = 0;
+      renderer.domElement.addEventListener("webglcontextlost", (ev) => ev.preventDefault());
       stage.appendChild(renderer.domElement);
 
       const yaw = { v: 0 };
@@ -91,6 +102,13 @@ export function BancadaCanvas({
       const carry = { id: "" };
       const gait = { t: 0 };
       const undo: { id: string; x: number; z: number }[] = [];
+      const stick = { x: 0, y: 0 };
+      let lastHud = "";
+      function hud(text: string) {
+        if (text === lastHud) return;
+        lastHud = text;
+        setPrompt(text);
+      }
 
       function size() {
         const w = Math.max(stage.clientWidth, 320);
@@ -101,26 +119,31 @@ export function BancadaCanvas({
       }
       size();
 
-      scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.15));
-      scene.add(new THREE.AmbientLight(0xfff1d2, 0.7));
-      const sun = new THREE.DirectionalLight(0xfff4dc, 1.15);
+      scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.05));
+      const sun = new THREE.DirectionalLight(0xfff4dc, 1.05);
       sun.position.set(3, 7, 4);
       scene.add(sun);
+      const fill = new THREE.PointLight(0xffcc88, 1.15, 18, 2);
+      fill.position.set(0, HEIGHT - 0.7, 0);
+      scene.add(fill);
+
+      const gradData = new Uint8Array([70, 50, 32, 255, 190, 150, 90, 255, 255, 240, 210, 255]);
+      const grad = new THREE.DataTexture(gradData, 3, 1);
+      grad.magFilter = THREE.NearestFilter;
+      grad.minFilter = THREE.NearestFilter;
+      grad.needsUpdate = true;
 
       function lantern(x: number, z: number) {
         const g = new THREE.Group();
-        const glow = new THREE.PointLight(0xffb347, 2.2, 11);
-        glow.position.set(0, HEIGHT - 0.55, 0);
-        g.add(glow);
         const bulb = new THREE.Mesh(
           new THREE.SphereGeometry(0.16, 12, 12),
-          new THREE.MeshToonMaterial({ color: 0xffd27a, emissive: 0xff9a2e, emissiveIntensity: 0.9 }),
+          new THREE.MeshToonMaterial({ color: 0xffd27a, emissive: 0xff9a2e, emissiveIntensity: 1.1, gradientMap: grad }),
         );
         bulb.position.y = HEIGHT - 0.55;
         g.add(bulb);
         const cord = new THREE.Mesh(
           new THREE.CylinderGeometry(0.012, 0.012, 0.45, 6),
-          new THREE.MeshToonMaterial({ color: 0x3a2418 }),
+          new THREE.MeshToonMaterial({ color: 0x3a2418, gradientMap: grad }),
         );
         cord.position.y = HEIGHT - 0.28;
         g.add(cord);
@@ -131,14 +154,11 @@ export function BancadaCanvas({
       lantern(4.2, -4.2);
       lantern(-4.2, 4.2);
       lantern(4.2, 4.2);
-      const doorLamp = new THREE.PointLight(0xffcc66, 1.6, 8);
-      doorLamp.position.set(0, 2.1, HALF - 0.8);
-      scene.add(doorLamp);
 
-      const wallMat = new THREE.MeshToonMaterial({ color: 0xf3e2c4 });
-      const trimMat = new THREE.MeshToonMaterial({ color: 0x6b2e1c });
-      const floorMat = new THREE.MeshToonMaterial({ color: 0x8a4a24 });
-      const ceilMat = new THREE.MeshToonMaterial({ color: 0xfff6e4 });
+      const wallMat = new THREE.MeshToonMaterial({ color: 0xf3e2c4, gradientMap: grad });
+      const trimMat = new THREE.MeshToonMaterial({ color: 0x6b2e1c, gradientMap: grad });
+      const floorMat = new THREE.MeshToonMaterial({ color: 0x8a4a24, gradientMap: grad });
+      const ceilMat = new THREE.MeshToonMaterial({ color: 0xfff6e4, gradientMap: grad });
 
       const floor = new THREE.Mesh(new THREE.BoxGeometry(HALF * 2, 0.12, HALF * 2), floorMat);
       floor.position.y = -0.06;
@@ -168,14 +188,14 @@ export function BancadaCanvas({
 
       const door = new THREE.Mesh(
         new THREE.BoxGeometry(doorW - 0.08, 2.15, 0.08),
-        new THREE.MeshToonMaterial({ color: 0xc45c4a, emissive: 0x7a2018, emissiveIntensity: 0.35 }),
+        new THREE.MeshToonMaterial({ color: 0xc45c4a, emissive: 0x7a2018, emissiveIntensity: 0.35, gradientMap: grad }),
       );
       door.position.set(0, 1.08, DOOR_Z);
       door.userData.door = true;
       scene.add(door);
       const frame = new THREE.Mesh(
         new THREE.BoxGeometry(doorW + 0.14, 2.32, 0.06),
-        new THREE.MeshToonMaterial({ color: 0xd4a017, emissive: 0x8a6a10, emissiveIntensity: 0.25 }),
+        new THREE.MeshToonMaterial({ color: 0xd4a017, emissive: 0x8a6a10, emissiveIntensity: 0.25, gradientMap: grad }),
       );
       frame.position.set(0, 1.16, DOOR_Z + 0.04);
       scene.add(frame);
@@ -187,7 +207,7 @@ export function BancadaCanvas({
       scene.add(objects);
 
       function toon(color: number, emissive = 0x000000, em = 0) {
-        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em });
+        return new THREE.MeshToonMaterial({ color, emissive, emissiveIntensity: em, gradientMap: grad });
       }
       function outline(mesh: Object3D) {
         mesh.traverse((ch) => {
@@ -228,6 +248,18 @@ export function BancadaCanvas({
             g.add(table);
             g.add(leg);
             g.add(core);
+            const media = nftMediaRef(n as Nft & { cid?: string; image?: string });
+            if (media) {
+              const cid = parseCid(media);
+              const url = cid ? cidGatewayUrl(cid) : media;
+              new THREE.TextureLoader().load(url, (tex) => {
+                if (dead) return;
+                if ("colorSpace" in tex && THREE.SRGBColorSpace) (tex as { colorSpace: string }).colorSpace = THREE.SRGBColorSpace;
+                const mat = core.material as { map: unknown; needsUpdate: boolean };
+                mat.map = tex;
+                mat.needsUpdate = true;
+              });
+            }
             outline(g);
             objects.add(g);
           });
@@ -296,6 +328,48 @@ export function BancadaCanvas({
       hands.add(hR);
       camera.add(hands);
       scene.add(camera);
+
+      const nippleZone = document.createElement("div");
+      nippleZone.setAttribute("aria-hidden", "true");
+      nippleZone.style.cssText = "position:absolute;left:8px;bottom:56px;width:132px;height:132px;z-index:6;pointer-events:auto";
+      if (window.matchMedia("(pointer: coarse)").matches) stage.appendChild(nippleZone);
+      let nippleMgr: { destroy: () => void } | null = null;
+      void import("nipplejs")
+        .then((nipple) => {
+          if (dead || !nippleZone.isConnected) return;
+          const mgr = nipple.default.create({
+            zone: nippleZone,
+            mode: "static",
+            position: { left: "50%", top: "50%" },
+            color: "#8a2a1a",
+            restOpacity: 0.7,
+          }) as unknown as {
+            on: (ev: string, cb: (e: unknown, data?: { vector?: { x: number; y: number } }) => void) => void;
+            destroy: () => void;
+          };
+          mgr.on("move", (_evt, data) => {
+            stick.x = data?.vector?.x ?? 0;
+            stick.y = data?.vector?.y ?? 0;
+          });
+          mgr.on("end", () => {
+            stick.x = 0;
+            stick.y = 0;
+          });
+          nippleMgr = mgr;
+        })
+        .catch(() => {});
+
+      void import("cannon-es")
+        .then((CANNON) => {
+          if (dead) return;
+          const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -14, 0) });
+          world.broadphase = new CANNON.SAPBroadphase(world);
+          const ground = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+          ground.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+          world.addBody(ground);
+          (stage as HTMLDivElement & { __world?: typeof world }).__world = world;
+        })
+        .catch(() => {});
 
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
@@ -440,6 +514,11 @@ export function BancadaCanvas({
           tryMove(rx * speed, rz * speed);
           moving = 1;
         }
+        if (stick.x || stick.y) {
+          tryMove(fx * speed * stick.y + rx * speed * stick.x, fz * speed * stick.y + rz * speed * stick.x);
+          moving = 1;
+          queue.length = 0;
+        }
         if (queue[0]) {
           const q = queue[0];
           const dx = q.x - pos.x;
@@ -459,6 +538,8 @@ export function BancadaCanvas({
           }
         }
         clampPos();
+        const phys = (stage as HTMLDivElement & { __world?: { step: (n: number) => void } }).__world;
+        if (phys) phys.step(Math.min(dt, 1 / 30));
         gait.t += dt * (moving ? 9 : 0);
         const sw = moving ? Math.sin(gait.t) * 0.55 : 0;
         legL.rotation.x = sw;
@@ -484,15 +565,19 @@ export function BancadaCanvas({
 
         const near = nearestNft();
         const nid = near ? String((near as Object3D).userData.nftId || "") : "";
-        if (nearDoor()) setPrompt(pt ? `E · porta · ${worldId}` : `E · door · ${worldId}`);
-        else if (carry.id) setPrompt(pt ? "F · pousar na grelha · Z desfazer" : "F · set down on grid · Z undo");
-        else if (presenceRef.current === "compose") setPrompt(pt ? "Compor · F pegar · clique no chão para pousar · Z desfazer" : "Compose · F pick up · click floor to set down · Z undo");
-        else if (nid) setPrompt(pt ? "E · usar · F · pegar · clique para ir até ao objecto" : "E · use · F · pick up · click to walk to object");
-        else setPrompt(pt ? "Habitar · WASD · Shift correr · clique para ir" : "Inhabit · WASD · Shift sprint · click to walk");
+        if (nearDoor()) hud(pt ? `E · porta · ${worldId}` : `E · door · ${worldId}`);
+        else if (carry.id) hud(pt ? "F · pousar na grelha · Z desfazer" : "F · set down on grid · Z undo");
+        else if (presenceRef.current === "compose") hud(pt ? "Compor · F pegar · clique no chão para pousar · Z desfazer" : "Compose · F pick up · click floor to set down · Z undo");
+        else if (nid) hud(pt ? "E · usar · F · pegar · clique para ir até ao objecto" : "E · use · F · pick up · click to walk to object");
+        else hud(pt ? "Habitar · WASD · Shift correr · clique para ir" : "Inhabit · WASD · Shift sprint · click to walk");
 
         applyCam();
         drawRadar();
-        renderer.render(scene, camera);
+        try {
+          renderer.render(scene, camera);
+        } catch {
+          /* context lost — wait restore */
+        }
         window.__controlsTest = {
           getYaw: () => yaw.v,
           getSpeed: () => moving,
@@ -634,10 +719,22 @@ export function BancadaCanvas({
         document.removeEventListener("pointerlockchange", onLock);
         renderer.domElement.removeEventListener("click", onClick);
         window.removeEventListener("resize", size);
+        try {
+          nippleMgr?.destroy();
+        } catch {
+          /* */
+        }
+        nippleZone.remove();
+        scene.traverse((ch) => {
+          const m = ch as { geometry?: { dispose?: () => void }; material?: { dispose?: () => void } | Array<{ dispose?: () => void }> };
+          m.geometry?.dispose?.();
+          if (Array.isArray(m.material)) m.material.forEach((x) => x.dispose?.());
+          else m.material?.dispose?.();
+        });
         renderer.dispose();
         renderer.domElement.remove();
       };
-    });
+    }).catch(() => {});
 
     return () => {
       dead = true;

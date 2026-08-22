@@ -92,6 +92,12 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.2/dist/nipplejs.min.js" crossorigin="anonymous"></script>
+<script type="module">
+  import * as CANNON from 'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/+esm';
+  window.CANNON = CANNON;
+</script>
 
 </head>
 <body>
@@ -2379,11 +2385,13 @@ window.showPanel = function(name, btn){
     B.scene.fog = new THREE.Fog(0xc9a06a, 16, 32);
     B.scene.background = new THREE.Color(0xf4e4c1);
 
-    B.scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.15));
-    B.scene.add(new THREE.AmbientLight(0xfff1d2, 0.7));
-    var sun = new THREE.DirectionalLight(0xfff4dc, 1.15);
+    B.scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.05));
+    var sun = new THREE.DirectionalLight(0xfff4dc, 1.05);
     sun.position.set(3, 7, 4);
     B.scene.add(sun);
+    var fill = new THREE.PointLight(0xffcc88, 1.15, 18, 2);
+    fill.position.set(0, HEIGHT-0.7, 0);
+    B.scene.add(fill);
 
     function toonMat(c, e, em){
       if (THREE.MeshToonMaterial) return new THREE.MeshToonMaterial({ color:c, emissive:e||0x000000, emissiveIntensity: em||0 });
@@ -2397,17 +2405,13 @@ window.showPanel = function(name, btn){
     }
     function lantern(x,z){
       var g=new THREE.Group();
-      var glow=new THREE.PointLight(0xffb347, 2.2, 11);
-      glow.position.set(0, HEIGHT-0.55, 0); g.add(glow);
-      var bulb=new THREE.Mesh(new THREE.SphereGeometry(0.16,12,12), toonMat(0xffd27a, 0xff9a2e, 0.9));
+      var bulb=new THREE.Mesh(new THREE.SphereGeometry(0.16,12,12), toonMat(0xffd27a, 0xff9a2e, 1.1));
       bulb.position.y=HEIGHT-0.55; g.add(bulb);
       var cord=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.45,6), toonMat(0x3a2418));
       cord.position.y=HEIGHT-0.28; g.add(cord);
       g.position.set(x,0,z); B.scene.add(g);
     }
     lantern(-4.2,-4.2); lantern(4.2,-4.2); lantern(-4.2,4.2); lantern(4.2,4.2);
-    var doorLamp=new THREE.PointLight(0xffcc66, 1.6, 8);
-    doorLamp.position.set(0, 2.1, HALF-0.8); B.scene.add(doorLamp);
 
     function limb(w,h,d,c){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), toonMat(c)); }
     var avatarRoot=new THREE.Group();
@@ -2435,6 +2439,30 @@ window.showPanel = function(name, btn){
     B.avatar=avatarRoot; B.avatarHips=hips; B.gait=0; B.carryId=null; B.walkTo=null;
     B.scene.add(avatarRoot);
 
+
+
+    try {
+      if (window.CANNON && !B.world) {
+        B.world = new CANNON.World({ gravity: new CANNON.Vec3(0,-14,0) });
+        var gnd = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+        gnd.quaternion.setFromEuler(-Math.PI/2, 0, 0);
+        B.world.addBody(gnd);
+      }
+    } catch(e) {}
+    B.stick = {x:0,y:0};
+    try {
+      if (window.nipplejs && !B.nipple && window.matchMedia('(pointer: coarse)').matches) {
+        var zone=document.createElement('div');
+        zone.style.cssText='position:absolute;left:8px;bottom:56px;width:132px;height:132px;z-index:6';
+        (document.getElementById('bancadaStage')||document.body).appendChild(zone);
+        B.nipple = nipplejs.create({ zone: zone, mode:'static', position:{left:'50%',top:'50%'}, color:'#8a2a1a' });
+        B.nipple.on('move', function(_, d){ B.stick.x=d.vector.x; B.stick.y=d.vector.y; });
+        B.nipple.on('end', function(){ B.stick.x=0; B.stick.y=0; });
+      }
+    } catch(e) {}
+    if (B.renderer && B.renderer.domElement) {
+      B.renderer.domElement.addEventListener('webglcontextlost', function(ev){ ev.preventDefault(); });
+    }
 
     canvas.addEventListener('pointerdown', onPointer);
     window.addEventListener('resize', onResize);
@@ -2531,6 +2559,15 @@ window.showPanel = function(name, btn){
       var core = new THREE.Mesh(geo, mat);
       core.userData.pick = true;
       group.add(core);
+      try {
+        var meta={}; try { meta = typeof nft.metadata_json==='string' ? JSON.parse(nft.metadata_json) : (nft.metadata_json||{}); } catch(_){}
+        var ref = nft.cid || nft.image || meta.cid || meta.image || '';
+        var cidM = String(ref).match(/(bafy[a-z0-9]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})/i);
+        var url = cidM ? ('https://ipfs.io/ipfs/'+cidM[1]) : (String(ref).indexOf('http')===0 ? ref : '');
+        if (url && THREE.TextureLoader) {
+          new THREE.TextureLoader().load(url, function(tex){ core.material.map = tex; core.material.needsUpdate = true; });
+        }
+      } catch(_){}
 
       // Wireframe shell
       var shell = new THREE.LineSegments(
@@ -2777,7 +2814,8 @@ window.showPanel = function(name, btn){
       B.camera.position.y = Math.max(0.5, Math.min(H, B.camera.position.y));
     }
     if (B.door){ var near = Math.abs(B.px)<0.95 && B.pz > (B.HALF||7.2)-1.35; B.door.rotation.y = near ? -0.35 : 0; }
-    if (B.renderer && B.scene && B.camera) B.renderer.render(B.scene, B.camera);
+    try { if (B.renderer && B.scene && B.camera) B.renderer.render(B.scene, B.camera); } catch(e) {}
+    if (window.CANNON && B.world && B.world.step) { try { B.world.step(1/60); } catch(e) {} }
   }
 
   window.resetBancadaCam = function(){
@@ -3877,7 +3915,8 @@ window.loadACBPanel=async function(){
   (function fpsLoop(){
     requestAnimationFrame(fpsLoop);
     var b = Bref();
-    if (window._bancadaMode !== 'fps' || !b || !b.camera || typeof THREE === 'undefined') return;
+    if (!b || !b.camera || typeof THREE === 'undefined') return;
+    if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
     var dt = 0.016;
     var speed = (keys['ShiftLeft']||keys['ShiftRight'] ? 4.2 : 2.4) * dt;
     var yaw = b.yaw || 0;
@@ -3887,6 +3926,10 @@ window.loadACBPanel=async function(){
     if (keys['KeyS']||keys['ArrowDown']) { b.px -= fx*speed; b.pz -= fz*speed; }
     if (keys['KeyA']||keys['ArrowLeft']) { b.px -= rx*speed; b.pz -= rz*speed; }
     if (keys['KeyD']||keys['ArrowRight']) { b.px += rx*speed; b.pz += rz*speed; }
+    if (b.stick && (b.stick.x || b.stick.y)) {
+      b.px += (fx*b.stick.y + rx*b.stick.x)*speed;
+      b.pz += (fz*b.stick.y + rz*b.stick.x)*speed;
+    }
     var m = (b.HALF || 7.2) - 0.45;
     b.px = Math.max(-m, Math.min(m, b.px||0));
     b.pz = Math.max(-m, Math.min(m, b.pz||0));
