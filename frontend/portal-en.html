@@ -286,7 +286,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   <div class="panel" id="panel-sandbox">
     <h3>CGU Sandbox · STRATA NFT space</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First person is a sandbox modality: the viewpoint is an Avatar NFT (figural identity of a user or SCA). Room with floor, walls, ceiling. WASD to walk. Door to the open world the sandbox is addressed to. Mint NFT chooses kind — Avatar or creation.</p>
-    <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#050508;margin-bottom:1rem">
+    <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f4e4c1;margin-bottom:1rem">
       <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
       <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
@@ -296,18 +296,19 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Back to sandbox</button>
       </div>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
-        <div style="pointer-events:none;background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);backdrop-filter:blur(8px)">
+        <div style="pointer-events:none;background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);color:#1a1008">
           <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Immersive sandbox</div>
-          <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:var(--fg)">—</div>
-          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:var(--muted);line-height:1.45">Loading the space…</div>
+          <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:#1a1008">—</div>
+          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:#4a3018;line-height:1.45">Loading the space…</div>
         </div>
         <div style="pointer-events:auto;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end">
-          <div style="background:rgba(10,10,12,.82);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:var(--muted)">
+          <div style="background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:#4a3018">
             <span id="bancadaCount">0</span> NFTs · <span id="bancadaObjCount">0</span> objects
           </div>
           <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Reset camera</button>
         </div>
       </div>
+      <div id="bancadaPrompt" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:3;background:#1a1008;color:#ffe6b8;border:1px solid #d4a017;padding:.4rem .9rem;font-size:.78rem;pointer-events:none">WASD andar · E usar · F pegar/pousar · clique para ir ao NFT</div>
       <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in this sandbox — create the first object below.</div>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
@@ -2285,8 +2286,8 @@ window.showPanel = function(name, btn){
     var w = Math.max(stage.clientWidth || 0, 640);
     var h = Math.max(stage.clientHeight || 0, 480);
     B.scene = new THREE.Scene();
-    B.scene.fog = new THREE.FogExp2(0x050508, 0.028);
-    B.scene.background = new THREE.Color(0x050508);
+    B.scene.fog = new THREE.Fog(0xc9a06a, 16, 32);
+    B.scene.background = new THREE.Color(0xf4e4c1);
     B.camera = new THREE.PerspectiveCamera(68, w/h, 0.08, 40);
     B.camera.position.set(0, 1.72, 3.15);
     B.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
@@ -2307,12 +2308,12 @@ window.showPanel = function(name, btn){
 
     B.HALF = 7.2; B.HEIGHT = 3.4;
     var HALF = B.HALF, HEIGHT = B.HEIGHT, t = 0.18, hy = HEIGHT/2;
-    var wallMat = new THREE.MeshStandardMaterial({ color: 0x161618, metalness: 0.12, roughness: 0.82, side: THREE.DoubleSide });
-    var floorMat = new THREE.MeshStandardMaterial({ color: 0x121214, metalness: 0.35, roughness: 0.7 });
-    var ceilMat = new THREE.MeshStandardMaterial({ color: 0x101012, metalness: 0.2, roughness: 0.9 });
+    var wallMat = new THREE.MeshToonMaterial({ color: 0xf3e2c4 });
+    var floorMat = new THREE.MeshToonMaterial({ color: 0x8a4a24 });
+    var ceilMat = new THREE.MeshToonMaterial({ color: 0xfff6e4 });
     var floor = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.12, HALF*2), floorMat);
     floor.position.y = -0.06; B.scene.add(floor);
-    var grid = new THREE.GridHelper(HALF*2, 16, 0x2a2a2e, 0x1c1c1f);
+    var grid = new THREE.GridHelper(HALF*2, 16, 0xd4a017, 0xc48a3a);
     grid.position.y = 0.01; B.scene.add(grid);
     var ceil = new THREE.Mesh(new THREE.BoxGeometry(HALF*2, 0.1, HALF*2), ceilMat);
     ceil.position.y = HEIGHT; B.scene.add(ceil);
@@ -2326,33 +2327,70 @@ window.showPanel = function(name, btn){
     wall(doorW, HEIGHT-2.2, t, 0, 2.2+(HEIGHT-2.2)/2, HALF);
     B.door = new THREE.Mesh(
       new THREE.BoxGeometry(doorW-0.08, 2.15, 0.08),
-      new THREE.MeshStandardMaterial({ color: 0xc4b5a0, emissive: 0x3d3428, emissiveIntensity: 0.55, metalness: 0.45, roughness: 0.35 })
+      new THREE.MeshToonMaterial({ color: 0xc45c4a, emissive: 0x7a2018, emissiveIntensity: 0.35 })
     );
     B.door.position.set(0, 1.08, HALF-0.12);
     B.scene.add(B.door);
     B.room = true;
-    B.scene.fog = new THREE.Fog(0x0b0b0e, 12, 26);
-    B.scene.background = new THREE.Color(0x0b0b0e);
+    B.scene.fog = new THREE.Fog(0xc9a06a, 16, 32);
+    B.scene.background = new THREE.Color(0xf4e4c1);
 
-    // Ambient + key lights
-    B.scene.add(new THREE.AmbientLight(0x6b7280, 0.55));
-    var key = new THREE.DirectionalLight(0xe4e4e7, 0.85);
-    key.position.set(6, 12, 8);
-    B.scene.add(key);
-    var rim = new THREE.PointLight(0x6366f1, 1.1, 40);
-    rim.position.set(-8, 6, -6);
-    B.scene.add(rim);
-    var accent = new THREE.PointLight(0x34d399, 0.55, 30);
-    accent.position.set(8, 4, 4);
-    B.scene.add(accent);
+    B.scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.15));
+    B.scene.add(new THREE.AmbientLight(0xfff1d2, 0.7));
+    var sun = new THREE.DirectionalLight(0xfff4dc, 1.15);
+    sun.position.set(3, 7, 4);
+    B.scene.add(sun);
 
-    // Central axis marker
-    var axis = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 0.6, 12),
-      new THREE.MeshStandardMaterial({ color: 0x6366f1, emissive: 0x312e81, emissiveIntensity: 0.6 })
-    );
-    axis.position.y = 0.3;
-    B.scene.add(axis);
+    function toonMat(c, e, em){
+      if (THREE.MeshToonMaterial) return new THREE.MeshToonMaterial({ color:c, emissive:e||0x000000, emissiveIntensity: em||0 });
+      return new THREE.MeshStandardMaterial({ color:c, emissive:e||0x000000, emissiveIntensity: em||0, roughness:0.7, metalness:0.05 });
+    }
+    function outlineObj(obj){
+      obj.traverse(function(ch){
+        if(!ch.isMesh || !ch.geometry) return;
+        ch.add(new THREE.LineSegments(new THREE.EdgesGeometry(ch.geometry), new THREE.LineBasicMaterial({color:0x1a1008})));
+      });
+    }
+    function lantern(x,z){
+      var g=new THREE.Group();
+      var glow=new THREE.PointLight(0xffb347, 2.2, 11);
+      glow.position.set(0, HEIGHT-0.55, 0); g.add(glow);
+      var bulb=new THREE.Mesh(new THREE.SphereGeometry(0.16,12,12), toonMat(0xffd27a, 0xff9a2e, 0.9));
+      bulb.position.y=HEIGHT-0.55; g.add(bulb);
+      var cord=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.45,6), toonMat(0x3a2418));
+      cord.position.y=HEIGHT-0.28; g.add(cord);
+      g.position.set(x,0,z); B.scene.add(g);
+    }
+    lantern(-4.2,-4.2); lantern(4.2,-4.2); lantern(-4.2,4.2); lantern(4.2,4.2);
+    var doorLamp=new THREE.PointLight(0xffcc66, 1.6, 8);
+    doorLamp.position.set(0, 2.1, HALF-0.8); B.scene.add(doorLamp);
+
+    function limb(w,h,d,c){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), toonMat(c)); }
+    var avatarRoot=new THREE.Group();
+    var hips=new THREE.Group(); hips.position.y=0.92;
+    var shirt=0x1a4a52, pants=0x2a1c14, skin=0xe8c4a0;
+    var torso=limb(0.34,0.44,0.2,shirt); torso.position.y=0.22;
+    var head=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.24,0.22), toonMat(skin)); head.position.y=0.58;
+    var hair=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.08,0.24), toonMat(0x1a1008)); hair.position.y=0.7;
+    hips.add(torso); hips.add(head); hips.add(hair);
+    function mkArm(side){
+      var r=new THREE.Group(); r.position.set(0.22*side,0.38,0);
+      var up=limb(0.08,0.28,0.08,shirt); up.position.y=-0.14;
+      var lo=limb(0.07,0.26,0.07,skin); lo.position.y=-0.40;
+      r.add(up); r.add(lo); hips.add(r); return r;
+    }
+    function mkLeg(side){
+      var r=new THREE.Group(); r.position.set(0.1*side,0,0);
+      var up=limb(0.11,0.38,0.12,pants); up.position.y=-0.2;
+      var lo=limb(0.1,0.34,0.11,pants); lo.position.y=-0.54;
+      var shoe=limb(0.12,0.08,0.2,0x1a1008); shoe.position.set(0,-0.74,0.04);
+      r.add(up); r.add(lo); r.add(shoe); hips.add(r); return r;
+    }
+    B.armL=mkArm(-1); B.armR=mkArm(1); B.legL=mkLeg(-1); B.legR=mkLeg(1);
+    avatarRoot.add(hips); outlineObj(avatarRoot);
+    B.avatar=avatarRoot; B.avatarHips=hips; B.gait=0; B.carryId=null; B.walkTo=null;
+    B.scene.add(avatarRoot);
+
 
     canvas.addEventListener('pointerdown', onPointer);
     window.addEventListener('resize', onResize);
@@ -2636,6 +2674,7 @@ window.showPanel = function(name, btn){
       while (o && o.parent && !o.userData.nft) o = o.parent;
       if (o && o.userData && o.userData.nft) {
         selectNode(o);
+        B.walkTo = { x: o.position.x, z: o.position.z };
         return;
       }
     }
@@ -3694,6 +3733,25 @@ window.loadACBPanel=async function(){
 
   window.addEventListener('keydown', function(e){
     keys[e.code] = true;
+    if (e.code === 'KeyF'){
+      var b = Bref(); if(!b) return;
+      if (b.carryId){
+        if (b.root) b.root.children.forEach(function(g){
+          if(g.userData && g.userData.nft && g.userData.nft.id===b.carryId){
+            g.position.x=Math.round(g.position.x*2)/2; g.position.z=Math.round(g.position.z*2)/2; g.position.y=1.1;
+          }
+        });
+        b.carryId=null;
+      } else if (b.root && b.root.children.length){
+        var best=null, bd=1.4;
+        b.root.children.forEach(function(g){
+          if(!g.userData||!g.userData.nft) return;
+          var d=Math.hypot(g.position.x-(b.px||0), g.position.z-(b.pz||0));
+          if(d<bd){ bd=d; best=g; }
+        });
+        if(best) b.carryId = best.userData.nft.id;
+      }
+    }
     if (e.code === 'Escape'){
       try{ document.exitPointerLock && document.exitPointerLock(); }catch(_){}
     }
@@ -3754,10 +3812,41 @@ window.loadACBPanel=async function(){
     b.px = Math.max(-m, Math.min(m, b.px||0));
     b.pz = Math.max(-m, Math.min(m, b.pz||0));
     b.py = EYE;
-    b.camera.position.set(b.px, b.py, b.pz);
-    b.camera.rotation.order = 'YXZ';
-    b.camera.rotation.y = yaw;
-    b.camera.rotation.x = b.pitch || 0;
+    var moving = !!(keys['KeyW']||keys['KeyS']||keys['KeyA']||keys['KeyD']||keys['ArrowUp']||keys['ArrowDown']||keys['ArrowLeft']||keys['ArrowRight']|| (b.walkTo));
+    if (b.walkTo){
+      var dx=b.walkTo.x-b.px, dz=b.walkTo.z-b.pz, dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist<0.55) b.walkTo=null;
+      else { b.yaw=Math.atan2(-dx,-dz); b.px+= (dx/dist)*speed; b.pz+=(dz/dist)*speed; moving=true; }
+    }
+    if (b.avatar){
+      b.avatar.position.set(b.px, 0, b.pz);
+      b.avatar.rotation.y = b.yaw||0;
+      b.gait = (b.gait||0) + (moving? 0.18 : 0);
+      var sw = moving ? Math.sin(b.gait)*0.55 : 0;
+      if(b.legL) b.legL.rotation.x = sw;
+      if(b.legR) b.legR.rotation.x = -sw;
+      if(b.armL) b.armL.rotation.x = -sw*0.8;
+      if(b.armR) b.armR.rotation.x = sw*0.8;
+      if(b.avatarHips){ b.avatarHips.visible = window._bancadaMode !== 'fps'; b.avatarHips.position.y = 0.92 + (moving? Math.abs(Math.sin(b.gait))*0.03 : 0); }
+    }
+    if (b.carryId && b.root){
+      b.root.children.forEach(function(g){
+        if(g.userData && g.userData.nft && (g.userData.nft.id===b.carryId)){
+          g.position.x = b.px + fx*0.7; g.position.z = b.pz + fz*0.7; g.position.y = 1.0;
+        }
+      });
+    }
+    var pr=document.getElementById('bancadaPrompt');
+    if(pr){
+      var nearDoor = Math.abs(b.px)<0.95 && b.pz > ((b.HALF||7.2)-1.35);
+      pr.textContent = nearDoor ? ('en'==='en'?'E · exit to open world':'E · sair para o mundo aberto') : (b.carryId? ('en'==='en'?'F · set down on grid':'F · pousar na grelha') : ('en'==='en'?'E use · F pick up · click NFT to walk':'E usar · F pegar · clique num NFT para ir até ele'));
+    }
+    if (window._bancadaMode==='fps'){
+      b.camera.position.set(b.px, b.py, b.pz);
+      b.camera.rotation.order = 'YXZ';
+      b.camera.rotation.y = yaw;
+      b.camera.rotation.x = b.pitch || 0;
+    }
     window.__controlsTest = {
       getYaw: function(){ return b.yaw||0; },
       getSpeed: function(){ return keys['KeyW'] ? 1 : 0; },
