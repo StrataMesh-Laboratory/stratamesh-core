@@ -3,7 +3,7 @@ import type { Object3D } from "three";
 import type { Nft } from "@/lib/lab-kernel";
 import { DEFAULT_WORLD } from "@/lib/bancada-store";
 import { cidGatewayUrl, nftMediaRef, parseCid } from "@/lib/bancada-ipfs";
-import { TILE, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
+import { COLL, INV_SLOTS, OAM_MAX, TILE, gridCount, occupy, snapTile, toonRamp, worldToTile } from "@/lib/cgu-engine";
 
 declare global {
   interface Window {
@@ -448,6 +448,64 @@ export function BancadaCanvas({
       camera.add(hands);
       scene.add(camera);
 
+      const sprites = new THREE.Group();
+      scene.add(sprites);
+      function placeAtlas(
+        url: string,
+        cols: number,
+        rows: number,
+        cells: { c: number; r: number; x: number; z: number; w: number; h: number }[],
+      ) {
+        new THREE.TextureLoader().load(url, (base) => {
+          if (dead) return;
+          base.magFilter = THREE.NearestFilter;
+          base.minFilter = THREE.NearestFilter;
+          cells.slice(0, Math.max(0, OAM_MAX - sprites.children.length)).forEach((cell) => {
+            const tex = base.clone();
+            tex.repeat.set(1 / cols, 1 / rows);
+            tex.offset.set(cell.c / cols, 1 - (cell.r + 1) / rows);
+            tex.needsUpdate = true;
+            const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.18, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(cell.w, cell.h), mat);
+            mesh.position.set(cell.x, cell.h * 0.5, cell.z);
+            mesh.userData.billboard = true;
+            sprites.add(mesh);
+            const tcell = worldToTile(cell.x, cell.z, HALF, TILE);
+            occupy(occ, tilesN, tcell.tx, tcell.tz, COLL.SOLID);
+          });
+        });
+      }
+      placeAtlas("/os/tex/tiles-dungeon.png", 12, 11, [
+        { c: 3, r: 6, x: -4.5, z: -3.6, w: 0.85, h: 0.9 },
+        { c: 4, r: 6, x: 4.2, z: -3.6, w: 1.05, h: 0.7 },
+        { c: 8, r: 6, x: -4.5, z: 3.15, w: 0.8, h: 0.9 },
+        { c: 6, r: 7, x: 4.05, z: 3.0, w: 0.7, h: 1.0 },
+        { c: 9, r: 8, x: 2.25, z: 5.2, w: 0.7, h: 0.7 },
+        { c: 2, r: 7, x: -2.7, z: -4.5, w: 0.9, h: 0.55 },
+      ]);
+      placeAtlas("/os/tex/sprites-1bit.png", 49, 22, [
+        { c: 41, r: 14, x: -5.4, z: 0, w: 0.7, h: 0.85 },
+        { c: 22, r: 10, x: 5.4, z: 0, w: 0.7, h: 0.85 },
+        { c: 34, r: 8, x: 0, z: -5.4, w: 0.65, h: 0.8 },
+      ]);
+
+      const inv: string[] = [];
+      const invBar = document.createElement("div");
+      invBar.style.cssText =
+        "position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:6;display:flex;gap:4px;pointer-events:none";
+      function paintInv() {
+        invBar.innerHTML = "";
+        for (let i = 0; i < INV_SLOTS; i++) {
+          const slot = document.createElement("div");
+          slot.style.cssText =
+            "width:28px;height:28px;border:1px solid #6b2e1c;background:#fff6e4;font:600 9px/28px IBM Plex Mono,monospace;text-align:center;color:#8a2a1a";
+          slot.textContent = inv[i] ? String(i + 1) : "";
+          invBar.appendChild(slot);
+        }
+      }
+      paintInv();
+      stage.appendChild(invBar);
+
       const padHeld = { v: 0 };
       function makePad(side: "left" | "right", label: string, color: string, target: { x: number; y: number }) {
         const wrap = document.createElement("div");
@@ -728,7 +786,7 @@ export function BancadaCanvas({
         legR.rotation.x = -sw;
         armL.rotation.x = -sw * 0.8;
         armR.rotation.x = sw * 0.8;
-        hips.position.y = 0.92 + (moving ? Math.abs(Math.sin(gait.t)) * 0.03 : 0);
+        hips.position.y = 0.74 + (moving ? Math.abs(Math.sin(gait.t)) * 0.03 : 0);
 
         if (carry.id) {
           const held = objects.children.find((g) => g.userData.nftId === carry.id);
@@ -742,7 +800,9 @@ export function BancadaCanvas({
           const core = g.children[2];
           if (core && g.userData.mode === "dynamic") core.rotation.y += dt * 0.9;
         });
-        door.rotation.y = nearDoor() ? -0.4 : 0;
+        sprites.children.forEach((m) => {
+          m.rotation.y = yaw.v;
+        });
 
         const near = nearestNft();
         const nid = near ? String((near as Object3D).userData.nftId || "") : "";
@@ -801,6 +861,10 @@ export function BancadaCanvas({
               carry.id = String((n as Object3D).userData.nftId);
               (n as Object3D).userData.prevX = (n as Object3D).position.x;
               (n as Object3D).userData.prevZ = (n as Object3D).position.z;
+              if (inv.length < INV_SLOTS && !inv.includes(carry.id)) {
+                inv.push(carry.id);
+                paintInv();
+              }
               setPlacing(true);
             }
           }

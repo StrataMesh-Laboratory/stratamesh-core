@@ -1,13 +1,13 @@
 /**
  * Bancada CGU runtime — tile BG, occupancy, actors, dual-view radar.
- *
- * Patterns taken from MIT/GPL handheld engines (tile layers, OAM sprites,
- * indexed palettes, dual display, actor/trigger scripts). No console firmware,
- * no commercial titles, no ROM dumps.
+ * Mechanics only (MIT/GPL handheld engines + CC0 packs). No commercial titles.
  */
 
 export const TILE = 0.9;
+export const OAM_MAX = 40;
+export const INV_SLOTS = 8;
 export const PALETTE = [0x1a1008, 0x4a2410, 0x8a4a24, 0xc48a3a, 0xf3e2c4, 0xfff6e4, 0x8a2a1a, 0xd4a017];
+export const COLL = { EMPTY: 0, SOLID: 1, TRIGGER: 2, DOOR: 3 } as const;
 
 export function gridCount(half: number, tile = TILE) {
   return Math.max(8, Math.round((half * 2) / tile));
@@ -37,6 +37,15 @@ export type Actor = {
   z: number;
   r: number;
   solid: boolean;
+  script?: "use" | "door" | "pad";
+};
+
+export type Trigger = {
+  id: string;
+  kind: "door" | "use" | "pad";
+  x: number;
+  z: number;
+  r: number;
 };
 
 export function occupy(grid: Uint8Array, n: number, tx: number, tz: number, v = 1) {
@@ -46,7 +55,21 @@ export function occupy(grid: Uint8Array, n: number, tx: number, tz: number, v = 
 
 export function blockedGrid(grid: Uint8Array, n: number, x: number, z: number, half: number, tile = TILE) {
   const { tx, tz } = worldToTile(x, z, half, tile);
-  return grid[tz * n + tx] === 1;
+  const v = grid[tz * n + tx];
+  return v === COLL.SOLID;
+}
+
+export function nearestActor(list: Actor[], x: number, z: number): Actor | null {
+  let best: Actor | null = null;
+  let d = 99;
+  for (const a of list) {
+    const n = Math.hypot(a.x - x, a.z - z);
+    if (n < a.r && n < d) {
+      d = n;
+      best = a;
+    }
+  }
+  return best;
 }
 
 export function toonRamp(steps = 8) {
