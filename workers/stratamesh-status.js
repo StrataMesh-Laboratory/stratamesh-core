@@ -1,14 +1,12 @@
-const SNAPSHOT = {"version": "0.2.1-lab-temp", "phase": "2"};
-
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto (NFT STRATA) → Bancada CGU (Painel dentro) → Utilizador|SCA
- * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
- * Painel/Portal não é camada acima: vive na Bancada CGU.
+ *   TRD (CLP/PPC kernel temporal) → Nó Fog (com operador; corre e instancia SO nativos e importados na TRD) → SO Metaverso Web3 (nativo StrataMesh, partilhado, instanciado nos Fog) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU (sandbox users/SCA; Painel TanStack = kit de interface) → Utilizador|SCA
+ * CLP é kernel temporal da TRD, selado em cada holão via ppcCompact.
+ * Painel/Portal/TanStack vive na Bancada CGU.
  *
  * CLP: relative civil time.
  * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
@@ -43,15 +41,15 @@ const NODE_CMN = {
   sandbox_id: "sbx_9bed54e8-880",
 };
 
-/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada CGU. */
+/** Camadas holónicas (PT-PT). CLP = kernel temporal da TRD; Painel ⊂ Bancada CGU. */
 const HOLONIC_LAYERS = [
-  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; CLP/PPC embedded throughout" },
-  { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
-  { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
-  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "domínio hipervisor para mundos abertos", role: "hypervisor domain for worlds" },
-  { id: "open_world", nome: "Mundo Aberto", name_en: "Open-World", papel: "mundo persistente multi-utilizador", role: "multi-user persistent world" },
-  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "criação, isolamento e Painel/Portal (superfície de apps do SO)", role: "authoring, isolation, and Panel/Portal surface" },
-  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
+  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "livro-razão GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
+  { id: "node", nome: "Nó de Névoa", name_en: "Fog Node", papel: "holon Fog com operador; corre e instancia SO — nativo StrataMesh e outros desenvolvidos ou importados na TRD; indexa Limiar", role: "Fog holon with operator; runs and instantiates OS — native StrataMesh and others developed or imported on the DLT; indexes Edge" },
+  { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "SO nativo StrataMesh, partilhado; os Fog instanciam-no localmente; sub-sistemas: DV (VM hipervisor), Mundo Aberto, Bancada (Painel TanStack = kit de interface)", role: "native StrataMesh metaverse OS, shared, instantiated by Fog Nodes; subsystems: Virtual Realm (VM hypervisor), Open World, sandbox (Panel TanStack = UI kit)" },
+  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "sub-sistema do SO: VM hipervisor — servidores que suportam os mundos abertos", role: "OS subsystem: VM hypervisor — servers that support the open worlds" },
+  { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "sub-sistema habitável do SO, hospedado nas VM do Domínio Virtual", role: "habitable OS subsystem, hosted on Virtual Realm VMs" },
+  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox de utilizadores e SCA, hospedada nos mundos abertos; Painel TanStack = kit de interface", role: "user/SCA sandbox hosted in open worlds; Panel TanStack = UI kit" },
+  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo", role: "standing by function and agreement" },
 ];
 
 const PPC = [
@@ -411,7 +409,7 @@ const HOLON_CONTRACTS = {
   },
   node: {
     holon: "node",
-    nome: "Nó (SO/VM)",
+    nome: "Nó de Névoa",
     possui: ["medidores_capacidade", "registo_aps", "node_id"],
     owns: ["capacity_meters", "spa_registration", "node_id"],
     invariantes: ["substrato_nao_e_standing", "recurso_nao_e_rotulo_de_funcao"],
@@ -599,12 +597,14 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
 }
 
 
-async function svcJson(env, bindingName, path, timeoutMs = 5000) {
+async function svcJson(env, bindingName, path, timeoutMs = 2500) {
   const b = env && env[bindingName];
   if (!b || typeof b.fetch !== 'function') return { ok: false, missing_binding: bindingName };
   try {
     const work = (async () => {
-      const r = await b.fetch(new Request('https://binding.internal' + path));
+      const r = await b.fetch(new Request('https://binding.internal' + path, {
+        headers: { Accept: 'application/json' },
+      }));
       const text = await r.text();
       let json = null;
       try { json = JSON.parse(text); } catch (_) {}
@@ -619,32 +619,84 @@ async function svcJson(env, bindingName, path, timeoutMs = 5000) {
   }
 }
 
-async function buildLiveStatus(env) {
+async function tokenSnapshot(env, monetaryMs = 2500) {
+  const [health, mon] = await Promise.all([
+    svcJson(env, 'TOKEN', '/health', 4000),
+    svcJson(env, 'TOKEN', '/monetary', monetaryMs),
+  ]);
+  if (mon.ok && mon.json && mon.json.circulating_supply != null) {
+    return { ok: true, json: mon.json, version: (mon.json.version || (health.json && health.json.version)), source: 'monetary' };
+  }
+  if (health.ok && health.json) {
+    const h = health.json;
+    const bd = h.breakdown || {};
+    return {
+      ok: true,
+      source: 'health_fallback',
+      version: h.version,
+      json: {
+        circulating_supply: h.total_supply,
+        circulating_lab_only: bd.lab_only_strata,
+        circulating_transit_eligible: bd.transit_eligible_poc,
+        out_of_circulation: null,
+        mint_emitted: bd.transit_eligible_poc,
+        flow: h.holonic_note || h.emission_policy,
+        poles: null,
+        fog_wallet: bd.fog_wallet || null,
+        version: h.version,
+      },
+    };
+  }
+  return { ok: false, json: null, source: 'unavailable' };
+}
+
+async function readPulseCache(env) {
+  if (!env.STATUS_KV) return null;
+  try {
+    const raw = await env.STATUS_KV.get('pulse_cache');
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (!j || !j._cached_at) return null;
+    const age = Date.now() - Date.parse(j._cached_at);
+    return { age, live: j };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writePulseCache(env, live) {
+  if (!env.STATUS_KV || !live) return;
+  try {
+    const copy = Object.assign({}, live, { _cached_at: new Date().toISOString() });
+    await env.STATUS_KV.put('pulse_cache', JSON.stringify(copy), { expirationTtl: 300 });
+  } catch (_) {}
+}
+
+async function buildLiveStatus(env, opts) {
   const now = new Date().toISOString();
   const foundation = typeof holonicContext === 'function' ? holonicContext() : null;
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const [tokenMon, tokenArch, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
-    svcJson(env, 'TOKEN', '/monetary'),
-    svcJson(env, 'TOKEN', '/architecture'),
-    svcJson(env, 'POC', '/pool'),
-    svcJson(env, 'ACB', '/health'),
-    svcJson(env, 'ORCH', '/health'),
-    svcJson(env, 'DAG', '/health'),
-    svcJson(env, 'REPUBLIC', '/health'),
-    svcJson(env, 'AGORA', '/health'),
-    svcJson(env, 'AGORA', '/agora/rate?quote=EUR'),
-    svcJson(env, 'AIOPS', '/health'),
-    svcJson(env, 'AUTH', '/health'),
-    svcJson(env, 'IPFS', '/health'),
-    svcJson(env, 'HOLONS', '/health'),
+  const monetaryMs = (opts && opts.monetaryMs) || 2500;
+  const [tokenSnap, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
+    tokenSnapshot(env, monetaryMs),
+    svcJson(env, 'POC', '/pool', 2500),
+    svcJson(env, 'ACB', '/health', 2500),
+    svcJson(env, 'ORCH', '/health', 2500),
+    svcJson(env, 'DAG', '/health', 2500),
+    svcJson(env, 'REPUBLIC', '/health', 2500),
+    svcJson(env, 'AGORA', '/health', 2500),
+    svcJson(env, 'AGORA', '/agora/rate?quote=EUR', 2500),
+    svcJson(env, 'AIOPS', '/health', 1500),
+    svcJson(env, 'AUTH', '/health', 2500),
+    svcJson(env, 'IPFS', '/health', 2500),
+    svcJson(env, 'HOLONS', '/health', 2500),
   ]);
 
-  const mon = (tokenMon.json && tokenMon.ok) ? tokenMon.json : null;
+  const mon = tokenSnap.json;
   const pool = (pocPool.json && pocPool.ok) ? pocPool.json : null;
 
-  // Optional KV overlay (lab ingest) — never overrides live monetary/pool clocks
   let kv = null;
   if (env.STATUS_KV) {
     try {
@@ -659,15 +711,17 @@ async function buildLiveStatus(env) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.5-refined',
+    version: '0.3.8-pulse',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
     timestamp: now,
     lab: true,
-    source: 'live-aggregation+bindings',
+    source: 'live-aggregation+bindings+kv-cache',
     monetary: mon ? {
       circulating_supply: mon.circulating_supply,
+      circulating_lab_only: mon.circulating_lab_only,
+      circulating_transit_eligible: mon.circulating_transit_eligible,
       out_of_circulation: mon.out_of_circulation,
       mint_emitted: (mon.poles && mon.poles.mint && mon.poles.mint.total_emitted != null)
         ? mon.poles.mint.total_emitted
@@ -676,7 +730,8 @@ async function buildLiveStatus(env) {
       mint_source: '#mint',
       flow: mon.flow,
       poles: mon.poles || null,
-    } : { error: 'TOKEN binding or /monetary unavailable' },
+      source: tokenSnap.source,
+    } : { error: 'TOKEN /monetary and /health unavailable' },
     mesh_pool: pool && pool.pool ? {
       classes: pool.pool.map((x) => ({
         resource_class: x.resource_class,
@@ -686,7 +741,7 @@ async function buildLiveStatus(env) {
       ontology: pool.ontology || null,
     } : null,
     upstream: {
-      token: tokenMon.ok,
+      token: tokenSnap.ok,
       poc: pocPool.ok,
       acb: acbH.ok,
       orchestrator: orchH.ok,
@@ -739,7 +794,7 @@ async function buildLiveStatus(env) {
       note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
     summary: {
-      upstream_ok: [tokenMon, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
+      upstream_ok: [tokenSnap, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
       upstream_total: 11,
       circulating: mon ? mon.circulating_supply : null,
       burned: mon ? mon.out_of_circulation : null,
@@ -756,7 +811,7 @@ async function buildLiveStatus(env) {
       orchestrator: orchH.json && (orchH.json.version || orchH.json.service),
       acb: acbH.json && acbH.json.version,
       dag: dagH.json && dagH.json.version,
-      token: (tokenArch.json && tokenArch.json.version) || (tokenMon.json && tokenMon.json.version),
+      token: tokenSnap.version || (mon && mon.version),
       aiops: aiopsLast.json && aiopsLast.json.version,
       republic: repH.json && repH.json.version,
       agora: agoraH.json && agoraH.json.version,
@@ -779,14 +834,15 @@ async function buildLiveStatus(env) {
       monetary: 'https://stratamesh-token.stratamesh.workers.dev/monetary',
       repo: 'https://github.com/amcmorais/stratamesh-core',
     },
-    // retain non-conflicting kv fields if present
     kv_ingest_present: !!kv,
   };
 }
 
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=15' };
     if (url.pathname === '/ingest' && request.method === 'POST') {
       const token = request.headers.get('X-Status-Token') || '';
       if (!env.STATUS_TOKEN || token !== env.STATUS_TOKEN)
@@ -795,23 +851,25 @@ export default {
       if (env.STATUS_KV) await env.STATUS_KV.put('live', JSON.stringify(body));
       return new Response(JSON.stringify({ok:true}), {headers:{'Content-Type':'application/json'}});
     }
-    if (url.pathname === '/live' || url.pathname === '/widget')
-      return new Response(LIVE_HTML, {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+    if (url.pathname === '/live' || url.pathname === '/widget') {
+      const cached = await readPulseCache(env);
+      const live = (cached && cached.live) ? cached.live : await buildLiveStatus(env);
+      return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
+    }
 
     if (url.pathname === '/health') {
-      // Lightweight probe for diagnostics — no multi-binding fan-out
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.3.5-refined',
+        version: '0.3.8-pulse',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
     }
-    if (url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
-      const live = await buildLiveStatus(env);
+
+    async function respondLive(live) {
       if (url.pathname === '/' && (request.headers.get('Accept') || '').includes('text/html')) {
-        return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+        return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
       }
       if (url.pathname === '/summary') {
         const slim = {
@@ -828,6 +886,7 @@ export default {
             burn_sink: live.monetary.burn_sink,
             mint_source: live.monetary.mint_source,
             flow: live.monetary.flow,
+            source: live.monetary.source,
           },
           agora_rate: live.agora && live.agora.rate,
           upstream: live.upstream,
@@ -835,16 +894,26 @@ export default {
           ipfs_ok: !!(live.upstream && live.upstream.ipfs),
           holons_ok: !!(live.upstream && live.upstream.holons),
         };
-        return new Response(JSON.stringify(slim, null, 2), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
-        });
+        return new Response(JSON.stringify(slim, null, 2), { headers: cors });
       }
-      return new Response(JSON.stringify(live, null, 2), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
-      });
+      return new Response(JSON.stringify(live, null, 2), { headers: cors });
+    }
+
+    if (url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
+      const cached = await readPulseCache(env);
+      const fresh = cached && Number.isFinite(cached.age) && cached.age < 25000 && cached.live;
+      if (fresh) {
+        if (ctx && typeof ctx.waitUntil === 'function' && cached.age > 15000) {
+          ctx.waitUntil(buildLiveStatus(env, { monetaryMs: 8000 }).then((l) => writePulseCache(env, l)));
+        }
+        return respondLive(cached.live);
+      }
+      const live = await buildLiveStatus(env);
+      if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writePulseCache(env, live));
+      else await writePulseCache(env, live);
+      return respondLive(live);
     }
     const live = await buildLiveStatus(env);
-    return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});
+    return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
   }
 };
-

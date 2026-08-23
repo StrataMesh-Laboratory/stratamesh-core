@@ -25,6 +25,7 @@ const ACB_ROSTER = {
   economics: "ACBs earn STRATA only when hired — no mint",
 };
 
+const AIOPS_VERSION = "1.6.3-health-roster";
 
 async function pulseAcbTeam(env) {
   // Full ops-cycle: top-up from Orchestrator earned STRATA + pulse (zero mint)
@@ -50,6 +51,7 @@ async function pulseAcbTeam(env) {
     const j = await r.json().catch(() => null);
     if (j && j.success) return j.pulses || j;
   } catch (_) {}
+  if (!ACB_ROSTER || !ACB_ROSTER.lead) return [];
   const ids = [ACB_ROSTER.lead.acb_id, ...ACB_ROSTER.agents.map((x) => x.acb_id)];
   const out = [];
   for (const acb_id of ids) {
@@ -87,7 +89,7 @@ const TEAM = [
   { id: "economy", role: "Economy", mandate: "PoC mint bounds, Agora settlement integrity" },
 ];
 
-const DEFAULT_STATUS = "https://stratamesh-status.stratamesh.workers.dev/status";
+const DEFAULT_STATUS = "https://stratamesh-status.stratamesh.workers.dev/health";
 // Note: plain_text STATUS_URL/AUTH_URL/ORCH_URL may be origin-only — probe() normalizes paths.
 const DEFAULT_ORCH = "https://stratamesh-orchestrator.stratamesh.workers.dev/health";
 const DEFAULT_AUTH = "https://stratamesh-auth.stratamesh.workers.dev/health";
@@ -487,7 +489,7 @@ function normalizeServiceUrl(url, kind) {
     return DEFAULT_AUTH;
   }
   if (/\/(health|status|cycle|tick)(\/|$)/i.test(u)) return u;
-  if (kind === "status") return u + "/status";
+  if (kind === "status") return u.replace(/\/status$/i, "") + "/health";
   if (kind === "orch") return u + "/health";
   return u + "/health";
 }
@@ -563,7 +565,7 @@ async function runTeamCycleBudgeted(env) {
   }
 
   const [status, orch, auth, iot] = await Promise.all([
-    probe(env.STATUS, "/status"),
+    probe(env.STATUS, "/health"),
     probe(env.ORCH, "/health"),
     probe(env.AUTH, "/health"),
     probe(env.IOT, "/health"),
@@ -654,7 +656,7 @@ async function runTeamCycleBudgeted(env) {
     acb_ops,
     temporal: typeof ppcCompact === "function" ? ppcCompact("metaverse_os") : null,
     foundation_path: typeof holonicContext === "function" ? holonicContext().path : null,
-    version: "1.6.0-iot-mesh",
+    version: AIOPS_VERSION,
   };
 
   if (env.AIOPS_KV) {
@@ -679,7 +681,7 @@ async function runTeamCycleLight(env) {
     }
   }
   const [status, orch] = await Promise.all([
-    probe(env.STATUS, "/status"),
+    probe(env.STATUS, "/health"),
     probe(env.ORCH, "/health"),
   ]);
   return { ok: status.ok && orch.ok, light: true, upstream: { status, orch }, at: new Date().toISOString() };
@@ -707,10 +709,12 @@ async function runTeamCycle(env) {
     return fetchJson(url);
   }
 
-  const [status, orch, auth] = await Promise.all([
-    probe(env.STATUS, statusUrl),
-    probe(env.ORCH, orchUrl),
-    probe(env.AUTH, authUrl),
+  const iotUrl = normalizeServiceUrl(env.IOT_URL || "https://stratamesh-iot.stratamesh.workers.dev/health", "iot");
+  const [status, orch, auth, iot] = await Promise.all([
+    probe(env.STATUS, "/health"),
+    probe(env.ORCH, "/health"),
+    probe(env.AUTH, "/health"),
+    probe(env.IOT, "/health"),
   ]);
 
   const reports = [];
@@ -957,6 +961,22 @@ async function orchestratorChat(message, env) {
 
 export default {
   async fetch(request, env, ctx) {
+    try {
+      return await handleFetch(request, env, ctx);
+    } catch (e) {
+      return json({ error: "internal", message: String(e && e.message || e) }, 500);
+    }
+  },
+
+  /** Cloudflare Cron Trigger — budgeted development cycle (free-tier safe) */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      runTeamCycleBudgeted(env).catch(() => runTeamCycleLight(env))
+    );
+  },
+};
+
+async function handleFetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
@@ -978,20 +998,30 @@ export default {
     }
 
     if (path === "/health" || path === "/api/health" || path === "/api/aiops/health") {
-      return json({
-        status: "ok",
-        worker: "stratamesh-aiops",
-        version: "1.6.0-iot-mesh",
-        acb_roster: ACB_ROSTER,
-        team: TEAM.map((a) => a.id),
-        mode: "continuous-development",
-        continuous: {
-          workers_cron: "hourly_dev_cycle_budgeted",
-          host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
-          note: "Workers cannot while(true); host process is the real continuous loop",
-        },
-        timestamp: new Date().toISOString(),
-      });
+      try {
+        return json({
+          status: "ok",
+          worker: "stratamesh-aiops",
+          version: AIOPS_VERSION,
+          acb_roster: ACB_ROSTER,
+          team: TEAM.map((a) => a.id),
+          mode: "continuous-development",
+          continuous: {
+            workers_cron: "hourly_dev_cycle_budgeted",
+            host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
+            note: "Workers cannot while(true); host process is the real continuous loop",
+          },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return json({
+          status: "ok",
+          worker: "stratamesh-aiops",
+          version: AIOPS_VERSION,
+          error: String(e && e.message || e),
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
 
     if (path === "/team" || path === "/api/aiops/team") {
@@ -1036,23 +1066,23 @@ export default {
     }
 
     if (path === "/" || path === "/status") {
-      const cycle = await runTeamCycle(env);
-      return json({
-        service: "StrataMesh AIOps Dev Team",
-        version: "1.0.0-lab",
-        mandate: "Continuous development and operations of the Calhegas Morais Fog Node — not health-check theatre",
-        latest_cycle: cycle,
-      });
+      try {
+        const cycle = await runTeamCycleBudgeted(env);
+        return json({
+          service: "StrataMesh AIOps Dev Team",
+          version: AIOPS_VERSION,
+          mandate: "Continuous development and operations of the Calhegas Morais Fog Node — not health-check theatre",
+          latest_cycle: cycle,
+        });
+      } catch (e) {
+        return json({
+          service: "StrataMesh AIOps Dev Team",
+          version: AIOPS_VERSION,
+          error: "cycle_failed",
+          message: String(e && e.message || e),
+        }, 200);
+      }
     }
 
     return json({ error: "not_found", path }, 404);
-  },
-
-  /** Cloudflare Cron Trigger — budgeted development cycle (free-tier safe) */
-  async scheduled(event, env, ctx) {
-    // Hourly budgeted development cycle: agent reports + zero-cost team heartbeat.
-    ctx.waitUntil(
-      runTeamCycleBudgeted(env).catch(() => runTeamCycleLight(env))
-    );
-  },
-};
+}

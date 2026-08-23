@@ -1,4 +1,3 @@
-
 async function serveEni(env) {
   try {
     if (env.LEDGER || env.DB) {
@@ -8,12 +7,9 @@ async function serveEni(env) {
       ).bind("eni").all();
       if (chunks && chunks.length) {
         const html = chunks.map((c) => c.value || "").join("");
-        return new Response(html, {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=120",
-            "X-ENI-Source": "site_content_chunks",
-          },
+        return htmlPage(html, {
+          "Cache-Control": "public, max-age=120",
+          "X-ENI-Source": "site_content_chunks",
         });
       }
     }
@@ -126,6 +122,14 @@ function htmlResponse(body, init) {
   const headers = withSecurityHeaders(init.headers || { "Content-Type": "text/html; charset=utf-8" });
   if (!headers.has("Content-Type")) headers.set("Content-Type", "text/html; charset=utf-8");
   return new Response(body, { status: init.status || 200, headers });
+}
+
+function htmlPage(html, extra, status) {
+  const headers = withSecurityHeaders({
+    "Content-Type": "text/html; charset=utf-8",
+    ...(extra || {}),
+  });
+  return new Response(html, { status: status || 200, headers });
 }
 
 export default {
@@ -256,7 +260,7 @@ Allow: /eni
 Disallow: /dashboard
 Disallow: /api/
 Disallow: /pagamentos
-Sitemap: https://calhegasmorais.pt/sitemap.txt
+Sitemap: https://calhegasmorais.pt/sitemap.xml
 `;
       return new Response(robots, {
         headers: withSecurityHeaders({
@@ -267,11 +271,14 @@ Sitemap: https://calhegasmorais.pt/sitemap.txt
     }
     if (path === '/sitemap.txt') {
       const sm = `https://calhegasmorais.pt/
-https://calhegasmorais.pt/?lang=en
+https://calhegasmorais.pt/en
 https://calhegasmorais.pt/clp
 https://calhegasmorais.pt/eni
 https://calhegasmorais.pt/transcrito
+https://calhegasmorais.pt/termos
+https://calhegasmorais.pt/privacidade
 https://eni.calhegasmorais.pt/
+https://status.calhegasmorais.pt/
 `;
       return new Response(sm, {
         headers: withSecurityHeaders({
@@ -280,6 +287,36 @@ https://eni.calhegasmorais.pt/
         }),
       });
     }
+    if (path === '/sitemap.xml') {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://calhegasmorais.pt/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calhegasmorais.pt/"/>
+  </url>
+  <url>
+    <loc>https://calhegasmorais.pt/en</loc>
+  </url>
+  <url><loc>https://calhegasmorais.pt/clp</loc></url>
+  <url><loc>https://calhegasmorais.pt/eni</loc></url>
+  <url><loc>https://calhegasmorais.pt/transcrito</loc></url>
+  <url><loc>https://calhegasmorais.pt/termos</loc></url>
+  <url><loc>https://calhegasmorais.pt/privacidade</loc></url>
+  <url><loc>https://eni.calhegasmorais.pt/</loc></url>
+  <url><loc>https://status.calhegasmorais.pt/</loc></url>
+</urlset>
+`;
+      return new Response(xml, {
+        headers: withSecurityHeaders({
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        }),
+      });
+    }
+
     if (path === '/.well-known/security.txt' || path === '/security.txt' || path === '/seguranca.txt' || path.endsWith('security.txt')) {
       const sec = `Contact: mailto:geral@eni.calhegasmorais.pt
 Contact: mailto:amcmorais@icloud.com
@@ -614,15 +651,11 @@ async function serveRoadmap(request, env, corsHeaders) {
           if (chunks && chunks.length) {
             const html = chunks.map((c) => c.value || "").join("");
             if (html) {
-              return new Response(html, {
-                status: 200,
-                headers: {
-                  ...corsHeaders,
-                  "Content-Type": "text/html; charset=utf-8",
-                  "Cache-Control": "public, max-age=60",
-                  "Content-Language": lang === "en" ? "en-GB" : "pt-PT",
-                  "X-Home-Source": "site_content_chunks",
-                },
+              return htmlPage(html, {
+                ...corsHeaders,
+                "Cache-Control": "public, max-age=60",
+                "Content-Language": lang === "en" ? "en-GB" : "pt-PT",
+                "X-Home-Source": "site_content_chunks",
               });
             }
           }
@@ -644,15 +677,11 @@ async function serveClp(request, env, corsHeaders) {
       if (chunks && chunks.length) {
         const html = chunks.map((c) => c.value || "").join("");
         if (html) {
-          return new Response(html, {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "public, max-age=60",
-              "Content-Language": "pt-PT",
-              "X-CLP-Source": "site_content_chunks",
-            },
+          return htmlPage(html, {
+            ...corsHeaders,
+            "Cache-Control": "public, max-age=60",
+            "Content-Language": "pt-PT",
+            "X-CLP-Source": "site_content_chunks",
           });
         }
       }
@@ -679,15 +708,11 @@ async function serveHome(request, env, corsHeaders) {
           if (chunks && chunks.length) {
             const html = chunks.map((c) => c.value || "").join("");
             if (html) {
-              return new Response(html, {
-                status: 200,
-                headers: {
-                  ...corsHeaders,
-                  "Content-Type": "text/html; charset=utf-8",
-                  "Cache-Control": "public, max-age=120",
-                  "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
-                  "X-Home-Source": "site_content_chunks",
-                },
+              return htmlPage(html, {
+                ...corsHeaders,
+                "Cache-Control": "public, max-age=120",
+                "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
+                "X-Home-Source": "site_content_chunks",
               });
             }
           }
@@ -697,15 +722,11 @@ async function serveHome(request, env, corsHeaders) {
             "SELECT value FROM site_content WHERE key = ? LIMIT 1"
           ).bind(key).all();
           if (results && results[0] && results[0].value) {
-            return new Response(results[0].value, {
-              status: 200,
-              headers: {
-                ...corsHeaders,
-                "Content-Type": "text/html; charset=utf-8",
-                "Cache-Control": "public, max-age=120",
-                "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
-                "X-Home-Source": "site_content",
-              },
+            return htmlPage(results[0].value, {
+              ...corsHeaders,
+              "Cache-Control": "public, max-age=120",
+              "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
+              "X-Home-Source": "site_content",
             });
           }
         } catch (_) {}
@@ -720,25 +741,17 @@ async function serveHome(request, env, corsHeaders) {
     if (pr.ok) {
       const html = await pr.text();
       if (html && html.includes("<html")) {
-        return new Response(html, {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=120",
-            "X-Home-Source": "portal-worker",
-          },
+        return htmlPage(html, {
+          ...corsHeaders,
+          "Cache-Control": "public, max-age=120",
+          "X-Home-Source": "portal-worker",
         });
       }
     }
   } catch (_) {}
-  return new Response(fallbackHome(lang), {
-    status: 200,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "text/html; charset=utf-8",
-      "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
-    },
+  return htmlPage(fallbackHome(lang), {
+    ...corsHeaders,
+    "Content-Language": lang === "pt" ? "pt-PT" : "en-GB",
   });
 }
 
