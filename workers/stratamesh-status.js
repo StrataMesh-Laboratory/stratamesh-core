@@ -591,7 +591,7 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
   <div class="card"><div class="v">${(s.auth&&s.auth.users!=null)?s.auth.users:'—'}</div><div class="l">Utilizadores</div></div>
 </div>
 <p class="muted">${(mon.flow||'')}</p>
-<p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a></p>
+<p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
 <details><summary class="muted">JSON completo</summary><pre>${JSON.stringify(s,null,2).replace(/</g,'&lt;')}</pre></details>
 </body></html>`;
 }
@@ -832,7 +832,10 @@ async function buildLiveStatus(env, opts) {
       portal: 'https://calhegasmorais.pt/dashboard',
       tdra: 'https://stratamesh-orchestrator.stratamesh.workers.dev/tdra',
       monetary: 'https://stratamesh-token.stratamesh.workers.dev/monetary',
-      repo: 'https://github.com/amcmorais/stratamesh-core',
+      repo: 'https://github.com/StrataMesh-Laboratory/stratamesh-core',
+      laboratory: 'https://github.com/StrataMesh-Laboratory',
+      node_registry: 'https://github.com/StrataMesh-Laboratory/calhegas-morais-node',
+      eni: 'https://github.com/amcmorais/amcm-eni',
     },
     kv_ingest_present: !!kv,
   };

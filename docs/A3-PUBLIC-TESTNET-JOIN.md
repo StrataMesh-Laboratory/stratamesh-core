@@ -9,7 +9,7 @@
 
 ## 1. Get the code
 ```bash
-git clone https://github.com/amcmorais/stratamesh-core.git
+git clone https://github.com/StrataMesh-Laboratory/stratamesh-core.git
 cd stratamesh-core
 git checkout v0.2.0-lab   # or main
 ```

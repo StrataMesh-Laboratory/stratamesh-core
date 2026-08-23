@@ -14,7 +14,7 @@ const STATUS = {
     multi_node_sim: "gossip verified",
     testnet_launcher: "3-node private testnet working",
     spa_template: "draft ready",
-    public_repo: "https://github.com/amcmorais/stratamesh-core"
+    public_repo: "https://github.com/StrataMesh-Laboratory/stratamesh-core"
   },
   dag: { height_approx: 0, tip_count: 0, transaction_count: 0 },
   ipfs: {
@@ -25,7 +25,7 @@ const STATUS = {
   spa: { active_spas: 0, roles: ["fog"] },
   aiops: { orchestrator: "active", agents: ["security", "devops", "analysis"] },
   links: {
-    repo: "https://github.com/amcmorais/stratamesh-core",
+    repo: "https://github.com/StrataMesh-Laboratory/stratamesh-core",
     portal: "https://aiops.calhegasmorais.pt/"
   }
 };
@@ -74,12 +74,12 @@ const HTML = `<!DOCTYPE html>
         <li>Tip selection v0.1 reference</li>
         <li>PersistentDAG (SQLite)</li>
         <li>3-node private testnet launcher</li>
-        <li>Public repo: <a href="https://github.com/amcmorais/stratamesh-core">stratamesh-core</a></li>
+        <li>Public repo: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">stratamesh-core</a></li>
       </ul>
     </div>
     <div class="card">
       <div class="label">Links</div>
-      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/amcmorais/stratamesh-core">GitHub</a> · <a href="https://aiops.calhegasmorais.pt/">Portal</a></p>
+      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a> · <a href="https://aiops.calhegasmorais.pt/">Portal</a></p>
     </div>
     <footer>UNCLASSIFIED // FOG-NODE-PT-CM-001<br>© 2026 Calhegas Morais · StrataMesh DLT</footer>
   </div>

@@ -45,7 +45,7 @@ def build_status_payload(
             "note": "pin stub; real client pending",
         },
         "links": {
-            "repo": "https://github.com/amcmorais/stratamesh-core",
+            "repo": "https://github.com/StrataMesh-Laboratory/stratamesh-core",
             "status_worker": "https://stratamesh-status.stratamesh.workers.dev/status",
             "portal": "https://calhegasmorais.pt/dashboard",
         },

@@ -75,7 +75,7 @@ sudo apt update && sudo apt install -y python3 python3-venv git ufw fail2ban
 
 ### Clone & run
 ```bash
-git clone https://github.com/amcmorais/stratamesh-core.git
+git clone https://github.com/StrataMesh-Laboratory/stratamesh-core.git
 cd stratamesh-core
 python3 -m venv .venv && source .venv/bin/activate
 # no heavy pip deps required for core node

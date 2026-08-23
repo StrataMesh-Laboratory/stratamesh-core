@@ -595,7 +595,7 @@ export function Landing({ lang }: { lang: "pt" | "en" }) {
           <Link to={pt ? "/roadmap" : "/en/roadmap"} className="btn ghost">
             {pt ? "Mapa-mestre" : "Roadmap"}
           </Link>
-          <a className="btn ghost" href="https://github.com/amcmorais/stratamesh-core" rel="noreferrer">
+          <a className="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noreferrer">
             GitHub
           </a>
         </div>

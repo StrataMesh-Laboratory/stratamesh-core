@@ -3,8 +3,8 @@
 **Fog Node:** Calhegas Morais (`FOG-NODE-PT-CM-001`)  
 **Location:** 38.7169° N, 9.1427° W — Lisbon, Portugal  
 **Domain:** [calhegasmorais.pt](https://calhegasmorais.pt/)  
-**Core repo:** [amcmorais/stratamesh-core](https://github.com/amcmorais/stratamesh-core)  
-**Lab release:** [v0.2.1-lab](https://github.com/amcmorais/stratamesh-core/releases/tag/v0.2.1-lab) (2026-08-10; supersedes v0.2.0-lab)  
+**Core repo:** [StrataMesh-Laboratory/stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)  
+**Lab release:** [v0.2.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.1-lab) (2026-08-10; supersedes v0.2.0-lab)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
 
 ---

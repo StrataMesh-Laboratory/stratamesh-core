@@ -25,7 +25,7 @@ curl -s https://stratamesh-status.stratamesh.workers.dev/status | head
 ## Public URLs
 - Status JSON: https://stratamesh-status.stratamesh.workers.dev/status
 - Live widget: https://stratamesh-status.stratamesh.workers.dev/live
-- Repo: https://github.com/amcmorais/stratamesh-core
+- Repo: https://github.com/StrataMesh-Laboratory/stratamesh-core
 
 ## Ingest token
 Header `X-Status-Token` must match Worker binding `STATUS_TOKEN`.
