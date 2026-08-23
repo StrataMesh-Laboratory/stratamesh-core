@@ -28,25 +28,25 @@ cd src && python3 mesh_doctor.py   # full-stack self-check
 
 Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
-## Stack map (lab)
-| Phase | Focus |
-|-------|--------|
-| 0–1 | DAG, tip selection, gossip, persistent node, IPFS client |
-| 2 | SPA registry, finality, status pipeline |
-| 3 | PoC → STRATA, Agora + settlement |
-| 4 | STRATA NFTs / CID objects, CGU sandbox (users+SCAs) |
-| 5 | DAO proposals & votes |
-| 6 | ACB + Proof of Subsistence |
-| 7 | PQ key **placeholders** (not real crypto) |
+## Promotion ladder (lab → mainnet)
 
-Docs: [`ROADMAP-PUBLIC-v0.2.md`](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.1-lab.md` · `docs/OPS-RUNBOOK.md`
+| Stage | Focus |
+|-------|--------|
+| **LAB** | Reference node · wire + threat drafts · single-process benchmark |
+| **Adversarial lab** | Multi-host gossip + chaos · I1–I6 CI · resource-proof MVP |
+| **Public testnet** | Frozen wire · external join · still not mainnet |
+| **Mainnet** | Explicit decision after evidence — unscheduled |
+
+Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
+
+Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.1-lab.md` · `docs/OPS-RUNBOOK.md`
 
 ## Roadmap (summary)
 Lab freeze **v0.2.1-lab** exercises whitepaper pillars in-process. Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 
-Full detail: [docs/ROADMAP-PUBLIC-v0.2.md](docs/ROADMAP-PUBLIC-v0.2.md)
+Full detail: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md)
 
 ## Hybrid Orchestrator
 Federated meta-learning controller (probabilistic + symbolic lobes, QIGA):
