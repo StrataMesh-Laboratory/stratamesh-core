@@ -9,6 +9,11 @@
 
 ---
 
+> **Superseded for promotion control law** by [ROADMAP-PUBLIC-v0.3.md](./ROADMAP-PUBLIC-v0.3.md) (2026-08-23).  
+> v0.2 remains historical: parallel Track A ∥ Track B after lab freeze. In-process “done” ≠ multi-host production.
+
+---
+
 ## 1. Vision (from whitepaper)
 
 StrataMesh is a next-generation distributed ledger that combines:
