@@ -679,9 +679,10 @@ async function buildLiveStatus(env, opts) {
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
   const monetaryMs = (opts && opts.monetaryMs) || 2500;
-  const [tokenSnap, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
+  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
-    svcJson(env, 'POC', '/pool', 2500),
+    svcJson(env, 'POC', '/health', 4000),
+    svcJson(env, 'POC', '/pool', 5000),
     svcJson(env, 'ACB', '/health', 2500),
     svcJson(env, 'ORCH', '/health', 2500),
     svcJson(env, 'DAG', '/health', 2500),
@@ -696,6 +697,7 @@ async function buildLiveStatus(env, opts) {
 
   const mon = tokenSnap.json;
   const pool = (pocPool.json && pocPool.ok) ? pocPool.json : null;
+  const pocOk = !!(pocHealth.ok || pocPool.ok);
 
   let kv = null;
   if (env.STATUS_KV) {
@@ -711,7 +713,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.8-pulse',
+    version: '0.3.9-pulse',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -742,7 +744,7 @@ async function buildLiveStatus(env, opts) {
     } : null,
     upstream: {
       token: tokenSnap.ok,
-      poc: pocPool.ok,
+      poc: pocOk,
       acb: acbH.ok,
       orchestrator: orchH.ok,
       dag: dagH.ok,
@@ -794,7 +796,7 @@ async function buildLiveStatus(env, opts) {
       note: 'use /cycle or /last on AIOPS worker for full cycle payload',
     } : null,
     summary: {
-      upstream_ok: [tokenSnap, pocPool, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
+      upstream_ok: [tokenSnap, { ok: pocOk }, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
       upstream_total: 11,
       circulating: mon ? mon.circulating_supply : null,
       burned: mon ? mon.out_of_circulation : null,
