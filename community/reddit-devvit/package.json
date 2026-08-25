@@ -1,0 +1,21 @@
+{
+  "name": "stratamesh-lab-devvit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Devvit app for r/StrataMesh_DLT — StrataMesh Laboratory (complements classic Reddit script + CF Worker)",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "playtest": "npm run build && devvit playtest",
+    "upload": "npm run build && devvit upload"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "@devvit/public-api": "^0.12.0"
+  }
+}
