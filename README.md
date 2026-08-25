@@ -56,6 +56,19 @@ cd src && python3 -m orchestrator.meta_controller
 
 
 
+## Community
+
+| Channel | URL |
+|---------|-----|
+| **Forum** | [stratamesh.discourse.group](https://stratamesh.discourse.group) |
+| **GitHub org** | [StrataMesh-Laboratory](https://github.com/StrataMesh-Laboratory) |
+| **Reference node** | [calhegasmorais.pt](https://calhegasmorais.pt) |
+| **Status** | [status.calhegasmorais.pt](https://status.calhegasmorais.pt) |
+| **Impact Fund** | [fund.calhegasmorais.pt](https://fund.calhegasmorais.pt) |
+| Contact | `geral@eni.calhegasmorais.pt` |
+
+Forum = discussion · GitHub = code · Node = public lab surface. See [docs/COMMUNITY-CHANNELS.md](docs/COMMUNITY-CHANNELS.md).
+
 ## Contributors (testnet funnel)
 
 We cultivate **open-source engineers already shipping** in adjacent ecosystems (libp2p, KubeEdge, Golem/Akash, IPFS, agents, simulation) — not a generic “crypto hiring” funnel.
