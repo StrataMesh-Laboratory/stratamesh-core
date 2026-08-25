@@ -1,3 +1,18 @@
+
+## Who this is for
+
+We are **not** recruiting “generic crypto developers.”
+
+If you already contribute upstream to **libp2p, KubeEdge, Golem, Akash, IPFS, IOTA, Kubernetes, LangGraph/AG2, EdgeX, Akri, Godot/Bevy** (or similar), there is likely a **track** where your existing expertise maps onto a StrataMesh problem — networking, edge, compute economics, agents, worlds, or identity.
+
+- Outreach map: [`docs/COMMUNITY-OUTREACH-MAP.md`](docs/COMMUNITY-OUTREACH-MAP.md)
+- Tracks: [`docs/CONTRIBUTOR-TRACKS.md`](docs/CONTRIBUTOR-TRACKS.md)
+- Wanted problems: [`docs/WANTED.md`](docs/WANTED.md)
+- Funded challenges: [fund.calhegasmorais.pt/challenges](https://fund.calhegasmorais.pt/challenges)
+- Sponsors: [github.com/sponsors/amcmorais](https://github.com/sponsors/amcmorais)
+
+Use issue template **Track contribution** and label `track:*`.
+
 # Contributing to StrataMesh Laboratory
 
 **Open contribution is welcome.** Canonical code lives under [`StrataMesh-Laboratory`](https://github.com/StrataMesh-Laboratory).
