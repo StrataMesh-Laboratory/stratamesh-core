@@ -96,3 +96,6 @@ curl -sS -H "X-API-Key: $KEY" 'https://api.deomail.com/v1/emails?limit=10'
 # Extract https://…/session/email-login/{token} or 6-digit codes from subject/body
 ```
 
+## Related
+
+Daily development execution: [OPS-24H-DEV-CRON.md](./OPS-24H-DEV-CRON.md).
