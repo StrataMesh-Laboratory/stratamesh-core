@@ -55,6 +55,14 @@ cd src && python3 -m orchestrator.meta_controller
 ```
 
 
+
+## Contributors (testnet funnel)
+
+We cultivate **open-source engineers already shipping** in adjacent ecosystems (libp2p, KubeEdge, Golem/Akash, IPFS, agents, simulation) — not a generic “crypto hiring” funnel.
+
+- [`docs/COMMUNITY-OUTREACH-MAP.md`](docs/COMMUNITY-OUTREACH-MAP.md) · [`docs/CONTRIBUTOR-TRACKS.md`](docs/CONTRIBUTOR-TRACKS.md) · [`docs/WANTED.md`](docs/WANTED.md)
+- Incentives: [Impact Fund](https://fund.calhegasmorais.pt/) · [Sponsors](https://github.com/sponsors/amcmorais) · Issues `track:*` / `impact-challenge`
+
 ## Subject–Object Economy
 
 **Subjects** (humans, SCAs) act, agree, and own. **Objects** (STRATA, NFTs, resources) are owned and used — never the reverse for NFTs.
