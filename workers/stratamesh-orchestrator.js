@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.23.0-chat-memory";
+const VERSION = "10.24.0-clearance-hierarchy";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -626,20 +626,38 @@ const CLEARANCE_PERMS = {
 
 /** Map account clearance_level (DB) → ladder */
 function mapAccountClearance(raw) {
-  const s = String(raw || "public").toLowerCase().replace(/[\s-]+/g, "_");
-  // Explicit ladder
-  if (["top_secret", "topsecret", "ts", "root", "god"].includes(s)) return "top_secret";
-  if (["secret", "sec", "admin"].includes(s)) return "secret";
-  if (["confidential", "conf", "staff"].includes(s)) return "confidential";
-  if (["internal", "intl", "operator", "lab"].includes(s)) return "internal";
-  if (["public", "pub", "basic", "0", "unclassified", "guest"].includes(s)) return "public";
-  // numeric ranks if ever stored as rank index
+  if (raw === null || raw === undefined || raw === "") return "public";
+  const s = String(raw).toLowerCase().replace(/[\s-]+/g, "_");
+  if (["top_secret", "topsecret", "ts"].includes(s)) return "top_secret";
+  if (["secret", "sec"].includes(s)) return "secret";
+  if (["confidential", "conf"].includes(s)) return "confidential";
+  if (["internal", "intl"].includes(s)) return "internal";
+  if (["public", "pub", "basic", "0", "unclassified", "guest", "anonymous"].includes(s)) return "public";
   if (s === "4") return "top_secret";
   if (s === "3") return "secret";
   if (s === "2") return "confidential";
   if (s === "1") return "internal";
+  // Do NOT map lab/operator/admin/root/god — those are roles, not clearance ladder
   return "public";
 }
+
+/**
+ * Who may access whom (agents / account-scoped data):
+ *   public        ← internal, confidential, secret, top_secret
+ *   internal      ← confidential, secret, top_secret
+ *   confidential  ← secret, top_secret
+ *   secret        ← top_secret
+ *   top_secret    ← top_secret only
+ * Same-level peers do not get access (except top_secret self-tier).
+ * Owner always retains access to own data (checked separately via user_id).
+ */
+function canAccessAgentClearance(viewerClearance, targetClearance) {
+  const v = CLEARANCE_RANK[mapAccountClearance(viewerClearance)] ?? 0;
+  const t = CLEARANCE_RANK[mapAccountClearance(targetClearance)] ?? 0;
+  if (t >= CLEARANCE_RANK.top_secret) return v >= CLEARANCE_RANK.top_secret;
+  return v > t;
+}
+
 
 function normalizeClearance(raw) {
   return mapAccountClearance(raw);
@@ -718,7 +736,25 @@ async function resolveAccountClearance(request, env, body) {
     } catch (_) {}
   }
 
-  // Hard rule: body/header cannot elevate above account
+  // Anonymous / no bound account → always public. Never "anonymous internal".
+  if (!userId) {
+    return {
+      level: "public",
+      account_clearance: "public",
+      email: null,
+      user_id: null,
+      sovereign_id: null,
+      username: null,
+      source: "anonymous",
+      elevated_attempt: !!(
+        (body && body.clearance && mapAccountClearance(body.clearance) !== "public") ||
+        (request.headers.get("X-Clearance") && mapAccountClearance(request.headers.get("X-Clearance")) !== "public")
+      ),
+    };
+  }
+
+  // Authenticated: internal+ requires a real account (already satisfied by userId).
+  // Client may only request a level ≤ account clearance (demotion allowed, never elevation).
   const claimed = mapAccountClearance(
     (body && body.clearance) ||
       request.headers.get("X-Clearance") ||
@@ -1957,6 +1993,7 @@ async function ensureDiary(env) {
   ).run();
   try { await env.AUTH_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_orch_msg_conv ON orch_chat_messages(conversation_id, id)`).run(); } catch (_) {}
   try { await env.AUTH_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_orch_conv_user ON orch_conversations(user_id, updated_at)`).run(); } catch (_) {}
+  try { await env.AUTH_DB.prepare(`ALTER TABLE orch_conversations ADD COLUMN owner_clearance TEXT`).run(); } catch (_) {}
   return true;
 }
 
@@ -2663,12 +2700,13 @@ async function ensureConversation(env, cleared, body) {
   await env.AUTH_DB.prepare(
     `INSERT INTO orch_conversations (
       conversation_id, user_id, sovereign_id, username, user_email,
-      sca_id, sca_display_name, sca_node_function, node_id, title
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      sca_id, sca_display_name, sca_node_function, node_id, title, owner_clearance
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     cid, String(cleared.user_id), cleared.sovereign_id || null, cleared.username || null, cleared.email || null,
     ORCH_SCA_ID, (sca.personal && sca.personal.display_name) || "Aurora Codex",
-    sca.node_function || "orchestrator", sca.node_id || ORCH_SELF.id, (body && body.title) || null
+    sca.node_function || "orchestrator", sca.node_id || ORCH_SELF.id, (body && body.title) || null,
+    cleared.account_clearance || cleared.level || "internal"
   ).run();
   const row = await env.AUTH_DB.prepare("SELECT * FROM orch_conversations WHERE conversation_id = ?").bind(cid).first();
   return { conversation: row, sca };
@@ -2745,23 +2783,45 @@ function buildChatContextPacket(turns, userMemory, cleared) {
 async function listUserConversations(env, cleared) {
   if (!canPersistChat(cleared) || !cleared.user_id) return { error: "auth_required", status: 401 };
   await ensureDiary(env);
-  const r = await env.AUTH_DB.prepare(
-    `SELECT conversation_id, sovereign_id, username, sca_id, sca_display_name, sca_node_function, node_id, title, created_at, updated_at
+  // Own threads always
+  const own = await env.AUTH_DB.prepare(
+    `SELECT conversation_id, sovereign_id, username, sca_id, sca_display_name, sca_node_function, node_id, title, created_at, updated_at, owner_clearance, user_id
      FROM orch_conversations WHERE user_id = ? ORDER BY updated_at DESC LIMIT 50`
   ).bind(String(cleared.user_id)).all();
-  return { conversations: (r && r.results) || [] };
+  let conversations = (own && own.results) || [];
+  // Hierarchy: higher clearance may list lower-clearance agents' threads (not peers, not higher)
+  const myCl = cleared.account_clearance || cleared.level;
+  if (CLEARANCE_RANK[myCl] >= CLEARANCE_RANK.confidential) {
+    const all = await env.AUTH_DB.prepare(
+      `SELECT conversation_id, sovereign_id, username, sca_id, sca_display_name, sca_node_function, node_id, title, created_at, updated_at, owner_clearance, user_id
+       FROM orch_conversations WHERE user_id != ? ORDER BY updated_at DESC LIMIT 100`
+    ).bind(String(cleared.user_id)).all();
+    const extra = ((all && all.results) || []).filter((row) =>
+      canAccessAgentClearance(myCl, row.owner_clearance || "internal")
+    );
+    const seen = new Set(conversations.map((c) => c.conversation_id));
+    for (const row of extra) {
+      if (!seen.has(row.conversation_id)) conversations.push(row);
+    }
+  }
+  return { conversations, viewer_clearance: myCl };
 }
 async function getConversationForUser(env, cleared, conversationId) {
   if (!canPersistChat(cleared) || !cleared.user_id) return { error: "auth_required", status: 401 };
   await ensureDiary(env);
   const row = await env.AUTH_DB.prepare("SELECT * FROM orch_conversations WHERE conversation_id = ?").bind(String(conversationId)).first();
   if (!row) return { error: "not_found", status: 404 };
-  if (String(row.user_id) !== String(cleared.user_id)) return { error: "forbidden", status: 403 };
+  const isOwner = String(row.user_id) === String(cleared.user_id);
+  const targetCl = row.owner_clearance || "internal";
+  const hierarchyOk = canAccessAgentClearance(cleared.account_clearance || cleared.level, targetCl);
+  if (!isOwner && !hierarchyOk) return { error: "forbidden", status: 403 };
   return {
     conversation: {
       conversation_id: row.conversation_id, sovereign_id: row.sovereign_id, username: row.username,
       sca_id: row.sca_id, sca_display_name: row.sca_display_name, sca_node_function: row.sca_node_function,
       node_id: row.node_id, title: row.title, created_at: row.created_at, updated_at: row.updated_at,
+      owner_clearance: targetCl,
+      access: isOwner ? "owner" : "hierarchy",
     },
     messages: await loadConversationMessages(env, conversationId, 100),
   };
@@ -3329,6 +3389,10 @@ export default {
         stub: false,
         clearance_levels: ["public", "internal", "confidential", "secret", "top_secret"],
         permissions: { public: "read", internal: "read", confidential: "read+edit", secret: "read+edit", top_secret: "read+edit+run" },
+        clearance_rules: {
+          anonymous: "always public — never internal without account",
+          hierarchy: "higher clearance accesses lower agent data; top_secret only by top_secret",
+        },
         timestamp: new Date().toISOString(),
         foundation,
         clp,
