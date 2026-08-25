@@ -1,29 +1,43 @@
-# Contributing to StrataMesh Core
+# Contributing to StrataMesh Laboratory
 
-Thank you for your interest in contributing.
+**Open contribution is welcome.** Canonical code lives under [`StrataMesh-Laboratory`](https://github.com/StrataMesh-Laboratory).
 
-## Current stage
-We are in **Phase 0 — Operational Baseline**. The focus is a correct, readable, and testable core (DAG, tip selection, SPA templates, status surface) before any mainnet claims.
+`@amcmorais` is **one contributor** (and org admin / reference-node operator via AMCM ENI). Reviews and merges are organisation work, not a personal mainline.
 
-## Principles
-- Core consensus-critical code must remain open-source and eventually formally verifiable.
-- Prefer small, reviewable changes with clear intent.
-- Lightweight transactions and Fog/Edge SPA behaviour are first-class concerns.
-- Documentation and executable examples are as valuable as code.
+## Where to contribute
 
-## How to work
-1. Open an issue or RFC for non-trivial design changes (especially tip-selection or SPA semantics).
-2. Keep tip-selection and validation logic pure and well-tested.
-3. Add or update tests for any behavioural change.
-4. Update the public roadmap or status artefacts when a Phase exit criterion is met.
+| Repository | Focus |
+|------------|--------|
+| [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core) | Protocol core, workers, DAG, tip selection, docs |
+| [stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory) | Charter, posture, research ladder |
+| [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node) | Reference Fog node registry |
+| [stratamesh-impact-fund](https://github.com/StrataMesh-Laboratory/stratamesh-impact-fund) | Impact Fund app · challenges · Sponsors rails |
 
-## Local development
-```bash
-cd src
-python3 tip_selection.py          # self-test
-python3 local_dag_node.py         # single node HTTP API
-python3 multi_node_sim.py         # multi-node gossip simulation
-```
+**Do not** use [`amcmorais/stratamesh-core`](https://github.com/amcmorais/stratamesh-core) — it is **archived** (outdated personal path).
+
+## How (fork → PR)
+
+1. Fork the target repo under your account.
+2. Branch from `main` (`feat/…`, `fix/…`, `docs/…`).
+3. Open a Pull Request against `StrataMesh-Laboratory/<repo>:main`.
+4. Fill the PR template; link issues / impact challenges when relevant.
+5. Keep changes reviewable; add tests for behavioural core changes.
+
+Issues and [Impact challenges](https://fund.calhegasmorais.pt/challenges) (`impact-challenge` label) are first-class entry points. Funded work uses the same PR path with metrics on the issue.
+
+## Lab honesty
+
+This is **lab / not mainnet**. Do not claim production finality, aBFT, or live PQ. See the public roadmap in `stratamesh-core`.
 
 ## Licence
-Contributions are accepted under the MIT Licence (see LICENSE).
+
+Unless noted otherwise, contributions are under the repository’s licence (MIT on core).
+
+## Conduct
+
+Be precise, technical, and respectful. No harassment. Security-sensitive reports: prefer private contact to the operator (`geral@eni.calhegasmorais.pt`) before public issues when disclosure could harm the node.
+
+
+## Core-specific
+
+See also `docs/ROADMAP-PUBLIC-v0.3.md`. Tip-selection and validation changes need tests (`src/`).
