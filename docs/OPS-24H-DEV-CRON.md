@@ -98,10 +98,14 @@ The prompt must include live CF/GitHub/DeoMail credentials for that run (session
 
 | Name | Role | Typical time |
 |------|------|----------------|
-| Diagnóstico Total CALHEGASMORAIS.PT | Full diagnostic + recommendations | 23:00 Europe/Lisbon |
-| **StrataMesh 24h Dev Cycle** | Execute ranked dev/ops work with AIOps + Orchestrator | Morning Europe/Lisbon |
+| **Night Diagnostic FOG-NODE-PT-CM-001** | Delta-first operator briefing · ranks ≤5 actions for morning | **23:00** Europe/Lisbon |
+| **StrataMesh 24h Dev Cycle** | Execute ranked dev/ops work with AIOps + Orchestrator | **09:00** Europe/Lisbon |
 
----
+### Night Diagnostic quality bar
+- Delta-first, evidence-linked, non-repetitive
+- Sections: Headline · Delta · Live posture · AIOps · Risks · Ranked actions · Non-actions · Closing
+- Does **not** replace the morning execution job
+
 
 ## 6. Success criteria (per run)
 
