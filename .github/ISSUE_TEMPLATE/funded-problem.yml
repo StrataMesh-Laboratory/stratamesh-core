@@ -1,0 +1,70 @@
+name: Impact challenge (funded problem)
+description: Stratified fund task — grantor-funded problem with measurable acceptance criteria
+title: "[Challenge] "
+labels: ["impact-challenge", "challenge-open"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Problems stay **open** until grantee(s) accept and deliver against **objective metrics** agreed with the grantor.
+        Funding rails: [GitHub Sponsors](https://github.com/sponsors/amcmorais) · [Impact Fund](https://fund.calhegasmorais.pt) · [ENI /pagamentos](https://calhegasmorais.pt/pagamentos)
+  - type: input
+    id: grantor
+    attributes:
+      label: Grantor (who funds)
+      description: GitHub login or legal name / ENI reference
+      placeholder: "@amcmorais or external grantor"
+    validations:
+      required: true
+  - type: dropdown
+    id: rail
+    attributes:
+      label: Funding rail
+      options:
+        - GitHub Sponsors (one-time or tier)
+        - ENI /pagamentos (EUR bank instruction)
+        - Mixed
+    validations:
+      required: true
+  - type: input
+    id: budget
+    attributes:
+      label: Budget envelope (EUR)
+      placeholder: "e.g. 250"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What must be true in the world / repo when this is solved
+    validations:
+      required: true
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Objective metrics (acceptance criteria)
+      description: Checklist of measurable outcomes. Agreement between grantor and grantee before work is marked delivered.
+      value: |
+        - [ ] Metric 1 (measurable)
+        - [ ] Metric 2 (measurable)
+        - [ ] Tests / evidence linked in PR or comment
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope / out of scope
+      value: |
+        In scope:
+        - 
+        Out of scope:
+        - 
+  - type: markdown
+    attributes:
+      value: |
+        ### Process
+        1. Grantor opens this issue and funds via Sponsors or /pagamentos (reference issue number).
+        2. Contributor comments `/accept` (or is assigned) — label moves toward `challenge-accepted`.
+        3. Delivery via PR/comment with evidence against metrics.
+        4. Grantor confirms metrics → close issue · release remaining grant.
