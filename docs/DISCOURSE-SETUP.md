@@ -55,3 +55,7 @@ Free plan: **no Admin API keys**. Staff UI/session only.
 - No API keys without Pro.
 
 *Last applied: 2026-08-25 by @stratamesh-grok*
+
+## Related ops
+
+When Admin API keys are unavailable (Free plan) or UI automation fails, use **[OPS-EMAIL-AGENT-SOP.md](./OPS-EMAIL-AGENT-SOP.md)** (`grok@calhegasmorais.pt` → DeoMail magic-link / password session).
