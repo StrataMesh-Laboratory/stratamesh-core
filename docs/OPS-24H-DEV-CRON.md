@@ -116,3 +116,22 @@ The prompt must include live CF/GitHub/DeoMail credentials for that run (session
 - [ ] One paragraph summary for the operator  
 
 **Created:** 2026-08-25
+
+## 7. Lessons from 2026-08-26 test runs
+
+**What worked**
+- Night Diagnostic headline quality (*Stable Lab Green*)
+- Dev Cycle sensing (status, AIOps, routes, issues) was solid
+- PAT issue comments proved write path without MCP
+
+**What was suboptimal**
+- Dev Cycle treated “annotate all open issues” as execution value — noise under Green
+- Night → morning handoff not consumed (re-ranked in isolation)
+- DeoMail marked blocked without distinguishing transport vs empty inbox
+- MCP 403 listed as blocker even when PAT succeeded
+
+**Corrected policy (encoded in automation prompts)**
+- Green + 0/0 AIOps → HOLD is a valid Done
+- Forbidden: mass issue commentary as the day’s work
+- Night handoff is preferred input to 09:00; max 1–3 real ships
+- GitHub writes via PAT REST; DeoMail fail = one line, continue
