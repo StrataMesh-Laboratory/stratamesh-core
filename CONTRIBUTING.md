@@ -7,7 +7,9 @@ If you already contribute upstream to **libp2p, KubeEdge, Golem, Akash, IPFS, IO
 
 - Outreach map: [`docs/COMMUNITY-OUTREACH-MAP.md`](docs/COMMUNITY-OUTREACH-MAP.md)
 - Tracks: [`docs/CONTRIBUTOR-TRACKS.md`](docs/CONTRIBUTOR-TRACKS.md)
-- Wanted problems: [`docs/WANTED.md`](docs/WANTED.md)
+- Wanted problems: [`docs/WANTED.md
+- Why you fit: [`docs/WHY-YOUR-EXPERTISE-MATTERS.md`](docs/WHY-YOUR-EXPERTISE-MATTERS.md)
+- Outreach playbook: [`docs/OUTREACH-PLAYBOOK.md`](docs/OUTREACH-PLAYBOOK.md)`](docs/WANTED.md)
 - Funded challenges: [fund.calhegasmorais.pt/challenges](https://fund.calhegasmorais.pt/challenges)
 - Sponsors: [github.com/sponsors/amcmorais](https://github.com/sponsors/amcmorais)
 
