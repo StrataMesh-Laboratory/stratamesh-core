@@ -208,6 +208,20 @@ cd community/reddit-devvit && npm i && npx devvit login && npm run playtest
 
 Then install the published app on **r/StrataMesh_DLT** from developers.reddit.com.
 
+
+
+## Discourse forum (primary open forum)
+
+| | |
+|--|--|
+| **URL** | https://stratamesh.discourse.group/ |
+| **Admin** | `@stratamesh` · geral@eni.calhegasmorais.pt |
+| **Role** | Long-form public discussion for StrataMesh Laboratory |
+
+Setup pack: [DISCOURSE-SETUP.md](./DISCOURSE-SETUP.md)
+
+X Communities cannot be created (feature retired). Reddit r/StrataMesh_DLT was closed by the platform — do not create lookalike subs until status is clear.
+
 ## Message discipline (all channels)
 
 Sober, technical, specific. Pre-testnet. Subjects ≠ objects.  
