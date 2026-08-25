@@ -188,6 +188,26 @@ Activation notice already sent via DeoMail to operator (2026-08-25).
 
 ---
 
+
+
+## Complementarity: Devvit + script + Worker
+
+| Class | Tool | Owns |
+|-------|------|------|
+| **In-subreddit runtime** | Devvit app [`community/reddit-devvit`](../community/reddit-devvit/) (`stratamesh-lab`) | Triggers, weekly pulse, mod menu, optional Discord mirror |
+| **External Reddit API** | Classic **script** app on `prefs/apps` | Token for CF Worker / scripts outside Reddit |
+| **Cross-platform bus** | CF Worker `stratamesh-community` | GitHub webhooks, Discord, DeoMail; Reddit optional |
+
+Devvit **adds** automation inside Reddit. It does **not** replace the script app or the Worker.
+
+### Devvit install (u/amcm_eni)
+
+```bash
+cd community/reddit-devvit && npm i && npx devvit login && npm run playtest
+```
+
+Then install the published app on **r/StrataMesh_DLT** from developers.reddit.com.
+
 ## Message discipline (all channels)
 
 Sober, technical, specific. Pre-testnet. Subjects ≠ objects.  
