@@ -805,7 +805,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div class="meta">FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001</div>
   </div>
   <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-    <span class="badge" id="clr">clearance: …</span>
+    <span class="badge" id="clr">clearance: public</span>
     <a href="/dashboard">${pt ? 'Painel' : 'Panel'}</a>
     <a href="/">${pt ? 'Início' : 'Home'}</a>
   </div>
@@ -838,11 +838,13 @@ async function refreshClearance() {
     const j = await r.json();
     let c = String(j.clearance_level || j.clearance || j.role || '').toLowerCase().replace(/[\s-]+/g,'_');
     if (['top_secret','topsecret','ts','root','god','root_admin'].includes(c)) c = 'top_secret';
-    else if (['secret','admin'].includes(c)) c = 'secret';
-    else if (['confidential','staff'].includes(c)) c = 'confidential';
-    else if (token && (!c || c === 'public' || c === 'basic')) c = c === 'basic' ? 'internal' : (c && c !== 'public' ? c : 'internal');
-    else if (!token) c = 'public';
-    clr.textContent = 'clearance: ' + c + (j.email ? ' · ' + j.email : '');
+    else if (['secret','sec'].includes(c)) c = 'secret';
+    else if (['confidential','conf'].includes(c)) c = 'confidential';
+    else if (['internal','intl'].includes(c)) c = 'internal';
+    else c = 'public';
+    // Never invent internal from a bare token or basic/public /me response
+    if (!token) c = 'public';
+    clr.textContent = 'clearance: ' + c + (j.email ? ' · ' + j.email : '') + (!token ? ' · anonymous' : '');
   } catch (e) {
     clr.textContent = 'clearance: ?';
   }
@@ -868,7 +870,7 @@ document.getElementById('go').onclick = async function () {
     });
     const j = await r.json();
     if (j.account_clearance || j.clearance) {
-      clr.textContent = 'clearance: ' + (j.account_clearance || j.clearance) + (j.clearance_source ? ' · ' + j.clearance_source : '');
+      clr.textContent = 'clearance: ' + (j.account_clearance || j.clearance || 'public') + (j.clearance_source ? ' · ' + j.clearance_source : '');
     }
     add('${pt ? "Orquestrador" : "Orchestrator"}', j.reply || j.error || JSON.stringify(j));
   } catch (e) {
