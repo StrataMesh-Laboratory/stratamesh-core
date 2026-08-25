@@ -1,0 +1,43 @@
+name: Track contribution (testnet-relevant)
+description: Propose or claim work on a StrataMesh contributor track
+title: "[track:…] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: track
+    attributes:
+      label: Track
+      options:
+        - network
+        - edge
+        - economy
+        - agents
+        - worlds
+        - identity
+        - core
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem (one sentence)
+      description: What breaks or is missing for lab → testnet?
+    validations:
+      required: true
+  - type: textarea
+    id: upstream
+    attributes:
+      label: Upstream expertise
+      description: "e.g. libp2p, KubeEdge, Golem, LangGraph — optional"
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Objective metrics / acceptance
+      description: How will we know this is done without mainnet claims?
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Lab only. See docs/CONTRIBUTOR-TRACKS.md and docs/COMMUNITY-OUTREACH-MAP.md.
+        Funded work → also use impact-challenge template / fund.calhegasmorais.pt/challenges.
