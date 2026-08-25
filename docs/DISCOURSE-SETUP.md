@@ -59,3 +59,7 @@ Free plan: **no Admin API keys**. Staff UI/session only.
 ## Related ops
 
 When Admin API keys are unavailable (Free plan) or UI automation fails, use **[OPS-EMAIL-AGENT-SOP.md](./OPS-EMAIL-AGENT-SOP.md)** (`grok@calhegasmorais.pt` → DeoMail magic-link / password session).
+
+## Email-session recovery
+
+Staff identity `stratamesh-grok` / `grok@calhegasmorais.pt` under ENI root: full procedure in [OPS-EMAIL-AGENT-SOP.md](./OPS-EMAIL-AGENT-SOP.md) (magic link, confirm-admin POST, password, SSO).
