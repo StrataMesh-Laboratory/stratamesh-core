@@ -1,0 +1,64 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "stratamesh-lab",
+  "permissions": {
+    "reddit": {
+      "asUser": ["SUBMIT_POST", "SUBMIT_COMMENT", "READ", "MODERATE"]
+    },
+    "http": {
+      "enable": true,
+      "domains": [
+        "calhegasmorais.pt",
+        "www.calhegasmorais.pt",
+        "api.github.com",
+        "discord.com",
+        "discordapp.com"
+      ]
+    },
+    "redis": true
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "triggers": {
+    "onPostCreate": "/internal/triggers/post-create"
+  },
+  "scheduler": {
+    "lab-status-weekly": {
+      "endpoint": "/internal/scheduler/lab-status",
+      "cron": "0 10 * * 1"
+    }
+  },
+  "menu": [
+    {
+      "label": "StrataMesh: lab links",
+      "description": "Post starter links for contributors",
+      "location": "subreddit",
+      "forUserType": "moderator",
+      "endpoint": "/internal/menu/lab-links"
+    }
+  ],
+  "settings": {
+    "subreddit": [
+      {
+        "type": "string",
+        "name": "discord_webhook",
+        "label": "Discord announce webhook URL",
+        "helpText": "Optional. Mirror lab-status and mod notices to Discord."
+      },
+      {
+        "type": "boolean",
+        "name": "flag_hype_language",
+        "label": "Flag hype / mainnet-claim language on new posts",
+        "defaultValue": true
+      }
+    ]
+  },
+  "dev": {
+    "subreddit": "StrataMesh_DLT"
+  },
+  "scripts": {
+    "build": "node esbuild.mjs"
+  }
+}
