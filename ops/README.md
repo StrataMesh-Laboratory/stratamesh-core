@@ -2,6 +2,9 @@
 
 | File | Role |
 |------|------|
-| [HANDOFF-LATEST.md](./HANDOFF-LATEST.md) | Night Diagnostic → morning Dev Cycle bridge (overwrite daily) |
+| [HANDOFF-LATEST.json](./HANDOFF-LATEST.json) | **Authoritative** machine handoff (`stratamesh.handoff.v1`) |
+| [HANDOFF-LATEST.md](./HANDOFF-LATEST.md) | Human view + embedded JSON |
 
-See `docs/OPS-24H-DEV-CRON.md` and `docs/OPS-EMAIL-AGENT-SOP.md`.
+Written by Night Diagnostic (23:00 Europe/Lisbon). Consumed by AIOps (`loadHandoff` tiers) and Dev Cycle (09:00).
+
+Empty `mandatory_actions` under green posture means **HOLD** — not a placeholder.
