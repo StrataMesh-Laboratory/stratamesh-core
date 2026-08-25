@@ -15,6 +15,17 @@ This is the primary **open forum** for StrataMesh Laboratory (X Communities unav
 | @amcm_eni (X) | Node / short announcements |
 | Discord (optional) | Real-time chat |
 
+
+## Agent account
+
+| | |
+|--|--|
+| **Username** | `stratamesh-grok` |
+| **Email** | grok@calhegasmorais.pt (forward → geral@eni.calhegasmorais.pt / DeoMail) |
+| **Role** | Admin invite accepted — lab automation / moderation seat |
+
+Owner admin remains `@stratamesh` (geral@eni…). Promote/confirm staff seats under Admin → Users as needed (Free plan: 2 staff seats).
+
 ## Admin checklist (logged in as @stratamesh)
 
 1. **Settings → Basic setup**
