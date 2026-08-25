@@ -8,6 +8,17 @@ Related: [OPS-EMAIL-AGENT-SOP.md](./OPS-EMAIL-AGENT-SOP.md) · [COMMUNITY-CHANNE
 
 ---
 
+## 0. Durable handoff (efficacy bridge)
+
+| Artifact | Path |
+|----------|------|
+| Night → morning | [`ops/HANDOFF-LATEST.md`](../ops/HANDOFF-LATEST.md) |
+| Schema | `stratamesh.handoff.v1` (YAML in file) |
+| Writer | Night Diagnostic 23:00 (overwrite via PAT) |
+| Reader | 24h Dev Cycle 09:00 (raw.githubusercontent.com …/main/ops/HANDOFF-LATEST.md) |
+
+If handoff age >36h or bootstrap: morning rebuilds mini-handoff from live probes once.
+
 ## 1. Credential surfaces (runtime)
 
 Provide these **in the automation prompt / session secrets**, never in public git:
