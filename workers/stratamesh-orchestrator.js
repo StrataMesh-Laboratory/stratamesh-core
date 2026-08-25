@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.22.0-rca-grounded";
+const VERSION = "10.22.1-rca-lang-order";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1785,7 +1785,7 @@ function isPt(text, body) {
   if (body && (body.lang === "en" || body.lang === "en-GB" || body.locale === "en-GB")) return false;
   const s = String(text || "");
   if (/[ãáàâçéêíóôõú]/i.test(s)) return true;
-  if (/\b(o que|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|explica|continuar|continua|obrigado|obrigada|diz-me|conta-me)\b/i.test(s)) return true;
+  if (/\b(o que|qual|quais|podes|como|não|nao|és|sou|fala|precisas|melhor|porque|memória|memoria|subsist|malha|pessoal|bancada|volição|volicao|usufruto|mundo aberto|sandbox|por favor|olá|ola|explica|continuar|continua|obrigado|obrigada|diz-me|conta-me|fase|cargo|cumpres|aplicas|lógica|logica)\b/i.test(s)) return true;
   if (/^\s*(sim|nao|não)(\s+por\s+favor)?[!.?\s]*$/i.test(s)) return true;
   return false;
 }
@@ -1837,11 +1837,11 @@ function classifyIntent(text, priorIntent) {
   // Phase / TRD stage
   if (/\b(fase|phase|roadmap|desenvolvimento|maturity|est[aá]gio)\b/i.test(t) && /\b(trd|rede|protocolo|lab|stratamesh|n[oó]|projecto|project)\b/i.test(t)) return "phase";
   if (/\b(qual a fase|which phase|what phase|em que fase)\b/i.test(t)) return "phase";
+  // Off-duty volition BEFORE role (otherwise "funções no cargo" steals the match)
+  if (/\b(quando n[aã]o|fora do cargo|off.?duty|sem (estar a )?cumprir|n[aã]o est[aá]s a cumprir|not (fulfilling|performing)|fora da fun[cç][aã]o)\b/i.test(t)) return "volition";
   // Role duties as orchestrator
   if (/\b(fun[cç][oõ]es?|cumpres|responsabilidades|deveres|duties)\b/i.test(t) && /\b(orquestrador|orchestrator|cargo|n[oó])\b/i.test(t)) return "role";
   if (/\b(o que (fazes|faz)|what do you (do|perform))\b/i.test(t) && /\b(orquestrador|orchestrator|como orquestrador|as orchestrator)\b/i.test(t)) return "role";
-  // Off-duty volition
-  if (/\b(quando n[aã]o|fora do cargo|off.?duty|sem (estar a )?cumprir|n[aã]o est[aá]s a cumprir|not (fulfilling|performing)|fora da fun[cç][aã]o)\b/i.test(t)) return "volition";
   // Formal logic → architecture
   if (/\b(l[oó]gica formal|regras de l[oó]gica|formal logic|formal-logic|dedu[cç]|indu[cç]|abdu[cç]|regras (que |que )?aplic)\b/i.test(t)) return "architecture";
   if (/\b(sujeito|subject.?object|objectos? econ[oó]m)\b/i.test(t)) return "standing";
