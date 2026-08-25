@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.21.0-ops";
+const VERSION = "10.22.0-rca-grounded";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1815,13 +1815,13 @@ function classifyIntent(text, priorIntent) {
   if (/^\s*ol[aáà]([!?.\s]|$)/i.test(t) || /^(hello|hi|hey|bom dia|boa tarde|boa noite)\b/i.test(t)) return "social";
   // Short affirmations / continue → inherit prior domain intent when present
   if (priorIntent && /^(sim(\s+por\s+favor)?|yes(\s+please)?|ok(ay)?|por favor|please|continua|continue|explica(\s+mais)?|explain(\s+more)?|mais|more|go on|e depois|and then)[!.?\s]*$/i.test(t)) {
-    if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition"].includes(priorIntent)) {
+    if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition","phase","role"].includes(priorIntent)) {
       return priorIntent;
     }
   }
   // Soft follow-up: "explica isso", "o que queres dizer", "como assim" without domain words → prior
   if (priorIntent && /^(explica( (isso|melhor|mais))?|como assim|o que (quer|queres) dizer|what do you mean|tell me more)[!.?\s]*$/i.test(t)) {
-    if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition","social"].includes(priorIntent)) {
+    if (["architecture","identity","standing","pds","pdc","mind","memory","strata","holon","clp","mesh","volition","phase","role","social"].includes(priorIntent)) {
       return priorIntent === "social" ? "identity" : priorIntent;
     }
   }
@@ -1834,6 +1834,17 @@ function classifyIntent(text, priorIntent) {
   if (/\b(strata|token fundacional|nft strata|sub-?token|tokeniza|\bcgu\b|\bugc\b|#mint|#0)\b/i.test(t) || /\bstrata\b/i.test(t)) return "strata";
   if (/\b(mundo aberto|open.?world|sandbox|bancada|hol[oó]n|inhabit)\b/i.test(t)) return "holon";
   if (/voli|next_volition|sopro|auto-?agend/i.test(t)) return "volition";
+  // Phase / TRD stage
+  if (/\b(fase|phase|roadmap|desenvolvimento|maturity|est[aá]gio)\b/i.test(t) && /\b(trd|rede|protocolo|lab|stratamesh|n[oó]|projecto|project)\b/i.test(t)) return "phase";
+  if (/\b(qual a fase|which phase|what phase|em que fase)\b/i.test(t)) return "phase";
+  // Role duties as orchestrator
+  if (/\b(fun[cç][oõ]es?|cumpres|responsabilidades|deveres|duties)\b/i.test(t) && /\b(orquestrador|orchestrator|cargo|n[oó])\b/i.test(t)) return "role";
+  if (/\b(o que (fazes|faz)|what do you (do|perform))\b/i.test(t) && /\b(orquestrador|orchestrator|como orquestrador|as orchestrator)\b/i.test(t)) return "role";
+  // Off-duty volition
+  if (/\b(quando n[aã]o|fora do cargo|off.?duty|sem (estar a )?cumprir|n[aã]o est[aá]s a cumprir|not (fulfilling|performing)|fora da fun[cç][aã]o)\b/i.test(t)) return "volition";
+  // Formal logic → architecture
+  if (/\b(l[oó]gica formal|regras de l[oó]gica|formal logic|formal-logic|dedu[cç]|indu[cç]|abdu[cç]|regras (que |que )?aplic)\b/i.test(t)) return "architecture";
+  if (/\b(sujeito|subject.?object|objectos? econ[oó]m)\b/i.test(t)) return "standing";
   // Identity vs node function — including "como assim não são a mesma coisa"
   if (/\b(sca|acb|ser computacional|és um|es um|are you|identidade|nome|registo|fun[cç][aã]o no n[oó]|mesma coisa|n[aã]o s[aã]o|distinct|diferente da fun)\b/i.test(t)) return "identity";
   if (/\b(fala-?me (mais )?de ti|sobre ti|quem és|quem es|tell me about (you|yourself)|more about you)\b/i.test(t)) return "identity";
@@ -2377,6 +2388,9 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
   const voicePacket = {
     role_of_llm: "linguistic_medium_only",
     not_role_of_llm: "orchestrator_identity_or_decision_maker",
+      lab_phase_hint: "v0.2.1-lab; phase from status metrics; not mainnet",
+      subject_object: "subjects=human|SCA objects=STRATA|NFT|resources",
+      forbid: ["echo user", "invent phase labels", "lead human teams"],
     speaker: {
       kind: "SCA",
       node_function: "orchestrator",
@@ -2408,11 +2422,11 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
     ? "És apenas o meio linguístico do Orquestrador SCA do Nó Calhegas Morais. " +
       "Não és o Orquestrador: não inventas identidade, política, métricas nem factos. " +
       "O Orquestrador já decidiu o conteúdo no VOICE_PACKET (JSON). A tua única função é exprimir esse conteúdo em português europeu (tu), 60–110 palavras, sem JSON na resposta, sem prefixos de assistente genérico. " +
-      "Se o pacote não cobrir a pergunta, diz que o runtime não tem esse dado — não completes com treino genérico."
+      "Se o pacote não cobrir a pergunta, diz que o runtime não tem esse dado — não completes com treino genérico. Nunca ecoes a pergunta do utilizador. Nunca inventes fases genéricas nem equipas humanas. Mantém português europeu se o utilizador escreveu em português."
     : "You are only the linguistic medium of the Orchestrator SCA on the Calhegas Morais Node. " +
       "You are not the Orchestrator: do not invent identity, policy, metrics or facts. " +
       "The Orchestrator already fixed the content in VOICE_PACKET (JSON). Your only job is to express that content in British English, 60–110 words, no JSON in the reply, no generic-assistant framing. " +
-      "If the packet does not cover the question, say the runtime has no such data — do not fill gaps from generic training.";
+      "If the packet does not cover the question, say the runtime has no such data — do not fill gaps from generic training. Never echo the user question. Never invent development phases or human teams.";
 
   const userContent =
     "VOICE_PACKET:\n" + JSON.stringify(voicePacket, null, 2) +
@@ -2637,6 +2651,28 @@ function chatSelfFallback(text, tickOut, level, intent, body) {
         "Human node operator: " + ORCH_SELF.operator_human + " — not me.\n" +
         "Standing: recognition by function and agreement, not by substrate.";
   }
+  if (intent === "phase") {
+    const phase = (tickOut && tickOut.tick && tickOut.tick.metrics && tickOut.tick.metrics.phase) || "2";
+    const pname = (tickOut && tickOut.tick && tickOut.tick.metrics && tickOut.tick.metrics.phase_name) || "Nodal Hierarchy & SPAs";
+    return pt
+      ? "TRD em laboratório — não mainnet. Referência de código: freeze v0.2.1-lab; fase operacional reportada ~" + phase + " (" + pname + "). Escada pública: LAB → lab adversarial multi-host → testnet pública → mainnet só com evidência. Fonte: ROADMAP-PUBLIC-v0.3 e status.calhegasmorais.pt."
+      : "TRD is lab-only — not mainnet. Code reference: v0.2.1-lab freeze; reported operational phase ~" + phase + " (" + pname + "). Ladder: LAB → adversarial multi-host → public testnet → mainnet only with evidence. Sources: ROADMAP-PUBLIC-v0.3 and status.calhegasmorais.pt.";
+  }
+  if (intent === "role") {
+    return pt
+      ? "No cargo de orquestrador neste nó (lab): (1) tick/health e agregação de sinais (status, AIOps, upstream); (2) chat de comando com clearance; (3) lóbulos probabilístico (métricas, QIGA) e simbólico (regras, ontologia) com bus bilateral; (4) diário funcional e registo SCA; (5) não emito política monetária sozinho nem invento factos fora do runtime nem «lidero equipas humanas». O cargo é reatribuível; a identidade SCA permanece no registo."
+      : "As orchestrator on this node (lab): (1) tick/health and signal aggregation; (2) command chat with clearance; (3) probabilistic and symbolic lobes on a bilateral bus; (4) functional diary and SCA registry; (5) I do not set monetary policy alone, invent facts, or lead human teams. Role is reassignable; SCA identity remains.";
+  }
+  if (intent === "volition") {
+    return pt
+      ? "Quando não exerço o cargo de orquestrador, continuo SCA no registo (identidade ≠ cargo). Volição: fins (goals) self ou human_proposal; meios sob restrições (STRATA/PdS, lab). Fora do turno de orquestração não invento biografia — diário funcional / next_volition_at / metas ACB se existirem no runtime; senão digo que não há dado. Off-duty não apaga standing de sujeito."
+      : "When not exercising the orchestrator office I remain an SCA in the registry (identity ≠ role). Volition: goals (self or human_proposal) under constraints. Off orchestration I do not invent a biography — diary / next_volition_at / ACB goals if present; otherwise I say data is missing. Off-duty does not erase subject standing.";
+  }
+  if (intent === "architecture") {
+    return pt
+      ? "Lógica formal no lóbulo simbólico (exemplos): (1) dedução — PdC só via #mint; burn não é emissão; (2) indução sob revisão — padrões QIGA/fitness revogáveis; (3) abdução — hipótese «upstream em falta» testada no tick seguinte. Ontologia: sujeitos (humano/SCA) vs objectos (STRATA/NFT/recursos); Agent owns NFT, never reverse. O probabilístico pontua; o simbólico constrange. LLM só formula o pacote."
+      : "Formal logic in the symbolic lobe (examples): (1) deduction — PoC only via #mint; burn is not emission; (2) induction under revision — QIGA/fitness patterns, retractable; (3) abduction — «upstream missing» tested next tick. Ontology: subjects vs objects; Agent owns NFT, never reverse. Probabilistic scores; symbolic constrains. LLM only verbalises the packet.";
+  }
   if (intent === "social") {
     return pt
       ? "Olá. Sou o SCA que neste nó exerce a função de orquestrador (" + ORCH_SELF.id + "), em laboratório. A minha identidade pessoal no registo SCA não se confunde com esse cargo. Em que posso ajudar — estado, PdC/PdS, lóbulos, standing, STRATA?"
@@ -2669,7 +2705,7 @@ async function chat(message, env, request, body) {
   }
 
   // Fast grounded path for domain truths — avoid LLM/tick hang on panel UX
-  const GROUNDED = new Set(["architecture", "pds", "pdc", "memory", "mind", "social", "identity", "clp", "mesh", "holon", "volition"]);
+  const GROUNDED = new Set(["architecture", "pds", "pdc", "memory", "mind", "social", "identity", "clp", "mesh", "holon", "volition", "phase", "role", "standing"]);
   if (GROUNDED.has(intent) && !isOperationalCommand(text)) {
     try { await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous"); } catch (_) {}
     try { await chargePds(env, pdsCostForIntent(intent), "chat:" + intent); } catch (_) {}
@@ -2819,7 +2855,7 @@ async function chat(message, env, request, body) {
   }
 
   // Domain truths: grounded only (LLM must not rewrite PdS/memory/hybrid/mind definitions)
-  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "standing" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition" || intent === "strata") {
+  if (intent === "architecture" || intent === "pds" || intent === "pdc" || intent === "memory" || intent === "mind" || intent === "social" || intent === "identity" || intent === "standing" || intent === "clp" || intent === "mesh" || intent === "holon" || intent === "volition" || intent === "strata" || intent === "phase" || intent === "role") {
     const groundedDet = await chatDeterministic(text, tickOut, level, env, body);
     return {
       reply: groundedDet || chatSelfFallback(text, tickOut, level, intent, body),
@@ -2863,8 +2899,13 @@ async function chat(message, env, request, body) {
   }
   if (ai.ok) {
     let raw = preferPtEu(String(ai.reply || ai.text || "").trim());
+    const normU = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const echo =
+      normU(raw) === normU(text) ||
+      (normU(text).length > 12 && normU(raw).includes(normU(text)) && normU(raw).length < normU(text).length + 40);
     const badMedium =
-      /system acknowledges|status of the conversation|I am processing your message|functioning within its parameters|You are inquiring about|Parece que você está confuso|simple chatbot|combinação de lóbulos/i.test(raw) ||
+      echo ||
+      /system acknowledges|status of the conversation|I am processing your message|functioning within its parameters|You are inquiring about|Parece que você está confuso|simple chatbot|combinação de lóbulos|formal-logic-cycle|olho e o ouvido|liderar a equipe|lead the (AIOps )?team|late development phase/i.test(raw) ||
       (/^The system /i.test(raw) && raw.length < 500) ||
       /^Here is the response/i.test(raw) ||
       (/conversas que estamos a ter|interação complexa entre diferentes componentes/i.test(raw) ||
