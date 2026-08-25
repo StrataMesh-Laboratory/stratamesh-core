@@ -1,5 +1,7 @@
-# StrataMesh Impact Fund rails
-# github: activates the Sponsors button once the maintainer completes https://github.com/sponsors
+# StrataMesh funding rails
+# @amcmorais Sponsors listing is LIVE: https://github.com/sponsors/amcmorais
+# Org listing: enable at https://github.com/sponsors/accounts → StrataMesh-Laboratory
+# then add StrataMesh-Laboratory under github: below.
 github: [amcmorais]
 custom:
   - "https://fund.calhegasmorais.pt"
