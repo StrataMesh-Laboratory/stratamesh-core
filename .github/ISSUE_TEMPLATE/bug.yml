@@ -1,0 +1,29 @@
+name: Bug report
+description: Something broken in lab code or public surfaces
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: input
+    id: surface
+    attributes:
+      label: Surface / repo path
+      placeholder: e.g. fund.calhegasmorais.pt / workers/stratamesh-spa
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro steps
+  - type: markdown
+    attributes:
+      value: "Lab only — not mainnet. Canonical org: StrataMesh-Laboratory."
