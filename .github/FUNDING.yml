@@ -1,0 +1,6 @@
+# StrataMesh Impact Fund rails
+# github: activates the Sponsors button once the maintainer completes https://github.com/sponsors
+github: [amcmorais]
+custom:
+  - "https://fund.calhegasmorais.pt"
+  - "https://calhegasmorais.pt/pagamentos"
