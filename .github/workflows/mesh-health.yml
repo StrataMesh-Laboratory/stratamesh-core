@@ -1,0 +1,25 @@
+name: mesh-health
+on:
+  schedule:
+    - cron: "0 9 * * *"  # ~10:00 Lisbon winter / 10:00 UTC summer-ish
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe public surfaces
+        run: |
+          set -e
+          for u in \
+            https://calhegasmorais.pt/ \
+            https://status.calhegasmorais.pt/status \
+            https://fund.calhegasmorais.pt/api/v1/health \
+            https://eni.calhegasmorais.pt/ \
+            https://stratamesh-briefing.stratamesh.workers.dev/health
+          do
+            code=$(curl -sS -o /tmp/out -w "%{http_code}" --max-time 25 -A "StrataMesh-CI-Health" "$u" || echo 000)
+            echo "$code $u"
+            case "$code" in 2*|3*) ;; *) echo FAIL; exit 1 ;; esac
+          done
+          echo OK
