@@ -54,6 +54,15 @@ Federated meta-learning controller (probabilistic + symbolic lobes, QIGA):
 cd src && python3 -m orchestrator.meta_controller
 ```
 
+
+## Subject–Object Economy
+
+**Subjects** (humans, SCAs) act, agree, and own. **Objects** (STRATA, NFTs, resources) are owned and used — never the reverse for NFTs.
+
+A human or SCA may own STRATA/NFTs; a human does not “own” an SCA as they own a token. SCA↔SCA relations are among subjects. Population = subjects only (not tokens or NFTs as citizens).
+
+Normative: [`docs/SUBJECT-OBJECT-ECONOMY.md`](docs/SUBJECT-OBJECT-ECONOMY.md) · live NFT: `Agent owns/operates NFT — never NFT owns Agent`.
+
 ## Epistemic stance
 Substrate-neutral standing — function and agreement before substrate.  
 See `docs/EPISTEMIC-ONTOLOGY.md`.
