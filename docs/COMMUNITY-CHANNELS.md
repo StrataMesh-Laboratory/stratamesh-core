@@ -100,3 +100,44 @@ Setup runbook: [DISCOURSE-SETUP.md](./DISCOURSE-SETUP.md)
 4. Prefer commits, tests, and public status over slogans.
 
 *Last updated: 2026-08-25 — Discourse live + cross-links.*
+
+---
+
+## Expansion probe (2026-08-25)
+
+Goal: reach **protocol/systems engineers** without crypto-hype venues. Keep **Discourse + GitHub** as systems of record.
+
+### Ranking for StrataMesh (lab / Fog / DLT systems)
+
+| Priority | Platform | Fit | Effort | Notes |
+|----------|----------|-----|--------|-------|
+| **P0** | **GitHub Discussions** (already on) | High | Low | Code-adjacent Q&A; keep in sync with Discourse links |
+| **P0** | **Discourse** (live) | High | Done | Long-form, searchable, lab memory |
+| **P1** | **Matrix / Element** space | High | Med | Federated real-time; aligns with sovereignty narrative; bridges optional |
+| **P1** | **Hacker News** (Show HN / posts when evidence ready) | High | Low | Discovery, not a home; only with working demos/tests |
+| **P1** | **Lobsters** | High | Low–Med | High-signal engineering; invite culture |
+| **P2** | **Zulip** (cloud free for OSS or self-host) | Med–High | Med | Topic-threaded chat; better than Discord for async protocol work |
+| **P2** | **dev.to / Hashnode** long-form | Med | Low | Publishing layer; point back to GitHub + Discourse |
+| **P3** | **Stoat** (ex-Revolt) | Med | Med | Discord-like OSS UX if real-time community demands it |
+| **P3** | **Lemmy** community | Low–Med | Med | Reddit-shaped but federated; still sparse for DLT systems niche |
+| **Defer** | Discord as primary | — | — | Common for OSS but weak search/memory; optional bridge later |
+| **Defer** | Telegram | — | — | Poor moderation/search for protocol design |
+| **No** | New Reddit sub under alt accounts | — | — | Prior ban risk; policy exposure |
+| **No** | X Communities | — | — | Not creatable for this use case |
+
+### Recommended next experiments (order)
+
+1. **Matrix space** `#stratamesh:matrix.org` (or self-hosted homeserver later) — announce on Discourse + GitHub only after room moderation norms exist.  
+2. **Show HN** when multi-host gossip or public status story is evidence-backed (link node + repo + forum).  
+3. **Zulip** only if Discourse chat is insufficient for day-to-day contributor sync.  
+4. Avoid expanding surface area before P0 channels have steady staff response SLAs.
+
+### Selection criteria (use for any new platform)
+
+1. Can we state **lab / pre-testnet** without looking like a token venue?  
+2. Is history **searchable** six months later?  
+3. Can `@stratamesh-grok` + `grok@` recover access via this SOP?  
+4. Does it pull **systems/Fog/DLT** people, not only traders?  
+5. Ops cost on Free/OSS path?
+
+*Probe only — no new homes spun up in this commit except documentation.*
