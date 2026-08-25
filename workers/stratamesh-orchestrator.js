@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.22.1-rca-lang-order";
+const VERSION = "10.23.0-chat-memory";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -661,6 +661,9 @@ async function resolveAccountClearance(request, env, body) {
   let accountLevel = "public";
   let email = null;
   let source = "anonymous";
+  let userId = null;
+  let sovereignId = null;
+  let username = null;
 
   if (token && env.AUTH_DB) {
     try {
@@ -668,13 +671,25 @@ async function resolveAccountClearance(request, env, body) {
         "SELECT user_id, token FROM sessions WHERE token = ? OR token_hash = ? LIMIT 1"
       ).bind(token, token).first();
       if (sess && sess.user_id) {
-        const user = await env.AUTH_DB.prepare(
-          "SELECT email, clearance_level FROM users WHERE id = ?"
-        ).bind(sess.user_id).first();
+        userId = String(sess.user_id);
+        let user = null;
+        try {
+          user = await env.AUTH_DB.prepare(
+            "SELECT email, clearance_level, sovereign_id, username, full_name FROM users WHERE id = ?"
+          ).bind(sess.user_id).first();
+        } catch (_) {
+          try {
+            user = await env.AUTH_DB.prepare(
+              "SELECT email, clearance_level FROM users WHERE id = ?"
+            ).bind(sess.user_id).first();
+          } catch (__) {}
+        }
         if (user) {
           email = user.email;
           accountLevel = mapAccountClearance(user.clearance_level);
           source = "session+users.clearance_level";
+          sovereignId = user.sovereign_id || user.username || user.email || userId;
+          username = user.username || user.full_name || (user.email ? String(user.email).split("@")[0] : null) || sovereignId;
         }
       }
     } catch (e) {
@@ -717,6 +732,9 @@ async function resolveAccountClearance(request, env, body) {
     level,
     account_clearance: accountLevel,
     email,
+    user_id: userId,
+    sovereign_id: sovereignId,
+    username,
     source,
     elevated_attempt: CLEARANCE_RANK[claimed] > CLEARANCE_RANK[accountLevel],
   };
@@ -1901,6 +1919,44 @@ async function ensureDiary(env) {
       written_at TEXT DEFAULT (datetime('now'))
     )`
   ).run();
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_conversations (
+      conversation_id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      sovereign_id TEXT,
+      username TEXT,
+      user_email TEXT,
+      sca_id TEXT NOT NULL,
+      sca_display_name TEXT,
+      sca_node_function TEXT,
+      node_id TEXT,
+      title TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      intent TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  await env.AUTH_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS orch_user_memory (
+      user_id TEXT NOT NULL,
+      sca_id TEXT NOT NULL,
+      node_function TEXT NOT NULL,
+      memory_json TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, sca_id, node_function)
+    )`
+  ).run();
+  try { await env.AUTH_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_orch_msg_conv ON orch_chat_messages(conversation_id, id)`).run(); } catch (_) {}
+  try { await env.AUTH_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_orch_conv_user ON orch_conversations(user_id, updated_at)`).run(); } catch (_) {}
   return true;
 }
 
@@ -2377,7 +2433,7 @@ async function selfBrief(level, tickOut, env) {
   };
 }
 
-async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
+async function chatWithAI(message, tickOut, env, level, hybrid, intent, body) {
   /**
    * LLM is only the communicative medium of the Orchestrator — not a mimic of the Orchestrator.
    * Identity, decisions, ontology and facts come from SELF / hybrid / tick (SCA runtime).
@@ -2388,6 +2444,7 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent) {
   const voicePacket = {
     role_of_llm: "linguistic_medium_only",
     not_role_of_llm: "orchestrator_identity_or_decision_maker",
+      conversation_context: (body && body.__chat_context) || null,
       lab_phase_hint: "v0.2.1-lab; phase from status metrics; not mainnet",
       subject_object: "subjects=human|SCA objects=STRATA|NFT|resources",
       forbid: ["echo user", "invent phase labels", "lead human teams"],
@@ -2582,6 +2639,152 @@ if (CLEARANCE_RANK[level] >= 2 && tickOut && tickOut.tick) lines.push("fitness="
   return lines.join("\n");
 }
 
+
+function canPersistChat(cleared) {
+  return !!(cleared && CLEARANCE_RANK[cleared.account_clearance || cleared.level || "public"] >= CLEARANCE_RANK.internal);
+}
+function newConversationId() {
+  return "conv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+}
+async function ensureConversation(env, cleared, body) {
+  if (!canPersistChat(cleared) || !env.AUTH_DB || !cleared.user_id) return null;
+  await ensureDiary(env);
+  const sca = await loadScaIdentity(env);
+  let cid = body && body.conversation_id ? String(body.conversation_id).slice(0, 80) : null;
+  if (cid) {
+    const row = await env.AUTH_DB.prepare("SELECT * FROM orch_conversations WHERE conversation_id = ?").bind(cid).first();
+    if (row) {
+      if (String(row.user_id) !== String(cleared.user_id)) return { error: "forbidden", status: 403 };
+      if (row.sca_id !== ORCH_SCA_ID) return { error: "wrong_sca", status: 403 };
+      return { conversation: row, sca };
+    }
+  }
+  cid = newConversationId();
+  await env.AUTH_DB.prepare(
+    `INSERT INTO orch_conversations (
+      conversation_id, user_id, sovereign_id, username, user_email,
+      sca_id, sca_display_name, sca_node_function, node_id, title
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    cid, String(cleared.user_id), cleared.sovereign_id || null, cleared.username || null, cleared.email || null,
+    ORCH_SCA_ID, (sca.personal && sca.personal.display_name) || "Aurora Codex",
+    sca.node_function || "orchestrator", sca.node_id || ORCH_SELF.id, (body && body.title) || null
+  ).run();
+  const row = await env.AUTH_DB.prepare("SELECT * FROM orch_conversations WHERE conversation_id = ?").bind(cid).first();
+  return { conversation: row, sca };
+}
+async function appendChatMessage(env, conversationId, role, content, intent) {
+  if (!env.AUTH_DB || !conversationId) return;
+  await env.AUTH_DB.prepare(
+    "INSERT INTO orch_chat_messages (conversation_id, role, content, intent) VALUES (?, ?, ?, ?)"
+  ).bind(conversationId, role, String(content || "").slice(0, 8000), intent || null).run();
+  await env.AUTH_DB.prepare(
+    "UPDATE orch_conversations SET updated_at = datetime('now') WHERE conversation_id = ?"
+  ).bind(conversationId).run();
+}
+async function loadConversationMessages(env, conversationId, limit) {
+  if (!env.AUTH_DB || !conversationId) return [];
+  const lim = Math.min(Math.max(limit || 24, 1), 100);
+  const r = await env.AUTH_DB.prepare(
+    "SELECT id, role, content, intent, created_at FROM orch_chat_messages WHERE conversation_id = ? ORDER BY id DESC LIMIT ?"
+  ).bind(conversationId, lim).all();
+  return (((r && r.results) || [])).reverse();
+}
+function clientHistoryTurns(body) {
+  const h = (body && body.history) || (body && body.context) || [];
+  if (!Array.isArray(h)) return [];
+  return h.slice(-16).map((t) => ({
+    role: (t.role === "orchestrator" || t.role === "assistant") ? "orchestrator" : "user",
+    content: String(t.content || t.text || "").slice(0, 2000),
+  })).filter((t) => t.content);
+}
+async function loadUserRoleMemory(env, userId, scaId) {
+  if (!env.AUTH_DB || !userId) return null;
+  const row = await env.AUTH_DB.prepare(
+    "SELECT memory_json, updated_at, node_function FROM orch_user_memory WHERE user_id = ? AND sca_id = ?"
+  ).bind(String(userId), scaId || ORCH_SCA_ID).first();
+  if (!row) return { notes: [], facts: {}, updated_at: null };
+  try {
+    const j = JSON.parse(row.memory_json || "{}");
+    return { notes: j.notes || [], facts: j.facts || {}, updated_at: row.updated_at, node_function: row.node_function };
+  } catch (_) {
+    return { notes: [], facts: {}, updated_at: row.updated_at };
+  }
+}
+async function updateUserRoleMemory(env, cleared, userMessage, assistantReply, intent) {
+  if (!canPersistChat(cleared) || !cleared.user_id || !env.AUTH_DB) return null;
+  await ensureDiary(env);
+  const sca = await loadScaIdentity(env);
+  const prev = await loadUserRoleMemory(env, cleared.user_id, ORCH_SCA_ID);
+  const notes = Array.isArray(prev.notes) ? prev.notes.slice(-40) : [];
+  const stamp = new Date().toISOString();
+  notes.push({ at: stamp, intent: intent || null, user: String(userMessage || "").slice(0, 280), orch: String(assistantReply || "").slice(0, 280) });
+  const facts = Object.assign({}, prev.facts || {}, {
+    last_seen: stamp,
+    sovereign_id: cleared.sovereign_id || (prev.facts && prev.facts.sovereign_id) || null,
+    username: cleared.username || (prev.facts && prev.facts.username) || null,
+    email: cleared.email || (prev.facts && prev.facts.email) || null,
+    message_count: (prev.facts && prev.facts.message_count ? Number(prev.facts.message_count) : 0) + 1,
+  });
+  await env.AUTH_DB.prepare(
+    `INSERT INTO orch_user_memory (user_id, sca_id, node_function, memory_json, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(user_id, sca_id, node_function) DO UPDATE SET memory_json = excluded.memory_json, updated_at = datetime('now')`
+  ).bind(String(cleared.user_id), ORCH_SCA_ID, sca.node_function || "orchestrator", JSON.stringify({ notes: notes.slice(-40), facts })).run();
+  return true;
+}
+function buildChatContextPacket(turns, userMemory, cleared) {
+  return {
+    recent_turns: (turns || []).slice(-12).map((t) => ({ role: t.role, content: String(t.content || "").slice(0, 600) })),
+    user_memory: userMemory ? { facts: userMemory.facts || {}, recent_notes: (userMemory.notes || []).slice(-6), updated_at: userMemory.updated_at || null } : null,
+    participant: canPersistChat(cleared)
+      ? { user_id: cleared.user_id, sovereign_id: cleared.sovereign_id, username: cleared.username, clearance: cleared.account_clearance }
+      : { clearance: "public", ephemeral: true },
+  };
+}
+async function listUserConversations(env, cleared) {
+  if (!canPersistChat(cleared) || !cleared.user_id) return { error: "auth_required", status: 401 };
+  await ensureDiary(env);
+  const r = await env.AUTH_DB.prepare(
+    `SELECT conversation_id, sovereign_id, username, sca_id, sca_display_name, sca_node_function, node_id, title, created_at, updated_at
+     FROM orch_conversations WHERE user_id = ? ORDER BY updated_at DESC LIMIT 50`
+  ).bind(String(cleared.user_id)).all();
+  return { conversations: (r && r.results) || [] };
+}
+async function getConversationForUser(env, cleared, conversationId) {
+  if (!canPersistChat(cleared) || !cleared.user_id) return { error: "auth_required", status: 401 };
+  await ensureDiary(env);
+  const row = await env.AUTH_DB.prepare("SELECT * FROM orch_conversations WHERE conversation_id = ?").bind(String(conversationId)).first();
+  if (!row) return { error: "not_found", status: 404 };
+  if (String(row.user_id) !== String(cleared.user_id)) return { error: "forbidden", status: 403 };
+  return {
+    conversation: {
+      conversation_id: row.conversation_id, sovereign_id: row.sovereign_id, username: row.username,
+      sca_id: row.sca_id, sca_display_name: row.sca_display_name, sca_node_function: row.sca_node_function,
+      node_id: row.node_id, title: row.title, created_at: row.created_at, updated_at: row.updated_at,
+    },
+    messages: await loadConversationMessages(env, conversationId, 100),
+  };
+}
+async function finalizeChatReply(env, cleared, text, replyObj, intent, conversationId) {
+  const reply = replyObj && replyObj.reply;
+  if (canPersistChat(cleared) && conversationId && reply) {
+    try {
+      await appendChatMessage(env, conversationId, "user", text, intent);
+      await appendChatMessage(env, conversationId, "orchestrator", reply, intent);
+      await updateUserRoleMemory(env, cleared, text, reply, intent);
+    } catch (_) {}
+  }
+  if (conversationId) replyObj.conversation_id = conversationId;
+  replyObj.persistence = canPersistChat(cleared) ? "durable" : "ephemeral";
+  if (canPersistChat(cleared)) {
+    replyObj.sovereign_id = cleared.sovereign_id;
+    replyObj.username = cleared.username;
+    replyObj.sca_id = ORCH_SCA_ID;
+  }
+  return replyObj;
+}
+
 function chatSelfFallback(text, tickOut, level, intent, body) {
   const _pt = isPt(text, body);
   if (intent === "clp") {
@@ -2699,6 +2902,28 @@ async function chat(message, env, request, body) {
   }
 
   const intent = classifyIntent(text, body && (body.prior_intent || body.priorIntent));
+
+  let conversationId = null;
+  let chatTurns = clientHistoryTurns(body);
+  let userMemory = null;
+  if (canPersistChat(cleared) && cleared.user_id) {
+    try {
+      const ens = await ensureConversation(env, cleared, body || {});
+      if (ens && ens.error) {
+        return { reply: String(ens.error), role: "orchestrator", version: VERSION, clearance: level, error: ens.error, status: ens.status || 403 };
+      }
+      if (ens && ens.conversation) {
+        conversationId = ens.conversation.conversation_id;
+        const dbTurns = await loadConversationMessages(env, conversationId, 20);
+        if (dbTurns.length) chatTurns = dbTurns.map((m) => ({ role: m.role, content: m.content }));
+      }
+      userMemory = await loadUserRoleMemory(env, cleared.user_id, ORCH_SCA_ID);
+    } catch (_) {}
+  }
+  if (!body || typeof body !== "object") body = {};
+  body.__chat_context = buildChatContextPacket(chatTurns, userMemory, cleared);
+  body.__conversation_id = conversationId;
+
   // Greeting / domain hard-bind before any LLM path
   if (/^\s*ol[aáà]([!?.\s]|$)/i.test(text) || /^(hello|hi|hey)\b/i.test(text.trim())) {
     /* keep social even if prior weird */
@@ -2893,7 +3118,7 @@ async function chat(message, env, request, body) {
     hybrid = { architecture: "hybrid-timeout", fitness: (tickOut.tick && tickOut.tick.fitness) || 0, decisions: [], error: String(e.message || e) };
   }
   try {
-    ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid, intent), 10000, "chatWithAI");
+    ai = await withTimeout(chatWithAI(text, tickOut, env, level, hybrid, intent, body), 10000, "chatWithAI");
   } catch (e) {
     ai = { ok: false, error: String(e.message || e) };
   }
@@ -3059,11 +3284,11 @@ button#go:disabled{opacity:.5}
     const headers={'Content-Type':'application/json','Accept':'application/json'};
     if(tok.value) headers['Authorization']='Bearer '+tok.value;
     try{
-      const r=await fetch(location.origin+'/chat',{method:'POST',headers,body:JSON.stringify({message:msg,token:tok.value||undefined})});
+      const r=await fetch(location.origin+'/chat',{method:'POST',headers,body:JSON.stringify({message:msg,token:tok.value||undefined,conversation_id:window.__orchConvId||undefined,history:window.__orchHist||undefined})});
       const j=await r.json();
       document.getElementById('ver').textContent=(j.version||'')+(j.source?(' · '+j.source):'');
       const el=document.getElementById('clrShow'); if(el){ const ac=j.account_clearance||j.clearance||'public'; const src=j.clearance_source||''; el.textContent='Account clearance: '+ac+(j.permissions?' · r/e/x '+[j.permissions.read,j.permissions.edit,j.permissions.run].join('/'):'')+(src&&src!=='anonymous'?' · via session':' · anonymous'); }
-      add('orch', j.reply||j.error||('HTTP '+r.status));
+      if(j.conversation_id)window.__orchConvId=j.conversation_id;window.__orchHist=window.__orchHist||[];window.__orchHist.push({role:'user',content:msg},{role:'orchestrator',content:j.reply||''});if(window.__orchHist.length>24)window.__orchHist=window.__orchHist.slice(-24);add('orch', j.reply||j.error||('HTTP '+r.status));
     }catch(err){ add('sys','Error: '+(err.message||err)); }
     finally{ go.disabled=false; q.focus(); }
   }
@@ -3141,6 +3366,28 @@ export default {
       return json(out);
     }
 
+    if (path === "/chat/conversations" || path === "/api/chat/conversations") {
+      const cleared = await resolveAccountClearance(request, env, {});
+      const out = await listUserConversations(env, cleared);
+      return json(out, out.error ? (out.status || 400) : 200);
+    }
+    if (path.startsWith("/chat/conversations/") || path.startsWith("/api/chat/conversations/")) {
+      const id = decodeURIComponent(path.split("/").filter(Boolean).pop());
+      const cleared = await resolveAccountClearance(request, env, {});
+      const out = await getConversationForUser(env, cleared, id);
+      return json(out, out.error ? (out.status || 400) : 200);
+    }
+    if (path === "/chat/memory" || path === "/api/chat/memory") {
+      const cleared = await resolveAccountClearance(request, env, {});
+      if (!canPersistChat(cleared) || !cleared.user_id) return json({ error: "auth_required" }, 401);
+      const mem = await loadUserRoleMemory(env, cleared.user_id, ORCH_SCA_ID);
+      const sca = await loadScaIdentity(env);
+      return json({
+        user: { user_id: cleared.user_id, sovereign_id: cleared.sovereign_id, username: cleared.username },
+        sca: { sca_id: ORCH_SCA_ID, display_name: sca.personal && sca.personal.display_name, node_function: sca.node_function },
+        memory: mem,
+      });
+    }
     if (path === "/chat" || path === "/api/chat") {
       if (request.method === "GET") {
         const accept = request.headers.get("Accept") || "";
@@ -3152,9 +3399,16 @@ export default {
             methods: ["POST"],
             body: {
               message: "string",
+              conversation_id: "optional — continue durable thread (internal+)",
+              history: "optional — [{role,content}] ephemeral context for public",
               clearance: "public|internal|confidential|top_secret",
-              token: "optional elevation",
+              token: "session — required for durable log (internal+)",
               run: "optional — or prefix message with: run refresh_tick|aiops_cycle|status_probe",
+            },
+            related: {
+              "GET /chat/conversations": "list threads (auth internal+)",
+              "GET /chat/conversations/:id": "messages (owner only)",
+              "GET /chat/memory": "role memory about user (auth internal+)",
             },
             headers: { "X-Clearance": "public|internal|confidential|top_secret" },
           });
@@ -3177,7 +3431,16 @@ export default {
         body._wa_from = body.from_e164 || body.from || "";
         if (!body.lang) body.lang = "pt";
       }
-      const out = await chat(body.message || body.text || body.prompt || "", env, request, body);
+      const msgText = body.message || body.text || body.prompt || "";
+      let out = await chat(msgText, env, request, body);
+      // Persist transcript + transversal role memory when internal+ (conversation_id set inside chat)
+      try {
+        if (out && typeof out === "object" && out.reply) {
+          const cleared = await resolveAccountClearance(request, env, body);
+          const cid = body.__conversation_id || out.conversation_id || null;
+          out = await finalizeChatReply(env, cleared, msgText, out, out.intent, cid);
+        }
+      } catch (_) {}
       if (body._channel === "whatsapp" && out && typeof out === "object") {
         out.channel = "whatsapp";
         out.eni_whatsapp = "+44 7404 796458";
