@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-25T23:35:28Z",
-  "headline": "Green \u2014 anti-stub pass: gossip single-host honest; aliases tips/poc/status/acb roster",
+  "generated_at": "2026-08-25T23:37:56Z",
+  "headline": "Green \u2014 mesh count 2: FOG-NODE-PT-CM-001 + live EDGE-GROK-CMN-001",
   "posture": "green",
   "status": {
     "version": "0.3.9-pulse",
@@ -16,8 +16,13 @@
   "mandatory_actions": [],
   "optional_actions": [],
   "non_actions": [
-    "reintroduce fake multi-host peers",
-    "mass-comment issues"
+    "list edge without /health 200",
+    "claim physical FOG capacity for EDGE-GROK"
   ],
-  "notes": "See docs/PLATFORM-ANTI-STUB.md"
+  "notes": "Edge: https://edge.calhegasmorais.pt/ \u2014 see docs/EDGE-GROK-NODE.md",
+  "mesh": {
+    "fog": "FOG-NODE-PT-CM-001",
+    "edge": "EDGE-GROK-CMN-001",
+    "gossip": "lab_fog_plus_live_edge"
+  }
 }
