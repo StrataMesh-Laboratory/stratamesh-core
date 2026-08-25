@@ -3,7 +3,7 @@
  * From: noreply@eni.calhegasmorais.pt
  * Layout kinds: 2fa · briefing · update · invite · reset · register · system
  */
-const VERSION = "1.4.0-command";
+const VERSION = "1.4.1-fingerprint-free";
 const API_BASE = "https://api.deomail.com/v1";
 const DEFAULT_FROM = "noreply@eni.calhegasmorais.pt";
 
@@ -320,13 +320,17 @@ export default {
         const toList = Array.isArray(to) ? to : [to].filter(Boolean);
         if (!toList.length) return j({ error: "to_required" }, 400);
         if (!body.subject && !body.assunto) return j({ error: "subject_required" }, 400);
+        // Free DeoMail plan requires Fingerprint footer — do not send fingerprint:false
         const payload = {
           from: body.from || env.DEOMAIL_FROM || DEFAULT_FROM,
           to: toList,
           subject: String(body.subject || body.assunto).slice(0, 500),
-          fingerprint: false,
-          disable_fingerprint: true,
         };
+        if (body.fingerprint === true || body.disable_fingerprint === false) {
+          /* paid plan only: allow explicit override when operator upgrades */
+        } else if (body.fingerprint === false || body.disable_fingerprint === true) {
+          /* ignored on free plan — API rejects fingerprint:false */
+        }
         const rawText = body.text || body.body || body.message || "";
         if (rawText) payload.text = String(rawText);
         if (body.html) {
