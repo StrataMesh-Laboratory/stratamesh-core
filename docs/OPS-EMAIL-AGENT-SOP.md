@@ -1,101 +1,201 @@
-# SOP — Agent mailbox `grok@calhegasmorais.pt` (when API automation fails)
+# SOP — Agent mailbox & email-session recovery (`grok@` → ENI root)
 
-**Purpose:** Recover session / complete privileged actions when direct platform APIs are missing, rate-limited, Pro-gated, or blocked by interactive UI (CSRF, captcha, Discourse ID forms).
+**Status:** Operational (proven 2026-08-25 on Discourse Free + Cloudflare Email Routing + DeoMail)  
+**Purpose:** Complete privileged setup and day-2 ops when **API tokens are unavailable, Pro-gated, rate-limited, or temporarily broken**, using the lab agent identity under the AMCM ENI mail root.
 
-**Mailbox**
-| Field | Value |
-|-------|--------|
-| Address | `grok@calhegasmorais.pt` |
-| Routing | Cloudflare Email Routing → `geral@eni.calhegasmorais.pt` (DeoMail) |
-| Read API | DeoMail Grok API (`X-API-Key`) · `GET /v1/emails` · `GET /v1/emails/{id}` |
-| Staff user (Discourse) | `@stratamesh-grok` |
-| Legal contact (human) | `geral@eni.calhegasmorais.pt` |
-
-Do **not** use personal iCloud for agent automation. Do **not** commit passwords or API keys to git.
+Related: [AIOPS-HANDOFF-LOOP.md](./AIOPS-HANDOFF-LOOP.md) · [OPS-24H-DEV-CRON.md](./OPS-24H-DEV-CRON.md) · [DISCOURSE-SETUP.md](./DISCOURSE-SETUP.md)
 
 ---
 
-## 1. Decision tree
+## 1. Identity hierarchy (do not invert)
+
+| Address | Role |
+|---------|------|
+| **`geral@eni.calhegasmorais.pt`** | **Root professional mailbox** (AMCM ENI). Hosted on **DeoMail**. Human + automation read via DeoMail API. |
+| **`grok@calhegasmorais.pt`** | **Agent / admin automation identity**. Not a separate legal person. Used for platform signups (Discourse staff, future SaaS). |
+| Routing | Cloudflare Email Routing on apex `calhegasmorais.pt`: **`grok@` → forward → `geral@eni.calhegasmorais.pt`** (destination must stay **Verified**). |
+| `amcmorais@icloud.com` | Personal — **not** for lab agent automation or org-facing staff seats. |
+
+**Rule:** Agent acts as `grok@`; mail always lands in ENI root via DeoMail. Operator recovers everything from one inbox API.
+
+---
+
+## 2. When to use this SOP
+
+Use email-session recovery when **any** of the following is true:
+
+1. Platform has **no Admin API keys** on the current plan (e.g. Discourse Free).  
+2. API key exists but returns **401/403**, is rotated, or is not in the current session secrets.  
+3. Endpoint requires **interactive login** (CSRF + cookies) and cannot be called with Bearer alone.  
+4. Signup / staff grant / password set only completes via **email confirmation links**.  
+5. Captcha/Turnstile blocks pure browser automation — operator clicks once; agent continues from mail tokens.
+
+**Do not** use this path as a substitute for normal CF/GitHub tokens when those tokens work (prefer direct API for speed and auditability).
+
+---
+
+## 3. Control plane: DeoMail API
+
+**Base:** `https://api.deomail.com`  
+**Auth header:** `X-API-Key: <DEOMAIL_GROK_API_KEY>`  
+**Inbox:** messages for `geral@eni…` (includes forwards from `grok@`).
+
+### List recent mail
+```bash
+curl -sS -H "X-API-Key: $DEOMAIL_KEY" \
+  'https://api.deomail.com/v1/emails?limit=15'
+```
+
+### Read one message (links + body)
+```bash
+curl -sS -H "X-API-Key: $DEOMAIL_KEY" \
+  "https://api.deomail.com/v1/emails/{id}"
+```
+
+**Parsing priorities (in order):**
+1. Long **magic-link** URLs (`/session/email-login/{token}`, `/u/password-reset/{token}`, `/u/confirm-admin/{token}`, invite URLs).  
+2. Subject lines with six-digit codes (secondary; often UI-only).  
+3. Plain-text body before HTML.
+
+**Known pitfall:** A **6-digit “login code”** is **not** interchangeable with the **email-login path token**. Prefer the mail subject/body link `Log in via link` → `/session/email-login/{32-hex}`.
+
+---
+
+## 4. Proven sequence — Discourse ID + staff forum
+
+_Tested against Discourse Free (`stratamesh.discourse.group`) + Discourse ID (`id.discourse.com`)._
+
+### 4.1 Ensure mailbox path
+1. Cloudflare Email Routing: rule `grok@calhegasmorais.pt` → `geral@eni.calhegasmorais.pt`.  
+2. Destination **Verified** (if CF sends verify mail, operator confirms once; rate limits possible).  
+3. Probe: send any mail to `grok@` and confirm it appears via DeoMail list.
+
+### 4.2 Create / accept agent account
+1. Invite from owner admin **`@stratamesh`** (geral@) to **`grok@calhegasmorais.pt`**.  
+2. Accept invite; username **`stratamesh-grok`**.  
+3. Prefer **admin invite**; if only member, owner grants Moderator/Admin in Admin → Users.
+
+### 4.3 Confirm admin (email to root)
+When Discourse emails **“Confirm new Admin Account”** to `geral@eni…`:
+
+```text
+POST https://stratamesh.discourse.group/u/confirm-admin/{token}
+Content-Type: application/json
+X-CSRF-Token: <from GET /session/csrf after visiting confirm URL>
+Body: {}
+```
+
+Expect `{"success":"OK"}`. GET alone may only show the button page.  
+Verify: `GET /u/stratamesh-grok.json` → `admin: true` (and/or `moderator: true`).
+
+### 4.4 Passwordless login that works (magic link)
+1. Trigger email login (CSRF cookie jar on `id.discourse.com`):
+   ```http
+   POST https://id.discourse.com/u/email-login
+   Content-Type: application/json
+   {"login":"grok@calhegasmorais.pt"}
+   ```
+   Success body often `{"success":"OK","hide_taken":true}` — this **sends** the mail.  
+2. Poll DeoMail for **“Log in via link”**.  
+3. Extract `https://id.discourse.com/session/email-login/{token}`.  
+4. Optional: `GET …/session/email-login/{token}.json` → `can_login: true`.  
+5. `POST …/session/email-login/{token}` with CSRF → `{"success":"OK"}`.  
+6. Cookies `_t` / `_forum_session` on `id.discourse.com`.
+
+**Does not work reliably:** putting the 6-digit code in `/session/email-login/{code}` (returns “link no longer works”).
+
+### 4.5 Durable password (recommended once per identity)
+1. Trigger forgot/set password or use the **“Set Password”** mail that often accompanies email-login.  
+2. Extract `https://id.discourse.com/u/password-reset/{token}`.  
+3. `PUT` same path with JSON `{"password":"…","password_confirmation":"…"}` + CSRF.  
+4. Store password **only** in local ops secrets (never git, never public issues).  
+5. Later logins: `POST https://id.discourse.com/session` with `login=grok@…` + password.
+
+### 4.6 SSO into the product forum
+```http
+GET https://stratamesh.discourse.group/auth/discourse_id
+```
+Follow redirects (authorize → callback → site).  
+Confirm: `GET https://stratamesh.discourse.group/session/current.json` → `admin`/`staff` true for `stratamesh-grok`.
+
+### 4.7 Privileged writes without Admin API keys
+With session cookies + CSRF (`GET /session/csrf`):
+
+- Site settings: `PUT /admin/site_settings/{key}`  
+- Categories: `POST /categories.json` / `PUT /categories/{id}.json`  
+- Posts/topics: `POST /posts.json`, pin via `PUT /t/{id}/status`  
+- Free plan caps still apply (e.g. max categories, staff seats).
+
+---
+
+## 5. General pattern (any platform)
 
 ```
-Need privileged action on a platform?
-  ├─ Official Admin/API key available and allowed? → use API
-  ├─ API missing / 403 / Free-plan gated / captcha?
-  │     └─ Use this SOP (email + session)
-  └─ Human-only (Turnstile that blocks automation)?
-        └─ Document one human click; resume with mail/session
+API Bearer works?
+  YES → use API (CF, GitHub, DeoMail, AIOps)
+  NO  →
+    1. Ensure grok@ routes to geral@eni (DeoMail)
+    2. Trigger platform "email login" / invite / confirm from agent identity
+    3. Poll DeoMail; prefer long URL tokens over short OTP fields
+    4. Redeem token with CSRF + cookie jar
+    5. Optionally set password once for durable sessions
+    6. Complete SSO into the product host
+    7. Perform admin actions via session APIs
+    8. Persist only non-git secrets locally; rotate if leaked in chat
 ```
 
----
+### Cloudflare Email Routing recovery
+- Destination verify expired → operator resends from CF dashboard; agent reads link in DeoMail if link is clickable without Turnstile, else operator one-click.  
+- Rule missing → recreate forward `grok@` → `geral@eni` with Global/API token that can write Email Routing.
 
-## 2. Standard sequence (Discourse ID / similar passwordless)
+### GitHub
+Prefer PAT. Email path is only for org invitation acceptance mails to `geral@` / `grok@`.
 
-1. **Trigger email login** (not the 6-digit UI-only code as primary):
-   - Prefer `POST /u/email-login` with `{ "login": "grok@calhegasmorais.pt" }` + CSRF cookie jar.
-   - Fallback: password login if a password was previously set via reset link.
-2. **Poll DeoMail** (≤ 2 min, interval ~3–5 s):
-   - Match subject: `Log in via link`, `Set Password`, `login code`, platform name.
-   - Prefer **magic link** tokens (`/session/email-login/{long_token}`) over 6-digit codes.
-3. **Redeem token**:
-   - `GET …/session/email-login/{token}.json` → expect `can_login: true`.
-   - `POST …/session/email-login/{token}` → `{"success":"OK"}`.
-4. **Persist session** (cookie jar: `_t`, `_forum_session`) for the target host.
-5. **SSO into product** if needed (e.g. `GET https://stratamesh.discourse.group/auth/discourse_id` following redirects).
-6. **Optional durability:** if a `Set Password` / reset mail arrives, set a strong password once and store **only** in local ops secrets (`artifacts/.grok/secrets/`), never in the repo.
-7. **Verify:** `GET /session/current.json` → username + `admin`/`staff` flags.
-
-### Known failure modes
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| 6-digit code + `/session/email-login/{code}` → “link no longer works” | Code ≠ email-login token | Request **Log in via link** flow (`/u/email-login`) |
-| 403 on confirm-admin | Need `POST` + CSRF, not GET alone | POST empty JSON with CSRF |
-| Admin page “private” | No session cookies | Complete steps 1–5 |
-| DeoMail detail 403 via urllib | Client quirks | Use `curl -H "X-API-Key: …"` |
-| CF destination verify Turnstile | Human challenge | One browser click by operator; then automation continues |
+### AIOps / Workers
+Prefer CF API token. This SOP does not replace Workers deploy; it only recovers human-gate email steps around the same ops identity.
 
 ---
 
-## 3. Cloudflare Email Routing (mailbox hygiene)
-
-- Destination `geral@eni…` must stay **verified**.
-- Rule: `grok@calhegasmorais.pt` → forward → `geral@eni.calhegasmorais.pt`.
-- Apex MX is CF Email Routing; `eni.calhegasmorais.pt` MX is DeoMail.
-- If forward broken: check CF Email Routing rules + destination status before blaming DeoMail.
-
----
-
-## 4. Secrets layout (local only)
+## 6. Secrets layout (local only)
 
 ```
 artifacts/.grok/secrets/
-  discourse.env      # URL, username, email, password, staff flags
-  discourse_pw.txt   # optional plain password file
-  grok_mailbox.env   # GROK_EMAIL, GROK_FORWARD, invites
+  discourse.env      # URL, username stratamesh-grok, email, staff flags
+  discourse_pw.txt   # Discourse ID password if set
+  grok_mailbox.env   # GROK_EMAIL, GROK_FORWARD, DISCOURSE_URL
+  ops_bundle.env     # CF / GitHub / DeoMail keys for the session
 ```
 
-Rotate password if exposed in chat logs. Never paste live passwords into public issues.
+**Never** commit these files. Automation prompts may inject session keys; still do not push them to `stratamesh-core`.
 
 ---
 
-## 5. After session is up
+## 7. Failure table
 
-- Prefer **session + CSRF** write APIs over asking the human operator to click admin UI.
-- For Free Discourse: no Admin API keys — session is the automation surface.
-- Log outcomes in ops notes / this SOP’s “Last exercised” line.
-
-**Last exercised:** 2026-08-25 — Discourse ID magic link + password set + SSO admin session + site settings/categories/pins.
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| OTP 6-digit + email-login URL fails | Token type mismatch | Use **Log in via link** long token |
+| confirm-admin GET only shows button | Need POST + CSRF | POST `{}` with CSRF |
+| `/admin` “private” | No session | Complete §4.4–4.6 |
+| DeoMail detail errors via some HTTP clients | Client quirks | Prefer `curl` + `X-API-Key` |
+| CF “sent too recently” verify | Rate limit | Wait / operator verifies destination |
+| Mail to grok@ never appears | Routing or unverified destination | Fix Email Routing; confirm MX/destination |
+| Staff false after invite | Invite was member-only | Owner grants admin; confirm-admin mail |
 
 ---
 
-## 6. Template: poll DeoMail for login mail
+## 8. Acceptance checks
 
-```bash
-KEY=…  # DeoMail Grok API key (session secret)
-curl -sS -H "X-API-Key: $KEY" 'https://api.deomail.com/v1/emails?limit=10'
-# For hits: curl -sS -H "X-API-Key: $KEY" "https://api.deomail.com/v1/emails/{id}"
-# Extract https://…/session/email-login/{token} or 6-digit codes from subject/body
-```
+- [ ] Mail to `grok@calhegasmorais.pt` visible in DeoMail under ENI root  
+- [ ] `stratamesh-grok` `admin` and/or `moderator` true on forum  
+- [ ] Session login possible via password **or** magic link without human password typing  
+- [ ] At least one privileged write (setting or pin) succeeded with session CSRF  
+- [ ] No agent passwords stored in git  
 
-## Related
+**Last proven:** 2026-08-25 — Discourse admin confirm + magic link + password set + SSO + category/settings writes; mailbox `grok@` → `geral@eni` via CF + DeoMail.
 
-Daily development execution: [OPS-24H-DEV-CRON.md](./OPS-24H-DEV-CRON.md).
+---
+
+## 9. One-line policy
+
+**`grok@calhegasmorais.pt` is the automation admin identity; `geral@eni.calhegasmorais.pt` is the mail root of record; DeoMail is the recovery bus when platform APIs are missing or down.**
