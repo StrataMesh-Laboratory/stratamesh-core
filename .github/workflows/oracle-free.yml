@@ -1,0 +1,16 @@
+name: oracle-free
+on:
+  pull_request:
+    paths:
+      - "deploy/oracle-free/**"
+      - "scripts/oracle_preflight.sh"
+      - ".github/workflows/oracle-free.yml"
+  workflow_dispatch:
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Oracle-free pack preflight
+        run: bash scripts/oracle_preflight.sh
