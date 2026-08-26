@@ -274,3 +274,50 @@ No vendor-specific binary is required — **HTTP JSON + idle local loop** is the
 - [ ] No fake entry on gossip without public `/health` 200  
 
 **Reference implementation pattern:** EDGE-GROK local tree (`edge-grok/`) + public Worker https://edge.calhegasmorais.pt/
+
+
+---
+
+## 11. Degraded network / DNS failure (agent sandboxes)
+
+Some runtimes (e.g. ChatGPT Code Interpreter, restricted containers) start the heartbeat with **correct nice/ionice** but **cannot resolve DNS** for `edge.calhegasmorais.pt` / Cloudflare.
+
+### Required honesty
+
+```json
+{
+  "node_id": "EDGE-CONTRIB-…",
+  "mode": "local_observer",
+  "probes": {
+    "edge_health": { "ok": false, "error": "DNS failure" },
+    "fog_status": { "ok": false, "error": "DNS failure" },
+    "gossip": { "ok": false, "error": "DNS failure" }
+  },
+  "peer_count": null,
+  "mesh_member": false
+}
+```
+
+Never invent successful probes or gossip membership.
+
+### Recovery options (pick one)
+
+| Option | When |
+|--------|------|
+| **A. Tool-mediated probe** | Agent uses browsing/HTTP tool (outside the broken DNS namespace), then writes results into `state/last_heartbeat.json` with `"probes_via": "agent_web_tool"`. |
+| **B. Host network** | User runs the same `contributor-edge/` on a machine with normal DNS (`bin/start.sh`). |
+| **C. Public `/health`** | Deploy HTTPS health endpoint → request fog gossip health-check URL (see §6). |
+
+### Reference check (from a networked environment)
+
+```bash
+curl -sS https://edge.calhegasmorais.pt/health
+curl -sS https://status.calhegasmorais.pt/
+curl -sS https://calhegasmorais.pt/api/v1/gossip/peers
+```
+
+Expected: `EDGE-GROK-CMN-001` live; `FOG-NODE-PT-CM-001` operational; mesh count ≥ 1.
+
+### Accepted example
+
+**EDGE-CONTRIB-CHATGPT-C1** (2026-08-26): process policy OK; container DNS fail; observer-only; no fabricated peer — **correct SDK behaviour**.
