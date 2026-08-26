@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calhegasmorais.pt/schemas/contributor_edge.v1.json",
+  "title": "stratamesh.contributor_edge.v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "node_id",
+    "role",
+    "lab",
+    "linked_fog"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stratamesh.contributor_edge.v1"
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^EDGE-"
+    },
+    "role": {
+      "const": "edge"
+    },
+    "lab": {
+      "const": true
+    },
+    "linked_fog": {
+      "const": "FOG-NODE-PT-CM-001"
+    },
+    "substrate": {
+      "type": "string"
+    },
+    "agent": {
+      "type": "object"
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "spare_capacity_only": {
+          "const": true
+        },
+        "nice": {
+          "type": "integer",
+          "minimum": 10
+        },
+        "heartbeat_sec": {
+          "type": "integer",
+          "minimum": 120
+        },
+        "interference_with_primary": {
+          "const": "none"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "endpoint_public": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
