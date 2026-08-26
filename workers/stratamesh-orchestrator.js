@@ -630,7 +630,7 @@ function mapAccountClearance(raw) {
   const s = String(raw).toLowerCase().replace(/[\s-]+/g, "_");
   // Role aliases per docs/CLEARANCE-LEVELS.md (admin→secret, staff→confidential, root→top_secret, lab→internal)
   if (["top_secret", "topsecret", "ts", "root", "root_admin", "god"].includes(s)) return "top_secret";
-  if (["secret", "sec", "admin"].includes(s)) return "secret";
+  if (["secret", "sec", "admin", "external_assistant"].includes(s)) return "secret";
   if (["confidential", "conf", "staff"].includes(s)) return "confidential";
   if (["internal", "intl", "lab", "operator"].includes(s)) return "internal";
   if (["public", "pub", "basic", "0", "unclassified", "guest", "anonymous"].includes(s)) return "public";
