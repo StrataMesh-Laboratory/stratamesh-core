@@ -58,3 +58,5 @@ Be precise, technical, and respectful. No harassment. Security-sensitive reports
 ## Core-specific
 
 See also `docs/ROADMAP-PUBLIC-v0.3.md`. Tip-selection and validation changes need tests (`src/`).
+
+Process-level gossip (`.github/workflows/process-gossip.yml`) runs `python3 src/test_process_gossip.py` on push/PR touching `src/` or that workflow: three OS processes, kill-one, SQLite restart catch-up. It does **not** hit Workers or public URLs (see `mesh-health.yml`). Passing it is **one-host process evidence**, not multi-machine mesh, mainnet, or aBFT.
