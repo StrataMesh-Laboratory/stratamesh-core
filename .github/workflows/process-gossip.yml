@@ -1,0 +1,29 @@
+# Lab process-level gossip — one Actions runner, ≥3 OS processes.
+# Kill-one + SQLite restart catch-up via existing mesh_sync INV/TX.
+# Does NOT probe Workers, portals, or public URLs (see mesh-health.yml).
+# Does NOT claim multi-machine mesh, mainnet, or aBFT.
+name: process-gossip
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/process-gossip.yml"
+      - "docs/A1-PRIVATE-MESH.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/process-gossip.yml"
+      - "docs/A1-PRIVATE-MESH.md"
+  workflow_dispatch:
+
+jobs:
+  a1-kill-recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Process gossip + kill-one + restart catch-up
+        working-directory: src
+        run: python3 test_process_gossip.py

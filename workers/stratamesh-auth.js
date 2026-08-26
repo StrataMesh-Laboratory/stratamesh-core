@@ -1414,7 +1414,7 @@ export default {
             }), { headers: corsHeaders });
           }
           
-          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE s.token = ? AND s.expires_at > datetime('now')").bind(token).first();
+          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staffSession) {
             return new Response(JSON.stringify({ 
               success: true, 

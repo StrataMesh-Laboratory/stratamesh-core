@@ -4,7 +4,6 @@ While Oracle Always Free tenancy recovery is blocked (password / iCloud reset em
 
 As of 2026-08-26, `fog.calhegasmorais.pt` has no DNS record; the public pulse is Workers aggregation until tenancy + tunnel.
 
-
 1. Run Fog on any available host (sandbox, PC, later Oracle VM)
 2. `POST` status to `https://stratamesh-status.stratamesh.workers.dev/ingest`
 3. Public view: https://stratamesh-status.stratamesh.workers.dev/status and `/live`

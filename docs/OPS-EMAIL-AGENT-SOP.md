@@ -13,10 +13,10 @@ Related: [AIOPS-HANDOFF-LOOP.md](./AIOPS-HANDOFF-LOOP.md) · [OPS-24H-DEV-CRON.m
 |---------|------|
 | **`geral@eni.calhegasmorais.pt`** | **Root professional mailbox** (AMCM ENI). Hosted on **DeoMail**. Human + automation read via DeoMail API. |
 | **`grok@calhegasmorais.pt`** | **Agent / admin automation identity**. Not a separate legal person. Used for platform signups (Discourse staff, future SaaS). |
-| Routing | Cloudflare Email Routing on apex `calhegasmorais.pt`: **`grok@` → forward → `geral@eni.calhegasmorais.pt`** (destination must stay **Verified**). |
+| Routing | Cloudflare Email Routing on apex `calhegasmorais.pt`: **`grok@` → Worker `stratamesh-auth-recovery`** (`email()` → KV inbox). **Do not** forward to DeoMail (strict-DMARC senders such as x.ai were dropped on that hop). DeoMail free is already 1 domain / 1 mailbox (`eni` + `geral@eni`). |
 | `amcmorais@icloud.com` | Personal — **not** for lab agent automation or org-facing staff seats. |
 
-**Rule:** Agent acts as `grok@`; mail always lands in ENI root via DeoMail. Operator recovers everything from one inbox API.
+**Rule:** Agent acts as `grok@`. Inbound `grok@` is recovered from the Worker inbox (`GET https://stratamesh-auth-recovery.stratamesh.workers.dev/grok-inbox` with `Authorization: Bearer $AUTH_TOKEN`). `geral@eni` remains the ENI root of record on DeoMail. `calhegas@` still forwards to iCloud. Do not invert this.
 
 ---
 
@@ -38,7 +38,8 @@ Use email-session recovery when **any** of the following is true:
 
 **Base:** `https://api.deomail.com`  
 **Auth header:** `X-API-Key: <DEOMAIL_GROK_API_KEY>`  
-**Inbox:** messages for `geral@eni…` (includes forwards from `grok@`).
+**Inbox (ENI root):** messages for `geral@eni…` via DeoMail API.
+**Inbox (`grok@`):** Worker KV, not DeoMail. `curl -sS -H "Authorization: Bearer $AUTH_TOKEN" https://stratamesh-auth-recovery.stratamesh.workers.dev/grok-inbox`
 
 ### List recent mail
 ```bash
@@ -66,9 +67,9 @@ curl -sS -H "X-API-Key: $DEOMAIL_KEY" \
 _Tested against Discourse Free (`stratamesh.discourse.group`) + Discourse ID (`id.discourse.com`)._
 
 ### 4.1 Ensure mailbox path
-1. Cloudflare Email Routing: rule `grok@calhegasmorais.pt` → `geral@eni.calhegasmorais.pt`.  
-2. Destination **Verified** (if CF sends verify mail, operator confirms once; rate limits possible).  
-3. Probe: send any mail to `grok@` and confirm it appears via DeoMail list.
+1. Cloudflare Email Routing: rule `grok@calhegasmorais.pt` → **Worker `stratamesh-auth-recovery`** (not a DeoMail forward).  
+2. Worker must export `email()` (fetch-only drops mail). Authenticated `GET /grok-inbox`.  
+3. Probe: send mail to `grok@` and confirm it appears in the Worker inbox. Same-domain DeoMail probes are not sufficient for DMARC-strict senders.
 
 ### 4.2 Create / accept agent account
 1. Invite from owner admin **`@stratamesh`** (geral@) to **`grok@calhegasmorais.pt`**.  
@@ -134,9 +135,9 @@ With session cookies + CSRF (`GET /session/csrf`):
 API Bearer works?
   YES → use API (CF, GitHub, DeoMail, AIOps)
   NO  →
-    1. Ensure grok@ routes to geral@eni (DeoMail)
+    1. Ensure grok@ routes to Worker stratamesh-auth-recovery (email handler)
     2. Trigger platform "email login" / invite / confirm from agent identity
-    3. Poll DeoMail; prefer long URL tokens over short OTP fields
+    3. Poll Worker /grok-inbox (and DeoMail only for geral@eni); prefer long URL tokens over short OTP fields
     4. Redeem token with CSRF + cookie jar
     5. Optionally set password once for durable sessions
     6. Complete SSO into the product host
@@ -145,8 +146,9 @@ API Bearer works?
 ```
 
 ### Cloudflare Email Routing recovery
-- Destination verify expired → operator resends from CF dashboard; agent reads link in DeoMail if link is clickable without Turnstile, else operator one-click.  
-- Rule missing → recreate forward `grok@` → `geral@eni` with Global/API token that can write Email Routing.
+- `grok@` rule must be **worker** `stratamesh-auth-recovery`, not forward. Catch-all is the same worker (needs `email()`).  
+- `calhegas@` stays forward → `amcmorais@icloud.com`. Do not cut apex MX.  
+- Worker missing `email()` → inbound mail is silently lost.
 
 ### GitHub
 Prefer PAT. Email path is only for org invitation acceptance mails to `geral@` / `grok@`.
@@ -179,23 +181,23 @@ artifacts/.grok/secrets/
 | `/admin` “private” | No session | Complete §4.4–4.6 |
 | DeoMail detail errors via some HTTP clients | Client quirks | Prefer `curl` + `X-API-Key` |
 | CF “sent too recently” verify | Rate limit | Wait / operator verifies destination |
-| Mail to grok@ never appears | Routing or unverified destination | Fix Email Routing; confirm MX/destination |
+| Mail to grok@ never appears | Rule still forwarding, or worker has no `email()` | Point rule at Worker; confirm /grok-inbox |
 | Staff false after invite | Invite was member-only | Owner grants admin; confirm-admin mail |
 
 ---
 
 ## 8. Acceptance checks
 
-- [ ] Mail to `grok@calhegasmorais.pt` visible in DeoMail under ENI root  
+- [ ] Mail to `grok@calhegasmorais.pt` visible in Worker `/grok-inbox`  
 - [ ] `stratamesh-grok` `admin` and/or `moderator` true on forum  
 - [ ] Session login possible via password **or** magic link without human password typing  
 - [ ] At least one privileged write (setting or pin) succeeded with session CSRF  
 - [ ] No agent passwords stored in git  
 
-**Last proven:** 2026-08-25 — Discourse admin confirm + magic link + password set + SSO + category/settings writes; mailbox `grok@` → `geral@eni` via CF + DeoMail.
+**Last proven:** 2026-08-26 — `grok@` → Worker ingest (x.ai confirmation mail arrived). 2026-08-25 — Discourse admin confirm + magic link via prior DeoMail-forward path (superseded for grok@).
 
 ---
 
 ## 9. One-line policy
 
-**`grok@calhegasmorais.pt` is the automation admin identity; `geral@eni.calhegasmorais.pt` is the mail root of record; DeoMail is the recovery bus when platform APIs are missing or down.**
+**`grok@calhegasmorais.pt` is the automation admin identity (CF Email Worker ingest); `geral@eni.calhegasmorais.pt` is the ENI mail root of record on DeoMail; recover grok@ from the Worker inbox when platform APIs are missing or down.**
