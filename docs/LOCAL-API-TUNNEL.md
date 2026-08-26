@@ -1,45 +1,50 @@
-# Local HTTPS/HTTP API + public tunnel
+# Local HTTP API + public tunnel
 
-Expose a **real**  from a contributor or EDGE-GROK local process so the outside world (and fog gossip) can reach it.
+Expose a real GET /health from a local process so the outside can reach it (Prompt C path).
 
-## Layout ( or copy into )
+## Scripts (artifacts/edge-grok)
 
-| Script | Role |
-|--------|------|
-|  | API on  —     |
-|  | Start API at nice 19 |
-|  | Stop API + tunnel |
-|  | Cloudflare **quick tunnel** → public  |
-|  | Optional self-signed () for local HTTPS |
+- bin/api_server.py — listen 0.0.0.0:8787 — /health /status /ping-fog /register
+- bin/api-start / bin/api-stop
+- bin/tunnel-start — cloudflared quick tunnel to public https://*.trycloudflare.com
+- certs/ — optional self-signed if API_TLS=1
 
-## Quick start
+## Start
 
-
+```bash
+# cloudflared binary on PATH or CLOUDFLARED_BIN
+bash bin/api-start
+bash bin/tunnel-start
+cat state/public_base_url.txt
+curl -sS "$(cat state/public_base_url.txt)/health"
+```
 
 ## Endpoints
 
--  — identity JSON (, , , )
--  — probes fog + gossip + edge desk
-- 
--  — log body + echo identity
+- GET /health — identity JSON (live, node_id, lab, linked_fog)
+- GET /status — fog + gossip + edge desk probes
+- GET /ping-fog
+- POST /register
 
-## Public URL (this lab session)
+## Session example (ephemeral quick tunnel)
 
-> Quick tunnels are **ephemeral**. Restart ⇒ new hostname.
+Quick tunnels change hostname on every restart.
 
-- Base (example at publish time): 
-- Health: 
+- Health example at doc publish: https://proceed-vital-wendy-comfortable.trycloudflare.com/health
 
-Named stable hostnames need a Cloudflare **named tunnel** + DNS (not quick tunnel).
+For a stable hostname use a Cloudflare named tunnel + DNS (not quick tunnel).
 
-## On-graph (Prompt C)
+## On-graph
 
-1. Public  returns 200 with your .
-2. Open issue/PR on  with the URL for gossip  health-check.
-3. Until fog lists you:  still correct for local state.
+1. Public /health returns 200 with your node_id
+2. PR/issue on StrataMesh-Laboratory/stratamesh-core with URL for gossip health-check
+3. Until listed: mesh_member remains false locally
 
 ## Env
 
+API_HOST=0.0.0.0
+API_PORT=8787
+API_TLS=0
+CLOUDFLARED_BIN=/path/to/cloudflared
 
-
-Policy: same spare-capacity (nice 19) as heartbeat.
+Policy: nice 19 (same spare-capacity as heartbeat).
