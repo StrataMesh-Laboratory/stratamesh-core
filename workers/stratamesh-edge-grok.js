@@ -2,7 +2,7 @@
  * EDGE-GROK-CMN-001 — automation desk + crawler/agent discovery surface
  * Lab only. No secrets. Antifragile public integration.
  */
-const VERSION = "1.5.1-operator-probes";
+const VERSION = "1.5.2-gossip-views";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT_MAIL = "grok@calhegasmorais.pt";
@@ -58,7 +58,7 @@ async function probe(url, timeoutMs = 4000, fetcher = null) {
   try {
     const req = new Request(url, {
       method: "GET",
-      headers: { Accept: "application/json", "User-Agent": EDGE_ID },
+      headers: { Accept: "application/json", "User-Agent": EDGE_ID, "X-StrataMesh-Caller": EDGE_ID },
       signal: ac.signal,
     });
     const r = fetcher ? await fetcher.fetch(req) : await fetch(req);
@@ -129,14 +129,14 @@ async function syncWithFog(env, reason = "edge_activate") {
   };
   const req = new Request("https://gossip/sync", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID },
+    headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID, "X-StrataMesh-Caller": EDGE_ID },
     body: JSON.stringify(body),
   });
   try {
     const fetcher = bindingFetch(env, "GOSSIP");
     const r = fetcher ? await fetcher.fetch(req) : await fetch(gossipBase(env).replace(/\/$/, "") + "/sync", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID },
+      headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID, "X-StrataMesh-Caller": EDGE_ID },
       body: JSON.stringify(body),
     });
     const data = await r.json().catch(() => null);
@@ -641,7 +641,7 @@ function wantsJson(request, url) {
   return false;
 }
 
-/* ===== 1.5.1-operator-probes (lab) — service-binding probes. No Worker crons. No secrets. ===== */
+/* ===== 1.5.2-gossip-views (lab) — service-binding probes. No Worker crons. No secrets. ===== */
 const AUTH_ME = "https://stratamesh-auth.stratamesh.workers.dev/me";
 const LOGIN_URL = "https://calhegasmorais.pt/dashboard";
 const OPS_ORIGINS = new Set([
@@ -869,6 +869,7 @@ async function probeLive(url, timeoutMs = 4000, extraHeaders = {}, fetcher = nul
       headers: {
         Accept: "application/json",
         "User-Agent": EDGE_ID + "/ops",
+        "X-StrataMesh-Caller": EDGE_ID,
         ...extraHeaders,
       },
       signal: ac.signal,
@@ -932,6 +933,7 @@ async function runProbes(env) {
     own_mesh: ownInWorker("/mesh", { mesh_role: "edge_gossip_participant", linked_fog: FOG_ID, lab: true }),
     fog_health: probeService(env, "STATUS", "https://status/health"),
     gossip_peers: probeService(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
+    gossip_via_public: probeLive("https://calhegasmorais.pt/api/v1/gossip/peers"),
     aiops_health: probeService(env, "AIOPS", "https://aiops/health"),
     aiops_actions: probeService(env, "AIOPS", "https://aiops/actions"),
     aiops_handoff: probeService(env, "AIOPS", "https://aiops/handoff"),
@@ -968,6 +970,8 @@ function extractPeers(gossipProbe) {
     lab: p && p.lab,
     endpoint: p && p.endpoint,
     version: p && p.version,
+    health_via: p && p.health_via,
+    health_http: p && p.health_http,
   })).filter((p) => p.id);
 }
 
@@ -1182,7 +1186,7 @@ function evaluateTorch(probes) {
       id: 3,
       key: "free_tier_budget_no_new_worker_crons",
       met: false,
-      detail: "This script has no cron triggers and 1.5.1-operator-probes adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
+      detail: "This script has no cron triggers and 1.5.2-gossip-views adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
       this_script_schedules: [],
       this_change_adds_crons: false,
     },
@@ -1313,9 +1317,32 @@ async function buildPosture(env, me) {
       ok: !!(probes.gossip_peers && probes.gossip_peers.ok),
       http: probes.gossip_peers && probes.gossip_peers.http,
       error: probes.gossip_peers && probes.gossip_peers.error,
+      via: probes.gossip_peers && probes.gossip_peers.via,
       count: extractPeers(probes.gossip_peers).length,
       peers: extractPeers(probes.gossip_peers),
       invented: false,
+    },
+    gossip_via_binding: {
+      ok: !!(probes.gossip_peers && probes.gossip_peers.ok),
+      http: probes.gossip_peers && probes.gossip_peers.http,
+      error: probes.gossip_peers && probes.gossip_peers.error,
+      via: probes.gossip_peers && probes.gossip_peers.via,
+      url: "https://calhegasmorais.pt/api/v1/gossip/peers",
+      count: extractPeers(probes.gossip_peers).length,
+      peers: extractPeers(probes.gossip_peers),
+      invented: false,
+      note: "Service binding GOSSIP → same /api/v1/gossip/peers path the custom domain uses. Same handler as public; EDGE listed via inbound_caller when circular /health would deadlock.",
+    },
+    gossip_via_public: {
+      ok: !!(probes.gossip_via_public && probes.gossip_via_public.ok),
+      http: probes.gossip_via_public && probes.gossip_via_public.http,
+      error: probes.gossip_via_public && probes.gossip_via_public.error,
+      via: probes.gossip_via_public && probes.gossip_via_public.via,
+      url: "https://calhegasmorais.pt/api/v1/gossip/peers",
+      count: extractPeers(probes.gossip_via_public).length,
+      peers: extractPeers(probes.gossip_via_public),
+      invented: false,
+      note: "Public custom-domain GET of the same path. Independent of the GOSSIP binding.",
     },
     oracle_vm: {
       live: false,
@@ -1477,9 +1504,15 @@ function render(b){
     return "<tr><td class='mono'>"+esc(k)+"</td><td>"+yn(p.ok)+"</td><td>"+esc(p.http!=null?p.http:(p.error||""))+"</td><td class='mono'>"+esc((p.ms!=null?p.ms+"ms ":"")+(p.url||""))+"</td></tr>";
   }).join("");
   const gp = b.gossip_peers || {};
+  const gb = b.gossip_via_binding || gp;
+  const gpub = b.gossip_via_public || {};
   const peerLine = (gp.peers||[]).map(p => esc(p.id)+"/"+esc(p.status)).join(", ") || "(none from probe)";
+  const bindLine = (gb.peers||[]).map(p => esc(p.id)+"/"+esc(p.status)).join(", ") || "(none)";
+  const pubLine = (gpub.peers||[]).map(p => esc(p.id)+"/"+esc(p.status)).join(", ") || "(none)";
   document.getElementById("probes").innerHTML = "<h2>"+L.probes+"</h2>" +
     "<p>Gossip peers (from live probe only, never invented): <code>"+peerLine+"</code> · count="+esc(gp.count)+"</p>" +
+    "<p>gossip_via_binding (<code>"+esc(gb.via||"service:GOSSIP")+"</code>): <code>"+bindLine+"</code></p>" +
+    "<p>gossip_via_public (<code>"+esc(gpub.via||"public")+"</code>): <code>"+pubLine+"</code></p>" +
     "<p>Oracle VM: <span class='warn'>not live</span> · <code>fog.calhegasmorais.pt</code> A0 HOLD</p>" +
     "<table><tr><th>probe</th><th></th><th>http</th><th>url</th></tr>"+rows+"</table>";
   const autos = (b.automations && b.automations.automations) || [];
