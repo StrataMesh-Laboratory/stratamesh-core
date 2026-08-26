@@ -628,16 +628,16 @@ const CLEARANCE_PERMS = {
 function mapAccountClearance(raw) {
   if (raw === null || raw === undefined || raw === "") return "public";
   const s = String(raw).toLowerCase().replace(/[\s-]+/g, "_");
-  if (["top_secret", "topsecret", "ts"].includes(s)) return "top_secret";
-  if (["secret", "sec"].includes(s)) return "secret";
-  if (["confidential", "conf"].includes(s)) return "confidential";
-  if (["internal", "intl"].includes(s)) return "internal";
+  // Role aliases per docs/CLEARANCE-LEVELS.md (admin→secret, staff→confidential, root→top_secret, lab→internal)
+  if (["top_secret", "topsecret", "ts", "root", "root_admin", "god"].includes(s)) return "top_secret";
+  if (["secret", "sec", "admin"].includes(s)) return "secret";
+  if (["confidential", "conf", "staff"].includes(s)) return "confidential";
+  if (["internal", "intl", "lab", "operator"].includes(s)) return "internal";
   if (["public", "pub", "basic", "0", "unclassified", "guest", "anonymous"].includes(s)) return "public";
   if (s === "4") return "top_secret";
   if (s === "3") return "secret";
   if (s === "2") return "confidential";
   if (s === "1") return "internal";
-  // Do NOT map lab/operator/admin/root/god — those are roles, not clearance ladder
   return "public";
 }
 
@@ -685,9 +685,11 @@ async function resolveAccountClearance(request, env, body) {
 
   if (token && env.AUTH_DB) {
     try {
+      const tokenHashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+      const tokenHash = [...new Uint8Array(tokenHashBuf)].map(b => b.toString(16).padStart(2, "0")).join("");
       const sess = await env.AUTH_DB.prepare(
         "SELECT user_id, token FROM sessions WHERE token = ? OR token_hash = ? LIMIT 1"
-      ).bind(token, token).first();
+      ).bind(token, tokenHash).first();
       if (sess && sess.user_id) {
         userId = String(sess.user_id);
         let user = null;
@@ -732,12 +734,13 @@ async function resolveAccountClearance(request, env, body) {
           accountLevel = mapAccountClearance(cl);
           source = "auth_service_/me";
         }
+        userId = userId || (j.id != null ? String(j.id) : null) || (j.user_id != null ? String(j.user_id) : null) || (j.user && j.user.id != null ? String(j.user.id) : null) || (email ? email : null);
       }
     } catch (_) {}
   }
 
   // Anonymous / no bound account → always public. Never "anonymous internal".
-  if (!userId) {
+  if (!userId && !email) {
     return {
       level: "public",
       account_clearance: "public",
