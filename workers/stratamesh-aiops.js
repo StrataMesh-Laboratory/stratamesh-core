@@ -25,7 +25,7 @@ const ACB_ROSTER = {
   economics: "ACBs earn STRATA only when hired — no mint",
 };
 
-const AIOPS_VERSION = "1.6.3-health-roster";
+const AIOPS_VERSION = "1.7.1-ops-formal";
 
 async function pulseAcbTeam(env) {
   // Full ops-cycle: top-up from Orchestrator earned STRATA + pulse (zero mint)
@@ -564,12 +564,23 @@ async function runTeamCycleBudgeted(env) {
     }
   }
 
-  const [status, orch, auth, iot] = await Promise.all([
+  const [statusHealth, orch, auth, iot] = await Promise.all([
     probe(env.STATUS, "/health"),
     probe(env.ORCH, "/health"),
     probe(env.AUTH, "/health"),
     probe(env.IOT, "/health"),
   ]);
+  // Full pulse carries phase/spa/agora; /health is thin (version only)
+  let status = statusHealth;
+  const fullPulse = await probe(env.STATUS, "/");
+  if (fullPulse.ok && fullPulse.data) {
+    status = {
+      ok: true,
+      status: fullPulse.status,
+      data: Object.assign({}, statusHealth.data || {}, fullPulse.data),
+    };
+  }
+  const handoff = await loadHandoff(env);
 
   const reports = [];
   // devops
@@ -600,7 +611,8 @@ async function runTeamCycleBudgeted(env) {
   const an = [];
   if (status.ok && status.data) {
     const d = status.data;
-    an.push("phase=" + d.phase + " (" + (d.phase_name || "") + ")");
+    if (d.phase == null && d.phase_name == null) an.push("phase missing on pulse");
+    else an.push("phase=" + d.phase + " (" + (d.phase_name || "") + ")");
     an.push("SPA " + ((d.spa && d.spa.active) ?? "?") + "/" + ((d.spa && d.spa.total) ?? "?"));
     if ((d.dag && d.dag.transaction_count) != null && d.dag.transaction_count < 1) {
       an.push("DAG idle — seed or peer sync recommended");
@@ -652,7 +664,8 @@ async function runTeamCycleBudgeted(env) {
       iot: { ok: !!(iot && iot.ok), http: iot && iot.status, version: iot && iot.data && iot.data.version },
     },
     reports,
-    next_actions: buildNextActions(reports, status.data),
+    next_actions: buildNextActions(reports, status.data, handoff),
+    handoff: handoff ? { posture: handoff.posture, generated_at: handoff.generated_at, headline: handoff.headline, mandatory: (handoff.mandatory_actions || []).length } : null,
     acb_ops,
     temporal: typeof ppcCompact === "function" ? ppcCompact("metaverse_os") : null,
     foundation_path: typeof holonicContext === "function" ? holonicContext().path : null,
@@ -805,7 +818,7 @@ async function runTeamCycle(env) {
       iot: { ok: !!(iot && iot.ok), http: iot && iot.status, version: iot && iot.data && iot.data.version },
     },
     reports,
-    next_actions: buildNextActions(reports, status.data),
+    next_actions: buildNextActions(reports, status.data, null),
     acb_ops,
   };
 
@@ -822,26 +835,138 @@ async function runTeamCycle(env) {
   return cycle;
 }
 
-function buildNextActions(reports, status) {
+function buildNextActions(reports, status, handoff) {
   const actions = [];
-  for (const r of reports) {
-    if (r.severity === "critical") {
-      actions.push({ priority: 1, agent: r.agent, action: r.findings.join("; ") });
+  // 1) External handoff mandatory (from Night Diagnostic / Dev Cycle)
+  if (handoff && Array.isArray(handoff.mandatory_actions)) {
+    for (const a of handoff.mandatory_actions) {
+      actions.push({
+        priority: a.priority === "P0" || a.priority === 0 ? 0 : a.priority === "P1" || a.priority === 1 ? 1 : 2,
+        agent: a.owner || a.agent || "devops",
+        action: a.verb || a.action || JSON.stringify(a),
+        success_check: a.success_check || null,
+        source: "handoff",
+        id: a.id || null,
+      });
     }
   }
-  if (status?.temp_mode || String(status?.version || "").includes("temp")) {
+  // 2) Critical / warn from live agents only
+  for (const r of reports) {
+    if (r.severity === "critical") {
+      actions.push({ priority: 0, agent: r.agent, action: r.findings.join("; "), source: "aiops" });
+    } else if (r.severity === "warn") {
+      actions.push({ priority: 1, agent: r.agent, action: r.findings.join("; "), source: "aiops" });
+    }
+  }
+  if (status && (status.temp_mode || String(status.version || "").includes("temp"))) {
     actions.push({
-      priority: 2,
+      priority: 1,
       agent: "devops",
-      action: "Migrate Fog from temp session to MacBook/Oracle always-on + publish_loop",
+      action: "Migrate Fog from temp session to always-on + publish_loop",
+      source: "status",
     });
   }
-  actions.push({
-    priority: 3,
-    agent: "mesh",
-    action: "Continue whitepaper tracks: real Kubo pins, multi-host gossip, production SPA grace",
-  });
-  return actions.sort((a, b) => a.priority - b.priority);
+  // 3) Optional handoff P2 (only if no P0/P1)
+  const hasHard = actions.some((a) => a.priority <= 1);
+  if (!hasHard && handoff && Array.isArray(handoff.optional_actions)) {
+    for (const a of handoff.optional_actions.slice(0, 2)) {
+      actions.push({
+        priority: 2,
+        agent: a.owner || a.agent || "docs",
+        action: a.verb || a.action || JSON.stringify(a),
+        success_check: a.success_check || null,
+        source: "handoff_optional",
+        id: a.id || null,
+      });
+    }
+  }
+  // NO perpetual priority-3 whitepaper spam when green
+  actions.sort((a, b) => a.priority - b.priority);
+  return actions.slice(0, 8);
+}
+
+async function loadHandoff(env) {
+  // Tier 1: KV (POST /handoff)
+  try {
+    if (env.AIOPS_KV) {
+      const raw = await env.AIOPS_KV.get("handoff_latest");
+      if (raw) {
+        const j = JSON.parse(raw);
+        if (j && j.schema === "stratamesh.handoff.v1") {
+          j._source = "kv";
+          return j;
+        }
+      }
+    }
+  } catch (_) {}
+
+  // Tier 2: GitHub JSON
+  const jsonUrls = [
+    env.HANDOFF_JSON_URL && String(env.HANDOFF_JSON_URL),
+    "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/ops/HANDOFF-LATEST.json",
+  ].filter(Boolean);
+  for (const url of jsonUrls) {
+    try {
+      const r = await fetch(url, {
+        headers: { Accept: "application/json", "User-Agent": "stratamesh-aiops/1.7" },
+        cf: { cacheTtl: 30, cacheEverything: false },
+      });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j && j.schema === "stratamesh.handoff.v1") {
+        j._source = "github_json";
+        return j;
+      }
+    } catch (_) {}
+  }
+
+  // Tier 3: Markdown JSON fence then legacy yaml
+  const mdUrl =
+    (env.HANDOFF_URL && String(env.HANDOFF_URL)) ||
+    "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/ops/HANDOFF-LATEST.md";
+  try {
+    const r = await fetch(mdUrl, {
+      headers: { Accept: "text/plain", "User-Agent": "stratamesh-aiops/1.7" },
+      cf: { cacheTtl: 30 },
+    });
+    if (r.ok) {
+      const text = await r.text();
+      const jm = text.match(/```json\s*([\s\S]*?)```/);
+      if (jm) {
+        try {
+          const j = JSON.parse(jm[1]);
+          if (j && j.schema === "stratamesh.handoff.v1") {
+            j._source = "github_md_json";
+            return j;
+          }
+        } catch (_) {}
+      }
+      const ym = text.match(/```ya?ml\s*([\s\S]*?)```/);
+      if (ym) {
+        const yaml = ym[1];
+        const handoff = { schema: "stratamesh.handoff.v1", _source: "github_md_yaml", mandatory_actions: [], optional_actions: [] };
+        const post = yaml.match(/posture:\s*(\w+)/);
+        if (post) handoff.posture = post[1];
+        const gen = yaml.match(/generated_at:\s*(\S+)/);
+        if (gen) handoff.generated_at = gen[1];
+        const head = yaml.match(/headline:\s*(.+)/);
+        if (head) handoff.headline = head[1].trim();
+        return handoff;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function persistHandoff(env, handoff) {
+  if (!env.AIOPS_KV || !handoff) return false;
+  try {
+    await env.AIOPS_KV.put("handoff_latest", JSON.stringify(handoff));
+    await env.AIOPS_KV.put("handoff_at", new Date().toISOString());
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function json(data, status = 200) {
@@ -862,10 +987,12 @@ async function orchestratorChat(message, env) {
     return { reply: "Send a non-empty message.", role: "orchestrator" };
   }
 
-  const cycle = await runTeamCycle(env);
+  const cycle = await runTeamCycleBudgeted(env);
+  const handoff = cycle.handoff || (await loadHandoff(env));
   const ctx = {
     node: "FOG-NODE-PT-CM-001",
     operator: "André Manuel Calhegas Morais",
+    lab: true,
     cycle_ok: cycle.ok,
     summary: cycle.summary,
     upstream: cycle.upstream,
@@ -875,6 +1002,9 @@ async function orchestratorChat(message, env) {
       findings: r.findings,
     })),
     next_actions: cycle.next_actions || [],
+    handoff: handoff || null,
+    delegation_rule:
+      "Prefer handoff.mandatory_actions; AIOps warns/criticals; never invent mainnet work when green with empty mandatory.",
   };
 
   // Optional Workers AI if bound
@@ -1082,6 +1212,39 @@ async function handleFetch(request, env, ctx) {
           message: String(e && e.message || e),
         }, 200);
       }
+    }
+
+
+    if (path === "/handoff" || path === "/handoff/latest" || path === "/api/aiops/handoff" || path === "/api/aiops/handoff/latest") {
+      if (request.method === "GET") {
+        const h = await loadHandoff(env);
+        return json({ ok: !!h, handoff: h, version: AIOPS_VERSION });
+      }
+      if (request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch (_) {}
+        const h = body.handoff || body;
+        if (!h || h.schema !== "stratamesh.handoff.v1") {
+          return json({ error: "schema must be stratamesh.handoff.v1" }, 400);
+        }
+        const saved = await persistHandoff(env, h);
+        return json({ ok: true, persisted_kv: saved, posture: h.posture, mandatory: (h.mandatory_actions || []).length });
+      }
+      return json({ error: "method_not_allowed" }, 405);
+    }
+
+    if (path === "/actions" || path === "/api/aiops/actions" || path === "/delegate") {
+      const cycle = await runTeamCycleBudgeted(env);
+      return json({
+        ok: cycle.ok,
+        at: cycle.at,
+        summary: cycle.summary,
+        handoff: cycle.handoff,
+        next_actions: cycle.next_actions,
+        reports: cycle.reports,
+        version: AIOPS_VERSION,
+        note: "Orchestrator + Night/Dev automations should consume next_actions; empty when green is valid",
+      });
     }
 
     return json({ error: "not_found", path }, 404);

@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.0-clearance-hierarchy";
+const VERSION = "10.24.2-diagnostic-live";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -628,7 +628,6 @@ const CLEARANCE_PERMS = {
 function mapAccountClearance(raw) {
   if (raw === null || raw === undefined || raw === "") return "public";
   const s = String(raw).toLowerCase().replace(/[\s-]+/g, "_");
-  // Role aliases per docs/CLEARANCE-LEVELS.md (admin→secret, staff→confidential, root→top_secret, lab→internal)
   if (["top_secret", "topsecret", "ts", "root", "root_admin", "god"].includes(s)) return "top_secret";
   if (["secret", "sec", "admin", "external_assistant"].includes(s)) return "secret";
   if (["confidential", "conf", "staff"].includes(s)) return "confidential";
@@ -3297,13 +3296,13 @@ button#go:disabled{opacity:.5}
   <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
   Clearance is an <b>account property</b> (<code>users.clearance_level</code>), not a token you type.<br>
   Sign in on the Portal; this chat reuses that session to <em>read</em> your account clearance.<br>
-  Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.</div>
+  Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.<br>Canonical chat: <a href="https://calhegasmorais.pt/chat" style="color:var(--accent)">calhegasmorais.pt/chat</a> (not workers.dev as primary).</div>
 </div>
 <div id="composer">
   <div id="composer-inner">
     <div class="row" style="justify-content:space-between">
       <span id="clrShow" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">Account clearance: public (not signed in)</span>
-      <a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">Sign in on Portal →</a>
+      <a href="https://calhegasmorais.pt/dashboard" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">Sign in on Portal →</a>
     </div>
     <input type="hidden" id="token" value="">
     <div class="chips">
@@ -3317,7 +3316,7 @@ button#go:disabled{opacity:.5}
       <input id="q" autocomplete="off" placeholder="Message…" autofocus>
       <button type="submit" id="go">Send</button>
     </form>
-    <p class="hint"><a href="https://stratamesh-spa.stratamesh.workers.dev/dashboard">← Portal</a></p>
+    <p class="hint"><a href="https://calhegasmorais.pt/dashboard">← Portal</a></p>
   </div>
 </div>
 <script>
@@ -3559,31 +3558,168 @@ export default {
     }
 
     
-    if (path === "/tdra" || path === "/diagnostic" || path === "/rca") {
-      const services = ["token","poc","auth","dag","sandbox","realms","acb","agora","aiops","ipfs","holons","spa","status","republic","edge","iot"];
-      const results = [];
-      for (const s of services) {
-        const name = "stratamesh-" + s;
-        try {
-          const binding = env[s.toUpperCase()] || env[s] || env[name.replace(/-/g,"_").toUpperCase()];
-          // probe via public URL only for diagnostic snapshot (client-facing)
-          results.push({ service: name, probe: "listed" });
-        } catch (e) {
-          results.push({ service: name, error: String(e.message || e).slice(0, 80) });
+    if (
+      path === "/tdra" ||
+      path === "/diagnostic" ||
+      path === "/rca" ||
+      path === "/api/diagnostic" ||
+      path === "/api/orchestrator/diagnostic" ||
+      path === "/api/orchestrator/tdra" ||
+      path === "/api/orchestrator/rca"
+    ) {
+      const TIMEOUT_MS = 2500;
+      // Known public lab URLs only — no invented peers, no Oracle VM.
+      const CORE = [
+        { key: "status", service: "stratamesh-status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
+        { key: "edge", service: "stratamesh-edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
+        { key: "aiops", service: "stratamesh-aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "gossip_peers", service: "stratamesh-gossip", binding: "GOSSIP", path: "/peers", urls: ["https://stratamesh-gossip.stratamesh.workers.dev/peers"] },
+        { key: "auth", service: "stratamesh-auth", binding: "AUTH", path: "/health", urls: ["https://stratamesh-auth.stratamesh.workers.dev/health"] },
+      ];
+      const LISTED = [
+        { key: "token", binding: "TOKEN", path: "/health", urls: ["https://stratamesh-token.stratamesh.workers.dev/health"] },
+        { key: "poc", binding: "POC", path: "/health", urls: ["https://stratamesh-poc.stratamesh.workers.dev/health"] },
+        { key: "auth", binding: "AUTH", path: "/health", urls: ["https://stratamesh-auth.stratamesh.workers.dev/health"] },
+        { key: "dag", binding: "DAG", path: "/", urls: ["https://stratamesh-dag.stratamesh.workers.dev/"] },
+        { key: "sandbox", binding: "SANDBOX", path: "/health", urls: ["https://stratamesh-sandbox.stratamesh.workers.dev/health"] },
+        { key: "realms", binding: "REALMS", path: "/health", urls: ["https://stratamesh-realms.stratamesh.workers.dev/health"] },
+        { key: "acb", binding: "ACB", path: "/acb/status", urls: ["https://stratamesh-acb.stratamesh.workers.dev/acb/status"] },
+        { key: "agora", binding: "AGORA", path: "/agora/status", urls: ["https://stratamesh-agora.stratamesh.workers.dev/agora/status"] },
+        { key: "aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "ipfs", binding: "IPFS", path: "/health", urls: ["https://stratamesh-ipfs.stratamesh.workers.dev/health"] },
+        { key: "holons", binding: "HOLONS", path: "/health", urls: ["https://stratamesh-holons.stratamesh.workers.dev/health"] },
+        { key: "spa", binding: "SPA", path: "/health", urls: ["https://stratamesh-spa.stratamesh.workers.dev/health"] },
+        { key: "status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
+        { key: "republic", binding: "REPUBLIC", path: "/health", urls: ["https://stratamesh-republic.stratamesh.workers.dev/health"] },
+        { key: "edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
+        { key: "iot", binding: "IOT", path: "/health", urls: ["https://stratamesh-iot.stratamesh.workers.dev/health"] },
+      ];
+
+      async function probeOne(spec) {
+        const started = Date.now();
+        const name = spec.service || ("stratamesh-" + spec.key);
+        async function viaBinding() {
+          const binding = env[spec.binding] || env[spec.key] || env[spec.key.toUpperCase()];
+          if (!binding || typeof binding.fetch !== "function") return null;
+          const ac = new AbortController();
+          const t = setTimeout(() => ac.abort(), TIMEOUT_MS);
+          try {
+            const r = await binding.fetch(
+              new Request("https://service" + spec.path, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+                signal: ac.signal,
+              })
+            );
+            const text = await r.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch { data = { raw: String(text).slice(0, 160) }; }
+            return { via: "binding", http: r.status, ok: r.ok, data };
+          } catch (e) {
+            return { via: "binding", http: 0, ok: false, error: String(e.message || e).slice(0, 120) };
+          } finally {
+            clearTimeout(t);
+          }
         }
+        async function viaUrl(url) {
+          const ac = new AbortController();
+          const t = setTimeout(() => ac.abort(), TIMEOUT_MS);
+          try {
+            const r = await fetch(url, {
+              method: "GET",
+              headers: { Accept: "application/json" },
+              signal: ac.signal,
+            });
+            const text = await r.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch { data = { raw: String(text).slice(0, 160) }; }
+            return { via: "http", url, http: r.status, ok: r.ok, data };
+          } catch (e) {
+            return { via: "http", url, http: 0, ok: false, error: String(e.message || e).slice(0, 120) };
+          } finally {
+            clearTimeout(t);
+          }
+        }
+        let result = await viaBinding();
+        if (!result || result.ok === false) {
+          const urls = spec.urls || [];
+          for (const url of urls) {
+            const httpRes = await viaUrl(url);
+            if (httpRes && httpRes.ok) { result = httpRes; break; }
+            if (!result || (result.ok === false && httpRes)) result = httpRes;
+          }
+        }
+        if (!result) {
+          result = { via: "none", http: 0, ok: false, error: "no_binding_and_no_url" };
+        }
+        const row = {
+          service: name,
+          key: spec.key,
+          probe: result.ok ? "ok" : (result.http ? "error" : "error"),
+          http: result.http || 0,
+          ok: !!result.ok,
+          via: result.via || null,
+          ms: Date.now() - started,
+        };
+        if (result.url) row.url = result.url;
+        if (result.error) row.error = result.error;
+        const d = result.data || {};
+        if (d.version) row.version = d.version;
+        if (d.status) row.status = d.status;
+        if (d.worker) row.worker = d.worker;
+        if (spec.key === "gossip_peers") {
+          const peers = Array.isArray(d.peers) ? d.peers : [];
+          row.peer_count = typeof d.count === "number" ? d.count : peers.length;
+          row.peers = peers.map((p) => ({
+            id: p && (p.id || p.node_id) || null,
+            role: p && p.role || null,
+            status: p && p.status || null,
+          }));
+          row.mesh = d.mesh || null;
+          row.note = d.note || "Reported as returned by /peers — no peers invented";
+        }
+        return row;
       }
+
+      const [coreRows, listedRows] = await Promise.all([
+        Promise.all(CORE.map(probeOne)),
+        Promise.all(LISTED.map((s) => probeOne({ ...s, service: "stratamesh-" + s.key }))),
+      ]);
+      const gossip = coreRows.find((r) => r.key === "gossip_peers") || null;
+      const okN = listedRows.filter((r) => r.ok).length;
+      const failN = listedRows.filter((r) => !r.ok).length;
+      let posture = "ok";
+      if (failN > 0 && okN > 0) posture = "degraded";
+      if (okN === 0) posture = "empty";
+      const coreFail = coreRows.filter((r) => !r.ok).length;
+      if (coreFail > 0 && posture === "ok") posture = "degraded";
       let tickOut = null;
       try { tickOut = await withTimeout(tick(env), 4000, "tick"); } catch (e) { tickOut = { error: String(e.message || e) }; }
       return json({
         version: VERSION,
         diagnostic: true,
+        probe: "live",
+        posture,
         node_id: "FOG-NODE-PT-CM-001",
         operator: "André Manuel Calhegas Morais",
+        sca: "SCA-ORCH-CMN-001",
+        torch: "HOLD",
         tick: tickOut && tickOut.tick ? { fitness: tickOut.tick.fitness, metrics: tickOut.tick.metrics } : tickOut,
         ontology: { standing: "by function and agreement, not substrate" },
         monetary: { poles: ["#mint", "#0"], flow: "PoC → #mint → circulating → resource use → #0" },
         chat: { grounded_intents: ["social","identity","standing","architecture","strata","pds","pdc","clp","mesh","holon","volition","mind","memory"], llm_role: "linguistic_medium_only" },
-        services_lab: results,
+        core_probes: {
+          status: coreRows.find((r) => r.key === "status") || null,
+          edge: coreRows.find((r) => r.key === "edge") || null,
+          aiops: coreRows.find((r) => r.key === "aiops") || null,
+          gossip_peers: gossip,
+          auth: coreRows.find((r) => r.key === "auth") || null,
+        },
+        gossip_peers: gossip
+          ? { http: gossip.http, ok: gossip.ok, count: gossip.peer_count, peers: gossip.peers || [], mesh: gossip.mesh, note: gossip.note }
+          : { http: 0, ok: false, count: 0, peers: [], note: "gossip /peers not probed" },
+        services_lab: listedRows,
+        summary: { probed: listedRows.length, ok: okN, error: failN, posture },
         timestamp: new Date().toISOString(),
       });
     }
