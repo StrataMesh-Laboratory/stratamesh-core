@@ -37,6 +37,7 @@ GET  https://aiops.calhegasmorais.pt/health
 GET  https://aiops.calhegasmorais.pt/cycle
 GET  https://aiops.calhegasmorais.pt/actions
 GET  https://aiops.calhegasmorais.pt/handoff
+GET  https://aiops.calhegasmorais.pt/handoff/latest  (alias of GET /handoff; same JSON)
 POST https://aiops.calhegasmorais.pt/handoff
 POST https://aiops.calhegasmorais.pt/chat
 ```
