@@ -838,7 +838,7 @@ async function refreshClearance() {
     const j = await r.json();
     let c = String(j.clearance_level || j.clearance || j.role || '').toLowerCase().replace(/[\s-]+/g,'_');
     if (['top_secret','topsecret','ts','root','god','root_admin'].includes(c)) c = 'top_secret';
-    else if (['secret','sec','admin'].includes(c)) c = 'secret';
+    else if (['secret','sec','admin','external_assistant'].includes(c)) c = 'secret';
     else if (['confidential','conf','staff'].includes(c)) c = 'confidential';
     else if (['internal','intl','lab','operator'].includes(c)) c = 'internal';
     else c = 'public';
