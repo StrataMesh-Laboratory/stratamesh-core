@@ -1,0 +1,36 @@
+# Lab protocol gates — in-process only.
+# Does NOT probe Workers, portals, or public URLs (see mesh-health.yml for that).
+# Does NOT claim multi-host gossip, mainnet, or aBFT.
+name: protocol-invariants
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/protocol-invariants.yml"
+      - "docs/WIRE-PROTOCOL-v1.md"
+      - "docs/THREAT-MODEL-v1.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/protocol-invariants.yml"
+      - "docs/WIRE-PROTOCOL-v1.md"
+      - "docs/THREAT-MODEL-v1.md"
+  workflow_dispatch:
+
+jobs:
+  lab-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tip-selection property tests
+        working-directory: src
+        run: python3 test_tip_selection.py
+      - name: I1–I6 named checks (miniature LabLedger + DAG replay)
+        working-directory: src
+        run: python3 test_economic_invariants.py
+      - name: Protocol benchmark (WIRE + THREAT scenarios)
+        working-directory: src
+        run: python3 protocol_benchmark.py --nodes 4 --rounds 12 --seed 42

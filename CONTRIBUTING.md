@@ -58,3 +58,11 @@ Be precise, technical, and respectful. No harassment. Security-sensitive reports
 ## Core-specific
 
 See also `docs/ROADMAP-PUBLIC-v0.3.md`. Tip-selection and validation changes need tests (`src/`).
+
+CI (`.github/workflows/protocol-invariants.yml`) runs, on push/PR touching `src/` or the wire/threat docs:
+
+- `python3 src/test_tip_selection.py`
+- `python3 src/test_economic_invariants.py` (WIRE I1–I6 miniature `LabLedger` + DAG replay)
+- `python3 src/protocol_benchmark.py --nodes 4 --rounds 12 --seed 42`
+
+That workflow does **not** hit Workers or public URLs (see `mesh-health.yml` for daily surface probes). Passing it is lab in-process evidence, not multi-host gossip or mainnet.
