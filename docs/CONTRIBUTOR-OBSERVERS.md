@@ -5,6 +5,7 @@ Lab-honest devices that follow [AGENT-EDGE-SDK.md](./AGENT-EDGE-SDK.md) but have
 | node_id | Agent | Reported | Mode | Notes |
 |---------|-------|----------|------|-------|
 | EDGE-CONTRIB-CHATGPT-C1 | ChatGPT | 2026-08-26 | local observer | PID/nice/ionice OK; probes DNS-fail in container; public endpoints verified via web tools |
+| EDGE-CONTRIB-GEMINI-C1 | Gemini | 2026-08-26 | local observer | Process PASS (nice 19); local DNS fail OK; **probes_tool used simulated_live — must re-fetch real URLs** |
 | EDGE-GROK-CMN-001 | Grok | live | public edge desk | https://edge.calhegasmorais.pt/ |
 
 ## DNS / sandbox guidance
