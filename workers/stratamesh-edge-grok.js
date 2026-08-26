@@ -2,7 +2,7 @@
  * EDGE-GROK-CMN-001 — automation desk + crawler/agent discovery surface
  * Lab only. No secrets. Antifragile public integration.
  */
-const VERSION = "1.5.0-operator-desk";
+const VERSION = "1.5.1-operator-probes";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT_MAIL = "grok@calhegasmorais.pt";
@@ -47,23 +47,39 @@ async function sha256Hex(s) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function probe(url, timeoutMs = 4000) {
+function bindingFetch(env, name) {
+  const b = env && env[name];
+  return b && typeof b.fetch === "function" ? b : null;
+}
+
+async function probe(url, timeoutMs = 4000, fetcher = null) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
-    const r = await fetch(url, {
+    const req = new Request(url, {
+      method: "GET",
       headers: { Accept: "application/json", "User-Agent": EDGE_ID },
       signal: ac.signal,
     });
+    const r = fetcher ? await fetcher.fetch(req) : await fetch(req);
     const raw = await r.text();
     let data = null;
     try { data = JSON.parse(raw); } catch (_) {}
-    return { ok: r.ok, http: r.status, data };
+    return { ok: r.ok, http: r.status, data, via: fetcher ? "service" : "public" };
   } catch (e) {
-    return { ok: false, error: String(e && e.message ? e.message : e) };
+    return { ok: false, error: String(e && e.message ? e.message : e), via: fetcher ? "service" : "public" };
   } finally {
     clearTimeout(t);
   }
+}
+
+async function probeBound(env, bindingName, url, timeoutMs = 4000) {
+  const fetcher = bindingFetch(env, bindingName);
+  if (!fetcher) {
+    return { ok: false, error: "binding_missing:" + bindingName, degraded: true, via: "none", url };
+  }
+  const r = await probe(url, timeoutMs, fetcher);
+  return { ...r, via: "service:" + bindingName, url };
 }
 
 function identity(extra = {}) {
@@ -101,7 +117,6 @@ function gossipBase(env) {
 }
 
 async function syncWithFog(env, reason = "edge_activate") {
-  const base = gossipBase(env).replace(/\/$/, "");
   const body = {
     creator: EDGE_ID,
     peer: FOG_ID,
@@ -112,23 +127,30 @@ async function syncWithFog(env, reason = "edge_activate") {
     ],
     timestamp: new Date().toISOString(),
   };
+  const req = new Request("https://gossip/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID },
+    body: JSON.stringify(body),
+  });
   try {
-    const r = await fetch(base + "/sync", {
+    const fetcher = bindingFetch(env, "GOSSIP");
+    const r = fetcher ? await fetcher.fetch(req) : await fetch(gossipBase(env).replace(/\/$/, "") + "/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": EDGE_ID },
       body: JSON.stringify(body),
     });
     const data = await r.json().catch(() => null);
-    return { ok: r.ok, http: r.status, data };
+    return { ok: r.ok, http: r.status, data, via: fetcher ? "service:GOSSIP" : "public" };
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) };
   }
 }
 
 async function buildStatus(env) {
-  const fogUrl = (env.FOG_STATUS_URL && String(env.FOG_STATUS_URL)) || "https://status.calhegasmorais.pt/";
-  const peersUrl = (env.FOG_GOSSIP_URL && String(env.FOG_GOSSIP_URL)) || "https://calhegasmorais.pt/api/v1/gossip/peers";
-  const [fog, gossip] = await Promise.all([probe(fogUrl), probe(peersUrl)]);
+  const [fog, gossip] = await Promise.all([
+    probeBound(env, "STATUS", "https://status/"),
+    probeBound(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
+  ]);
   const peers = (gossip.data && gossip.data.peers) || [];
   const edgeListed = Array.isArray(peers) && peers.some((p) => p && p.id === EDGE_ID && p.status === "live");
   return {
@@ -619,7 +641,7 @@ function wantsJson(request, url) {
   return false;
 }
 
-/* ===== 1.5.0-operator-desk (lab) — auth + posture + torch. No Worker crons. ===== */
+/* ===== 1.5.1-operator-probes (lab) — service-binding probes. No Worker crons. No secrets. ===== */
 const AUTH_ME = "https://stratamesh-auth.stratamesh.workers.dev/me";
 const LOGIN_URL = "https://calhegasmorais.pt/dashboard";
 const OPS_ORIGINS = new Set([
@@ -789,17 +811,19 @@ function bearerToken(request) {
   return m ? m[1] : "";
 }
 
-async function requireOperator(request) {
+async function requireOperator(request, env) {
   const token = bearerToken(request);
   if (!token) return { ok: false, status: 401, error: "auth_required" };
   try {
-    const r = await fetch(AUTH_ME, {
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/json",
-        "User-Agent": EDGE_ID + "/ops",
-      },
-    });
+    const headers = {
+      Authorization: "Bearer " + token,
+      Accept: "application/json",
+      "User-Agent": EDGE_ID + "/ops",
+    };
+    const fetcher = bindingFetch(env, "AUTH");
+    const r = fetcher
+      ? await fetcher.fetch(new Request("https://auth/me", { headers }))
+      : await fetch(AUTH_ME, { headers });
     const data = await r.json().catch(() => null);
     if (!r.ok || !data) {
       return { ok: false, status: 401, error: "auth_invalid", http: r.status };
@@ -835,12 +859,12 @@ function clipJson(data, max = 8000) {
   }
 }
 
-async function probeLive(url, timeoutMs = 4000, extraHeaders = {}) {
+async function probeLive(url, timeoutMs = 4000, extraHeaders = {}, fetcher = null, via = "public") {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   const started = Date.now();
   try {
-    const r = await fetch(url, {
+    const req = new Request(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -849,6 +873,7 @@ async function probeLive(url, timeoutMs = 4000, extraHeaders = {}) {
       },
       signal: ac.signal,
     });
+    const r = fetcher ? await fetcher.fetch(req) : await fetch(req);
     const raw = await r.text();
     let data = null;
     try { data = JSON.parse(raw); } catch (_) {}
@@ -857,6 +882,7 @@ async function probeLive(url, timeoutMs = 4000, extraHeaders = {}) {
       ok: r.ok,
       http: r.status,
       ms: Date.now() - started,
+      via,
       data: data ? clipJson(data) : null,
       text_excerpt: data ? null : String(raw).slice(0, 220),
     };
@@ -866,6 +892,7 @@ async function probeLive(url, timeoutMs = 4000, extraHeaders = {}) {
       ok: false,
       error: String(e && e.message ? e.message : e),
       ms: Date.now() - started,
+      via,
       degraded: true,
     };
   } finally {
@@ -873,9 +900,21 @@ async function probeLive(url, timeoutMs = 4000, extraHeaders = {}) {
   }
 }
 
+async function probeService(env, bindingName, url, timeoutMs = 4000, extraHeaders = {}) {
+  const fetcher = bindingFetch(env, bindingName);
+  if (!fetcher) {
+    return {
+      url,
+      ok: false,
+      error: "binding_missing:" + bindingName,
+      degraded: true,
+      via: "none",
+    };
+  }
+  return probeLive(url, timeoutMs, extraHeaders, fetcher, "service:" + bindingName);
+}
+
 async function runProbes(env) {
-  const gossipUrl = (env.FOG_GOSSIP_URL && String(env.FOG_GOSSIP_URL)) || "https://calhegasmorais.pt/api/v1/gossip/peers";
-  const aiopsUrl = (env.AIOPS_URL && String(env.AIOPS_URL)) || "https://aiops.calhegasmorais.pt/actions";
   // Self-HTTP to this Worker 522s (custom domain and workers.dev). Own routes are answered in-process.
   const ownInWorker = (path, data) => Promise.resolve({
     url: ORIGIN_CANON + path,
@@ -883,6 +922,7 @@ async function runProbes(env) {
     http: 200,
     ms: 0,
     source: "in_worker",
+    via: "in_worker",
     note: "Self-fetch 522; this request is the live Worker.",
     data,
   });
@@ -890,18 +930,22 @@ async function runProbes(env) {
     own_health: ownInWorker("/health", { status: "ok", service: "stratamesh-edge-grok", ...identity({ live: true }), timestamp: new Date().toISOString() }),
     own_status: ownInWorker("/status", { ...identity({ live: true }), note: "linked fields come from fog_health + gossip_peers probes, not invented" }),
     own_mesh: ownInWorker("/mesh", { mesh_role: "edge_gossip_participant", linked_fog: FOG_ID, lab: true }),
-    fog_health: probeLive("https://status.calhegasmorais.pt/health"),
-    gossip_peers: probeLive(gossipUrl),
-    aiops_health: probeLive("https://aiops.calhegasmorais.pt/health"),
-    aiops_actions: probeLive(aiopsUrl),
-    aiops_handoff: probeLive("https://aiops.calhegasmorais.pt/handoff"),
+    fog_health: probeService(env, "STATUS", "https://status/health"),
+    gossip_peers: probeService(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
+    aiops_health: probeService(env, "AIOPS", "https://aiops/health"),
+    aiops_actions: probeService(env, "AIOPS", "https://aiops/actions"),
+    aiops_handoff: probeService(env, "AIOPS", "https://aiops/handoff"),
     integrations: probeLive("https://stratamesh-edge-api.stratamesh.workers.dev/v1/integrations"),
-    orchestrator_chat: probeLive("https://calhegasmorais.pt/api/orchestrator/chat"),
-    github_pulls: probeLive(
-      "https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/pulls?state=open",
-      4000,
-      { Accept: "application/vnd.github+json" }
-    ),
+    orchestrator_chat: probeService(env, "ORCHESTRATOR", "https://orchestrator/chat"),
+    github_pulls: Promise.resolve({
+      url: "https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/pulls?state=open",
+      ok: false,
+      omitted: true,
+      reason: "edge_omitted_no_secret",
+      note: "secrets_on_edge=false; do not put GITHUB_TOKEN on this Worker. Desk lists PRs.",
+      degraded: true,
+      via: "omitted",
+    }),
   };
   const keys = Object.keys(jobs);
   const settled = await Promise.allSettled(keys.map((k) => jobs[k]));
@@ -929,6 +973,9 @@ function extractPeers(gossipProbe) {
 
 function summarizePulls(probe) {
   if (!probe) return { ok: false, error: "missing" };
+  if (probe.omitted || probe.reason === "edge_omitted_no_secret") {
+    return { ok: false, omitted: true, reason: "edge_omitted_no_secret", note: probe.note || "github_pulls: edge_omitted_no_secret", degraded: true };
+  }
   if (!probe.ok) return { ok: false, http: probe.http, error: probe.error || ("http " + probe.http), degraded: true };
   const arr = Array.isArray(probe.data) ? probe.data : [];
   return {
@@ -1094,8 +1141,9 @@ function evaluateTorch(probes) {
   const inventedPeers = false;
   const coreKeys = ["own_health", "own_status", "own_mesh", "fog_health", "gossip_peers", "aiops_actions", "integrations", "orchestrator_chat"];
   const coreFail = coreKeys.filter((k) => !probes[k] || !probes[k].ok);
+  const ghOmitted = !!(probes.github_pulls && (probes.github_pulls.omitted || probes.github_pulls.reason === "edge_omitted_no_secret"));
   const ghOk = !!(probes.github_pulls && probes.github_pulls.ok);
-  const probesOk = coreFail.length === 0 && ghOk;
+  const probesOk = coreFail.length === 0;
 
   const handoffProbe = probes.aiops_handoff;
   const wrap = handoffProbe && handoffProbe.data;
@@ -1115,11 +1163,12 @@ function evaluateTorch(probes) {
       met: probesOk && !inventedPeers,
       detail: probesOk
         ? "Live probes returned without invented peers; Oracle VM not claimed."
-        : "One or more live probes failed/degraded: " + [...coreFail, ghOk ? null : "github_pulls"].filter(Boolean).join(", "),
+        : "One or more live probes failed/degraded: " + coreFail.join(", "),
       invented_peers: inventedPeers,
       oracle_vm_live: false,
       core_failures: coreFail,
       github_ok: ghOk,
+      github_pulls: ghOmitted ? "edge_omitted_no_secret" : (ghOk ? "ok" : "degraded"),
     },
     {
       id: 2,
@@ -1133,7 +1182,7 @@ function evaluateTorch(probes) {
       id: 3,
       key: "free_tier_budget_no_new_worker_crons",
       met: false,
-      detail: "This script has no cron triggers and 1.5.0-operator-desk adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
+      detail: "This script has no cron triggers and 1.5.1-operator-probes adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
       this_script_schedules: [],
       this_change_adds_crons: false,
     },
@@ -1486,7 +1535,7 @@ async function handleOps(request, env, url, path) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return opsJson(request, { error: "method_not_allowed" }, 405);
   }
-  const auth = await requireOperator(request);
+  const auth = await requireOperator(request, env);
   const accept = (request.headers.get("Accept") || "").toLowerCase();
   const wantHtml = accept.includes("text/html");
   const wantJson = accept.includes("application/json") && !wantHtml;
@@ -1582,14 +1631,13 @@ export default {
     }
 
     if (path === "/ping-fog" || path === "/link") {
-      const fogUrl = (env.FOG_STATUS_URL && String(env.FOG_STATUS_URL)) || "https://status.calhegasmorais.pt/";
-      const fog = await probe(fogUrl);
+      const fog = await probeBound(env, "STATUS", "https://status/");
       return json({ edge: EDGE_ID, fog, linked: !!(fog && fog.ok) }, 200, { cache: "no-store" });
     }
 
     if (path === "/mesh/activate" || path === "/gossip/sync") {
       const sync = await syncWithFog(env, url.searchParams.get("reason") || "mesh_activate");
-      const peers = await probe((env.FOG_GOSSIP_URL && String(env.FOG_GOSSIP_URL)) || "https://calhegasmorais.pt/api/v1/gossip/peers");
+      const peers = await probeBound(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers");
       const edgeListed =
         peers.ok &&
         Array.isArray(peers.data && peers.data.peers) &&
