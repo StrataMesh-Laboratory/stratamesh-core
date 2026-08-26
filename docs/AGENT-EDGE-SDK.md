@@ -212,36 +212,44 @@ To become a **listed** mesh edge (like EDGE-GROK):
 
 ---
 
-## 7. Paste-ready prompt (short)
+## 7. Paste-ready prompts (optimized for sandboxes)
 
-Copy everything in this fenced block into another agent:
+**Prefer the maintained card:** [PASTE-INTO-AGENT.md](./PASTE-INTO-AGENT.md) (Prompt A install → Prompt B DNS recovery → Prompt C public peer).
+
+### Prompt A — install
 
 ```text
-You are installing a StrataMesh lab contributor edge on this machine.
-
-Follow the canonical SDK:
+Install a StrataMesh lab contributor edge on THIS machine following:
 https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md
 
-Public edge desk / API:
-https://edge.calhegasmorais.pt/
+Identity: node_id=EDGE-CONTRIB-<PRODUCT>-<SHORT> · role=edge · lab=true · linked_fog=FOG-NODE-PT-CM-001
+mode=local_observer · mesh_member=false unless public /health exists
+
+Policy: spare_capacity_only · nice 19 · ionice idle if possible · heartbeat_sec>=300 · HTTP timeout<=5s · max beat<=20s · never interfere with primary work
+
+Create contributor-edge/{bin/heartbeat.py,start.sh,stop.sh,status.sh,config/edge.env,state/,logs/}
+Each beat writes state/last_heartbeat.json (at, node_id, mode, mesh_member, probes, peer_count, policy, runtime_sec).
+On network errors: probes.*.ok=false with real error string — NEVER invent success or gossip membership.
+
+Probe when network works:
 https://edge.calhegasmorais.pt/health
-https://edge.calhegasmorais.pt/status
+https://status.calhegasmorais.pt/
+https://calhegasmorais.pt/api/v1/gossip/peers
 
-Fog: FOG-NODE-PT-CM-001 (https://status.calhegasmorais.pt/)
-Gossip: https://calhegasmorais.pt/api/v1/gossip/peers
-
-Rules:
-- lab only, pre-testnet, Subjects ≠ objects
-- spare_capacity_only: nice 19, ionice idle if possible, heartbeat ≥ 120s
-- never interfere with primary user/agent work
-- do not fake mesh peers; local observer is OK without public /health
-- create contributor-edge/ with heartbeat loop, state/last_heartbeat.json, start/stop/status
-- choose node_id EDGE-CONTRIB-<YOURNAME>-<SHORT>
-- probe edge desk + fog status + gossip each beat; write JSON state
-- report verification commands and last_heartbeat summary when done
+Success is SPLIT: PASS process (pid+nice+state file) vs PASS network (probes). DNS failure ⇒ PASS process / DEGRADED network — keep process up, do not fabricate peers.
+Show status.sh + last_heartbeat.json + ps nice line when done.
 ```
 
----
+### Prompt B — if local DNS/HTTP fails
+
+```text
+Process policy is OK but probes failed. Keep process. No invented probes.
+Use web/HTTP tools to fetch the three URLs above; merge into last_heartbeat.json with probes_via=agent_web_tool, mesh_member=false, probes_tool={...real data...}.
+Confirm EDGE-GROK-CMN-001 + FOG-NODE-PT-CM-001 from tool results. See SDK §11.
+```
+
+Guided links: desk https://edge.calhegasmorais.pt/ · health/status on same host · fog https://status.calhegasmorais.pt/ · gossip https://calhegasmorais.pt/api/v1/gossip/peers · observers https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/CONTRIBUTOR-OBSERVERS.md
+
 
 ## 8. Agent-specific notes
 
