@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-25T23:51:08Z",
-  "headline": "Green \u2014 monitoring ladder live; mesh 2; edge desk + local watchdog OK",
+  "generated_at": "2026-08-26T00:06:53Z",
+  "headline": "Green \u2014 EDGE-CONTRIB-CHATGPT-C1 registered as local observer (DNS sandbox; no fake peer)",
   "posture": "green",
   "status": {
     "version": "0.3.9-pulse",
@@ -10,18 +10,19 @@
   },
   "aiops": {
     "critical": 0,
-    "warn": 0,
-    "info": 5
+    "warn": 0
   },
   "mandatory_actions": [],
   "optional_actions": [],
   "non_actions": [
-    "fake peers",
-    "P0 noise on green"
+    "list CHATGPT-C1 on gossip without public /health"
   ],
-  "notes": "Watchdog P0 hourly 07-23 Lisbon; local ops-monitor + edge-grok idle. See docs/OPS-MONITOR-ESCALATION.md",
+  "notes": "Observer log: docs/CONTRIBUTOR-OBSERVERS.md. Public mesh still FOG + EDGE-GROK.",
   "mesh": {
     "fog": "FOG-NODE-PT-CM-001",
-    "edge": "EDGE-GROK-CMN-001"
+    "edge_public": "EDGE-GROK-CMN-001",
+    "observers": [
+      "EDGE-CONTRIB-CHATGPT-C1"
+    ]
   }
 }
