@@ -10,8 +10,66 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.0.0-hashgraph-fragment';
-const PEERS = ['FOG-NODE-PT-CM-001', 'node-2', 'node-3', 'edge-cmn-01', 'edge-cmn-02', 'scout'];
+const VERSION = '2.3.1-inbound-edge';
+const NODE_ID = 'FOG-NODE-PT-CM-001';
+const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
+
+function callerIsEdge(request) {
+  if (!request || !request.headers) return false;
+  const ua = String(request.headers.get('User-Agent') || '');
+  const hdr = String(request.headers.get('X-StrataMesh-Caller') || '');
+  return ua.includes(EDGE_GROK_ID) || hdr === EDGE_GROK_ID;
+}
+
+async function livePeers(env, request) {
+  const peers = [
+    { id: NODE_ID, role: 'fog', status: 'live', lab: true, endpoint: 'https://status.calhegasmorais.pt/' },
+  ];
+  const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://stratamesh-edge-grok.stratamesh.workers.dev';
+  // Same /peers handler for public Host and service-binding Request URL.
+  // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
+  // Inbound request is the liveness proof — not an invented peer.
+  if (callerIsEdge(request)) {
+    peers.push({
+      id: EDGE_GROK_ID,
+      role: 'edge',
+      status: 'live',
+      lab: true,
+      substrate: 'cloudflare-worker',
+      endpoint: edgeUrl,
+      health_via: 'inbound_caller',
+      note: 'Caller is EDGE-GROK-CMN-001; skipped circular /health fetch.',
+    });
+    return peers;
+  }
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 4000);
+    const r = await fetch(edgeUrl.replace(/\/$/, '') + '/health', {
+      headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-gossip' },
+      signal: ac.signal,
+    });
+    clearTimeout(t);
+    if (r.ok) {
+      let data = null;
+      try { data = await r.json(); } catch (_) {}
+      peers.push({
+        id: (data && data.node_id) || EDGE_GROK_ID,
+        role: 'edge',
+        status: 'live',
+        lab: true,
+        substrate: (data && data.substrate) || 'cloudflare-worker',
+        endpoint: edgeUrl,
+        version: data && data.version,
+        health_http: r.status,
+        health_via: 'edge_health',
+      });
+    }
+  } catch (_) {
+    // Edge down: do not list as live (anti-stub)
+  }
+  return peers;
+}
 
 function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: CORS });
@@ -105,7 +163,7 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-gossip',
-        version: VERSION,
+        version: VERSION, mesh: 'active',
         role: 'gossip-about-gossip',
         parallels: {
           hedera: 'event = (ts, txs[], selfParent, otherParent, sig); history = hashgraph fragment',
@@ -116,9 +174,14 @@ export default {
     }
 
     if (path === '/peers') {
+      const peers = await livePeers(env, request);
       return j({
-        peers: PEERS.map((id) => ({ id, role: id.startsWith('edge') ? 'edge' : id.includes('FOG') ? 'fog' : 'peer' })),
-        protocol: 'random_gossip_sync',
+        peers,
+        count: peers.length,
+        protocol: 'lab_fog_edge_mesh_active',
+        lab: true,
+        note: 'Fog FOG-NODE-PT-CM-001 always listed. EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch).',
+        version: VERSION, mesh: 'active',
       });
     }
 
@@ -130,7 +193,7 @@ export default {
     if ((path === '/sync' || path === '/event' || path === '/broadcast' || path === '/gossip' || path === '/validate') && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const creator = String(body.creator || body.node_id || 'FOG-NODE-PT-CM-001');
-      const peer = String(body.peer || PEERS[Math.floor(Math.random() * PEERS.length)]);
+      const peer = String(body.peer || NODE_ID);
       const selfParentEv = await latestByCreator(env, creator);
       const otherParentEv = await latestByCreator(env, peer);
       const self_parent = body.self_parent || (selfParentEv && selfParentEv.hash) || 'genesis';
@@ -157,10 +220,28 @@ export default {
         model: 'gossip_about_gossip',
       };
       await storeEvent(env, event);
+      // Notify live edge (best-effort mesh push)
+      let edge_push = null;
+      if (callerIsEdge(request)) {
+        edge_push = { ok: true, skipped: 'inbound_caller', note: 'Caller is EDGE; skipped circular /gossip/ingest' };
+      } else {
+        try {
+          const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://stratamesh-edge-grok.stratamesh.workers.dev';
+          const pr = await fetch(edgeUrl.replace(/\/$/, '') + '/gossip/ingest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'User-Agent': 'stratamesh-gossip' },
+            body: JSON.stringify({ creator: NODE_ID, event, mesh: 'lab_fog_edge_mesh_active' }),
+          });
+          edge_push = { ok: pr.ok, http: pr.status };
+        } catch (e) {
+          edge_push = { ok: false, error: String(e) };
+        }
+      }
       return j({
         ok: true,
         event,
-        fanout: PEERS.filter((p) => p !== creator).slice(0, 4),
+        edge_push,
+        fanout: (await livePeers(env, request)).map((p) => p.id).filter((p) => p !== creator).slice(0, 4),
         note: 'Hashgraph fragment event recorded; virtual voting in stratamesh-consensus',
       });
     }
