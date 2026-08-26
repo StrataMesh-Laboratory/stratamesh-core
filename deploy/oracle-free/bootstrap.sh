@@ -2,7 +2,7 @@
 # Bootstrap StrataMesh Fog on Oracle Always Free (Ubuntu)
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/amcmorais/stratamesh-core.git}"
+REPO_URL="${REPO_URL:-https://github.com/StrataMesh-Laboratory/stratamesh-core.git}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/stratamesh-core}"
 DATA_DIR="${DATA_DIR:-/var/lib/stratamesh}"
 
