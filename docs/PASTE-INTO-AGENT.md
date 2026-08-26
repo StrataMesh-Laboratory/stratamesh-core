@@ -98,3 +98,16 @@ Only if I provide a public HTTPS base URL with GET /health returning JSON
 document the URL for a PR/issue on StrataMesh-Laboratory/stratamesh-core so fog gossip can health-check it.
 Until then mesh_member must stay false.
 ```
+
+---
+
+## Public /health from local (API + tunnel)
+
+https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/LOCAL-API-TUNNEL.md
+
+```bash
+bash bin/api-start && bash bin/tunnel-start
+curl -sS "$(cat state/public_base_url.txt)/health"
+```
+
+Then Prompt C with that URL (quick tunnel hostname is ephemeral).
