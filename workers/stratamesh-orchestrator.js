@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.2-diagnostic-live";
+const VERSION = "10.24.3-actions-proxy";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -950,6 +950,49 @@ async function executeRun(action, env, level) {
   }
 }
 
+
+
+/**
+ * Read-only AIOps consume surface.
+ * Binding fetch only (env.AIOPS) — no public HTTP loop, no ships, no mandatory_actions.
+ * This is NOT 09:00 Dev Cycle fulfillment. Torch stays HOLD. grok@ is not an SCA.
+ */
+async function proxyAiopsGet(env, aiopsPath) {
+  if (!env || !env.AIOPS || typeof env.AIOPS.fetch !== "function") {
+    return json({ ok: false, error: "aiops_binding_missing", source: "aiops" }, 502);
+  }
+  const TIMEOUT_MS = 15000;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), TIMEOUT_MS);
+  try {
+    const r = await env.AIOPS.fetch(
+      new Request("https://aiops" + aiopsPath, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: ac.signal,
+      })
+    );
+    const text = await r.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return json({
+        ok: false,
+        error: "aiops_non_json",
+        source: "aiops",
+        http: r.status,
+      }, r.status >= 400 ? r.status : 502);
+    }
+    return json(data, r.status);
+  } catch (e) {
+    const msg = String((e && e.message) || e).slice(0, 200);
+    const error = /abort/i.test(msg) ? "aiops_timeout" : msg;
+    return json({ ok: false, error, source: "aiops" }, 502);
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -3722,6 +3765,29 @@ export default {
         summary: { probed: listedRows.length, ok: okN, error: failN, posture },
         timestamp: new Date().toISOString(),
       });
+    }
+
+
+    // Read-only AIOps JSON surface. Consume next_actions / handoff. Do not execute ships.
+    // Not the 09:00 Dev Cycle. No POST /cycle. Torch HOLD.
+    if (
+      path === "/actions" ||
+      path === "/api/actions" ||
+      path === "/api/orchestrator/actions"
+    ) {
+      if (request.method !== "GET") return json({ error: "method_not_allowed", path, version: VERSION }, 405);
+      return proxyAiopsGet(env, "/actions");
+    }
+
+    if (
+      path === "/handoff" ||
+      path === "/handoff/latest" ||
+      path === "/api/handoff" ||
+      path === "/api/orchestrator/handoff" ||
+      path === "/api/orchestrator/handoff/latest"
+    ) {
+      if (request.method !== "GET") return json({ error: "method_not_allowed", path, version: VERSION }, 405);
+      return proxyAiopsGet(env, "/handoff");
     }
 
 return json({ error: "not_found", path, version: VERSION }, 404);
