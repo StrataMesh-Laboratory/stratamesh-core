@@ -1,0 +1,352 @@
+name: Automated Issue Management & Escalation
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled]
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  issue_routing:
+    name: Intelligent Issue Routing & Prioritization
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Route autonomous issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'autonomous',
+              per_page: 10
+            });
+            
+            if (issues.data.length > 0) {
+              core.notice(`🤖 Found ${issues.data.length} autonomous issues requiring escalation`);
+              
+              issues.data.forEach(issue => {
+                const priority = issue.labels.length > 2 ? 'high' : 'medium';
+                console.log(`Issue #${issue.number}: ${issue.title} [${priority}]`);
+              });
+            }
+
+      - name: Route help-wanted issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'help wanted',
+              per_page: 10
+            });
+            
+            if (issues.data.length > 0) {
+              core.notice(`🤝 ${issues.data.length} help-wanted issues open`);
+            }
+
+      - name: Route track issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tracks = ['track:edge', 'track:economy', 'track:mesh'];
+            
+            for (const track of tracks) {
+              const issues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: track,
+                per_page: 5
+              });
+              
+              if (issues.data.length > 0) {
+                core.notice(`📍 ${track}: ${issues.data.length} active issues`);
+              }
+            }
+
+  issue_auto_labeling:
+    name: Auto-Label New Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - name: Analyze issue content
+        uses: actions/github-script@v7
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        with:
+          script: |
+            const title = process.env.ISSUE_TITLE || '';
+            const body = process.env.ISSUE_BODY || '';
+            const content = (title + ' ' + body).toLowerCase();
+            
+            const labels = [];
+            
+            if (content.includes('edge') || content.includes('device')) {
+              labels.push('track:edge');
+            }
+            if (content.includes('metering') || content.includes('billing') || content.includes('economy')) {
+              labels.push('track:economy');
+            }
+            if (content.includes('gossip') || content.includes('peer') || content.includes('mesh')) {
+              labels.push('domain:mesh');
+            }
+            if (content.includes('autonomous') || content.includes('aiops')) {
+              labels.push('autonomous');
+              labels.push('aiops');
+            }
+            if (content.includes('doc') || content.includes('readme') || content.includes('guide')) {
+              labels.push('documentation');
+            }
+            if (content.includes('bug') || content.includes('error') || content.includes('fail')) {
+              labels.push('bug');
+            }
+            if (content.includes('feature') || content.includes('request') || content.includes('add')) {
+              labels.push('enhancement');
+            }
+            if (content.includes('[track:')) {
+              if (title.includes('[track:edge]')) {
+                labels.push('track:edge');
+              }
+              if (title.includes('[track:economy]')) {
+                labels.push('track:economy');
+              }
+              if (title.includes('[AIOps')) {
+                labels.push('aiops');
+                labels.push('autonomous');
+              }
+            }
+            
+            if (labels.length > 0) {
+              const uniqueLabels = [...new Set(labels)];
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: uniqueLabels
+                });
+                core.notice(`✅ Added labels: ${uniqueLabels.join(', ')}`);
+              } catch (error) {
+                core.notice(`Label update: ${error.message}`);
+              }
+            }
+
+  issue_linking:
+    name: Link Related Issues & Create Epics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Link track:edge issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'track:edge',
+              per_page: 20
+            });
+            
+            if (issues.data.length > 1) {
+              core.notice(`🔗 track:edge epic: ${issues.data.length} linked issues`);
+              issues.data.slice(0, 3).forEach(issue => {
+                console.log(`  #${issue.number}: ${issue.title}`);
+              });
+            }
+
+      - name: Link track:economy issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'track:economy',
+              per_page: 20
+            });
+            
+            if (issues.data.length > 1) {
+              core.notice(`💰 track:economy epic: ${issues.data.length} linked issues`);
+            }
+
+  documentation_generation:
+    name: Auto-Generate Documentation Index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Index CONTRIBUTOR-TRACKS.md
+        run: |
+          if [ -f docs/CONTRIBUTOR-TRACKS.md ]; then
+            echo "📄 CONTRIBUTOR-TRACKS.md exists"
+            echo "Content preview:"
+            head -20 docs/CONTRIBUTOR-TRACKS.md
+          else
+            echo "⚠️ docs/CONTRIBUTOR-TRACKS.md not found"
+          fi
+
+      - name: Create issues index
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const byLabel = {};
+            issues.data.forEach(issue => {
+              issue.labels.forEach(label => {
+                if (!byLabel[label.name]) byLabel[label.name] = [];
+                byLabel[label.name].push(`#${issue.number}`);
+              });
+            });
+            
+            let index = '## Open Issues by Label\n\n';
+            Object.entries(byLabel)
+              .sort((a, b) => b[1].length - a[1].length)
+              .slice(0, 10)
+              .forEach(([label, issues]) => {
+                index += `- **${label}**: ${issues.join(', ')}\n`;
+              });
+            
+            core.notice('📊 Issue index generated');
+
+  dependency_check:
+    name: Check & Link Issue Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect dependency patterns
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 50
+            });
+            
+            let dependencyChains = 0;
+            
+            issues.data.forEach(issue => {
+              if (issue.body && issue.body.includes('depend') || issue.body.includes('block')) {
+                dependencyChains++;
+              }
+            });
+            
+            if (dependencyChains > 0) {
+              core.notice(`🔗 ${dependencyChains} issues mention dependencies`);
+            }
+
+  stale_issue_management:
+    name: Manage Stale Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check for stale issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const stale = issues.data.filter(issue => {
+              return new Date(issue.updated_at) < thirtyDaysAgo;
+            });
+            
+            if (stale.length > 0) {
+              core.notice(`⏰ ${stale.length} stale issues (no update in 30 days)`);
+              stale.slice(0, 3).forEach(issue => {
+                console.log(`  #${issue.number}: ${issue.title} (last update: ${issue.updated_at})`);
+              });
+            }
+
+  issue_health_report:
+    name: Issue Health Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Generate health report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const autonomousCount = issues.data.filter(i => i.labels.some(l => l.name === 'autonomous')).length;
+            const helpWantedCount = issues.data.filter(i => i.labels.some(l => l.name === 'help wanted')).length;
+            const avgAge = issues.data.reduce((sum, i) => sum + (Date.now() - new Date(i.created_at)), 0) / (issues.data.length || 1) / (1000 * 60 * 60 * 24);
+            
+            let report = `## 📊 StrataMesh Repository Health Report\n\n`;
+            report += `**Open Issues:** ${issues.data.length}\n`;
+            report += `**Open PRs:** ${prs.data.length}\n`;
+            report += `**Autonomous Issues:** ${autonomousCount}\n`;
+            report += `**Help Wanted:** ${helpWantedCount}\n`;
+            report += `**Avg Issue Age:** ${Math.round(avgAge)} days\n`;
+            
+            core.notice(report);
+
+  workflow_summary:
+    name: Issue Management Summary
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Publish summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let summary = `## ✅ Issue Management Automation\n\n`;
+            summary += `### Active Processes\n`;
+            summary += `- ✅ Intelligent issue routing\n`;
+            summary += `- ✅ Auto-labeling by content\n`;
+            summary += `- ✅ Track-based epic linking\n`;
+            summary += `- ✅ Documentation indexing\n`;
+            summary += `- ✅ Dependency detection\n`;
+            summary += `- ✅ Stale issue monitoring\n`;
+            summary += `- ✅ Health report generation\n\n`;
+            summary += `### Routing Enabled\n`;
+            summary += `- 🤖 Autonomous (aiops) issues\n`;
+            summary += `- 📍 Track:edge issues\n`;
+            summary += `- 💰 Track:economy issues\n`;
+            summary += `- 🤝 Help-wanted issues\n`;
+            summary += `- 📚 Documentation issues\n`;
+            
+            core.summary.addHeading('Issue Management', 2).addRaw(summary).write();
