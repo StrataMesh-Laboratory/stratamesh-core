@@ -75,6 +75,7 @@ Quality must describe the **resource as supplied**, not the social or commercial
 - Worker: `stratamesh-poc` (version `5.7.x`)  
 - Canonical classes: `storage`, `compute`, `bandwidth`, `availability`  
 - Measurement exposes both resource fields and legacy evidence labels; mint and quote normalise aliases to canonical classes.
+- Lab honesty: `src/resource_proof.py` is an in-process SHA-256 work-token verifier for the `compute` class (challenge/receipt; reject bare claim and replay). It is not a multi-host mint and does not replace Worker measurement.
 
 ---
 

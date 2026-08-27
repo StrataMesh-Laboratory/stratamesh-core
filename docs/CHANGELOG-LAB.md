@@ -1,3 +1,8 @@
+## 2026-08-27
+- Resource-proof MVP: in-process `compute` class hash work-token (`src/resource_proof.py`) — challenge/receipt; reject bare claim and replay
+- Honesty: in-process SHA-256 evidence is not a multi-host mint and does not credit STRATA
+- CI: `protocol-invariants` runs `test_resource_proof.py` (python3 only; no Worker probes)
+
 ## 2026-08-26
 - CI: `protocol-invariants` workflow runs in-process `test_tip_selection.py`, named WIRE I1–I6 checks, and `protocol_benchmark.py` (no Worker probes)
 - Honesty: I1–I6 CI gates the miniature `LabLedger` harness, not `StrataTokenLedger` and not multi-host gossip
