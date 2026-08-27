@@ -184,7 +184,7 @@ Portal/Bancada/OS copy may improve in parallel only if they do not invent readin
 | Logical reference nodes | 1 (`FOG-NODE-PT-CM-001`) | ≥2–3 hosts under chaos | External node count > 0 |
 | Gossip | In-process / single ref | Sustained multi-host INV/TX | Open join observed |
 | Economic invariants | Harness checks | CI on every path | Monitored on live testnet |
-| Resource proofs | Design / MVP target | MVP accepts/rejects claims | Mint path uses proofs |
+| Resource proofs | In-process compute hash-work MVP (not mint path) | MVP accepts/rejects claims | Mint path uses proofs |
 | Posture flag | `lab: true` | `lab` / pre-testnet | Explicit testnet · not mainnet |
 
 ---
