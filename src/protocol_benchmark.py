@@ -182,6 +182,33 @@ class MeshNode:
             self._flush_pending()
         return delivered
 
+    def ingest_with_ancestors(self, source: "MeshNode", tx_id: str, stack: Optional[Set[str]] = None) -> int:
+        """Inventory/GETDATA: attach tx and ancestors from peer, parent-first."""
+        if stack is None:
+            stack = set()
+        if tx_id in self.dag.txs or tx_id in stack:
+            return 0
+        if tx_id not in source.dag.txs:
+            return 0
+        stack.add(tx_id)
+        tx = source.dag.txs[tx_id]
+        n = 0
+        for p in tx.parents:
+            n += self.ingest_with_ancestors(source, p, stack)
+        if tx_id not in self.dag.txs:
+            if self.dag.attach(tx):
+                n += 1
+        stack.discard(tx_id)
+        return n
+
+    def sync_from(self, source: "MeshNode") -> int:
+        """Full honest inventory sync from one peer (lab analogue of INV+GETDATA)."""
+        delivered = 0
+        for tid in sorted(source.dag.txs.keys()):
+            delivered += self.ingest_with_ancestors(source, tid)
+        self._flush_pending()
+        return delivered
+
 
 def gossip_round(nodes: List[MeshNode], fanout: int = 1) -> int:
     msgs = 0
@@ -260,13 +287,13 @@ def scenario_honest_mesh(nodes_n: int, rounds: int, seed: int) -> ScenarioResult
                         early_ids.append(tx.tx_id)
         msgs += gossip_round(nodes, fanout=2)
         msgs += gossip_round(nodes, fanout=1)
-    # extra convergence gossip + full mesh parent fill
+    # extra convergence gossip + full-mesh inventory (INV+GETDATA analogue)
     for _ in range(max(15, nodes_n * 4)):
         msgs += gossip_round(nodes, fanout=3)
         for n in nodes:
             for p in nodes:
                 if p is not n:
-                    n.deliver_missing_parents(p)
+                    n.sync_from(p)
     elapsed = time.perf_counter() - t0
     unique = mesh_tx_ids(nodes)
     conv = convergence_ratio(nodes)
