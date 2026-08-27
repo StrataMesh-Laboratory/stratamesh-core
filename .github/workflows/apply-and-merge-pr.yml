@@ -16,38 +16,63 @@ jobs:
   apply_patch_and_merge:
     name: Apply maintainer edits and merge PR
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Get PR info
         id: pr
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
-            console.log(`Fetching PR #${prNumber}`);
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
+            const prInput = '${{ github.event.inputs.pr_number }}';
+            const prNumber = parseInt(prInput, 10) || 21;
             
-            if (!pr.data.head.repo) {
-              throw new Error(`PR #${prNumber} head repository is null or deleted`);
+            if (isNaN(prNumber)) {
+              throw new Error(`Invalid PR number: "${prInput}". Expected a number.`);
             }
             
-            core.setOutput('pr_number', String(prNumber));
-            core.setOutput('head_repo_full_name', pr.data.head.repo.full_name);
-            core.setOutput('head_ref', pr.data.head.ref);
-            core.setOutput('base_owner', pr.data.base.repo.owner.login);
-            core.setOutput('base_repo', pr.data.base.repo.name);
+            console.log(`Fetching PR #${prNumber}...`);
+            
+            try {
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
+              if (!pr.data.head.repo) {
+                throw new Error(`PR #${prNumber} head repository is null or deleted`);
+              }
+              
+              core.setOutput('pr_number', String(prNumber));
+              core.setOutput('head_repo_full_name', pr.data.head.repo.full_name);
+              core.setOutput('head_ref', pr.data.head.ref);
+              core.setOutput('base_owner', pr.data.base.repo.owner.login);
+              core.setOutput('base_repo', pr.data.base.repo.name);
+              
+              console.log(`✓ PR #${prNumber} fetched successfully`);
+            } catch (error) {
+              core.setFailed(`Failed to get PR #${prNumber}: ${error.message}`);
+              throw error;
+            }
 
       - name: Checkout contributor branch
         run: |
           echo "Cloning head repository"
           HEAD_REPO="${{ steps.pr.outputs.head_repo_full_name }}"
           HEAD_REF="${{ steps.pr.outputs.head_ref }}"
+          
+          if [ -z "$HEAD_REPO" ] || [ -z "$HEAD_REF" ]; then
+            echo "Error: HEAD_REPO or HEAD_REF is empty"
+            exit 1
+          fi
+          
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${HEAD_REPO}.git" headrepo
           cd headrepo
           git checkout --progress --force "$HEAD_REF"
+          echo "✓ Repository cloned and checked out to $HEAD_REF"
         shell: bash
 
       - name: Apply maintainer edits to docs/CONTRIBUTOR-TRACKS.md
@@ -141,45 +166,85 @@ PATCH
           git add "$FILE"
           git commit -m "docs(edge): add schema + clarify canonical classes/units (maintainer edits)" || echo "No changes to commit"
           git push origin HEAD:$HEAD_REF
+          echo "✓ Maintainer edits applied and pushed"
         shell: bash
 
       - name: Approve PR
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
-            console.log(`Approving PR #${prNumber}`);
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              event: 'APPROVE',
-              body: 'Applying minor maintainer edits (schema + clarifications)'
-            });
+            const prInput = '${{ github.event.inputs.pr_number }}';
+            const prNumber = parseInt(prInput, 10) || 21;
+            
+            if (isNaN(prNumber)) {
+              throw new Error(`Invalid PR number: "${prInput}". Expected a number.`);
+            }
+            
+            console.log(`Approving PR #${prNumber}...`);
+            
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: 'APPROVE',
+                body: 'Applying minor maintainer edits (schema + clarifications)'
+              });
+              console.log(`✓ PR #${prNumber} approved`);
+            } catch (error) {
+              core.setFailed(`Failed to approve PR #${prNumber}: ${error.message}`);
+              throw error;
+            }
 
       - name: Merge PR
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
-            console.log(`Merging PR #${prNumber}`);
-            const merge = await github.rest.pulls.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              merge_method: 'merge'
-            });
-            core.setOutput('merge_result', JSON.stringify(merge.data));
+            const prInput = '${{ github.event.inputs.pr_number }}';
+            const prNumber = parseInt(prInput, 10) || 21;
+            
+            if (isNaN(prNumber)) {
+              throw new Error(`Invalid PR number: "${prInput}". Expected a number.`);
+            }
+            
+            console.log(`Merging PR #${prNumber}...`);
+            
+            try {
+              const merge = await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                merge_method: 'merge'
+              });
+              core.setOutput('merge_result', JSON.stringify(merge.data));
+              console.log(`✓ PR #${prNumber} merged successfully`);
+            } catch (error) {
+              core.setFailed(`Failed to merge PR #${prNumber}: ${error.message}`);
+              throw error;
+            }
 
       - name: Post success comment
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
-            console.log(`Posting comment on PR #${prNumber}`);
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: 'Maintainer edits applied and PR merged automatically by workflow.'
-            });
+            const prInput = '${{ github.event.inputs.pr_number }}';
+            const prNumber = parseInt(prInput, 10) || 21;
+            
+            if (isNaN(prNumber)) {
+              throw new Error(`Invalid PR number: "${prInput}". Expected a number.`);
+            }
+            
+            console.log(`Posting comment on PR #${prNumber}...`);
+            
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: 'Maintainer edits applied and PR merged automatically by workflow.'
+              });
+              console.log(`✓ Success comment posted on PR #${prNumber}`);
+            } catch (error) {
+              core.setFailed(`Failed to post comment on PR #${prNumber}: ${error.message}`);
+              throw error;
+            }
