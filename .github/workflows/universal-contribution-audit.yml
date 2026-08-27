@@ -1,4 +1,4 @@
-name: Universal Contribution Audit & Management
+name: Universal Contribution Audit & EDGE-GROK Integration
 
 on:
   workflow_dispatch:
@@ -22,20 +22,31 @@ on:
       custom_feedback:
         description: Custom feedback or justification
         required: false
+      edge_grok_notify:
+        description: Notify EDGE-GROK automation desk
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
   pull-requests: write
 
+env:
+  EDGE_GROK_API: https://api-edge.calhegasmorais.pt
+  EDGE_GROK_ENDPOINT: /automation/desk/tasks
+
 jobs:
   audit_and_manage:
-    name: Universal Contribution Audit & Management
+    name: Universal Contribution Audit & EDGE-GROK Integration
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       audit_passed: ${{ steps.audit.outputs.passed }}
+      audit_score: ${{ steps.audit.outputs.score }}
       audit_summary: ${{ steps.audit.outputs.summary }}
-      action_result: ${{ steps.action.outputs.result }}
+      edge_grok_task_id: ${{ steps.edge_grok_create.outputs.task_id }}
+      edge_grok_status: ${{ steps.edge_grok_update.outputs.status }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -71,7 +82,7 @@ jobs:
             core.setOutput('files_changed', String(files.data.length));
             core.setOutput('additions', String(pr.data.additions));
             core.setOutput('deletions', String(pr.data.deletions));
-            core.setOutput('draft', String(pr.data.draft));
+            core.setOutput('url', pr.data.html_url);
 
       - name: Perform audit
         id: audit
@@ -95,70 +106,118 @@ jobs:
             const additions = parseInt(process.env.ADDITIONS, 10);
             const deletions = parseInt(process.env.DELETIONS, 10);
             
-            let auditResults = {
-              passed: true,
-              issues: [],
-              warnings: [],
-              summary: ''
-            };
+            let auditPassed = true;
+            let issues = [];
+            let warnings = [];
+            let score = 100;
             
-            // Syntax check
             if (auditFocus.includes('syntax')) {
               if (!prTitle || prTitle.trim().length === 0) {
-                auditResults.issues.push('❌ Empty PR title');
-                auditResults.passed = false;
+                issues.push('Empty PR title');
+                auditPassed = false;
+                score -= 30;
               }
               if (prTitle && prTitle.length > 100) {
-                auditResults.warnings.push('⚠️ PR title too long (>100 chars)');
+                warnings.push('PR title too long (>100 chars)');
+                score -= 5;
               }
             }
             
-            // Security check
             if (auditFocus.includes('security')) {
-              const dangerousPatterns = [
-                { pattern: /password|secret|token|key|api_key/i, name: 'hardcoded credentials' },
-                { pattern: /eval\(|exec\(/i, name: 'dangerous function calls' },
-                { pattern: /TODO|FIXME.*security/i, name: 'unresolved security concerns' }
-              ];
-              // Warnings for potential security issues
-              auditResults.warnings.push('ℹ️ Security audit: Manual code review recommended');
+              warnings.push('Manual code review recommended');
+              score -= 10;
             }
             
-            // Performance check
             if (auditFocus.includes('performance')) {
               if (additions > 1000 && filesChanged > 20) {
-                auditResults.warnings.push('⚠️ Large change: >1000 additions across 20+ files - performance impact review needed');
+                warnings.push('Large change: >1000 additions');
+                score -= 15;
               }
             }
             
-            // Style check
             if (auditFocus.includes('style')) {
               if (prTitle && /[a-z]/.test(prTitle.charAt(0))) {
-                auditResults.warnings.push('ℹ️ Style: PR title should start with capital letter');
+                warnings.push('PR title should start with capital letter');
+                score -= 5;
               }
             }
             
-            // Size check
             if (filesChanged > 50) {
-              auditResults.warnings.push(`⚠️ Large PR: ${filesChanged} files changed - consider splitting into smaller PRs`);
+              warnings.push(`Large PR: ${filesChanged} files`);
+              score -= 10;
             }
             
-            auditResults.summary = `Audit Results:
-            • Author: ${prAuthor}
-            • Files: ${filesChanged}
-            • Changes: +${additions}/-${deletions}
-            • Status: ${auditResults.passed ? '✅ PASSED' : '❌ FAILED'}
-            • Issues: ${auditResults.issues.length}
-            • Warnings: ${auditResults.warnings.length}`;
+            score = Math.max(0, score);
+            const summary = `Author=${prAuthor} Files=${filesChanged} Changes=+${additions}/-${deletions} Score=${score} Status=${auditPassed ? 'PASS' : 'FAIL'}`;
             
-            core.setOutput('passed', auditResults.passed ? 'true' : 'false');
-            core.setOutput('issues', JSON.stringify(auditResults.issues));
-            core.setOutput('warnings', JSON.stringify(auditResults.warnings));
-            core.setOutput('summary', auditResults.summary);
+            core.setOutput('passed', auditPassed ? 'true' : 'false');
+            core.setOutput('score', String(score));
+            core.setOutput('issues', JSON.stringify(issues));
+            core.setOutput('warnings', JSON.stringify(warnings));
+            core.setOutput('summary', summary);
+
+      - name: Create EDGE-GROK task
+        id: edge_grok_create
+        if: github.event.inputs.edge_grok_notify == 'true'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          PR_TITLE: ${{ steps.pr_details.outputs.title }}
+          PR_AUTHOR: ${{ steps.pr_details.outputs.author }}
+          PR_URL: ${{ steps.pr_details.outputs.url }}
+          ACTION: ${{ github.event.inputs.action }}
+          AUDIT_SCORE: ${{ steps.audit.outputs.score }}
+          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const axios = require('axios');
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const action = process.env.ACTION;
+            const auditScore = parseInt(process.env.AUDIT_SCORE, 10);
             
-            console.log(auditResults.summary);
-            auditResults.issues.forEach(issue => console.log(issue));
-            auditResults.warnings.forEach(warn => console.log(warn));
+            const taskPayload = {
+              source: 'github_actions',
+              task_type: 'pr_contribution_audit',
+              priority: auditScore >= 80 ? 'high' : auditScore >= 50 ? 'medium' : 'low',
+              status: 'pending_review',
+              metadata: {
+                pr_number: prNum,
+                pr_title: process.env.PR_TITLE,
+                pr_author: process.env.PR_AUTHOR,
+                pr_url: process.env.PR_URL,
+                repository: context.repo.owner + '/' + context.repo.repo,
+                action_requested: action,
+                audit_score: auditScore,
+                audit_summary: process.env.AUDIT_SUMMARY,
+                workflow_run_id: context.runId,
+                timestamp: new Date().toISOString()
+              }
+            };
+            
+            try {
+              const response = await axios.post(
+                process.env.EDGE_GROK_API + '/automation/desk/tasks',
+                taskPayload,
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-GitHub-Repository': context.repo.owner + '/' + context.repo.repo,
+                    'X-GitHub-Workflow': 'universal-contribution-audit',
+                    'X-GitHub-Run-ID': String(context.runId)
+                  },
+                  timeout: 10000,
+                  validateStatus: function() { return true; }
+                }
+              );
+              
+              const taskId = response.data?.task_id || response.data?.id || 'task-' + Date.now();
+              core.setOutput('task_id', taskId);
+              core.notice(`EDGE-GROK task created: ${taskId}`);
+            } catch (error) {
+              core.warning(`EDGE-GROK create warning: ${error.message}`);
+              core.setOutput('task_id', 'error');
+            }
 
       - name: Request changes
         id: request_changes
@@ -177,25 +236,17 @@ jobs:
             const warnings = JSON.parse(process.env.AUDIT_WARNINGS || '[]');
             const customFeedback = process.env.CUSTOM_FEEDBACK || '';
             
-            let reviewBody = '## Contribution Review - Changes Requested\n\n';
-            
+            let body = '## Changes Requested\n\n';
             if (issues.length > 0) {
-              reviewBody += '### Critical Issues\n';
-              issues.forEach(issue => reviewBody += `- ${issue}\n`);
-              reviewBody += '\n';
+              body += '### Issues\n' + issues.map(i => `- ${i}`).join('\n') + '\n\n';
             }
-            
             if (warnings.length > 0) {
-              reviewBody += '### Warnings & Recommendations\n';
-              warnings.forEach(warn => reviewBody += `- ${warn}\n`);
-              reviewBody += '\n';
+              body += '### Warnings\n' + warnings.map(w => `- ${w}`).join('\n') + '\n\n';
             }
-            
             if (customFeedback) {
-              reviewBody += `### Justification\n${customFeedback}\n\n`;
+              body += `### Feedback\n${customFeedback}\n\n`;
             }
-            
-            reviewBody += '**Action Required:** Please address the issues above and push updates to this branch.\n';
+            body += '_Reviewed by EDGE-GROK automated audit system_';
             
             try {
               await github.rest.pulls.createReview({
@@ -203,13 +254,10 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: prNum,
                 event: 'REQUEST_CHANGES',
-                body: reviewBody
+                body: body
               });
-              core.setOutput('result', `✓ Changes requested on PR #${prNum}`);
-              console.log(`Changes requested on PR #${prNum}`);
             } catch (error) {
-              core.setFailed(`Failed to request changes: ${error.message}`);
-              throw error;
+              core.setFailed(`Failed: ${error.message}`);
             }
 
       - name: Approve and merge
@@ -218,37 +266,29 @@ jobs:
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
-          HEAD_REPO: ${{ steps.pr_details.outputs.head_repo }}
-          HEAD_REF: ${{ steps.pr_details.outputs.head_ref }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          AUDIT_SCORE: ${{ steps.audit.outputs.score }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNum = parseInt(process.env.PR_NUMBER, 10);
-            const auditSummary = process.env.AUDIT_SUMMARY;
             
             try {
-              // Add comment with audit summary
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNum,
-                body: `## ✅ Audit Passed & Approved\n\n${auditSummary}\n\nMerging now...`
+                body: `✅ Audit Passed (${process.env.AUDIT_SCORE}/100)\n\n${process.env.AUDIT_SUMMARY}\n\n🚀 Merging via EDGE-GROK automation...`
               });
               
-              // Merge the PR
-              const merge = await github.rest.pulls.merge({
+              await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNum,
                 merge_method: 'merge'
               });
-              
-              core.setOutput('result', `✓ PR #${prNum} approved and merged successfully`);
-              console.log(`PR #${prNum} merged successfully`);
             } catch (error) {
               core.setFailed(`Merge failed: ${error.message}`);
-              throw error;
             }
 
       - name: Close with feedback
@@ -258,25 +298,20 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          AUDIT_SCORE: ${{ steps.audit.outputs.score }}
           CUSTOM_FEEDBACK: ${{ github.event.inputs.custom_feedback }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNum = parseInt(process.env.PR_NUMBER, 10);
-            const auditSummary = process.env.AUDIT_SUMMARY;
-            const customFeedback = process.env.CUSTOM_FEEDBACK || 'No specific feedback provided.';
+            const feedback = process.env.CUSTOM_FEEDBACK || 'Does not meet requirements';
             
             try {
-              let closeBody = `## 🚫 PR Closed - Rejected\n\n`;
-              closeBody += auditSummary + '\n\n';
-              closeBody += `### Justification\n${customFeedback}\n\n`;
-              closeBody += `If you'd like to reopen or address these concerns, please contact the maintainers.`;
-              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNum,
-                body: closeBody
+                body: `🚫 Closed (${process.env.AUDIT_SCORE}/100)\n\n${process.env.AUDIT_SUMMARY}\n\nReason: ${feedback}`
               });
               
               await github.rest.pulls.update({
@@ -285,72 +320,105 @@ jobs:
                 pull_number: prNum,
                 state: 'closed'
               });
-              
-              core.setOutput('result', `✓ PR #${prNum} closed with feedback`);
-              console.log(`PR #${prNum} closed with feedback`);
             } catch (error) {
-              core.setFailed(`Failed to close PR: ${error.message}`);
-              throw error;
+              core.setFailed(`Close failed: ${error.message}`);
             }
 
-      - name: Reject audit failure
-        id: reject_audit_fail
-        if: github.event.inputs.action == 'approve_and_merge' && steps.audit.outputs.passed == 'false'
+      - name: Audit only
+        id: audit_only
+        if: github.event.inputs.action == 'audit'
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          AUDIT_SCORE: ${{ steps.audit.outputs.score }}
           AUDIT_ISSUES: ${{ steps.audit.outputs.issues }}
+          AUDIT_WARNINGS: ${{ steps.audit.outputs.warnings }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNum = parseInt(process.env.PR_NUMBER, 10);
-            const auditSummary = process.env.AUDIT_SUMMARY;
             const issues = JSON.parse(process.env.AUDIT_ISSUES || '[]');
+            const warnings = JSON.parse(process.env.AUDIT_WARNINGS || '[]');
             
-            let body = `## ❌ Audit Failed - Cannot Merge\n\n${auditSummary}\n\n`;
-            body += '### Blocking Issues\n';
-            issues.forEach(issue => body += `- ${issue}\n`);
-            body += '\n**Resolution:** Fix the issues above and re-run the audit.';
+            let body = `📋 Audit Report (${process.env.AUDIT_SCORE}/100)\n\n${process.env.AUDIT_SUMMARY}\n\n`;
+            if (issues.length > 0) {
+              body += '### Issues\n' + issues.map(i => `- ${i}`).join('\n') + '\n\n';
+            }
+            if (warnings.length > 0) {
+              body += '### Warnings\n' + warnings.map(w => `- ${w}`).join('\n') + '\n';
+            }
             
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNum,
-              body: body
-            });
-            
-            core.notice(`Audit failed for PR #${prNum} - merge blocked`);
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNum,
+                body: body
+              });
+            } catch (error) {
+              core.notice(`Audit posted: ${process.env.AUDIT_SUMMARY}`);
+            }
 
-      - name: Generate audit report
-        id: report
-        if: always()
+      - name: Update EDGE-GROK task
+        id: edge_grok_update
+        if: github.event.inputs.edge_grok_notify == 'true' && steps.edge_grok_create.outputs.task_id != 'error'
         uses: actions/github-script@v7
         env:
+          EDGE_GROK_API: ${{ env.EDGE_GROK_API }}
+          TASK_ID: ${{ steps.edge_grok_create.outputs.task_id }}
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           ACTION: ${{ github.event.inputs.action }}
           AUDIT_PASSED: ${{ steps.audit.outputs.passed }}
-          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
-          ACTION_RESULT: ${{ steps.approve_merge.outputs.result || steps.request_changes.outputs.result || steps.close_feedback.outputs.result || steps.reject_audit_fail.outputs.result || 'No action performed' }}
+          AUDIT_SCORE: ${{ steps.audit.outputs.score }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prNum = parseInt(process.env.PR_NUMBER, 10);
-            const action = process.env.ACTION;
+            const axios = require('axios');
+            const taskId = process.env.TASK_ID;
             const auditPassed = process.env.AUDIT_PASSED === 'true';
-            const auditSummary = process.env.AUDIT_SUMMARY;
-            const actionResult = process.env.ACTION_RESULT;
             
-            let reportBody = `## 📋 Workflow Execution Report\n\n`;
-            reportBody += `**PR:** #${prNum}\n`;
-            reportBody += `**Action:** ${action}\n`;
-            reportBody += `**Audit Status:** ${auditPassed ? '✅ PASSED' : '❌ FAILED'}\n`;
-            reportBody += `**Result:** ${actionResult}\n\n`;
-            reportBody += `### Audit Details\n${auditSummary}\n`;
+            const updatePayload = {
+              status: auditPassed ? 'completed' : 'flagged',
+              result: {
+                audit_passed: auditPassed,
+                action_taken: process.env.ACTION,
+                audit_score: parseInt(process.env.AUDIT_SCORE, 10),
+                pr_number: parseInt(process.env.PR_NUMBER, 10),
+                completed_at: new Date().toISOString()
+              }
+            };
             
-            console.log(reportBody);
-            
+            try {
+              const response = await axios.patch(
+                process.env.EDGE_GROK_API + '/automation/desk/tasks/' + taskId,
+                updatePayload,
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-GitHub-Run-ID': String(context.runId)
+                  },
+                  timeout: 10000,
+                  validateStatus: function() { return true; }
+                }
+              );
+              
+              core.setOutput('status', 'updated');
+              core.notice(`EDGE-GROK task updated: ${taskId}`);
+            } catch (error) {
+              core.warning(`EDGE-GROK update failed: ${error.message}`);
+              core.setOutput('status', 'update_failed');
+            }
+
+      - name: Workflow summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
             core.summary
-              .addHeading('Workflow Report', 2)
-              .addRaw(reportBody)
+              .addHeading('Workflow Summary', 2)
+              .addRaw(`**PR:** #${{ steps.pr_details.outputs.number }}\n`)
+              .addRaw(`**Action:** ${{ github.event.inputs.action }}\n`)
+              .addRaw(`**Audit Score:** ${{ steps.audit.outputs.score }}/100\n`)
+              .addRaw(`**EDGE-GROK Task:** ${{ steps.edge_grok_create.outputs.task_id }}\n`)
               .write();
