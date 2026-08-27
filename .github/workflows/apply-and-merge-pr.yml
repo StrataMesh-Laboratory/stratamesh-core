@@ -69,23 +69,6 @@ jobs:
           git commit -m "docs: update contributor tracks" || true
           git push origin HEAD:"$HEAD_REF"
 
-      - name: Approve PR
-        if: steps.pr_info.outputs.number
-        uses: actions/github-script@v7
-        env:
-          PR_NUMBER: ${{ steps.pr_info.outputs.number }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const prNum = parseInt(process.env.PR_NUMBER, 10);
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNum,
-              event: 'APPROVE',
-              body: 'Approved by maintainer bot'
-            });
-
       - name: Merge PR
         if: steps.pr_info.outputs.number
         uses: actions/github-script@v7
@@ -96,15 +79,16 @@ jobs:
           script: |
             const prNum = parseInt(process.env.PR_NUMBER, 10);
             try {
-              await github.rest.pulls.merge({
+              const result = await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNum,
                 merge_method: 'merge'
               });
-              core.notice(`PR #${prNum} merged successfully`);
+              core.notice(`✓ PR #${prNum} merged successfully`);
             } catch (error) {
-              core.warning(`Merge failed: ${error.message}`);
+              core.setFailed(`✗ Merge failed: ${error.message}`);
+              throw error;
             }
 
       - name: Comment on PR
@@ -121,7 +105,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNum,
-                body: 'Maintainer edits applied and merged by workflow'
+                body: '✓ Maintainer edits applied and PR merged by workflow'
               });
             } catch (error) {
               core.notice(`Comment skipped: ${error.message}`);
