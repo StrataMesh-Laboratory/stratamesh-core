@@ -1,0 +1,108 @@
+{
+  "schema": "stratamesh.metabolism.v1",
+  "timezone": "Europe/Lisbon",
+  "formula": "hourly_cap = remaining / max(hours_until_renewal, 1/60); spendable = remaining - reserved_future_peaks; STASIS if remaining<=0; HOLD unscheduled if spendable < cost; peaks ALLOW if remaining>=cost",
+  "cf_cron_hard_cap": 5,
+  "peaks": [
+    {"id": "dev-cycle", "hhmm": "09:00", "rail": "grok-auto", "cost": 1, "peak": true},
+    {"id": "discourse-pulse", "hhmm": "18:00", "rail": "grok-auto", "cost": 1, "peak": true},
+    {"id": "night-diagnostic", "hhmm": "23:00", "rail": "grok-auto", "cost": 1, "peak": true}
+  ],
+  "slots": [
+    {"id": "watchdog", "hhmm": "04:00", "rail": "grok-auto", "cost": 1, "peak": false},
+    {"id": "dev-cycle", "hhmm": "09:00", "rail": "grok-auto", "cost": 1, "peak": true},
+    {"id": "discourse-pulse", "hhmm": "18:00", "rail": "grok-auto", "cost": 1, "peak": true},
+    {"id": "night-diagnostic", "hhmm": "23:00", "rail": "grok-auto", "cost": 1, "peak": true}
+  ],
+  "rails": {
+    "grok-auto": {
+      "layer": "lab",
+      "kind": "slots",
+      "unit": "fires",
+      "daily_limit": 6,
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "note": "USAGE_POOL_EXHAUSTED at 18:00 Lisbon 26–27 Aug after 8 hourly night watchdogs. 4 budgeted slots + 2 desk contingency."
+    },
+    "github-core": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "unit": "requests",
+      "limit": 5000,
+      "window": "rolling_hour",
+      "header_remaining": "x-ratelimit-remaining",
+      "header_reset": "x-ratelimit-reset"
+    },
+    "github-search": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "unit": "requests",
+      "limit": 30,
+      "window_sec": 60
+    },
+    "cf-cron": {
+      "layer": "stratamesh",
+      "kind": "hard",
+      "unit": "triggers",
+      "hard_cap": 5,
+      "note": "Cloudflare Free structural cap. Never add a 6th scheduled Worker."
+    },
+    "cf-worker-req": {
+      "layer": "node",
+      "kind": "rate",
+      "unit": "requests",
+      "daily_limit": 100000,
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "note": "Workers Free daily request budget."
+    },
+    "cf-acb-cron": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "unit": "invocations",
+      "daily_limit": 24,
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "target_cron": "30 * * * *",
+      "previous_cron": "*/15 * * * *",
+      "note": "Was 96/day (*/15). Target hourly at :30 to stagger from AIOps at :00."
+    },
+    "deomail": {
+      "layer": "lab",
+      "kind": "rate",
+      "unit": "requests",
+      "daily_limit": 240,
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "note": "No published limit; pace 10/hour so a mailbox skim lasts the day."
+    },
+    "discourse": {
+      "layer": "lab",
+      "kind": "slots",
+      "unit": "posts",
+      "daily_limit": 6,
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon"
+    },
+    "local-monitor": {
+      "layer": "node",
+      "kind": "rate",
+      "unit": "cycles",
+      "daily_limit": 192,
+      "day_interval_sec": 300,
+      "night_interval_sec": 900,
+      "night_start": "22:00",
+      "night_end": "08:00",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "note": "Was INTERVAL_SEC=120 hitting hanging /actions. Now /health, 5 min day / 15 min night."
+    },
+    "aiops-actions": {
+      "layer": "node",
+      "kind": "hard",
+      "unit": "requests",
+      "hard_cap": 0,
+      "note": "GET /actions hangs on live 1.10.3. Forbidden. Use /health and /handoff."
+    }
+  }
+}
