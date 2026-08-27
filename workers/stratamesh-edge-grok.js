@@ -2,11 +2,12 @@
  * EDGE-GROK-CMN-001 — automation desk + crawler/agent discovery surface
  * Lab only. No secrets. Antifragile public integration.
  */
-const VERSION = "1.5.2-gossip-views";
+const VERSION = "1.5.3-ping-real-fog";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT_MAIL = "grok@calhegasmorais.pt";
 const ORIGIN_CANON = "https://edge.calhegasmorais.pt";
+const FOG_PROCESS_ORIGIN = "https://fog.calhegasmorais.pt";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -116,6 +117,16 @@ function gossipBase(env) {
   return (env.FOG_GOSSIP_BASE && String(env.FOG_GOSSIP_BASE)) || "https://stratamesh-gossip.stratamesh.workers.dev";
 }
 
+function fogProcessOrigin(env) {
+  const raw = env && env.FOG_STATUS_URL && String(env.FOG_STATUS_URL).trim();
+  if (raw && raw.includes("fog.calhegasmorais.pt")) return raw.replace(/\/+$/, "");
+  return FOG_PROCESS_ORIGIN;
+}
+
+function fogHealthUrl(env) {
+  return fogProcessOrigin(env) + "/health";
+}
+
 async function syncWithFog(env, reason = "edge_activate") {
   const body = {
     creator: EDGE_ID,
@@ -148,7 +159,7 @@ async function syncWithFog(env, reason = "edge_activate") {
 
 async function buildStatus(env) {
   const [fog, gossip] = await Promise.all([
-    probeBound(env, "STATUS", "https://status/"),
+    probe(fogHealthUrl(env)),
     probeBound(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
   ]);
   const peers = (gossip.data && gossip.data.peers) || [];
@@ -164,8 +175,14 @@ async function buildStatus(env) {
             version: fog.data && fog.data.version,
             phase: fog.data && fog.data.phase,
             status: fog.data && fog.data.status,
+            substrate: (fog.data && fog.data.substrate) || "local-process",
+            oracle_live: !!(fog.data && fog.data.oracle_live),
+            oracle_vm: !!(fog.data && fog.data.oracle_vm),
+            endpoint: fogProcessOrigin(env),
+            health: fogHealthUrl(env),
+            via: fog.via || "public",
           }
-        : { ok: false, error: fog.error || "unreachable", fallback: "desk UI + discovery stay up" },
+        : { ok: false, error: fog.error || "unreachable", fallback: "desk UI + discovery stay up", endpoint: fogProcessOrigin(env), health: fogHealthUrl(env) },
       gossip: gossip.ok
         ? {
             ok: true,
@@ -291,7 +308,8 @@ Humans and agents may read, probe, and optionally install a **local contributor 
 - GET ${ORIGIN_CANON}/llms.txt  (this file)
 
 ## Related public graph
-- Fog status: https://status.calhegasmorais.pt/
+- Fog process (real node_persistent): https://fog.calhegasmorais.pt/health
+- Fog status pulse (Worker, not the Fog process): https://status.calhegasmorais.pt/
 - Gossip peers: https://calhegasmorais.pt/api/v1/gossip/peers
 - Site: https://calhegasmorais.pt/
 - AIOps actions: https://aiops.calhegasmorais.pt/actions
@@ -364,7 +382,7 @@ function openApi() {
       },
       "/ping-fog": {
         get: {
-          summary: "Fog reachability only",
+          summary: "Real Fog process /health (not status Worker pulse)",
           operationId: "pingFog",
           responses: { "200": { description: "Fog probe" } },
         },
@@ -466,7 +484,8 @@ function agentCatalog() {
     },
     graph: {
       fog: FOG_ID,
-      fog_status: "https://status.calhegasmorais.pt/",
+      fog_process: "https://fog.calhegasmorais.pt/health",
+      fog_status_pulse: "https://status.calhegasmorais.pt/",
       gossip_peers: "https://calhegasmorais.pt/api/v1/gossip/peers",
       site: "https://calhegasmorais.pt/",
       discourse: "https://stratamesh.discourse.group/",
@@ -578,7 +597,8 @@ footer{margin-top:2rem;color:var(--muted);font-size:.8rem}table{width:100%;borde
       <a href="https://api-edge.calhegasmorais.pt/SPEC.txt">api-edge SPEC</a>
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md">Agent SDK</a>
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/INSTITUTIONAL-ROADMAP.md">Institutional roadmap</a>
-      <a href="https://status.calhegasmorais.pt/">Fog status</a>
+      <a href="https://fog.calhegasmorais.pt/health">Fog process /health</a>
+      <a href="https://status.calhegasmorais.pt/">Status pulse (Worker)</a>
       <a href="https://calhegasmorais.pt/api/v1/gossip/peers">Gossip peers</a>
       <a href="https://stratamesh.discourse.group/">Discourse</a>
     </div>
@@ -641,7 +661,7 @@ function wantsJson(request, url) {
   return false;
 }
 
-/* ===== 1.5.2-gossip-views (lab) — service-binding probes. No Worker crons. No secrets. ===== */
+/* ===== 1.5.3-ping-real-fog (lab) — service-binding probes. No Worker crons. No secrets. ===== */
 const AUTH_ME = "https://stratamesh-auth.stratamesh.workers.dev/me";
 const LOGIN_URL = "https://calhegasmorais.pt/dashboard";
 const OPS_ORIGINS = new Set([
@@ -931,7 +951,7 @@ async function runProbes(env) {
     own_health: ownInWorker("/health", { status: "ok", service: "stratamesh-edge-grok", ...identity({ live: true }), timestamp: new Date().toISOString() }),
     own_status: ownInWorker("/status", { ...identity({ live: true }), note: "linked fields come from fog_health + gossip_peers probes, not invented" }),
     own_mesh: ownInWorker("/mesh", { mesh_role: "edge_gossip_participant", linked_fog: FOG_ID, lab: true }),
-    fog_health: probeService(env, "STATUS", "https://status/health"),
+    fog_health: probeLive(fogHealthUrl(env)),
     gossip_peers: probeService(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
     gossip_via_public: probeLive("https://calhegasmorais.pt/api/v1/gossip/peers"),
     aiops_health: probeService(env, "AIOPS", "https://aiops/health"),
@@ -1186,7 +1206,7 @@ function evaluateTorch(probes) {
       id: 3,
       key: "free_tier_budget_no_new_worker_crons",
       met: false,
-      detail: "This script has no cron triggers and 1.5.2-gossip-views adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
+      detail: "This script has no cron triggers and 1.5.3-ping-real-fog adds none. Account-wide Worker cron occupancy is not queryable from the edge. Unmet until ops records the FREE-TIER-BUDGET check as a passing test.",
       this_script_schedules: [],
       this_change_adds_crons: false,
     },
@@ -1348,8 +1368,7 @@ async function buildPosture(env, me) {
       live: false,
       invented: false,
       host: "fog.calhegasmorais.pt",
-      hold: "A0",
-      note: "Not a live Oracle VM. NXDOMAIN / A0 HOLD. Do not invent.",
+      note: "fog.calhegasmorais.pt is the lab local-process Fog (named tunnel stratamesh-fog-lab). NOT an Oracle VM. oracle_live=false.",
     },
     nested_wildcard: {
       host: "api.edge.calhegasmorais.pt",
@@ -1513,7 +1532,7 @@ function render(b){
     "<p>Gossip peers (from live probe only, never invented): <code>"+peerLine+"</code> · count="+esc(gp.count)+"</p>" +
     "<p>gossip_via_binding (<code>"+esc(gb.via||"service:GOSSIP")+"</code>): <code>"+bindLine+"</code></p>" +
     "<p>gossip_via_public (<code>"+esc(gpub.via||"public")+"</code>): <code>"+pubLine+"</code></p>" +
-    "<p>Oracle VM: <span class='warn'>not live</span> · <code>fog.calhegasmorais.pt</code> A0 HOLD</p>" +
+    "<p>Oracle VM: <span class='warn'>not live</span> · Fog process <code>fog.calhegasmorais.pt</code> is local-process / oracle_live=false (not the status pulse)</p>" +
     "<table><tr><th>probe</th><th></th><th>http</th><th>url</th></tr>"+rows+"</table>";
   const autos = (b.automations && b.automations.automations) || [];
   document.getElementById("autos").innerHTML = "<h2>"+L.autos+"</h2>" +
@@ -1664,8 +1683,26 @@ export default {
     }
 
     if (path === "/ping-fog" || path === "/link") {
-      const fog = await probeBound(env, "STATUS", "https://status/");
-      return json({ edge: EDGE_ID, fog, linked: !!(fog && fog.ok) }, 200, { cache: "no-store" });
+      const target = fogHealthUrl(env);
+      const fog = await probe(target);
+      const data = fog.data || null;
+      return json({
+        edge: EDGE_ID,
+        edge_substrate: "cloudflare-worker",
+        fog_url: target,
+        fog: {
+          ...fog,
+          url: target,
+          node_id: (data && data.node_id) || FOG_ID,
+          substrate: data && data.substrate,
+          oracle_live: data && data.oracle_live,
+          oracle_vm: data && data.oracle_vm,
+          lab: data && data.lab,
+          version: data && data.version,
+          note: "Real Fog process (local-process via named tunnel). Not the status Worker pulse. Not an Oracle VM.",
+        },
+        linked: !!(fog && fog.ok),
+      }, 200, { cache: "no-store" });
     }
 
     if (path === "/mesh/activate" || path === "/gossip/sync") {

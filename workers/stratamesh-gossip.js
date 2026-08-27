@@ -10,9 +10,11 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.1-inbound-edge';
+const VERSION = '2.3.2-fog-process';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
+const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
+const FOG_HEALTH = FOG_ENDPOINT + '/health';
 
 function callerIsEdge(request) {
   if (!request || !request.headers) return false;
@@ -21,10 +23,48 @@ function callerIsEdge(request) {
   return ua.includes(EDGE_GROK_ID) || hdr === EDGE_GROK_ID;
 }
 
+async function probeFogProcess() {
+  const fog = {
+    id: NODE_ID,
+    role: 'fog',
+    lab: true,
+    endpoint: FOG_ENDPOINT,
+    health: FOG_HEALTH,
+    substrate: 'local-process',
+    oracle_vm: false,
+    oracle_live: false,
+    note: 'Lab local-process Fog (node_persistent) via named tunnel. Not the status Worker pulse. Not an Oracle VM.',
+  };
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 4000);
+    const r = await fetch(FOG_HEALTH, {
+      headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-gossip' },
+      signal: ac.signal,
+    });
+    clearTimeout(t);
+    let data = null;
+    try { data = await r.json(); } catch (_) {}
+    fog.health_http = r.status;
+    fog.health_via = 'fog_health';
+    if (data) {
+      if (data.node_id) fog.id = data.node_id;
+      if (data.substrate) fog.substrate = data.substrate;
+      if (data.version) fog.version = data.version;
+      if (typeof data.oracle_live === 'boolean') fog.oracle_live = data.oracle_live;
+      if (typeof data.oracle_vm === 'boolean') fog.oracle_vm = data.oracle_vm;
+      if (typeof data.lab === 'boolean') fog.lab = data.lab;
+    }
+    fog.status = r.ok ? 'live' : 'degraded';
+  } catch (_) {
+    fog.status = 'unreachable';
+    fog.health_via = 'fog_health';
+  }
+  return fog;
+}
+
 async function livePeers(env, request) {
-  const peers = [
-    { id: NODE_ID, role: 'fog', status: 'live', lab: true, endpoint: 'https://status.calhegasmorais.pt/' },
-  ];
+  const peers = [await probeFogProcess()];
   const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://stratamesh-edge-grok.stratamesh.workers.dev';
   // Same /peers handler for public Host and service-binding Request URL.
   // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
@@ -180,7 +220,7 @@ export default {
         count: peers.length,
         protocol: 'lab_fog_edge_mesh_active',
         lab: true,
-        note: 'Fog FOG-NODE-PT-CM-001 always listed. EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch).',
+        note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer.',
         version: VERSION, mesh: 'active',
       });
     }
