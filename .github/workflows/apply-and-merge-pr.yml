@@ -138,14 +138,25 @@ PATCH
         with:
           script: |
             const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
-            await github.rest.pulls.createReview({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, event: 'APPROVE', body: 'Applying minor maintainer edits (schema + class/unit clarification). Docs-only; approving and merging.' });
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              event: 'APPROVE',
+              body: 'Applying minor maintainer edits (schema + clarifications)'
+            });
 
       - name: Merge PR
         uses: actions/github-script@v6
         with:
           script: |
             const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
-            const merge = await github.rest.pulls.merge({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, merge_method: 'merge' });
+            const merge = await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              merge_method: 'merge'
+            });
             core.setOutput('merge_result', JSON.stringify(merge.data));
 
       - name: Post success comment
@@ -153,4 +164,9 @@ PATCH
         with:
           script: |
             const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: 'Maintainer edits applied and PR merged automatically by workflow.' });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: 'Maintainer edits applied and PR merged automatically by workflow.'
+            });
