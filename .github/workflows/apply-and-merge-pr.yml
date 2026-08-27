@@ -1,0 +1,156 @@
+name: Maintainer: Auto-apply edits and merge PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to patch and merge'
+        required: true
+        default: '21'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply_patch_and_merge:
+    name: Apply maintainer edits and merge PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            const pr = await github.rest.pulls.get({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber });
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('head_repo_full_name', pr.data.head.repo.full_name);
+            core.setOutput('head_ref', pr.data.head.ref);
+            core.setOutput('base_owner', pr.data.base.repo.owner.login);
+            core.setOutput('base_repo', pr.data.base.repo.name);
+
+      - name: Checkout contributor branch
+        run: |
+          echo "Cloning head repository"
+          HEAD_REPO="${{ steps.pr.outputs.head_repo_full_name }}"
+          HEAD_REF="${{ steps.pr.outputs.head_ref }}"
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${HEAD_REPO}.git" headrepo
+          cd headrepo
+          git checkout --progress --force "$HEAD_REF"
+        shell: bash
+
+      - name: Apply maintainer edits to docs/CONTRIBUTOR-TRACKS.md
+        working-directory: headrepo
+        run: |
+          FILE="docs/CONTRIBUTOR-TRACKS.md"
+          mkdir -p $(dirname "$FILE")
+          cat > "$FILE" <<'PATCH'
+## Edge track: inventory → measurement (PoC)
+
+The edge inventory is a description of **capacity offered to the mesh**, not a
+list of every sensor field. A resource entry is billable only when it has a
+canonical `class` and a positive `units` value.
+
+### Inventory schema (`stratamesh.edge.inventory.v1`)
+
+```json
+{
+  "schema": "stratamesh.edge.inventory.v1",
+  "node_id": "EDGE-NODE-PT-CM-001",
+  "parent_fog": "FOG-NODE-PT-CM-001",
+  "role": "env_gateway",
+  "device_class": "synthetic_iot_environmental_gateway",
+  "telemetry": {
+    "sensors": {"temperature_c": 21.5, "humidity_pct": 52.0},
+    "resource_profile": {
+      "bandwidth": {"class": "bandwidth", "units": 2.5},
+      "availability": {"class": "availability", "units": 1.0}
+    }
+  },
+  "substrate": {"kind": "cloudflare_worker_isolate", "lab": true}
+}
+```
+
+`node_id`, `parent_fog`, and `role` identify the provider. `device_class` and
+`sensors` are descriptive evidence. Only `telemetry.resource_profile[*]` is a
+resource inventory: its key and `class` must be one of `storage`, `compute`,
+`bandwidth`, or `availability`; `units` is a positive capacity sample.
+Legacy labels such as `ipfs_pin`, `validate`, `gossip`, and `fog_uptime` are
+evidence aliases, not additional resource classes. See
+[`POC-RESOURCE-VS-FUNCTION.md`](./POC-RESOURCE-VS-FUNCTION.md).
+
+Clarification — canonical classes and units:
+
+- Each entry under `telemetry.resource_profile` MUST include a `class` field
+  set to one of `storage`, `compute`, `bandwidth`, or `availability`, and a
+  numeric `units` value greater than 0. The interpretation of `units` is
+  class-dependent (for example, `storage` is expressed as MB-month; `bandwidth`
+  is a throughput sample; `compute` is a work-unit). For lab PoC the `units`
+  field is a numeric sample; normalisation to billable quantities and currency
+  conversion is handled later in the PoC/Agora pipeline. Legacy evidence labels
+  are mapped to canonical classes by the normalization logic described in
+  docs/POC-RESOURCE-VS-FUNCTION.md.
+
+### Probe → measurement path
+
+The existing synthetic edge Worker provides a deterministic, executable PoC:
+
+1. `GET <edge-worker>/telemetry` probes the node and returns the inventory
+   above (`workers/stratamesh-edge-node.js`).
+2. `POST <edge-worker>/heartbeat` samples the profile and sends a bounded 10%
+   slice per resource to the PoC service as
+   `POST /pool/contribute` (`resource_class`, `units`, `node_id`, and telemetry
+   metadata). It optionally attaches a lightweight DAG edge.
+3. `GET <poc-worker>/measure?node_id=<node_id>` reads the PoC's on-graph
+   measurement evidence. A pool contribution alone does not fabricate
+   on-graph measurement units; the result can remain zero until accepted DAG,
+   subsidy, pin, or equivalent evidence exists.
+
+For a real device, `POST <iot-worker>/iot/ingest` accepts normalized telemetry
+(`{agent_id, kind, value, unit}`), SenML, form, or query input. IoT ingestion
+records telemetry, but does **not** convert it into PoC resource capacity or
+mint STRATA; an operator must supply a separate, auditable resource profile.
+
+### Explicit non-claims
+
+- Synthetic sensor values are deterministic drivers, not physical sensor
+  readings.
+- A successful HTTP ACK proves acceptance/recording, not device health,
+  uptime, availability, or measurement truth.
+- `/pool/contribute` is a lab capacity write; it is not proof of capacity,
+  multi-host attestation, or a mint authorization by itself.
+- `/measure` is partial lab/on-graph evidence, not production metering,
+  mainnet finality, aBFT, Sybil resistance, or a hardware attestation.
+- IoT telemetry does not imply resource ownership, a subject identity, or an
+  economic price by device function.
+PATCH
+
+          git config user.email "maintainer-bot@github-actions"
+          git config user.name "StrataMesh Maintainer Bot"
+          git add "$FILE"
+          git commit -m "docs(edge): add schema + clarify canonical classes/units (maintainer edits)" || echo "No changes to commit"
+          git push origin HEAD:$HEAD_REF
+        shell: bash
+
+      - name: Approve PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            await github.rest.pulls.createReview({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, event: 'APPROVE', body: 'Applying minor maintainer edits (schema + class/unit clarification). Docs-only; approving and merging.' });
+
+      - name: Merge PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            const merge = await github.rest.pulls.merge({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, merge_method: 'merge' });
+            core.setOutput('merge_result', JSON.stringify(merge.data));
+
+      - name: Post success comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: 'Maintainer edits applied and PR merged automatically by workflow.' });
