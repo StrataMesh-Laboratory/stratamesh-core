@@ -1,0 +1,356 @@
+name: Universal Contribution Audit & Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to audit and manage
+        required: true
+      action:
+        description: Action to perform on the PR
+        required: true
+        type: choice
+        options:
+          - audit
+          - approve_and_merge
+          - request_changes
+          - close_with_feedback
+      audit_focus:
+        description: Audit focus (comma-separated tags)
+        required: false
+        default: syntax,security,performance,style
+      custom_feedback:
+        description: Custom feedback or justification
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  audit_and_manage:
+    name: Universal Contribution Audit & Management
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      audit_passed: ${{ steps.audit.outputs.passed }}
+      audit_summary: ${{ steps.audit.outputs.summary }}
+      action_result: ${{ steps.action.outputs.result }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get PR details
+        id: pr_details
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER || '0', 10);
+            if (isNaN(prNum) || prNum <= 0) {
+              throw new Error(`Invalid PR number: ${process.env.PR_NUMBER}`);
+            }
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNum
+            });
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNum
+            });
+            core.setOutput('number', String(prNum));
+            core.setOutput('title', pr.data.title);
+            core.setOutput('author', pr.data.user.login);
+            core.setOutput('head_repo', pr.data.head.repo?.full_name || 'N/A');
+            core.setOutput('head_ref', pr.data.head.ref);
+            core.setOutput('base_branch', pr.data.base.ref);
+            core.setOutput('files_changed', String(files.data.length));
+            core.setOutput('additions', String(pr.data.additions));
+            core.setOutput('deletions', String(pr.data.deletions));
+            core.setOutput('draft', String(pr.data.draft));
+
+      - name: Perform audit
+        id: audit
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          AUDIT_FOCUS: ${{ github.event.inputs.audit_focus }}
+          PR_TITLE: ${{ steps.pr_details.outputs.title }}
+          PR_AUTHOR: ${{ steps.pr_details.outputs.author }}
+          FILES_CHANGED: ${{ steps.pr_details.outputs.files_changed }}
+          ADDITIONS: ${{ steps.pr_details.outputs.additions }}
+          DELETIONS: ${{ steps.pr_details.outputs.deletions }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const auditFocus = process.env.AUDIT_FOCUS.split(',').map(s => s.trim());
+            const prTitle = process.env.PR_TITLE;
+            const prAuthor = process.env.PR_AUTHOR;
+            const filesChanged = parseInt(process.env.FILES_CHANGED, 10);
+            const additions = parseInt(process.env.ADDITIONS, 10);
+            const deletions = parseInt(process.env.DELETIONS, 10);
+            
+            let auditResults = {
+              passed: true,
+              issues: [],
+              warnings: [],
+              summary: ''
+            };
+            
+            // Syntax check
+            if (auditFocus.includes('syntax')) {
+              if (!prTitle || prTitle.trim().length === 0) {
+                auditResults.issues.push('❌ Empty PR title');
+                auditResults.passed = false;
+              }
+              if (prTitle && prTitle.length > 100) {
+                auditResults.warnings.push('⚠️ PR title too long (>100 chars)');
+              }
+            }
+            
+            // Security check
+            if (auditFocus.includes('security')) {
+              const dangerousPatterns = [
+                { pattern: /password|secret|token|key|api_key/i, name: 'hardcoded credentials' },
+                { pattern: /eval\(|exec\(/i, name: 'dangerous function calls' },
+                { pattern: /TODO|FIXME.*security/i, name: 'unresolved security concerns' }
+              ];
+              // Warnings for potential security issues
+              auditResults.warnings.push('ℹ️ Security audit: Manual code review recommended');
+            }
+            
+            // Performance check
+            if (auditFocus.includes('performance')) {
+              if (additions > 1000 && filesChanged > 20) {
+                auditResults.warnings.push('⚠️ Large change: >1000 additions across 20+ files - performance impact review needed');
+              }
+            }
+            
+            // Style check
+            if (auditFocus.includes('style')) {
+              if (prTitle && /[a-z]/.test(prTitle.charAt(0))) {
+                auditResults.warnings.push('ℹ️ Style: PR title should start with capital letter');
+              }
+            }
+            
+            // Size check
+            if (filesChanged > 50) {
+              auditResults.warnings.push(`⚠️ Large PR: ${filesChanged} files changed - consider splitting into smaller PRs`);
+            }
+            
+            auditResults.summary = `Audit Results:
+            • Author: ${prAuthor}
+            • Files: ${filesChanged}
+            • Changes: +${additions}/-${deletions}
+            • Status: ${auditResults.passed ? '✅ PASSED' : '❌ FAILED'}
+            • Issues: ${auditResults.issues.length}
+            • Warnings: ${auditResults.warnings.length}`;
+            
+            core.setOutput('passed', auditResults.passed ? 'true' : 'false');
+            core.setOutput('issues', JSON.stringify(auditResults.issues));
+            core.setOutput('warnings', JSON.stringify(auditResults.warnings));
+            core.setOutput('summary', auditResults.summary);
+            
+            console.log(auditResults.summary);
+            auditResults.issues.forEach(issue => console.log(issue));
+            auditResults.warnings.forEach(warn => console.log(warn));
+
+      - name: Request changes
+        id: request_changes
+        if: github.event.inputs.action == 'request_changes'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          AUDIT_ISSUES: ${{ steps.audit.outputs.issues }}
+          AUDIT_WARNINGS: ${{ steps.audit.outputs.warnings }}
+          CUSTOM_FEEDBACK: ${{ github.event.inputs.custom_feedback }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const issues = JSON.parse(process.env.AUDIT_ISSUES || '[]');
+            const warnings = JSON.parse(process.env.AUDIT_WARNINGS || '[]');
+            const customFeedback = process.env.CUSTOM_FEEDBACK || '';
+            
+            let reviewBody = '## Contribution Review - Changes Requested\n\n';
+            
+            if (issues.length > 0) {
+              reviewBody += '### Critical Issues\n';
+              issues.forEach(issue => reviewBody += `- ${issue}\n`);
+              reviewBody += '\n';
+            }
+            
+            if (warnings.length > 0) {
+              reviewBody += '### Warnings & Recommendations\n';
+              warnings.forEach(warn => reviewBody += `- ${warn}\n`);
+              reviewBody += '\n';
+            }
+            
+            if (customFeedback) {
+              reviewBody += `### Justification\n${customFeedback}\n\n`;
+            }
+            
+            reviewBody += '**Action Required:** Please address the issues above and push updates to this branch.\n';
+            
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNum,
+                event: 'REQUEST_CHANGES',
+                body: reviewBody
+              });
+              core.setOutput('result', `✓ Changes requested on PR #${prNum}`);
+              console.log(`Changes requested on PR #${prNum}`);
+            } catch (error) {
+              core.setFailed(`Failed to request changes: ${error.message}`);
+              throw error;
+            }
+
+      - name: Approve and merge
+        id: approve_merge
+        if: github.event.inputs.action == 'approve_and_merge' && steps.audit.outputs.passed == 'true'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          HEAD_REPO: ${{ steps.pr_details.outputs.head_repo }}
+          HEAD_REF: ${{ steps.pr_details.outputs.head_ref }}
+          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const auditSummary = process.env.AUDIT_SUMMARY;
+            
+            try {
+              // Add comment with audit summary
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNum,
+                body: `## ✅ Audit Passed & Approved\n\n${auditSummary}\n\nMerging now...`
+              });
+              
+              // Merge the PR
+              const merge = await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNum,
+                merge_method: 'merge'
+              });
+              
+              core.setOutput('result', `✓ PR #${prNum} approved and merged successfully`);
+              console.log(`PR #${prNum} merged successfully`);
+            } catch (error) {
+              core.setFailed(`Merge failed: ${error.message}`);
+              throw error;
+            }
+
+      - name: Close with feedback
+        id: close_feedback
+        if: github.event.inputs.action == 'close_with_feedback'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          CUSTOM_FEEDBACK: ${{ github.event.inputs.custom_feedback }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const auditSummary = process.env.AUDIT_SUMMARY;
+            const customFeedback = process.env.CUSTOM_FEEDBACK || 'No specific feedback provided.';
+            
+            try {
+              let closeBody = `## 🚫 PR Closed - Rejected\n\n`;
+              closeBody += auditSummary + '\n\n';
+              closeBody += `### Justification\n${customFeedback}\n\n`;
+              closeBody += `If you'd like to reopen or address these concerns, please contact the maintainers.`;
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNum,
+                body: closeBody
+              });
+              
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNum,
+                state: 'closed'
+              });
+              
+              core.setOutput('result', `✓ PR #${prNum} closed with feedback`);
+              console.log(`PR #${prNum} closed with feedback`);
+            } catch (error) {
+              core.setFailed(`Failed to close PR: ${error.message}`);
+              throw error;
+            }
+
+      - name: Reject audit failure
+        id: reject_audit_fail
+        if: github.event.inputs.action == 'approve_and_merge' && steps.audit.outputs.passed == 'false'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          AUDIT_ISSUES: ${{ steps.audit.outputs.issues }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const auditSummary = process.env.AUDIT_SUMMARY;
+            const issues = JSON.parse(process.env.AUDIT_ISSUES || '[]');
+            
+            let body = `## ❌ Audit Failed - Cannot Merge\n\n${auditSummary}\n\n`;
+            body += '### Blocking Issues\n';
+            issues.forEach(issue => body += `- ${issue}\n`);
+            body += '\n**Resolution:** Fix the issues above and re-run the audit.';
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNum,
+              body: body
+            });
+            
+            core.notice(`Audit failed for PR #${prNum} - merge blocked`);
+
+      - name: Generate audit report
+        id: report
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr_details.outputs.number }}
+          ACTION: ${{ github.event.inputs.action }}
+          AUDIT_PASSED: ${{ steps.audit.outputs.passed }}
+          AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
+          ACTION_RESULT: ${{ steps.approve_merge.outputs.result || steps.request_changes.outputs.result || steps.close_feedback.outputs.result || steps.reject_audit_fail.outputs.result || 'No action performed' }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const action = process.env.ACTION;
+            const auditPassed = process.env.AUDIT_PASSED === 'true';
+            const auditSummary = process.env.AUDIT_SUMMARY;
+            const actionResult = process.env.ACTION_RESULT;
+            
+            let reportBody = `## 📋 Workflow Execution Report\n\n`;
+            reportBody += `**PR:** #${prNum}\n`;
+            reportBody += `**Action:** ${action}\n`;
+            reportBody += `**Audit Status:** ${auditPassed ? '✅ PASSED' : '❌ FAILED'}\n`;
+            reportBody += `**Result:** ${actionResult}\n\n`;
+            reportBody += `### Audit Details\n${auditSummary}\n`;
+            
+            console.log(reportBody);
+            
+            core.summary
+              .addHeading('Workflow Report', 2)
+              .addRaw(reportBody)
+              .write();
