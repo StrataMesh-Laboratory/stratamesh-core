@@ -22,8 +22,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
-            const pr = await github.rest.pulls.get({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber });
+            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
+            console.log(`Fetching PR #${prNumber}`);
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            
+            if (!pr.data.head.repo) {
+              throw new Error(`PR #${prNumber} head repository is null or deleted`);
+            }
+            
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('head_repo_full_name', pr.data.head.repo.full_name);
             core.setOutput('head_ref', pr.data.head.ref);
@@ -137,7 +147,8 @@ PATCH
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
+            console.log(`Approving PR #${prNumber}`);
             await github.rest.pulls.createReview({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -150,7 +161,8 @@ PATCH
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
+            console.log(`Merging PR #${prNumber}`);
             const merge = await github.rest.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -163,7 +175,8 @@ PATCH
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber = parseInt(core.getInput('pr_number') || github.context.payload?.inputs?.pr_number || '21');
+            const prNumber = parseInt('${{ github.event.inputs.pr_number }}' || '21');
+            console.log(`Posting comment on PR #${prNumber}`);
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
