@@ -4,8 +4,12 @@ StrataMesh Persistent Fog Node — Phase 2
 HTTP Fog Node: PersistentDAG, gossip, pins, SPA registry, finality, PoC.
 
 Endpoints:
-  GET  /status /health /inv /spa /finality /contribution
+  GET  /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution
   POST /submit /gossip /spa/register
+
+GET /gossip is a lab_single_host_gossip view (self-peer only, mesh_member false).
+GET /tx aliases GET /inv (inventory ids). GET /tx/{id} remains the tx body.
+GET /resources is resource_meter.sample() on this process — not a device farm.
 """
 
 from __future__ import annotations
@@ -34,6 +38,7 @@ from governance import Governance
 from sandbox import UGCSandbox
 from acb import ACBRegistry
 from pq_keys import PQKeyRegistry
+from resource_meter import sample as resource_sample
 
 
 class PersistentFogNode:
@@ -287,6 +292,62 @@ class PersistentFogNode:
         with self.lock:
             return list(self.dag.txs.keys())[-64:]
 
+    def lab_role(self) -> str:
+        """Honest single-host role from node_id. Not a mesh roster."""
+        nid = (self.node_id or "").upper()
+        if nid.startswith("EDGE"):
+            return "edge"
+        return "fog"
+
+    def gossip_view(self) -> dict:
+        """GET /gossip: live inventory + self as the only peer. lab_single_host_gossip."""
+        nid = self.node_id
+        return {
+            "protocol": "lab_single_host_gossip",
+            "ok": True,
+            "node_id": nid,
+            "mesh_member": False,
+            "peers": [
+                {
+                    "id": nid,
+                    "role": self.lab_role(),
+                    "substrate": "local-process",
+                }
+            ],
+            "ids": self.inventory(),
+            "accept": ["POST /gossip", "GET /inv", "GET /tx/{id}", "POST /submit"],
+        }
+
+    def resources_view(self) -> dict:
+        """GET /resources: this process sample + one lab mock device (this host)."""
+        s = resource_sample()
+        return {
+            "ok": True,
+            "lab": True,
+            "node_id": self.node_id,
+            "source": s.source,
+            "sample": {
+                "cpu_percent": s.cpu_percent,
+                "mem_rss_mb": s.mem_rss_mb,
+                "mem_percent": s.mem_percent,
+                "timestamp": s.timestamp,
+                "source": s.source,
+            },
+            "devices": [
+                {
+                    "id": self.node_id,
+                    "kind": "host-process",
+                    "mock": True,
+                    "label": "single lab host (this process)",
+                    "substrate": "local-process",
+                }
+            ],
+            "note": (
+                "single-host process sample via resource_meter.sample(); "
+                "one mock device object for this host only — not a device farm, not multi-host"
+            ),
+        }
+
     def status(self) -> dict:
         with self.lock:
             self.spas.apply_opt_out_grace()
@@ -346,6 +407,12 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
+        elif path == "/tx":
+            self._json(200, {"ids": NODE.inventory()})
+        elif path == "/gossip":
+            self._json(200, NODE.gossip_view())
+        elif path == "/resources":
+            self._json(200, NODE.resources_view())
         elif path.startswith("/tx/"):
             tid = path[len("/tx/"):]
             with NODE.lock:
@@ -639,7 +706,7 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /spa /finality /contribution /token /agora /nft /inv")
+    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution")
     print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip")
     try:
         server.serve_forever()
