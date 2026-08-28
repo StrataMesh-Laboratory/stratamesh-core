@@ -1,53 +1,51 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-28T08:12:28Z",
-  "headline": "Green — Dev Cycle 09:00 Europe/Lisbon HOLD; status 0.3.9-pulse · edge 1.5.3-ping-real-fog · api-edge 1.2.0; 0 critical, mandatory_actions []; probes 429 from sandbox IP (metabolic/CF)",
-  "posture": "green",
-  "node_id": "FOG-NODE-PT-CM-001",
-  "agent": "EDGE-GROK-CMN-001",
+  "generated_at": "2026-08-28T18:53:00Z",
+  "headline": "Yellow — INC-1027 HOLD on public AIOps/EDGE/gossip; Fog local-process tx_count=1; latest_cycle in KV 08:00Z hidden by HOLD pages",
+  "posture": "yellow",
   "status": {
-    "version": "0.3.9-pulse",
+    "version": "fog-0.2.1-lab-temp",
     "phase": "2",
-    "phase_name": "Nodal Hierarchy & SPAs",
     "lab": true,
     "operational": true,
-    "upstream_ok": 11,
-    "upstream_total": 11
-  },
-  "versions": {
-    "status": "0.3.9-pulse",
-    "edge_grok": "1.5.3-ping-real-fog",
-    "edge_api": "1.2.0-zero-auth-register",
-    "aiops": "1.7.1-ops-formal",
-    "token": "3.5.2-smart-contract",
-    "deomail": "1.4.5-fingerprint-free"
+    "fog_substrate": "local-process",
+    "oracle_vm": false
   },
   "aiops": {
     "critical": 0,
     "warn": 0,
     "info": 5,
-    "next_actions": []
+    "latest_cycle_kv_at": "2026-08-28T08:00:54.235Z",
+    "latest_cycle_kv_id": "380b12cd-5ecb-42eb-b8e9-e949ff625b53",
+    "latest_cycle_public": null,
+    "version_live": "1.10.4-sg-delta"
   },
-  "mesh": {
-    "fog": "FOG-NODE-PT-CM-001",
-    "edge_public": "EDGE-GROK-CMN-001",
-    "peers_live": 2,
-    "protocol": "lab_fog_edge_mesh_active"
-  },
-  "mandatory_actions": [],
+  "mandatory_actions": [
+    {
+      "id": "SG-SPA",
+      "priority": "P1",
+      "owner": "mesh",
+      "verb": "Expose SPA registry metrics on public status pulse",
+      "success_check": "status.spa.total is a number on https://status.calhegasmorais.pt/",
+      "effort": "M"
+    },
+    {
+      "id": "SG-DAG",
+      "priority": "P1",
+      "owner": "devops",
+      "verb": "Expose DAG transaction_count on status pulse used by AIOps",
+      "success_check": "status.dag.transaction_count is a number on https://status.calhegasmorais.pt/",
+      "effort": "M"
+    }
+  ],
   "optional_actions": [],
   "non_actions": [
-    "No mass issue comments",
-    "No invent work",
-    "Observers without public /health stay off gossip",
-    "Do not GET /actions (hangs)",
-    "Fog 530/1033 = tunnel P1 not mesh P0"
+    "Torch HOLD — do not restore aiops/edge/api-edge/deomail CNAME off lab-hold pages",
+    "INC-1027 — do not re-enable DeoMail workers.dev or hourly probe crons",
+    "No 39th Worker (count already 39)",
+    "Do not monopolize WhatsApp (P3, offline since 2026-08-18)",
+    "KV PUT exhausted free-tier 10048 today — do not burn remaining writes",
+    "Fog is local-process not Oracle VM"
   ],
-  "notes": "2026-08-28 09:00 Europe/Lisbon Dev Cycle (RESERVED PEAK). Sources: aiops /handoff + /health → 429 (sandbox/CF); GitHub HANDOFF-LATEST green + empty mandatory/next → HOLD. DeoMail skim blocked by same 429. Last known: upstream 11/11, posture green. Metabolism: peak fire allowed; watchdog remains daily 04:00; no 6th CF cron. 0.4.4-honest-envelope retained; Challenge 0 unfunded. Lab / pre-testnet.",
-  "efficacy_self_score": 0.94,
-  "metabolism": {
-    "peak": "09:00",
-    "decision": "HOLD",
-    "note": "Green+empty → success HOLD; handoff refreshed"
-  }
+  "notes": "SG-DELTA 2026-08-28 19:52 PT. Public AIOps/EDGE/gossip = HOLD HTML. workers.dev 1027. Fog /health 200 local-process tx_count=1 after ~19:31 PT restart. KV last_cycle 2026-08-28T08:00:54Z still present (GET). Briefing 2.2.1-aiops-bind fetchBound AIOPS /cycle at 11h. AIOps 1.10.4-sg-delta /health includes latest_cycle from KV. Cron 0 1 * * * unchanged. KV API PUT 429/10048 so worklog refresh is GitHub+box file this evening."
 }
