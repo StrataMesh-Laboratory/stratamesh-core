@@ -18,6 +18,7 @@ API: `GET https://stratamesh-token.stratamesh.workers.dev/monetary` · `POST /bu
 - Status JSON: https://stratamesh-status.stratamesh.workers.dev/status
 - Live dashboard: https://stratamesh-status.stratamesh.workers.dev/live
 - Site: https://calhegasmorais.pt/
+- Hub (catalog): https://huggingface.co/stratamesh
 
 ## Ops (lab)
 ```bash
@@ -39,7 +40,7 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
 
-Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.1-lab.md` · `docs/OPS-RUNBOOK.md`
+Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.1-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
 Lab freeze **v0.2.1-lab** exercises whitepaper pillars in-process. Production splits into:
@@ -62,12 +63,15 @@ cd src && python3 -m orchestrator.meta_controller
 |---------|-----|
 | **Forum** | [stratamesh.discourse.group](https://stratamesh.discourse.group) |
 | **GitHub org** | [StrataMesh-Laboratory](https://github.com/StrataMesh-Laboratory) |
+| **Hugging Face** | [huggingface.co/stratamesh](https://huggingface.co/stratamesh) |
 | **Reference node** | [calhegasmorais.pt](https://calhegasmorais.pt) |
 | **Status** | [status.calhegasmorais.pt](https://status.calhegasmorais.pt) |
 | **Impact Fund** | [fund.calhegasmorais.pt](https://fund.calhegasmorais.pt) |
 | Contact | `geral@eni.calhegasmorais.pt` |
 
-Forum = discussion · GitHub = code · Node = public lab surface. See [docs/COMMUNITY-CHANNELS.md](docs/COMMUNITY-CHANNELS.md).
+Forum = discussion · GitHub = code · Hub = catalog of means (not inference) · Node = public lab surface. See [docs/COMMUNITY-CHANNELS.md](docs/COMMUNITY-CHANNELS.md) · [docs/HUB.md](docs/HUB.md).
+
+HF Inference Providers stay **HOLD** until the $0.10/mo prepaid grant refills (1 Sep 2026 00:00 UTC, `canPay=false`). Whoami and bucket catalog are live. Do not pull the RealworldQA bucket onto Fog.
 
 ## Contributors (testnet funnel)
 
