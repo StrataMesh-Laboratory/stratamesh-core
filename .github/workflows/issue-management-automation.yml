@@ -4,7 +4,7 @@ on:
   issues:
     types: [opened, labeled, unlabeled]
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 9 * * 1-5'  # weekdays 09:00 UTC; was every 6h
   workflow_dispatch:
 
 permissions:
