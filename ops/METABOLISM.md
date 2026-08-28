@@ -1,65 +1,82 @@
-# Metabolic stasis
+# Metabolic stasis v1.1
 
 The lab was burning the day's quota before the day's reserved work.
-
-## RCA (26–27 Aug 2026)
-
-| Rail | Symptom | Cause | Fix |
-|---|---|---|---|
-| Grok automations | Discourse 18:00 `USAGE_POOL_EXHAUSTED` two days running | Watchdog hourly 00:00–08:00 Lisbon = **8 fires/night**, plus 09:00 + desk | Watchdog **daily 04:00** Lisbon. 4 budgeted slots + 2 desk. Peaks reserved. |
-| AIOps `GET /actions` | 5–8s timeout | Live 1.10.3 hangs | Forbidden. Use `/health` + `/handoff`. |
-| Status pulse | 4.0s | Full inventory vs `/health` 0.09s | Probes use `/health`. |
-| Fog `530` / CF 1033 | Looks like mesh-down | Named tunnel origin down | P1 tunnel, not P0, unless status worker is also down. |
-| CF ACB cron | 96 invocations/day (`*/15`) | Unpaced vs Free 5-cron / 100k req | **`30 * * * *`** (hourly, :30). Still 5/5 crons. |
-| CF PoC + DAO | Fired together `0 */6` | Burst | PoC **`15 */6 * * *`**. Cap still 5. |
-| ops-monitor | `INTERVAL_SEC=120` → hanging `/actions` | Local + AIOps stall | `/health`, 300s day / 900s night. |
-| GitHub core | 5000/h | Not the bottleneck | Still paced: `remaining / hours_until_reset`. |
-| DeoMail | No published limit | Mailbox skim could dump | 240/day, 10/h average. |
-
-Silence is not stable. `ORCH-SILENCE` still escalates via grok@. This is **pacing**, not sleeping.
+v1.1 adds **hourly + daily caps on every token / PAYG rail** and **overdraft compensation**: unused grant of a later phase pays back a prior burst.
 
 ## Formula
 
 ```
-hours_left  = max(seconds_until_renewal / 3600, 1/60)
-hourly_cap  = remaining / hours_left
-spendable   = remaining - reserved_future_peaks
+hourly_cap     = remaining / max(hours_until_renewal, 1/60)
+grant          = hourly_cap deposited at phase open
+carry         += grant − spent          # signed wallet
+next_phase     = grant + unused − overdraft
+daily_effective = daily_limit + daily_credit − daily_debt
 ```
 
 - **STASIS** — remaining ≤ 0. Six-line note. No retry-loop.
-- **HOLD** — unscheduled spend would steal a reserved peak still ahead, **or** cost > hourly_cap on a rate rail.
-- **ALLOW** — budgeted slot / reserved peak with remaining ≥ cost, or unscheduled within contingency.
-- **P0_BORROW** — P0 may spend; still no retry-loop on `USAGE_POOL_EXHAUSTED`.
+- **HOLD** — unscheduled spend would steal a reserved peak, **or** cost > this phase's allowance.
+- **ALLOW** — budgeted slot / reserved peak, or unscheduled within contingency **and** hourly carry.
+- **P0_BORROW** — P0 may spend; the overdraft is credited to subsequent phases.
 
-Reserved Lisbon peaks (must survive until they fire):
+Peaks (09:00 / 18:00 / 23:00 Lisbon) **may overdraft the hour**. Quiet hours compensate. Next calendar day inherits leftover `daily_debt` (Grok, DeoMail, xAI, CF daily rails). GitHub rolling windows **reset carry** when the vendor resets — we don't invent debt against a refilled 5000.
 
-1. 09:00 Dev Cycle
-2. 18:00 Discourse pulse (the casualty)
-3. 23:00 Night Diagnostic
+## Rails (token / PAYG / quota)
 
-Budgeted non-peak: 04:00 Watchdog (once).
+| Rail | Billing | Window | Cap |
+|---|---|---|---|
+| grok-auto | quota (shared pool) | day Lisbon | 6 fires (4 slots + 2 desk) |
+| xai-api | PAYG owner key | day Lisbon | 24 req · 1/hour · user-initiated |
+| deomail | token | day Lisbon | 240 · 10/h |
+| discourse | quota | day Lisbon | 6 posts |
+| github-core | token | rolling hour | 5000 |
+| github-search | token | 60s | 30 |
+| github-graphql | token | rolling hour | 5000 (MCP burns this) |
+| github-code-search | token | 60s | 10 |
+| cf-cron | quota | structural | **5/5 · never a 6th** |
+| cf-worker-req | quota | day UTC | 100k |
+| cf-d1-reads / writes | quota | day UTC | 5M / 100k |
+| cf-kv-reads / writes | quota | day UTC | 100k / **1k** |
+| cf-r2-class-a | quota | day UTC | ~33k (1M/month) |
+| cf-acb-cron | quota | day UTC | 24 (was 96) |
+| local-monitor | quota | day Lisbon | 192 · stretch if in debt |
+| aiops-actions | quota | — | **0 · forbidden** |
 
-Grok pool is shared with desk conversations. Daily automation budget = **6 fires** (4 slots + 2 contingency). Do not `run_now` the four automations to "test" them.
+## RCA (26–27 Aug + follow-up)
 
-## Cloudflare Free
+| Rail | Symptom | Cause | Fix |
+|---|---|---|---|
+| Grok automations | 18:00 `USAGE_POOL_EXHAUSTED` two days | Watchdog 8×/night | Daily 04:00. Peak overdraft paid by quiet hours. |
+| GitHub GraphQL | 1504 points used in one hour | MCP unbounded | remaining / hours_left |
+| xAI API | owner `XAI_API_KEY` live | PAYG dump risk | 24/day, never auto-loop |
+| CF KV writes | 1k/day Free | handoff write-loop | pace; debt stretches interval |
+| AIOps `/actions` | 5–8s timeout | live 1.10.3 hangs | hard_cap 0 |
+| Fog 530 / 1033 | looks like mesh-down | named tunnel | P1, not P0 |
+| ACB cron | 96/day then 24/day | `*/15` then hourly | INC-1027: `30 0 * * *` (once after UTC reset) |
 
-Still **5/5 crons**. No sixth.
+## Cloudflare Free crons (still 5/5)
 
-| Worker | Cron (UTC) | Was |
+| Worker | Cron (UTC) | Notes |
 |---|---|---|
-| stratamesh-acb | `30 * * * *` | `*/15 * * * *` |
-| stratamesh-aiops | `0 * * * *` | same |
-| stratamesh-briefing | `0 10 * * *` | same |
-| stratamesh-dao | `0 */6 * * *` | same |
-| stratamesh-poc | `15 */6 * * *` | `0 */6 * * *` |
+| stratamesh-acb | `30 0 * * *` | was `30 * * * *` · INC-1027 bleed-stop |
+| stratamesh-aiops | `0 1 * * *` | was `0 * * * *` |
+| stratamesh-briefing | `0 10 * * *` | |
+| stratamesh-dao | `0 */6 * * *` | |
+| stratamesh-poc | `15 */6 * * *` | |
 
-Metabolism is a **request-time library**, not a Worker cron.
+Metabolism is a **request-time library + ledger**, not a 6th cron.
 
-## Code
+## INC-1027 (2026-08-28)
 
-- `lib/metabolism.py` — Node / lab watchdog
-- `lib/metabolism.js` — Workers + dashboard
-- `config/rails.json` — rail table
-- `bin/ops-watchdog` — uses `/health`, metabolic interval, Fog 530 = P1
+Workers Free **100,000 req/day** exhausted. Site 1027 at 08:36Z. GraphQL: **~95k in hour 00 UTC** after midnight reset.
+
+Lockstep ~19.5k each: status, aiops, gossip, deomail, edge-api, fund. **edge-grok 2×** because gossip `/peers` fetched edge `/health`. Fund `/health` called GitHub (1 GraphQL + 2 issue lists) → **58.6k subrequests** and the PAT secondary 403. SPA catch-all was **9 requests** — not the burner. 86 routes were fail-closed, so quota death black-holed the apex.
+
+Mitigations (no 6th cron): ACB/AIOps crons once after reset; SPA catch-alls **fail-open**; fund `0.4.5-metabolic-health`; gossip `2.3.3-peer-cache`; zone rate-limit **5 req / 10s / IP / colo**. **DeoMail `workers.dev` disabled** (WAF-blind hole). Custom host `deomail.calhegasmorais.pt` is behind the same 5/10s. Four Grok automations paused. Local monitor `STASIS=1`. Fog 530 — host SIGKILL is on-box when the tunnel is back (`bin/kill-host-probe`).
+
+## Ledger
+
+`state/ledger.json` · `record_spend(rail, cost)` · overdraft_events counted.
+`bin/metabolism-status --spend RAIL COST` to record a desk spend (e.g. a Grok fire).
+`state/incident-1027-2026-08-28.json` is the Error 1027 evidence pack.
 
 Lab honest. Identity ≠ cargo. AIOps is a team, not a cargo. No mainnet. Challenge 0 unfunded.

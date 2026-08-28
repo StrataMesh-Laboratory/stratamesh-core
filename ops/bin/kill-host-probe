@@ -1,0 +1,28 @@
+#!/bin/bash
+# Fog/host kill-switch for the ~3 Hz lockstep walker (INC-1027).
+# The lab twin cannot SIGKILL FOG-NODE-PT-CM-001 while the named tunnel is 530.
+# Run on the Fog host when cloudflared is back. Does not start anything.
+set -euo pipefail
+echo "INC-1027 kill-host-probe $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# named patterns — do not pkill -f python (too broad)
+for pat in \
+  aiops_continuous_loop \
+  'ops-watchdog --loop' \
+  'edge-heartbeat --loop' \
+  'bin/ops-watchdog --loop' \
+  'bin/edge-heartbeat --loop'
+do
+  if pgrep -af "$pat" >/dev/null 2>&1; then
+    echo "found: $pat"
+    pkill -TERM -f "$pat" || true
+    sleep 0.3
+    pkill -KILL -f "$pat" || true
+    echo "killed: $pat"
+  else
+    echo "not_running: $pat"
+  fi
+done
+# refuse to restart monitors that walk workers.dev
+touch /tmp/STRATAMESH_STASIS
+echo "wrote /tmp/STRATAMESH_STASIS — host probes stay down until you remove it"
+echo "workers.dev DeoMail is disabled. Custom host deomail.calhegasmorais.pt is behind zone 5/10s. Do not curl either until 00:00 UTC refill + 30 min."
