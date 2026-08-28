@@ -1,0 +1,3 @@
+# Dev-only extras for lab property tests. Not a runtime Fog dependency.
+# pip install --user -r requirements-dev.txt
+hypothesis>=6.100
