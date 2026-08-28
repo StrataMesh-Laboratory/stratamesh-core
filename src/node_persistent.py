@@ -39,6 +39,7 @@ from sandbox import UGCSandbox
 from acb import ACBRegistry
 from pq_keys import PQKeyRegistry
 from resource_meter import sample as resource_sample
+from host_fingerprint import fingerprint as host_fingerprint
 
 
 class PersistentFogNode:
@@ -353,6 +354,7 @@ class PersistentFogNode:
             self.spas.apply_opt_out_grace()
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
+            fp = host_fingerprint()
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
@@ -362,6 +364,11 @@ class PersistentFogNode:
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
                     "version": "0.2.1-dev",
+                    "host_id": fp["host_id"],
+                    "host_id_source": fp["source"],
+                    "mesh_member": False,
+                    "oracle_live": False,
+                    "oracle_vm": False,
                     "uptime_seconds": int(time.time() - self.started_at),
                     "storage": {"backend": "sqlite", "path": self.db_path},
                     "finality_tips": tip_set_report(self.dag, limit=8),

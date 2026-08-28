@@ -9,6 +9,8 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 import time
 
+from host_fingerprint import fingerprint as host_fingerprint
+
 
 OPERATOR_NAME = "André Manuel Calhegas Morais"
 
@@ -23,12 +25,15 @@ def build_status_payload(
     extra: Optional[Dict[str, Any]] = None,
 ) -> dict:
     dag_stats = dag_stats or {}
+    fp = host_fingerprint()
     payload = {
         "node_id": node_id,
         "name": "Calhegas Morais",
         "operator": OPERATOR_NAME,
         "location": {"lat": 38.7169, "lon": -9.1427, "label": "Lisbon, Portugal"},
         "version": "0.2.0-dev",
+        "host_id": fp["host_id"],
+        "host_id_source": fp["source"],
         "phase": phase,
         "phase_name": phase_name,
         "status": "operational",
@@ -60,6 +65,10 @@ def build_status_payload(
     }
     if extra:
         payload.update(extra)
+    # host_id is computed in-process; do not allow extra to drop it.
+    if not payload.get("host_id"):
+        payload["host_id"] = fp["host_id"]
+        payload["host_id_source"] = fp["source"]
     return payload
 
 
