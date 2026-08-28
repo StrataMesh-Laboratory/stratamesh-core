@@ -1,0 +1,30 @@
+# Copy to .github/workflows/origin-archive.yml in stratamesh-core.
+# Daily snapshot — GitHub Action, NOT a 6th Cloudflare cron.
+name: origin-archive
+on:
+  schedule:
+    - cron: "20 0 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack day
+        run: |
+          DAY=$(date -u +%F)
+          mkdir -p /tmp/pile/$DAY
+          cp -a frontend/. /tmp/pile/$DAY/ 2>/dev/null || true
+          cp -a ops/METABOLISM.md /tmp/pile/$DAY/ 2>/dev/null || true
+          printf '%s\n' "{\"date\":\"$DAY\",\"sha\":\"${GITHUB_SHA}\",\"note\":\"daily origin archive\"}" > /tmp/pile/$DAY/manifest.json
+          tar -C /tmp/pile -czf /tmp/origin-archive-$DAY.tar.gz $DAY
+          echo "DAY=$DAY" >> "$GITHUB_ENV"
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: archive-${{ env.DAY }}
+          name: Origin archive ${{ env.DAY }}
+          files: /tmp/origin-archive-${{ env.DAY }}.tar.gz
+          body: Daily last-resort static pile for origin.calhegasmorais.pt. Staff-gated. Not a 6th CF cron.

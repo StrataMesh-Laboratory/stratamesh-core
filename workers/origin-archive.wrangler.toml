@@ -1,0 +1,17 @@
+name = "stratamesh-origin-archive"
+main = "stratamesh-origin-archive.js"
+compatibility_date = "2024-12-01"
+workers_dev = false
+
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "stratamesh-auth-db"
+database_id = "6f898e16-06cb-43e2-80eb-3da14872039e"
+
+[[r2_buckets]]
+binding = "ARCHIVE"
+bucket_name = "cmn-origin-archive"
+
+[[services]]
+binding = "DEOMAIL"
+service = "stratamesh-deomail"
