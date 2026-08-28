@@ -1,0 +1,25 @@
+# HOLD: Cloudflare STASIS until 2026-08-29T00:00:00Z then Q-gated.
+# Does NOT auto-deploy on push. workflow_dispatch only.
+# Do not run a live Worker deploy from this workflow while STASIS holds.
+# wrangler-action default command is "deploy" — overridden to --version on purpose.
+# No CLOUDFLARE_API_TOKEN is passed, so this cannot publish.
+name: wrangler-action-hold
+
+on:
+  workflow_dispatch:
+
+jobs:
+  wrangler-hold:
+    name: HOLD (no live Worker deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: STASIS notice
+        run: |
+          echo "CF STASIS until 2026-08-29T00:00:00Z then Q-gated."
+          echo "workflow_dispatch only. No push trigger. No live Worker deploy."
+      - name: wrangler --version (HOLD, not deploy)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          command: --version

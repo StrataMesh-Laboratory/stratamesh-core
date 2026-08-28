@@ -10,6 +10,7 @@ on:
       - ".github/workflows/protocol-invariants.yml"
       - "docs/WIRE-PROTOCOL-v1.md"
       - "docs/THREAT-MODEL-v1.md"
+      - "requirements-dev.txt"
   pull_request:
     branches: [main]
     paths:
@@ -17,6 +18,7 @@ on:
       - ".github/workflows/protocol-invariants.yml"
       - "docs/WIRE-PROTOCOL-v1.md"
       - "docs/THREAT-MODEL-v1.md"
+      - "requirements-dev.txt"
   workflow_dispatch:
 
 jobs:
@@ -34,6 +36,11 @@ jobs:
       - name: Resource-proof MVP (compute hash work-token)
         working-directory: src
         run: python3 test_resource_proof.py
+      - name: Hypothesis StrataTokenLedger (lab-only, not multi-host)
+        working-directory: src
+        run: |
+          python3 -m pip install --user hypothesis
+          python3 test_fog_ledger_invariants.py
       - name: Protocol benchmark (WIRE + THREAT scenarios)
         working-directory: src
         run: python3 protocol_benchmark.py --nodes 4 --rounds 12 --seed 42
