@@ -23,10 +23,10 @@ on:
         description: Custom feedback or justification
         required: false
       edge_grok_notify:
-        description: Notify EDGE-GROK automation desk
+        description: Notify EDGE-GROK automation desk (HOLD default false — Worker Q-gate)
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -159,6 +159,7 @@ jobs:
       - name: Create EDGE-GROK task
         id: edge_grok_create
         if: github.event.inputs.edge_grok_notify == 'true'
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
@@ -363,6 +364,7 @@ jobs:
       - name: Update EDGE-GROK task
         id: edge_grok_update
         if: github.event.inputs.edge_grok_notify == 'true' && steps.edge_grok_create.outputs.task_id != 'error'
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           EDGE_GROK_API: ${{ env.EDGE_GROK_API }}
