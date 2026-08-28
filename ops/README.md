@@ -2,6 +2,8 @@
 
 | File | Role |
 |------|------|
+| [EDGE-GROK-DESK-CONTRACT.md](./EDGE-GROK-DESK-CONTRACT.md) | Bot + Assistant split, write surfaces, renewal dates |
+| [METABOLISM.md](./METABOLISM.md) | Rails, INC-1027, `decide()`, renewal calendar |
 | [HANDOFF-LATEST.json](./HANDOFF-LATEST.json) | **Authoritative** machine handoff (`stratamesh.handoff.v1`) |
 | [HANDOFF-LATEST.md](./HANDOFF-LATEST.md) | Human view + embedded JSON |
 

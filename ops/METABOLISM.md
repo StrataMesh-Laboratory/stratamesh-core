@@ -20,11 +20,15 @@ daily_effective = daily_limit + daily_credit − daily_debt
 
 Peaks (09:00 / 18:00 / 23:00 Lisbon) **may overdraft the hour**. Quiet hours compensate. Next calendar day inherits leftover `daily_debt` (Grok, DeoMail, xAI, CF daily rails). GitHub rolling windows **reset carry** when the vendor resets — we don't invent debt against a refilled 5000.
 
+`decide()` first-match: STASIS / P0_BORROW (not against HF at remaining 0, not against live Worker HTTP under INC-1027) / HOLD / ALLOW.
+Reserved peak `R = remaining / hours_left`.
+
 ## Rails (token / PAYG / quota)
 
 | Rail | Billing | Window | Cap |
 |---|---|---|---|
 | grok-auto | quota (shared pool) | day Lisbon | 6 fires (4 slots + 2 desk) |
+| grok-assistant | SuperGrok weekly | week | one prompt then execute; cap through 31 Aug; do not Upgrade |
 | xai-api | PAYG owner key | day Lisbon | 24 req · 1/hour · user-initiated |
 | deomail | token | day Lisbon | 240 · 10/h |
 | discourse | quota | day Lisbon | 6 posts |
@@ -38,8 +42,22 @@ Peaks (09:00 / 18:00 / 23:00 Lisbon) **may overdraft the hour**. Quiet hours com
 | cf-kv-reads / writes | quota | day UTC | 100k / **1k** |
 | cf-r2-class-a | quota | day UTC | ~33k (1M/month) |
 | cf-acb-cron | quota | day UTC | 24 (was 96) |
+| hf-inference | prepaid $0.10/mo | month UTC | remaining 0 until **2026-09-01T00:00:00Z**; `canPay=false` |
+| hf-hub-catalog | none (metadata) | — | LIVE whoami / catalog / static commits |
 | local-monitor | quota | day Lisbon | 192 · stretch if in debt |
 | aiops-actions | quota | — | **0 · forbidden** |
+
+SuperGrok does **not** refill CF or HF.
+
+## Renewal calendar (as of 2026-08-28)
+
+| When (UTC) | What lifts |
+|------------|------------|
+| **2026-08-29T00:00:00Z** | CF Workers Free 100k. Then Q-gated ALLOW. Hold `R` through 31 Aug. One Orchestrator `/health` (not `/actions`). No workers.dev. |
+| **2026-09-01T00:00:00Z** | HF Inference Providers prepaid refill. Hub catalog stays LIVE through HOLD. |
+| 31 Aug 2026 (Lisbon) | SuperGrok weekly cap window. Do not click Upgrade. |
+
+Desk contract (Bot vs Assistant, write surfaces, P0 honesty): [EDGE-GROK-DESK-CONTRACT.md](./EDGE-GROK-DESK-CONTRACT.md).
 
 ## RCA (26–27 Aug + follow-up)
 
