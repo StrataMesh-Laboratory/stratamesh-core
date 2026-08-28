@@ -71,7 +71,7 @@ Workers Free **100,000 req/day** exhausted. Site 1027 at 08:36Z. GraphQL: **~95k
 
 Lockstep ~19.5k each: status, aiops, gossip, deomail, edge-api, fund. **edge-grok 2×** because gossip `/peers` fetched edge `/health`. Fund `/health` called GitHub (1 GraphQL + 2 issue lists) → **58.6k subrequests** and the PAT secondary 403. SPA catch-all was **9 requests** — not the burner. 86 routes were fail-closed, so quota death black-holed the apex.
 
-Mitigations (no 6th cron): ACB/AIOps crons once after reset; SPA catch-alls **fail-open**; fund `0.4.5-metabolic-health`; gossip `2.3.3-peer-cache`; zone rate-limit **5 req / 10s / IP / colo**. **DeoMail `workers.dev` disabled** (WAF-blind hole). Custom host `deomail.calhegasmorais.pt` is behind the same 5/10s. Four Grok automations paused. Local monitor `STASIS=1`. Fog 530 — host SIGKILL is on-box when the tunnel is back (`bin/kill-host-probe`).
+Mitigations (no 6th cron): ACB/AIOps crons once after reset; **SPA catch-alls removed**; public `/` is **Pages landing** (not origin PHP login); fund `0.4.5-metabolic-health`; gossip `2.3.3-peer-cache`; zone rate-limit **5 req / 10s / IP / colo**; **DeoMail `workers.dev` disabled**. Four Grok automations **armed** (not paused). Watchdog `STASIS_UNTIL` lifts at 00:00 UTC — then hourly cap 100k/24. Fog 530 P1.
 
 ## Ledger
 

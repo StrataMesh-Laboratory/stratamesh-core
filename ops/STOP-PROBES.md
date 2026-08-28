@@ -1,28 +1,19 @@
-# STOP-PROBES · INC-1027
+# Controlled burn · INC-1027
 
-The ~3 Hz lockstep walker is **not in this lab twin**. Local watchdog / heartbeat PIDs were stale. GraphQL: DeoMail `workers.dev` had **0 requests after 02:00 UTC** (11390 / 6717 / 1432 in hours 00–02). Custom-domain traffic after 03:00 UTC is ~340/h, not 3 Hz.
+Nothing stays paused across 00:00 UTC. Vendor remaining is 0 until refill; hourly cap after refill is **100 000 / 24 ≈ 4 167**. Automations are **armed**. Worker HTTP is deferred until refill, then remaining ÷ hours.
 
-Fog named tunnel remains **530 / P1**. The host process cannot be SIGKILL'd from here.
+## Apex
 
-## What was stopped
+Fail-open catch-alls exposed origin PHP `SYSTEM LOGIN` (black / #0f0 Courier). Public `/` is now **Cloudflare Pages** (`calhegasmorais-pt`) — the Calhegas Morais landing, **zero Worker quota**. Origin PHP is `origin.calhegasmorais.pt`. SPA catch-alls `calhegasmorais.pt/*` removed; dashboard/tempo/chat/roadmap stay on SPA.
 
-| Surface | Action |
+## Armed (not paused)
+
+| Surface | Across refill |
 |---|---|
-| Grok automations ×4 | **Paused** (Watchdog, Discourse pulse, Night Diagnostic, Dev Cycle) — they listed live Worker URLs including DeoMail `workers.dev` |
-| Local ops-watchdog `--loop` | Not running. `STASIS=1` + `state/STASIS`. `monitor-start` **refuses** |
-| Local edge-heartbeat `--loop` | Stale pid, not running |
-| `stratamesh-deomail` **workers.dev** | **disabled** (`enabled: false`). Zone WAF never covered this hostname |
-| DeoMail custom host | `deomail.calhegasmorais.pt` → worker route, **5 req / 10s / IP / colo** |
-| This board | Does not probe |
+| Grok automations ×4 | **Enabled.** Before 00:00 UTC: no Worker HTTP. After: cheap `/health`, never `workers.dev`, never `/actions` |
+| Local ops-watchdog | `STASIS_UNTIL=2026-08-29T00:00:00Z` then metabolic interval. `monitor-start` does not refuse |
+| DeoMail `workers.dev` | Stays **disabled**. Custom host behind 5/10s |
+| Zone WAF | 5 req / 10s / IP / colo |
+| Crons | Still **5/5**. No 6th. No plan upgrade |
 
-## Midnight refill (00:00 UTC)
-
-If the Fog host loop comes back, it will still try `https://stratamesh-deomail.stratamesh.workers.dev/health`. That URL **no longer invokes the Worker**, so it cannot eat the 100k. Custom-domain lockstep is capped at 5/10s.
-
-Do **not** hit live Worker URLs until refill + 30 min. No plan upgrade. Still 5/5 crons.
-
-## Host (when tunnel is back)
-
-`bin/kill-host-probe` — pkill the named walker only.
-
-Mesh n=1 (Fog + Edge). `spa.source=lab_seed`. Challenge 0 unfunded. Fog 530 remains P1 underneath.
+Fog 530 remains P1. Mesh n=1. `spa.source=lab_seed`. Challenge 0 unfunded.
