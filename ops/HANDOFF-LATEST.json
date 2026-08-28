@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-27T08:06:12Z",
-  "headline": "Green — Dev Cycle 09:00 Europe/Lisbon HOLD; status 0.3.9-pulse · edge 1.5.3-ping-real-fog · api-edge 1.2.0; 0 critical, mandatory_actions []",
+  "generated_at": "2026-08-28T08:12:28Z",
+  "headline": "Green — Dev Cycle 09:00 Europe/Lisbon HOLD; status 0.3.9-pulse · edge 1.5.3-ping-real-fog · api-edge 1.2.0; 0 critical, mandatory_actions []; probes 429 from sandbox IP (metabolic/CF)",
   "posture": "green",
   "node_id": "FOG-NODE-PT-CM-001",
   "agent": "EDGE-GROK-CMN-001",
@@ -39,8 +39,15 @@
   "non_actions": [
     "No mass issue comments",
     "No invent work",
-    "Observers without public /health stay off gossip"
+    "Observers without public /health stay off gossip",
+    "Do not GET /actions (hangs)",
+    "Fog 530/1033 = tunnel P1 not mesh P0"
   ],
-  "notes": "2026-08-27 09:00 Europe/Lisbon Dev Cycle. Sources: aiops/actions green + empty next_actions → HOLD. Handoff refreshed (prior headline was Night diagnostic). Upstream 11/11. Edge bumped to 1.5.3-ping-real-fog.",
-  "efficacy_self_score": 0.96
+  "notes": "2026-08-28 09:00 Europe/Lisbon Dev Cycle (RESERVED PEAK). Sources: aiops /handoff + /health → 429 (sandbox/CF); GitHub HANDOFF-LATEST green + empty mandatory/next → HOLD. DeoMail skim blocked by same 429. Last known: upstream 11/11, posture green. Metabolism: peak fire allowed; watchdog remains daily 04:00; no 6th CF cron. 0.4.4-honest-envelope retained; Challenge 0 unfunded. Lab / pre-testnet.",
+  "efficacy_self_score": 0.94,
+  "metabolism": {
+    "peak": "09:00",
+    "decision": "HOLD",
+    "note": "Green+empty → success HOLD; handoff refreshed"
+  }
 }
