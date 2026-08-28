@@ -7,6 +7,8 @@ Static Hub commits and whoami / bucket **catalog** are live under metabolic stas
 
 Do not download the RealworldQA bucket onto Fog. Do not put `hf_` tokens in this repo, in a page field, or on workers.dev. Worker secret `HF_TOKEN` and Cloudflare AI Gateway are **not created** (STASIS / prepared).
 
+Desk split and renewal dates: [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-DESK-CONTRACT.md).
+
 ## Org
 
 - Hub org: [huggingface.co/stratamesh](https://huggingface.co/stratamesh) (admin: `calhegasmorais`)
@@ -32,8 +34,8 @@ User-private twin model: [calhegasmorais/edge-grok](https://huggingface.co/calhe
 |---------|-------|-----|
 | Hub whoami / repo catalog / static README commits | none (metadata) | **LIVE** |
 | Bucket catalog (size/count via Hub API) | none (metadata) | **LIVE** |
-| HF Inference Providers | $0.10/mo prepaid, `canPay=false` | **HOLD** until refill |
-| Worker `HF_TOKEN` / AI Gateway / workers.dev | CF Workers 100k/UTC day | **STASIS** until CF refill; do not create |
+| HF Inference Providers | $0.10/mo prepaid, `canPay=false` | **HOLD** until **2026-09-01T00:00:00Z** |
+| Worker `HF_TOKEN` / AI Gateway / workers.dev | CF Workers 100k/UTC day | **STASIS** until **2026-08-29T00:00:00Z**; do not create |
 
 Non-user-initiated inference → HOLD. P0_BORROW may not borrow HF at remaining 0. SuperGrok and watchdog 04:00 do **not** refill this meter. No plan upgrade. No PAYG.
 
