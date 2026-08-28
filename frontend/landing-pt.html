@@ -90,8 +90,73 @@ details.faq summary{cursor:pointer;color:var(--fg);font-weight:500}
 details.faq p{margin:.55rem 0 0}
 .live-meta{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:.75rem}
 </style>
+
+
+
+
+
+<style id="lab-intro-css">
+  #lab-intro{position:fixed;inset:0;z-index:9999;width:100%;height:100%;height:100dvh;background:#05060a}
+  #lab-intro video{width:100%;height:100%;object-fit:cover;object-position:center center;display:block;background:#05060a}
+  #lab-intro.out{opacity:0;pointer-events:none;transition:opacity .4s ease}
+  #lab-intro .lab-intro-bar{position:absolute;right:1rem;bottom:1rem;display:flex;gap:.5rem;z-index:2}
+  #lab-intro .lab-intro-btn{min-height:44px;padding:.35rem .75rem;background:rgba(10,10,11,.55);border:1px solid #2a2a2e;color:#e8e6e3;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  html.lab-intro-lock,body.lab-intro-lock{overflow:hidden}
+</style>
+
 </head>
 <body>
+
+<div id="lab-intro" role="dialog" aria-label="StrataMesh LAB">
+  <video id="lab-intro-video" playsinline webkit-playsinline preload="auto"></video>
+  <div class="lab-intro-bar">
+    <button type="button" class="lab-intro-btn" id="lab-intro-mute">Mudo</button>
+    <button type="button" class="lab-intro-btn" id="lab-intro-skip">Saltar</button>
+  </div>
+</div>
+<script>
+(function(){
+  var box=document.getElementById("lab-intro");
+  if(!box) return;
+  document.documentElement.classList.add("lab-intro-lock");
+  document.body.classList.add("lab-intro-lock");
+  var v=document.getElementById("lab-intro-video");
+  var muteBtn=document.getElementById("lab-intro-mute");
+  var MUTE_L='Mudo', SOUND_L='Som';
+  var portrait=window.matchMedia("(max-aspect-ratio: 10/11), (max-width: 720px)").matches;
+  v.poster=portrait?"/video/stratamesh-lab-portrait.jpg":"/video/stratamesh-lab.jpg";
+  v.src=portrait?"/video/stratamesh-lab-portrait.mp4":"/video/stratamesh-lab.mp4";
+  function done(){
+    if(!box||box.classList.contains("out")) return;
+    box.classList.add("out");
+    document.documentElement.classList.remove("lab-intro-lock");
+    document.body.classList.remove("lab-intro-lock");
+    setTimeout(function(){ if(box&&box.parentNode) box.remove(); },420);
+  }
+  function playSound(){
+    v.muted=false;
+    muteBtn.textContent=MUTE_L;
+    var p=v.play();
+    if(p&&p.catch) p.catch(function(){});
+  }
+  v.addEventListener("ended", done);
+  document.getElementById("lab-intro-skip").addEventListener("click", function(e){ e.stopPropagation(); done(); });
+  muteBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    v.muted=!v.muted;
+    muteBtn.textContent=v.muted?SOUND_L:MUTE_L;
+  });
+  box.addEventListener("click", playSound);
+  v.muted=false;
+  var start=v.play();
+  if(start&&start.catch) start.catch(function(){});
+})();
+</script>
+
+
+
+
+
 <a class="skip" href="#conteudo">Saltar para o conteúdo</a>
 <div class="top">
   <div class="top-inner">
@@ -244,7 +309,7 @@ details.faq p{margin:.55rem 0 0}
   <section class="section" id="faq">
     <p class="sec-num">FAQ</p>
     <h2>Perguntas frequentes</h2>
-    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. Corre uma versão de laboratório (FOG-NODE-PT-CM-001). Mecanismos de protocolo estão em ensaio.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — geral@eni.calhegasmorais.pt · +44 7404 796458.</p></details>
+    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. Corre uma versão de laboratório (FOG-NODE-PT-CM-001). Mecanismos de protocolo estão em ensaio.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
   </section>
 
   <footer>
