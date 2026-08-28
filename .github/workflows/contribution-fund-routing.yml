@@ -1,0 +1,147 @@
+name: Contribution and Impact Fund routing
+
+# Routes PRs/issues onto Impact Fund + GitHub Sponsors rails.
+# Canonical fund: https://fund.calhegasmorais.pt
+# Alias host fund.calhegasmorais.com is recognised but comments use .pt.
+# Does NOT pay anyone, merge, or hit Workers / workers.dev.
+# V0: no STRATA, no on-chain settlement.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review]
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  route:
+    name: Route contribution / fund links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Route
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const MARKER = '<!-- stratamesh-fund-router -->';
+            const CANON = 'https://fund.calhegasmorais.pt';
+            const SPONSORS = 'https://github.com/sponsors/amcmorais';
+            const PAGAMENTOS = 'https://calhegasmorais.pt/pagamentos';
+            const IMPACT = 'StrataMesh-Laboratory/stratamesh-impact-fund';
+
+            const event = context.eventName;
+            const payload = context.payload;
+            const issueish = payload.pull_request || payload.issue;
+            if (!issueish) {
+              core.info('nothing to route');
+              return;
+            }
+
+            async function ensureLabel(name) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueish.number,
+                  labels: [name]
+                });
+              } catch (err) {
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name,
+                    color: name.startsWith('track:') ? '0e8a16' : '1d76db'
+                  });
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueish.number,
+                    labels: [name]
+                  });
+                } catch (err2) {
+                  core.notice('label skip ' + name + ': ' + err2.message);
+                }
+              }
+            }
+
+            const labels = (issueish.labels || []).map((l) => l.name || l);
+
+            if (event === 'issue_comment') {
+              const body = (payload.comment.body || '').trim();
+              if (/^\/accept\b/i.test(body) && labels.includes('impact-challenge')) {
+                await ensureLabel('challenge-accepted');
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueish.number,
+                  body: MARKER + '\n`/accept` noted. Grantor still confirms metrics before any grant is released.\nRails: ' + CANON + ' · ' + SPONSORS + ' · ' + PAGAMENTOS + '\nLAB only. No STRATA, no auto-payout.'
+                });
+                core.notice('challenge-accepted on #' + issueish.number);
+              }
+              return;
+            }
+
+            const text = [issueish.title || '', issueish.body || '', issueish.html_url || ''].join('\n').toLowerCase();
+            const fundHit = text.includes('fund.calhegasmorais.pt')
+              || text.includes('fund.calhegasmorais.com')
+              || text.includes('stratamesh-impact-fund')
+              || text.includes('impact-challenge')
+              || (issueish.title || '').toLowerCase().includes('[challenge]');
+            const sponsorsHit = text.includes('github.com/sponsors/amcmorais');
+            const pagamentosHit = text.includes('calhegasmorais.pt/pagamentos');
+
+            if (fundHit) await ensureLabel('impact-challenge');
+
+            const TRACKS = ['network', 'edge', 'economy', 'agents', 'worlds', 'identity', 'core'];
+            const titleLow = (issueish.title || '').toLowerCase();
+            for (const t of TRACKS) {
+              if (titleLow.includes('[track:') && titleLow.includes(t)) {
+                await ensureLabel('track:' + t);
+              }
+              if (text.includes('track:' + t)) {
+                await ensureLabel('track:' + t);
+              }
+            }
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueish.number,
+              per_page: 50
+            });
+            if (comments.data.some((c) => (c.body || '').includes(MARKER))) {
+              core.info('router comment already present');
+              return;
+            }
+
+            const lines = [
+              MARKER,
+              '## Contribution rails',
+              '',
+              '- Evidence: this GitHub ' + (payload.pull_request ? 'PR' : 'issue') + '.',
+              '- Impact Fund (canonical): ' + CANON + '/challenges',
+              '- GitHub Sponsors: ' + SPONSORS,
+              '- ENI /pagamentos: ' + PAGAMENTOS,
+              '- Fund app repo: https://github.com/' + IMPACT,
+              '',
+              'If this work is **grant-funded**, link `StrataMesh-Laboratory/stratamesh-impact-fund#N` (or an `impact-challenge` issue) and put measurable metrics in the PR.',
+              '`/accept` on a challenge issue marks `challenge-accepted`. Grantor confirms metrics before any payout.',
+              '',
+              'LAB only. No STRATA, no mainnet, no auto-merge, no Worker notify from this job.'
+            ];
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueish.number,
+              body: lines.join('\n')
+            });
+            core.notice('routed #' + issueish.number + ' fund=' + fundHit + ' sponsors=' + sponsorsHit + ' pagamentos=' + pagamentosHit);
