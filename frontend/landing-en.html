@@ -90,8 +90,73 @@ details.faq summary{cursor:pointer;color:var(--fg);font-weight:500}
 details.faq p{margin:.55rem 0 0}
 .live-meta{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:.75rem}
 </style>
+
+
+
+
+
+<style id="lab-intro-css">
+  #lab-intro{position:fixed;inset:0;z-index:9999;width:100%;height:100%;height:100dvh;background:#05060a}
+  #lab-intro video{width:100%;height:100%;object-fit:cover;object-position:center center;display:block;background:#05060a}
+  #lab-intro.out{opacity:0;pointer-events:none;transition:opacity .4s ease}
+  #lab-intro .lab-intro-bar{position:absolute;right:1rem;bottom:1rem;display:flex;gap:.5rem;z-index:2}
+  #lab-intro .lab-intro-btn{min-height:44px;padding:.35rem .75rem;background:rgba(10,10,11,.55);border:1px solid #2a2a2e;color:#e8e6e3;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  html.lab-intro-lock,body.lab-intro-lock{overflow:hidden}
+</style>
+
 </head>
 <body>
+
+<div id="lab-intro" role="dialog" aria-label="StrataMesh LAB">
+  <video id="lab-intro-video" playsinline webkit-playsinline preload="auto"></video>
+  <div class="lab-intro-bar">
+    <button type="button" class="lab-intro-btn" id="lab-intro-mute">Mute</button>
+    <button type="button" class="lab-intro-btn" id="lab-intro-skip">Skip</button>
+  </div>
+</div>
+<script>
+(function(){
+  var box=document.getElementById("lab-intro");
+  if(!box) return;
+  document.documentElement.classList.add("lab-intro-lock");
+  document.body.classList.add("lab-intro-lock");
+  var v=document.getElementById("lab-intro-video");
+  var muteBtn=document.getElementById("lab-intro-mute");
+  var MUTE_L='Mute', SOUND_L='Sound';
+  var portrait=window.matchMedia("(max-aspect-ratio: 10/11), (max-width: 720px)").matches;
+  v.poster=portrait?"/video/stratamesh-lab-portrait.jpg":"/video/stratamesh-lab.jpg";
+  v.src=portrait?"/video/stratamesh-lab-portrait.mp4":"/video/stratamesh-lab.mp4";
+  function done(){
+    if(!box||box.classList.contains("out")) return;
+    box.classList.add("out");
+    document.documentElement.classList.remove("lab-intro-lock");
+    document.body.classList.remove("lab-intro-lock");
+    setTimeout(function(){ if(box&&box.parentNode) box.remove(); },420);
+  }
+  function playSound(){
+    v.muted=false;
+    muteBtn.textContent=MUTE_L;
+    var p=v.play();
+    if(p&&p.catch) p.catch(function(){});
+  }
+  v.addEventListener("ended", done);
+  document.getElementById("lab-intro-skip").addEventListener("click", function(e){ e.stopPropagation(); done(); });
+  muteBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    v.muted=!v.muted;
+    muteBtn.textContent=v.muted?SOUND_L:MUTE_L;
+  });
+  box.addEventListener("click", playSound);
+  v.muted=false;
+  var start=v.play();
+  if(start&&start.catch) start.catch(function(){});
+})();
+</script>
+
+
+
+
+
 <a class="skip" href="#conteudo">Skip to content</a>
 <div class="top">
   <div class="top-inner">
@@ -244,14 +309,14 @@ details.faq p{margin:.55rem 0 0}
   <section class="section" id="faq">
     <p class="sec-num">FAQ</p>
     <h2>Frequently asked questions</h2>
-    <details class="faq"><summary>Is this a cryptocurrency?</summary><p>STRATA is the exclusive foundational token of StrataMesh. In this laboratory phase it is not a banking product, not listed as an investment instrument, and not a public offer.</p></details><details class="faq"><summary>Do I need to pay to enter?</summary><p>No. Reading this site and registering on the portal are free. New STRATA enters only via DLT PoC, credited to the contributor; later services may require circulating STRATA.</p></details><details class="faq"><summary>What is an SCA?</summary><p>An Autonomous Computational Being: identity on the DLT, distinct from any Fog role. Transcends any Node. Standing follows function and agreement, not substrate.</p></details><details class="faq"><summary>Is this investment advice?</summary><p>No. Nothing on this domain is financial advice, an investment recommendation, or an offer of securities.</p></details><details class="faq"><summary>Is the project in production?</summary><p>No. It runs a laboratory version (FOG-NODE-PT-CM-001). Protocol mechanisms are under trial.</p></details><details class="faq"><summary>How do I contact the operator?</summary><p>André Manuel Calhegas Morais, AMCM ENI — geral@eni.calhegasmorais.pt · +44 7404 796458.</p></details>
+    <details class="faq"><summary>Is this a cryptocurrency?</summary><p>STRATA is the exclusive foundational token of StrataMesh. In this laboratory phase it is not a banking product, not listed as an investment instrument, and not a public offer.</p></details><details class="faq"><summary>Do I need to pay to enter?</summary><p>No. Reading this site and registering on the portal are free. New STRATA enters only via DLT PoC, credited to the contributor; later services may require circulating STRATA.</p></details><details class="faq"><summary>What is an SCA?</summary><p>An Autonomous Computational Being: identity on the DLT, distinct from any Fog role. Transcends any Node. Standing follows function and agreement, not substrate.</p></details><details class="faq"><summary>Is this investment advice?</summary><p>No. Nothing on this domain is financial advice, an investment recommendation, or an offer of securities.</p></details><details class="faq"><summary>Is the project in production?</summary><p>No. It runs a laboratory version (FOG-NODE-PT-CM-001). Protocol mechanisms are under trial.</p></details><details class="faq"><summary>How do I contact the operator?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
   </section>
 
   <footer>
     <p>Calhegas Morais · StrataMesh DLT · laboratory</p>
     <p class="mono">FOG-NODE-PT-CM-001 · Lisbon · standing by function and agreement, not substrate</p>
     <p class="mono"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a> — AMCM ENI — legal entity of the holder · <a href="/eni">/eni</a></p>
-    <p class="mono"><a href="https://stratamesh-auth.stratamesh.workers.dev/terms?lang=en">Terms</a> · <a href="/dashboard">Portal</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
+    <p class="mono"><a href="/terms">Terms</a> · <a href="/dashboard">Portal</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
     <p class="note" style="text-align:left">MiCA (EU): this domain does not offer a crypto-asset to the public. STRATA, in this phase, is a laboratory protocol mechanism.</p>
   </footer>
 </main>
