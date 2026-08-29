@@ -17,7 +17,7 @@ LIVE curl:
 - GET https://calhegasmorais.pt/api/v1/orchestrator/health → 200 JSON
 - GET https://status.calhegasmorais.pt/status spa.source=fog_process settlements.unavailable=n<2 consensus.n=1 f_max=0
 
-SHA: 1261e7a753b3cd84637ec2a274bd0850481bffa3
+SHA: 72742ea28e67acb8b82222de72314e64e8728b97
 
 STILL RED:
 - Fog https://fog.calhegasmorais.pt/health → 530 (CF 1033 tunnel origin down) P0 OPEN incident 260826-001576 oracle_live=false mesh_member=false n=1
