@@ -14,6 +14,7 @@ from metabolism import (  # noqa: E402
     decide, hours_until_renewal, monitor_interval_sec, snapshot, load_rails,
     record_spend, empty_rail_state, phase_delta,
     density_of, effective_capacity, coalesce_intents, circuit_trip,
+    pace_factor,
 )
 
 CFG = load_rails()
@@ -114,7 +115,7 @@ class Monitor(unittest.TestCase):
 class Snapshot(unittest.TestCase):
     def test_shape(self):
         s = snapshot(T(12, 0), cfg=CFG, ledger={"schema": "x", "rails": {}})
-        self.assertEqual(s["schema"], "stratamesh.metabolism.v1.2")
+        self.assertEqual(s["schema"], "stratamesh.metabolism.v1.3")
         self.assertTrue(s["no_sixth_cron"])
         self.assertIn("grok-auto", s["rails"])
         self.assertIn("xai-api", s["rails"])
@@ -252,6 +253,76 @@ class Density(unittest.TestCase):
         self.assertEqual(circuit_trip(9000, 4167, CFG), STASIS)
         self.assertEqual(circuit_trip(5300, 4167, CFG), HOLD)
         self.assertEqual(circuit_trip(100, 4167, CFG), "")
+
+
+class PaceAndStasis(unittest.TestCase):
+    def test_neutral_when_no_spend(self):
+        v = decide("github-core", remaining=4000, now=T(12, 0), cost=10, cfg=CFG)
+        self.assertEqual(v.pace_factor, 1.0)
+        self.assertEqual(v.decision, ALLOW)
+        self.assertEqual(pace_factor(0, 5000, 1.0), 1.0)
+
+    def test_deflator_when_overspent(self):
+        # almost daily_limit spent early in the window → pf < 1
+        ledger = {"schema": "x", "rails": {
+            "deomail": {
+                "phase": "2026-08-28T01",
+                "day": "2026-08-28",
+                "carry": 10.0,
+                "daily_debt": 0.0,
+                "daily_credit": 0.0,
+                "phase_spent": 0.0,
+                "day_spent": 230.0,
+                "phase_grant": 10.0,
+                "overdraft_events": 0,
+            }
+        }}
+        v = decide("deomail", remaining=10, now=T(1, 0), cost=1, cfg=CFG, ledger=ledger)
+        self.assertLess(v.pace_factor, 1.0)
+        self.assertLessEqual(v.deflator, 1.0)
+        self.assertEqual(v.inflator, 1.0)
+
+    def test_inflator_when_underspent(self):
+        # tiny spend late in the window → pf > 1 and <= 1.5
+        ledger = {"schema": "x", "rails": {
+            "deomail": {
+                "phase": "2026-08-28T23",
+                "day": "2026-08-28",
+                "carry": 10.0,
+                "daily_debt": 0.0,
+                "daily_credit": 0.0,
+                "phase_spent": 0.0,
+                "day_spent": 1.0,
+                "phase_grant": 10.0,
+                "overdraft_events": 0,
+            }
+        }}
+        v = decide("deomail", remaining=239, now=T(23, 0), cost=1, cfg=CFG, ledger=ledger)
+        self.assertGreater(v.pace_factor, 1.0)
+        self.assertLessEqual(v.pace_factor, 1.5)
+        self.assertGreaterEqual(v.inflator, 1.0)
+        self.assertEqual(v.deflator, 1.0)
+
+    def test_hf_stasis_until(self):
+        v = decide("hf-inference", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+        self.assertIn("2026-09-01", v.reason)
+
+    def test_aws_free_hard(self):
+        v = decide("aws-free", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+
+    def test_unknown_remaining_holds_without_inventing_cap(self):
+        v = decide("grok-bot-included", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertIn("do not invent a cap", v.reason)
+        v2 = decide("grok-assistant", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v2.decision, HOLD)
+        # live remaining=0 (usage_limit) still pauses
+        v3 = decide("grok-bot-included", remaining=0, now=T(12, 0), cfg=CFG)
+        self.assertEqual(v3.decision, STASIS)
+
+
 
 
 if __name__ == "__main__":
