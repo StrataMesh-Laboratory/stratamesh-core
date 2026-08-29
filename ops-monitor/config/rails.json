@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.metabolism.v1.3",
   "timezone": "Europe/Lisbon",
-  "formula": "hourly_cap = remaining / hours_until_renewal; pace_factor = clamp(time_frac / spent_frac, 0.5, 1.5) (1.0 if day_spent==0); adjusted = hourly_cap * pace_factor; density = signal / cost; effective_cap = adjusted * density; circuit STASIS if hour_spent \u2265 2\u00d7 unadjusted cap; never workers.dev",
+  "formula": "hourly_cap = remaining / hours_until_renewal (UTC 00:00 for CF; SuperGrok reset_unix/reset_iso for grok-assistant); cf-worker-req remaining = 100000 - live GraphQL invocations since midnight UTC; Pages Functions share that 100k; static Pages assets are free; grok-assistant remaining = remaining_frac of weekly SuperGrok pool (1.0 = full; no public token count); pace_factor = clamp(time_frac/spent_frac, 0.5, 1.5) (1.0 if day_spent==0); adjusted = hourly_cap * pace_factor; circuit STASIS if hour_spent >= 2x unadjusted cap; never workers.dev",
   "cf_cron_hard_cap": 5,
   "density": {
     "min_density": 1.0,
@@ -190,7 +190,10 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": false,
-      "note": "Workers Free 100k/day UTC. Error 1027 when exhausted. INC-1027: lockstep ~3Hz burned ~95k in hour 00. After refill hourly cap \u2248 4167. Coalesce /health (target density 8). Circuit STASIS at 2\u00d7 hourly cap. Never workers.dev. Zone WAF 5/10s/IP/colo."
+      "note": "Workers Free 100k/day UTC including Pages Functions. Static Pages assets are free/unlimited and do not spend this rail. Error 1027 when exhausted. INC-1027: lockstep ~3Hz burned ~95k in hour 00. Pace remaining/hours_left from live GraphQL (not a second Pages 100k). Circuit HOLD 1.25x / STASIS 2x unadjusted hourly cap. Never workers.dev. Zone WAF 5/10s/IP/colo. Never a 6th cron. 39 scripts live; published cap 100.",
+      "published_daily_limit": 100000,
+      "published_worker_scripts": 100,
+      "live_worker_scripts": 39
     },
     "cf-d1-reads": {
       "layer": "node",
@@ -294,15 +297,18 @@
     },
     "cf-pages": {
       "layer": "lab",
-      "kind": "rate",
+      "kind": "alias",
       "billing": "quota",
       "unit": "requests",
-      "daily_limit": 100000,
+      "daily_limit": 0,
       "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": false,
-      "note": "Public apex landing. Not the 100k Worker rail. Prefer Pages over Worker catch-alls."
+      "note": "Static apex landing is free/unlimited. Pages Functions share cf-worker-req 100k/day UTC. Not a second 100k pool. Prefer static Pages over Worker catch-alls.",
+      "shares_pool": "cf-worker-req",
+      "static_assets_free": true,
+      "skip_meter": true
     },
     "lockstep-probe": {
       "layer": "node",
@@ -349,12 +355,15 @@
       "layer": "lab",
       "kind": "rate",
       "billing": "quota",
-      "unit": "prompts",
+      "unit": "pool_frac",
       "unknown_remaining": "hold",
       "phase": "day",
       "renewal_hhmm": "00:00",
       "renewal_tz": "Europe/Lisbon",
-      "note": "SuperGrok Plus weekly through 31 Aug 2026; one prompt at a time; dual-track triple-priced"
+      "note": "SuperGrok Plus weekly compute pool. Unit is remaining_frac (1.0 = full weekly pool), NOT a prompt or token count \u2014 grok.com Usage has no public token number. Live 2026-08-29 ~01:05 Lisbon: 4% used, remaining_frac=0.96. Reset text 'Resets August 31, 2026 at 2:55 PM' has no timezone; treated as Europe/Lisbon (session TZ) \u2192 reset_iso=2026-08-31T14:55:00+01:00. Prompt cost is unknown compute; snapshot cost=0 (is the pool alive); a fire is grok-auto. Gate on remaining_frac>0 + circuit. Do not invent a weekly token cap. SuperGrok does not refill grok-bot-included or CF.",
+      "daily_limit": 1.0,
+      "meter": "remaining_frac",
+      "unknown_cost": true
     },
     "aws-free": {
       "layer": "lab",
