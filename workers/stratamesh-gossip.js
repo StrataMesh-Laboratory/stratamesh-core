@@ -10,11 +10,18 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.3-peer-cache';
+const VERSION = '2.3.4-custom-domain';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
 const FOG_HEALTH = FOG_ENDPOINT + '/health';
+const EDGE_CUSTOM = 'https://edge.calhegasmorais.pt';
+
+function edgeGrokUrl(env) {
+  const fromEnv = env && env.EDGE_GROK_URL && String(env.EDGE_GROK_URL);
+  if (fromEnv && !fromEnv.includes('workers.dev')) return fromEnv.replace(/\/$/, '');
+  return EDGE_CUSTOM;
+}
 
 function callerIsEdge(request) {
   if (!request || !request.headers) return false;
@@ -65,7 +72,7 @@ async function probeFogProcess() {
 
 async function livePeers(env, request) {
   const peers = [await probeFogProcess()];
-  const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://edge.calhegasmorais.pt';
+  const edgeUrl = edgeGrokUrl(env);
   // Same /peers handler for public Host and service-binding Request URL.
   // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
   // Inbound request is the liveness proof — not an invented peer.
@@ -282,7 +289,7 @@ export default {
         edge_push = { ok: true, skipped: 'inbound_caller', note: 'Caller is EDGE; skipped circular /gossip/ingest' };
       } else {
         try {
-          const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://edge.calhegasmorais.pt';
+          const edgeUrl = edgeGrokUrl(env);
           const pr = await fetch(edgeUrl.replace(/\/$/, '') + '/gossip/ingest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'User-Agent': 'stratamesh-gossip' },
