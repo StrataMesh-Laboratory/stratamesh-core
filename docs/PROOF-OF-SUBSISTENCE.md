@@ -60,6 +60,7 @@ An agent may be both a contributor (earning) and a consumer (paying). Net positi
 - Orchestrator symbolic lobe may require solvency for certain proposal kinds  
 - SPAs may set \(\tau\), metering granularity, and grace periods  
 - ACB runtimes report \(C\) and claim \(E\) through attested meters  
+- Optional metabolism pace ([`METABOLISM-ON-GRAPH.md`](./METABOLISM-ON-GRAPH.md)): ACBs and registered node users may opt in (`spend_policy: metabolism`) so `decide()` / `pace_factor` paces STRATA wallet spend across the renewal window. This does **not** replace `policy.py`. Default PoSbs ticks stay valid without opt-in. Not a mint.  
 
 ---
 
