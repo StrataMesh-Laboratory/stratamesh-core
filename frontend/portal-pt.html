@@ -778,6 +778,21 @@ async function loadHolonsPanel(){
   }
 }
 
+async function applyVaPrefs(){
+  var tok=localStorage.getItem('sm_token')||localStorage.getItem('token');
+  if(!tok) return;
+  try{
+    var r=await fetch('https://api-edge.calhegasmorais.pt/v1/va/prefs',{headers:{Authorization:'Bearer '+tok,Accept:'application/json'},signal:AbortSignal.timeout(2000)});
+    if(!r.ok) return;
+    var j=await r.json();
+    var p=(j&&j.prefs)||{};
+    if(p.default_panel && typeof showPanel==='function'){
+      var btn=document.querySelector('[data-panel="'+p.default_panel+'"]');
+      if(btn) showPanel(p.default_panel, btn);
+    }
+  }catch(_){}
+}
+
 function showPortal(user){
   if(user){
     currentUser=Object.assign({}, currentUser||{}, user);
@@ -791,6 +806,7 @@ function showPortal(user){
     if(user && typeof user === 'object'){
       currentUser = Object.assign({}, currentUser||{}, user);
       if(user.token){ token = user.token; try{ localStorage.setItem('token', token); localStorage.setItem('sm_token', token);}catch(e){} }
+      try{ applyVaPrefs(); }catch(_){}
     }
     // Always stay on dashboard path when entering portal
     try{

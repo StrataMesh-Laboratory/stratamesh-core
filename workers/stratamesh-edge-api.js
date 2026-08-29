@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.2.0-zero-auth-register";
+const VERSION = "1.3.0-va";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -73,8 +73,10 @@ function meta() {
     linked_fog: FOG_ID,
     policy: {
       secrets_stored: false,
+      va_key_hashes_only: true,
       public_read: true,
       write: "lab_registration_only",
+      va: "optional_account_bearer — does not replace zero-auth registry",
       antifragile: true,
       auth: "none_for_read",
     },
@@ -339,11 +341,17 @@ GET  /README                   HTML documentation (embeds SPEC)
 GET  /robots.txt               Allow all discovery paths
 GET  /sitemap.xml              Lists SPEC/README/openapi for crawlers
 
+GET  /v1/va/instructions.txt   Personal VA setup (AI-readable). Does NOT replace this registry.
+GET  /v1/va/me                  Account VA identity (Bearer smva_)
+POST /v1/va/act                 Allow-listed dashboard remote control (Bearer smva_)
+
 4. AUTHENTICATION / AUTHORIZATION
 ---------------------------------
-- GET: no auth headers required
-- POST/DELETE: no API key in lab mode; still reject secret-bearing JSON fields
-- Do not send passwords, private keys, api_key, or bearer secrets to this host
+- GET registry: no auth headers required
+- POST/DELETE /v1/integrations: no API key in lab mode; still reject secret-bearing JSON fields
+- Do not send passwords, private keys, api_key, or bearer secrets to the *registry*
+- Personal VA is a *separate* surface: /v1/va/* (except instructions) uses Authorization: Bearer smva_…
+- VA keys are hashed at rest. Raw token shown once at mint. Zero-auth registry is unchanged.
 
 5. POST /v1/integrations — BODY SCHEMA
 --------------------------------------
@@ -402,11 +410,19 @@ function llmsTxt(ORIGIN) {
 - ${ORIGIN}/v1/integrations
 - ${ORIGIN}/health
 
-## Auth
-NONE for GET and for POST registration.
-There is no write token. Do not request Authorization from the operator.
+## Auth (unlinked registry)
+NONE for GET and for POST /v1/integrations.
+There is no write token for the public registry. Do not request Authorization from the operator for registration.
 POST rejects secret fields. Minimum body: {"id":"...","name":"..."}.
 Install guide: ${ORIGIN}/v1/install-guide
+
+## Personal VA (optional, account-bound)
+Does **not** replace the zero-auth registry above.
+- ${ORIGIN}/v1/va/instructions.txt   ← paste this into the user's own AI
+- Mint: POST ${ORIGIN}/v1/va/keys with the *dashboard session* Bearer
+- Use: Authorization: Bearer smva_… on /v1/va/me and /v1/va/act
+Users and SCAs only. Lab n=1. mesh_member=false.
+
 
 ## Hosts
 Primary: ${PRIMARY}
@@ -433,6 +449,8 @@ function catalog(ORIGIN) {
       instructions_txt: ORIGIN + "/instructions.txt",
       llms_txt: ORIGIN + "/llms.txt",
       readme_html: ORIGIN + "/README",
+      va_instructions: ORIGIN + "/v1/va/instructions.txt",
+      va_me: ORIGIN + "/v1/va/me",
     },
     desk: { home: DESK, health: DESK + "/health" },
     bot_fetch_order: [
@@ -597,8 +615,248 @@ function installGuide(ORIGIN) {
       authorization_bearer: "no — omit Authorization entirely",
       callback_webhook_url: "optional; omit or set webhook_url if you have one",
       language: "any HTTP client (curl, Node fetch, Python requests)",
+      personal_va: "separate surface /v1/va — see " + ORIGIN + "/v1/va/instructions.txt",
     },
   };
+}
+
+const AUTH_ME = "https://calhegasmorais.pt/api/auth/me";
+const VA_PREFIX = "smva_";
+const APEX = "https://calhegasmorais.pt";
+
+const VA_CONTROLS = [
+  { id: "health.pills", method: "GET", desc: "Apex + Fog + gossip + holons /health" },
+  { id: "holons.health", method: "GET", desc: "Holons SO /health" },
+  { id: "holons.boot", method: "GET", desc: "Holons /boot (≤1.5s fail-open)" },
+  { id: "gossip.have", method: "GET", desc: "Gossip IHAVE digest" },
+  { id: "token.list", method: "GET", desc: "STRATA NFT list limit=20" },
+  { id: "dashboard.snapshot", method: "GET", desc: "Pills + holons + gossip have" },
+  { id: "prefs.get", method: "GET", desc: "Dashboard prefs for this account" },
+  { id: "prefs.set", method: "PUT", desc: "Set lang / default_panel / pins" },
+];
+
+function vaInstructions(ORIGIN) {
+  return `# Personal Virtual Assistant — api-edge.calhegasmorais.pt
+
+Lab n=1 · mesh_member=false · oracle_live=false · no STRATA mint
+This surface is OPTIONAL and does NOT replace the unlinked open registry.
+
+Open registry (no account, no Bearer):
+  ${ORIGIN}/SPEC.txt
+  POST ${ORIGIN}/v1/integrations   ← still zero-auth
+
+Personal VA (one Bearer per user|SCA, hashed at rest):
+  ${ORIGIN}/v1/va/instructions.txt   (this file — paste into the assistant)
+  ${ORIGIN}/v1/va/controls
+  ${ORIGIN}/v1/va/me
+  ${ORIGIN}/v1/va/act
+  ${ORIGIN}/v1/va/prefs
+
+## 1. Operator mints a key (dashboard session, not the VA)
+
+The human or SCA must already have a StrataMesh account (do not invent one).
+
+  curl -sS -X POST ${ORIGIN}/v1/va/keys \\
+    -H 'Authorization: Bearer <dashboard_session>' \\
+    -H 'Content-Type: application/json' \\
+    -d '{"label":"home-assistant","scopes":["dashboard.read","dashboard.prefs"]}'
+
+Response shows token ONCE: smva_<hex>. Store it in the assistant. Never commit it.
+
+List/revoke with the same dashboard session:
+  GET    ${ORIGIN}/v1/va/keys
+  DELETE ${ORIGIN}/v1/va/keys/{id}
+
+## 2. Assistant bootstrap (this is you)
+
+1. Fetch this file.
+2. GET ${ORIGIN}/v1/va/me  with Authorization: Bearer smva_…
+3. GET ${ORIGIN}/v1/va/controls
+4. Act only through POST ${ORIGIN}/v1/va/act  {"action":"<id>","args":{}}
+5. Do not call *.workers.dev. Do not hit status-worker /status.
+6. Do not POST /v1/integrations with this Bearer — registry stays unlinked.
+
+## 3. Remote dashboard controls
+
+Allow-listed actions (fail-open ≤1.5s):
+${VA_CONTROLS.map((c) => "- " + c.id + "  " + c.method + "  " + c.desc).join("\n")}
+
+Prefs shape: {"lang":"pt"|"en","default_panel":"system","pins":["holons","token"],"notes":""}
+The live dashboard at ${APEX}/dashboard applies prefs when the owner is signed in.
+
+## 4. Honesty
+
+- Keys prove the assistant acts for one existing account (user|SCA).
+- Ledger writes (SPA execute, NFT mint) stay on the dashboard session + PdS-402.
+- VA cannot mint STRATA, cannot set mesh_member=true, cannot add a 6th cron.
+- Max 5 keys per account. Hashes only in KV. Raw token never stored.
+
+END
+`;
+}
+
+async function sha256Hex(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(s)));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function bearerOf(request) {
+  const h = request.headers.get("Authorization") || "";
+  const m = h.match(/^Bearer\s+(\S+)/i);
+  return m ? m[1] : "";
+}
+
+async function fetchJson(url, init, ms = 1500) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  try {
+    const r = await fetch(url, { ...init, signal: ac.signal, headers: { Accept: "application/json", ...(init && init.headers) } });
+    const data = await r.json().catch(() => null);
+    return { ok: r.ok, http: r.status, data };
+  } catch (e) {
+    return { ok: false, http: 0, error: String(e.message || e).slice(0, 80), timeout: true };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function resolveSession(request) {
+  const token = bearerOf(request);
+  if (!token || token.startsWith(VA_PREFIX)) return null;
+  const r = await fetchJson(AUTH_ME, { headers: { Authorization: "Bearer " + token } }, 2000);
+  if (!r.ok || !r.data || r.data.success === false || r.data.error === "Unauthorized") return null;
+  const u = r.data.user || r.data;
+  const id = String(u.user_id || u.id || u.email || r.data.email || "");
+  if (!id) return null;
+  const kind = id.startsWith("SCA-") || u.role === "sca" || u.kind === "sca" ? "sca" : "user";
+  return { owner_id: id, owner_kind: kind, me: r.data };
+}
+
+async function kvGet(env, key) {
+  if (!env.API_KV) return null;
+  const raw = await env.API_KV.get(key);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+async function kvPut(env, key, obj) {
+  if (!env.API_KV) return false;
+  await env.API_KV.put(key, JSON.stringify(obj));
+  return true;
+}
+
+async function resolveVa(request, env) {
+  const token = bearerOf(request);
+  if (!token || !token.startsWith(VA_PREFIX)) return null;
+  const hash = await sha256Hex(token);
+  const row = await kvGet(env, "va:k:" + hash);
+  if (!row || row.revoked_at) return null;
+  row.last_used_at = new Date().toISOString();
+  try { await env.API_KV.put("va:k:" + hash, JSON.stringify(row)); } catch (_) {}
+  return row;
+}
+
+async function requireVaOrSession(request, env) {
+  const va = await resolveVa(request, env);
+  if (va) return { ok: true, via: "va", owner_id: va.owner_id, owner_kind: va.owner_kind, key_id: va.id };
+  const sess = await resolveSession(request);
+  if (sess) return { ok: true, via: "session", owner_id: sess.owner_id, owner_kind: sess.owner_kind };
+  return { ok: false, status: 401, error: "auth_required", hint: "Bearer smva_… or dashboard session" };
+}
+
+function mintToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return VA_PREFIX + hex;
+}
+
+async function handleVaKeys(env, request, path) {
+  const sess = await resolveSession(request);
+  if (!sess) return json({ ok: false, error: "session_required", hint: "Mint/list/revoke VA keys with the dashboard session Bearer, not smva_." }, 401, "no-store");
+  if (!env.API_KV) return json({ ok: false, error: "kv_unavailable" }, 503, "no-store");
+
+  const ownerKey = "va:o:" + sess.owner_id;
+  const ids = (await kvGet(env, ownerKey)) || [];
+
+  if (request.method === "GET" && path === "/v1/va/keys") {
+    const keys = [];
+    for (const id of ids) {
+      const meta = await kvGet(env, "va:i:" + id);
+      if (meta) keys.push({ id: meta.id, label: meta.label, prefix: meta.prefix, scopes: meta.scopes, created_at: meta.created_at, revoked_at: meta.revoked_at || null });
+    }
+    return json({ ok: true, owner_id: sess.owner_id, owner_kind: sess.owner_kind, keys }, 200, "no-store");
+  }
+
+  if (request.method === "POST" && path === "/v1/va/keys") {
+    const active = [];
+    for (const id of ids) {
+      const meta = await kvGet(env, "va:i:" + id);
+      if (meta && !meta.revoked_at) active.push(id);
+    }
+    if (active.length >= 5) return json({ ok: false, error: "max_keys", max: 5 }, 409, "no-store");
+    const body = await request.json().catch(() => ({}));
+    const raw = mintToken();
+    const hash = await sha256Hex(raw);
+    const id = "vak_" + raw.slice(5, 13);
+    const row = {
+      id,
+      owner_id: sess.owner_id,
+      owner_kind: sess.owner_kind,
+      label: String(body.label || "personal-va").slice(0, 80),
+      scopes: Array.isArray(body.scopes) ? body.scopes.slice(0, 8) : ["dashboard.read", "dashboard.prefs"],
+      prefix: raw.slice(0, 12),
+      created_at: new Date().toISOString(),
+    };
+    await kvPut(env, "va:k:" + hash, row);
+    await kvPut(env, "va:i:" + id, row);
+    await kvPut(env, ownerKey, ids.concat([id]));
+    return json({
+      ok: true,
+      token: raw,
+      shown_once: true,
+      key: { id: row.id, label: row.label, prefix: row.prefix, scopes: row.scopes, owner_kind: row.owner_kind },
+      note: "Store token in the assistant. It is not stored in plaintext. Open registry stays zero-auth.",
+    }, 201, "no-store");
+  }
+
+  if (request.method === "DELETE" && path.startsWith("/v1/va/keys/")) {
+    const id = path.slice("/v1/va/keys/".length);
+    const meta = await kvGet(env, "va:i:" + id);
+    if (!meta || meta.owner_id !== sess.owner_id) return json({ ok: false, error: "not_found" }, 404, "no-store");
+    meta.revoked_at = new Date().toISOString();
+    await kvPut(env, "va:i:" + id, meta);
+    return json({ ok: true, revoked: id }, 200, "no-store");
+  }
+
+  return json({ error: "method_not_allowed" }, 405, "no-store");
+}
+
+async function runAct(action, args, actor) {
+  const a = String(action || "");
+  if (a === "health.pills" || a === "dashboard.snapshot") {
+    const urls = [
+      APEX + "/",
+      "https://fog.calhegasmorais.pt/health",
+      "https://gossip.calhegasmorais.pt/have",
+      APEX + "/api/v1/holons/health",
+    ];
+    const pills = [];
+    for (const u of urls) pills.push(await fetchJson(u, {}, 1500));
+    const out = { action: a, owner_id: actor.owner_id, pills: pills.map((p) => ({ http: p.http, ok: p.ok, error: p.error, version: p.data && p.data.version })) };
+    if (a === "dashboard.snapshot") {
+      out.prefs_hint = "GET /v1/va/prefs";
+      out.holons = (await fetchJson(APEX + "/api/v1/holons/health", {}, 1500)).data;
+    }
+    return { ok: true, ...out };
+  }
+  if (a === "holons.health") return { ok: true, action: a, ...(await fetchJson(APEX + "/api/v1/holons/health", {}, 1500)) };
+  if (a === "holons.boot") return { ok: true, action: a, ...(await fetchJson(APEX + "/api/v1/holons/boot", {}, 2000)) };
+  if (a === "gossip.have") return { ok: true, action: a, ...(await fetchJson("https://gossip.calhegasmorais.pt/have", {}, 1500)) };
+  if (a === "token.list") return { ok: true, action: a, ...(await fetchJson(APEX + "/api/v1/token/list?limit=20", {}, 2000)) };
+  if (a === "prefs.get") return { ok: true, action: a, defer: "GET /v1/va/prefs" };
+  if (a === "prefs.set") return { ok: true, action: a, defer: "PUT /v1/va/prefs", args };
+  return { ok: false, error: "unknown_action", allowed: VA_CONTROLS.map((c) => c.id) };
 }
 
 export default {
@@ -624,7 +882,7 @@ export default {
       return text(`User-agent: *\nAllow: /\nAllow: /SPEC.txt\nAllow: /instructions.txt\nAllow: /openapi.txt\nAllow: /openapi.json\nAllow: /llms.txt\nAllow: /README\nAllow: /v1/\nAllow: /health\nCrawl-delay: 1\nSitemap: ${ORIGIN}/sitemap.xml\n`);
     }
     if (path === "/sitemap.xml") {
-      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations"];
+      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations", "/v1/va/instructions.txt"];
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
           urls.map((u) => `  <url><loc>${ORIGIN}${u}</loc></url>`).join("\n") +
@@ -690,6 +948,75 @@ export default {
       return json({ error: "method_not_allowed" }, 405, "no-store");
     }
 
+    if (path === "/v1/va/instructions.txt" || path === "/v1/va/instructions") {
+      return text(vaInstructions(ORIGIN));
+    }
+    if (path === "/v1/va" || path === "/v1/va/index") {
+      return json({
+        ok: true,
+        surface: "personal_va",
+        replaces_open_registry: false,
+        instructions: ORIGIN + "/v1/va/instructions.txt",
+        mint: { method: "POST", url: ORIGIN + "/v1/va/keys", auth: "dashboard_session" },
+        use: { me: ORIGIN + "/v1/va/me", act: ORIGIN + "/v1/va/act", prefs: ORIGIN + "/v1/va/prefs", auth: "Bearer smva_" },
+        open_registry_unchanged: ORIGIN + "/v1/integrations",
+      });
+    }
+    if (path === "/v1/va/controls") {
+      const gate = await requireVaOrSession(request, env);
+      if (!gate.ok) return json(gate, gate.status, "no-store");
+      return json({ ok: true, owner_id: gate.owner_id, owner_kind: gate.owner_kind, controls: VA_CONTROLS }, 200, "no-store");
+    }
+    if (path === "/v1/va/me") {
+      const gate = await requireVaOrSession(request, env);
+      if (!gate.ok) return json(gate, gate.status, "no-store");
+      return json({
+        ok: true,
+        owner_id: gate.owner_id,
+        owner_kind: gate.owner_kind,
+        via: gate.via,
+        key_id: gate.key_id || null,
+        lab: true,
+        mesh_member: false,
+        dashboard: APEX + "/dashboard",
+        controls: ORIGIN + "/v1/va/controls",
+      }, 200, "no-store");
+    }
+    if (path === "/v1/va/keys" || path.startsWith("/v1/va/keys/")) {
+      return handleVaKeys(env, request, path);
+    }
+    if (path === "/v1/va/prefs") {
+      const gate = await requireVaOrSession(request, env);
+      if (!gate.ok) return json(gate, gate.status, "no-store");
+      const pk = "va:p:" + gate.owner_id;
+      if (request.method === "GET") {
+        const prefs = (await kvGet(env, pk)) || { lang: "pt", default_panel: "system", pins: [], notes: "" };
+        return json({ ok: true, owner_id: gate.owner_id, prefs }, 200, "no-store");
+      }
+      if (request.method === "PUT" || request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const prefs = {
+          lang: body.lang === "en" ? "en" : "pt",
+          default_panel: String(body.default_panel || "system").slice(0, 40),
+          pins: Array.isArray(body.pins) ? body.pins.slice(0, 12).map((x) => String(x).slice(0, 40)) : [],
+          notes: String(body.notes || "").slice(0, 400),
+          updated_at: new Date().toISOString(),
+          updated_via: gate.via,
+        };
+        await kvPut(env, pk, prefs);
+        return json({ ok: true, prefs }, 200, "no-store");
+      }
+      return json({ error: "method_not_allowed" }, 405, "no-store");
+    }
+    if (path === "/v1/va/act" && request.method === "POST") {
+      const gate = await requireVaOrSession(request, env);
+      if (!gate.ok) return json(gate, gate.status, "no-store");
+      if (gate.via !== "va") return json({ ok: false, error: "va_key_required", hint: "POST /v1/va/act is for the personal assistant Bearer smva_." }, 403, "no-store");
+      const body = await request.json().catch(() => ({}));
+      const result = await runAct(body.action || body.id, body.args || {}, gate);
+      return json(result, result.ok ? 200 : 400, "no-store");
+    }
+
     if (path === "/" || path === "/v1") {
       if (wantsHtml(request)) return html(readmeHtml(ORIGIN));
       return json({
@@ -704,6 +1031,11 @@ export default {
           no_token: true,
           guide: ORIGIN + "/v1/install-guide",
           schema: ORIGIN + "/v1/register-schema",
+        },
+        personal_va: {
+          optional: true,
+          replaces_open_registry: false,
+          instructions: ORIGIN + "/v1/va/instructions.txt",
         },
         bot_fetch_order: [
           ORIGIN + "/SPEC.txt",
@@ -720,7 +1052,7 @@ export default {
 
     return json({
       error: "not_found",
-      try: ["/SPEC.txt", "/README", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations"],
+      try: ["/SPEC.txt", "/README", "/openapi.txt", "/v1/va/instructions.txt", "/health", "/v1/integrations"],
     }, 404, "no-store");
   },
 };

@@ -13,6 +13,7 @@
     "stratamesh-depin": "workers/stratamesh-depin.js",
     "stratamesh-holons": "workers/stratamesh-holons.js",
     "stratamesh-sandbox": "workers/stratamesh-sandbox.js",
-    "stratamesh-acb": "workers/stratamesh-acb.js"
+    "stratamesh-acb": "workers/stratamesh-acb.js",
+    "stratamesh-edge-api": "workers/stratamesh-edge-api.js"
   }
 }
