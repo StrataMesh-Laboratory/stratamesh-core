@@ -39,6 +39,10 @@ HiddenServiceVersion 3
 HiddenServicePort 443 127.0.0.1:8443
 # Fog HTTP when FOG-NODE-PT-CM-001 is up (do not bind Fog on a public IP).
 HiddenServicePort 8787 127.0.0.1:8787
+# WireGuard TCP onion front (UDP is loopback-only on the box).
+HiddenServicePort 51820 127.0.0.1:51820
+# OpenVPN TCP camouflage; nginx already owns 127.0.0.1:443.
+HiddenServicePort 1194 127.0.0.1:1194
 
 # After start, the v3 hostname is HiddenServiceDir/hostname (not logged here).
 # Client authorization (v3): follow-up. Drop *.auth files into
