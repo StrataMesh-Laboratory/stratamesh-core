@@ -1,4 +1,50 @@
-# Metabolic stasis v1.1
+# Metabolic stasis v1.3 — pace_factor (inflator / deflator)
+
+v1.3 multiplies the hourly cap by a **pace_factor** so under-spend late in the window inflates (up to 1.5×) and over-spend early deflates (down to 0.5×). Neutral **1.0** when `day_spent==0` or `daily_limit<=0`. Circuit still trips on the **unadjusted** hourly cap so an inflator cannot bypass Error 1027.
+
+```
+hourly_cap      = remaining / max(hours_until_renewal, 1/60)
+pace_factor     = clamp(time_frac / spent_frac, 0.5, 1.5)   # 1.0 if day_spent==0
+adjusted        = hourly_cap × pace_factor
+inflator        = max(1, pace_factor)
+deflator        = min(1, pace_factor)
+density         = signal / cost
+effective_cap   = adjusted × density
+circuit HOLD    if hour_spent ≥ 1.25 × hourly_cap   # unadjusted
+circuit STASIS  if hour_spent ≥ 2 × hourly_cap      # unadjusted
+```
+
+- **HF Inference** HOLD until **2026-09-01T00:00:00Z** (`stasis_until`). Never paid HF.
+- **AWS Free** STASIS remaining=0 (`hard_cap: 0`). Never Paid / Support / Auto-renew. Not a Fog host. Billing alarm $1.
+- **grok-bot-included** / **grok-assistant**: `unknown_remaining: "hold"` — missing numeric `daily_limit` does **not** invent a weekly cap (HOLD until a live remaining sample). Sampler/`usage_limit` still pauses those routines. Do not invent a fake weekly cap number.
+- **CF Workers Free** after **2026-08-29T00:00:00Z** is Q-gated ALLOW (`R = remaining/hours_left * pace_factor`), not STASIS. Never workers.dev. Never a 6th cron.
+
+---
+
+# Metabolic stasis v1.2 — token density
+
+v1.1 paced remaining/hours. v1.2 makes **few tokens carry high impact** so Error 1027 cannot repeat, and effective capacity grows without a plan upgrade.
+
+```
+hourly_cap      = remaining / max(hours_until_renewal, 1/60)
+density         = signal / cost
+effective_cap   = hourly_cap × density
+circuit HOLD    if hour_spent ≥ 1.25 × hourly_cap
+circuit STASIS  if hour_spent ≥ 2 × hourly_cap
+```
+
+- **Density floor 1** on Worker probes: never spend a token for less than one unique fact.
+- **Target density 8**: coalesce seven /health + gossip into **one** multiplex (plus Fog as its own P1 sample).
+- **Anti-3 Hz**: same URL < 10 s → HOLD.
+- **workers.dev**: STASIS. Zone WAF does not cover it (INC-1027 hole).
+- **lockstep-probe** rail: `hard_cap: 0`.
+- Cache hits cost 0. Pages apex is not the 100k Worker rail.
+
+After UTC refill the Worker hourly cap is **~4 167**. At density 8 that is **~33 336 facts/h** from the same quota.
+
+GitHub Action `00:20 UTC` writes the origin archive. **Not a 6th CF cron.** Still 5/5.
+
+## Formula (v1.1 still holds)
 
 The lab was burning the day's quota before the day's reserved work.
 v1.1 adds **hourly + daily caps on every token / PAYG rail** and **overdraft compensation**: unused grant of a later phase pays back a prior burst.
@@ -20,15 +66,11 @@ daily_effective = daily_limit + daily_credit − daily_debt
 
 Peaks (09:00 / 18:00 / 23:00 Lisbon) **may overdraft the hour**. Quiet hours compensate. Next calendar day inherits leftover `daily_debt` (Grok, DeoMail, xAI, CF daily rails). GitHub rolling windows **reset carry** when the vendor resets — we don't invent debt against a refilled 5000.
 
-`decide()` first-match: STASIS / P0_BORROW (not against HF at remaining 0, not against live Worker HTTP under INC-1027) / HOLD / ALLOW.
-Reserved peak `R = remaining / hours_left`.
-
 ## Rails (token / PAYG / quota)
 
 | Rail | Billing | Window | Cap |
 |---|---|---|---|
 | grok-auto | quota (shared pool) | day Lisbon | 6 fires (4 slots + 2 desk) |
-| grok-assistant | SuperGrok weekly | week | one prompt then execute; cap through 31 Aug; do not Upgrade |
 | xai-api | PAYG owner key | day Lisbon | 24 req · 1/hour · user-initiated |
 | deomail | token | day Lisbon | 240 · 10/h |
 | discourse | quota | day Lisbon | 6 posts |
@@ -42,22 +84,8 @@ Reserved peak `R = remaining / hours_left`.
 | cf-kv-reads / writes | quota | day UTC | 100k / **1k** |
 | cf-r2-class-a | quota | day UTC | ~33k (1M/month) |
 | cf-acb-cron | quota | day UTC | 24 (was 96) |
-| hf-inference | prepaid $0.10/mo | month UTC | remaining 0 until **2026-09-01T00:00:00Z**; `canPay=false` |
-| hf-hub-catalog | none (metadata) | — | LIVE whoami / catalog / static commits |
 | local-monitor | quota | day Lisbon | 192 · stretch if in debt |
 | aiops-actions | quota | — | **0 · forbidden** |
-
-SuperGrok does **not** refill CF or HF.
-
-## Renewal calendar (as of 2026-08-28)
-
-| When (UTC) | What lifts |
-|------------|------------|
-| **2026-08-29T00:00:00Z** | CF Workers Free 100k. Then Q-gated ALLOW. Hold `R` through 31 Aug. One Orchestrator `/health` (not `/actions`). No workers.dev. |
-| **2026-09-01T00:00:00Z** | HF Inference Providers prepaid refill. Hub catalog stays LIVE through HOLD. |
-| 31 Aug 2026 (Lisbon) | SuperGrok weekly cap window. Do not click Upgrade. |
-
-Desk contract (Bot vs Assistant, write surfaces, P0 honesty): [EDGE-GROK-DESK-CONTRACT.md](./EDGE-GROK-DESK-CONTRACT.md).
 
 ## RCA (26–27 Aug + follow-up)
 
