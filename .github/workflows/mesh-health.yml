@@ -1,29 +1,18 @@
+# Daily cheap health — same probes as desk-tick (ops/config/health-probes.json).
 name: mesh-health
 on:
   schedule:
-    - cron: "0 9 * * *"  # ~10:00 Lisbon winter
+    - cron: "0 9 * * *"
   workflow_dispatch:
-jobs:
-  probe:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Probe public surfaces
-        run: |
-          set -e
-          # HOLD: do not probe *.workers.dev (CF Q-gate / STASIS).
-          # /health is cheap (0 Worker fan-out). Do NOT hit /status (17 bindings).
-          for u in \
-            https://calhegasmorais.pt/ \
-            https://status.calhegasmorais.pt/health \
-            https://fog.calhegasmorais.pt/health \
-            https://gossip.calhegasmorais.pt/health \
-            https://origin.calhegasmorais.pt/ \
-            https://eni.calhegasmorais.pt/
-          do
-            code=$(curl -sS -o /tmp/out -w "%{http_code}" --max-time 25 -A "StrataMesh-CI-Health" "$u" || echo 000)
-            echo "$code $u"
-            case "$code" in 2*|3*) ;; *) echo FAIL; exit 1 ;; esac
-          done
-          echo OK
 
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  tick:
+    uses: ./.github/workflows/desk-tick.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      issues: write

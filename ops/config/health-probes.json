@@ -1,0 +1,22 @@
+{
+  "ua": "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)",
+  "never": ["workers.dev", "status.calhegasmorais.pt/status"],
+  "core": [
+    "https://status.calhegasmorais.pt/health",
+    "https://fog.calhegasmorais.pt/health",
+    "https://gossip.calhegasmorais.pt/health",
+    "https://edge.calhegasmorais.pt/health"
+  ],
+  "health": [
+    "https://calhegasmorais.pt/",
+    "https://status.calhegasmorais.pt/health",
+    "https://fog.calhegasmorais.pt/health",
+    "https://gossip.calhegasmorais.pt/health",
+    "https://gossip.calhegasmorais.pt/have",
+    "https://origin.calhegasmorais.pt/",
+    "https://edge.calhegasmorais.pt/health",
+    "https://fund.calhegasmorais.pt/health",
+    "https://calhegasmorais.pt/api/v1/holons/health"
+  ],
+  "fog_status": "https://fog.calhegasmorais.pt/status"
+}

@@ -75,8 +75,9 @@ def main() -> int:
             sys.argv = old_argv
 
     grok_cmd = (
-        "python3 ops/bin/desk-execute.py --git --live --discourse"
-        + (f" --scripts {','.join(drifted)}" if drifted else "")
+        "python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json"
+        if drifted
+        else "python3 ops/bin/desk-execute.py --git --live --discourse"
     )
     draft_lines = [
         f"## EDGE-GROK ops pulse {now}",

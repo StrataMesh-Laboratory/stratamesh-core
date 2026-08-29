@@ -28,6 +28,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Prepare publish pack
         run: python3 ops/bin/desk-prepare.py
+      - name: Upload pack for Grok
+        if: always()
+        uses: ./.github/actions/upload-desk
+        with:
+          name: desk-prepare
       - name: Hint #52 when drift + Q-gate ALLOW
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
@@ -40,7 +45,17 @@ jobs:
               core.info('no Grok execute hint (HOLD or no drift)');
               return;
             }
-            const cmd = (pack.execute && pack.execute.command) || 'python3 ops/bin/desk-execute.py --git --live --discourse';
+            const marker = '<!-- stratamesh-desk-prepare -->';
+            const sig = 'Drift: `' + drift.join(', ') + '`';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 30,
+            });
+            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+            if (last && last.body.includes(sig) && (Date.now() - new Date(last.created_at).getTime()) < 6 * 3600 * 1000) {
+              core.info('skip duplicate prepare comment');
+              return;
+            }
+            const cmd = (pack.execute && pack.execute.command) || 'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -48,14 +63,15 @@ jobs:
               body: [
                 '## desk-prepare: Grok execute ready',
                 '',
-                'Actions finished labor. **Grok** runs git + live + t/20:',
+                'Actions finished labor. Download pack: `gh run download ' + context.runId + ' -n desk-prepare`',
                 '',
                 '```bash',
-                cmd,
+                'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
+                '# or: ' + cmd,
                 '```',
                 '',
-                'Drift: `' + drift.join(', ') + '`',
+                sig,
                 '',
-                '<!-- stratamesh-desk-prepare -->',
+                marker,
               ].join('\n'),
             });

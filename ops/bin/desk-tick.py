@@ -17,13 +17,24 @@ from pathlib import Path
 from typing import Any
 
 ZONE = "calhegasmorais.pt"
-CORE_HEALTH = {
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _load_probes() -> dict[str, Any]:
+    p = ROOT / "ops/config/health-probes.json"
+    if p.is_file():
+        return json.loads(p.read_text())
+    return {}
+
+
+_PROBES = _load_probes()
+CORE_HEALTH = set(_PROBES.get("core") or [
     f"https://status.{ZONE}/health",
     f"https://fog.{ZONE}/health",
     f"https://gossip.{ZONE}/health",
     f"https://edge.{ZONE}/health",
-}
-HEALTH = [
+])
+HEALTH = list(_PROBES.get("health") or [
     f"https://{ZONE}/",
     f"https://status.{ZONE}/health",
     f"https://fog.{ZONE}/health",
@@ -31,9 +42,9 @@ HEALTH = [
     f"https://origin.{ZONE}/",
     f"https://edge.{ZONE}/health",
     f"https://fund.{ZONE}/health",
-]
-FOG_STATUS = f"https://fog.{ZONE}/status"
-UA = "StrataMesh-DeskTick/1.0 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)"
+])
+FOG_STATUS = _PROBES.get("fog_status") or f"https://fog.{ZONE}/status"
+UA = _PROBES.get("ua") or "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)"
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
 CF_DAILY = 100_000
 
@@ -52,8 +63,11 @@ def _secret(name: str) -> str:
 
 
 def fetch(url: str, timeout: int = 15, accept: str = "*/*") -> dict[str, Any]:
-    if "workers.dev" in url.lower():
+    low = url.lower()
+    if "workers.dev" in low:
         return {"url": url, "ok": False, "error": "STASIS workers.dev forbidden", "http": 0}
+    if low.rstrip("/").endswith("status.calhegasmorais.pt/status"):
+        return {"url": url, "ok": False, "error": "never status-worker /status", "http": 0}
     req = urllib.request.Request(
         url,
         headers={"User-Agent": UA, "Accept": accept},

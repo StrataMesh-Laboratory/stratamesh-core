@@ -30,16 +30,30 @@ jobs:
       - name: desk-tick
         id: tick
         run: python3 ops/bin/desk-tick.py
-        continue-on-error: true
+      - name: Upload tick artifacts
+        if: always()
+        uses: ./.github/actions/upload-desk
+        with:
+          name: desk-tick
       - name: Ledger #52 on FAIL only
-        if: steps.tick.outcome == 'failure'
+        if: failure()
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
+            const marker = '<!-- stratamesh-desk-tick -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 20,
+            });
+            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+            if (last && (Date.now() - new Date(last.created_at).getTime()) < 3 * 3600 * 1000) {
+              core.info('skip duplicate tick FAIL comment');
+              core.setFailed('desk-tick failed');
+              return;
+            }
             let body = '## desk-tick FAIL\n\nSee Actions run ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId;
             try { body += '\n\n' + fs.readFileSync('artifacts/desk-tick.md', 'utf8'); } catch (_) {}
-            body += '\n\n<!-- stratamesh-desk-tick -->';
+            body += '\n\n' + marker;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

@@ -19,16 +19,13 @@ ROOT = Path(__file__).resolve().parents[2]
 TOPIC = 20
 FORUM = "https://stratamesh.discourse.group"
 
-ALLOW = {
-    "stratamesh-spa": "workers/stratamesh-spa.js",
-    "stratamesh-status": "workers/stratamesh-status.js",
-    "stratamesh-gossip": "workers/stratamesh-gossip.js",
-    "stratamesh-orchestrator": "workers/stratamesh-orchestrator.js",
-    "stratamesh-aiops": "workers/stratamesh-aiops.js",
-    "stratamesh-deomail": "workers/stratamesh-deomail.js",
-    "stratamesh-briefing": "workers/stratamesh-briefing.js",
-    "stratamesh-fund": "workers/stratamesh-fund.js",
-}
+ALLOW = {}
+
+
+def load_allow() -> dict[str, str]:
+    p = ROOT / "ops/config/worker-allow.json"
+    data = json.loads(p.read_text()) if p.is_file() else {}
+    return dict(data.get("scripts") or {})
 
 
 def load(name: str, rel: str):
@@ -96,7 +93,20 @@ def main() -> int:
     ap.add_argument("--scripts", default="")
     ap.add_argument("--message", default="")
     ap.add_argument("--body-file", default="")
+    ap.add_argument("--from-pack", default="", help="PUBLISH-PACK.json from desk-prepare artifact")
     args = ap.parse_args()
+    pack = {}
+    if args.from_pack:
+        pack = json.loads(Path(args.from_pack).read_text())
+        if pack.get("scripts") and not args.scripts:
+            args.scripts = ",".join(pack["scripts"])
+        if not args.body_file:
+            draft = (pack.get("discourse") or {}).get("draft")
+            if draft:
+                tmp = Path("/tmp/desk-tick")
+                tmp.mkdir(parents=True, exist_ok=True)
+                (tmp / "DISCOURSE-DRAFT.md").write_text(draft)
+                args.body_file = str(tmp / "DISCOURSE-DRAFT.md")
     if not (args.git or args.live or args.discourse):
         args.git = args.live = args.discourse = True
 
@@ -110,14 +120,15 @@ def main() -> int:
         print("HOLD execute git/live — circuit or no remaining sample", file=sys.stderr)
         return 0
 
+    allow_map = load_allow()
     wanted = [s.strip() for s in args.scripts.split(",") if s.strip()]
     if not wanted:
-        wanted = list(ALLOW)
-    unknown = [s for s in wanted if s not in ALLOW]
+        wanted = list(allow_map)
+    unknown = [s for s in wanted if s not in allow_map]
     if unknown:
         print("HOLD unknown scripts " + ",".join(unknown), file=sys.stderr)
         return 1
-    files = [ALLOW[s] for s in wanted if (ROOT / ALLOW[s]).is_file()]
+    files = [allow_map[s] for s in wanted if (ROOT / allow_map[s]).is_file()]
 
     sha = None
     if args.git and files:
@@ -132,7 +143,7 @@ def main() -> int:
     if args.live and files:
         failed = []
         for script in wanted:
-            src = ROOT / ALLOW[script]
+            src = ROOT / allow_map[script]
             if not src.is_file():
                 continue
             main_mod = agl.MAIN_MODULE.get(script) or "index.js"

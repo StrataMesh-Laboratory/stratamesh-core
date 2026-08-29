@@ -20,17 +20,16 @@ ROOT = Path(__file__).resolve().parents[2]
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
 EMAIL = os.environ.get("CLOUDFLARE_EMAIL") or "amcmorais@icloud.com"
 
+
+def _load_map() -> dict[str, str]:
+    p = ROOT / "ops/config/worker-allow.json"
+    data = json.loads(p.read_text()) if p.is_file() else {}
+    scripts = data.get("scripts") or {}
+    return {rel: name for name, rel in scripts.items()}
+
+
 # git path → CF script id
-MAP = {
-    "workers/stratamesh-spa.js": "stratamesh-spa",
-    "workers/stratamesh-status.js": "stratamesh-status",
-    "workers/stratamesh-gossip.js": "stratamesh-gossip",
-    "workers/stratamesh-orchestrator.js": "stratamesh-orchestrator",
-    "workers/stratamesh-aiops.js": "stratamesh-aiops",
-    "workers/stratamesh-deomail.js": "stratamesh-deomail",
-    "workers/stratamesh-briefing.js": "stratamesh-briefing",
-    "workers/stratamesh-fund.js": "stratamesh-fund",
-}
+MAP = _load_map()
 
 
 def token() -> str:

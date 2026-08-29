@@ -1,4 +1,4 @@
-# Dev labor on public runners: compile + metabolism tests.
+# Dev labor on public runners: compile + metabolism tests + dry tick.
 # Protocol/gossip stay in their own path-filtered workflows.
 name: dev-labor
 
@@ -10,6 +10,7 @@ on:
       - "ops/**"
       - "scripts/**"
       - ".github/workflows/**"
+      - ".github/actions/**"
       - "docs/EDGE-GROK-ACTIONS-PACKAGE.md"
 
 permissions:
@@ -23,6 +24,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Compile desk tools
         run: python3 -m py_compile ops/bin/desk-tick.py ops/bin/desk-prepare.py ops/bin/desk-execute.py ops/bin/desk-publish.py ops/bin/gitlive-drift.py ops/bin/worker-inventory.py scripts/api-gitlive-publish.py
+      - name: Config JSON
+        run: python3 -c "import json,pathlib; json.loads(pathlib.Path('ops/config/health-probes.json').read_text()); json.loads(pathlib.Path('ops/config/worker-allow.json').read_text()); print('ok', len(json.loads(pathlib.Path('ops/config/worker-allow.json').read_text())['scripts']))"
       - name: Metabolism unit tests
         run: |
           python3 ops/lib/test_metabolism.py
@@ -36,3 +39,14 @@ jobs:
             exit 1
           fi
           echo "execute correctly HOLD on Actions"
+      - name: Dry tick (public probes, no GOD_API)
+        env:
+          DESK_TICK_OUT: ${{ github.workspace }}/artifacts
+        run: python3 ops/bin/desk-tick.py || true
+      - name: Never workers.dev in workflows
+        run: |
+          if grep -RIn --include='*.yml' 'workers\.dev' .github/workflows; then
+            echo FAIL workers.dev in Actions
+            exit 1
+          fi
+          echo OK

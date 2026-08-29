@@ -4,7 +4,7 @@
 
 ```bash
 # Grok only (Q-gated). Actions never runs this:
-python3 ops/bin/desk-execute.py --git --live --discourse
+python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json
 ```
 
 Locked: no `workers.dev`, no 6th CF cron, no wrangler **deploy** from GHA, probe **`/health`** not status-worker **`/status`**, lab `n=1` / `mesh_member=false`.
@@ -21,14 +21,14 @@ flowchart LR
     Inv[worker-inventory]
   end
   subgraph grok [Grok — execute]
-    Ex["desk-execute.py"]
+    Ex["desk-execute.py --from-pack"]
     Git[Git Data commit]
     Live[CF PUT /content]
     Disc[Discourse t/20]
   end
-  Tick --> Prep
+  Tick -->|artifact desk-tick| Prep
   Drift --> Prep
-  Prep -->|PUBLISH-PACK + DISCOURSE-DRAFT| Ex
+  Prep -->|artifact PUBLISH-PACK| Ex
   Ex --> Git
   Ex --> Live
   Ex --> Disc
@@ -49,6 +49,8 @@ flowchart LR
 
 Hourly Grok `#52` *observe* retires after 48h green ticks. Grok *execute* stays one command at Lisbon peaks.
 
+`#52` comments are **deduped** (same drift signature within 6h; tick FAIL within 3h).
+
 ## Cadence (UTC = WEST−1 in August)
 
 | UTC cron | Lisbon | Actions | Grok |
@@ -56,38 +58,46 @@ Hourly Grok `#52` *observe* retires after 48h green ticks. Grok *execute* stays 
 | `0 3 * * *` | 04:00 | tick + prepare | — |
 | `0 8 * * *` | 09:00 | tick + prepare | execute if pack says ALLOW+drift |
 | `0 11 * * *` | 12:00 | tick + prepare | — |
-| `0 17 * * *` | 18:00 | tick + prepare + t/20 **draft** | `desk-execute --discourse` |
+| `0 17 * * *` | 18:00 | tick + prepare + t/20 **draft** | `desk-execute --from-pack` |
 | `0 20 * * *` | 21:00 | tick + prepare | — |
 | `0 22 * * *` | 23:00 | tick + prepare | execute if needed |
+| `0 9 * * *` | 10:00 | mesh-health = desk-tick | — |
+| `25 */6` | — | gitlive-drift | — |
 
 Prepare crons are `5 3,8,11,17,20,22` (five minutes after tick).
+
+## Config (single source)
+
+| File | Used by |
+|---|---|
+| [`ops/config/health-probes.json`](../ops/config/health-probes.json) | desk-tick, mesh-health |
+| [`ops/config/worker-allow.json`](../ops/config/worker-allow.json) | desk-execute, gitlive-drift |
 
 ## Workflows
 
 | File | Role |
 |---|---|
-| `desk-tick.yml` | observe |
+| `desk-tick.yml` | observe + artifact |
 | `desk-prepare.yml` | pack + draft + #52 hint if drift and Q-gate ALLOW |
 | `desk-publish.yml` | **alias** → prepare (no PUT) |
-| `dev-labor.yml` | py_compile + metabolism tests; proves execute refuses Actions |
+| `dev-labor.yml` | compile + metabolism + dry tick + no workers.dev YAML |
 | `gitlive-drift.yml` | hashes |
 | `worker-inventory.yml` | cron cap 5 |
 | `secrets-guard.yml` | PR leak scan |
 | `release-lab.yml` | dispatch GitHub prerelease (tag only; Discourse still Grok) |
-| `mesh-health.yml` / `metabolism.yml` / `protocol-invariants.yml` / `process-gossip.yml` / `origin-archive.yml` | existing labor |
+| `mesh-health.yml` | reusable desk-tick |
 | `wrangler-action-hold.yml` | `--version` only |
+| `.github/actions/upload-desk` | 2-day artifacts |
 
 ## Grok execute
 
-Local secrets (`/tmp/god_api`, `/tmp/gh_pat`, optional `/tmp/discourse_api`) — never git, never Actions secrets for Discourse session.
-
 ```bash
-python3 ops/bin/desk-execute.py --git --live --discourse
-python3 ops/bin/desk-execute.py --live --scripts stratamesh-status,stratamesh-gossip
-python3 ops/bin/desk-execute.py --discourse --body-file /tmp/desk-tick/DISCOURSE-DRAFT.md
+gh run download <run_id> -n desk-prepare
+python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json
+python3 ops/bin/desk-execute.py --live --scripts stratamesh-token,stratamesh-gossip
 ```
 
-Q-gate: live GraphQL remaining known, `hour_spent < 1.25× hourly_cap`, remaining ≥ 500. Fail closed. Allow-list Workers only.
+Q-gate: live GraphQL remaining known, `hour_spent < 1.25× hourly_cap`, remaining ≥ 500. Fail closed. Allow-list from `worker-allow.json` only.
 
 If Discourse has no API key (Free plan), execute HOLDs the post and prints the draft — Grok session client still owns t/20.
 

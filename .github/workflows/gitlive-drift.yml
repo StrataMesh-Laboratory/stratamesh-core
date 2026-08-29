@@ -11,6 +11,7 @@ on:
       - "workers/**"
       - "stratamesh-impact-fund/workers/**"
       - "ops/bin/gitlive-drift.py"
+      - "ops/config/worker-allow.json"
       - ".github/workflows/gitlive-drift.yml"
 
 concurrency:
@@ -39,10 +40,32 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
+            const marker = '<!-- stratamesh-gitlive-drift -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 20,
+            });
+            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+            if (last && (Date.now() - new Date(last.created_at).getTime()) < 5 * 3600 * 1000) {
+              core.info('skip duplicate drift comment');
+              core.setFailed('live ≠ git');
+              return;
+            }
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 52,
-              body: '## gitlive-drift FAIL\n\nLive Worker SHA-256 ≠ git. Dispatch `desk-publish` after Q-gate, or inspect the Actions log.\n\nRun: ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + '\n\n<!-- stratamesh-gitlive-drift -->',
+              body: [
+                '## gitlive-drift FAIL',
+                '',
+                'Live Worker SHA-256 ≠ git. **Grok execute** (Actions does not PUT):',
+                '',
+                '```bash',
+                'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
+                '```',
+                '',
+                'Run: ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
+                '',
+                marker,
+              ].join('\n'),
             });
             core.setFailed('live ≠ git');

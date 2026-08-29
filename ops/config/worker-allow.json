@@ -1,0 +1,18 @@
+{
+  "note": "Grok desk-execute allow-list + gitlive-drift MAP. script_id → git path.",
+  "scripts": {
+    "stratamesh-spa": "workers/stratamesh-spa.js",
+    "stratamesh-status": "workers/stratamesh-status.js",
+    "stratamesh-gossip": "workers/stratamesh-gossip.js",
+    "stratamesh-orchestrator": "workers/stratamesh-orchestrator.js",
+    "stratamesh-aiops": "workers/stratamesh-aiops.js",
+    "stratamesh-deomail": "workers/stratamesh-deomail.js",
+    "stratamesh-briefing": "workers/stratamesh-briefing.js",
+    "stratamesh-fund": "workers/stratamesh-fund.js",
+    "stratamesh-token": "workers/stratamesh-token.js",
+    "stratamesh-depin": "workers/stratamesh-depin.js",
+    "stratamesh-holons": "workers/stratamesh-holons.js",
+    "stratamesh-sandbox": "workers/stratamesh-sandbox.js",
+    "stratamesh-acb": "workers/stratamesh-acb.js"
+  }
+}

@@ -1,0 +1,16 @@
+name: upload-desk
+description: Persist desk-tick / desk-prepare artifacts for Grok download (gh run download)
+inputs:
+  name:
+    required: true
+    description: Artifact name
+runs:
+  using: composite
+  steps:
+    - name: Upload ${{ inputs.name }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.name }}
+        path: artifacts/
+        if-no-files-found: warn
+        retention-days: 2
