@@ -12,9 +12,11 @@ jobs:
         run: |
           set -e
           # HOLD: do not probe *.workers.dev (CF Q-gate / STASIS).
+          # Fog /health is canonical; /api/v1/health is the alias.
           for u in \
             https://calhegasmorais.pt/ \
             https://status.calhegasmorais.pt/status \
+            https://fog.calhegasmorais.pt/health \
             https://fog.calhegasmorais.pt/api/v1/health \
             https://eni.calhegasmorais.pt/
           do
