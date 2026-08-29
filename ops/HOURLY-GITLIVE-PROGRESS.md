@@ -3,6 +3,35 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-29T21:21:04Z hour
+READ: automation logs hours 17–20 titled success with no git comments. Recovered unpublished: orch 10.24.4 + status 530-note (git 19a6ecce, not live); Impact Fund git 5023758b 81k ahead of live 80k.
+
+SHIPPED live via CF PUT /content (REST, not MCP):
+- stratamesh-fund from stratamesh-impact-fund@5023758b (81 328) → live version 0.4.6-grantor-brief
+- stratamesh-orchestrator 10.24.4-chat-budget
+- stratamesh-status spa.note Fog /health 200 not 530
+- core workers/stratamesh-fund.js synced to canonical Impact Fund file
+
+LIVE curl:
+- GET /api/orchestrator/chat 200 ~65ms 1.1.0
+- POST /api/orchestrator/chat 200 ~1.01s source=orch-chat-budget (ORCH returned inside SPA 1500ms; inner chat() still hits 900ms budget)
+- GET status.calhegasmorais.pt/status spa.source=fog_process note mentions Fog /health 200 0.2.3-lab-temp
+- GET fund.calhegasmorais.pt/health 200 version=0.4.6-grantor-brief
+
+SHA: 19a6ecce (orch/status) + fund repo 5023758b (this hour also syncs fund blob on core)
+
+STILL RED:
+- Fog process GET /spa still total=0 (0.2.3-lab-temp on STRATAGROK, not git node_persistent.py)
+- orch inner chat() still 900ms budget fallback (not full LLM reply)
+- P0 OPEN 260826-001576 n=1 mesh_member=false oracle_live=false
+- Fund challenges unfunded; skip #36 Renovate #46 grok90 grok.me /actions 6th cron
+
+NEXT PICK: Fog /spa honesty on the temp process OR shorten orch chat() so source=origin-orch-binding with a real reply. Do not re-ship spa 1.1.0.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-29T21:15:58Z hour
 READ: user asked to fetch ALL unpublished 24h work, not only origin-orch 1.1.0. Hourly 17–20 preview workspaces are gone; recovery is live Cloudflare Workers that never landed on git. Git HEAD was f47ee32 / f36a1ea (spa 1.1.0 only).
 
