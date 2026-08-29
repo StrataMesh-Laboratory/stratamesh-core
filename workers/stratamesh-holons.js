@@ -902,7 +902,7 @@ export default {
 
     if ((path === "/boot" || path === "/arrancar") && (request.method === "POST" || request.method === "GET")) {
       const BOOT_MS = 1500;
-      const cacheUrl = "https://stratamesh-holons.cache/boot";
+      const cacheUrl = "https://stratamesh-holons.cache/boot-v2";
       try {
         const hit = await caches.default.match(cacheUrl);
         if (hit) {
@@ -911,6 +911,7 @@ export default {
         }
       } catch (_) {}
       const started = Date.now();
+      const deadline = started + 1400;
       const passos = [];
       const seq = [
         ["garantir_reino_lab", {}],
@@ -921,10 +922,10 @@ export default {
       ];
       let timed_out = false;
       for (const [name, args] of seq) {
-        if (Date.now() - started > BOOT_MS) {
+        if (deadline - Date.now() < 80) {
           timed_out = true;
           passos.push({ syscall: name, ok: false, error: "timeout", timeout: true });
-          break;
+          continue;
         }
         const spec = SYSCALLS[name];
         let call = { ok: false, status: 0, error: "timeout" };
@@ -933,11 +934,7 @@ export default {
         } catch (e) {
           call = { ok: false, status: 0, error: String(e.message || e).slice(0, 80) };
         }
-        let ev = { envelope: null };
-        try {
-          ev = await emitEvent(env, spec.holon, spec.emite, null, { boot: true, syscall: name });
-        } catch (_) {}
-        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, evento_id: ev.envelope && ev.envelope.id, error: call.error });
+        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, error: call.error });
       }
       const payload = {
         ok: !timed_out && passos.every((p) => p.ok),
