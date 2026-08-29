@@ -323,6 +323,60 @@ class PaceAndStasis(unittest.TestCase):
         self.assertEqual(v3.decision, STASIS)
 
 
+class SuperGrokRemainingFrac(unittest.TestCase):
+    """Live SuperGrok weekly pool is remaining_frac, not an invented token/prompt cap."""
+
+    RESET = int(datetime(2026, 8, 31, 14, 55, tzinfo=LISBON).timestamp())
+
+    def test_remaining_frac_096_allow(self):
+        v = decide(
+            "grok-assistant",
+            remaining_frac=0.96,
+            now=T(1, 5, day=29),
+            reset_unix=self.RESET,
+            cost=0,
+            cfg=CFG,
+        )
+        self.assertEqual(v.decision, ALLOW)
+        self.assertAlmostEqual(v.remaining, 0.96)
+        self.assertGreater(v.hours_left, 60)
+        self.assertAlmostEqual(v.hourly_cap, 0.96 / v.hours_left, places=4)
+        self.assertEqual(CFG["rails"]["grok-assistant"]["daily_limit"], 1.0)
+
+    def test_remaining_frac_zero_stasis(self):
+        v = decide("grok-assistant", remaining_frac=0, now=T(12, 0), cost=0, cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+
+    def test_none_plus_unknown_remaining_hold(self):
+        v = decide("grok-assistant", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertIn("do not invent a cap", v.reason)
+        # remaining is 0, not an invented weekly token number
+        self.assertEqual(v.remaining, 0)
+        self.assertEqual(v.hourly_cap, 0)
+
+    def test_cost_one_is_not_the_whole_pool(self):
+        # remaining_frac 0.96 with cost=1 must NOT STASIS as if cost were 100% of the weekly pool
+        v = decide(
+            "grok-assistant",
+            remaining_frac=0.96,
+            now=T(1, 5, day=29),
+            reset_unix=self.RESET,
+            cost=1,
+            cfg=CFG,
+        )
+        self.assertEqual(v.decision, ALLOW)
+        self.assertAlmostEqual(v.remaining, 0.96)
+
+    def test_snapshot_pages_alias_not_second_100k(self):
+        s = snapshot(T(12, 0), live={"cf-worker-req": {"remaining": 99990}}, cfg=CFG,
+                     ledger={"schema": "x", "rails": {}})
+        self.assertEqual(s["rails"]["cf-pages"]["decision"], "ALIAS")
+        self.assertEqual(s["rails"]["cf-pages"]["shares_pool"], "cf-worker-req")
+        self.assertNotEqual(s["rails"]["cf-pages"].get("remaining"), 100000)
+        self.assertAlmostEqual(s["hourly_cap_after_refill"], s["rails"]["cf-worker-req"]["hourly_cap"])
+        self.assertNotEqual(s["hourly_cap_after_refill"], 4167)
+
 
 
 if __name__ == "__main__":
