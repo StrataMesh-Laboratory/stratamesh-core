@@ -24,7 +24,7 @@ LIVE curl:
 - GET https://fund.calhegasmorais.pt/health → 200 0.4.6-grantor-brief; POST /api/v1/accept → 404
 - GET https://status.calhegasmorais.pt/health → 200 0.4.4-cache-api; /status spa.source=fog_process settlements.unavailable=n<2 consensus.n=1
 
-SHA: (this commit)
+SHA: 74a73f925a671fa72dc097e2e39544a8380cf0a8
 
 STILL RED:
 - Fog GET /status agora.settlements=0 scalar; consensus absent on /status (spa_view has the envelope). #40 stays OPEN
