@@ -70,6 +70,22 @@ export function hoursUntilUnix(now, resetUnix) {
   return Math.max((resetUnix * 1000 - now.getTime()) / 3600000, 1 / 60);
 }
 
+export function resetIsExpired(resetUnix, now) {
+  if (resetUnix == null) return false;
+  const n = now || new Date();
+  const ru = Number(resetUnix);
+  if (!Number.isFinite(ru)) return true;
+  return ru * 1000 <= n.getTime();
+}
+
+export function resetIsoExpired(resetIso, now) {
+  if (!resetIso) return false;
+  const n = now || new Date();
+  const until = Date.parse(String(resetIso));
+  if (Number.isNaN(until)) return true;
+  return until <= n.getTime();
+}
+
 function minutesOf(parts) {
   return parts.hour * 60 + parts.minute;
 }
@@ -244,6 +260,13 @@ export function decide(rail, opts = {}) {
     return pack(ALLOW, rem, 0, 0, rem, 0, `hard cap ${cap}, remaining ${rem}`);
   }
 
+  if (!isP0 && resetIsExpired(opts.resetUnix, now)) {
+    return pack(HOLD, opts.remaining == null ? 0 : opts.remaining, 0, 0, 0, 0, "expired reset_unix — fail closed (no live refresh)");
+  }
+  if (!isP0 && resetIsoExpired(opts.resetIso, now)) {
+    return pack(HOLD, opts.remaining == null ? 0 : opts.remaining, 0, 0, 0, 0, "expired reset_iso — fail closed (no live refresh)");
+  }
+
   const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix, opts.resetIso);
   let remaining = opts.remaining;
   const fracMeter = spec.meter === "remaining_frac" || !!spec.unknown_cost;
@@ -411,16 +434,37 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
       };
       continue;
     }
-    const extra = live[name] || {};
-    const stLed = (ledger.rails || {})[name] || {};
-    const opts = {
-      cfg, now, ledger,
-      remaining: extra.remaining != null ? extra.remaining : stLed.sampled_remaining,
-      remainingFrac: extra.remaining_frac != null ? extra.remaining_frac : stLed.sampled_remaining_frac,
-      resetUnix: extra.reset_unix != null ? extra.reset_unix : stLed.sampled_reset_unix,
-      resetIso: extra.reset_iso || stLed.sampled_reset_iso,
-    };
+    const extra = Object.prototype.hasOwnProperty.call(live, name) ? (live[name] || {}) : null;
+    const liveHit = extra != null;
+    const sample = extra || {};
+    if (!ledger.rails) ledger.rails = {};
+    if (!ledger.rails[name]) ledger.rails[name] = {};
+    const stLed = ledger.rails[name];
+    const opts = { cfg, now, ledger };
     if (spec.meter === "remaining_frac" || spec.unknown_cost) opts.cost = 0;
+    if (sample.unknown) {
+      // live unknown — do not invent remaining from ledger
+    } else if (liveHit) {
+      if (sample.remaining_frac != null) opts.remainingFrac = sample.remaining_frac;
+      if (sample.remaining != null) opts.remaining = sample.remaining;
+      else if (sample.remaining_frac != null) opts.remaining = sample.remaining_frac;
+      if (sample.reset_unix != null) opts.resetUnix = sample.reset_unix;
+      if (sample.reset_iso) opts.resetIso = sample.reset_iso;
+      if (sample.hour_spent != null) opts.hourSpent = sample.hour_spent;
+      const used = sample.used != null ? sample.used : sample.day_spent;
+      if (used != null) {
+        stLed.day_spent = Number(used);
+      }
+    } else {
+      const expired = resetIsExpired(stLed.sampled_reset_unix, now) || resetIsoExpired(stLed.sampled_reset_iso, now);
+      if (!expired) {
+        if (stLed.sampled_remaining_frac != null) opts.remainingFrac = stLed.sampled_remaining_frac;
+        if (stLed.sampled_remaining != null && opts.remainingFrac == null) opts.remaining = stLed.sampled_remaining;
+        if (stLed.sampled_reset_unix != null) opts.resetUnix = stLed.sampled_reset_unix;
+        if (stLed.sampled_reset_iso) opts.resetIso = stLed.sampled_reset_iso;
+        if (stLed.sampled_hour_spent != null) opts.hourSpent = stLed.sampled_hour_spent;
+      }
+    }
     const v = decide(name, opts);
     const st = stLed;
     railsOut[name] = {
@@ -435,6 +479,7 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
       overdraft_events: st.overdraft_events || 0,
       compensation: -Math.min(0, st.carry || 0),
     };
+    if (opts.hourSpent != null) railsOut[name].hour_spent = opts.hourSpent;
   }
   const slots = (cfg.slots || []).map((s) => {
     const v = decide(s.rail, { cfg, now, isPeak: !!s.peak, slotId: s.id, remaining: railsOut[s.rail]?.remaining, ledger });

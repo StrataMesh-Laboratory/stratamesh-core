@@ -139,7 +139,9 @@
       "window": "rolling_hour",
       "debt_persists_across_renewal": false,
       "header_remaining": "x-ratelimit-remaining",
-      "header_reset": "x-ratelimit-reset"
+      "header_reset": "x-ratelimit-reset",
+      "unknown_remaining": "hold",
+      "note": "HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap)."
     },
     "github-search": {
       "layer": "stratamesh",
@@ -149,7 +151,9 @@
       "limit": 30,
       "phase": "minute",
       "window_sec": 60,
-      "debt_persists_across_renewal": false
+      "debt_persists_across_renewal": false,
+      "unknown_remaining": "hold",
+      "note": "HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap)."
     },
     "github-graphql": {
       "layer": "stratamesh",
@@ -160,7 +164,8 @@
       "phase": "hour",
       "window": "rolling_hour",
       "debt_persists_across_renewal": false,
-      "note": "MCP GitHub tools spend GraphQL points. Observed 1504 used in one hour \u2014 pace to remaining/hours_left."
+      "note": "MCP GitHub tools spend GraphQL points. Observed 1504 used in one hour \u2014 pace to remaining/hours_left. HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap).",
+      "unknown_remaining": "hold"
     },
     "github-code-search": {
       "layer": "stratamesh",
@@ -170,7 +175,9 @@
       "limit": 10,
       "phase": "minute",
       "window_sec": 60,
-      "debt_persists_across_renewal": false
+      "debt_persists_across_renewal": false,
+      "unknown_remaining": "hold",
+      "note": "HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap)."
     },
     "cf-cron": {
       "layer": "stratamesh",
@@ -190,10 +197,11 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": false,
-      "note": "Workers Free 100k/day UTC including Pages Functions. Static Pages assets are free/unlimited and do not spend this rail. Error 1027 when exhausted. INC-1027: lockstep ~3Hz burned ~95k in hour 00. Pace remaining/hours_left from live GraphQL (not a second Pages 100k). Circuit HOLD 1.25x / STASIS 2x unadjusted hourly cap. Never workers.dev. Zone WAF 5/10s/IP/colo. Never a 6th cron. 39 scripts live; published cap 100.",
+      "note": "Workers Free 100k/day UTC including Pages Functions. Static Pages assets are free/unlimited and do not spend this rail. Error 1027 when exhausted. INC-1027: lockstep ~3Hz burned ~95k in hour 00. Pace remaining/hours_left from live GraphQL (not a second Pages 100k). Circuit HOLD 1.25x / STASIS 2x unadjusted hourly cap. Never workers.dev. Zone WAF 5/10s/IP/colo. Never a 6th cron. 39 scripts live; published cap 100. HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap).",
       "published_daily_limit": 100000,
       "published_worker_scripts": 100,
-      "live_worker_scripts": 39
+      "live_worker_scripts": 39,
+      "unknown_remaining": "hold"
     },
     "cf-d1-reads": {
       "layer": "node",

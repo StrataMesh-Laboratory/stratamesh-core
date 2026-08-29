@@ -85,6 +85,38 @@ def hours_until_iso(now: Optional[datetime], reset_iso: str) -> float:
     return max(hours, 1.0 / 60.0)
 
 
+def reset_is_expired(reset_unix: Optional[int], now: Optional[datetime] = None) -> bool:
+    """True if reset_unix is missing-invalid or already in the past (UTC)."""
+    if reset_unix is None:
+        return False
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    try:
+        ru = int(reset_unix)
+    except (TypeError, ValueError):
+        return True
+    return ru <= int(now.astimezone(timezone.utc).timestamp())
+
+
+def reset_iso_expired(reset_iso: Optional[str], now: Optional[datetime] = None) -> bool:
+    """True if a Usage reset ISO timestamp is already in the past."""
+    if not reset_iso:
+        return False
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    try:
+        until = datetime.fromisoformat(str(reset_iso).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return True
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=LISBON)
+    return until.astimezone(timezone.utc) <= now.astimezone(timezone.utc)
+
+
 def minutes_of_day(local: datetime) -> int:
     return local.hour * 60 + local.minute
 
@@ -554,6 +586,22 @@ def decide(
             return Verdict(STASIS, rail, rem, 0, 0, 0, 0, cost, f"hard cap {cap} reached", **extra)
         return Verdict(ALLOW, rail, rem, 0, 0, rem, 0, cost, f"hard cap {cap}, remaining {rem}", **extra)
 
+    # Fail closed: expired reset without a live window must HOLD, never a 1-minute dump cap.
+    if not is_p0 and reset_unix is not None and reset_is_expired(reset_unix, now):
+        rem = float(remaining) if remaining is not None else 0.0
+        return Verdict(
+            HOLD, rail, rem, 0, 0, 0, 0, cost,
+            "expired reset_unix — fail closed (no live refresh)",
+            **extra,
+        )
+    if not is_p0 and reset_iso and reset_iso_expired(reset_iso, now):
+        rem = float(remaining) if remaining is not None else 0.0
+        return Verdict(
+            HOLD, rail, rem, 0, 0, 0, 0, cost,
+            "expired reset_iso — fail closed (no live refresh)",
+            **extra,
+        )
+
     hours_left = hours_left_for(spec, now, cfg, reset_unix, reset_iso)
     daily = spec.get("daily_limit")
     frac_meter = spec.get("meter") == "remaining_frac" or bool(spec.get("unknown_cost"))
@@ -754,6 +802,74 @@ def monitor_interval_sec(now: Optional[datetime] = None, cfg: Optional[dict] = N
     return base
 
 
+def live_decide_kwargs(
+    name: str,
+    spec: dict,
+    live: Optional[dict],
+    ledger: dict,
+    now: datetime,
+    cfg: dict,
+) -> dict[str, Any]:
+    """Bind remaining / hour_spent / reset for decide() from a live sample or a still-valid ledger.
+
+    Never invent remaining. GraphQL/sample failure (live[name].unknown) HOLDs that rail.
+    Stale ledger + expired reset_unix is omitted so decide() cannot dump a 1-minute cap.
+    Records GraphQL used onto ledger.day_spent so pace_factor can inflate/deflate.
+    """
+    kwargs: dict[str, Any] = {}
+    live = live or {}
+    sample = live.get(name)
+    live_hit = sample is not None
+    if sample is None:
+        sample = {}
+    explicit_unknown = bool(sample.get("unknown"))
+    rails_led = ledger.setdefault("rails", {})
+    st_led = rails_led.setdefault(name, {})
+
+    if explicit_unknown:
+        # live refresh said unknown — do not fall back to a stale remaining
+        pass
+    elif live_hit:
+        if sample.get("remaining_frac") is not None:
+            kwargs["remaining_frac"] = sample["remaining_frac"]
+        if "remaining" in sample and sample["remaining"] is not None:
+            kwargs["remaining"] = sample["remaining"]
+        elif sample.get("remaining_frac") is not None:
+            kwargs["remaining"] = sample["remaining_frac"]
+        if "reset_unix" in sample and sample["reset_unix"] is not None:
+            kwargs["reset_unix"] = sample["reset_unix"]
+        if sample.get("reset_iso"):
+            kwargs["reset_iso"] = sample["reset_iso"]
+        if sample.get("hour_spent") is not None:
+            kwargs["hour_spent"] = sample["hour_spent"]
+        used = sample.get("used")
+        if used is None:
+            used = sample.get("day_spent")
+        if used is not None:
+            st_led["day_spent"] = float(used)
+            st_led["day"] = day_key(now, spec, cfg)
+    else:
+        ru = st_led.get("sampled_reset_unix")
+        iso = st_led.get("sampled_reset_iso")
+        expired = reset_is_expired(ru, now) or reset_iso_expired(iso, now)
+        if expired:
+            # fail closed: do not pass remaining or reset (no 1-minute dump cap)
+            pass
+        else:
+            if st_led.get("sampled_remaining_frac") is not None:
+                kwargs["remaining_frac"] = st_led["sampled_remaining_frac"]
+            if "sampled_remaining" in st_led and "remaining_frac" not in kwargs:
+                kwargs["remaining"] = st_led["sampled_remaining"]
+            if ru is not None:
+                kwargs["reset_unix"] = ru
+            if iso:
+                kwargs["reset_iso"] = iso
+            if st_led.get("sampled_hour_spent") is not None:
+                kwargs["hour_spent"] = st_led["sampled_hour_spent"]
+
+    return kwargs
+
+
 def snapshot(
     now: Optional[datetime] = None,
     live: Optional[dict] = None,
@@ -789,27 +905,11 @@ def snapshot(
         kwargs: dict[str, Any] = {"cfg": cfg, "now": now, "ledger": ledger}
         if spec.get("meter") == "remaining_frac" or spec.get("unknown_cost"):
             kwargs["cost"] = 0.0  # snapshot: is the pool alive; prompt compute is unknown
-        sample = (live or {}).get(name) or {}
-        st_led = (ledger.get("rails") or {}).get(name) or {}
-        if sample.get("remaining_frac") is not None:
-            kwargs["remaining_frac"] = sample["remaining_frac"]
-        elif st_led.get("sampled_remaining_frac") is not None:
-            kwargs["remaining_frac"] = st_led["sampled_remaining_frac"]
-        if "remaining" in sample:
-            kwargs["remaining"] = sample["remaining"]
-        elif "sampled_remaining" in st_led and "remaining_frac" not in kwargs:
-            kwargs["remaining"] = st_led["sampled_remaining"]
-        if "reset_unix" in sample:
-            kwargs["reset_unix"] = sample["reset_unix"]
-        elif "sampled_reset_unix" in st_led:
-            kwargs["reset_unix"] = st_led["sampled_reset_unix"]
-        if sample.get("reset_iso"):
-            kwargs["reset_iso"] = sample["reset_iso"]
-        elif st_led.get("sampled_reset_iso"):
-            kwargs["reset_iso"] = st_led["sampled_reset_iso"]
+        bound = live_decide_kwargs(name, spec, live, ledger, now, cfg)
+        kwargs.update(bound)
         v = decide(name, **kwargs)
         st = (ledger.get("rails") or {}).get(name) or {}
-        rails_out[name] = {
+        out_row = {
             **v.as_dict(),
             "spec_note": spec.get("note"),
             "kind": spec.get("kind"),
@@ -821,6 +921,9 @@ def snapshot(
             "overdraft_events": st.get("overdraft_events") or 0,
             "compensation": round(-min(0.0, float(st.get("carry") or 0)), 4),
         }
+        if bound.get("hour_spent") is not None:
+            out_row["hour_spent"] = bound["hour_spent"]
+        rails_out[name] = out_row
     slots = []
     for s in cfg.get("slots") or []:
         v = decide(s["rail"], now=now, is_peak=bool(s.get("peak")), slot_id=s["id"], cfg=cfg,
