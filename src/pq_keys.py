@@ -96,14 +96,31 @@ class PQKeyRegistry:
             return False
 
     def try_liboqs_info(self) -> dict:
-        """Detect liboqs if installed; do not fail if absent."""
+        """Detect liboqs if installed; do not fail if absent.
+
+        Never `import oqs` unless a shared lib is already present.
+        liboqs-python auto-installs on import and raises SystemExit(1)
+        when cmake is missing, which killed FOG-NODE-PT-CM-001 (origin 502).
+        SystemExit is BaseException, so `except Exception` does not catch it.
+        """
         try:
+            from pathlib import Path
+            import os
+            root = Path(os.environ.get("OQS_INSTALL_PATH", str(Path.home() / "_oqs")))
+            libs = list((root / "lib").glob("liboqs*")) + list((root / "lib64").glob("liboqs*"))
+            if not libs:
+                return {
+                    "available": False,
+                    "reason": "liboqs shared library absent; import skipped (oqs auto-install SystemExit)",
+                }
             import oqs  # type: ignore
             return {
                 "available": True,
                 "kems": list(oqs.get_enabled_KEM_mechanisms())[:8],
                 "sigs": list(oqs.get_enabled_sig_mechanisms())[:8],
             }
+        except SystemExit as e:
+            return {"available": False, "reason": f"liboqs install aborted: {e}"}
         except Exception as e:
             return {"available": False, "reason": str(e)}
 

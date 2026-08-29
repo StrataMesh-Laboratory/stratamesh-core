@@ -410,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path in ("/", "/status", "/v1/status"):
             self._json(200, NODE.status())
-        elif path == "/health":
+        elif path in ("/health", "/api/v1/health"):
             self._json(200, {"ok": True})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
