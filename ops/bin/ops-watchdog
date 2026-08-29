@@ -124,14 +124,18 @@ def score(env, probes):
 
 
 def _status_mod():
-    """Load bin/metabolism-status (hyphenated) for live remaining/hour_spent sampling."""
+    """Load bin/metabolism-status (hyphenated, no .py) for live remaining/hour_spent."""
+    import importlib.machinery
     import importlib.util
     path = ROOT / "bin" / "metabolism-status"
-    spec = importlib.util.spec_from_file_location("metabolism_status", path)
-    if spec is None or spec.loader is None:
+    if not path.exists():
+        return None
+    loader = importlib.machinery.SourceFileLoader("metabolism_status", str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
         return None
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    loader.exec_module(mod)
     return mod
 
 
@@ -252,7 +256,24 @@ def cycle(env):
             continue
         if step.get("coalesced") and worker_done:
             continue
-        label = "apex" if step.get("pages") else ("status" if "status." in url or "127.0.0.1:8787" in url else url)
+        if step.get("pages"):
+            label = "apex"
+        elif step.get("coalesced"):
+            label = "status"
+        else:
+            low = url.lower()
+            if "gossip" in low:
+                label = "gossip"
+            elif ":8788" in low or "edge." in low or "/edge/" in low:
+                label = "edge"
+            elif "aiops" in low:
+                label = "aiops"
+            elif "deomail" in low:
+                label = "deomail"
+            elif "status." in low or step.get("p1"):
+                label = "fog" if step.get("p1") else "status"
+            else:
+                label = url
         if step.get("coalesced"):
             label = "status"
             worker_done = True
