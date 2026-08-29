@@ -12,12 +12,13 @@ jobs:
         run: |
           set -e
           # HOLD: do not probe *.workers.dev (CF Q-gate / STASIS).
-          # Fog /health is canonical; /api/v1/health is the alias.
+          # /health is cheap (0 Worker fan-out). Do NOT hit /status (17 bindings).
           for u in \
             https://calhegasmorais.pt/ \
-            https://status.calhegasmorais.pt/status \
+            https://status.calhegasmorais.pt/health \
             https://fog.calhegasmorais.pt/health \
-            https://fog.calhegasmorais.pt/api/v1/health \
+            https://gossip.calhegasmorais.pt/health \
+            https://origin.calhegasmorais.pt/ \
             https://eni.calhegasmorais.pt/
           do
             code=$(curl -sS -o /tmp/out -w "%{http_code}" --max-time 25 -A "StrataMesh-CI-Health" "$u" || echo 000)

@@ -45,6 +45,8 @@ After UTC refill the Worker hourly cap is **~4 167**. At density 8 that is **~
 
 GitHub Action `00:20 UTC` writes the origin archive. **Not a 6th CF cron.** Still 5/5.
 
+Public GitHub-hosted Linux is **net $0** (this org, public repos). `never_actions` in HANDOFF was a **wrangler-deploy HOLD** (CF Error 1027), not a runner shutdown. Org Actions stay enabled. Probe `/health`, never `/status` (17 Worker fan-out). Never `workers.dev`.
+
 ## Formula (v1.1 still holds)
 
 The lab was burning the day's quota before the day's reserved work.

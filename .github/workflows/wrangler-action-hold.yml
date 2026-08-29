@@ -1,8 +1,7 @@
-# HOLD: Cloudflare STASIS until 2026-08-29T00:00:00Z then Q-gated.
-# Does NOT auto-deploy on push. workflow_dispatch only.
-# Do not run a live Worker deploy from this workflow while STASIS holds.
-# wrangler-action default command is "deploy" — overridden to --version on purpose.
-# No CLOUDFLARE_API_TOKEN is passed, so this cannot publish.
+# GitHub Actions are ON and core (public Linux net $0).
+# THIS file is only a wrangler *deploy* HOLD: workflow_dispatch, no token, --version.
+# Do not wrangler deploy from GHA while cf-worker-req is Q-gated (Error 1027).
+# CI (protocol-invariants, metabolism, origin-archive, mesh-health) stays active.
 name: wrangler-action-hold
 
 on:

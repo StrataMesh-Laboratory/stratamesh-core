@@ -179,6 +179,18 @@
       "unknown_remaining": "hold",
       "note": "HOLD if remaining unknown or reset_unix expired (fail closed; do not invent a cap)."
     },
+    "github-actions": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "minutes",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "public_repo_net_usd": 0,
+      "never_paid": true,
+      "unknown_remaining": "allow",
+      "note": "Public GitHub-hosted Linux is net $0 (Aug 2026: 655 min, gross $3.93, discount $3.93, net $0). Org Actions already enabled for all repos. Core CI (protocol-invariants, metabolism tests, origin-archive 00:20Z). HOLD is only wrangler *deploy* (CF 100k / Error 1027) — not the runner. Probe /health not /status. Private repos would consume the 2000 min Free pack; this org has 0 private repos."
+    },
     "cf-cron": {
       "layer": "stratamesh",
       "kind": "hard",
