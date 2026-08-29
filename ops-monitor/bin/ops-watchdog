@@ -26,6 +26,9 @@ from metabolism import (  # noqa: E402
     coalesce_intents,
     decide,
     load_rails,
+    load_ledger,
+    save_ledger,
+    live_decide_kwargs,
 )
 
 
@@ -83,10 +86,10 @@ def score(env, probes):
     if env.get("P0_ON_CRITICAL", "1") == "1" and crit > 0:
         level = "P0"
         reasons.append(f"aiops_critical={crit}")
-    if env.get("P0_ON_STATUS_DOWN", "1") == "1" and not st.get("ok"):
+    if env.get("P0_ON_STATUS_DOWN", "1") == "1" and not st.get("ok") and not st.get("skipped"):
         level = "P0"
         reasons.append("status_unreachable")
-    if env.get("P0_ON_APEX_DOWN", "1") == "1" and not apex.get("ok"):
+    if env.get("P0_ON_APEX_DOWN", "1") == "1" and not apex.get("ok") and not apex.get("skipped"):
         level = "P0"
         reasons.append("apex_unreachable")
 
@@ -94,7 +97,7 @@ def score(env, probes):
         if env.get("P1_ON_WARN", "1") == "1" and warn > 0:
             level = "P1"
             reasons.append(f"aiops_warn={warn}")
-        if env.get("P1_ON_EDGE_DOWN", "1") == "1" and not edge.get("ok"):
+        if env.get("P1_ON_EDGE_DOWN", "1") == "1" and not edge.get("ok") and not edge.get("skipped"):
             level = "P1"
             reasons.append("edge_down")
         peers = (gossip.get("data") or {}).get("count")
@@ -104,7 +107,7 @@ def score(env, probes):
             level = "P1"
             reasons.append(f"mesh_peers={peers}")
         fog_http = fog.get("http") or 0
-        if env.get("P1_ON_FOG_TUNNEL", "1") == "1" and (
+        if env.get("P1_ON_FOG_TUNNEL", "1") == "1" and not fog.get("skipped") and (
             fog_http in (530, 1033) or (not fog.get("ok") and fog_http != 0)
         ):
             if level != "P0":
@@ -118,6 +121,33 @@ def score(env, probes):
     if peers is None and isinstance(gossip.get("data"), dict):
         peers = len((gossip.get("data") or {}).get("peers") or [])
     return level, reasons, {"critical": crit, "warn": warn, "peers": peers}
+
+
+def _status_mod():
+    """Load bin/metabolism-status (hyphenated) for live remaining/hour_spent sampling."""
+    import importlib.util
+    path = ROOT / "bin" / "metabolism-status"
+    spec = importlib.util.spec_from_file_location("metabolism_status", path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def refresh_live(cfg: dict, now: datetime):
+    """Sample live remaining + hour_spent. On failure return unknown (never remaining=100000)."""
+    ledger = load_ledger()
+    try:
+        mod = _status_mod()
+        if mod is None:
+            return {}, ledger
+        live = mod.sample_live(cfg, now)
+        ledger = mod.merge_sampled(ledger, live)
+        save_ledger(ledger)
+        return live, ledger
+    except Exception:
+        return {}, ledger
 
 
 def vendor_stasis(env) -> bool:
@@ -138,7 +168,9 @@ def cycle(env):
         # Apex is Pages (no Worker quota). Do not probe Worker hostnames until refill.
         timeout = min(float(env.get("HTTP_TIMEOUT_SEC", "6")), 6)
         apex = get(env.get("APEX_URL") or "https://calhegasmorais.pt/", timeout)
-        meta = metabolism_snapshot()
+        rails = load_rails()
+        live, ledger = refresh_live(rails, datetime.now(timezone.utc))
+        meta = metabolism_snapshot(live=live, ledger=ledger)
         out = {
             "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "level": "HOLD",
@@ -176,6 +208,10 @@ def cycle(env):
     if status_url.rstrip("/").endswith("status.calhegasmorais.pt"):
         status_url = status_url.rstrip("/") + "/health"
     rails = load_rails()
+    now = datetime.now(timezone.utc)
+    live, ledger = refresh_live(rails, now)
+    cf_spec = (rails.get("rails") or {}).get("cf-worker-req") or {}
+    cf_kw = live_decide_kwargs("cf-worker-req", cf_spec, live, ledger, now, rails)
     intents = [
         {"rail": "cf-pages", "url": env.get("APEX_URL") or "https://calhegasmorais.pt/", "pages": True, "signal": 1},
         {"rail": "cf-worker-req", "url": status_url, "signal": 1},
@@ -192,24 +228,31 @@ def cycle(env):
     plan = coalesce_intents(intents, rails)
     probes = {}
     worker_done = False
+    last_verdict = None
     for step in plan:
         url = step.get("url") or ""
         if "workers.dev" in url:
             continue
+        rail = step.get("rail") or "cf-worker-req"
+        decide_kw = dict(cf_kw) if rail in ("cf-worker-req", "cf-pages") else {}
         v = decide(
-            step.get("rail") or "cf-worker-req",
-            remaining=100000,
+            rail,
+            remaining=decide_kw.get("remaining"),
+            hour_spent=decide_kw.get("hour_spent"),
+            reset_unix=decide_kw.get("reset_unix"),
             cost=float(step.get("cost") or 1),
             signal=float(step.get("signal") or 1),
             url=url,
             cfg=rails,
+            ledger=ledger,
         )
+        last_verdict = v
         if v.decision in ("HOLD", "STASIS") and not step.get("pages"):
-            probes[step.get("name") or url] = {"ok": None, "http": 0, "error": v.reason, "skipped": True}
+            probes[step.get("name") or url] = {"ok": None, "http": 0, "error": v.reason, "skipped": True, "circuit": v.circuit}
             continue
         if step.get("coalesced") and worker_done:
             continue
-        label = "apex" if step.get("pages") else ("status" if "status." in url else url)
+        label = "apex" if step.get("pages") else ("status" if "status." in url or "127.0.0.1:8787" in url else url)
         if step.get("coalesced"):
             label = "status"
             worker_done = True
@@ -218,7 +261,7 @@ def cycle(env):
         probes["apex"] = get(env["APEX_URL"], timeout)
     level, reasons, summary = score(env, probes)
     record_spend("local-monitor", 1.0)
-    meta = metabolism_snapshot()
+    meta = metabolism_snapshot(live=live, ledger=ledger)
     out = {
         "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "level": level,
@@ -236,9 +279,15 @@ def cycle(env):
             "night": meta.get("night"),
             "monitor_interval_sec": meta.get("monitor_interval_sec"),
             "grok": (meta.get("rails") or {}).get("grok-auto"),
+            "cf_worker_req": (meta.get("rails") or {}).get("cf-worker-req"),
             "no_sixth_cron": True,
         },
     }
+    if last_verdict is not None:
+        d = last_verdict.as_dict()
+        if cf_kw.get("hour_spent") is not None:
+            d["hour_spent"] = cf_kw["hour_spent"]
+        out["metabolism"]["last_decide"] = d
     (STATE / "last_watch.json").write_text(json.dumps(out, indent=2))
     (STATE / "metabolism.json").write_text(json.dumps(meta, indent=2))
     with (LOGS / "watch.jsonl").open("a") as f:

@@ -14,7 +14,7 @@ from metabolism import (  # noqa: E402
     decide, hours_until_renewal, monitor_interval_sec, snapshot, load_rails,
     record_spend, empty_rail_state, phase_delta,
     density_of, effective_capacity, coalesce_intents, circuit_trip,
-    pace_factor,
+    pace_factor, live_decide_kwargs,
 )
 
 CFG = load_rails()
@@ -377,6 +377,84 @@ class SuperGrokRemainingFrac(unittest.TestCase):
         self.assertAlmostEqual(s["hourly_cap_after_refill"], s["rails"]["cf-worker-req"]["hourly_cap"])
         self.assertNotEqual(s["hourly_cap_after_refill"], 4167)
 
+
+class CircuitWiredCallers(unittest.TestCase):
+    """snapshot() + watchdog decide() path must pass hour_spent and fail closed."""
+
+    def test_snapshot_hold_at_1_25x_hourly_cap(self):
+        live = {"cf-worker-req": {"remaining": 100000, "hour_spent": 5300}}
+        s = snapshot(T(1, 0), live=live, cfg=CFG, ledger={"schema": "x", "rails": {}})
+        row = s["rails"]["cf-worker-req"]
+        self.assertEqual(row["decision"], HOLD)
+        self.assertEqual(row["circuit"], HOLD)
+        self.assertEqual(row["hour_spent"], 5300)
+        self.assertLess(row["hourly_cap"] * 1.25, 5300)
+
+    def test_snapshot_stasis_at_2x_hourly_cap(self):
+        live = {"cf-worker-req": {"remaining": 100000, "hour_spent": 9000}}
+        s = snapshot(T(1, 0), live=live, cfg=CFG, ledger={"schema": "x", "rails": {}})
+        row = s["rails"]["cf-worker-req"]
+        self.assertEqual(row["decision"], STASIS)
+        self.assertEqual(row["circuit"], STASIS)
+        self.assertGreaterEqual(9000, row["hourly_cap"] * 2)
+
+    def test_snapshot_unknown_remaining_holds(self):
+        s = snapshot(T(1, 0), live={"cf-worker-req": {"unknown": True}}, cfg=CFG,
+                     ledger={"schema": "x", "rails": {"cf-worker-req": {"sampled_remaining": 100000}}})
+        row = s["rails"]["cf-worker-req"]
+        self.assertEqual(row["decision"], HOLD)
+        self.assertIn("do not invent a cap", row["reason"])
+        self.assertEqual(row["hourly_cap"], 0)
+
+    def test_watchdog_path_hold_stasis_unknown(self):
+        # same decide() signature the watchdog uses after live_decide_kwargs
+        v_hold = decide("cf-worker-req", remaining=100000, hour_spent=5300,
+                        now=T(1, 0), cost=1, signal=8, cfg=CFG)
+        self.assertEqual(v_hold.decision, HOLD)
+        self.assertEqual(v_hold.circuit, HOLD)
+        v_stasis = decide("cf-worker-req", remaining=100000, hour_spent=9000,
+                          now=T(1, 0), cost=1, signal=8, cfg=CFG)
+        self.assertEqual(v_stasis.decision, STASIS)
+        self.assertEqual(v_stasis.circuit, STASIS)
+        v_unk = decide("cf-worker-req", remaining=None, now=T(1, 0), cost=1, signal=8, cfg=CFG)
+        self.assertEqual(v_unk.decision, HOLD)
+        self.assertIn("do not invent a cap", v_unk.reason)
+
+    def test_expired_reset_unix_holds_not_dump_cap(self):
+        past = int(T(11, 0).timestamp())
+        s = snapshot(
+            T(12, 0),
+            live={},
+            cfg=CFG,
+            ledger={"schema": "x", "rails": {
+                "github-core": {"sampled_remaining": 5000, "sampled_reset_unix": past},
+            }},
+        )
+        row = s["rails"]["github-core"]
+        self.assertEqual(row["decision"], HOLD)
+        self.assertLess(row["hourly_cap"], 10000)  # not remaining/1min = 300000
+        v = decide("github-core", remaining=5000, reset_unix=past, now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertIn("expired reset_unix", v.reason)
+        self.assertLess(v.hourly_cap, 10000)
+
+    def test_live_day_spent_paces(self):
+        live = {"cf-worker-req": {"remaining": 50000, "used": 50000, "hour_spent": 100}}
+        s = snapshot(T(12, 0), live=live, cfg=CFG, ledger={"schema": "x", "rails": {}})
+        row = s["rails"]["cf-worker-req"]
+        self.assertEqual(row["day_spent"], 50000)
+        self.assertNotEqual(row["pace_factor"], 1.0)
+
+    def test_live_decide_kwargs_unknown_skips_ledger(self):
+        kw = live_decide_kwargs(
+            "cf-worker-req",
+            CFG["rails"]["cf-worker-req"],
+            {"cf-worker-req": {"unknown": True}},
+            {"rails": {"cf-worker-req": {"sampled_remaining": 100000}}},
+            T(1, 0),
+            CFG,
+        )
+        self.assertNotIn("remaining", kw)
 
 
 if __name__ == "__main__":
