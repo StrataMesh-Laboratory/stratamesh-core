@@ -680,10 +680,35 @@ async function readPulseCache(env) {
 }
 
 async function writePulseCache(env, live) {
-  if (!env.STATUS_KV || !live) return;
+  // KV Free writes STASIS after CF 10048. Pulse now lives in Cache API (writeEdgeCache).
+  return;
+}
+
+const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse';
+const EDGE_PULSE_MS = 30000;
+
+async function readEdgeCache() {
   try {
-    const copy = Object.assign({}, live, { _cached_at: new Date().toISOString() });
-    await env.STATUS_KV.put('pulse_cache', JSON.stringify(copy), { expirationTtl: 300 });
+    const hit = await caches.default.match(new Request(EDGE_PULSE_URL));
+    if (!hit) return null;
+    const j = await hit.json();
+    if (!j || !j._cached_at) return null;
+    const age = Date.now() - Date.parse(j._cached_at);
+    if (!Number.isFinite(age) || age < 0 || age > EDGE_PULSE_MS) return null;
+    return { age, live: j };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeEdgeCache(live) {
+  if (!live) return;
+  try {
+    const copy = Object.assign({}, live, { _cached_at: new Date().toISOString(), pulse_store: 'cache_api' });
+    const resp = new Response(JSON.stringify(copy), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' },
+    });
+    await caches.default.put(new Request(EDGE_PULSE_URL), resp);
   } catch (_) {}
 }
 
@@ -732,13 +757,13 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.3-fog-process',
+    version: '0.4.4-cache-api',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
     timestamp: now,
     lab: true,
-    source: 'live-aggregation+bindings+kv-cache',
+    source: 'live-aggregation+bindings+cache_api',
     monetary: mon ? {
       circulating_supply: mon.circulating_supply,
       circulating_lab_only: mon.circulating_lab_only,
@@ -894,7 +919,7 @@ async function buildLiveStatus(env, opts) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=15' };
+    const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=30' };
     if (url.pathname === '/ingest' && request.method === 'POST') {
       const token = request.headers.get('X-Status-Token') || '';
       if (!env.STATUS_TOKEN || token !== env.STATUS_TOKEN)
@@ -904,14 +929,24 @@ export default {
       return new Response(JSON.stringify({ok:true}), {headers:{'Content-Type':'application/json'}});
     }
     if (url.pathname === '/live' || url.pathname === '/widget') {
-      const cached = await readPulseCache(env);
+      const edge = await readEdgeCache();
+      const cached = edge || await readPulseCache(env);
       const live = (cached && cached.live) ? cached.live : await buildLiveStatus(env);
-      return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
+      if (!edge && live) {
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writeEdgeCache(live));
+        else await writeEdgeCache(live);
+      }
+      return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=30'}});
     }
 
     if (url.pathname === '/inventory' || url.pathname === '/v1/inventory') {
-      const cached = await readPulseCache(env);
+      const edge = await readEdgeCache();
+      const cached = edge || await readPulseCache(env);
       const live = (cached && cached.live) ? cached.live : await buildLiveStatus(env);
+      if (!edge && live) {
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writeEdgeCache(live));
+        else await writeEdgeCache(live);
+      }
       const inv = {
         node_id: live.node_id,
         version: live.version,
@@ -943,7 +978,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.3-fog-process',
+        version: '0.4.4-cache-api',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
@@ -951,7 +986,7 @@ export default {
 
     async function respondLive(live) {
       if (url.pathname === '/' && (request.headers.get('Accept') || '').includes('text/html')) {
-        return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
+        return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=30'}});
       }
       if (url.pathname === '/summary') {
         const slim = {
@@ -982,17 +1017,17 @@ export default {
     }
 
     if (url.pathname === '/status' || url.pathname === '/v1/status' || url.pathname === '/summary' || url.pathname === '/') {
+      const edge = await readEdgeCache();
+      if (edge && edge.live) return respondLive(edge.live);
       const cached = await readPulseCache(env);
       const fresh = cached && Number.isFinite(cached.age) && cached.age < 25000 && cached.live;
       if (fresh) {
-        if (ctx && typeof ctx.waitUntil === 'function' && cached.age > 15000) {
-          ctx.waitUntil(buildLiveStatus(env, { monetaryMs: 8000 }).then((l) => writePulseCache(env, l)));
-        }
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writeEdgeCache(cached.live));
         return respondLive(cached.live);
       }
       const live = await buildLiveStatus(env);
-      if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writePulseCache(env, live));
-      else await writePulseCache(env, live);
+      if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(writeEdgeCache(live));
+      else await writeEdgeCache(live);
       return respondLive(live);
     }
     const live = await buildLiveStatus(env);
