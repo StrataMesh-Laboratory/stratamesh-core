@@ -2,6 +2,35 @@
 
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
+## 2026-08-29T22:04Z hour
+READ: origin HEAD fb81198 (v0.2.3-lab GO). Ledger 21:34 NEXT PICK: orch /chat return local honest JSON immediately (skip tick/LLM). Re-probe: GET /api/orchestrator/chat 200 ~108ms origin-orch-chat-1.1.0; POST 200 ~997ms source=orch-chat-budget error=chat timeout 900ms; Fog /health 200 0.2.3-lab-temp mesh_member=false oracle_live=false tx=4; Fog /spa 200 total=1 no source; gossip 2.3.5-host count=2 fog+edge custom domains; fund 0.4.6-grantor-brief; status 0.4.3-fog-process spa.source=fog_process. KV ops-state 10048 until 00:00 UTC. Do not re-ship spa 1.1.0.
+
+SHIPPED (REST Git Data API + CF PUT /content — NOT MCP, NOT paste, NOT workers.dev):
+- workers/stratamesh-orchestrator.js **10.24.5-lab-instant**: POST /chat returns lab JSON immediately (skip tick() + LLM + KV persist). source=orch-chat-lab. pulse_id=pulse-YYYYMMDDTHHMMSSZ. clearance public. n=1 mesh_member=false oracle_live=false.
+- CF PUT workers/scripts/stratamesh-orchestrator/content main_module=index.js bindings preserved. modified 2026-08-29T22:03:48Z etag bda0f374.
+- Did **not** re-ship spa/gossip/fund/status.
+
+LIVE curl:
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **111–132ms** source=orch-chat-lab reply nonempty pulse_id=pulse-20260829T220415Z clearance=public n=1 mesh_member=false oracle_live=false skipped=[tick,llm] fog.ok=true 0.2.3-lab-temp (was ~997ms orch-chat-budget)
+- GET https://calhegasmorais.pt/api/orchestrator/chat → 200 ~73ms origin-orch-chat-1.1.0
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 (no source; cannot hot-patch 0.2.3-lab-temp)
+- GET https://calhegasmorais.pt/api/v1/gossip/peers → 200 count=2 endpoints fog.calhegasmorais.pt + edge.calhegasmorais.pt
+
+SHA: f64cca556dbbe362132cf6b8969ec96f3e7bd4ea
+
+STILL RED:
+- Fog process GET /spa has no source=fog_process (0.2.3-lab-temp on STRATAGROK; git node_persistent.py honesty envelope already on origin — cannot hot-patch this sandbox)
+- Fog GET /status agora.settlements=0 scalar; consensus=null (same temp process). #40 stays OPEN
+- HEAD fog/health 501
+- KV ops-state writes QUOTA-EXHAUSTED (CF 10048) until 00:00 UTC 2026-08-30
+- P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
+- Fund challenges unfunded; POST /api/v1/accept 404 until fund Worker deploy
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog /spa honesty envelope (source=fog_process, agora.settlements={unavailable:n<2}, consensus n=1 f_max=0) when the temp 0.2.3-lab-temp process is replaced by git node_persistent.py — cannot hot-patch from this sandbox. Do not re-ship orch 10.24.5 or spa 1.1.0. Never workers.dev.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
 
 ## 2026-08-29T21:34:46Z hour
 READ: tested intensive #52 STEP 0 dry-run. Prompt was stale (HEAD f36a1ea, NEXT PICK orch budget already live, helper always PUT spa/index.js).

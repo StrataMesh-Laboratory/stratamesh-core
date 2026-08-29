@@ -1,52 +1,33 @@
-# HANDOFF-LATEST — HOLD recovery (git+live)
+# HANDOFF-LATEST — hourly git+live 22:00 UTC
 
-**generated_at:** 2026-08-29T21:25:53Z  
-**lisbon:** 2026-08-29T22:25:53+0100  
+**generated_at:** 2026-08-29T22:04:20Z  
+**lisbon:** 2026-08-29T23:04:20+0100  
 **agent:** grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** hold_recovery_gitlive
+**phase:** hourly_gitlive_22  
+**SHA:** `f64cca556dbbe362132cf6b8969ec96f3e7bd4ea`
 
-## Metabolism
+## Shipped
 
-| Item | Value |
-|------|-------|
-| grok-auto | 5 slots (hourly + 4 daily, armed) |
-| cf-cron | 5/5 |
-| Pages apex | yes |
-| STASIS | **cleared** (was 2026-08-29T00:00:00Z) |
-| 6th cron | **never** |
-| workers.dev | **never** |
-| /actions | **never** |
+- `stratamesh-orchestrator` **10.24.5-lab-instant** — POST `/chat` returns honest lab JSON immediately (skip `tick()` + LLM). Live POST `/api/orchestrator/chat` **200 in 111–132ms** `source=orch-chat-lab`.
+- SPA origin-orch-chat-1.1.0 **not** re-shipped.
 
-## Probes (this hour)
+## Probes
 
-- Apex `https://calhegasmorais.pt/` → 200 Pages
-- Status `spa.source=fog_process` `spa.total=1` `dag.transaction_count=10`
-- Fog `/health` → 200 `0.2.3-lab-temp` mesh_member=false
-- Fog `/spa` → 200 total=1 (POST /spa/register this hour)
-- Gossip apex `/api/v1/gossip/peers` → count=2 (fog+edge custom domain)
-- Fund `/health` → `0.4.6-grantor-brief` Challenge 0 unfunded
-- POST `/api/orchestrator/chat` → 200 `source=orch-chat-budget`
+- POST `https://calhegasmorais.pt/api/orchestrator/chat` → 200 111ms `source=orch-chat-lab` pulse_id `pulse-YYYYMMDDTHHMMSSZ` clearance public n=1 mesh_member=false oracle_live=false
+- GET chat → 200 ~73ms origin-orch-chat-1.1.0
+- Fog `/health` → 200 `0.2.3-lab-temp` mesh_member=false oracle_live=false
+- Fog `/spa` → 200 total=1 **no source** (cannot hot-patch temp process)
+- Gossip `/api/v1/gossip/peers` → count=2 custom domains
+- Fund `/health` → 0.4.6-grantor-brief
+- Status → 0.4.3-fog-process spa.source=fog_process
 
-## Mesh / Fund
+## Mesh
 
-- n=1 · spa_source=fog_process · **not** lab_seed
-- mesh_member=false · oracle_live=false
-- Challenge 0 **unfunded** · budget_hint not a bare integer
-- Identity ≠ cargo · WhatsApp is not briefing
+- n=1 · mesh_member=false · oracle_live=false · P0 OPEN 260826-001576
+- KV ops-state quota exhausted until 00:00 UTC — this file is source of truth
+- grok@ not SCA · never workers.dev · never /actions · no 6th cron
 
-## HOLDs reviewed
+## NEXT PICK
 
-| Slot | Last result | Disposition |
-|------|-------------|-------------|
-| Watchdog 04:00 | HOLD green | correct — no P0 |
-| Night 23:00 | STASIS Fog 530, aiops POST deferred | **executed this hour** |
-| 24h 09:00 | HOLD Fog cleared, no ships | unpublished already recovered earlier this chat |
-| Discourse 18:00 | Fog 530 cleared posted 17:08Z | HOLD extra post (<20h) |
-| Hourly 17–20 | claimed live, no git | recovered (spa 1.1.0, orch 10.24.4, fund 0.4.6) |
-
-## Efficacy
-
-**EFFICACY_SELF_SCORE:** 0.88
-
-LAB n=1 mesh_member=false oracle_live=false. grok@ not SCA.
+Fog `/spa` honesty envelope when temp process is replaced by git `node_persistent.py`. Do not re-ship orch 10.24.5 or spa 1.1.0.
