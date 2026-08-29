@@ -14,6 +14,7 @@ from metabolism import (  # noqa: E402
     decide, hours_until_renewal, monitor_interval_sec, snapshot, load_rails,
     record_spend, empty_rail_state, phase_delta,
     density_of, effective_capacity, coalesce_intents, circuit_trip,
+    pace_factor,
 )
 
 CFG = load_rails()
@@ -114,7 +115,7 @@ class Monitor(unittest.TestCase):
 class Snapshot(unittest.TestCase):
     def test_shape(self):
         s = snapshot(T(12, 0), cfg=CFG, ledger={"schema": "x", "rails": {}})
-        self.assertEqual(s["schema"], "stratamesh.metabolism.v1.2")
+        self.assertEqual(s["schema"], "stratamesh.metabolism.v1.3")
         self.assertTrue(s["no_sixth_cron"])
         self.assertIn("grok-auto", s["rails"])
         self.assertIn("xai-api", s["rails"])
@@ -252,6 +253,130 @@ class Density(unittest.TestCase):
         self.assertEqual(circuit_trip(9000, 4167, CFG), STASIS)
         self.assertEqual(circuit_trip(5300, 4167, CFG), HOLD)
         self.assertEqual(circuit_trip(100, 4167, CFG), "")
+
+
+class PaceAndStasis(unittest.TestCase):
+    def test_neutral_when_no_spend(self):
+        v = decide("github-core", remaining=4000, now=T(12, 0), cost=10, cfg=CFG)
+        self.assertEqual(v.pace_factor, 1.0)
+        self.assertEqual(v.decision, ALLOW)
+        self.assertEqual(pace_factor(0, 5000, 1.0), 1.0)
+
+    def test_deflator_when_overspent(self):
+        # almost daily_limit spent early in the window → pf < 1
+        ledger = {"schema": "x", "rails": {
+            "deomail": {
+                "phase": "2026-08-28T01",
+                "day": "2026-08-28",
+                "carry": 10.0,
+                "daily_debt": 0.0,
+                "daily_credit": 0.0,
+                "phase_spent": 0.0,
+                "day_spent": 230.0,
+                "phase_grant": 10.0,
+                "overdraft_events": 0,
+            }
+        }}
+        v = decide("deomail", remaining=10, now=T(1, 0), cost=1, cfg=CFG, ledger=ledger)
+        self.assertLess(v.pace_factor, 1.0)
+        self.assertLessEqual(v.deflator, 1.0)
+        self.assertEqual(v.inflator, 1.0)
+
+    def test_inflator_when_underspent(self):
+        # tiny spend late in the window → pf > 1 and <= 1.5
+        ledger = {"schema": "x", "rails": {
+            "deomail": {
+                "phase": "2026-08-28T23",
+                "day": "2026-08-28",
+                "carry": 10.0,
+                "daily_debt": 0.0,
+                "daily_credit": 0.0,
+                "phase_spent": 0.0,
+                "day_spent": 1.0,
+                "phase_grant": 10.0,
+                "overdraft_events": 0,
+            }
+        }}
+        v = decide("deomail", remaining=239, now=T(23, 0), cost=1, cfg=CFG, ledger=ledger)
+        self.assertGreater(v.pace_factor, 1.0)
+        self.assertLessEqual(v.pace_factor, 1.5)
+        self.assertGreaterEqual(v.inflator, 1.0)
+        self.assertEqual(v.deflator, 1.0)
+
+    def test_hf_stasis_until(self):
+        v = decide("hf-inference", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+        self.assertIn("2026-09-01", v.reason)
+
+    def test_aws_free_hard(self):
+        v = decide("aws-free", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+
+    def test_unknown_remaining_holds_without_inventing_cap(self):
+        v = decide("grok-bot-included", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertIn("do not invent a cap", v.reason)
+        v2 = decide("grok-assistant", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v2.decision, HOLD)
+        # live remaining=0 (usage_limit) still pauses
+        v3 = decide("grok-bot-included", remaining=0, now=T(12, 0), cfg=CFG)
+        self.assertEqual(v3.decision, STASIS)
+
+
+class SuperGrokRemainingFrac(unittest.TestCase):
+    """Live SuperGrok weekly pool is remaining_frac, not an invented token/prompt cap."""
+
+    RESET = int(datetime(2026, 8, 31, 14, 55, tzinfo=LISBON).timestamp())
+
+    def test_remaining_frac_096_allow(self):
+        v = decide(
+            "grok-assistant",
+            remaining_frac=0.96,
+            now=T(1, 5, day=29),
+            reset_unix=self.RESET,
+            cost=0,
+            cfg=CFG,
+        )
+        self.assertEqual(v.decision, ALLOW)
+        self.assertAlmostEqual(v.remaining, 0.96)
+        self.assertGreater(v.hours_left, 60)
+        self.assertAlmostEqual(v.hourly_cap, 0.96 / v.hours_left, places=4)
+        self.assertEqual(CFG["rails"]["grok-assistant"]["daily_limit"], 1.0)
+
+    def test_remaining_frac_zero_stasis(self):
+        v = decide("grok-assistant", remaining_frac=0, now=T(12, 0), cost=0, cfg=CFG)
+        self.assertEqual(v.decision, STASIS)
+
+    def test_none_plus_unknown_remaining_hold(self):
+        v = decide("grok-assistant", now=T(12, 0), cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertIn("do not invent a cap", v.reason)
+        # remaining is 0, not an invented weekly token number
+        self.assertEqual(v.remaining, 0)
+        self.assertEqual(v.hourly_cap, 0)
+
+    def test_cost_one_is_not_the_whole_pool(self):
+        # remaining_frac 0.96 with cost=1 must NOT STASIS as if cost were 100% of the weekly pool
+        v = decide(
+            "grok-assistant",
+            remaining_frac=0.96,
+            now=T(1, 5, day=29),
+            reset_unix=self.RESET,
+            cost=1,
+            cfg=CFG,
+        )
+        self.assertEqual(v.decision, ALLOW)
+        self.assertAlmostEqual(v.remaining, 0.96)
+
+    def test_snapshot_pages_alias_not_second_100k(self):
+        s = snapshot(T(12, 0), live={"cf-worker-req": {"remaining": 99990}}, cfg=CFG,
+                     ledger={"schema": "x", "rails": {}})
+        self.assertEqual(s["rails"]["cf-pages"]["decision"], "ALIAS")
+        self.assertEqual(s["rails"]["cf-pages"]["shares_pool"], "cf-worker-req")
+        self.assertNotEqual(s["rails"]["cf-pages"].get("remaining"), 100000)
+        self.assertAlmostEqual(s["hourly_cap_after_refill"], s["rails"]["cf-worker-req"]["hourly_cap"])
+        self.assertNotEqual(s["hourly_cap_after_refill"], 4167)
+
 
 
 if __name__ == "__main__":

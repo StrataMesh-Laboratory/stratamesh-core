@@ -29,15 +29,18 @@ Metabolic stasis is **StrataMesh lab + Calhegas Morais Node token management**, 
 ## Metabolism (both surfaces share these meters)
 
 `decide()` first-match: **STASIS** / **P0_BORROW** (not against HF at remaining 0, not against live Worker HTTP under INC-1027) / **HOLD** / **ALLOW**.
-Reserved peak `R = remaining / hours_left`.
+Reserved peak `R = remaining / hours_left * pace_factor` (v1.3). After **2026-08-29T00:00:00Z** the CF meter is Q-gated **ALLOW**, not STASIS.
 
-| Meter | Now (2026-08-28) | Renewal |
-|-------|------------------|--------|
-| CF Workers Free 100k req / UTC day | **STASIS** `consume=0` | **2026-08-29T00:00:00Z** then Q-gated ALLOW; hold R through 31 Aug |
-| HF Inference Providers | **HOLD** remaining 0, `canPay=false` | **2026-09-01T00:00:00Z** |
+| Meter | Now | Renewal |
+|-------|-----|--------|
+| CF Workers Free 100k req / UTC day | After **2026-08-29T00:00:00Z**: Q-gated **ALLOW** (`R = remaining/hours_left * pace_factor`), not STASIS. Before that UTC midnight: STASIS remaining 0. | UTC daily 00:00. Hold R through 31 Aug. Never workers.dev. |
+| HF Inference Providers | **HOLD** remaining 0, `canPay=false`, `stasis_until` | **2026-09-01T00:00:00Z**. Never paid HF. |
+| AWS Free | **STASIS** remaining=0 (`hard_cap: 0`) | Free only, $200/6mo. Never Paid/Support/Auto-renew. Not a Fog host. Billing alarm $1. |
 | Hub whoami / catalog / static commits | **LIVE** | not a spend meter |
 | xAI chat (operator key) | user-initiated only | SuperGrok weekly cap through **31 Aug**; do not Upgrade |
 | grok-auto | 6 fires / Lisbon day | peaks 09:00 / 18:00 / 23:00; watchdog 04:00 still `decide()` |
+| grok-bot-included | usage_limit pauses that routine **once** | SuperGrok does not refill Bot included weekly. No retry-loop. No Upgrade. |
+| grok-assistant | one prompt at a time | SuperGrok Plus weekly through 31 Aug 2026; dual-track triple-priced |
 | Discourse | 6 posts / Lisbon day | t/20 only for EDGE-GROK ops |
 | DeoMail | 240 / Lisbon day | no workers.dev ingest |
 

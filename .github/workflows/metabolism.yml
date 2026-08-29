@@ -1,0 +1,31 @@
+name: metabolism
+
+on:
+  pull_request:
+    paths:
+      - "ops-monitor/lib/**"
+      - "ops-monitor/config/rails.json"
+      - "ops/lib/**"
+      - "ops/config/rails.json"
+      - "workers/_metabolism.js"
+      - ".github/workflows/metabolism.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ops-monitor/lib/**"
+      - "ops-monitor/config/rails.json"
+      - "ops/lib/**"
+      - "ops/config/rails.json"
+      - "workers/_metabolism.js"
+      - ".github/workflows/metabolism.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: metabolism tests (ops-monitor)
+        run: python3 ops-monitor/lib/test_metabolism.py
+      - name: metabolism tests (ops)
+        run: python3 ops/lib/test_metabolism.py

@@ -1,8 +1,10 @@
 /**
- * Metabolic stasis v1.2 — isomorphic (Workers + browser + Node).
+ * Metabolic stasis v1.3 — isomorphic (Workers + browser + Node).
  * hourly_cap = remaining / hours_until_renewal
- * density = signal / cost; effective_cap = hourly_cap * density
- * circuit STASIS if hour_spent ≥ 2× cap. Never workers.dev. No 6th cron.
+ * pace_factor inflates when under-spent vs elapsed time, deflates when over-spent
+ * (neutral 1.0 if day_spent==0). adjusted = hourly_cap * pace_factor
+ * density = signal / cost; effective_cap = adjusted * density
+ * circuit STASIS if hour_spent ≥ 2× unadjusted cap. Never workers.dev. No 6th cron.
  */
 export const ALLOW = "ALLOW";
 export const HOLD = "HOLD";
@@ -111,10 +113,14 @@ export function estimatedSpentSlots(cfg, now, rail, graceMin = 20) {
   return spent;
 }
 
-function hoursLeftFor(spec, now, cfg, resetUnix) {
+function hoursLeftFor(spec, now, cfg, resetUnix, resetIso) {
   const tz = spec.renewal_tz || cfg.timezone || DEFAULT_TZ;
   const renewal = spec.renewal_hhmm || "00:00";
   if (resetUnix != null) return hoursUntilUnix(now, resetUnix);
+  if (resetIso) {
+    const until = Date.parse(resetIso);
+    if (!Number.isNaN(until)) return Math.max((until - now.getTime()) / 3600000, 1 / 60);
+  }
   if (spec.window === "rolling_hour") return 1;
   if (spec.window_sec) return Math.max(spec.window_sec / 3600, 1 / 60);
   return hoursUntilRenewal(now, renewal, tz);
@@ -148,6 +154,17 @@ function emptyRail() {
 
 function clamp(x, lo, hi) {
   return Math.max(lo, Math.min(hi, x));
+}
+
+export function paceFactor(daySpent, dailyLimit, hoursLeft, windowHours = 24, lo = 0.5, hi = 1.5) {
+  const daily = Number(dailyLimit || 0);
+  if (daily <= 0 || Number(daySpent) <= 0) return 1;
+  const elapsed = Math.max(Number(windowHours) - Number(hoursLeft), 1 / 60);
+  const window = Math.max(Number(windowHours), elapsed);
+  const spentFrac = Number(daySpent) / daily;
+  const timeFrac = elapsed / window;
+  if (spentFrac < 1e-12) return 1;
+  return clamp(timeFrac / spentFrac, lo, hi);
 }
 
 export function settleRail(ledger, rail, now, remaining, hoursLeft, spec, cfg) {
@@ -202,13 +219,23 @@ export function decide(rail, opts = {}) {
     decision, rail, remaining, hours_left: hoursLeft, hourly_cap: hourlyCap,
     spendable, reserved, cost, reason, layer, is_peak: isPeak, is_p0: isP0, billing,
     carry: extra.carry || 0, daily_debt: extra.daily_debt || 0, daily_credit: extra.daily_credit || 0,
-    next_phase_grant: extra.next_phase_grant || hourlyCap,
+    next_phase_grant: extra.next_phase_grant != null ? extra.next_phase_grant : hourlyCap,
     density: extra.density != null ? extra.density : densityOf(opts.signal == null ? 1 : opts.signal, cost),
     signal: opts.signal == null ? 1 : opts.signal,
     circuit: extra.circuit || "",
+    pace_factor: extra.pace_factor != null ? extra.pace_factor : 1,
+    inflator: extra.inflator != null ? extra.inflator : 1,
+    deflator: extra.deflator != null ? extra.deflator : 1,
+    effective_cap: extra.effective_cap || 0,
   });
 
   if (isWorkersDev(opts.url)) return pack(STASIS, 0, 0, 0, 0, 0, "workers.dev forbidden — zone WAF does not cover it (INC-1027)");
+  if (spec.stasis_until && !isP0) {
+    const until = Date.parse(spec.stasis_until);
+    if (!Number.isNaN(until) && now.getTime() < until) {
+      return pack(STASIS, 0, 0, 0, 0, 0, `stasis until ${spec.stasis_until}`);
+    }
+  }
   if (spec.hard_cap === 0) return pack(STASIS, 0, 0, 0, 0, 0, spec.note || "rail forbidden");
   if (kind === "hard") {
     const cap = spec.hard_cap || spec.limit || 0;
@@ -217,9 +244,14 @@ export function decide(rail, opts = {}) {
     return pack(ALLOW, rem, 0, 0, rem, 0, `hard cap ${cap}, remaining ${rem}`);
   }
 
-  const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix);
+  const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix, opts.resetIso);
   let remaining = opts.remaining;
+  const fracMeter = spec.meter === "remaining_frac" || !!spec.unknown_cost;
+  if (opts.remainingFrac != null) remaining = Number(opts.remainingFrac);
   if (remaining == null) {
+    if (spec.unknown_remaining === "hold" && !isP0) {
+      return pack(HOLD, 0, hoursLeft, 0, 0, 0, "no live remaining sample — do not invent a cap");
+    }
     remaining = kind === "slots" && spec.daily_limit != null
       ? Math.max(0, spec.daily_limit - estimatedSpentSlots(cfg, now, rail))
       : spec.daily_limit || spec.limit || 0;
@@ -232,16 +264,31 @@ export function decide(rail, opts = {}) {
   }
 
   const hourlyCap = hoursLeft ? remaining / hoursLeft : remaining;
+  const daySpent = st ? (st.day_spent || 0) : 0;
+  let windowHours = 24;
+  if (spec.window_sec) windowHours = spec.window_sec / 3600;
+  if (spec.window === "rolling_hour") windowHours = 1;
+  const pf = paceFactor(daySpent, spec.daily_limit || spec.limit || 0, hoursLeft, windowHours);
+  const adjusted = hourlyCap * pf;
   let reserved = 0;
   if (kind === "slots") reserved = reservedAhead(cfg, now, rail, isPeak || slotId ? slotId : null);
   const spendable = remaining - reserved;
-  const extra = { carry: st ? st.carry : 0, daily_debt: st ? st.daily_debt : 0, daily_credit: st ? st.daily_credit : 0, next_phase_grant: hourlyCap };
+  const extra = {
+    carry: st ? st.carry : 0,
+    daily_debt: st ? st.daily_debt : 0,
+    daily_credit: st ? st.daily_credit : 0,
+    next_phase_grant: adjusted,
+    pace_factor: pf,
+    inflator: Math.max(1, pf),
+    deflator: Math.min(1, pf),
+  };
   const dens = densityOf(opts.signal == null ? 1 : opts.signal, cost);
   const applyTo = (cfg.density && cfg.density.apply_to) || [];
   const floor = spec.min_density != null
     ? spec.min_density
     : (applyTo.includes(rail) ? ((cfg.density && cfg.density.min_density) || 1) : 0);
   extra.density = dens;
+  extra.effective_cap = effectiveCapacity(adjusted, dens, floor);
   extra.circuit = circuitTrip(opts.hourSpent, hourlyCap, cfg);
   if (extra.circuit === STASIS && !isP0) {
     return pack(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "circuit STASIS — hour spent ≥ 2× hourly cap (INC-1027)", extra);
@@ -266,13 +313,17 @@ export function decide(rail, opts = {}) {
       return pack(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "peak has no remaining", extra);
     }
     if (spendable < cost) return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `protect ${reserved} reserved slot(s) still ahead`, extra);
-    if (st && st.carry + 1e-9 < cost && !isP0) {
+    if (st && st.carry * pf + 1e-9 < cost && !isP0) {
       return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `hourly carry ${st.carry.toFixed(2)} < cost — wait; subsequent phase will be credited`, extra);
     }
     return pack(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "unscheduled spend within contingency", extra);
   }
 
-  const allowance = st ? Math.max(0, st.carry) : hourlyCap;
+  if (fracMeter) {
+    return pack(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto", extra);
+  }
+
+  const allowance = st ? Math.max(0, st.carry * pf) : adjusted;
   if (remaining < cost) return pack(STASIS, remaining, hoursLeft, hourlyCap, remaining, 0, "remaining < cost", extra);
   if (cost > allowance + 1e-9) return pack(HOLD, remaining, hoursLeft, hourlyCap, remaining, 0, `cost ${cost} > phase allowance ${allowance.toFixed(4)} (pace; overdraft would debit next phase)`, extra);
   return pack(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "within hourly average + carry", extra);
@@ -331,13 +382,6 @@ export function coalesceIntents(intents, cfg = {}) {
   return kept;
 }
 
-  const spec = (cfg.rails || {})["local-monitor"] || {};
-  let base = isNight(now, spec, cfg.timezone) ? spec.night_interval_sec || 900 : spec.day_interval_sec || 300;
-  const st = ledger && ledger.rails && ledger.rails["local-monitor"];
-  if (st && ((st.carry || 0) < 0 || (st.daily_debt || 0) > 0)) base = Math.round(base * 1.5);
-  return base;
-}
-
 export function monitorIntervalSec(now, cfg, ledger) {
   const spec = (cfg.rails || {})["local-monitor"] || {};
   let base = isNight(now, spec, cfg.timezone) ? spec.night_interval_sec || 900 : spec.day_interval_sec || 300;
@@ -351,10 +395,34 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
   const parts = zonedParts(now, tz);
   const railsOut = {};
   for (const name of Object.keys(cfg.rails || {})) {
+    const spec = cfg.rails[name] || {};
+    if (spec.skip_meter || spec.kind === "alias") {
+      railsOut[name] = {
+        decision: "ALIAS",
+        rail: name,
+        shares_pool: spec.shares_pool || spec.alias_of,
+        reason: spec.note || "alias — does not hold a separate quota",
+        spec_note: spec.note,
+        kind: spec.kind,
+        unit: spec.unit,
+        billing: spec.billing,
+        daily_limit: spec.daily_limit,
+        static_assets_free: spec.static_assets_free,
+      };
+      continue;
+    }
     const extra = live[name] || {};
-    const v = decide(name, { cfg, now, remaining: extra.remaining, resetUnix: extra.reset_unix, ledger });
-    const spec = cfg.rails[name];
-    const st = (ledger.rails || {})[name] || {};
+    const stLed = (ledger.rails || {})[name] || {};
+    const opts = {
+      cfg, now, ledger,
+      remaining: extra.remaining != null ? extra.remaining : stLed.sampled_remaining,
+      remainingFrac: extra.remaining_frac != null ? extra.remaining_frac : stLed.sampled_remaining_frac,
+      resetUnix: extra.reset_unix != null ? extra.reset_unix : stLed.sampled_reset_unix,
+      resetIso: extra.reset_iso || stLed.sampled_reset_iso,
+    };
+    if (spec.meter === "remaining_frac" || spec.unknown_cost) opts.cost = 0;
+    const v = decide(name, opts);
+    const st = stLed;
     railsOut[name] = {
       ...v,
       spec_note: spec.note,
@@ -373,7 +441,7 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
     return { ...s, verdict: v.decision, reason: v.reason, carry: v.carry };
   });
   return {
-    schema: "stratamesh.metabolism.v1.2",
+    schema: "stratamesh.metabolism.v1.3",
     at: now.toISOString(),
     lisbon: `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`,
     hour_lisbon: parts.hour,
@@ -388,5 +456,7 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
     carries: Object.fromEntries(Object.entries(railsOut).filter(([, v]) => v.carry).map(([k, v]) => [k, v.carry])),
     lab_honest: true,
     no_sixth_cron: true,
+    never_workers_dev: true,
+    hourly_cap_after_refill: (railsOut["cf-worker-req"] || {}).hourly_cap,
   };
 }

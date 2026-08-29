@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Metabolic stasis v1.2 — remaining/hours, density (signal/cost), circuit breaker.
+"""Metabolic stasis v1.3 — remaining/hours, pace_factor, density, circuit breaker.
 
+pace_factor inflates (>1) when under-spent vs elapsed time and deflates (<1)
+when over-spent. Neutral 1.0 when day_spent==0 so existing tests stay green.
+Circuit trips on the unadjusted hourly cap so an inflator cannot bypass Error 1027.
 Subsequent phases credit unused grant against prior overdraft. Peaks 09:00 /
 18:00 / 23:00 Lisbon may overdraft; quiet hours pay it back. Density is
-signal per token: coalesce so few spends have high impact. Circuit trips
-before Error 1027. Never a 6th CF cron. Never workers.dev.
+signal per token: coalesce so few spends have high impact. Never a 6th CF cron.
+Never workers.dev.
 """
 from __future__ import annotations
 
@@ -69,6 +72,19 @@ def hours_until_unix(now: Optional[datetime], reset_unix: int) -> float:
     return max(hours, 1.0 / 60.0)
 
 
+def hours_until_iso(now: Optional[datetime], reset_iso: str) -> float:
+    """hours_left from a Usage reset timestamp. Naive ISO is Europe/Lisbon (session TZ)."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    until = datetime.fromisoformat(str(reset_iso).replace("Z", "+00:00"))
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=LISBON)
+    hours = (until.astimezone(timezone.utc) - now.astimezone(timezone.utc)).total_seconds() / 3600.0
+    return max(hours, 1.0 / 60.0)
+
+
 def minutes_of_day(local: datetime) -> int:
     return local.hour * 60 + local.minute
 
@@ -122,6 +138,29 @@ def estimated_spent_slots(cfg: dict, now: Optional[datetime], rail: str, grace_m
 
 def clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
+
+
+def pace_factor(
+    day_spent: float,
+    daily_limit: float,
+    hours_left: float,
+    window_hours: float = 24.0,
+    lo: float = 0.5,
+    hi: float = 1.5,
+) -> float:
+    """Inflator (>1) when under-spent vs elapsed time; deflator (<1) when over-spent.
+    Neutral 1.0 when day_spent==0 or daily_limit<=0 so existing tests stay green.
+    """
+    daily = float(daily_limit or 0)
+    if daily <= 0 or float(day_spent) <= 0:
+        return 1.0
+    elapsed = max(float(window_hours) - float(hours_left), 1.0 / 60.0)
+    window = max(float(window_hours), elapsed)
+    spent_frac = float(day_spent) / daily
+    time_frac = elapsed / window
+    if spent_frac < 1e-12:
+        return 1.0
+    return clamp(time_frac / spent_frac, lo, hi)
 
 
 def density_of(signal: float, cost: float) -> float:
@@ -217,11 +256,19 @@ def min_interval_hold(last_same_ms: Optional[float], cfg: Optional[dict] = None)
     return float(last_same_ms) < floor
 
 
-def hours_left_for(spec: dict, now: Optional[datetime], cfg: dict, reset_unix: Optional[int] = None) -> float:
+def hours_left_for(
+    spec: dict,
+    now: Optional[datetime],
+    cfg: dict,
+    reset_unix: Optional[int] = None,
+    reset_iso: Optional[str] = None,
+) -> float:
     tz = spec.get("renewal_tz") or cfg.get("timezone") or "Europe/Lisbon"
     renewal = spec.get("renewal_hhmm") or "00:00"
     if reset_unix is not None:
         return hours_until_unix(now, reset_unix)
+    if reset_iso:
+        return hours_until_iso(now, reset_iso)
     if spec.get("window") == "rolling_hour":
         return 1.0
     if spec.get("window_sec"):
@@ -417,12 +464,16 @@ class Verdict:
     signal: float = 1.0
     effective_cap: float = 0.0
     circuit: str = ""
+    pace_factor: float = 1.0
+    inflator: float = 1.0
+    deflator: float = 1.0
 
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
         for k in (
             "hourly_cap", "hours_left", "spendable", "carry", "daily_debt",
             "daily_credit", "next_phase_grant", "density", "signal", "effective_cap",
+            "pace_factor", "inflator", "deflator",
         ):
             d[k] = round(float(d[k]), 4)
         return d
@@ -443,6 +494,8 @@ def decide(
     url: Optional[str] = None,
     hour_spent: Optional[float] = None,
     last_same_ms: Optional[float] = None,
+    remaining_frac: Optional[float] = None,
+    reset_iso: Optional[str] = None,
 ) -> Verdict:
     cfg = cfg or load_rails()
     spec = (cfg.get("rails") or {}).get(rail) or {}
@@ -470,6 +523,24 @@ def decide(
             **extra,
         )
 
+    until_s = spec.get("stasis_until")
+    if until_s and not is_p0:
+        try:
+            until = datetime.fromisoformat(str(until_s).replace("Z", "+00:00"))
+            if until.tzinfo is None:
+                until = until.replace(tzinfo=timezone.utc)
+            n = now or datetime.now(timezone.utc)
+            if n.tzinfo is None:
+                n = n.replace(tzinfo=timezone.utc)
+            if n.astimezone(timezone.utc) < until.astimezone(timezone.utc):
+                return Verdict(
+                    STASIS, rail, 0, 0, 0, 0, 0, cost,
+                    f"stasis until {until_s}",
+                    **extra,
+                )
+        except (TypeError, ValueError):
+            pass
+
     if spec.get("hard_cap") == 0:
         return Verdict(
             STASIS, rail, 0, 0, 0, 0, 0, cost,
@@ -483,9 +554,20 @@ def decide(
             return Verdict(STASIS, rail, rem, 0, 0, 0, 0, cost, f"hard cap {cap} reached", **extra)
         return Verdict(ALLOW, rail, rem, 0, 0, rem, 0, cost, f"hard cap {cap}, remaining {rem}", **extra)
 
-    hours_left = hours_left_for(spec, now, cfg, reset_unix)
+    hours_left = hours_left_for(spec, now, cfg, reset_unix, reset_iso)
     daily = spec.get("daily_limit")
+    frac_meter = spec.get("meter") == "remaining_frac" or bool(spec.get("unknown_cost"))
+    # SuperGrok-style weekly pool: remaining_frac in [0,1] is remaining (1.0 = full pool).
+    # There is no public token count. Do not invent one.
+    if remaining_frac is not None:
+        remaining = float(remaining_frac)
     if remaining is None:
+        if spec.get("unknown_remaining") == "hold" and not is_p0:
+            return Verdict(
+                HOLD, rail, 0, hours_left, 0, 0, 0, cost,
+                "no live remaining sample — do not invent a cap",
+                **extra,
+            )
         if kind == "slots" and daily is not None:
             remaining = max(0.0, float(daily) - estimated_spent_slots(cfg, now, rail))
         else:
@@ -498,6 +580,23 @@ def decide(
         remaining = max(0.0, remaining + float(st.get("daily_credit") or 0) - float(st.get("daily_debt") or 0))
 
     hourly_cap = remaining / hours_left if hours_left else remaining
+    day_spent = float(st.get("day_spent") or 0) if st else 0.0
+    window_hours = 24.0
+    if spec.get("window_sec"):
+        window_hours = float(spec["window_sec"]) / 3600.0
+    if spec.get("window") == "rolling_hour":
+        # rolling hour: the 'day' is the hour window; spec.limit is the daily_limit analogue
+        window_hours = 1.0
+    pf = pace_factor(
+        day_spent,
+        float(daily or spec.get("limit") or 0),
+        hours_left,
+        window_hours,
+    )
+    extra["pace_factor"] = pf
+    extra["inflator"] = max(1.0, pf)
+    extra["deflator"] = min(1.0, pf)
+    adjusted = hourly_cap * pf
     reserved = 0.0
     if kind == "slots":
         reserved = reserved_ahead(cfg, now, rail, exclude_id=slot_id if (is_peak or slot_id) else None)
@@ -511,8 +610,8 @@ def decide(
         carry=carry,
         daily_debt=daily_debt,
         daily_credit=daily_credit,
-        next_phase_grant=hourly_cap,
-        effective_cap=effective_capacity(hourly_cap, dens, floor),
+        next_phase_grant=adjusted,
+        effective_cap=effective_capacity(adjusted, dens, floor),
     )
 
     trip = circuit_trip(hour_spent, hourly_cap, cfg)
@@ -559,16 +658,26 @@ def decide(
             return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"protect {reserved} reserved slot(s) still ahead", **extra)
         # unscheduled: also respect hourly carry if ledger present (don't dump contingency in one hour)
-        if st is not None and carry + 1e-9 < cost and not is_p0:
+        if st is not None and carry * pf + 1e-9 < cost and not is_p0:
             return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"hourly carry {carry:.2f} < cost — wait; subsequent phase will be credited", **extra)
         return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "unscheduled spend within contingency", **extra)
 
-    # rate rails
-    allowance = hourly_cap
+    # remaining_frac rails: prompt cost is unknown compute, not pool units.
+    # Gate on remaining_frac > 0 + circuit. A fire is grok-auto (cost=1 fire).
+    # Snapshot uses cost=0 ("is the pool alive"). Never treat cost=1 as 100% of the weekly pool.
+    if frac_meter:
+        return Verdict(
+            ALLOW, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
+            "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto",
+            **extra,
+        )
+
+    # rate rails — pace with adjusted hourly; ledger carry is also paced
+    allowance = adjusted
     if st is not None:
-        allowance = max(0.0, carry)
+        allowance = max(0.0, carry * pf)
     if remaining < cost:
         return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
                        "remaining < cost", **extra)
@@ -661,12 +770,43 @@ def snapshot(
     lisbon = as_tz(now, cfg.get("timezone") or "Europe/Lisbon")
     rails_out = {}
     for name, spec in (cfg.get("rails") or {}).items():
+        spec = spec or {}
+        if spec.get("skip_meter") or spec.get("kind") == "alias":
+            alias = spec.get("shares_pool") or spec.get("alias_of")
+            rails_out[name] = {
+                "decision": "ALIAS",
+                "rail": name,
+                "shares_pool": alias,
+                "reason": spec.get("note") or "alias — does not hold a separate quota",
+                "spec_note": spec.get("note"),
+                "kind": spec.get("kind"),
+                "unit": spec.get("unit"),
+                "billing": spec.get("billing"),
+                "daily_limit": spec.get("daily_limit"),
+                "static_assets_free": spec.get("static_assets_free"),
+            }
+            continue
         kwargs: dict[str, Any] = {"cfg": cfg, "now": now, "ledger": ledger}
-        if name in live:
-            if "remaining" in live[name]:
-                kwargs["remaining"] = live[name]["remaining"]
-            if "reset_unix" in live[name]:
-                kwargs["reset_unix"] = live[name]["reset_unix"]
+        if spec.get("meter") == "remaining_frac" or spec.get("unknown_cost"):
+            kwargs["cost"] = 0.0  # snapshot: is the pool alive; prompt compute is unknown
+        sample = (live or {}).get(name) or {}
+        st_led = (ledger.get("rails") or {}).get(name) or {}
+        if sample.get("remaining_frac") is not None:
+            kwargs["remaining_frac"] = sample["remaining_frac"]
+        elif st_led.get("sampled_remaining_frac") is not None:
+            kwargs["remaining_frac"] = st_led["sampled_remaining_frac"]
+        if "remaining" in sample:
+            kwargs["remaining"] = sample["remaining"]
+        elif "sampled_remaining" in st_led and "remaining_frac" not in kwargs:
+            kwargs["remaining"] = st_led["sampled_remaining"]
+        if "reset_unix" in sample:
+            kwargs["reset_unix"] = sample["reset_unix"]
+        elif "sampled_reset_unix" in st_led:
+            kwargs["reset_unix"] = st_led["sampled_reset_unix"]
+        if sample.get("reset_iso"):
+            kwargs["reset_iso"] = sample["reset_iso"]
+        elif st_led.get("sampled_reset_iso"):
+            kwargs["reset_iso"] = st_led["sampled_reset_iso"]
         v = decide(name, **kwargs)
         st = (ledger.get("rails") or {}).get(name) or {}
         rails_out[name] = {
@@ -689,7 +829,7 @@ def snapshot(
     debts = {k: v["daily_debt"] for k, v in rails_out.items() if v.get("daily_debt")}
     carries = {k: v["carry"] for k, v in rails_out.items() if v.get("carry") not in (0, 0.0, None)}
     return {
-        "schema": "stratamesh.metabolism.v1.2",
+        "schema": "stratamesh.metabolism.v1.3",
         "at": now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "lisbon": lisbon.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "hour_lisbon": lisbon.hour,
@@ -706,9 +846,10 @@ def snapshot(
         "lab_honest": True,
         "no_sixth_cron": True,
         "never_workers_dev": True,
-        "hourly_cap_after_refill": 4167,
+        "hourly_cap_after_refill": (rails_out.get("cf-worker-req") or {}).get("hourly_cap"),
         "effective_worker_facts_per_hour": effective_capacity(
-            4167, float((cfg.get("density") or {}).get("target_density") or 8)
+            float((rails_out.get("cf-worker-req") or {}).get("hourly_cap") or 0),
+            float((cfg.get("density") or {}).get("target_density") or 8),
         ),
     }
 

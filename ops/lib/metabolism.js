@@ -1,8 +1,10 @@
 /**
- * Metabolic stasis — isomorphic (Workers + browser + Node).
+ * Metabolic stasis v1.3 — isomorphic (Workers + browser + Node).
  * hourly_cap = remaining / hours_until_renewal
- * spendable  = remaining - reserved_future_peaks
- * No 6th Cloudflare cron. Identity ≠ cargo.
+ * pace_factor inflates when under-spent vs elapsed time, deflates when over-spent
+ * (neutral 1.0 if day_spent==0). adjusted = hourly_cap * pace_factor
+ * density = signal / cost; effective_cap = adjusted * density
+ * circuit STASIS if hour_spent ≥ 2× unadjusted cap. Never workers.dev. No 6th cron.
  */
 export const ALLOW = "ALLOW";
 export const HOLD = "HOLD";
@@ -42,7 +44,6 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-/** Approximate timezone offset by comparing UTC ms of local wall time. */
 function tzOffsetMs(wall, timeZone) {
   const utcGuess = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, wall.second);
   const asTz = zonedParts(new Date(utcGuess), timeZone);
@@ -61,10 +62,8 @@ export function hoursUntilRenewal(now, renewalHHmm = "00:00", timeZone = DEFAULT
     const next = zonedParts(dt, timeZone);
     cand = { year: next.year, month: next.month, day: next.day, hour: h, minute: m, second: 0 };
   }
-  const nowMs = now.getTime();
   const candUtc = Date.UTC(cand.year, cand.month - 1, cand.day, cand.hour, cand.minute, 0) - tzOffsetMs(cand, timeZone);
-  const hours = (candUtc - nowMs) / 3600000;
-  return Math.max(hours, 1 / 60);
+  return Math.max((candUtc - now.getTime()) / 3600000, 1 / 60);
 }
 
 export function hoursUntilUnix(now, resetUnix) {
@@ -74,7 +73,6 @@ export function hoursUntilUnix(now, resetUnix) {
 function minutesOf(parts) {
   return parts.hour * 60 + parts.minute;
 }
-
 function hhmmMinutes(hhmm) {
   const { h, m } = parseHhmm(hhmm);
   return h * 60 + m;
@@ -115,6 +113,95 @@ export function estimatedSpentSlots(cfg, now, rail, graceMin = 20) {
   return spent;
 }
 
+function hoursLeftFor(spec, now, cfg, resetUnix, resetIso) {
+  const tz = spec.renewal_tz || cfg.timezone || DEFAULT_TZ;
+  const renewal = spec.renewal_hhmm || "00:00";
+  if (resetUnix != null) return hoursUntilUnix(now, resetUnix);
+  if (resetIso) {
+    const until = Date.parse(resetIso);
+    if (!Number.isNaN(until)) return Math.max((until - now.getTime()) / 3600000, 1 / 60);
+  }
+  if (spec.window === "rolling_hour") return 1;
+  if (spec.window_sec) return Math.max(spec.window_sec / 3600, 1 / 60);
+  return hoursUntilRenewal(now, renewal, tz);
+}
+
+export function phaseKey(now, spec, cfg) {
+  const tz = spec.renewal_tz || cfg.timezone || DEFAULT_TZ;
+  const p = zonedParts(now, tz);
+  const grain = spec.phase || "hour";
+  if (grain === "day") return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+  if (grain === "minute") return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}`;
+}
+
+export function phaseDelta(prev, cur) {
+  if (prev === cur) return 0;
+  const parse = (k) => {
+    if (!k.includes("T")) return Date.parse(k + "T00:00:00Z");
+    if ((k.match(/:/g) || []).length === 1 && k.length >= 16) return Date.parse(k + ":00Z");
+    return Date.parse(k + ":00:00Z");
+  };
+  const ms = parse(cur) - parse(prev);
+  if (!prev.includes("T")) return Math.max(1, Math.round(ms / 86400000));
+  if ((prev.match(/:/g) || []).length === 1 && prev.length >= 16) return Math.max(1, Math.round(ms / 60000));
+  return Math.max(1, Math.round(ms / 3600000));
+}
+
+function emptyRail() {
+  return { phase: null, day: null, carry: 0, daily_debt: 0, daily_credit: 0, phase_spent: 0, day_spent: 0, phase_grant: 0, overdraft_events: 0 };
+}
+
+function clamp(x, lo, hi) {
+  return Math.max(lo, Math.min(hi, x));
+}
+
+export function paceFactor(daySpent, dailyLimit, hoursLeft, windowHours = 24, lo = 0.5, hi = 1.5) {
+  const daily = Number(dailyLimit || 0);
+  if (daily <= 0 || Number(daySpent) <= 0) return 1;
+  const elapsed = Math.max(Number(windowHours) - Number(hoursLeft), 1 / 60);
+  const window = Math.max(Number(windowHours), elapsed);
+  const spentFrac = Number(daySpent) / daily;
+  const timeFrac = elapsed / window;
+  if (spentFrac < 1e-12) return 1;
+  return clamp(timeFrac / spentFrac, lo, hi);
+}
+
+export function settleRail(ledger, rail, now, remaining, hoursLeft, spec, cfg) {
+  const rails = (ledger.rails = ledger.rails || {});
+  const st = (rails[rail] = rails[rail] || emptyRail());
+  const grant = hoursLeft ? remaining / hoursLeft : remaining;
+  const key = phaseKey(now, spec, cfg);
+  const persist = spec.debt_persists_across_renewal !== false;
+  const od = cfg.overdraft || {};
+  const creditCap = grant * (od.credit_cap_hours || 1);
+  const daily = spec.daily_limit || spec.limit || 0;
+  const overdraftMax = Math.max(daily * (od.overdraft_max_multiplier || 1), grant * 24, 1);
+  if (od.enabled === false) {
+    st.phase = key;
+    st.phase_grant = grant;
+    return st;
+  }
+  if (st.phase == null) {
+    st.carry = grant;
+    st.phase = key;
+    st.phase_spent = 0;
+    st.phase_grant = grant;
+    return st;
+  }
+  if (st.phase === key) {
+    st.phase_grant = grant;
+    return st;
+  }
+  const n = phaseDelta(st.phase, key);
+  if (!persist) st.carry = grant;
+  else st.carry = clamp((st.carry || 0) + grant * n, -overdraftMax, creditCap);
+  st.phase = key;
+  st.phase_spent = 0;
+  st.phase_grant = grant;
+  return st;
+}
+
 export function decide(rail, opts = {}) {
   const cfg = opts.cfg;
   const spec = (cfg.rails || {})[rail] || {};
@@ -125,115 +212,251 @@ export function decide(rail, opts = {}) {
   const slotId = opts.slotId || null;
   const layer = spec.layer || "";
   const kind = spec.kind || "rate";
-  const tz = spec.renewal_tz || cfg.timezone || DEFAULT_TZ;
-  const renewal = spec.renewal_hhmm || "00:00";
+  const billing = spec.billing || "";
+  const ledger = opts.ledger || null;
 
-  const base = (decision, remaining, hoursLeft, hourlyCap, spendable, reserved, reason) => ({
-    decision,
-    rail,
-    remaining,
-    hours_left: hoursLeft,
-    hourly_cap: hourlyCap,
-    spendable,
-    reserved,
-    cost,
-    reason,
-    layer,
-    is_peak: isPeak,
-    is_p0: isP0,
+  const pack = (decision, remaining, hoursLeft, hourlyCap, spendable, reserved, reason, extra = {}) => ({
+    decision, rail, remaining, hours_left: hoursLeft, hourly_cap: hourlyCap,
+    spendable, reserved, cost, reason, layer, is_peak: isPeak, is_p0: isP0, billing,
+    carry: extra.carry || 0, daily_debt: extra.daily_debt || 0, daily_credit: extra.daily_credit || 0,
+    next_phase_grant: extra.next_phase_grant != null ? extra.next_phase_grant : hourlyCap,
+    density: extra.density != null ? extra.density : densityOf(opts.signal == null ? 1 : opts.signal, cost),
+    signal: opts.signal == null ? 1 : opts.signal,
+    circuit: extra.circuit || "",
+    pace_factor: extra.pace_factor != null ? extra.pace_factor : 1,
+    inflator: extra.inflator != null ? extra.inflator : 1,
+    deflator: extra.deflator != null ? extra.deflator : 1,
+    effective_cap: extra.effective_cap || 0,
   });
 
-  if (spec.hard_cap === 0) {
-    return base(STASIS, 0, 0, 0, 0, 0, spec.note || "rail forbidden");
+  if (isWorkersDev(opts.url)) return pack(STASIS, 0, 0, 0, 0, 0, "workers.dev forbidden — zone WAF does not cover it (INC-1027)");
+  if (spec.stasis_until && !isP0) {
+    const until = Date.parse(spec.stasis_until);
+    if (!Number.isNaN(until) && now.getTime() < until) {
+      return pack(STASIS, 0, 0, 0, 0, 0, `stasis until ${spec.stasis_until}`);
+    }
   }
+  if (spec.hard_cap === 0) return pack(STASIS, 0, 0, 0, 0, 0, spec.note || "rail forbidden");
   if (kind === "hard") {
     const cap = spec.hard_cap || spec.limit || 0;
     const rem = opts.remaining == null ? cap : opts.remaining;
-    if (rem <= 0) return base(STASIS, rem, 0, 0, 0, 0, `hard cap ${cap} reached`);
-    return base(ALLOW, rem, 0, 0, rem, 0, `hard cap ${cap}, remaining ${rem}`);
+    if (rem <= 0) return pack(STASIS, rem, 0, 0, 0, 0, `hard cap ${cap} reached`);
+    return pack(ALLOW, rem, 0, 0, rem, 0, `hard cap ${cap}, remaining ${rem}`);
   }
 
-  let hoursLeft;
-  if (opts.resetUnix != null) hoursLeft = hoursUntilUnix(now, opts.resetUnix);
-  else if (spec.window === "rolling_hour") hoursLeft = 1;
-  else if (spec.window_sec) hoursLeft = Math.max(spec.window_sec / 3600, 1 / 60);
-  else hoursLeft = hoursUntilRenewal(now, renewal, tz);
+  const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix, opts.resetIso);
   let remaining = opts.remaining;
+  const fracMeter = spec.meter === "remaining_frac" || !!spec.unknown_cost;
+  if (opts.remainingFrac != null) remaining = Number(opts.remainingFrac);
   if (remaining == null) {
+    if (spec.unknown_remaining === "hold" && !isP0) {
+      return pack(HOLD, 0, hoursLeft, 0, 0, 0, "no live remaining sample — do not invent a cap");
+    }
     remaining = kind === "slots" && spec.daily_limit != null
       ? Math.max(0, spec.daily_limit - estimatedSpentSlots(cfg, now, rail))
       : spec.daily_limit || spec.limit || 0;
   }
+
+  let st = null;
+  if (ledger) {
+    st = settleRail(ledger, rail, now, remaining, hoursLeft, spec, cfg);
+    remaining = Math.max(0, remaining + (st.daily_credit || 0) - (st.daily_debt || 0));
+  }
+
   const hourlyCap = hoursLeft ? remaining / hoursLeft : remaining;
+  const daySpent = st ? (st.day_spent || 0) : 0;
+  let windowHours = 24;
+  if (spec.window_sec) windowHours = spec.window_sec / 3600;
+  if (spec.window === "rolling_hour") windowHours = 1;
+  const pf = paceFactor(daySpent, spec.daily_limit || spec.limit || 0, hoursLeft, windowHours);
+  const adjusted = hourlyCap * pf;
   let reserved = 0;
-  if (kind === "slots") {
-    reserved = reservedAhead(cfg, now, rail, isPeak || slotId ? slotId : null);
-  }
+  if (kind === "slots") reserved = reservedAhead(cfg, now, rail, isPeak || slotId ? slotId : null);
   const spendable = remaining - reserved;
-
-  if (remaining <= 0 && !isP0) return base(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "quota exhausted until renewal");
-  if (remaining <= 0 && isP0) return base(P0_BORROW, remaining, hoursLeft, hourlyCap, spendable, reserved, "P0 borrows past empty pool — still no retry-loop");
-
-  if (kind === "slots") {
-    if (isP0) return base(remaining >= cost ? ALLOW : P0_BORROW, remaining, hoursLeft, hourlyCap, spendable, reserved, "P0 spends even if it trims a later peak");
-    if (isPeak || slotId) {
-      if (remaining >= cost) return base(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "budgeted slot / reserved peak");
-      return base(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "peak has no remaining");
-    }
-    if (spendable < cost) return base(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `protect ${reserved} reserved slot(s) still ahead`);
-    return base(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "unscheduled spend within contingency");
+  const extra = {
+    carry: st ? st.carry : 0,
+    daily_debt: st ? st.daily_debt : 0,
+    daily_credit: st ? st.daily_credit : 0,
+    next_phase_grant: adjusted,
+    pace_factor: pf,
+    inflator: Math.max(1, pf),
+    deflator: Math.min(1, pf),
+  };
+  const dens = densityOf(opts.signal == null ? 1 : opts.signal, cost);
+  const applyTo = (cfg.density && cfg.density.apply_to) || [];
+  const floor = spec.min_density != null
+    ? spec.min_density
+    : (applyTo.includes(rail) ? ((cfg.density && cfg.density.min_density) || 1) : 0);
+  extra.density = dens;
+  extra.effective_cap = effectiveCapacity(adjusted, dens, floor);
+  extra.circuit = circuitTrip(opts.hourSpent, hourlyCap, cfg);
+  if (extra.circuit === STASIS && !isP0) {
+    return pack(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "circuit STASIS — hour spent ≥ 2× hourly cap (INC-1027)", extra);
+  }
+  if (extra.circuit === HOLD && !isP0 && !isPeak) {
+    return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, "circuit HOLD — wait for next phase", extra);
+  }
+  if (opts.lastSameMs != null && opts.lastSameMs < ((cfg.density && cfg.density.min_interval_ms) || 10000) && !isP0) {
+    return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, "anti-3Hz: same URL too soon", extra);
+  }
+  if (dens + 1e-9 < floor && !isP0 && !isPeak) {
+    return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `density ${dens.toFixed(2)} < floor ${floor} — coalesce`, extra);
   }
 
-  if (remaining < cost) return base(STASIS, remaining, hoursLeft, hourlyCap, remaining, 0, "remaining < cost");
-  if (cost > hourlyCap + 1e-9) return base(HOLD, remaining, hoursLeft, hourlyCap, remaining, 0, `cost ${cost} > hourly_cap ${hourlyCap.toFixed(4)} (pace until renewal)`);
-  return base(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "within hourly average");
+  if (remaining <= 0 && !isP0) return pack(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "quota exhausted until renewal", extra);
+  if (remaining <= 0 && isP0) return pack(P0_BORROW, remaining, hoursLeft, hourlyCap, spendable, reserved, "P0 borrows — subsequent phases compensate; no retry-loop", extra);
+
+  if (kind === "slots") {
+    if (isP0) return pack(remaining >= cost ? ALLOW : P0_BORROW, remaining, hoursLeft, hourlyCap, spendable, reserved, "P0 spends; overdraft credited to later phases", extra);
+    if (isPeak || slotId) {
+      if (remaining >= cost) return pack(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "budgeted slot / reserved peak (may overdraft the hour)", extra);
+      return pack(STASIS, remaining, hoursLeft, hourlyCap, spendable, reserved, "peak has no remaining", extra);
+    }
+    if (spendable < cost) return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `protect ${reserved} reserved slot(s) still ahead`, extra);
+    if (st && st.carry * pf + 1e-9 < cost && !isP0) {
+      return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `hourly carry ${st.carry.toFixed(2)} < cost — wait; subsequent phase will be credited`, extra);
+    }
+    return pack(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "unscheduled spend within contingency", extra);
+  }
+
+  if (fracMeter) {
+    return pack(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto", extra);
+  }
+
+  const allowance = st ? Math.max(0, st.carry * pf) : adjusted;
+  if (remaining < cost) return pack(STASIS, remaining, hoursLeft, hourlyCap, remaining, 0, "remaining < cost", extra);
+  if (cost > allowance + 1e-9) return pack(HOLD, remaining, hoursLeft, hourlyCap, remaining, 0, `cost ${cost} > phase allowance ${allowance.toFixed(4)} (pace; overdraft would debit next phase)`, extra);
+  return pack(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "within hourly average + carry", extra);
 }
 
-export function monitorIntervalSec(now, cfg) {
+export function densityOf(signal, cost) {
+  return Math.max(0, Number(signal) / Math.max(Number(cost), 1e-9));
+}
+
+export function effectiveCapacity(limit, density, floor = 1) {
+  return Number(limit) * Math.max(Number(density), Number(floor));
+}
+
+export function isWorkersDev(url) {
+  return String(url || "").toLowerCase().includes("workers.dev");
+}
+
+export function circuitTrip(hourSpent, hourlyCap, cfg = {}) {
+  if (hourSpent == null) return "";
+  const d = cfg.density || {};
+  const cap = Math.max(Number(hourlyCap), 1e-9);
+  if (hourSpent >= cap * (d.circuit_stasis_mult || 2)) return STASIS;
+  if (hourSpent >= cap * (d.circuit_hold_mult || 1.25)) return HOLD;
+  return "";
+}
+
+export function coalesceIntents(intents, cfg = {}) {
+  const dens = cfg.density || {};
+  const zone = (dens.zone_suffix || "calhegasmorais.pt").toLowerCase();
+  const seen = new Set();
+  const kept = [];
+  const worker = [];
+  for (const it of intents) {
+    const url = String(it.url || "");
+    const low = url.toLowerCase();
+    if (low.includes("workers.dev")) continue;
+    const key = low.replace(/\/+$/, "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const isPages = !!it.pages || key === `https://${zone}` || key === `https://www.${zone}`;
+    const isWorker = low.includes(zone) && !isPages && [null, undefined, "cf-worker-req", "local-monitor"].includes(it.rail);
+    if (isWorker && !it.p1) {
+      worker.push(it);
+      continue;
+    }
+    kept.push({ ...it });
+  }
+  if (worker.length) {
+    const primary = { ...worker[0] };
+    primary.signal = worker.reduce((a, x) => a + (x.signal || 1), 0);
+    primary.cost = 1;
+    primary.coalesced = worker.length;
+    primary.urls = worker.map((x) => x.url);
+    kept.push(primary);
+  }
+  return kept;
+}
+
+export function monitorIntervalSec(now, cfg, ledger) {
   const spec = (cfg.rails || {})["local-monitor"] || {};
-  const night = spec.night_interval_sec || 900;
-  const day = spec.day_interval_sec || 300;
-  return isNight(now, spec, cfg.timezone) ? night : day;
+  let base = isNight(now, spec, cfg.timezone) ? spec.night_interval_sec || 900 : spec.day_interval_sec || 300;
+  const st = ledger && ledger.rails && ledger.rails["local-monitor"];
+  if (st && ((st.carry || 0) < 0 || (st.daily_debt || 0) > 0)) base = Math.round(base * 1.5);
+  return base;
 }
 
-export function snapshot(cfg, now = new Date(), live = {}) {
+export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} }) {
   const tz = cfg.timezone || DEFAULT_TZ;
   const parts = zonedParts(now, tz);
   const railsOut = {};
   for (const name of Object.keys(cfg.rails || {})) {
+    const spec = cfg.rails[name] || {};
+    if (spec.skip_meter || spec.kind === "alias") {
+      railsOut[name] = {
+        decision: "ALIAS",
+        rail: name,
+        shares_pool: spec.shares_pool || spec.alias_of,
+        reason: spec.note || "alias — does not hold a separate quota",
+        spec_note: spec.note,
+        kind: spec.kind,
+        unit: spec.unit,
+        billing: spec.billing,
+        daily_limit: spec.daily_limit,
+        static_assets_free: spec.static_assets_free,
+      };
+      continue;
+    }
     const extra = live[name] || {};
-    const v = decide(name, { cfg, now, remaining: extra.remaining, resetUnix: extra.reset_unix });
-    const spec = cfg.rails[name];
+    const stLed = (ledger.rails || {})[name] || {};
+    const opts = {
+      cfg, now, ledger,
+      remaining: extra.remaining != null ? extra.remaining : stLed.sampled_remaining,
+      remainingFrac: extra.remaining_frac != null ? extra.remaining_frac : stLed.sampled_remaining_frac,
+      resetUnix: extra.reset_unix != null ? extra.reset_unix : stLed.sampled_reset_unix,
+      resetIso: extra.reset_iso || stLed.sampled_reset_iso,
+    };
+    if (spec.meter === "remaining_frac" || spec.unknown_cost) opts.cost = 0;
+    const v = decide(name, opts);
+    const st = stLed;
     railsOut[name] = {
       ...v,
       spec_note: spec.note,
       kind: spec.kind,
       unit: spec.unit,
+      billing: spec.billing,
       daily_limit: spec.daily_limit || spec.limit || spec.hard_cap,
+      phase_spent: st.phase_spent || 0,
+      day_spent: st.day_spent || 0,
+      overdraft_events: st.overdraft_events || 0,
+      compensation: -Math.min(0, st.carry || 0),
     };
   }
   const slots = (cfg.slots || []).map((s) => {
-    const v = decide(s.rail, {
-      cfg,
-      now,
-      isPeak: !!s.peak,
-      slotId: s.id,
-      remaining: railsOut[s.rail]?.remaining,
-    });
-    return { ...s, verdict: v.decision, reason: v.reason };
+    const v = decide(s.rail, { cfg, now, isPeak: !!s.peak, slotId: s.id, remaining: railsOut[s.rail]?.remaining, ledger });
+    return { ...s, verdict: v.decision, reason: v.reason, carry: v.carry };
   });
   return {
-    schema: "stratamesh.metabolism.v1",
+    schema: "stratamesh.metabolism.v1.3",
     at: now.toISOString(),
     lisbon: `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`,
     hour_lisbon: parts.hour,
     night: isNight(now, (cfg.rails || {})["local-monitor"], tz),
-    monitor_interval_sec: monitorIntervalSec(now, cfg),
+    monitor_interval_sec: monitorIntervalSec(now, cfg, ledger),
     cf_cron_hard_cap: cfg.cf_cron_hard_cap,
     formula: cfg.formula,
+    overdraft: cfg.overdraft,
     rails: railsOut,
     slots,
+    debts: Object.fromEntries(Object.entries(railsOut).filter(([, v]) => v.daily_debt).map(([k, v]) => [k, v.daily_debt])),
+    carries: Object.fromEntries(Object.entries(railsOut).filter(([, v]) => v.carry).map(([k, v]) => [k, v.carry])),
     lab_honest: true,
     no_sixth_cron: true,
+    never_workers_dev: true,
+    hourly_cap_after_refill: (railsOut["cf-worker-req"] || {}).hourly_cap,
   };
 }
