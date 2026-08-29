@@ -668,26 +668,27 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(400, {"error": str(e)})
 
         elif path == "/tx/ingest":
-            try:
-                data = json.loads(raw.decode() or "{}")
-            except Exception:
-                data = {}
+            from p0_ingest_guard import guard_ingest
+            from tip_selection import Transaction, TxType
             with NODE.lock:
-                from tip_selection import Transaction, TxType
-                try:
-                    tt = TxType(data.get("tx_type", "standard"))
-                except Exception:
-                    tt = TxType.STANDARD
-                tx = Transaction(
-                    tx_id=str(data["tx_id"]),
-                    tx_type=tt,
-                    parents=list(data.get("parents") or ["genesis"]),
-                    weight=float(data.get("weight") or 1.0),
-                    cid=data.get("cid"),
-                    sender=data.get("sender"),
+                decision = guard_ingest(
+                    raw,
+                    known_ids=NODE.dag.txs.keys(),
+                    genesis_id=NODE.dag.genesis_id,
                 )
-                ok = NODE.dag.attach(tx)
-                self._json(200, {"accepted": bool(ok), "tx_id": tx.tx_id})
+                if decision.http_status != 200 or not decision.accepted:
+                    self._json(decision.http_status, decision.body)
+                else:
+                    tx = Transaction(
+                        tx_id=decision.tx_id,
+                        tx_type=TxType(decision.tx_type),
+                        parents=list(decision.parents),
+                        weight=float(decision.weight),
+                        cid=decision.cid,
+                        sender=decision.sender,
+                    )
+                    ok = NODE.dag.attach(tx)
+                    self._json(200, {"accepted": bool(ok), "tx_id": tx.tx_id})
 
         elif path == "/gossip":
             import base64

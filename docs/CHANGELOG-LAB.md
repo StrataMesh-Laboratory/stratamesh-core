@@ -1,3 +1,9 @@
+## 2026-08-29 — v0.2.3-lab-wip
+- Process-gossip ingest guard (n=1 kernel). **Does not close multi-host P0.** Lab only. No investment claims.
+- `POST /tx/ingest`: 400 `SYNTAX_ERRORS` on blank id / bad JSON / missing `tx_id`; 200 `accepted=false` on duplicate `tx_id` / second empty-parents root / bad type / unknown parents
+- Named asserts on top of A1 (`src/test_p0_ingest.py`): duplicate INV no extra vertex; duplicate TX one state transition; malformed TX 400; second root / bad type `accepted=false`
+- Honesty: one host / local processes; not grok90↔box, not mainnet, not aBFT. Gate remains [P0-INV-TX-MULTIHOST.md](./P0-INV-TX-MULTIHOST.md)
+
 ## 2026-08-29 — v0.2.2-lab
 - Lab honesty/ops bundle. **Not mainnet.** P0 still open. LAB only. No investment claims.
 - Metabolism v1.3 (#35): pace inflators/deflators on hourly cap (0.5–1.5); circuit still trips on unadjusted cap

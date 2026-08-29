@@ -24,6 +24,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: P0 ingest-guard named asserts (n=1; does not close P0)
+        working-directory: src
+        run: python3 test_p0_ingest.py
       - name: Process gossip + kill-one + restart catch-up
         working-directory: src
         run: python3 test_process_gossip.py
