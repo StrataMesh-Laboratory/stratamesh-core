@@ -24,7 +24,9 @@ Onion 443 maps to 127.0.0.1:8443 (existing localhost HTTPS front, paths /fog and
 
 Onion 8787 maps to 127.0.0.1:8787 (Fog HTTP when the lab process is up).
 
-phpMyAdmin and MariaDB on 443/3306 stay off the onion. Do not restart cloudflared, Fog, or EDGE for this stack.
+Onion 51820 maps to 127.0.0.1:51820 (WireGuard TCP front; kernel WG UDP is loopback-firewalled). Onion 1194 maps to 127.0.0.1:1194 (OpenVPN TCP camouflage). nginx keeps 127.0.0.1:443.
+
+phpMyAdmin and MariaDB on 443/3306 stay off the onion and off 0.0.0.0. Do not restart cloudflared, Fog, or EDGE for this stack.
 
 ## Fog / EDGE SOCKS5h (exclusive-off)
 
@@ -34,7 +36,7 @@ Helpers wrap outbound HTTP only when the env is set.
 Unset env: no proxy (stdlib urllib). Set env: Fog/EDGE gossip HTTP may wrap.
 Never routed through Tor: Cloudflare GraphQL and api.cloudflare.com; GitHub; wrangler and workers.dev; this lab CF-fronted apex (calhegasmorais.pt, grok.me). Those break or burn extra circuits and are not the anonymity target.
 
-Do not wrap this Tor stack in OpenVPN and do not default-route the box through a VPN (would capture Cloudflare GraphQL, GitHub, wrangler). SOCKS 127.0.0.1:9050 and the v3 onion stay the security plane. Optional exclusive-off later is in [OPERATOR-VPN.md](OPERATOR-VPN.md). Not an anonymity, aBFT, or mainnet claim.
+Operator VPN daemons may run **beside** Tor (not wrapping tor outbound). See [OPERATOR-VPN.md](OPERATOR-VPN.md). Do not default-route the box through a VPN (would capture Cloudflare GraphQL, GitHub, wrangler). Do not send CF / GitHub / wrangler through VPN or Tor. SOCKS 127.0.0.1:9050 and the v3 onion stay the security plane. Not an anonymity, aBFT, or mainnet claim.
 
 ## Tests
 
