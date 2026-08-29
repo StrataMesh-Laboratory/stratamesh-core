@@ -3,6 +3,26 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-29T21:34:46Z hour
+READ: tested intensive #52 STEP 0 dry-run. Prompt was stale (HEAD f36a1ea, NEXT PICK orch budget already live, helper always PUT spa/index.js).
+
+SHIPPED: scripts/api-gitlive-publish.py cf_put_content(script, main_module) + MAIN_MODULE map. Automation prompt corrected (do not re-ship greens).
+
+LIVE curl (dry-run 21:33Z):
+- GET chat 200 ~78ms 1.1.0
+- POST chat 200 ~1.03s source=orch-chat-budget
+- Fog /health 200 0.2.3-lab-temp tx=4; /spa total=1
+- gossip 2.3.4-custom-domain count=2 custom domains
+- fund 0.4.6-grantor-brief; status 0.4.3-fog-process
+
+STILL RED: orch /chat waits 900ms then fallback; Fog process not git node_persistent.py; KV write quota 10048 until 00:00 UTC; P0 open n=1.
+
+NEXT PICK (for 22:00 hour): make orch /chat return local honest JSON immediately (skip tick/LLM) so source is not orch-chat-budget. Do not re-ship spa/gossip/fund/status.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-29T21:26:12Z hour
 READ: HOLDs — Watchdog HOLD-unless-P0 (correct). Night 28-Aug HANDOFF STASIS Fog 530 + aiops POST deferred. 24h cycle HOLD no ships. Discourse last pulse <20h. Hourly 17–20 already recovered. This-chat leftover: Fog /spa empty, HANDOFF stale, #39-42 evidence, gossip workers.dev fallback.
 

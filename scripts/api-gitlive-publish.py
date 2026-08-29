@@ -25,6 +25,18 @@ GH_AUTHOR = {
 CF_EMAIL = "amcmorais@icloud.com"
 CF_ACCOUNT = "f3645fcb56675cf7250d8ba7358eb252"
 CF_SCRIPT = "stratamesh-spa"
+MAIN_MODULE = {
+    "stratamesh-spa": "index.js",
+    "stratamesh-orchestrator": "index.js",
+    "stratamesh-status": "worker.js",
+    "stratamesh-fund": "stratamesh-fund.js",
+    "stratamesh-gossip": "stratamesh-gossip.js",
+    "stratamesh-aiops": "stratamesh-aiops.js",
+    "stratamesh-deomail": "stratamesh-deomail.js",
+    "stratamesh-briefing": "stratamesh-briefing.js",
+    "stratamesh-edge-grok": "stratamesh-edge-grok.js",
+}
+
 
 
 def load_pat() -> str:
@@ -93,12 +105,13 @@ def gh(method: str, path: str, pat: str, body=None, timeout=60):
         return e.code, parsed
 
 
-def cf_put_content(email: str, token: str, source: Path) -> dict:
+def cf_put_content(email: str, token: str, source: Path, script: str = CF_SCRIPT, main_module: str | None = None) -> dict:
     import uuid
 
+    main = main_module or MAIN_MODULE.get(script) or "index.js"
     boundary = "----GitLive" + uuid.uuid4().hex
-    meta = json.dumps({"main_module": "index.js"}).encode()
-    script = source.read_bytes()
+    meta = json.dumps({"main_module": main}).encode()
+    script_bytes = source.read_bytes()
 
     def part(name: str, filename: str | None, content: bytes, ctype: str) -> bytes:
         disp = f'Content-Disposition: form-data; name="{name}"'
@@ -114,10 +127,10 @@ def cf_put_content(email: str, token: str, source: Path) -> dict:
 
     body = (
         part("metadata", "metadata.json", meta, "application/json")
-        + part("index.js", "index.js", script, "application/javascript+module")
+        + part(main, main, script_bytes, "application/javascript+module")
         + f"--{boundary}--\r\n".encode()
     )
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/workers/scripts/{CF_SCRIPT}/content"
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/workers/scripts/{script}/content"
     req = urllib.request.Request(
         url,
         data=body,
