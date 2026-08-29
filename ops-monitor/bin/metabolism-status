@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Sample live remaining into the metabolism ledger and print a snapshot.
+
+Never print secrets. Never GET workers.dev. Never GET https://calhegasmorais.pt/
+(the refill one-shot owns that first GET). Never a 6th CF cron.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "lib"))
+
+from metabolism import (  # noqa: E402
+    estimated_spent_slots,
+    load_ledger,
+    load_rails,
+    save_ledger,
+    snapshot,
+)
+
+CF_REFILL = datetime(2026, 8, 29, 0, 0, 0, tzinfo=timezone.utc)
+HF_REFILL = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+
+def _gh_rate_limit() -> dict | None:
+    """Call `gh api rate_limit`. Never print the token."""
+    env = {k: v for k, v in os.environ.items() if k != "GITHUB_TOKEN" or True}
+    # keep GITHUB_TOKEN in the child env so gh works; never echo it
+    try:
+        p = subprocess.run(
+            ["gh", "api", "rate_limit"],
+            capture_output=True,
+            text=True,
+            env=os.environ.copy(),
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if p.returncode != 0:
+        return None
+    try:
+        return json.loads(p.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def sample_live(cfg: dict, now: datetime) -> dict:
+    live: dict = {}
+    rl = _gh_rate_limit()
+    if rl:
+        resources = rl.get("resources") or {}
+        core = resources.get("core") or {}
+        if "remaining" in core:
+            entry = {"remaining": int(core.get("remaining") or 0)}
+            if core.get("reset"):
+                entry["reset_unix"] = int(core["reset"])
+            live["github-core"] = entry
+        graphql = resources.get("graphql") or {}
+        if "remaining" in graphql:
+            entry = {"remaining": int(graphql.get("remaining") or 0)}
+            if graphql.get("reset"):
+                entry["reset_unix"] = int(graphql["reset"])
+            live["github-graphql"] = entry
+        search = resources.get("search") or {}
+        if "remaining" in search:
+            entry = {"remaining": int(search.get("remaining") or 0)}
+            if search.get("reset"):
+                entry["reset_unix"] = int(search["reset"])
+            live["github-search"] = entry
+
+    # CF: do NOT GET workers.dev; do NOT GET calhegasmorais.pt from this sampler
+    utc_now = now.astimezone(timezone.utc)
+    if utc_now < CF_REFILL:
+        live["cf-worker-req"] = {"remaining": 0}
+    else:
+        live["cf-worker-req"] = {"remaining": 100000}
+
+    # HF remaining 0 until 2026-09-01
+    live["hf-inference"] = {"remaining": 0}
+
+    live["aws-free"] = {"remaining": 0}
+
+    spent = estimated_spent_slots(cfg, now, "grok-auto")
+    live["grok-auto"] = {"remaining": max(0.0, 6.0 - float(spent))}
+    return live
+
+
+def merge_sampled(ledger: dict, live: dict) -> dict:
+    rails = ledger.setdefault("rails", {})
+    ledger.setdefault("schema", "stratamesh.metabolism.ledger.v1")
+    for name, data in live.items():
+        st = rails.setdefault(name, {})
+        if "remaining" in data:
+            st["sampled_remaining"] = data["remaining"]
+        if "reset_unix" in data:
+            st["sampled_reset_unix"] = data["reset_unix"]
+    ledger["sampled_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return ledger
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="Metabolism snapshot / sampler")
+    ap.add_argument("--sample", action="store_true", help="sample live remaining (gh rate_limit + calendar rails)")
+    ap.add_argument("--pretty", action="store_true")
+    args = ap.parse_args(argv)
+
+    cfg = load_rails()
+    now = datetime.now(timezone.utc)
+    ledger = load_ledger()
+    live: dict | None = None
+    if args.sample:
+        live = sample_live(cfg, now)
+        ledger = merge_sampled(ledger, live)
+        save_ledger(ledger)
+
+    snap = snapshot(now=now, live=live, cfg=cfg, ledger=ledger)
+    if args.pretty:
+        print(json.dumps(snap, indent=2))
+    else:
+        print(json.dumps(snap, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
