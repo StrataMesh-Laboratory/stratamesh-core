@@ -55,3 +55,5 @@ SPA/APS = **STRATA NFT especializado** — template automatizado de acordo de se
 
 - Compete funcionalmente com smart contracts ETH **sem importar ontologia EVM/ETH**
 - Endpoints: `POST /spa/mint` · `/spa/execute` · `/spa/complete` · `GET /spa/list`
+
+Optional lab metabolism ([`METABOLISM-ON-GRAPH.md`](./METABOLISM-ON-GRAPH.md)) may pace collateral burns until the SPA/CLP renewal; floor 0.1 STRATA stays reserved. Opt-in, not exclusive: `POST /spa/execute`, liquidate, and redeem remain valid without it.
