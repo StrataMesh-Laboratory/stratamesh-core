@@ -34,6 +34,8 @@ Helpers wrap outbound HTTP only when the env is set.
 Unset env: no proxy (stdlib urllib). Set env: Fog/EDGE gossip HTTP may wrap.
 Never routed through Tor: Cloudflare GraphQL and api.cloudflare.com; GitHub; wrangler and workers.dev; this lab CF-fronted apex (calhegasmorais.pt, grok.me). Those break or burn extra circuits and are not the anonymity target.
 
+Do not wrap this Tor stack in OpenVPN and do not default-route the box through a VPN (would capture Cloudflare GraphQL, GitHub, wrangler). SOCKS 127.0.0.1:9050 and the v3 onion stay the security plane. Optional exclusive-off later is in [OPERATOR-VPN.md](OPERATOR-VPN.md). Not an anonymity, aBFT, or mainnet claim.
+
 ## Tests
 
 Run the unit tests in this directory and src/test_tor_socks. No network. CI must not hit Tor or clearnet.
