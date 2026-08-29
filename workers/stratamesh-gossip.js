@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.5-host';
+const VERSION = '2.3.6-ihave';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -147,10 +147,11 @@ footer{margin-top:2rem;color:var(--muted);font-size:.78rem}
 <h1>Gossip-about-gossip</h1>
 <p>Lab mesh view for <span class="mono">FOG-NODE-PT-CM-001</span> + <span class="mono">EDGE-GROK-CMN-001</span>. Not aBFT. Not mainnet. n=1 · mesh_member=false.</p>
 <div class="card">
-<p>JSON stays on <span class="mono">/health</span> and <span class="mono">/peers</span>. Apex alias <span class="mono">/api/v1/gossip*</span> still works.</p>
+<p>JSON: <span class="mono">/health</span> · <span class="mono">/peers</span> (60s cache) · <span class="mono">/have</span> (IHAVE digest). Apex <span class="mono">/api/v1/gossip*</span>.</p>
 <div class="links">
   <a href="/health">/health</a>
   <a href="/peers">/peers</a>
+  <a href="/have">/have</a>
   <a href="https://fog.calhegasmorais.pt/">Fog</a>
   <a href="https://edge.calhegasmorais.pt/">EDGE</a>
   <a href="https://origin.calhegasmorais.pt/">Origin</a>
@@ -203,6 +204,72 @@ async function storeEvent(env, event) {
     } catch (_) {}
   }
   return event;
+}
+
+async function listIhave(env, limit = 64) {
+  if (env.AUTH_DB) {
+    try {
+      const r = await env.AUTH_DB.prepare(
+        `SELECT hash, creator, ts, round FROM gossip_events ORDER BY ts DESC LIMIT ?`
+      )
+        .bind(limit)
+        .all();
+      return (r.results || []).map((row) => ({
+        hash: row.hash,
+        creator: row.creator,
+        ts: row.ts,
+        round: row.round,
+      })).filter((x) => x.hash);
+    } catch (_) {}
+  }
+  return [];
+}
+
+async function eventsByHashes(env, hashes) {
+  if (!hashes.length || !env.AUTH_DB) return [];
+  const out = [];
+  for (const h of hashes.slice(0, 8)) {
+    try {
+      const r = await env.AUTH_DB.prepare(
+        `SELECT payload FROM gossip_events WHERE hash = ?`
+      )
+        .bind(h)
+        .first();
+      if (r && r.payload) out.push(JSON.parse(r.payload));
+    } catch (_) {}
+  }
+  return out;
+}
+
+async function cachedPeersPayload(env, request) {
+  const edgeCaller = callerIsEdge(request);
+  const cache = caches.default;
+  const cacheKey = new Request(
+    'https://stratamesh-gossip.cache/peers?edge=' + (edgeCaller ? '1' : '0'),
+    { method: 'GET' },
+  );
+  const hit = await cache.match(cacheKey);
+  if (hit) {
+    try {
+      const data = await hit.clone().json();
+      return { data, resp: hit, hit: true };
+    } catch (_) {}
+  }
+  const peers = await livePeers(env, request);
+  const data = {
+    peers,
+    count: peers.length,
+    protocol: 'lab_fog_edge_mesh_active',
+    lab: true,
+    cached_sec: 60,
+    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
+    version: VERSION,
+    mesh: 'active',
+  };
+  const resp = j(data);
+  resp.headers.set('Cache-Control', 'public, max-age=60');
+  try { await cache.put(cacheKey, resp.clone()); } catch (_) {}
+  return { data, resp, hit: false };
 }
 
 async function listEvents(env, limit = 32) {
@@ -258,45 +325,67 @@ export default {
         version: VERSION, mesh: 'active',
         role: 'gossip-about-gossip',
         host: 'gossip.calhegasmorais.pt',
-        metabolic: 'health is cheap; /peers is cached 60s',
+        metabolic: 'health cheap; /peers 60s cache; /have IHAVE digest (no full graph on probe)',
         parallels: {
           hedera: 'event = (ts, txs[], selfParent, otherParent, sig); history = hashgraph fragment',
           iota: 'events tip-disseminate toward non-lazy tips',
+          gossipsub: 'IHAVE = hashes only; IWANT = missing payloads; D_lab=2',
         },
-        endpoints: ['/health', '/peers', '/sync', '/event', '/events', '/broadcast', '/validate'],
+        endpoints: ['/health', '/peers', '/have', '/sync', '/event', '/events', '/broadcast', '/validate'],
       });
     }
 
     if (path === '/peers') {
-      // Metabolic: /peers used to fetch Fog + Edge /health on every call.
-      // 2026-08-28 hour-0: ~11.5k /peers × 2 fetches doubled edge-grok vs the
-      // lockstep probe set. Cache 60s. Still live, not invented peers.
-      const edgeCaller = callerIsEdge(request);
+      const { resp, hit } = await cachedPeersPayload(env, request);
+      if (hit) {
+        const h = new Headers(resp.headers);
+        h.set('X-Gossip-Cache', 'HIT');
+        return new Response(resp.body, { status: resp.status, headers: h });
+      }
+      return resp;
+    }
+
+    if (path === '/have' || (path === '/events' && (url.searchParams.has('have') || url.searchParams.get('digest') === '1'))) {
       const cache = caches.default;
+      const haveRaw = String(url.searchParams.get('have') || '');
       const cacheKey = new Request(
-        'https://stratamesh-gossip.cache/peers?edge=' + (edgeCaller ? '1' : '0'),
+        'https://stratamesh-gossip.cache/have?h=' + encodeURIComponent(haveRaw.slice(0, 200)),
         { method: 'GET' },
       );
-      const hit = await cache.match(cacheKey);
-      if (hit) return hit;
-      const peers = await livePeers(env, request);
-      const resp = j({
-        peers,
-        count: peers.length,
-        protocol: 'lab_fog_edge_mesh_active',
+      if (!haveRaw) {
+        const hit = await cache.match(cacheKey);
+        if (hit) {
+          const h = new Headers(hit.headers);
+          h.set('X-Gossip-Cache', 'HIT');
+          return new Response(hit.body, { status: hit.status, headers: h });
+        }
+      }
+      const ihave = await listIhave(env, 64);
+      const known = new Set(ihave.map((x) => x.hash));
+      const clientHave = haveRaw.split(',').map((s) => s.trim()).filter(Boolean);
+      const want = ihave.map((x) => x.hash).filter((h) => !clientHave.includes(h)).slice(0, 8);
+      const payload = {
+        protocol: 'ihave',
+        gossipsub: 'IHAVE/IWANT lab',
+        count: ihave.length,
+        ihave,
+        want,
+        events: haveRaw ? await eventsByHashes(env, want) : [],
+        note: 'Digest only unless ?have= lists hashes to IWANT. Probe loops should hit /have not /events.',
+        version: VERSION,
         lab: true,
-        cached_sec: 60,
-        note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok.',
-        version: VERSION, mesh: 'active',
-      });
+      };
+      const resp = j(payload);
       resp.headers.set('Cache-Control', 'public, max-age=60');
-      try { await cache.put(cacheKey, resp.clone()); } catch (_) {}
+      if (!haveRaw) {
+        try { await cache.put(cacheKey, resp.clone()); } catch (_) {}
+      }
       return resp;
     }
 
     if (path === '/events') {
-      const events = await listEvents(env, Math.min(100, Number(url.searchParams.get('limit') || 32)));
-      return j({ count: events.length, events });
+      const events = await listEvents(env, Math.min(32, Number(url.searchParams.get('limit') || 16)));
+      return j({ count: events.length, events, hint: 'prefer GET /have for probes' });
     }
 
     if ((path === '/sync' || path === '/event' || path === '/broadcast' || path === '/gossip' || path === '/validate') && request.method === 'POST') {
@@ -350,11 +439,11 @@ export default {
         ok: true,
         event,
         edge_push,
-        fanout: (await livePeers(env, request)).map((p) => p.id).filter((p) => p !== creator).slice(0, 4),
+        fanout: (await cachedPeersPayload(env, request)).data.peers.map((p) => p.id).filter((p) => p !== creator).slice(0, 4),
         note: 'Hashgraph fragment event recorded; virtual voting in stratamesh-consensus',
       });
     }
 
-    return j({ error: 'Not found', endpoints: ['/health', '/peers', '/sync', '/events'] }, 404);
+    return j({ error: 'Not found', endpoints: ['/health', '/peers', '/have', '/sync', '/events'] }, 404);
   },
 };
