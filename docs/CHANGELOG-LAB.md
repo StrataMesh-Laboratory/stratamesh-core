@@ -1,3 +1,10 @@
+## 2026-08-29 — v0.2.3-lab (DRAFT HOLD — not tagged)
+- Proposed cut vs v0.2.2-lab: 21 commits / 80 files @ `a7ac55e4`. **Prerelease, not major.** See [RELEASE-v0.2.3-lab.md](./RELEASE-v0.2.3-lab.md). Discourse draft: [DISCOURSE-v0.2.3-lab.md](./DISCOURSE-v0.2.3-lab.md)
+- Protocol: ingest-guard (#48); spa_view honesty; #16 gossip→real Fog; #36 on-graph metabolism (lab spend, not mint)
+- Origin: orch chat 200 JSON 1.1.0 + 10.24.4 budget; gossip 2.3.4 custom-domain; status spa.source=fog_process
+- Live Fog process remains `0.2.3-lab-temp` (not this git tree). P0 OPEN. n=1 mesh_member=false oracle_live=false
+- GO still required: version bump, tag, GitHub prerelease, Discourse Announcements=5
+
 ## 2026-08-29 — v0.2.3-lab-wip
 - Process-gossip ingest guard (n=1 kernel). **Does not close multi-host P0.** Lab only. No investment claims.
 - `POST /tx/ingest`: 400 `SYNTAX_ERRORS` on blank id / bad JSON / missing `tx_id`; 200 `accepted=false` on duplicate `tx_id` / second empty-parents root / bad type / unknown parents
