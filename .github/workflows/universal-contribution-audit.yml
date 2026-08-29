@@ -49,11 +49,11 @@ jobs:
       edge_grok_status: ${{ steps.edge_grok_update.outputs.status }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Get PR details
         id: pr_details
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
         with:
@@ -86,7 +86,7 @@ jobs:
 
       - name: Perform audit
         id: audit
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_FOCUS: ${{ github.event.inputs.audit_focus }}
@@ -160,7 +160,7 @@ jobs:
         id: edge_grok_create
         if: github.event.inputs.edge_grok_notify == 'true'
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           PR_TITLE: ${{ steps.pr_details.outputs.title }}
@@ -223,7 +223,7 @@ jobs:
       - name: Request changes
         id: request_changes
         if: github.event.inputs.action == 'request_changes'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_ISSUES: ${{ steps.audit.outputs.issues }}
@@ -264,7 +264,7 @@ jobs:
       - name: Approve and merge
         id: approve_merge
         if: github.event.inputs.action == 'approve_and_merge' && steps.audit.outputs.passed == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
@@ -295,7 +295,7 @@ jobs:
       - name: Close with feedback
         id: close_feedback
         if: github.event.inputs.action == 'close_with_feedback'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
@@ -328,7 +328,7 @@ jobs:
       - name: Audit only
         id: audit_only
         if: github.event.inputs.action == 'audit'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_details.outputs.number }}
           AUDIT_SUMMARY: ${{ steps.audit.outputs.summary }}
@@ -365,7 +365,7 @@ jobs:
         id: edge_grok_update
         if: github.event.inputs.edge_grok_notify == 'true' && steps.edge_grok_create.outputs.task_id != 'error'
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           EDGE_GROK_API: ${{ env.EDGE_GROK_API }}
           TASK_ID: ${{ steps.edge_grok_create.outputs.task_id }}
@@ -414,7 +414,7 @@ jobs:
 
       - name: Workflow summary
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             core.summary

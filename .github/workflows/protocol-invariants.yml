@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Tip-selection property tests
         working-directory: src
         run: python3 test_tip_selection.py
@@ -39,7 +39,7 @@ jobs:
       - name: Hypothesis StrataTokenLedger (lab-only, not multi-host)
         working-directory: src
         run: |
-          python3 -m pip install --user hypothesis
+          python3 -m pip install --user -r ../requirements-dev.txt
           python3 test_fog_ledger_invariants.py
       - name: Protocol benchmark (WIRE + THREAT scenarios)
         working-directory: src

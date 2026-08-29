@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: STASIS notice
         run: |
           echo "CF STASIS until 2026-08-29T00:00:00Z then Q-gated."
           echo "workflow_dispatch only. No push trigger. No live Worker deploy."
       - name: wrangler --version (HOLD, not deploy)
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           command: --version

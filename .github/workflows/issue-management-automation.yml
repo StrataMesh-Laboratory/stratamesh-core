@@ -16,10 +16,10 @@ jobs:
     name: Intelligent Issue Routing & Prioritization
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Route autonomous issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -40,7 +40,7 @@ jobs:
             }
 
       - name: Route help-wanted issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -56,7 +56,7 @@ jobs:
             }
 
       - name: Route track issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const tracks = ['track:edge', 'track:economy', 'track:mesh'];
@@ -81,7 +81,7 @@ jobs:
     if: github.event_name == 'issues'
     steps:
       - name: Analyze issue content
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
@@ -147,10 +147,10 @@ jobs:
     name: Link Related Issues & Create Epics
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Link track:edge issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -169,7 +169,7 @@ jobs:
             }
 
       - name: Link track:economy issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -188,7 +188,7 @@ jobs:
     name: Auto-Generate Documentation Index
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Index CONTRIBUTOR-TRACKS.md
         run: |
@@ -201,7 +201,7 @@ jobs:
           fi
 
       - name: Create issues index
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -233,10 +233,10 @@ jobs:
     name: Check & Link Issue Dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Detect dependency patterns
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -264,7 +264,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Check for stale issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const thirtyDaysAgo = new Date();
@@ -294,7 +294,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Generate health report
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -330,7 +330,7 @@ jobs:
     if: always()
     steps:
       - name: Publish summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             let summary = `## ✅ Issue Management Automation\n\n`;
