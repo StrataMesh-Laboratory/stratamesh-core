@@ -1,48 +1,181 @@
 {
-  "schema": "stratamesh.metabolism.v1",
+  "schema": "stratamesh.metabolism.v1.3",
   "timezone": "Europe/Lisbon",
-  "formula": "hourly_cap = remaining / max(hours_until_renewal, 1/60); spendable = remaining - reserved_future_peaks; STASIS if remaining<=0; HOLD unscheduled if spendable < cost; peaks ALLOW if remaining>=cost",
+  "formula": "hourly_cap = remaining / hours_until_renewal; pace_factor = clamp(time_frac / spent_frac, 0.5, 1.5) (1.0 if day_spent==0); adjusted = hourly_cap * pace_factor; density = signal / cost; effective_cap = adjusted * density; circuit STASIS if hour_spent \u2265 2\u00d7 unadjusted cap; never workers.dev",
   "cf_cron_hard_cap": 5,
+  "density": {
+    "min_density": 1.0,
+    "target_density": 8.0,
+    "min_interval_ms": 10000,
+    "circuit_hold_mult": 1.25,
+    "circuit_stasis_mult": 2.0,
+    "apply_to": [
+      "cf-worker-req",
+      "local-monitor",
+      "lockstep-probe",
+      "origin-archive"
+    ],
+    "zone_suffix": "calhegasmorais.pt",
+    "never_workers_dev": true,
+    "note": "One multiplex /health should return n facts. Cache hits cost 0. Capacity grows with density, not with plan upgrades."
+  },
+  "overdraft": {
+    "enabled": true,
+    "compensate_next_phase": true,
+    "carry_unused": true,
+    "credit_cap_hours": 1,
+    "overdraft_max_multiplier": 1,
+    "peaks_immune": true
+  },
   "peaks": [
-    {"id": "dev-cycle", "hhmm": "09:00", "rail": "grok-auto", "cost": 1, "peak": true},
-    {"id": "discourse-pulse", "hhmm": "18:00", "rail": "grok-auto", "cost": 1, "peak": true},
-    {"id": "night-diagnostic", "hhmm": "23:00", "rail": "grok-auto", "cost": 1, "peak": true}
+    {
+      "id": "dev-cycle",
+      "hhmm": "09:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    },
+    {
+      "id": "discourse-pulse",
+      "hhmm": "18:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    },
+    {
+      "id": "night-diagnostic",
+      "hhmm": "23:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    }
   ],
   "slots": [
-    {"id": "watchdog", "hhmm": "04:00", "rail": "grok-auto", "cost": 1, "peak": false},
-    {"id": "dev-cycle", "hhmm": "09:00", "rail": "grok-auto", "cost": 1, "peak": true},
-    {"id": "discourse-pulse", "hhmm": "18:00", "rail": "grok-auto", "cost": 1, "peak": true},
-    {"id": "night-diagnostic", "hhmm": "23:00", "rail": "grok-auto", "cost": 1, "peak": true}
+    {
+      "id": "watchdog",
+      "hhmm": "04:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": false
+    },
+    {
+      "id": "dev-cycle",
+      "hhmm": "09:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    },
+    {
+      "id": "discourse-pulse",
+      "hhmm": "18:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    },
+    {
+      "id": "night-diagnostic",
+      "hhmm": "23:00",
+      "rail": "grok-auto",
+      "cost": 1,
+      "peak": true
+    }
   ],
   "rails": {
     "grok-auto": {
       "layer": "lab",
       "kind": "slots",
+      "billing": "quota",
       "unit": "fires",
       "daily_limit": 6,
+      "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "Europe/Lisbon",
-      "note": "USAGE_POOL_EXHAUSTED at 18:00 Lisbon 26–27 Aug after 8 hourly night watchdogs. 4 budgeted slots + 2 desk contingency."
+      "debt_persists_across_renewal": true,
+      "note": "Shared Grok pool (automations + desk). 4 slots + 2 contingency. Peak overdraft is paid back by quiet hours / next day."
+    },
+    "xai-api": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "payg",
+      "unit": "requests",
+      "daily_limit": 24,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "debt_persists_across_renewal": true,
+      "note": "Owner XAI_API_KEY. User-initiated only. 1/hour average so a desk session cannot dump the day."
+    },
+    "deomail": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "token",
+      "unit": "requests",
+      "daily_limit": 240,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "debt_persists_across_renewal": true,
+      "note": "No published limit; 10/hour. Over-skim today reduces tomorrow."
+    },
+    "discourse": {
+      "layer": "lab",
+      "kind": "slots",
+      "billing": "quota",
+      "unit": "posts",
+      "daily_limit": 6,
+      "phase": "day",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "debt_persists_across_renewal": true,
+      "note": "One 18:00 pulse is the reserved post. Extra replies overdraft the next day."
     },
     "github-core": {
       "layer": "stratamesh",
       "kind": "rate",
+      "billing": "token",
       "unit": "requests",
       "limit": 5000,
+      "phase": "hour",
       "window": "rolling_hour",
+      "debt_persists_across_renewal": false,
       "header_remaining": "x-ratelimit-remaining",
       "header_reset": "x-ratelimit-reset"
     },
     "github-search": {
       "layer": "stratamesh",
       "kind": "rate",
+      "billing": "token",
       "unit": "requests",
       "limit": 30,
-      "window_sec": 60
+      "phase": "minute",
+      "window_sec": 60,
+      "debt_persists_across_renewal": false
+    },
+    "github-graphql": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "billing": "token",
+      "unit": "points",
+      "limit": 5000,
+      "phase": "hour",
+      "window": "rolling_hour",
+      "debt_persists_across_renewal": false,
+      "note": "MCP GitHub tools spend GraphQL points. Observed 1504 used in one hour \u2014 pace to remaining/hours_left."
+    },
+    "github-code-search": {
+      "layer": "stratamesh",
+      "kind": "rate",
+      "billing": "token",
+      "unit": "requests",
+      "limit": 10,
+      "phase": "minute",
+      "window_sec": 60,
+      "debt_persists_across_renewal": false
     },
     "cf-cron": {
       "layer": "stratamesh",
       "kind": "hard",
+      "billing": "quota",
       "unit": "triggers",
       "hard_cap": 5,
       "note": "Cloudflare Free structural cap. Never add a 6th scheduled Worker."
@@ -50,59 +183,188 @@
     "cf-worker-req": {
       "layer": "node",
       "kind": "rate",
+      "billing": "quota",
       "unit": "requests",
       "daily_limit": 100000,
+      "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
-      "note": "Workers Free daily request budget."
+      "debt_persists_across_renewal": false,
+      "note": "Workers Free 100k/day UTC. Error 1027 when exhausted. INC-1027: lockstep ~3Hz burned ~95k in hour 00. After refill hourly cap \u2248 4167. Coalesce /health (target density 8). Circuit STASIS at 2\u00d7 hourly cap. Never workers.dev. Zone WAF 5/10s/IP/colo."
+    },
+    "cf-d1-reads": {
+      "layer": "node",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "rows",
+      "daily_limit": 5000000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": true,
+      "note": "D1 Free 5M reads/day. Portal/status chunks live here."
+    },
+    "cf-d1-writes": {
+      "layer": "node",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "rows",
+      "daily_limit": 100000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": true
+    },
+    "cf-kv-reads": {
+      "layer": "node",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "reads",
+      "daily_limit": 100000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": true
+    },
+    "cf-kv-writes": {
+      "layer": "node",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "writes",
+      "daily_limit": 1000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": true,
+      "note": "KV Free 1k writes/day \u2014 handoff persist is expensive. Do not write-loop."
+    },
+    "cf-r2-class-a": {
+      "layer": "node",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "ops",
+      "daily_limit": 33000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": true,
+      "note": "R2 Free ~1M Class A / month \u2248 33k/day."
     },
     "cf-acb-cron": {
       "layer": "stratamesh",
       "kind": "rate",
+      "billing": "quota",
       "unit": "invocations",
-      "daily_limit": 24,
+      "daily_limit": 1,
+      "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
-      "target_cron": "30 * * * *",
-      "previous_cron": "*/15 * * * *",
-      "note": "Was 96/day (*/15). Target hourly at :30 to stagger from AIOps at :00."
-    },
-    "deomail": {
-      "layer": "lab",
-      "kind": "rate",
-      "unit": "requests",
-      "daily_limit": 240,
-      "renewal_hhmm": "00:00",
-      "renewal_tz": "Europe/Lisbon",
-      "note": "No published limit; pace 10/hour so a mailbox skim lasts the day."
-    },
-    "discourse": {
-      "layer": "lab",
-      "kind": "slots",
-      "unit": "posts",
-      "daily_limit": 6,
-      "renewal_hhmm": "00:00",
-      "renewal_tz": "Europe/Lisbon"
+      "target_cron": "30 0 * * *",
+      "previous_cron": "30 * * * *",
+      "note": "INC-1027: was hourly 30 * * * * (24/day), now once at 00:30 UTC after Free reset. Still 5/5 crons."
     },
     "local-monitor": {
       "layer": "node",
       "kind": "rate",
+      "billing": "quota",
       "unit": "cycles",
       "daily_limit": 192,
+      "phase": "hour",
       "day_interval_sec": 300,
       "night_interval_sec": 900,
       "night_start": "22:00",
       "night_end": "08:00",
       "renewal_hhmm": "00:00",
       "renewal_tz": "Europe/Lisbon",
-      "note": "Was INTERVAL_SEC=120 hitting hanging /actions. Now /health, 5 min day / 15 min night."
+      "debt_persists_across_renewal": true,
+      "note": "Cheap /health. Over-cycling tonight lengthens tomorrow's interval. Coalesce N worker health into 1 (density N)."
+    },
+    "origin-archive": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "requests",
+      "daily_limit": 240,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": false,
+      "min_density": 1,
+      "note": "Staff-gated last-resort pile. R2 + AUTH_DB. GitHub Action 00:20 UTC writes the day \u2014 not a 6th cron."
+    },
+    "cf-pages": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "requests",
+      "daily_limit": 100000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": false,
+      "note": "Public apex landing. Not the 100k Worker rail. Prefer Pages over Worker catch-alls."
+    },
+    "lockstep-probe": {
+      "layer": "node",
+      "kind": "hard",
+      "billing": "quota",
+      "unit": "requests",
+      "hard_cap": 0,
+      "note": "Host-list walker / 3Hz lockstep is forbidden. INC-1027 burner. Use coalesced /health + density floor."
     },
     "aiops-actions": {
       "layer": "node",
       "kind": "hard",
+      "billing": "quota",
       "unit": "requests",
       "hard_cap": 0,
       "note": "GET /actions hangs on live 1.10.3. Forbidden. Use /health and /handoff."
+    },
+    "hf-inference": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "requests",
+      "daily_limit": 0,
+      "stasis_until": "2026-09-01T00:00:00Z",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "debt_persists_across_renewal": false,
+      "never_paid": true,
+      "note": "HOLD until 2026-09-01T00:00:00Z, never paid HF"
+    },
+    "grok-bot-included": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "prompts",
+      "usage_limit_pauses_routine": true,
+      "unknown_remaining": "hold",
+      "phase": "day",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "note": "SuperGrok does not refill Bot included weekly; usage_limit pauses that routine once, no retry-loop, no Upgrade"
+    },
+    "grok-assistant": {
+      "layer": "lab",
+      "kind": "rate",
+      "billing": "quota",
+      "unit": "prompts",
+      "unknown_remaining": "hold",
+      "phase": "day",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "Europe/Lisbon",
+      "note": "SuperGrok Plus weekly through 31 Aug 2026; one prompt at a time; dual-track triple-priced"
+    },
+    "aws-free": {
+      "layer": "lab",
+      "kind": "hard",
+      "billing": "quota",
+      "unit": "usd",
+      "hard_cap": 0,
+      "never_paid": true,
+      "stasis_when_remaining_0": true,
+      "note": "Free only, $200/6mo, STASIS remaining=0, never Paid/Support/Auto-renew, not a Fog host, billing alarm $1"
     }
   }
 }
