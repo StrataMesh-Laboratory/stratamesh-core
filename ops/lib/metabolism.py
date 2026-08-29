@@ -72,6 +72,19 @@ def hours_until_unix(now: Optional[datetime], reset_unix: int) -> float:
     return max(hours, 1.0 / 60.0)
 
 
+def hours_until_iso(now: Optional[datetime], reset_iso: str) -> float:
+    """hours_left from a Usage reset timestamp. Naive ISO is Europe/Lisbon (session TZ)."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    until = datetime.fromisoformat(str(reset_iso).replace("Z", "+00:00"))
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=LISBON)
+    hours = (until.astimezone(timezone.utc) - now.astimezone(timezone.utc)).total_seconds() / 3600.0
+    return max(hours, 1.0 / 60.0)
+
+
 def minutes_of_day(local: datetime) -> int:
     return local.hour * 60 + local.minute
 
@@ -243,11 +256,19 @@ def min_interval_hold(last_same_ms: Optional[float], cfg: Optional[dict] = None)
     return float(last_same_ms) < floor
 
 
-def hours_left_for(spec: dict, now: Optional[datetime], cfg: dict, reset_unix: Optional[int] = None) -> float:
+def hours_left_for(
+    spec: dict,
+    now: Optional[datetime],
+    cfg: dict,
+    reset_unix: Optional[int] = None,
+    reset_iso: Optional[str] = None,
+) -> float:
     tz = spec.get("renewal_tz") or cfg.get("timezone") or "Europe/Lisbon"
     renewal = spec.get("renewal_hhmm") or "00:00"
     if reset_unix is not None:
         return hours_until_unix(now, reset_unix)
+    if reset_iso:
+        return hours_until_iso(now, reset_iso)
     if spec.get("window") == "rolling_hour":
         return 1.0
     if spec.get("window_sec"):
@@ -473,6 +494,8 @@ def decide(
     url: Optional[str] = None,
     hour_spent: Optional[float] = None,
     last_same_ms: Optional[float] = None,
+    remaining_frac: Optional[float] = None,
+    reset_iso: Optional[str] = None,
 ) -> Verdict:
     cfg = cfg or load_rails()
     spec = (cfg.get("rails") or {}).get(rail) or {}
@@ -531,8 +554,13 @@ def decide(
             return Verdict(STASIS, rail, rem, 0, 0, 0, 0, cost, f"hard cap {cap} reached", **extra)
         return Verdict(ALLOW, rail, rem, 0, 0, rem, 0, cost, f"hard cap {cap}, remaining {rem}", **extra)
 
-    hours_left = hours_left_for(spec, now, cfg, reset_unix)
+    hours_left = hours_left_for(spec, now, cfg, reset_unix, reset_iso)
     daily = spec.get("daily_limit")
+    frac_meter = spec.get("meter") == "remaining_frac" or bool(spec.get("unknown_cost"))
+    # SuperGrok-style weekly pool: remaining_frac in [0,1] is remaining (1.0 = full pool).
+    # There is no public token count. Do not invent one.
+    if remaining_frac is not None:
+        remaining = float(remaining_frac)
     if remaining is None:
         if spec.get("unknown_remaining") == "hold" and not is_p0:
             return Verdict(
@@ -636,6 +664,16 @@ def decide(
         return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "unscheduled spend within contingency", **extra)
 
+    # remaining_frac rails: prompt cost is unknown compute, not pool units.
+    # Gate on remaining_frac > 0 + circuit. A fire is grok-auto (cost=1 fire).
+    # Snapshot uses cost=0 ("is the pool alive"). Never treat cost=1 as 100% of the weekly pool.
+    if frac_meter:
+        return Verdict(
+            ALLOW, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
+            "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto",
+            **extra,
+        )
+
     # rate rails — pace with adjusted hourly; ledger carry is also paced
     allowance = adjusted
     if st is not None:
@@ -732,12 +770,43 @@ def snapshot(
     lisbon = as_tz(now, cfg.get("timezone") or "Europe/Lisbon")
     rails_out = {}
     for name, spec in (cfg.get("rails") or {}).items():
+        spec = spec or {}
+        if spec.get("skip_meter") or spec.get("kind") == "alias":
+            alias = spec.get("shares_pool") or spec.get("alias_of")
+            rails_out[name] = {
+                "decision": "ALIAS",
+                "rail": name,
+                "shares_pool": alias,
+                "reason": spec.get("note") or "alias — does not hold a separate quota",
+                "spec_note": spec.get("note"),
+                "kind": spec.get("kind"),
+                "unit": spec.get("unit"),
+                "billing": spec.get("billing"),
+                "daily_limit": spec.get("daily_limit"),
+                "static_assets_free": spec.get("static_assets_free"),
+            }
+            continue
         kwargs: dict[str, Any] = {"cfg": cfg, "now": now, "ledger": ledger}
-        if name in live:
-            if "remaining" in live[name]:
-                kwargs["remaining"] = live[name]["remaining"]
-            if "reset_unix" in live[name]:
-                kwargs["reset_unix"] = live[name]["reset_unix"]
+        if spec.get("meter") == "remaining_frac" or spec.get("unknown_cost"):
+            kwargs["cost"] = 0.0  # snapshot: is the pool alive; prompt compute is unknown
+        sample = (live or {}).get(name) or {}
+        st_led = (ledger.get("rails") or {}).get(name) or {}
+        if sample.get("remaining_frac") is not None:
+            kwargs["remaining_frac"] = sample["remaining_frac"]
+        elif st_led.get("sampled_remaining_frac") is not None:
+            kwargs["remaining_frac"] = st_led["sampled_remaining_frac"]
+        if "remaining" in sample:
+            kwargs["remaining"] = sample["remaining"]
+        elif "sampled_remaining" in st_led and "remaining_frac" not in kwargs:
+            kwargs["remaining"] = st_led["sampled_remaining"]
+        if "reset_unix" in sample:
+            kwargs["reset_unix"] = sample["reset_unix"]
+        elif "sampled_reset_unix" in st_led:
+            kwargs["reset_unix"] = st_led["sampled_reset_unix"]
+        if sample.get("reset_iso"):
+            kwargs["reset_iso"] = sample["reset_iso"]
+        elif st_led.get("sampled_reset_iso"):
+            kwargs["reset_iso"] = st_led["sampled_reset_iso"]
         v = decide(name, **kwargs)
         st = (ledger.get("rails") or {}).get(name) or {}
         rails_out[name] = {
@@ -777,9 +846,10 @@ def snapshot(
         "lab_honest": True,
         "no_sixth_cron": True,
         "never_workers_dev": True,
-        "hourly_cap_after_refill": 4167,
+        "hourly_cap_after_refill": (rails_out.get("cf-worker-req") or {}).get("hourly_cap"),
         "effective_worker_facts_per_hour": effective_capacity(
-            4167, float((cfg.get("density") or {}).get("target_density") or 8)
+            float((rails_out.get("cf-worker-req") or {}).get("hourly_cap") or 0),
+            float((cfg.get("density") or {}).get("target_density") or 8),
         ),
     }
 
