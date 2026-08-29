@@ -27,7 +27,7 @@ ALLOW = {
     "stratamesh-aiops": "workers/stratamesh-aiops.js",
     "stratamesh-deomail": "workers/stratamesh-deomail.js",
     "stratamesh-briefing": "workers/stratamesh-briefing.js",
-    "stratamesh-fund": "stratamesh-impact-fund/workers/stratamesh-fund.js",
+    "stratamesh-fund": "workers/stratamesh-fund.js",
 }
 
 

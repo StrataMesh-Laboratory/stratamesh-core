@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-29T21:25:53Z",
-  "lisbon": "2026-08-29T22:25:53+0100",
+  "generated_at": "2026-08-29T23:06:00Z",
+  "lisbon": "2026-08-30T00:06:00+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
@@ -112,18 +112,26 @@
   "identity": "\u2260 cargo",
   "whatsapp": "not_briefing",
   "aiops_handoff_post": "this_hour",
-  "headline": "HOLDs recovered: Fog 530 gone, SPA registered, HANDOFF un-stasis, gossip peers custom-domain only",
+  "headline": "Labor on Actions, execute on Grok. t/20 post 11 shipped. Google restore waits STRATAGROK host \u2014 not the owner.",
   "posture": "lab_autonomous",
   "mandatory_actions": [
     {
-      "id": "FOG-SPA-HONESTY-GIT",
-      "owner": "mesh",
-      "verb": "Keep Fog GET /spa honesty envelope (source=fog_process, n=1, agora unavailable). Live temp process registry now total=1 after /spa/register.",
-      "priority": "P2",
-      "success_check": "fog /spa total is a number AND status.spa.source=fog_process"
+      "id": "STRATAGROK-GOOGLE-RESTORE",
+      "owner": "stratagrok",
+      "verb": "When STRATAGROK localhost/tunnel host is back: sign in to the restored Google account from grok@ mail Fwd Recurso aprovado (2026-08-29T22:14Z) and re-bind desk connections. Not the human owner. Not this sandbox.",
+      "priority": "P0",
+      "effort": "M",
+      "success_check": "Google session live for the restored account; grok@ notes which surfaces re-bound"
     }
   ],
   "optional_actions": [
+    {
+      "id": "FOG-SPA-HONESTY-GIT",
+      "owner": "mesh",
+      "verb": "Keep Fog GET /spa honesty envelope (source=fog_process, n=1).",
+      "priority": "P2",
+      "success_check": "fog /spa total is a number AND status.spa.source=fog_process"
+    },
     {
       "id": "ORCH-CHAT-REAL",
       "owner": "orchestrator",

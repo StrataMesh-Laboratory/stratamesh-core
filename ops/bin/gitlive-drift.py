@@ -29,7 +29,7 @@ MAP = {
     "workers/stratamesh-aiops.js": "stratamesh-aiops",
     "workers/stratamesh-deomail.js": "stratamesh-deomail",
     "workers/stratamesh-briefing.js": "stratamesh-briefing",
-    "stratamesh-impact-fund/workers/stratamesh-fund.js": "stratamesh-fund",
+    "workers/stratamesh-fund.js": "stratamesh-fund",
 }
 
 
