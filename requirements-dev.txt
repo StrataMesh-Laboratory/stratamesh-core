@@ -1,3 +1,4 @@
 # Dev-only extras for lab property tests. Not a runtime Fog dependency.
 # pip install --user -r requirements-dev.txt
-hypothesis>=6.100
+# Pinned to the version protocol-invariants CI installed (2026-08-29).
+hypothesis==6.165.10
