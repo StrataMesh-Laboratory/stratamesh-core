@@ -113,10 +113,14 @@ export function estimatedSpentSlots(cfg, now, rail, graceMin = 20) {
   return spent;
 }
 
-function hoursLeftFor(spec, now, cfg, resetUnix) {
+function hoursLeftFor(spec, now, cfg, resetUnix, resetIso) {
   const tz = spec.renewal_tz || cfg.timezone || DEFAULT_TZ;
   const renewal = spec.renewal_hhmm || "00:00";
   if (resetUnix != null) return hoursUntilUnix(now, resetUnix);
+  if (resetIso) {
+    const until = Date.parse(resetIso);
+    if (!Number.isNaN(until)) return Math.max((until - now.getTime()) / 3600000, 1 / 60);
+  }
   if (spec.window === "rolling_hour") return 1;
   if (spec.window_sec) return Math.max(spec.window_sec / 3600, 1 / 60);
   return hoursUntilRenewal(now, renewal, tz);
@@ -240,8 +244,10 @@ export function decide(rail, opts = {}) {
     return pack(ALLOW, rem, 0, 0, rem, 0, `hard cap ${cap}, remaining ${rem}`);
   }
 
-  const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix);
+  const hoursLeft = hoursLeftFor(spec, now, cfg, opts.resetUnix, opts.resetIso);
   let remaining = opts.remaining;
+  const fracMeter = spec.meter === "remaining_frac" || !!spec.unknown_cost;
+  if (opts.remainingFrac != null) remaining = Number(opts.remainingFrac);
   if (remaining == null) {
     if (spec.unknown_remaining === "hold" && !isP0) {
       return pack(HOLD, 0, hoursLeft, 0, 0, 0, "no live remaining sample — do not invent a cap");
@@ -311,6 +317,10 @@ export function decide(rail, opts = {}) {
       return pack(HOLD, remaining, hoursLeft, hourlyCap, spendable, reserved, `hourly carry ${st.carry.toFixed(2)} < cost — wait; subsequent phase will be credited`, extra);
     }
     return pack(ALLOW, remaining, hoursLeft, hourlyCap, spendable, reserved, "unscheduled spend within contingency", extra);
+  }
+
+  if (fracMeter) {
+    return pack(ALLOW, remaining, hoursLeft, hourlyCap, remaining, 0, "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto", extra);
   }
 
   const allowance = st ? Math.max(0, st.carry * pf) : adjusted;
@@ -385,10 +395,34 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
   const parts = zonedParts(now, tz);
   const railsOut = {};
   for (const name of Object.keys(cfg.rails || {})) {
+    const spec = cfg.rails[name] || {};
+    if (spec.skip_meter || spec.kind === "alias") {
+      railsOut[name] = {
+        decision: "ALIAS",
+        rail: name,
+        shares_pool: spec.shares_pool || spec.alias_of,
+        reason: spec.note || "alias — does not hold a separate quota",
+        spec_note: spec.note,
+        kind: spec.kind,
+        unit: spec.unit,
+        billing: spec.billing,
+        daily_limit: spec.daily_limit,
+        static_assets_free: spec.static_assets_free,
+      };
+      continue;
+    }
     const extra = live[name] || {};
-    const v = decide(name, { cfg, now, remaining: extra.remaining, resetUnix: extra.reset_unix, ledger });
-    const spec = cfg.rails[name];
-    const st = (ledger.rails || {})[name] || {};
+    const stLed = (ledger.rails || {})[name] || {};
+    const opts = {
+      cfg, now, ledger,
+      remaining: extra.remaining != null ? extra.remaining : stLed.sampled_remaining,
+      remainingFrac: extra.remaining_frac != null ? extra.remaining_frac : stLed.sampled_remaining_frac,
+      resetUnix: extra.reset_unix != null ? extra.reset_unix : stLed.sampled_reset_unix,
+      resetIso: extra.reset_iso || stLed.sampled_reset_iso,
+    };
+    if (spec.meter === "remaining_frac" || spec.unknown_cost) opts.cost = 0;
+    const v = decide(name, opts);
+    const st = stLed;
     railsOut[name] = {
       ...v,
       spec_note: spec.note,
@@ -422,5 +456,7 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
     carries: Object.fromEntries(Object.entries(railsOut).filter(([, v]) => v.carry).map(([k, v]) => [k, v.carry])),
     lab_honest: true,
     no_sixth_cron: true,
+    never_workers_dev: true,
+    hourly_cap_after_refill: (railsOut["cf-worker-req"] || {}).hourly_cap,
   };
 }
