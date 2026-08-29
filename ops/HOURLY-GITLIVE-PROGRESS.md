@@ -12,17 +12,23 @@ SHIPPED (this hour, REST Git Data API + CF PUT /content — NOT Grok GitHub MCP,
 - scripts/api-gitlive-publish.py (Git Data blobs/trees/commits/ref + CF workers/scripts/stratamesh-spa/content)
 - scripts/lockstep-publish.py loads /tmp/gh_pat
 
-LIVE curl: (filled after Worker PUT)
-SHA: (filled after Git Data commit)
+LIVE curl:
+- GET https://calhegasmorais.pt/api/orchestrator/chat → 200 JSON ~78ms version origin-orch-chat-1.1.0 (with and without Accept json)
+- GET https://calhegasmorais.pt/api/v1/orchestrator/health → 200 JSON ~71ms 1.1.0
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 JSON ~1.56s pulse_id=unknown source=origin-orch-timeout error=AbortError (ORCH binding still hangs; fail-open works). fog.ok=true mesh_member=false oracle_live=false tx_count=3 version=0.2.3-lab-temp
+- Fog https://fog.calhegasmorais.pt/health → 200 ~92ms
+- Worker PUT /content 200 modified 2026-08-29T21:01:49Z etag f0d31e9c (bindings preserved)
+
+SHA: f36a1ea44a4a22ec8411dcbfb64c13051b17518e
 
 STILL RED:
-- POST hang until Worker PUT verified
+- stratamesh-orchestrator ORCH binding still unbounded (POST fail-open 1.1.0 is green; orch reply is not)
 - Fog honesty on /spa /status (source=fog_process) if still lab_seed
 - P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
 - Fund challenges unfunded
 - core#52 #40 #41 #42 #39 still open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron
 
-NEXT PICK: verify POST /api/orchestrator/chat 200 JSON <2s on calhegasmorais.pt; then Fog /spa honesty. Never workers.dev.
+NEXT PICK: bound stratamesh-orchestrator so POST returns orch reply not timeout fallback; then Fog /spa honesty. Never workers.dev. Do not re-ship 1.1.0 origin.
 
 LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
 
