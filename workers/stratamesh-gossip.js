@@ -65,7 +65,7 @@ async function probeFogProcess() {
 
 async function livePeers(env, request) {
   const peers = [await probeFogProcess()];
-  const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://stratamesh-edge-grok.stratamesh.workers.dev';
+  const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://edge.calhegasmorais.pt';
   // Same /peers handler for public Host and service-binding Request URL.
   // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
   // Inbound request is the liveness proof — not an invented peer.
@@ -282,7 +282,7 @@ export default {
         edge_push = { ok: true, skipped: 'inbound_caller', note: 'Caller is EDGE; skipped circular /gossip/ingest' };
       } else {
         try {
-          const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://stratamesh-edge-grok.stratamesh.workers.dev';
+          const edgeUrl = (env.EDGE_GROK_URL && String(env.EDGE_GROK_URL)) || 'https://edge.calhegasmorais.pt';
           const pr = await fetch(edgeUrl.replace(/\/$/, '') + '/gossip/ingest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'User-Agent': 'stratamesh-gossip' },

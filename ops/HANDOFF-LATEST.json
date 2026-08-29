@@ -1,24 +1,24 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-28T22:09:20Z",
-  "lisbon": "2026-08-28T23:09:20+0100",
+  "generated_at": "2026-08-29T21:25:53Z",
+  "lisbon": "2026-08-29T22:25:53+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "night_diagnostic_23_lisbon",
-  "reserved_metabolic_peak": true,
+  "phase": "hold_recovery_gitlive",
+  "reserved_metabolic_peak": false,
   "stasis": {
-    "armed": true,
-    "stasis_until": "2026-08-29T00:00:00Z",
-    "worker_http": "ZERO until refill",
-    "reason": "INC-1027 controlled burn; cf-worker-req remaining=0 until UTC midnight"
+    "armed": false,
+    "stasis_until": null,
+    "worker_http": "ok",
+    "reason": "UTC refill done; night 28-Aug STASIS_UNTIL 00:00Z consumed. Fog /health 200 (no longer 530)."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
-    "grok_auto": "4 slots (armed, not paused)",
+    "grok_auto": "5 slots (hourly + 4 daily, armed)",
     "cf_cron": "5/5",
     "pages_apex": true,
-    "STASIS_UNTIL": "2026-08-29T00:00:00Z",
+    "STASIS_UNTIL": null,
     "hourly_cap_after_refill": 4167,
     "formula": "remaining / hours_until_renewal",
     "no_sixth_cron": true,
@@ -30,38 +30,113 @@
     "apex": {
       "ok": true,
       "http": 200,
-      "note": "Cloudflare Pages landing (not PHP login, not Worker)"
+      "note": "Cloudflare Pages landing"
     },
-    "deomail_skim": {
-      "ok": false,
-      "note": "Custom host deomail.calhegasmorais.pt returns maintenance HTML; workers.dev forbidden. Skim deferred."
+    "status": {
+      "ok": true,
+      "http": 200,
+      "version": "0.4.3-fog-process",
+      "spa_source": "fog_process",
+      "spa_total": 1,
+      "dag_transaction_count": 10
     },
-    "fog": {
-      "ok": false,
-      "http": 530,
-      "level": "P1",
-      "note": "Named tunnel; cannot SIGKILL from lab twin. Persist P1."
+    "fog_health": {
+      "ok": true,
+      "http": 200,
+      "version": "0.2.3-lab-temp",
+      "mesh_member": false,
+      "oracle_live": false,
+      "tx_count": 3
     },
-    "worker_http": "deferred_until_refill"
+    "fog_spa": {
+      "ok": true,
+      "http": 200,
+      "total": 1,
+      "active": 1,
+      "by_role": {
+        "fog": 1
+      },
+      "note": "POST /spa/register this hour; process is temp 0.2.3-lab-temp (honesty envelope in git node_persistent.py, not hot-patched)"
+    },
+    "fog_gossip": {
+      "ok": true,
+      "http": 200,
+      "mesh_member": false,
+      "peers": 1
+    },
+    "aiops": {
+      "ok": true,
+      "http": 200,
+      "version": "1.10.4-sg-delta"
+    },
+    "edge": {
+      "ok": true,
+      "http": 200,
+      "version": "1.5.3-ping-real-fog",
+      "host": "edge.calhegasmorais.pt"
+    },
+    "gossip_apex": {
+      "ok": true,
+      "http": 200,
+      "path": "https://calhegasmorais.pt/api/v1/gossip/peers",
+      "count": 2,
+      "note": "gossip.calhegasmorais.pt does not exist; apex /api/v1/gossip* is the Worker"
+    },
+    "fund": {
+      "ok": true,
+      "http": 200,
+      "version": "0.4.6-grantor-brief",
+      "challenge_0": "unfunded",
+      "budget_hint": "not_a_bare_integer"
+    },
+    "orch_chat": {
+      "ok": true,
+      "http": 200,
+      "source": "orch-chat-budget",
+      "version_spa": "origin-orch-chat-1.1.0"
+    }
   },
   "mesh": {
     "n": 1,
-    "lab_seed": true,
-    "spa_source": "lab_seed"
+    "lab_seed": false,
+    "spa_source": "fog_process",
+    "mesh_member": false,
+    "oracle_live": false
   },
   "fund": {
     "challenge_0": "unfunded",
-    "budget_hint": "not_a_bare_integer"
+    "budget_hint": "not_a_bare_integer",
+    "version": "0.4.6-grantor-brief"
   },
-  "identity": "≠ cargo",
+  "identity": "\u2260 cargo",
   "whatsapp": "not_briefing",
-  "aiops_handoff_post": "deferred_until_refill",
-  "efficacy_self_score": 0.82,
+  "aiops_handoff_post": "this_hour",
+  "headline": "HOLDs recovered: Fog 530 gone, SPA registered, HANDOFF un-stasis, gossip peers custom-domain only",
+  "posture": "lab_autonomous",
+  "mandatory_actions": [
+    {
+      "id": "FOG-SPA-HONESTY-GIT",
+      "owner": "mesh",
+      "verb": "Keep Fog GET /spa honesty envelope (source=fog_process, n=1, agora unavailable). Live temp process registry now total=1 after /spa/register.",
+      "priority": "P2",
+      "success_check": "fog /spa total is a number AND status.spa.source=fog_process"
+    }
+  ],
+  "optional_actions": [
+    {
+      "id": "ORCH-CHAT-REAL",
+      "owner": "orchestrator",
+      "verb": "Inner chat() still hits 900ms budget; fail-open 200 is green. Do not re-ship spa 1.1.0.",
+      "priority": "P2"
+    }
+  ],
+  "efficacy_self_score": 0.88,
   "notes": [
-    "Night Diagnostic 23:00 Europe/Lisbon. RESERVED METABOLIC PEAK.",
-    "CONTROLLED BURN active. 00:00 UTC refill.",
-    "PT ok. Lab honest.",
-    "After refill: cheap /health multiplex (status, fog, aiops /health+/handoff, edge, api-edge, gossip/peers, fund /api/v1/health) then POST aiops/handoff.",
-    "Fund budget_hint must not be a bare integer."
+    "Night Diagnostic 28-Aug HANDOFF was STASIS_UNTIL 00:00Z Fog 530 \u2014 consumed, now refreshed.",
+    "Watchdog HOLD-unless-P0: no P0 this hour (Fog 200, apex 200).",
+    "24h Dev Cycle HOLD: ships were the unpublished Worker snapshot + orch budget already live.",
+    "Discourse t/20 last pulse <20h (17:08Z Fog 530 cleared) \u2014 HOLD extra post.",
+    "Skip grok90, Renovate #46, #36, P0 close, 6th cron, /actions, workers.dev.",
+    "LAB n=1 mesh_member=false oracle_live=false. grok@ not SCA."
   ]
 }

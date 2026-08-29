@@ -300,6 +300,28 @@ class PersistentFogNode:
             return "edge"
         return "fog"
 
+    def spa_view(self) -> dict:
+        """GET /spa: registry counts plus lab honesty. Empty registry is valid at n=1."""
+        with self.lock:
+            self.spas.apply_opt_out_grace()
+            s = self.spas.summary()
+        s.update({
+            "ok": True,
+            "lab": True,
+            "n": 1,
+            "source": "fog_process",
+            "node_id": self.node_id,
+            "mesh_member": False,
+            "oracle_live": False,
+            "consensus": {
+                "n": 1,
+                "f_max": 0,
+                "note": "lab n=1; Byzantine f_max=0 until n>=3",
+            },
+            "agora": {"settlements": {"unavailable": "n<2"}},
+        })
+        return s
+
     def gossip_view(self) -> dict:
         """GET /gossip: live inventory + self as the only peer. lab_single_host_gossip."""
         nid = self.node_id
@@ -437,7 +459,7 @@ class Handler(BaseHTTPRequestHandler):
                         "timestamp": getattr(tx, "timestamp", None),
                     })
         elif path == "/spa":
-            self._json(200, NODE.spas.summary())
+            self._json(200, NODE.spa_view())
         elif path == "/spa/export":
             self._json(200, {"spas": NODE.spas.export_records()})
         elif path == "/finality":

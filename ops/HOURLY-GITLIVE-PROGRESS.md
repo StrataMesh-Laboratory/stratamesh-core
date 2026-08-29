@@ -3,6 +3,33 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-29T21:26:12Z hour
+READ: HOLDs — Watchdog HOLD-unless-P0 (correct). Night 28-Aug HANDOFF STASIS Fog 530 + aiops POST deferred. 24h cycle HOLD no ships. Discourse last pulse <20h. Hourly 17–20 already recovered. This-chat leftover: Fog /spa empty, HANDOFF stale, #39-42 evidence, gossip workers.dev fallback.
+
+SHIPPED:
+- POST Fog /spa/register → live /spa total=1 active=1 role=fog
+- src/node_persistent.py spa_view() honesty envelope (git; live process is still 0.2.3-lab-temp)
+- workers/stratamesh-gossip.js EDGE fallback https://edge.calhegasmorais.pt (no workers.dev)
+- ops/HANDOFF-LATEST.json+.md un-stasis; POST aiops/handoff
+- #39-42 evidence comments; close #41 #42 if criteria met
+
+LIVE curl:
+- Fog /spa 200 total=1
+- GET /api/v1/gossip/peers count=2 custom domains
+- GET aiops/handoff generated_at this hour
+
+STILL RED:
+- Live Fog process code is 0.2.3-lab-temp (cannot hot-patch /spa envelope until process restart from git)
+- orch inner chat() 900ms budget
+- P0 OPEN 260826-001576 n=1
+- skip grok90 Renovate #46 #36 6th cron /actions workers.dev Discourse extra post
+
+NEXT PICK: do not re-ship spa 1.1.0. Fog honesty envelope goes live when temp process is replaced by git node_persistent.py.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-29T21:21:04Z hour
 READ: automation logs hours 17–20 titled success with no git comments. Recovered unpublished: orch 10.24.4 + status 530-note (git 19a6ecce, not live); Impact Fund git 5023758b 81k ahead of live 80k.
 

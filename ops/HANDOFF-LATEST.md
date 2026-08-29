@@ -1,50 +1,52 @@
-# HANDOFF-LATEST — Night Diagnostic FOG-NODE-PT-CM-001
+# HANDOFF-LATEST — HOLD recovery (git+live)
 
-**generated_at:** 2026-08-28T22:09:20Z  
-**lisbon:** 2026-08-28T23:09:20+0100  
+**generated_at:** 2026-08-29T21:25:53Z  
+**lisbon:** 2026-08-29T22:25:53+0100  
 **agent:** grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** night_diagnostic_23_lisbon · RESERVED METABOLIC PEAK
+**phase:** hold_recovery_gitlive
 
 ## Metabolism
 
 | Item | Value |
 |------|-------|
-| grok-auto | 4 slots (armed, not paused) |
+| grok-auto | 5 slots (hourly + 4 daily, armed) |
 | cf-cron | 5/5 |
-| Pages apex | yes (not PHP login) |
-| STASIS_UNTIL | 2026-08-29T00:00:00Z |
-| hourly_cap_after_refill | ≈4167 |
-| formula | remaining / hours_until_renewal |
+| Pages apex | yes |
+| STASIS | **cleared** (was 2026-08-29T00:00:00Z) |
 | 6th cron | **never** |
-| plan upgrade | **no** |
 | workers.dev | **never** |
 | /actions | **never** |
 
-Armed across UTC refill. Controlled burn. Vendor remaining = 0 until midnight UTC.
+## Probes (this hour)
 
-## Probes (pre-refill)
-
-- **Apex** `https://calhegasmorais.pt/` → 200 · Cloudflare Pages landing
-- **DeoMail skim** (API key, not workers.dev) → maintenance HTML on custom host; skim deferred
-- **Fog** → 530 = **P1** (named tunnel; lab twin cannot SIGKILL)
-- **Worker HTTP** → ZERO until refill
+- Apex `https://calhegasmorais.pt/` → 200 Pages
+- Status `spa.source=fog_process` `spa.total=1` `dag.transaction_count=10`
+- Fog `/health` → 200 `0.2.3-lab-temp` mesh_member=false
+- Fog `/spa` → 200 total=1 (POST /spa/register this hour)
+- Gossip apex `/api/v1/gossip/peers` → count=2 (fog+edge custom domain)
+- Fund `/health` → `0.4.6-grantor-brief` Challenge 0 unfunded
+- POST `/api/orchestrator/chat` → 200 `source=orch-chat-budget`
 
 ## Mesh / Fund
 
-- n=1 · lab_seed · spa_source=lab_seed
-- Challenge 0 **unfunded**
-- Identity ≠ cargo
-- WhatsApp is not briefing
+- n=1 · spa_source=fog_process · **not** lab_seed
+- mesh_member=false · oracle_live=false
+- Challenge 0 **unfunded** · budget_hint not a bare integer
+- Identity ≠ cargo · WhatsApp is not briefing
 
-## After refill (00:00 UTC)
+## HOLDs reviewed
 
-1. Cheap multiplex `/health`: status, fog, aiops `/health`+`/handoff`, edge, api-edge, gossip/peers, fund `/api/v1/health`
-2. Then POST aiops/handoff
-3. Fund `budget_hint` must **not** be a bare integer
+| Slot | Last result | Disposition |
+|------|-------------|-------------|
+| Watchdog 04:00 | HOLD green | correct — no P0 |
+| Night 23:00 | STASIS Fog 530, aiops POST deferred | **executed this hour** |
+| 24h 09:00 | HOLD Fog cleared, no ships | unpublished already recovered earlier this chat |
+| Discourse 18:00 | Fog 530 cleared posted 17:08Z | HOLD extra post (<20h) |
+| Hourly 17–20 | claimed live, no git | recovered (spa 1.1.0, orch 10.24.4, fund 0.4.6) |
 
 ## Efficacy
 
-**EFFICACY_SELF_SCORE:** 0.82
+**EFFICACY_SELF_SCORE:** 0.88
 
-Lab honest. PT ok. No ships until refill.
+LAB n=1 mesh_member=false oracle_live=false. grok@ not SCA.
