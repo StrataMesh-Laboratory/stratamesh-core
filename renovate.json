@@ -1,0 +1,116 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "LAB-only conservative dependency updates for stratamesh-core.",
+    "Does not deploy, does not probe workers.dev, does not run wrangler."
+  ],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests",
+    ":maintainLockFilesWeekly"
+  ],
+  "semanticCommitType": "ops",
+  "semanticCommitScope": "deps",
+  "commitMessageLowerCase": "never",
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on Monday"
+    ]
+  },
+  "timezone": "Etc/UTC",
+  "schedule": [
+    "before 6am on Monday"
+  ],
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "prConcurrentLimit": 5,
+  "labels": [
+    "dependencies"
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "{{parent}}",
+      "/(^|/)requirements-dev\\.txt$/"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Automerge patch updates for clearly safe JS/TS dev tooling after checks",
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "eslint",
+        "eslint-*",
+        "@eslint/**",
+        "prettier",
+        "eslint-config-prettier",
+        "eslint-plugin-*",
+        "@types/**",
+        "typescript-eslint",
+        "globals"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Automerge GitHub Actions patch updates (non-major) after checks",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Never automerge runtime, crypto, protocol, ledger, consensus, or Cloudflare stack",
+      "matchPackageNames": [
+        "/wrangler/i",
+        "/cloudflare/i",
+        "better-auth",
+        "kysely",
+        "pg",
+        "@types/pg",
+        "/^pg-/",
+        "/postgres/i",
+        "/pglite/i",
+        "/liboqs/i",
+        "/sodium/i",
+        "/crypto/i",
+        "/tweetnacl/i",
+        "/protocol/i",
+        "/ledger/i",
+        "/consensus/i"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Never automerge major upgrades of vite, react, or typescript",
+      "matchPackageNames": [
+        "vite",
+        "react",
+        "react-dom",
+        "typescript",
+        "@vitejs/plugin-react"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false
+    }
+  ]
+}
