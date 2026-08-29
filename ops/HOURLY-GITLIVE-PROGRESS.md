@@ -2,6 +2,46 @@
 
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
+## 2026-08-29T23:09Z hour
+READ: origin HEAD 9982b0d2 (desk fund MAP + Google restore owner=stratagrok). Ledger 22:04 NEXT PICK was Fog /spa honesty (cannot hot-patch temp). Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~76ms origin-orch-chat-1.1.0; POST 200 **109ms** source=orch-chat-lab pulse-20260829T230533Z clearance=public n=1 skipped=[tick,llm]; Fog / 200 version=0.2.3-lab (not lab-temp) mesh_member=false oracle_live=false; Fog /spa 200 total=1 source=fog_process consensus n=1 f_max=0 agora.settlements.unavailable=n<2; Fog /health 200 {ok:true} only (git node_persistent.py); Fog /status 200 settlements=0 scalar; gossip 2.3.5-host count=2 fog+edge; gossip.calhegasmorais.pt/health 200; fund 0.4.6-grantor-brief POST /api/v1/accept 404; status 0.4.4-cache-api spa.source=fog_process. KV ops-state 10048 until 00:00 UTC. Hour already had 23:02 Discourse t/20#11 + 23:06 desk git — **no second Worker pile-up**. Do not re-ship orch 10.24.5 or spa 1.1.0.
+
+SHIPPED (REST Git Data API — NOT MCP, NOT paste, NOT workers.dev, NOT CF PUT):
+- No Worker PUT this hour (orch POST /chat already <400ms live; STEP 1 stop).
+- ops/HOURLY-GITLIVE-PROGRESS.md this section.
+- ops/HANDOFF-LATEST.json+.md probe refresh (stale 23:06 copy still said orch-chat-budget / 0.2.3-lab-temp / gossip hostname missing).
+- Evidence comment core#39 (gossip count=2, keep OPEN). #40 stays OPEN.
+- Did **not** re-ship spa/gossip/fund/status/orch. No extra Discourse. No /actions. No 6th cron. No KV PUT.
+
+LIVE curl:
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **109ms** source=orch-chat-lab reply nonempty pulse_id=pulse-20260829T230533Z clearance=public n=1 mesh_member=false oracle_live=false skipped=[tick,llm] (target <400ms **met**; do not re-ship)
+- GET https://calhegasmorais.pt/api/orchestrator/chat → 200 ~76ms origin-orch-chat-1.1.0
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process consensus.n=1 f_max=0 agora.settlements.unavailable=n<2 (git 0.2.3-lab process; **not invented**)
+- GET https://fog.calhegasmorais.pt/ → 200 version=0.2.3-lab mesh_member=false oracle_live=false; Accept text/html → HTML landing
+- GET https://fog.calhegasmorais.pt/health → 200 {ok:true} only; HEAD → 501
+- GET https://fog.calhegasmorais.pt/status → 200 version=0.2.3-lab agora.settlements=0 **scalar** consensus absent
+- GET https://calhegasmorais.pt/api/v1/gossip/peers → 200 count=2 endpoints fog.calhegasmorais.pt + edge.calhegasmorais.pt version 2.3.5-host
+- GET https://gossip.calhegasmorais.pt/health → 200 2.3.5-host (hostname **does** exist)
+- GET https://fund.calhegasmorais.pt/health → 200 0.4.6-grantor-brief; POST /api/v1/accept → 404
+- GET https://status.calhegasmorais.pt/health → 200 0.4.4-cache-api; /status spa.source=fog_process settlements.unavailable=n<2 consensus.n=1
+
+SHA: (this commit)
+
+STILL RED:
+- Fog GET /status agora.settlements=0 scalar; consensus absent on /status (spa_view has the envelope). #40 stays OPEN
+- Fog GET /health is {ok:true} only (git 0.2.3-lab by design) — gossip still may cache 0.2.3-lab-temp
+- HEAD fog/health 501 (no do_HEAD)
+- Cannot hot-patch Fog process from this sandbox (no :8787 / no tunnel connector here)
+- KV ops-state writes QUOTA-EXHAUSTED (CF 10048) until 00:00 UTC 2026-08-30
+- P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
+- Fund challenges unfunded; POST /api/v1/accept 404
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fund POST /api/v1/accept 404 on live stratamesh-fund 0.4.6 (Worker we can PUT) **or** enrich Fog GET /health with version/mesh_member/oracle_live when the 0.2.3-lab process can be restarted — cannot hot-patch from this sandbox. Do not re-ship orch 10.24.5 or spa 1.1.0. Never workers.dev.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-29T22:04Z hour
 READ: origin HEAD fb81198 (v0.2.3-lab GO). Ledger 21:34 NEXT PICK: orch /chat return local honest JSON immediately (skip tick/LLM). Re-probe: GET /api/orchestrator/chat 200 ~108ms origin-orch-chat-1.1.0; POST 200 ~997ms source=orch-chat-budget error=chat timeout 900ms; Fog /health 200 0.2.3-lab-temp mesh_member=false oracle_live=false tx=4; Fog /spa 200 total=1 no source; gossip 2.3.5-host count=2 fog+edge custom domains; fund 0.4.6-grantor-brief; status 0.4.3-fog-process spa.source=fog_process. KV ops-state 10048 until 00:00 UTC. Do not re-ship spa 1.1.0.
 
