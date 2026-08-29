@@ -1,0 +1,51 @@
+# StrataMesh operator-plane torrc fragment — LAB / Debian `tor` package.
+# NOT an anonymity guarantee. NOT Arti. NOT mainnet. NOT Tails/Snowflake.
+#
+# Systemd (Debian default): copy this file to
+#   /etc/tor/torrc.d/stratamesh-operator.torrc
+# and add to /etc/tor/torrc if missing:
+#   %include /etc/tor/torrc.d/*.torrc
+# then: systemctl reload tor
+# Do NOT set RunAsDaemon 1 under systemd (Type=notify already manages the process).
+#
+# User-space (no root): point DataDirectory + HiddenServiceDir at a 0700
+# prefix you own, drop User, and start: tor -f /path/to/this/file
+#
+# Never put STAFF_GROK / Fog passwords, CookieAuthFile bytes, or control
+# cookies in this file.
+
+# --- SOCKS: loopback only, stream isolation ---
+SocksPort 127.0.0.1:9050 IsolateClientAddr IsolateSOCKSAuth IsolateDestAddr
+SocksPolicy accept 127.0.0.1
+SocksPolicy reject *
+
+# --- Control: loopback + cookie. Never a password here. ---
+ControlPort 127.0.0.1:9051
+CookieAuthentication 1
+# Debian systemd alternative (unix socket, still local-only):
+#   ControlSocket /run/tor/control GroupWritable RelaxDirModeCheck
+
+# No public directory mirror. Leave DirPort unset (off).
+# No SocksPort on 0.0.0.0.
+
+# --- Operator-plane v3 onion ---
+# HiddenServiceDir MUST be mode 0700 and owned by the tor daemon user
+# (debian-tor on the package; your uid for user-space).
+HiddenServiceDir /var/lib/tor/stratamesh-operator/
+HiddenServiceVersion 3
+# Localhost HTTPS front. Lab inventory (2026-08-29 PT): nginx on 127.0.0.1:443 (phpMyAdmin; loopback only; not the onion default), python localhost-https-proxy on 127.0.0.1:8443 (Fog /fog, EDGE /edge). Onion 443 maps to 8443 so phpMyAdmin is not the default onion HTTPS.
+# Optional extra onion port for nginx/phpMyAdmin (loopback 443) is a follow-up; not the default.
+# Do not publish phpMyAdmin or Fog on clearnet; onion maps to loopback only.
+HiddenServicePort 443 127.0.0.1:8443
+# Fog HTTP when FOG-NODE-PT-CM-001 is up (do not bind Fog on a public IP).
+HiddenServicePort 8787 127.0.0.1:8787
+# WireGuard TCP onion front (UDP is loopback-only on the box).
+HiddenServicePort 51820 127.0.0.1:51820
+# OpenVPN TCP camouflage; nginx already owns 127.0.0.1:443.
+HiddenServicePort 1194 127.0.0.1:1194
+
+# After start, the v3 hostname is HiddenServiceDir/hostname (not logged here).
+# Client authorization (v3): follow-up. Drop *.auth files into
+#   HiddenServiceDir/authorized_clients/
+# Debian tor supports the format; minting x25519 client keys is not one-shot
+# with the package alone. See ops/tor/README.md.
