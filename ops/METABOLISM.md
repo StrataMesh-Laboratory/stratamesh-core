@@ -98,3 +98,7 @@ Mitigations (no 6th cron): ACB/AIOps crons once after reset; **SPA catch-alls re
 `state/incident-1027-2026-08-28.json` is the Error 1027 evidence pack.
 
 Lab honest. Identity ≠ cargo. AIOps is a team, not a cargo. No mainnet. Challenge 0 unfunded.
+
+## On-graph optional (lab)
+
+`decide()` / `pace_factor` may optionally pace STRATA object spend (NFT collateral above floor 0.1, ACB PdS wallet, registered node-user consumption). Opt-in only (`spend_policy: metabolism`); **not exclusive** — existing PoSbs ticks, SPA execute burns, and NFT redeem/liquidate stay valid without it. Fog `NODE_WALLET` is treasury infrastructure, not a citizen rail. Spec: [`docs/METABOLISM-ON-GRAPH.md`](../docs/METABOLISM-ON-GRAPH.md). Adapter: `src/subsistence/metabolism_opt.py`.
