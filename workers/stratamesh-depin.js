@@ -14,7 +14,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '1.1.0-sdl-lite';
+const VERSION = '1.2.0-idle-only';
 const RESOURCE_CLASSES = ['storage', 'compute', 'bandwidth', 'render', 'memory'];
 
 function j(data, status = 200) {
@@ -75,6 +75,8 @@ function parseSdlLite(sdl) {
     else if (k === 'quantity' || k === 'count') out.quantity = Number(v);
     else if (k === 'max_price_strata' || k === 'max_price') out.max_price_strata = Number(v);
     else if (k === 'tenant') out.tenant = v;
+    else if (k === 'idle_only') out.idle_only = /^(1|true|yes)$/i.test(v);
+    else if (k === 'c_mesh' || k === 'utilisation' || k === 'U') out[k === 'c_mesh' ? 'c_mesh' : 'utilisation'] = Number(v);
   }
   return Object.keys(out).length ? out : null;
 }
@@ -102,6 +104,7 @@ export default {
           parallel: ['Akash Network reverse auction + escrow', 'Render Network GPU/render capacity'],
           strata_rule: 'Price by resource class only; quality adjusts premium/discount; function never sets rate',
           mint_boundary: 'Leases settle in existing STRATA — they do not mint. Mint remains PdC-only.',
+          idle_only: 'sdl.idle_only maps to EDGE C_mesh=f(1-U); reject when utilisation high',
         },
         endpoints: [
           '/health',
@@ -167,6 +170,21 @@ export default {
         if (sdl.quantity != null) body.quantity = sdl.quantity;
         if (sdl.max_price_strata != null) body.max_price_strata = sdl.max_price_strata;
         if (sdl.tenant) body.tenant = sdl.tenant;
+        if (sdl.idle_only != null) body.idle_only = sdl.idle_only;
+        if (sdl.utilisation != null) body.utilisation = sdl.utilisation;
+      }
+      const idleOnly = body.idle_only === true || body.idle_only === 'true' || body.idle_only === 1 || body.idle_only === '1';
+      const U = Number(body.utilisation != null ? body.utilisation : body.U != null ? body.U : 0.2);
+      const c_mesh = Math.max(0, Math.min(1, 1 - U));
+      if (idleOnly && U > 0.5) {
+        return j({
+          ok: false,
+          error: 'idle_only_rejected',
+          utilisation: U,
+          c_mesh,
+          threshold: 0.5,
+          note: 'EDGE residual C_mesh=f(1-U); lab rejects idle_only when U>0.5. No Akash AKT.',
+        }, 409);
       }
       const rc = String(body.resource_class || 'compute').toLowerCase();
       if (!RESOURCE_CLASSES.includes(rc)) return j({ error: 'invalid_resource_class', allowed: RESOURCE_CLASSES }, 400);
@@ -178,7 +196,7 @@ export default {
         max_price_strata: Number(body.max_price_strata || 0.1),
         status: 'open',
         created_at: new Date().toISOString(),
-        attributes: JSON.stringify(body.attributes || {}),
+        attributes: JSON.stringify({ ...(body.attributes || {}), idle_only: !!idleOnly, utilisation: U, c_mesh }),
       };
       if (db) {
         await db
@@ -189,7 +207,7 @@ export default {
           .bind(order.id, order.tenant, order.resource_class, order.quantity, order.max_price_strata, order.status, order.created_at, order.attributes)
           .run();
       }
-      return j({ ok: true, order, auction: 'reverse — providers bid at or below max_price_strata' });
+      return j({ ok: true, order: { ...order, idle_only: !!idleOnly, utilisation: U, c_mesh }, auction: 'reverse — providers bid at or below max_price_strata' });
     }
 
     if (path === '/bids' && request.method === 'GET') {

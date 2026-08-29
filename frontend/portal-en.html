@@ -1212,7 +1212,7 @@ async function loadSystemPanel(){
     var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
     var live=null, tdra=null;
     try{
-      var r=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(12000)});
+      var r=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(15000)});
       if(r.ok) live=await r.json();
     }catch(_){}
     try{
@@ -1780,8 +1780,8 @@ async function loadEconomy(){
     var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
     var live=null;
     try{
-      var rs=await fetch(statusBase.replace(/\/$/,'')+'/summary',{signal:AbortSignal.timeout(12000)});
-      if(!rs.ok) rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(12000)});
+      var rs=await fetch(statusBase.replace(/\/$/,'')+'/summary',{signal:AbortSignal.timeout(15000)});
+      if(!rs.ok) rs=await fetch(statusBase.replace(/\/$/,'')+'/status',{signal:AbortSignal.timeout(15000)});
       if(rs.ok) live=await rs.json();
     }catch(_){}
     var loc=LANG==='en'?'en-GB':'pt-PT';
@@ -2207,7 +2207,7 @@ async function loadACB(){
   if(!el) return;
   el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCA…')+'</p>';
   try{
-    var r=await fetch(SVC.acb+'/acb/status',{signal:AbortSignal.timeout(12000)});
+    var r=await fetch(SVC.acb+'/acb/status',{signal:AbortSignal.timeout(15000)});
     var j=r.ok?await r.json():{};
     var list=j.acbs||j.members||[];
     if(!list.length){
@@ -2890,8 +2890,8 @@ window.showPanel = function(name, btn){
     if (meta) meta.textContent = 'A sincronizar NFT desta conta…';
     try{
       var [sb, nf] = await Promise.all([
-        fetch('/api/v1/sandbox/list',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
-        fetch('/api/v1/token/list?limit=80',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
+        fetch('/api/v1/sandbox/list',{signal:AbortSignal.timeout(15000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
+        fetch('/api/v1/token/list?limit=20',{signal:AbortSignal.timeout(15000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
       ]);
       var sandboxes = sb.sandboxes || [];
       var all = nf.nfts || [];
@@ -3086,7 +3086,7 @@ window.__bancadaOnShow = function(){
       if(rMon.ok) mon=await rMon.json();
     }catch(_){}
     try{
-      var rn=await fetch(tokenBase()+'/list?limit=40',{signal:AbortSignal.timeout(12000)});
+      var rn=await fetch(tokenBase()+'/list?limit=40',{signal:AbortSignal.timeout(15000)});
       if(rn.ok){ var nj=await rn.json(); nfts=nj.nfts||[]; }
     }catch(_){}
     try{
@@ -3292,7 +3292,7 @@ var nftEl=document.getElementById('walletNftList');
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]);});}
   function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
   function authH(){var h={'Accept':'application/json'};try{var t=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');if(t)h['Authorization']='Bearer '+t;}catch(_){}return h;}
-  async function get(url){var r=await fetch(url,{headers:authH(),signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+  async function get(url){var r=await fetch(url,{headers:authH(),signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
   function card(title, body, meta){
     return '<div style="padding:.85rem;background:var(--card);border:1px solid var(--line);border-radius:8px">'+
       '<div style="font-size:.88rem;color:var(--fg);font-weight:500">'+esc(title)+'</div>'+
@@ -3496,7 +3496,7 @@ window.loadScaSelfPanel = async function(){
       }).join('');
     }
     // Own NFTs
-    var nf=await fetch('/api/v1/token/list?limit=80',{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};});
+    var nf=await fetch('/api/v1/token/list?limit=20',{signal:AbortSignal.timeout(15000)}).then(function(r){return r.ok?r.json():{};}).catch(function(){return {};});
     var mine=(nf.nfts||[]).filter(function(n){ return createdByMe(n)||ownsNft(n); });
     set('scaSelfNfts', String(mine.length));
     if(list){
@@ -4061,8 +4061,8 @@ window.loadACBPanel=async function(){
     };
     if(st) st.textContent='A guardar…';
     try{
-      var r=await fetch('/api/v1/token/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
-      if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+      var r=await fetch('/api/v1/token/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
+      if(!r.ok) r=await fetch('https://stratamesh-token.stratamesh.workers.dev/nft/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
       var j={}; try{ j=await r.json(); }catch(_){}
       n.name=body.name; n.description=body.description; n.mode=body.mode; n.world_id=body.world_id;
       try{ localStorage.setItem('nft_edit_'+n.id, JSON.stringify(body)); }catch(_){}

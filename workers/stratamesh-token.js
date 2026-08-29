@@ -1710,7 +1710,7 @@ export default {
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '3.5.2-smart-contract',
+        version: '3.5.3-pds402-page',
         total_supply: supply,
         holders,
         nft_count: nfts,
@@ -1917,7 +1917,9 @@ export default {
       if (!db) return json({ nfts: [] });
       const owner = url.searchParams.get('owner');
       const world_id = url.searchParams.get('world_id');
-      const limit = Math.min(50, parseInt(url.searchParams.get('limit') || '20', 10));
+      const limitRaw = parseInt(url.searchParams.get('limit') || '20', 10);
+      const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 20));
+      const detail = url.searchParams.get('detail') === '1' || url.searchParams.get('render') === '1';
       try {
         await ensureStrataFunctionalSchema(db);
         let rows = { results: [] };
@@ -1940,10 +1942,14 @@ export default {
         }
         const out = [];
         for (const n of rows.results || []) {
-          const v = await nftValuation(db, n);
-          out.push({ ...n, valuation: v, render: { svg: nftRenderSvg(n, v) } });
+          if (detail) {
+            const v = await nftValuation(db, n);
+            out.push({ ...n, valuation: v, render: { svg: nftRenderSvg(n, v) } });
+          } else {
+            out.push(n);
+          }
         }
-        return json({ success: true, nfts: out, count: out.length, source: 'strata_nfts' });
+        return json({ success: true, nfts: out, count: out.length, limit, source: 'strata_nfts', detail: !!detail });
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
@@ -2636,6 +2642,22 @@ export default {
     if ((path === '/spa/execute' || path === '/aps/execute' || path === '/contract/execute' || path === '/smart-contract/execute') && request.method === 'POST') {
       if (!db) return json({ error: 'ledger unavailable' }, 503);
       const body = await request.json().catch(() => ({}));
+      const pds =
+        request.headers.get('X-StrataMesh-PdS') ||
+        request.headers.get('X-PdS') ||
+        body.pds_burn ||
+        body.pds_proof ||
+        body.burn_to === '#0';
+      if (!pds) {
+        return json({
+          success: false,
+          error: 'payment_required',
+          protocol: 'pds-402',
+          burn_to: '#0',
+          rail: 'STRATA PdS',
+          note: 'Retry after PdS burn to #0. No USDC. Not Cloudflare Monetization Gateway.',
+        }, 402);
+      }
       const r = await executeSpa(db, env, {
         nft_id: body.nft_id || body.id || body.spa_id,
         actor: body.actor || body.owner || body.account,
