@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Metabolic stasis v1.2 — remaining/hours, density (signal/cost), circuit breaker.
+"""Metabolic stasis v1.3 — remaining/hours, pace_factor, density, circuit breaker.
 
+pace_factor inflates (>1) when under-spent vs elapsed time and deflates (<1)
+when over-spent. Neutral 1.0 when day_spent==0 so existing tests stay green.
+Circuit trips on the unadjusted hourly cap so an inflator cannot bypass Error 1027.
 Subsequent phases credit unused grant against prior overdraft. Peaks 09:00 /
 18:00 / 23:00 Lisbon may overdraft; quiet hours pay it back. Density is
-signal per token: coalesce so few spends have high impact. Circuit trips
-before Error 1027. Never a 6th CF cron. Never workers.dev.
+signal per token: coalesce so few spends have high impact. Never a 6th CF cron.
+Never workers.dev.
 """
 from __future__ import annotations
 
@@ -122,6 +125,29 @@ def estimated_spent_slots(cfg: dict, now: Optional[datetime], rail: str, grace_m
 
 def clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
+
+
+def pace_factor(
+    day_spent: float,
+    daily_limit: float,
+    hours_left: float,
+    window_hours: float = 24.0,
+    lo: float = 0.5,
+    hi: float = 1.5,
+) -> float:
+    """Inflator (>1) when under-spent vs elapsed time; deflator (<1) when over-spent.
+    Neutral 1.0 when day_spent==0 or daily_limit<=0 so existing tests stay green.
+    """
+    daily = float(daily_limit or 0)
+    if daily <= 0 or float(day_spent) <= 0:
+        return 1.0
+    elapsed = max(float(window_hours) - float(hours_left), 1.0 / 60.0)
+    window = max(float(window_hours), elapsed)
+    spent_frac = float(day_spent) / daily
+    time_frac = elapsed / window
+    if spent_frac < 1e-12:
+        return 1.0
+    return clamp(time_frac / spent_frac, lo, hi)
 
 
 def density_of(signal: float, cost: float) -> float:
@@ -417,12 +443,16 @@ class Verdict:
     signal: float = 1.0
     effective_cap: float = 0.0
     circuit: str = ""
+    pace_factor: float = 1.0
+    inflator: float = 1.0
+    deflator: float = 1.0
 
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
         for k in (
             "hourly_cap", "hours_left", "spendable", "carry", "daily_debt",
             "daily_credit", "next_phase_grant", "density", "signal", "effective_cap",
+            "pace_factor", "inflator", "deflator",
         ):
             d[k] = round(float(d[k]), 4)
         return d
@@ -470,6 +500,24 @@ def decide(
             **extra,
         )
 
+    until_s = spec.get("stasis_until")
+    if until_s and not is_p0:
+        try:
+            until = datetime.fromisoformat(str(until_s).replace("Z", "+00:00"))
+            if until.tzinfo is None:
+                until = until.replace(tzinfo=timezone.utc)
+            n = now or datetime.now(timezone.utc)
+            if n.tzinfo is None:
+                n = n.replace(tzinfo=timezone.utc)
+            if n.astimezone(timezone.utc) < until.astimezone(timezone.utc):
+                return Verdict(
+                    STASIS, rail, 0, 0, 0, 0, 0, cost,
+                    f"stasis until {until_s}",
+                    **extra,
+                )
+        except (TypeError, ValueError):
+            pass
+
     if spec.get("hard_cap") == 0:
         return Verdict(
             STASIS, rail, 0, 0, 0, 0, 0, cost,
@@ -486,6 +534,12 @@ def decide(
     hours_left = hours_left_for(spec, now, cfg, reset_unix)
     daily = spec.get("daily_limit")
     if remaining is None:
+        if spec.get("unknown_remaining") == "hold" and not is_p0:
+            return Verdict(
+                HOLD, rail, 0, hours_left, 0, 0, 0, cost,
+                "no live remaining sample — do not invent a cap",
+                **extra,
+            )
         if kind == "slots" and daily is not None:
             remaining = max(0.0, float(daily) - estimated_spent_slots(cfg, now, rail))
         else:
@@ -498,6 +552,23 @@ def decide(
         remaining = max(0.0, remaining + float(st.get("daily_credit") or 0) - float(st.get("daily_debt") or 0))
 
     hourly_cap = remaining / hours_left if hours_left else remaining
+    day_spent = float(st.get("day_spent") or 0) if st else 0.0
+    window_hours = 24.0
+    if spec.get("window_sec"):
+        window_hours = float(spec["window_sec"]) / 3600.0
+    if spec.get("window") == "rolling_hour":
+        # rolling hour: the 'day' is the hour window; spec.limit is the daily_limit analogue
+        window_hours = 1.0
+    pf = pace_factor(
+        day_spent,
+        float(daily or spec.get("limit") or 0),
+        hours_left,
+        window_hours,
+    )
+    extra["pace_factor"] = pf
+    extra["inflator"] = max(1.0, pf)
+    extra["deflator"] = min(1.0, pf)
+    adjusted = hourly_cap * pf
     reserved = 0.0
     if kind == "slots":
         reserved = reserved_ahead(cfg, now, rail, exclude_id=slot_id if (is_peak or slot_id) else None)
@@ -511,8 +582,8 @@ def decide(
         carry=carry,
         daily_debt=daily_debt,
         daily_credit=daily_credit,
-        next_phase_grant=hourly_cap,
-        effective_cap=effective_capacity(hourly_cap, dens, floor),
+        next_phase_grant=adjusted,
+        effective_cap=effective_capacity(adjusted, dens, floor),
     )
 
     trip = circuit_trip(hour_spent, hourly_cap, cfg)
@@ -559,16 +630,16 @@ def decide(
             return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"protect {reserved} reserved slot(s) still ahead", **extra)
         # unscheduled: also respect hourly carry if ledger present (don't dump contingency in one hour)
-        if st is not None and carry + 1e-9 < cost and not is_p0:
+        if st is not None and carry * pf + 1e-9 < cost and not is_p0:
             return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"hourly carry {carry:.2f} < cost — wait; subsequent phase will be credited", **extra)
         return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "unscheduled spend within contingency", **extra)
 
-    # rate rails
-    allowance = hourly_cap
+    # rate rails — pace with adjusted hourly; ledger carry is also paced
+    allowance = adjusted
     if st is not None:
-        allowance = max(0.0, carry)
+        allowance = max(0.0, carry * pf)
     if remaining < cost:
         return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
                        "remaining < cost", **extra)
@@ -689,7 +760,7 @@ def snapshot(
     debts = {k: v["daily_debt"] for k, v in rails_out.items() if v.get("daily_debt")}
     carries = {k: v["carry"] for k, v in rails_out.items() if v.get("carry") not in (0, 0.0, None)}
     return {
-        "schema": "stratamesh.metabolism.v1.2",
+        "schema": "stratamesh.metabolism.v1.3",
         "at": now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "lisbon": lisbon.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "hour_lisbon": lisbon.hour,
