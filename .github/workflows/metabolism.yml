@@ -7,6 +7,7 @@ on:
       - "ops-monitor/config/rails.json"
       - "ops/lib/**"
       - "ops/config/rails.json"
+      - "ops/bin/**"
       - "workers/_metabolism.js"
       - ".github/workflows/metabolism.yml"
   push:
@@ -16,6 +17,7 @@ on:
       - "ops-monitor/config/rails.json"
       - "ops/lib/**"
       - "ops/config/rails.json"
+      - "ops/bin/**"
       - "workers/_metabolism.js"
       - ".github/workflows/metabolism.yml"
 

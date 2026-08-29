@@ -1,0 +1,61 @@
+# Labor only: Q-gate sample, drift hashes, Discourse *draft*, Grok execute recipe.
+# Never git-commit, never CF PUT, never POST /posts.json.
+name: desk-prepare
+
+on:
+  schedule:
+    - cron: "5 3,8,11,17,20,22 * * *"
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: desk-prepare
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      DESK_TICK_OUT: ${{ github.workspace }}/artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Prepare publish pack
+        run: python3 ops/bin/desk-prepare.py
+      - name: Hint #52 when drift + Q-gate ALLOW
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            let pack = {};
+            try { pack = JSON.parse(fs.readFileSync('artifacts/PUBLISH-PACK.json', 'utf8')); } catch (_) { return; }
+            const drift = pack.scripts || [];
+            if (!pack.q_allow || drift.length === 0) {
+              core.info('no Grok execute hint (HOLD or no drift)');
+              return;
+            }
+            const cmd = (pack.execute && pack.execute.command) || 'python3 ops/bin/desk-execute.py --git --live --discourse';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 52,
+              body: [
+                '## desk-prepare: Grok execute ready',
+                '',
+                'Actions finished labor. **Grok** runs git + live + t/20:',
+                '',
+                '```bash',
+                cmd,
+                '```',
+                '',
+                'Drift: `' + drift.join(', ') + '`',
+                '',
+                '<!-- stratamesh-desk-prepare -->',
+              ].join('\n'),
+            });

@@ -12,6 +12,8 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from email.parser import BytesParser
+from email.policy import default
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,20 +45,41 @@ def sha256_bytes(b: bytes) -> str:
 
 
 def live_content(tok: str, script: str) -> bytes | None:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/workers/scripts/{script}/content"
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/workers/scripts/{script}"
     req = urllib.request.Request(
         url,
         headers={"X-Auth-Email": EMAIL, "Authorization": "Bearer " + tok},
     )
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
-            return r.read()
+            raw = r.read()
+            ct = r.headers.get("Content-Type") or ""
     except urllib.error.HTTPError as e:
         print(f"GET {script} HTTP {e.code}", file=sys.stderr)
         return None
     except Exception as e:
         print(f"GET {script} {type(e).__name__}", file=sys.stderr)
         return None
+    if "multipart/" in ct.lower():
+        msg = BytesParser(policy=default).parsebytes(
+            b"MIME-Version: 1.0\r\nContent-Type: " + ct.encode() + b"\r\n\r\n" + raw
+        )
+        for part in msg.iter_parts():
+            payload = part.get_payload(decode=True)
+            if not payload:
+                continue
+            fn = (part.get_filename() or "").lower()
+            ptype = (part.get_content_type() or "").lower()
+            if fn.endswith(".js") or "javascript" in ptype:
+                return payload
+        # last non-json part
+        for part in msg.iter_parts():
+            payload = part.get_payload(decode=True) or b""
+            if payload.startswith(b"{") or b"\"success\"" in payload[:40]:
+                continue
+            if len(payload) > 100:
+                return payload
+    return raw
 
 
 def main() -> int:
