@@ -72,7 +72,7 @@ def run() -> dict:
         "contribution": st.get("contribution", {}).get("total_minted"),
         "service_credit": st.get("service_credit"),
         "pq_keys": (st.get("pq_keys") or {}).get("total"),
-        "release": "v0.2.1-lab",
+        "release": "v0.2.2-lab",
     }
     n.dag.close()
     try:
