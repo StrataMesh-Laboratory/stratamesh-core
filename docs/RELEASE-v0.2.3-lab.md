@@ -1,9 +1,9 @@
 # StrataMesh Core — v0.2.3-lab
 
-**Status:** DRAFT · **HOLD** until operator GO  
-**Proposed tag:** `v0.2.3-lab` (GitHub **prerelease**, same class as v0.2.0–v0.2.2)  
+**Status:** SHIPPED (operator GO 2026-08-29) · GitHub **prerelease**  
+**Tag:** `v0.2.3-lab` (same class as v0.2.0–v0.2.2)  
 **Baseline:** [v0.2.2-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.2-lab) (`c3ab1557`)  
-**Proposed HEAD:** current main after gossip hostname + public landings (this packaging hour)
+**HEAD:** main at tag time
 
 This is **not** a semver major, **not** v0.3, **not** testnet, **not** mainnet.
 
@@ -77,13 +77,15 @@ Size (80 files) is mostly **Worker snapshots + origin chat fail-open**, not a pr
 - Inner orch `/chat` real LLM reply (still 900ms budget fallback)
 - grok90, 6th cron, workers.dev, GitHub `/actions` burn, Renovate merge
 
-## GO checklist (do not run until operator says GO)
+## GO checklist (executed 2026-08-29)
 
-1. Bump `src/node_persistent.py` status `version` `0.2.2-dev` → `0.2.3-lab`
-2. Point README release badge `v0.2.2-lab` → `v0.2.3-lab`
-3. Flip this file + `CHANGELOG-LAB.md` from DRAFT/WIP → dated cut
-4. Git tag `v0.2.3-lab` on the agreed SHA (prerelease)
-5. GitHub Release (prerelease=true) with this notes body
-6. Discourse **Announcements (5)** + one-line pointer on [t/20](https://stratamesh.discourse.group/t/20) — body in `docs/DISCOURSE-v0.2.3-lab.md`
+1. Bump `src/node_persistent.py` status `version` → `0.2.3-lab` — done
+2. README release badge → `v0.2.3-lab` — done
+3. This file + `CHANGELOG-LAB.md` dated cut — done
+4. Git tag `v0.2.3-lab` — done with the release
+5. GitHub Release prerelease=true — done
+6. Discourse Announcements (5) + t/20 — attempted same hour
+
+Fog **process restart** (replace `0.2.3-lab-temp` with git `node_persistent.py`) is on the tunnel host, not this sandbox. If live `/` is still JSON after this cut, HTML waits on that restart.
 
 LAB only. No STRATA, no investment claims, no mainnet.

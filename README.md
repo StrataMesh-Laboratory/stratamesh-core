@@ -1,6 +1,6 @@
 # StrataMesh Core
 
-**Release:** [v0.2.2-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.2-lab) — reference Fog node (**not mainnet**)
+**Release:** [v0.2.3-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-lab) — reference Fog node (**not mainnet**, prerelease)
 
 **STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
@@ -12,12 +12,15 @@ Motto: *Intelligentia · Vigilantia · Veritas*
 | Wallets | Circulation (nodes, users, SCAs) |
 | `#0` | Burn sink — receives on resource use; never transfers out |
 
-API: `GET https://stratamesh-token.stratamesh.workers.dev/monetary` · `POST /burn`
+API: `GET https://calhegasmorais.pt/api/v1/token/monetary` · `POST /api/v1/token/burn`
 
 ## Public pulse
-- Status JSON: https://stratamesh-status.stratamesh.workers.dev/status
-- Live dashboard: https://stratamesh-status.stratamesh.workers.dev/live
+- Status JSON: https://status.calhegasmorais.pt/status
+- Live dashboard: https://status.calhegasmorais.pt/live
 - Site: https://calhegasmorais.pt/
+- Fog: https://fog.calhegasmorais.pt/
+- Gossip: https://gossip.calhegasmorais.pt/
+- Origin: https://origin.calhegasmorais.pt/
 - Hub (catalog): https://huggingface.co/stratamesh
 
 ## Ops (lab)
@@ -40,10 +43,10 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
 
-Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.2-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
+Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.3-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
-Lab freeze **v0.2.2-lab** exercises whitepaper pillars in-process. Production splits into:
+Lab freeze **v0.2.3-lab** exercises whitepaper pillars in-process. Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 

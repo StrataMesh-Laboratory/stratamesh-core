@@ -6,7 +6,7 @@
 **Core:** [StrataMesh-Laboratory/stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)  
 **Laboratory:** [StrataMesh-Laboratory/stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory)  
 **Node registry:** [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node)  
-**Lab release baseline:** [v0.2.2-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.2-lab)  
+**Lab release baseline:** [v0.2.3-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-lab)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
 
 **Supersedes:** Public roadmap v0.2 parallel Track A ∥ Track B as the *promotion* control law.  

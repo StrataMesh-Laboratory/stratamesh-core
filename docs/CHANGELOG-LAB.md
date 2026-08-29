@@ -1,9 +1,9 @@
-## 2026-08-29 — v0.2.3-lab (DRAFT HOLD — not tagged)
-- Proposed cut vs v0.2.2-lab: 21 commits / 80 files @ `a7ac55e4`. **Prerelease, not major.** See [RELEASE-v0.2.3-lab.md](./RELEASE-v0.2.3-lab.md). Discourse draft: [DISCOURSE-v0.2.3-lab.md](./DISCOURSE-v0.2.3-lab.md)
+## 2026-08-29 — v0.2.3-lab
+- Lab prerelease vs v0.2.2-lab. **Not major. Not testnet. Not mainnet.** Notes: [RELEASE-v0.2.3-lab.md](./RELEASE-v0.2.3-lab.md)
 - Protocol: ingest-guard (#48); spa_view honesty; #16 gossip→real Fog; #36 on-graph metabolism (lab spend, not mint)
-- Origin: orch chat 200 JSON 1.1.0 + 10.24.4 budget; gossip 2.3.4 custom-domain; status spa.source=fog_process
-- Live Fog process remains `0.2.3-lab-temp` (not this git tree). P0 OPEN. n=1 mesh_member=false oracle_live=false
-- GO still required: version bump, tag, GitHub prerelease, Discourse Announcements=5
+- Origin: orch chat 200 JSON 1.1.0 + 10.24.4 budget; gossip `2.3.5-host` at gossip.calhegasmorais.pt; origin public landing 0.1.1
+- Fog git `node_persistent.py` version `0.2.3-lab` + `public_html()`. Live tunnel process may still be `0.2.3-lab-temp` until host restart
+- P0 OPEN. n=1 mesh_member=false oracle_live=false. LAB only. No investment claims.
 
 ## 2026-08-29 — v0.2.3-lab-wip
 - Process-gossip ingest guard (n=1 kernel). **Does not close multi-host P0.** Lab only. No investment claims.
