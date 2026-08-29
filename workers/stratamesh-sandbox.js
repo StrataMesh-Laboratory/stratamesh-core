@@ -8,14 +8,51 @@ const HOLON = {
   order: 5,
   parent: "open_world",
   children: ["agent"],
-  version: "3.4.0-static-dynamic",
+  version: "3.4.1-auth",
 };
 
 function j(d, s = 200) {
   return new Response(JSON.stringify(d), {
     status: s,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    },
   });
+}
+
+const AUTH_ME_PUBLIC = "https://calhegasmorais.pt/api/auth/me";
+
+function bearerToken(request) {
+  const h = request.headers.get("Authorization") || "";
+  const m = h.match(/^Bearer\s+(\S+)/i);
+  return m ? m[1] : "";
+}
+
+function sessionOwner(me) {
+  if (!me || typeof me !== "object") return "session";
+  const u = me.user || me;
+  return u.user_id || u.id || u.email || me.email || "session";
+}
+
+async function requireSession(request, env) {
+  const token = bearerToken(request);
+  if (!token) return { ok: false, status: 401, error: "auth_required" };
+  try {
+    const headers = { Authorization: "Bearer " + token, Accept: "application/json" };
+    const r =
+      env.AUTH && typeof env.AUTH.fetch === "function"
+        ? await env.AUTH.fetch(new Request("https://auth/me", { headers }))
+        : await fetch(AUTH_ME_PUBLIC, { headers });
+    const data = await r.json().catch(() => null);
+    if (!r.ok || !data || data.success === false || data.error === "Unauthorized") {
+      return { ok: false, status: 401, error: "auth_invalid", http: r.status };
+    }
+    return { ok: true, me: data };
+  } catch (e) {
+    return { ok: false, status: 503, error: "auth_unreachable", detail: String(e.message || e).slice(0, 80) };
+  }
 }
 
 async function ensureSchema(db) {
@@ -74,7 +111,13 @@ export default {
     if (path.startsWith("/api/v1/sandbox")) path = path.slice("/api/v1/sandbox".length) || "/";
     if (path.startsWith("/api/v1/sandboxes")) path = path.slice("/api/v1/sandboxes".length) || "/";
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*" } });
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+          "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        },
+      });
     }
     const db = env.LEDGER || env.DB;
 
@@ -151,12 +194,15 @@ export default {
       }
 
       if (path === "/create" && request.method === "POST") {
+        const sess = await requireSession(request, env);
+        if (!sess.ok) return j({ success: false, error: sess.error }, sess.status);
         const body = await request.json().catch(() => ({}));
         const id = body.id || "sbx_" + crypto.randomUUID().slice(0, 10);
         const now = new Date().toISOString();
         const title = body.title || body.name || "Untitled sandbox";
         const parent = body.parent_world_id || body.world_id || "cmn-lab-world";
-        const meta = JSON.stringify({ source: "create" });
+        const owner = sessionOwner(sess.me);
+        const meta = JSON.stringify({ source: "create", auth: true });
         const content = JSON.stringify(body.content || {});
         for (const col of ["title","name","parent_world_id","owner_id","status","isolation","content_json","meta_json","created_at","updated_at","published_at"]) {
           try { await db.prepare(`ALTER TABLE sandboxes ADD COLUMN ${col} TEXT`).run(); } catch (_) {}
@@ -164,7 +210,7 @@ export default {
         let inserted = false, lastErr = null;
         const attempts = [
           { sql: `INSERT OR REPLACE INTO sandboxes (id, title, parent_world_id, owner_id, status, isolation, content_json, meta_json, created_at, updated_at, published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-            binds: [id, title, parent, body.owner_id || null, "isolated", body.isolation || "strict", content, meta, now, now, null] },
+            binds: [id, title, parent, owner, "isolated", body.isolation || "strict", content, meta, now, now, null] },
           { sql: `INSERT OR REPLACE INTO sandboxes (id, name, parent_world_id, status, content_json, created_at) VALUES (?,?,?,?,?,?)`,
             binds: [id, title, parent, "isolated", content, now] },
           { sql: `INSERT OR REPLACE INTO sandboxes (id, data, created_at) VALUES (?,?,?)`,
@@ -198,7 +244,7 @@ export default {
             sandbox_id: id,
             world_id: parent,
             title: title || id,
-            author_id: body.owner_id || body.owner || "portal",
+            author_id: owner,
             author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") || String(body.owner_id || "").startsWith("SCA") || String(body.owner_id || "").startsWith("ACB") ? "sca" : "user"),
             status: "isolated",
             collateral_strata: body.collateral_strata != null ? body.collateral_strata : 0.01,
@@ -246,6 +292,8 @@ export default {
       }
 
       if (path === "/publish" && request.method === "POST") {
+        const sess = await requireSession(request, env);
+        if (!sess.ok) return j({ success: false, error: sess.error }, sess.status);
         const body = await request.json().catch(() => ({}));
         const id = body.id || body.sandbox_id;
         if (!id) return j({ error: "id required" }, 400);
@@ -280,6 +328,8 @@ export default {
       }
 
       if (path === "/integrate" && request.method === "POST") {
+        const sess = await requireSession(request, env);
+        if (!sess.ok) return j({ success: false, error: sess.error }, sess.status);
         const body = await request.json().catch(() => ({}));
         const id = body.id || body.sandbox_id;
         if (!id) return j({ error: "id required" }, 400);

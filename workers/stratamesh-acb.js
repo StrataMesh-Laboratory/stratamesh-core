@@ -9,8 +9,39 @@
 function j(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    },
   });
+}
+
+const AUTH_ME_PUBLIC = 'https://calhegasmorais.pt/api/auth/me';
+
+function bearerToken(request) {
+  const h = request.headers.get('Authorization') || '';
+  const m = h.match(/^Bearer\s+(\S+)/i);
+  return m ? m[1] : '';
+}
+
+async function requireSession(request, env) {
+  const token = bearerToken(request);
+  if (!token) return { ok: false, status: 401, error: 'auth_required' };
+  try {
+    const headers = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
+    const r =
+      env.AUTH && typeof env.AUTH.fetch === 'function'
+        ? await env.AUTH.fetch(new Request('https://auth/me', { headers }))
+        : await fetch(AUTH_ME_PUBLIC, { headers });
+    const data = await r.json().catch(() => null);
+    if (!r.ok || !data || data.success === false || data.error === 'Unauthorized') {
+      return { ok: false, status: 401, error: 'auth_invalid', http: r.status };
+    }
+    return { ok: true, me: data };
+  } catch (e) {
+    return { ok: false, status: 503, error: 'auth_unreachable', detail: String(e.message || e).slice(0, 80) };
+  }
 }
 
 /**
@@ -1516,7 +1547,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.14.0-qiga-federate',
+          version: '5.14.1-register-auth',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1622,6 +1653,8 @@ export default {
       }
 
       if (path === '/acb/register' && method === 'POST') {
+        const sess = await requireSession(request, env);
+        if (!sess.ok) return j({ success: false, error: sess.error }, sess.status);
         const body = await request.json().catch(() => ({}));
         const id = body.acb_id || body.id || 'SCA-' + crypto.randomUUID().slice(0, 10);
         let name = body.personal_name || body.name || id;
