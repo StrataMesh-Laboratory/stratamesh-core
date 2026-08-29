@@ -25,9 +25,79 @@ from metabolism import (  # noqa: E402
     snapshot,
 )
 
-CF_REFILL = datetime(2026, 8, 29, 0, 0, 0, tzinfo=timezone.utc)
 HF_REFILL = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+CF_DAILY = 100_000
+CF_ACCOUNT = "f3645fcb56675cf7250d8ba7358eb252"
+SECRETS = Path("/home/box/.config/stratagrok/secrets.env")
+GROK_USAGE_LIVE = Path("/tmp/metab/grok-usage-live.json")
+# Hardcoded until the next grok.com Settings → Usage scrape.
+# Reset text has no timezone; treated as Europe/Lisbon (session TZ).
+GROK_ASSISTANT_SAMPLE = {
+    "remaining_frac": 0.96,
+    "remaining": 0.96,
+    "used_pct": 4,
+    "reset_unix": 1788184500,
+    "reset_iso": "2026-08-31T14:55:00+01:00",
+    "reset_tz_assumed": "Europe/Lisbon",
+}
 
+
+
+def _load_secret(name: str) -> str | None:
+    if not SECRETS.exists():
+        return None
+    for line in SECRETS.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        if k.strip() == name:
+            return v.strip().strip('"').strip("'")
+    return None
+
+
+def _cf_invocations_since_utc_midnight(now: datetime) -> int | None:
+    """Live Worker request count since 00:00 UTC via GraphQL. Never workers.dev."""
+    import urllib.request
+    token = _load_secret("CLOUDFLARE_API_TOKEN") or _load_secret("GOD_API")
+    if not token:
+        return None
+    start = now.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    payload = {
+        "query": """
+          query ($accountTag: String!, $from: Time!, $to: Time!) {
+            viewer {
+              accounts(filter: { accountTag: $accountTag }) {
+                workersInvocationsAdaptive(
+                  limit: 1
+                  filter: { datetime_geq: $from, datetime_lt: $to }
+                ) { sum { requests } }
+              }
+            }
+          }
+        """,
+        "variables": {
+            "accountTag": CF_ACCOUNT,
+            "from": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+    }
+    req = urllib.request.Request(
+        "https://api.cloudflare.com/client/v4/graphql",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+    except Exception:
+        return None
+    try:
+        rows = data["data"]["viewer"]["accounts"][0]["workersInvocationsAdaptive"]
+        return int((rows[0].get("sum") or {}).get("requests") or 0)
+    except Exception:
+        return None
 
 def _gh_rate_limit() -> dict | None:
     """Call `gh api rate_limit`. Never print the token."""
@@ -75,12 +145,16 @@ def sample_live(cfg: dict, now: datetime) -> dict:
                 entry["reset_unix"] = int(search["reset"])
             live["github-search"] = entry
 
-    # CF: do NOT GET workers.dev; do NOT GET calhegasmorais.pt from this sampler
-    utc_now = now.astimezone(timezone.utc)
-    if utc_now < CF_REFILL:
-        live["cf-worker-req"] = {"remaining": 0}
+    # CF: live remaining = 100k - GraphQL invocations since 00:00 UTC.
+    # Pages Functions share this pool. Static Pages do not. Never workers.dev.
+    used = _cf_invocations_since_utc_midnight(now)
+    if used is None:
+        live["cf-worker-req"] = {"remaining": CF_DAILY}
     else:
-        live["cf-worker-req"] = {"remaining": 100000}
+        live["cf-worker-req"] = {
+            "remaining": max(0, CF_DAILY - used),
+            "used": used,
+        }
 
     # HF remaining 0 until 2026-09-01
     live["hf-inference"] = {"remaining": 0}
@@ -89,7 +163,25 @@ def sample_live(cfg: dict, now: datetime) -> dict:
 
     spent = estimated_spent_slots(cfg, now, "grok-auto")
     live["grok-auto"] = {"remaining": max(0.0, 6.0 - float(spent))}
+
+    # SuperGrok weekly pool (percent remaining). grok-bot-included stays unknown.
+    live["grok-assistant"] = _grok_assistant_sample()
     return live
+
+
+def _grok_assistant_sample() -> dict:
+    data = dict(GROK_ASSISTANT_SAMPLE)
+    if GROK_USAGE_LIVE.exists():
+        try:
+            scraped = json.loads(GROK_USAGE_LIVE.read_text())
+            for k in ("remaining_frac", "remaining", "used_pct", "reset_unix", "reset_iso", "reset_tz_assumed"):
+                if k in scraped and scraped[k] is not None:
+                    data[k] = scraped[k]
+        except Exception:
+            pass
+    if data.get("remaining_frac") is not None and "remaining" not in data:
+        data["remaining"] = data["remaining_frac"]
+    return data
 
 
 def merge_sampled(ledger: dict, live: dict) -> dict:
@@ -99,8 +191,16 @@ def merge_sampled(ledger: dict, live: dict) -> dict:
         st = rails.setdefault(name, {})
         if "remaining" in data:
             st["sampled_remaining"] = data["remaining"]
+        if "remaining_frac" in data:
+            st["sampled_remaining_frac"] = data["remaining_frac"]
+        if "used_pct" in data:
+            st["sampled_used_pct"] = data["used_pct"]
         if "reset_unix" in data:
             st["sampled_reset_unix"] = data["reset_unix"]
+        if "reset_iso" in data:
+            st["sampled_reset_iso"] = data["reset_iso"]
+        if "reset_tz_assumed" in data:
+            st["sampled_reset_tz_assumed"] = data["reset_tz_assumed"]
     ledger["sampled_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return ledger
 
