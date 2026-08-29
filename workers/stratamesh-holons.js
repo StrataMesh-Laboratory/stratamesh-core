@@ -560,7 +560,7 @@ function holonStackPath(ids) {
 
 
 
-const VERSION = "1.2.1-painel-bancada-clp-trd";
+const VERSION = "1.2.2-boot-budget";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -607,7 +607,7 @@ const SYSCALLS = {
     holon: "node",
     descricao: "Lê estado/capacidade do nó",
     emite: "node.pulse",
-    endpoint: "/status",
+    endpoint: "/health",
     metodo: "GET",
   },
   tic_so: {
@@ -686,18 +686,22 @@ async function callHolonService(env, holonId, endpoint, method = "GET", body = n
   if (holonId === "dlt" && endpoint === "/ppc") binding = env.ORCH;
   const path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
   if (binding && typeof binding.fetch === "function") {
-    const init = { method, headers: { "Content-Type": "application/json" } };
-    if (body && method !== "GET" && method !== "HEAD") init.body = JSON.stringify(body);
-    const r = await binding.fetch(new Request("https://holon.internal" + path, init));
-    const text = await r.text();
-    let data = null;
-    try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
-    return { ok: r.ok, status: r.status, via: "binding", data };
+    try {
+      const init = { method, headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(400) };
+      if (body && method !== "GET" && method !== "HEAD") init.body = JSON.stringify(body);
+      const r = await binding.fetch(new Request("https://holon.internal" + path, init));
+      const text = await r.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+      return { ok: r.ok, status: r.status, via: "binding", data };
+    } catch (e) {
+      return { ok: false, status: 0, via: "binding", error: String(e.message || e).slice(0, 80) };
+    }
   }
   let base = HOLON_SERVICES[target];
   if (holonId === "dlt" && endpoint === "/ppc") base = HOLON_SERVICES.metaverse_os;
   if (!base) return { ok: false, status: 0, via: "none", error: "servico_desconhecido" };
-  const init = { method, headers: { "Content-Type": "application/json" } };
+  const init = { method, headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(400) };
   if (body && method !== "GET" && method !== "HEAD") init.body = JSON.stringify(body);
   try {
     const r = await fetch(base + path, init);
@@ -897,7 +901,16 @@ export default {
     }
 
     if ((path === "/boot" || path === "/arrancar") && (request.method === "POST" || request.method === "GET")) {
-      // Arranque do SO metaversal: reino → mundo → selo temporal → tic → pulso nó
+      const BOOT_MS = 1500;
+      const cacheUrl = "https://stratamesh-holons.cache/boot";
+      try {
+        const hit = await caches.default.match(cacheUrl);
+        if (hit) {
+          const cached = await hit.json();
+          return json({ ...cached, cache: true, version: VERSION });
+        }
+      } catch (_) {}
+      const started = Date.now();
       const passos = [];
       const seq = [
         ["garantir_reino_lab", {}],
@@ -906,19 +919,45 @@ export default {
         ["tic_so", {}],
         ["pulso_no", {}],
       ];
+      let timed_out = false;
       for (const [name, args] of seq) {
+        if (Date.now() - started > BOOT_MS) {
+          timed_out = true;
+          passos.push({ syscall: name, ok: false, error: "timeout", timeout: true });
+          break;
+        }
         const spec = SYSCALLS[name];
-        const call = await callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args, spec.via_servico || null);
-        const ev = await emitEvent(env, spec.holon, spec.emite, null, { boot: true, syscall: name });
-        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, evento_id: ev.envelope && ev.envelope.id });
+        let call = { ok: false, status: 0, error: "timeout" };
+        try {
+          call = await callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args, spec.via_servico || null);
+        } catch (e) {
+          call = { ok: false, status: 0, error: String(e.message || e).slice(0, 80) };
+        }
+        let ev = { envelope: null };
+        try {
+          ev = await emitEvent(env, spec.holon, spec.emite, null, { boot: true, syscall: name });
+        } catch (_) {}
+        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, evento_id: ev.envelope && ev.envelope.id, error: call.error });
       }
-      return json({
-        ok: passos.every((p) => p.ok),
+      const payload = {
+        ok: !timed_out && passos.every((p) => p.ok),
+        error: timed_out ? "timeout" : undefined,
+        timeout: timed_out || undefined,
         arranque: "SO Metaverso Web3 + TRD",
         caminho: holonStackPath(),
         passos,
+        ms: Date.now() - started,
         version: VERSION,
-      });
+      };
+      try {
+        await caches.default.put(
+          cacheUrl,
+          new Response(JSON.stringify(payload), {
+            headers: { "Content-Type": "application/json", "Cache-Control": "max-age=60" },
+          })
+        );
+      } catch (_) {}
+      return json(payload, timed_out ? 200 : 200);
     }
 
     if (path === "/eventos" || path === "/events") {

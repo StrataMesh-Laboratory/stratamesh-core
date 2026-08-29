@@ -577,7 +577,7 @@ const SVC = {
   poc: '/api/v1/poc',
   sandbox: '/api/v1/sandbox',
   orch: '/api/v1/orchestrator',
-  holons: 'https://stratamesh-holons.stratamesh.workers.dev',
+  holons: '/api/v1/holons',
   auth: 'https://stratamesh-auth.stratamesh.workers.dev',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
@@ -759,15 +759,20 @@ function applyNavPermissions(){
   }
 }
 async function loadHolonsPanel(){
+  var H=(window.SVC&&SVC.holons)||'/api/v1/holons';
+  function holonGet(p){
+    return fetch(H+p,{headers:{'Accept':'application/json'},signal:AbortSignal.timeout(2000)}).then(function(r){return r.json();}).catch(function(){return {ok:false,error:'timeout',timeout:true};});
+  }
   try{
-    var boot=await fetch('https://stratamesh-holons.stratamesh.workers.dev/boot').then(function(r){return r.json()});
-    var cam=await fetch('https://stratamesh-holons.stratamesh.workers.dev/camadas').then(function(r){return r.json()});
-    var ev=await fetch('https://stratamesh-holons.stratamesh.workers.dev/eventos').then(function(r){return r.json()});
-    var el=document.getElementById('holonBoot'); if(el) el.textContent=boot.ok?'OK':'PARCIAL';
+    var boot=await holonGet('/boot');
+    var cam=await holonGet('/camadas');
+    var ev=await holonGet('/eventos');
+    var el=document.getElementById('holonBoot'); if(el) el.textContent=boot.timeout?'TIMEOUT':(boot.ok?'OK':'PARCIAL');
     el=document.getElementById('holonLayers'); if(el) el.textContent=(cam.pilha&&cam.pilha.length)||'—';
     el=document.getElementById('holonEvents'); if(el) el.textContent=(ev.eventos&&ev.eventos.length)||0;
-    var sc=await fetch('https://stratamesh-holons.stratamesh.workers.dev/syscalls').then(function(r){return r.json()}).catch(function(){return {};});
-    el=document.getElementById('holonPath'); if(el) el.textContent=(cam.caminho||'')+'\n'+JSON.stringify({boot_passos:boot.passos,syscalls:Object.keys(sc.syscalls||{})},null,2);
+    var sc=await holonGet('/syscalls');
+    el=document.getElementById('holonPath'); if(el) el.textContent=(cam.caminho||'')+'
+'+JSON.stringify({boot_passos:boot.passos,syscalls:Object.keys(sc.syscalls||{}),timeout:boot.timeout||false},null,2);
   }catch(e){
     var el=document.getElementById('holonPath'); if(el) el.textContent=String(e.message||e);
   }
@@ -1410,7 +1415,7 @@ const WORKERS = [
   {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
   {name:'stratamesh-republic',path:'https://stratamesh-republic.stratamesh.workers.dev/health',desc:'República Computacional',open:'https://stratamesh-republic.stratamesh.workers.dev/health'},
   {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',desc:'IPFS',open:'https://stratamesh-ipfs.stratamesh.workers.dev/health'},
-  {name:'stratamesh-holons',path:'https://stratamesh-holons.stratamesh.workers.dev/health',desc:'Holons / SO Metaverso',open:'https://stratamesh-holons.stratamesh.workers.dev/health'},
+  {name:'stratamesh-holons',path:'/api/v1/holons/health',desc:'Holons / SO Metaverso',open:'/api/v1/holons/health'},
 ];
 
 
@@ -3709,7 +3714,7 @@ window.loadACBPanel=async function(){
       {n:'Agente / Utilizador', d:'SCA e humanos no mesmo holon terminal'},
     ];
     try{
-      var h=await get('/api/v1/holons/health').catch(function(){return get('https://stratamesh-holons.stratamesh.workers.dev/health');});
+      var h=await get('/api/v1/holons/health').catch(function(){return get('/api/v1/holons/health');});
       set('holonVersion', h.version||'—');
       set('holonLayers', String(stack.length));
       set('holonStatus', h.status||h.servico||'ok');
