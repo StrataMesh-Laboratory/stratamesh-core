@@ -1,3 +1,26 @@
+# Metabolic stasis v1.3 — pace_factor (inflator / deflator)
+
+v1.3 multiplies the hourly cap by a **pace_factor** so under-spend late in the window inflates (up to 1.5×) and over-spend early deflates (down to 0.5×). Neutral **1.0** when `day_spent==0` or `daily_limit<=0`. Circuit still trips on the **unadjusted** hourly cap so an inflator cannot bypass Error 1027.
+
+```
+hourly_cap      = remaining / max(hours_until_renewal, 1/60)
+pace_factor     = clamp(time_frac / spent_frac, 0.5, 1.5)   # 1.0 if day_spent==0
+adjusted        = hourly_cap × pace_factor
+inflator        = max(1, pace_factor)
+deflator        = min(1, pace_factor)
+density         = signal / cost
+effective_cap   = adjusted × density
+circuit HOLD    if hour_spent ≥ 1.25 × hourly_cap   # unadjusted
+circuit STASIS  if hour_spent ≥ 2 × hourly_cap      # unadjusted
+```
+
+- **HF Inference** HOLD until **2026-09-01T00:00:00Z** (`stasis_until`). Never paid HF.
+- **AWS Free** STASIS remaining=0 (`hard_cap: 0`). Never Paid / Support / Auto-renew. Not a Fog host. Billing alarm $1.
+- **grok-bot-included** / **grok-assistant**: `unknown_remaining: "hold"` — missing numeric `daily_limit` does **not** invent a weekly cap (HOLD until a live remaining sample). Sampler/`usage_limit` still pauses those routines. Do not invent a fake weekly cap number.
+- **CF Workers Free** after **2026-08-29T00:00:00Z** is Q-gated ALLOW (`R = remaining/hours_left * pace_factor`), not STASIS. Never workers.dev. Never a 6th cron.
+
+---
+
 # Metabolic stasis v1.2 — token density
 
 v1.1 paced remaining/hours. v1.2 makes **few tokens carry high impact** so Error 1027 cannot repeat, and effective capacity grows without a plan upgrade.
