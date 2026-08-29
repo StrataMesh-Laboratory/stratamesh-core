@@ -41,3 +41,4 @@ Aquisição na **Ágora** (P2P) não é mint de protocolo — é troca de STRATA
 - **PdS** — pagamento em STRATA pelo consumo de recursos da malha
 - **Pool de malha** — capacidade por classe; usufruto via draw; placement ≠ identidade do recurso
 - **App tokens** — podem ancorar-se em STRATA (colateral), sem substituir STRATA como token fundacional
+- Optional PdS wallet pace ([`METABOLISM-ON-GRAPH.md`](./METABOLISM-ON-GRAPH.md)) — ACBs and registered node users may opt in so remaining/hours_left × pace_factor gates STRATA consumption. Not a mint. Not exclusive vs default PdS debit.
