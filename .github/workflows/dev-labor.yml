@@ -3,6 +3,7 @@
 name: dev-labor
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -43,10 +44,11 @@ jobs:
         env:
           DESK_TICK_OUT: ${{ github.workspace }}/artifacts
         run: python3 ops/bin/desk-tick.py || true
-      - name: Never workers.dev in workflows
+      - name: Never workers.dev ingest URLs in workflows
         run: |
-          if grep -RIn --include='*.yml' 'workers\.dev' .github/workflows; then
-            echo FAIL workers.dev in Actions
+          # Comments/guards mention the string; fail only on live host URLs.
+          if grep -RIn --include='*.yml' -E 'https?://[^[:space:]]+workers\.dev' .github/workflows; then
+            echo FAIL live workers.dev URL in Actions YAML
             exit 1
           fi
           echo OK
