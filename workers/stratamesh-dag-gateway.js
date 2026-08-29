@@ -22,7 +22,7 @@ export default {
       
       // POST /api/v1/submit — full DAG+IPFS pipeline (proxy to stratamesh-dag)
       if (path === '/health' || path === '/api/v1/health' || path === '/') {
-        return json({ status: 'ok', service: 'stratamesh-dag-gateway', version: '1.1.0', endpoints: ['/api/v1/status','/api/v1/submit','/api/v1/tips','/api/v1/vertices'] });
+        return json({ status: 'ok', service: 'stratamesh-dag-gateway', version: '1.1.1-aliases', endpoints: ['/api/v1/status','/api/v1/submit','/api/v1/tips','/api/v1/dag/tips','/api/v1/vertices'] });
       }
       if ((path === '/api/v1/submit' || path === '/api/v1/dag/submit') && request.method === 'POST') {
         try {
@@ -49,7 +49,7 @@ export default {
       }
 
       // GET /api/v1/tips — proxy
-      if (path === '/api/v1/tips' && request.method === 'GET') {
+      if ((path === '/api/v1/tips' || path === '/api/v1/dag/tips') && request.method === 'GET') {
         try {
           const resp = await fetch('https://stratamesh-dag.stratamesh.workers.dev/tips');
           const text = await resp.text();
@@ -229,6 +229,46 @@ export default {
         }
       }
       
+      // Origin orchestrator aliases (more-specific Worker route may steal these)
+      if (path === '/api/v1/orchestrator/health' || path === '/api/v1/orchestrator' || path === '/api/v1/orchestrator/') {
+        const pulse_id = 'pulse-' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+        return json({
+          status: 'ok',
+          service: 'stratamesh-orchestrator',
+          origin: 'calhegasmorais.pt',
+          version: '1.1.1-aliases+orch-health',
+          node_id: 'FOG-NODE-PT-CM-001',
+          pulse_id,
+          endpoints: ['POST /api/orchestrator/chat', 'GET /api/v1/orchestrator/health'],
+          lab: true,
+        });
+      }
+      if ((path === '/api/v1/orchestrator/chat' || path === '/api/v1/orchestrator/chat/') && (request.method === 'POST' || request.method === 'GET')) {
+        if (env.ORCH && typeof env.ORCH.fetch === 'function' && request.method === 'POST') {
+          try {
+            const body = await request.text();
+            const resp = await env.ORCH.fetch(new Request('https://orchestrator.internal/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body,
+            }));
+            const text = await resp.text();
+            return new Response(text, { status: resp.status, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+          } catch (e) {
+            return json({ error: e.message }, 502);
+          }
+        }
+        const pulse_id = 'pulse-' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+        let msg = 'lab pulse';
+        try { const b = await request.json(); msg = b.message || b.text || msg; } catch (_) {}
+        return json({
+          reply: 'Orquestrador CMN (lab). Recebi: «' + String(msg).slice(0, 280) + '». FOG-NODE-PT-CM-001 · n=1.',
+          clearance: 'public',
+          pulse_id,
+          source: 'dag-gateway-orch-alias',
+        });
+      }
+
       // 404 fallback
       return json({ error: 'Not Found', path }, 404);
     }

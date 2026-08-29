@@ -132,6 +132,119 @@ function htmlPage(html, extra, status) {
   return new Response(html, { status: status || 200, headers });
 }
 
+
+function newPulseId() {
+  const iso = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+  return 'pulse-' + iso + '-' + Math.random().toString(36).slice(2, 8);
+}
+
+function originOrchHealth() {
+  return {
+    status: 'ok',
+    service: 'stratamesh-orchestrator',
+    origin: 'calhegasmorais.pt',
+    version: 'origin-orch-chat-1.0.0',
+    node_id: 'FOG-NODE-PT-CM-001',
+    sca_id: 'SCA-ORCH-CMN-001',
+    lab: true,
+    endpoints: ['POST /api/orchestrator/chat', 'GET /api/v1/orchestrator/health'],
+  };
+}
+
+function originOrchFallback(message, extra) {
+  const msg = String(message || '').trim();
+  const pulse_id = newPulseId();
+  const reply = msg
+    ? ('Orquestrador CMN (lab, origem calhegasmorais.pt). Recebi: «' + msg.slice(0, 280) + '». SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false. Clearance público. Não invento o que o runtime não observa.')
+    : 'Orquestrador CMN (lab, origem calhegasmorais.pt). Pulso vazio aceite. FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001 · n=1.';
+  return Object.assign({
+    reply,
+    clearance: 'public',
+    account_clearance: 'public',
+    pulse_id,
+    role: 'orchestrator',
+    lab: true,
+    node_id: 'FOG-NODE-PT-CM-001',
+    source: (extra && extra.source) || 'origin-orch-fallback',
+  }, extra && extra.error ? { error: extra.error } : {});
+}
+
+function enrichOrchPayload(obj, fallbackMsg) {
+  if (!obj || typeof obj !== 'object') return originOrchFallback(fallbackMsg, { source: 'origin-orch-nonobject' });
+  const out = Object.assign({}, obj);
+  if (!out.reply || !String(out.reply).trim()) {
+    out.reply = originOrchFallback(fallbackMsg, { source: 'origin-orch-empty-reply' }).reply;
+  }
+  if (!out.clearance) out.clearance = out.account_clearance || 'public';
+  if (!out.pulse_id) out.pulse_id = newPulseId();
+  return out;
+}
+
+/** Origin POST /api/orchestrator/chat + GET /api/v1/orchestrator/health. Never workers.dev. */
+async function originOrchChat(request, env, corsHeaders, restPath) {
+  const url = new URL(request.url);
+  const path = restPath != null ? restPath : (url.pathname || '/');
+  const headers = Object.assign({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  }, corsHeaders || {});
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+  const isChat = /\/chat\/?$/.test(path) || path === '/chat';
+  const isHealth = /\/health\/?$/.test(path) || path === '/' || path === '' || path === '/api/v1/orchestrator' || path === '/api/orchestrator';
+  if (request.method === 'GET' && isHealth && !isChat) {
+    return new Response(JSON.stringify(Object.assign(originOrchHealth(), { pulse_id: newPulseId() })), { status: 200, headers });
+  }
+  let body = {};
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    try { body = await request.json(); } catch (_) { body = {}; }
+  } else if (url.searchParams.get('message')) {
+    body = { message: url.searchParams.get('message') };
+  }
+  if (request.method === 'GET' && isChat) {
+    const accept = request.headers.get('Accept') || '';
+    if (accept.includes('application/json')) {
+      return new Response(JSON.stringify(Object.assign(originOrchHealth(), {
+        methods: ['POST'],
+        pulse_id: newPulseId(),
+        body: { message: 'string' },
+      })), { status: 200, headers });
+    }
+  }
+
+  const msg = (body && (body.message || body.text || body.prompt)) || '';
+  const orchPath = '/chat';
+  try {
+    if (env.ORCH && typeof env.ORCH.fetch === 'function' && (request.method === 'POST' || isChat)) {
+      const initHeaders = { 'Content-Type': 'application/json', Accept: 'application/json' };
+      const auth = request.headers.get('Authorization');
+      if (auth) initHeaders.Authorization = auth;
+      const xc = request.headers.get('X-Clearance');
+      if (xc) initHeaders['X-Clearance'] = xc;
+      const payload = Object.assign({}, body, { message: msg || 'lab pulse' });
+      const resp = await env.ORCH.fetch(new Request('https://orchestrator.internal' + orchPath, {
+        method: 'POST',
+        headers: initHeaders,
+        body: JSON.stringify(payload),
+      }));
+      const text = await resp.text();
+      let obj = null;
+      try { obj = JSON.parse(text); } catch (_) {}
+      if (obj && typeof obj === 'object') {
+        const enriched = enrichOrchPayload(obj, msg);
+        const status = (resp.status >= 200 && resp.status < 500 && resp.status !== 404) ? (resp.ok ? 200 : resp.status) : 200;
+        return new Response(JSON.stringify(enriched), { status: status === 405 ? 200 : status, headers });
+      }
+    }
+  } catch (e) {
+    const fb = originOrchFallback(msg, { source: 'origin-orch-binding-error', error: String(e && e.message ? e.message : e).slice(0, 180) });
+    return new Response(JSON.stringify(fb), { status: 200, headers });
+  }
+  const fb = originOrchFallback(msg || 'lab pulse', { source: 'origin-orch-local' });
+  return new Response(JSON.stringify(fb), { status: 200, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -351,31 +464,10 @@ Policy: https://calhegasmorais.pt/eni
     }
 
     
-    if (path.startsWith('/api/orchestrator') || path === '/api/orchestrator/chat') {
-      const rest = path.slice('/api/orchestrator'.length) || '/chat';
-      const target = 'https://stratamesh-orchestrator.stratamesh.workers.dev' + (rest === '' || rest === '/' ? '/chat' : rest);
-      try {
-        if (env.ORCH && typeof env.ORCH.fetch === 'function') {
-          const u = new URL(request.url);
-          u.pathname = rest === '' || rest === '/' ? '/chat' : rest;
-          const resp = await env.ORCH.fetch(new Request(u.toString(), {
-            method: request.method,
-            headers: request.headers,
-            body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-            redirect: 'manual',
-          }));
-          return withCors(resp, corsHeaders);
-        }
-        const apiResponse = await fetch(new Request(target + (new URL(request.url)).search, {
-          method: request.method,
-          headers: request.headers,
-          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-          redirect: 'manual',
-        }));
-        return withCors(apiResponse, corsHeaders);
-      } catch (e) {
-        return new Response(JSON.stringify({ error: String(e.message || e) }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
+    if (path.startsWith('/api/orchestrator') || path.startsWith('/api/v1/orchestrator')) {
+      const prefix = path.startsWith('/api/v1/orchestrator') ? '/api/v1/orchestrator' : '/api/orchestrator';
+      const rest = path.slice(prefix.length) || '/chat';
+      return originOrchChat(request, env, corsHeaders, rest || '/chat');
     }
 
 if (path.startsWith('/api/')) {
@@ -396,6 +488,13 @@ if (path.startsWith('/api/')) {
     }
 
     if (path === '/chat' || path === '/chat/' || path === '/orquestrador' || path === '/orchestrator') {
+      const ct = (request.headers.get('content-type') || request.headers.get('Content-Type') || '').toLowerCase();
+      const accept = (request.headers.get('Accept') || '').toLowerCase();
+      if (request.method === 'POST' || (request.method === 'GET' && accept.includes('application/json') && !accept.includes('text/html'))) {
+        if (request.method === 'POST' || ct.includes('json') || accept.includes('application/json')) {
+          return originOrchChat(request, env, corsHeaders, '/chat');
+        }
+      }
       return serveNodeChat(request, env, 'pt');
     }
     if (path === '/en/chat' || path === '/en/chat/' || path === '/en/orchestrator') {

@@ -32,7 +32,7 @@ export default {
       if (path === '/agora/health') {
         return j({
           status: 'active',
-          version: '3.2.0-rate',
+          version: '3.2.1-n-lt-2',
           role: 'P2P exchange: STRATA listed for external value (EUR/crypto/stable). Not a mint.',
           external_value_exchange: true,
           settlement: 'lab_intent + agora_payments verification_status',
@@ -281,10 +281,23 @@ export default {
         return j({
           success: true,
           status: 'operational',
-          version: '3.2.0-rate',
+          version: '3.2.1-n-lt-2',
           total_listings,
           total_trades,
           settlement: 'lab_intent',
+          settlements: { unavailable: 'n<2' },
+          n: 1,
+          note: 'Lab n=1: settlement count is not a scalar; unavailable until n>=2',
+        });
+      }
+
+      if (path === '/agora/settlements') {
+        return j({
+          settlements: { unavailable: 'n<2' },
+          n: 1,
+          f_max: 0,
+          lab: true,
+          note: 'Honest: do not report 0 trades as a settlement metric when n<2',
         });
       }
 

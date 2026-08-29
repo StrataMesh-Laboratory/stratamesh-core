@@ -11,7 +11,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '3.0.0-virtual-vote-iota';
+const VERSION = '3.0.1-n1-fmax0';
 
 function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: CORS });
@@ -182,6 +182,11 @@ export default {
         service: 'stratamesh-consensus',
         role: 'meta-finality + tip-selection + virtual-voting',
         version: VERSION,
+        n: 1,
+        f_max: 0,
+        mesh_member: false,
+        lab: true,
+        note: 'lab n=1; Byzantine f_max=0 until n>=3',
         modules: Object.keys(MODULES),
         parallels: {
           iota: ['cumulative_weight', 'mcmc_tip_selection', 'confirmation_confidence'],

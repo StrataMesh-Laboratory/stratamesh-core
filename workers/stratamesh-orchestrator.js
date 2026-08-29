@@ -3554,6 +3554,13 @@ export default {
         out.channel = "whatsapp";
         out.eni_whatsapp = "+44 7404 796458";
       }
+      if (out && typeof out === "object") {
+        if (!out.reply) out.reply = "Orquestrador CMN · pulso vazio.";
+        if (!out.clearance) out.clearance = out.account_clearance || "public";
+        if (!out.pulse_id) {
+          out.pulse_id = "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+        }
+      }
       return json(out);
     }
 

@@ -1,0 +1,3 @@
+# Pages fail-open (1027). API orchestrator is a Function — never rewrite to HTML.
+# /api/orchestrator*  → functions/api/orchestrator/*
+# /api/v1/orchestrator* → functions/api/v1/orchestrator/*

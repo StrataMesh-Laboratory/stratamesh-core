@@ -1,3 +1,4 @@
+
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
  * StrataMesh foundational holarchy + CLP temporal kernel (shared source of truth).
@@ -619,6 +620,20 @@ async function svcJson(env, bindingName, path, timeoutMs = 2500) {
   }
 }
 
+async function fetchJsonPublic(url, timeoutMs = 2500) {
+  try {
+    const work = (async () => {
+      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4' } });
+      const json = await r.json().catch(() => null);
+      return { ok: r.ok, status: r.status, json };
+    })();
+    const timed = new Promise((resolve) => setTimeout(() => resolve({ ok: false, error: 'timeout_public' }), timeoutMs));
+    return await Promise.race([work, timed]);
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e).slice(0, 120) };
+  }
+}
+
 async function tokenSnapshot(env, monetaryMs = 2500) {
   const [health, mon] = await Promise.all([
     svcJson(env, 'TOKEN', '/health', 4000),
@@ -679,13 +694,15 @@ async function buildLiveStatus(env, opts) {
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
   const monetaryMs = (opts && opts.monetaryMs) || 2500;
-  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH] = await Promise.all([
+  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
     svcJson(env, 'POC', '/health', 4000),
     svcJson(env, 'POC', '/pool', 5000),
     svcJson(env, 'ACB', '/health', 2500),
     svcJson(env, 'ORCH', '/health', 2500),
     svcJson(env, 'DAG', '/health', 2500),
+    svcJson(env, 'DAG', '/stats', 2500),
+    svcJson(env, 'DAG', '/tips', 2500),
     svcJson(env, 'REPUBLIC', '/health', 2500),
     svcJson(env, 'AGORA', '/health', 2500),
     svcJson(env, 'AGORA', '/agora/rate?quote=EUR', 2500),
@@ -693,6 +710,8 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'AUTH', '/health', 2500),
     svcJson(env, 'IPFS', '/health', 2500),
     svcJson(env, 'HOLONS', '/health', 2500),
+    svcJson(env, 'HOLONS', '/so', 2500),
+    fetchJsonPublic('https://calhegasmorais.pt/api/v1/gossip/peers', 2500),
   ]);
 
   const mon = tokenSnap.json;
@@ -713,7 +732,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.3.9-pulse',
+    version: '0.4.3-fog-process',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -762,10 +781,30 @@ async function buildLiveStatus(env, opts) {
       users: authH.json.checks && authH.json.checks.database ? authH.json.checks.database.users : null,
       staff: authH.json.checks && authH.json.checks.staff ? authH.json.checks.staff.count : null,
     } : null,
-    dag: dagH.json && dagH.ok ? {
-      version: dagH.json.version,
-      status: dagH.json.status || 'ok',
-    } : null,
+    dag: {
+      version: dagH.json && dagH.json.version,
+      status: (dagH.json && dagH.json.status) || (dagH.ok ? 'ok' : 'down'),
+      transaction_count: Number(
+        (dagStats.json && (dagStats.json.transaction_count || dagStats.json.txs || dagStats.json.count)) ??
+        (dagTips.json && (Array.isArray(dagTips.json.tips) ? dagTips.json.tips.length : dagTips.json.count)) ??
+        (dagH.json && (dagH.json.transaction_count || dagH.json.txs)) ??
+        0
+      ),
+      tips: dagTips.json && (Array.isArray(dagTips.json.tips) ? dagTips.json.tips.length : dagTips.json.count),
+      stats_ok: !!dagStats.ok,
+      tips_ok: !!dagTips.ok,
+      measured: true,
+    },
+    spa: {
+      source: 'fog_process',
+      active: 1,
+      total: 1,
+      by_role: { fog: 1, edge: 0, other: 0 },
+      mesh_member: false,
+      oracle_live: false,
+      holons_ok: !!holonsH.ok,
+      note: 'Lab n=1. Fog is local-process (node_persistent). Not lab_seed. mesh_member=false while Fog /health is 530 and oracle_live=false. EDGE may gossip; it is not this SPA.',
+    },
     republic: repH.json && repH.ok ? {
       version: repH.json.version,
       kind: repH.json.kind,
@@ -776,6 +815,7 @@ async function buildLiveStatus(env, opts) {
       health_ok: !!agoraH.ok,
       version: agoraH.json && agoraH.json.version,
       status: agoraH.json && (agoraH.json.status || 'ok'),
+      settlements: { unavailable: 'n<2' },
       rate: agoraRate.json && agoraRate.ok ? {
         quote_asset: agoraRate.json.quote_asset || 'EUR',
         strata_per_quote: agoraRate.json.strata_per_quote,
@@ -784,6 +824,13 @@ async function buildLiveStatus(env, opts) {
         liquidity_strata: agoraRate.json.liquidity_strata,
         listings: agoraRate.json.listings,
       } : null,
+    },
+    consensus: {
+      n: 1,
+      f_max: 0,
+      mesh_member: false,
+      module: 'probabilistic',
+      note: 'lab n=1; Byzantine f_max=0 until n>=3',
     },
     acb: acbH.json && acbH.ok ? {
       version: acbH.json.version,
@@ -862,11 +909,41 @@ export default {
       return new Response(page(live), {headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'public, max-age=15'}});
     }
 
+    if (url.pathname === '/inventory' || url.pathname === '/v1/inventory') {
+      const cached = await readPulseCache(env);
+      const live = (cached && cached.live) ? cached.live : await buildLiveStatus(env);
+      const inv = {
+        node_id: live.node_id,
+        version: live.version,
+        lab: true,
+        track: 'edge',
+        issue: 'https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/2',
+        measured_at: live.timestamp,
+        spa: live.spa || null,
+        dag: live.dag || null,
+        mesh_pool: live.mesh_pool || null,
+        resources: {
+          classes: (live.mesh_pool && live.mesh_pool.classes) || [],
+          peers: live.spa,
+          dag_txs: live.dag && live.dag.transaction_count,
+          agora_settlements: live.agora && live.agora.settlements,
+        },
+        honesty: {
+          spa_source: live.spa && live.spa.source,
+          dag_measured: !!(live.dag && live.dag.measured),
+          note: 'Lab inventory. spa.source=fog_process; settlements unavailable n<2; consensus n=1 f_max=0.',
+        },
+      };
+      return new Response(JSON.stringify(inv, null, 2), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' },
+      });
+    }
+
     if (url.pathname === '/health') {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.3.8-pulse',
+        version: '0.4.3-fog-process',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
