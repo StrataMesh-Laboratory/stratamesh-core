@@ -1,0 +1,48 @@
+# Live Cloudflare Worker bytes vs git. Observe. No PUT.
+name: gitlive-drift
+
+on:
+  schedule:
+    - cron: "25 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "workers/**"
+      - "stratamesh-impact-fund/workers/**"
+      - "ops/bin/gitlive-drift.py"
+      - ".github/workflows/gitlive-drift.yml"
+
+concurrency:
+  group: gitlive-drift
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Compare live /content to git
+        id: drift
+        run: python3 ops/bin/gitlive-drift.py
+        continue-on-error: true
+      - name: Comment #52 on drift
+        if: steps.drift.outcome == 'failure'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 52,
+              body: '## gitlive-drift FAIL\n\nLive Worker SHA-256 ≠ git. Dispatch `desk-publish` after Q-gate, or inspect the Actions log.\n\nRun: ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + '\n\n<!-- stratamesh-gitlive-drift -->',
+            });
+            core.setFailed('live ≠ git');

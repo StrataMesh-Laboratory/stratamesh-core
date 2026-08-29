@@ -1,0 +1,44 @@
+# GitHub prerelease from an existing tag or a new v0.x.x-lab tag.
+# Does NOT wrangler-deploy. Does NOT post Discourse (human / t/20).
+name: release-lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag (e.g. v0.2.3-lab)"
+        required: true
+      notes_path:
+        description: "Release notes markdown path"
+        required: false
+        default: "docs/RELEASE-v0.2.3-lab.md"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Ensure tag
+        run: |
+          TAG="${{ inputs.tag }}"
+          git fetch --tags
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "tag exists $TAG"
+          else
+            git tag -a "$TAG" -m "$TAG"
+            git push origin "$TAG"
+          fi
+      - name: GitHub prerelease
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          prerelease: true
+          body_path: ${{ inputs.notes_path }}
+          fail_on_unmatched_files: false

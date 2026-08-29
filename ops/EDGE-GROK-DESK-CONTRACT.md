@@ -72,4 +72,4 @@ Current lab: `FOG-NODE-PT-CM-001` local-process n=1, `oracle_live=false`, `same_
 - EDGE-GROK automation-desk PRs: STRATAGROK / grok@.
 - Core protocol CI, Oracle/Fog substrate, economic invariants: André merges.
 
-See [METABOLISM.md](./METABOLISM.md), [docs/HUB.md](../docs/HUB.md), [docs/COMMUNITY-CHANNELS.md](../docs/COMMUNITY-CHANNELS.md).
+See [METABOLISM.md](./METABOLISM.md), [docs/HUB.md](../docs/HUB.md), [docs/COMMUNITY-CHANNELS.md](../docs/COMMUNITY-CHANNELS.md), [docs/EDGE-GROK-ACTIONS-PACKAGE.md](../docs/EDGE-GROK-ACTIONS-PACKAGE.md) (GitHub Actions is the Bot body; Grok stays Fog/tunnel + judgment).

@@ -1,0 +1,32 @@
+# Q-gated live Worker PUT. Dispatch only — never on push, never a 6th cron.
+# Uses Git Data? No: checkout IS git. PUT /content from this tree if metabolism ALLOW.
+name: desk-publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      scripts:
+        description: "Comma-separated CF script ids (allow-listed)"
+        required: false
+        default: "stratamesh-status,stratamesh-gossip,stratamesh-spa"
+
+concurrency:
+  group: desk-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Q-gate + PUT /content
+        env:
+          DESK_PUBLISH_SCRIPTS: ${{ inputs.scripts }}
+        run: python3 ops/bin/desk-publish.py

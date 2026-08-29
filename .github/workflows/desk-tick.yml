@@ -1,0 +1,49 @@
+# EDGE-GROK observe tick. Replaces Grok hourly #52 *observe* (not publish).
+# 6 Lisbon-aligned slots = grok-auto daily_limit. Public runner net $0.
+name: desk-tick
+
+on:
+  schedule:
+    - cron: "0 3,8,11,17,20,22 * * *"
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: desk-tick
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  tick:
+    name: Observe /health + honesty
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      DESK_TICK_OUT: ${{ github.workspace }}/artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: desk-tick
+        id: tick
+        run: python3 ops/bin/desk-tick.py
+        continue-on-error: true
+      - name: Ledger #52 on FAIL only
+        if: steps.tick.outcome == 'failure'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## desk-tick FAIL\n\nSee Actions run ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId;
+            try { body += '\n\n' + fs.readFileSync('artifacts/desk-tick.md', 'utf8'); } catch (_) {}
+            body += '\n\n<!-- stratamesh-desk-tick -->';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 52,
+              body,
+            });
+            core.setFailed('desk-tick failed — #52 commented');
