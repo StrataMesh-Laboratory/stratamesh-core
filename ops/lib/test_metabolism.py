@@ -457,6 +457,18 @@ class CircuitWiredCallers(unittest.TestCase):
         self.assertNotIn("remaining", kw)
 
 
+try:
+    from test_metabolism_hypothesis import (  # noqa: E402,F401
+        PaceFactorBounds,
+        CircuitUnadjusted,
+        UnknownRemaining,
+        ExpiredReset,
+        ReplaySameVerdict,
+    )
+except ImportError:
+    pass
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
 
