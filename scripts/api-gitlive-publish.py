@@ -35,6 +35,7 @@ MAIN_MODULE = {
     "stratamesh-deomail": "stratamesh-deomail.js",
     "stratamesh-briefing": "stratamesh-briefing.js",
     "stratamesh-edge-grok": "stratamesh-edge-grok.js",
+    "stratamesh-origin-archive": "stratamesh-origin-archive.js",
 }
 
 

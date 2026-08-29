@@ -10,7 +10,7 @@ Do **not** mention tokens, workers.dev, or unpublished preview workspaces.
 
 ## A — Announcements (category 5)
 
-**Title:** `v0.2.3-lab (prerelease) — Fog ingest-guard + origin chat 200 · still n=1`
+**Title:** `v0.2.3-lab (prerelease) — Fog ingest-guard + gossip.calhegasmorais.pt · still n=1`
 
 **Body:**
 
@@ -20,6 +20,8 @@ Since [v0.2.2-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/rele
 
 - Fog **ingest-guard** on `POST /tx/ingest` (n=1 kernel). Multi-host P0 stays **open**.
 - Gossip Worker lists the real Fog process + EDGE on custom domains (`fog.` / `edge.calhegasmorais.pt`).
+- Gossip Worker on **https://gossip.calhegasmorais.pt/** (Fog + EDGE custom domains). Apex `/api/v1/gossip*` remains.
+- Origin public landing **https://origin.calhegasmorais.pt/** (staff login at `/login`). Not PHP SYSTEM LOGIN.
 - Origin `POST https://calhegasmorais.pt/api/orchestrator/chat` returns **200 JSON** (fail-open; lab speech).
 - Status pulse `spa.source=fog_process`. Fog `/health` is 200 `0.2.3-lab-temp` (`mesh_member=false`, `oracle_live=false`).
 - Impact Fund `0.4.6-grantor-brief` — Challenge 0 still **unfunded**.

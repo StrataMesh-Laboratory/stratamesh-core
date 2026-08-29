@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.4-custom-domain';
+const VERSION = '2.3.5-host';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -122,6 +122,50 @@ function j(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: CORS });
 }
 
+function wantsHtml(request) {
+  const a = String(request.headers.get('Accept') || '');
+  return a.includes('text/html');
+}
+
+function publicPage() {
+  const body = `<!DOCTYPE html><html lang="pt-PT"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gossip · Nó Calhegas Morais</title>
+<style>
+:root{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--surface:#0c1a28;--teal:#2f9e8a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;line-height:1.55}
+.wrap{max-width:42rem;margin:0 auto;padding:2rem 1.2rem 4rem}
+.kicker{font:600 .68rem/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:1.6rem;margin:.4rem 0 .8rem}p{color:var(--muted)}
+a{color:var(--teal)} .card{background:var(--surface);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.1rem;margin:1rem 0}
+.links a{display:inline-block;margin:.2rem .3rem .2rem 0;padding:.4rem .7rem;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none}
+.links a:hover{border-color:var(--teal);color:var(--teal)}
+.mono{font-family:ui-monospace,monospace;font-size:.84rem;color:var(--teal)}
+footer{margin-top:2rem;color:var(--muted);font-size:.78rem}
+</style></head><body><main class="wrap">
+<p class="kicker">gossip.calhegasmorais.pt</p>
+<h1>Gossip-about-gossip</h1>
+<p>Lab mesh view for <span class="mono">FOG-NODE-PT-CM-001</span> + <span class="mono">EDGE-GROK-CMN-001</span>. Not aBFT. Not mainnet. n=1 · mesh_member=false.</p>
+<div class="card">
+<p>JSON stays on <span class="mono">/health</span> and <span class="mono">/peers</span>. Apex alias <span class="mono">/api/v1/gossip*</span> still works.</p>
+<div class="links">
+  <a href="/health">/health</a>
+  <a href="/peers">/peers</a>
+  <a href="https://fog.calhegasmorais.pt/">Fog</a>
+  <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+  <a href="https://origin.calhegasmorais.pt/">Origin</a>
+  <a href="https://calhegasmorais.pt/">Apex</a>
+  <a href="https://status.calhegasmorais.pt/status">Status pulse</a>
+</div>
+</div>
+<footer>StrataMesh Laboratory · v${VERSION} · LAB only · no STRATA</footer>
+</main></body></html>`;
+  return new Response(body, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'Access-Control-Allow-Origin': '*' },
+  });
+}
+
 async function sha256Hex(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -207,11 +251,13 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
     if (path === '/' || path === '/health') {
+      if (path === '/' && wantsHtml(request)) return publicPage();
       return j({
         status: 'ok',
         service: 'stratamesh-gossip',
         version: VERSION, mesh: 'active',
         role: 'gossip-about-gossip',
+        host: 'gossip.calhegasmorais.pt',
         metabolic: 'health is cheap; /peers is cached 60s',
         parallels: {
           hedera: 'event = (ts, txs[], selfParent, otherParent, sig); history = hashgraph fragment',

@@ -599,7 +599,7 @@ footer{margin-top:2rem;color:var(--muted);font-size:.8rem}table{width:100%;borde
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/INSTITUTIONAL-ROADMAP.md">Institutional roadmap</a>
       <a href="https://fog.calhegasmorais.pt/health">Fog process /health</a>
       <a href="https://status.calhegasmorais.pt/">Status pulse (Worker)</a>
-      <a href="https://calhegasmorais.pt/api/v1/gossip/peers">Gossip peers</a>
+      <a href="https://gossip.calhegasmorais.pt/peers">Gossip peers</a>
       <a href="https://stratamesh.discourse.group/">Discourse</a>
     </div>
   </section>

@@ -3,9 +3,32 @@
 **Status:** DRAFT · **HOLD** until operator GO  
 **Proposed tag:** `v0.2.3-lab` (GitHub **prerelease**, same class as v0.2.0–v0.2.2)  
 **Baseline:** [v0.2.2-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.2-lab) (`c3ab1557`)  
-**Proposed HEAD:** `a7ac55e4` (2026-08-29T21:34Z) · 21 commits · 80 files  
+**Proposed HEAD:** current main after gossip hostname + public landings (this packaging hour)
 
 This is **not** a semver major, **not** v0.3, **not** testnet, **not** mainnet.
+
+## STRATAGROK diary HOLDs — what can ship in this cut
+
+From `ops/EDGE-GROK-DESK-CONTRACT.md`, `docs/academy/2026-08-29-desk-lesson.md`, `ops/HANDOFF-LATEST`, `#52` ledger:
+
+| Diary HOLD | Now |
+|---|---|
+| Gossip PR only when it records the **live Fog process** (#16 deferred from v0.2.2) | Live peers Fog+EDGE custom domains (`2.3.5-host`) |
+| `gossip.calhegasmorais.pt` did not exist (apex `/api/v1/gossip*` only) | Hostname + Worker routes (same pattern as origin/edge) |
+| Fog `/` was JSON-only (browsers get a dump) | Git `public_html()` for `Accept: text/html`. Live temp process still JSON until restart |
+| Origin was staff-login-first (looked like a wall) | Public landing + `/login` for staff. Not PHP SYSTEM LOGIN |
+| Fog 530 / spa empty | Fog `/health` 200; `/spa` total=1 |
+| Unpublished preview workspaces | Snapshotted to git + live Workers |
+
+## Diary HOLDs that **stay HOLD** (do not ship)
+
+- `calhegasmorais.grok.me` publish
+- HF Inference until 2026-09-01T00:00:00Z
+- P0 multi-host close / grok90 Oracle VM
+- Renovate majors / create-all (#46)
+- Reddit `r/StrataMesh_DLT` (banned)
+- 6th CF cron, workers.dev ingest, GitHub `/actions` burn
+- KV HANDOFF writes until 00:00 UTC 2026-08-30 (quota 10048)
 
 ## Why a lab cut (justified)
 

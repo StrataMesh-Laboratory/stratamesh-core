@@ -322,6 +322,47 @@ class PersistentFogNode:
         })
         return s
 
+    def public_html(self) -> str:
+        """GET / for browsers. JSON remains default for /status and Accept: json."""
+        spa = self.spa_view()
+        ver = "0.2.3-lab"
+        return f"""<!DOCTYPE html>
+<html lang="pt-PT"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Fog · Nó Calhegas Morais</title>
+<style>
+:root{{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--surface:#0c1a28;--teal:#2f9e8a}}
+*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;line-height:1.55}}
+.wrap{{max-width:42rem;margin:0 auto;padding:2rem 1.2rem 4rem}}
+.kicker{{font:600 .68rem/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}}
+h1{{font-size:1.6rem;margin:.4rem 0 .8rem}}p{{color:var(--muted)}}
+a{{color:var(--teal)}}.card{{background:var(--surface);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.1rem;margin:1rem 0}}
+.links a{{display:inline-block;margin:.2rem .3rem .2rem 0;padding:.4rem .7rem;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none}}
+.links a:hover{{border-color:var(--teal);color:var(--teal)}}
+.mono{{font-family:ui-monospace,monospace;font-size:.84rem;color:var(--teal)}}
+footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
+</style></head><body><main class="wrap">
+<p class="kicker">fog.calhegasmorais.pt</p>
+<h1>FOG-NODE-PT-CM-001</h1>
+<p>Nó de referência Calhegas Morais · Lisboa. Local-process lab. <span class="mono">mesh_member=false</span> · <span class="mono">oracle_live=false</span> · n=1.</p>
+<div class="card">
+<p>JSON: <span class="mono">/health</span> · <span class="mono">/status</span> · <span class="mono">/spa</span> · <span class="mono">/gossip</span>. Not the status Worker pulse.</p>
+<div class="links">
+  <a href="/health">/health</a>
+  <a href="/status">/status</a>
+  <a href="/spa">/spa</a>
+  <a href="/gossip">/gossip</a>
+  <a href="https://gossip.calhegasmorais.pt/">Gossip Worker</a>
+  <a href="https://origin.calhegasmorais.pt/">Origin</a>
+  <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+  <a href="https://calhegasmorais.pt/">Apex</a>
+  <a href="https://status.calhegasmorais.pt/status">Status pulse</a>
+</div>
+</div>
+<footer>spa.total={spa.get("total")} · source={spa.get("source")} · {ver} · LAB only · no STRATA</footer>
+</main></body></html>
+"""
+
     def gossip_view(self) -> dict:
         """GET /gossip: live inventory + self as the only peer. lab_single_host_gossip."""
         nid = self.node_id
@@ -385,7 +426,7 @@ class PersistentFogNode:
                 phase="2",
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
-                    "version": "0.2.2-dev",
+                    "version": "0.2.3-lab",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     "mesh_member": False,
@@ -428,10 +469,24 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _html(self, code: int, body: str):
+        raw = body.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(raw)
+
     def do_GET(self):
         path = urlparse(self.path).path
+        accept = (self.headers.get("Accept") or "")
         if path in ("/", "/status", "/v1/status"):
-            self._json(200, NODE.status())
+            if path == "/" and "text/html" in accept:
+                self._html(200, NODE.public_html())
+            else:
+                self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
             self._json(200, {"ok": True})
         elif path == "/inv":

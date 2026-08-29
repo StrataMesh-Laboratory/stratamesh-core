@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.0-origin-archive";
+var VERSION = "0.1.1-public-landing";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -145,6 +145,24 @@ footer{margin-top:2rem;font-size:.75rem;color:var(--muted)}
 <body><main class="wrap">${inner}</main></body></html>`;
 }
 __name(pageShell, "pageShell");
+function publicLanding() {
+  return pageShell(
+    "Origin · Nó Calhegas Morais",
+    `<p class="kicker">origin.calhegasmorais.pt</p>
+     <h1>Origin archive</h1>
+     <p>Staff-gated last-resort pile. Not the public Fog node. Not PHP SYSTEM LOGIN. Apex is Cloudflare Pages.</p>
+     <div class="card">
+       <div class="row"><span class="mono">Fog process</span><a href="https://fog.calhegasmorais.pt/">fog.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Gossip</span><a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">EDGE desk</span><a href="https://edge.calhegasmorais.pt/">edge.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Apex / Pages</span><a href="https://calhegasmorais.pt/">calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Status pulse</span><a href="https://status.calhegasmorais.pt/status">status.calhegasmorais.pt</a></div>
+     </div>
+     <p><a class="pill" href="/login">Staff login</a></p>
+     <p class="mono">Lab · n=1 · spa.source=fog_process · mesh_member=false · Challenge 0 unfunded</p>`
+  );
+}
+__name(publicLanding, "publicLanding");
 function loginPage(err) {
   return pageShell(
     "Origin archive \xB7 staff",
@@ -159,7 +177,7 @@ function loginPage(err) {
        <p class="err">${err || ""}</p>
        <button type="submit">Continuar</button>
      </form>
-     <p class="mono">Lab \xB7 n=1 \xB7 spa.source=lab_seed \xB7 Challenge 0 unfunded</p>`
+     <p class="mono">Lab \xB7 n=1 \xB7 spa.source=fog_process \xB7 Challenge 0 unfunded</p>`
   );
 }
 __name(loginPage, "loginPage");
@@ -220,6 +238,7 @@ var stratamesh_origin_archive_default = {
         service: "stratamesh-origin-archive",
         version: VERSION,
         staff_gated: true,
+        public_landing: true,
         sixth_cron: false
       });
     }
@@ -312,7 +331,8 @@ var stratamesh_origin_archive_default = {
       return html(loginPage("AUTH_DB unavailable: " + String(e.message || e)), 503);
     }
     if (!session) {
-      if (path === "/" || path === "/login") return html(loginPage());
+      if (path === "/" || path === "") return html(publicLanding());
+      if (path === "/login") return html(loginPage());
       return html(loginPage("Sess\xE3o staff necess\xE1ria."), 401);
     }
     if (path === "/" || path === "/pile") {
