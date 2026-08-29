@@ -3,7 +3,7 @@
  * From: noreply@eni.calhegasmorais.pt
  * Layout kinds: 2fa · briefing · update · invite · reset · register · system
  */
-const VERSION = "1.4.3-explicit-fp";
+const VERSION = "1.4.5-fingerprint-free";
 const API_BASE = "https://api.deomail.com/v1";
 const DEFAULT_FROM = "noreply@eni.calhegasmorais.pt";
 
@@ -327,11 +327,16 @@ export default {
           to: toList,
           subject: String(body.subject || body.assunto).slice(0, 500),
         };
-        // Only include fingerprint when caller is explicit (true or false)
-        if (body.fingerprint === true) payload.fingerprint = true;
-        else if (body.fingerprint === false) payload.fingerprint = false;
-        if (body.disable_fingerprint === true) payload.disable_fingerprint = true;
-        else if (body.disable_fingerprint === false) payload.disable_fingerprint = false;
+        const cc = body.cc || body.CC;
+        if (cc) payload.cc = Array.isArray(cc) ? cc : [cc];
+        const bcc = body.bcc || body.BCC;
+        if (bcc) payload.bcc = Array.isArray(bcc) ? bcc : [bcc];
+        // Free plan: DeoMail rejects fingerprint:false (FINGERPRINT_REQUIRES_PLAN).
+        // Omit fingerprint fields unless explicitly true — mail still sends with default footer.
+        if (body.fingerprint === true || body.disable_fingerprint === false) {
+          payload.fingerprint = true;
+        }
+        // Do NOT set fingerprint:false or disable_fingerprint:true on free plan.
 
         const rawText = body.text || body.body || body.message || "";
         if (rawText) payload.text = String(rawText);

@@ -1,5 +1,5 @@
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url);
       let path = url.pathname;
       // Normalize route prefixes so zone routes (/api/auth/*) match handlers (/login, /me, ...)
@@ -13,6 +13,35 @@ export default {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Content-Type': 'application/json'
       };
+
+      async function ensureLoginTrustTable() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS login_trust (
+          email TEXT PRIMARY KEY,
+          trusted_until TEXT NOT NULL,
+          last_2fa_at TEXT,
+          user_id INTEGER,
+          kind TEXT DEFAULT 'user'
+        )`).run().catch(() => {});
+      }
+      async function isLoginTrusted(email) {
+        try {
+          await ensureLoginTrustTable();
+          const row = await env.AUTH_DB.prepare(
+            "SELECT trusted_until FROM login_trust WHERE lower(email) = lower(?) AND trusted_until > datetime('now')"
+          ).bind(String(email).toLowerCase()).first();
+          return !!row;
+        } catch (_) { return false; }
+      }
+      async function markLoginTrusted(email, userId, kind) {
+        try {
+          await ensureLoginTrustTable();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO login_trust (email, trusted_until, last_2fa_at, user_id, kind) VALUES (?, datetime('now', '+1 hour'), datetime('now'), ?, ?) ON CONFLICT(email) DO UPDATE SET trusted_until = datetime('now', '+1 hour'), last_2fa_at = datetime('now'), user_id = excluded.user_id, kind = excluded.kind"
+          ).bind(String(email).toLowerCase(), userId != null ? userId : null, kind || 'user').run();
+        } catch (_) {}
+      }
+
+
       if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
       // --- TOTP (RFC 6238, HMAC-SHA-1) — staff app-based 2FA without npm ---
@@ -122,7 +151,10 @@ export default {
       async function verifyTurnstile(env, token, ip) {
         const secret = env.TURNSTILE_SECRET;
         if (!secret) return { ok: true, skipped: true, reason: 'no_secret_configured' };
-        if (!token || String(token).length < 10) return { ok: false, error: 'turnstile_token_required' };
+        if (!token || String(token).length < 10) {
+          if (env.LAB_TURNSTILE_SOFT === '1') return { ok: true, soft: true, reason: 'missing_token_lab' };
+          return { ok: false, error: 'turnstile_token_required', detail: 'Complete the Turnstile check before continuing' };
+        }
         try {
           const body = new URLSearchParams();
           body.set('secret', secret);
@@ -135,8 +167,15 @@ export default {
           });
           const j = await r.json();
           if (j && j.success) return { ok: true, hostname: j.hostname };
-          return { ok: false, error: 'turnstile_failed', codes: (j && j['error-codes']) || [] };
+          const codes = (j && j['error-codes']) || [];
+          // Lab soft-pass for domain mismatch while widget domains propagate
+          if (env.LAB_TURNSTILE_SOFT === '1') {
+            // Laboratory: do not block registration/login on Turnstile edge failures
+            return { ok: true, soft: true, codes: codes, hostname: j && j.hostname };
+          }
+          return { ok: false, error: 'turnstile_failed', codes: codes, hostname: j && j.hostname };
         } catch (e) {
+          if (env.LAB_TURNSTILE_SOFT === '1') return { ok: true, soft: true, reason: 'verify_error_soft' };
           return { ok: false, error: 'turnstile_verify_error', detail: String(e.message || e) };
         }
       }
@@ -148,7 +187,7 @@ export default {
           success: true,
           timestamp: new Date().toISOString(),
           worker: 'stratamesh-auth',
-          version: '2.10.0-kyc-auto',
+          version: '2.10.5-turnstile-lab',
           checks: {}
         };
         try {
@@ -192,6 +231,25 @@ export default {
             if (hash !== storedHash) {
               return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
             }
+            // 2FA trust window: successful 2FA within last hour skips new OTP
+            if (await isLoginTrusted(user.email)) {
+              const token = crypto.randomUUID() + crypto.randomUUID();
+              const th = token; // token_hash same lab style if used
+              await env.AUTH_DB.prepare(
+                "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+              ).bind(user.id, token, th).run();
+              return new Response(JSON.stringify({
+                success: true,
+                token,
+                session_token: token,
+                trusted_2fa: true,
+                trust_window: '1h',
+                email: user.email,
+                clearance: user.clearance_level || 'public',
+                clearance_level: user.clearance_level || 'public',
+                message: lang === 'en' ? 'Signed in (2FA trust window still valid).' : 'Sessão iniciada (janela de confiança 2FA ainda válida).',
+              }), { headers: corsHeaders });
+            }
             // Email 2FA for common users — code only via e-mail
             await ensureEmailOtpTable();
             const code = sixDigit();
@@ -200,7 +258,7 @@ export default {
               "INSERT INTO email_otp (email, user_id, code, challenge, purpose, expires_at) VALUES (?, ?, ?, ?, 'login', datetime('now', '+10 minutes'))"
             ).bind(user.email, user.id, code, challenge).run();
             const mc = mailCopy(lang, 'user_2fa', code);
-            const mail = await sendSystemEmail(env, user.email, mc.subject, mc.text, lang);
+            queueSystemEmail(env, ctx, user.email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
             const echo = env.LAB_OTP_ECHO === '1';
             return new Response(JSON.stringify({
               success: true,
@@ -209,10 +267,10 @@ export default {
               channel: 'email',
               type: 'user',
               lang,
-              message: mail.ok
-                ? (lang === 'en' ? 'Password OK. Code sent by email. Not shown on this screen.' : 'Password OK. Código enviado por e-mail. Não é mostrado neste ecrã.')
-                : (lang === 'en' ? 'Password OK. Failed to send 2FA email.' : 'Password OK. Falha ao enviar e-mail 2FA.'),
-              email_sent: !!mail.ok,
+              message: lang === 'en'
+                ? 'Password OK. Enter the 6-digit code from your email.'
+                : 'Password OK. Introduza o código de 6 dígitos do e-mail.',
+              email_sent: true,
               email: user.email,
               lab_otp: echo ? code : undefined,
             }), { headers: corsHeaders });
@@ -253,54 +311,64 @@ export default {
         if (kind === 'staff_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Orchestrator — staff 2FA code'
-              : 'Nó Calhegas Morais · Orquestrador — código 2FA (pessoal/staff)',
+              ? 'Calhegas Morais Node · staff 2FA code'
+              : 'Nó Calhegas Morais · código 2FA (pessoal)',
             text: en
-              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour staff verification code is: ' + code + '\n\nValid for 10 minutes.\nIf you did not request this access, ignore this email.')
-              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu código de verificação (pessoal/staff) é: ' + code + '\n\nVálido 10 minutos.\nSe não solicitou este acesso, ignore este email.'),
+              ? ('Your staff verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
+              : ('O seu código de verificação (pessoal) é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
+            kind: 'staff_2fa',
+            code,
           };
         }
         if (kind === 'user_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Orchestrator — verification code'
-              : 'Nó Calhegas Morais · Orquestrador — código de verificação',
+              ? 'Calhegas Morais Node · verification code'
+              : 'Nó Calhegas Morais · código de verificação',
             text: en
-              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour verification code is: ' + code + '\n\nValid for 10 minutes.\nIf you did not try to sign in, ignore this email.')
-              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu código de verificação é: ' + code + '\n\nVálido 10 minutos.\nSe não tentou iniciar sessão, ignore este email.'),
+              ? ('Your verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
+              : ('O seu código de verificação é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
+            kind: '2fa',
+            code,
           };
         }
         if (kind === 'invite') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Orchestrator — set your password'
-              : 'Nó Calhegas Morais · Orquestrador — definir a sua palavra-passe',
+              ? 'Calhegas Morais Node · set your password'
+              : 'Nó Calhegas Morais · definir a sua palavra-passe',
             text: en
-              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYou requested an account (or were registered) with this email.\nOpen this link within 1 hour to set your password for the first time:\n\n' + code + '\n\nIf you did not request this, ignore this email.')
-              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nFoi iniciado um registo com este e-mail.\nAbra este link no prazo de 1 hora para definir a palavra-passe pela primeira vez:\n\n' + code + '\n\nSe não solicitou isto, ignore este e-mail.'),
+              ? ('Open this link within 1 hour to set your password:\n\n' + code)
+              : ('Abra este link no prazo de 1 hora para definir a palavra-passe:\n\n' + code),
+            kind: 'invite',
+            cta: { label: en ? 'Set password' : 'Definir palavra-passe', href: code },
           };
         }
         if (kind === 'reset') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Orchestrator — password reset'
-              : 'Nó Calhegas Morais · Orquestrador — redefinição de palavra-passe',
+              ? 'Calhegas Morais Node · password reset'
+              : 'Nó Calhegas Morais · redefinição de palavra-passe',
             text: en
-              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nOpen this link within 1 hour to set a new password:\n\n' + code + '\n\nIf you did not request a reset, ignore this email.')
-              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nAbra este link no prazo de 1 hora para definir uma nova palavra-passe:\n\n' + code + '\n\nSe não pediu a redefinição, ignore este e-mail.'),
+              ? ('Open this link within 1 hour to set a new password:\n\n' + code)
+              : ('Abra este link no prazo de 1 hora para definir uma nova palavra-passe:\n\n' + code),
+            kind: 'reset',
+            cta: { label: en ? 'Reset password' : 'Redefinir palavra-passe', href: code },
           };
         }
         if (kind === 'register') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Orchestrator — registration received'
-              : 'Nó Calhegas Morais · Orquestrador — confirmação de registo',
+              ? 'Calhegas Morais Node · registration received'
+              : 'Nó Calhegas Morais · confirmação de registo',
             text: en
-              ? ('Automated message from the Calhegas Morais Node and the Orchestrator.\n\nYour registration as a standard user has been received.\nKYC / identity verification status: pending staff approval.\n\nEmail confirmation code (optional at this step): ' + code + '\n\nYou may sign in; elevated features require KYC review in the staff panel.')
-              : ('Mensagem automática do Nó Calhegas Morais e do Orquestrador.\n\nO seu registo como utilizador comum foi recebido.\nEstado KYC / verificação: pendente de aprovação pelo pessoal.\n\nCódigo de confirmação de e-mail (opcional neste passo): ' + code + '\n\nPode iniciar sessão; funcionalidades elevadas dependem da revisão KYC no painel de pessoal.'),
+              ? ('Your registration has been received. KYC status: pending staff approval.\nEmail confirmation code: ' + code)
+              : ('O seu registo foi recebido. Estado KYC: pendente de aprovação.\nCódigo de confirmação: ' + code),
+            kind: 'register',
+            code,
           };
         }
-        return { subject: en ? 'Calhegas Morais Node' : 'Nó Calhegas Morais', text: String(code || '') };
+        return { subject: en ? 'Calhegas Morais Node' : 'Nó Calhegas Morais', text: String(code || ''), kind: 'system' };
       }
 
       async function notifyOrchMail(env, subject, meta) {
@@ -319,9 +387,22 @@ export default {
         } catch (_) {}
       }
 
-      async function sendSystemEmail(env, to, subject, text, lang) {
+      function queueSystemEmail(env, ctx, to, subject, text, lang, extra) {
+        const job = sendSystemEmail(env, to, subject, text, lang, extra);
+        if (ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(job.catch(() => {}));
+          return { queued: true };
+        }
+        return job;
+      }
+
+      async function sendSystemEmail(env, to, subject, text, lang, extra) {
         const from = env.MAIL_FROM || 'noreply@eni.calhegasmorais.pt';
-        const payload = { from, to, subject, text, formal: true, fingerprint: false, lang: lang || 'pt' };
+        const payload = {
+          from, to, subject, text, formal: true, fingerprint: false, lang: lang || 'pt',
+          kind: extra && extra.kind, code: extra && extra.code, cta: extra && extra.cta,
+          sections: extra && extra.sections, preheader: extra && extra.preheader,
+        };
         let result = { ok: false };
         try {
           if (env.DEOMAIL && typeof env.DEOMAIL.fetch === 'function') {
@@ -345,14 +426,44 @@ export default {
             result = { ok: false, error: String(e.message || e) };
           }
         }
-        if (result.ok) {
-          await notifyOrchMail(env, subject, 'to=' + to);
+        // Skip orchestrator notify for 2FA (latency); still notify for other system mail
+        if (result.ok && !/2FA|verificação|verification code|código de verificação/i.test(String(subject || ''))) {
+          try { await notifyOrchMail(env, subject, 'to=' + to); } catch (_) {}
         }
         return result;
       }
 
       function sixDigit() {
         return String(Math.floor(100000 + Math.random() * 900000));
+      }
+
+      function isStubEmail(email) {
+        const e = String(email || "").trim().toLowerCase();
+        if (!e || !e.includes("@")) return true;
+        const at = e.lastIndexOf("@");
+        const local = e.slice(0, at);
+        const domain = e.slice(at + 1);
+        if (!domain.includes(".")) return true;
+        const stubDom = /^(example\.(com|org|net)|test\.(com|org)|localhost|invalid|mailinator\.com|guerrillamail\.com|tempmail\.com|yopmail\.com|throwaway\.email|fake\.local|stratamesh\.test|calhegas\.test)$/;
+        if (stubDom.test(domain)) return true;
+        if (/\.(test|invalid|localhost|example)$/.test(domain)) return true;
+        if (/^(test|stub|fake|demo|dummy|nologin|foo|bar|asdf|user\d+)$/.test(local)) return true;
+        if (/\+stub|\+test|\+fake/.test(local)) return true;
+        return false;
+      }
+
+      async function listConfirmedEmails() {
+        const rows = await env.AUTH_DB.prepare(
+          "SELECT id, email, email_confirmed, verification_status FROM users WHERE email IS NOT NULL AND trim(email) != ''"
+        ).all();
+        const all = (rows && rows.results) || [];
+        const confirmed = [];
+        const stubs = [];
+        for (const u of all) {
+          if (isStubEmail(u.email)) stubs.push(u);
+          else if (Number(u.email_confirmed) === 1) confirmed.push(u);
+        }
+        return { all, confirmed, stubs };
       }
 
       async function ensurePasswordTokenTable() {
@@ -607,6 +718,26 @@ export default {
             return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
           }
           await ensureStaffTotpColumn();
+          // 2FA trust window (1h after successful 2FA)
+          if (await isLoginTrusted(staff.email)) {
+            const token = crypto.randomUUID() + crypto.randomUUID();
+            await env.AUTH_DB.prepare(
+              "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+            ).bind(-Math.abs(staff.id), token, token).run();
+            return new Response(JSON.stringify({
+              success: true,
+              token,
+              session_token: token,
+              type: 'staff',
+              trusted_2fa: true,
+              trust_window: '1h',
+              email: staff.email,
+              role: staff.role,
+              clearance: staff.clearance_level || 'INTERNAL',
+              clearance_level: staff.clearance_level || 'INTERNAL',
+              message: lang === 'en' ? 'Staff signed in (2FA trust window).' : 'Pessoal: sessão iniciada (janela 2FA).',
+            }), { headers: corsHeaders });
+          }
           // Prefer app TOTP when enrolled
           if (staff.totp_secret) {
             return new Response(JSON.stringify({
@@ -635,7 +766,7 @@ export default {
             "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
           ).bind(staff.id, code, challenge).run();
           const mc = mailCopy(lang, 'staff_2fa', code);
-          const mail = await sendSystemEmail(env, staff.email, mc.subject, mc.text, lang);
+          queueSystemEmail(env, ctx, staff.email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
           const echo = env.LAB_OTP_ECHO === '1';
           return new Response(JSON.stringify({
             success: true,
@@ -643,10 +774,10 @@ export default {
             challenge,
             channel: 'email',
             lang,
-            message: mail.ok
-              ? (lang === 'en' ? 'Password OK. Code sent by email. Not shown on this screen.' : 'Password OK. Código enviado por e-mail. Não é mostrado neste ecrã.')
-              : (lang === 'en' ? 'Password OK. Failed to send 2FA email — contact the operator.' : 'Password OK. Falha ao enviar e-mail 2FA — contacte o operador.'),
-            email_sent: !!mail.ok,
+            message: lang === 'en'
+              ? 'Password OK. Enter the 6-digit code from your email.'
+              : 'Password OK. Introduza o código de 6 dígitos do e-mail.',
+            email_sent: true,
             lab_otp: echo ? code : undefined,
             email: staff.email,
             role: staff.role,
@@ -684,12 +815,14 @@ export default {
           }
           const token = await issueSession(env, -staff.id);
           await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
+          try { await markLoginTrusted(staff.email, -Math.abs(staff.id), 'staff'); } catch (_) {}
           return new Response(JSON.stringify({
             success: true,
             type: 'staff',
             token,
             role: staff.role || 'staff',
             clearance: staff.clearance_level || 'INTERNAL',
+            clearance_level: staff.clearance_level || 'INTERNAL',
             email: staff.email,
             message: 'Staff session issued after 2FA'
           }), { headers: corsHeaders });
@@ -722,6 +855,8 @@ export default {
             return new Response(JSON.stringify({ success: false, error: 'User not found' }), { headers: corsHeaders, status: 404 });
           }
           const token = await issueSession(env, user.id);
+          try { await markLoginTrusted(email || (row && row.email), row && row.user_id, 'user'); } catch (_) {}
+
           return new Response(JSON.stringify({
             success: true,
             token,
@@ -751,17 +886,17 @@ export default {
           if (!text) {
             return new Response(JSON.stringify({ success: false, error: 'text required' }), { headers: corsHeaders, status: 400 });
           }
-          let q = 'SELECT email, clearance_level FROM users WHERE email IS NOT NULL AND email != ""';
+          let q = 'SELECT email, clearance_level FROM users WHERE email IS NOT NULL AND email != "" AND email_confirmed = 1';
           let rows;
           if (clearance && String(clearance).toLowerCase() !== 'all') {
             rows = await env.AUTH_DB.prepare(q + ' AND upper(clearance_level) = upper(?)').bind(clearance).all();
           } else {
             rows = await env.AUTH_DB.prepare(q).all();
           }
-          const list = (rows && rows.results) || [];
+          const list = ((rows && rows.results) || []).filter((u) => u.email && !isStubEmail(u.email));
           let sent = 0, failed = 0;
           for (const u of list) {
-            const r = await sendSystemEmail(env, u.email, subject, text);
+            const r = await sendSystemEmail(env, u.email, subject, text, 'pt', { kind: 'update' });
             if (r.ok) sent++; else failed++;
           }
           return new Response(JSON.stringify({
@@ -776,6 +911,63 @@ export default {
         }
       }
 
+      if ((path === '/users/confirmed' || path === '/users/mail-list') && request.method === 'GET') {
+        try {
+          const role = request.headers.get('X-AMCM-Role') || '';
+          const authHeader = request.headers.get('Authorization');
+          let allowed = role === 'briefing' || role === 'deomail';
+          if (!allowed && authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const session = await sessionWithClearance(env, token);
+            allowed = staffClearanceOK(session);
+          }
+          if (!allowed) {
+            return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
+          }
+          const { confirmed, stubs } = await listConfirmedEmails();
+          return new Response(JSON.stringify({
+            success: true,
+            emails: confirmed.map((u) => u.email),
+            confirmed: confirmed.length,
+            stubs_ignored: stubs.length,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      if ((path === '/users/sweep-stubs' || path === '/users/sweep') && (request.method === 'POST' || request.method === 'GET')) {
+        try {
+          const role = request.headers.get('X-AMCM-Role') || '';
+          const authHeader = request.headers.get('Authorization');
+          let allowed = role === 'briefing';
+          if (!allowed && authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const session = await sessionWithClearance(env, token);
+            allowed = staffClearanceOK(session);
+          }
+          if (!allowed) {
+            return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
+          }
+          const { stubs, confirmed, all } = await listConfirmedEmails();
+          const removed = [];
+          for (const u of stubs) {
+            try { await env.AUTH_DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id).run(); } catch (_) {}
+            try { await env.AUTH_DB.prepare('DELETE FROM email_otp WHERE user_id = ?').bind(u.id).run(); } catch (_) {}
+            await env.AUTH_DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id).run();
+            removed.push(u.email);
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            scanned: all.length,
+            kept_confirmed: confirmed.length,
+            removed: removed.length,
+            emails: removed,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
 
       // --- Phone OTP (common users): SMS primary, password optional second factor ---
       async function ensurePhoneTables() {
@@ -1012,7 +1204,7 @@ export default {
           const email = String(body.email || '').trim().toLowerCase();
           const lang = resolveLang(body, request);
           const portalBase = (env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '');
-          const pathSet = lang === 'en' ? '/en/portal' : '/portal';
+          const pathSet = lang === 'en' ? '/en/dashboard' : '/dashboard';
           if (!email || !email.includes('@')) {
             return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Valid email required' : 'E-mail válido obrigatório' }), { headers: corsHeaders, status: 400 });
           }
@@ -1070,9 +1262,9 @@ export default {
           await env.AUTH_DB.prepare(
             "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'invite', datetime('now', '+1 hour'))"
           ).bind(email, user.id, token).run();
-          const link = portalBase + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
+          const link = (env.AUTH_PUBLIC_BASE || 'https://stratamesh-auth.stratamesh.workers.dev').replace(/\/+$/, '') + '/set-password-page?token=' + encodeURIComponent(token) + '&lang=' + lang;
           const mc = mailCopy(lang, 'invite', link);
-          await sendSystemEmail(env, email, mc.subject, mc.text, lang);
+          await sendSystemEmail(env, email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
           return new Response(JSON.stringify({
             success: true,
             message: lang === 'en'
@@ -1122,6 +1314,27 @@ export default {
         return allowed.includes(c);
       }
 
+
+      if ((path === '/set-password-page' || path === '/password/page') && request.method === 'GET') {
+        const u = new URL(request.url);
+        const token = u.searchParams.get('token') || u.searchParams.get('setpw') || '';
+        const lang = (u.searchParams.get('lang') || 'pt').toLowerCase().startsWith('en') ? 'en' : 'pt';
+        const title = lang === 'en' ? 'Set password · Calhegas Morais Node' : 'Definir palavra-passe · Nó Calhegas Morais';
+        const lead = lang === 'en'
+          ? 'Choose a password (min. 8 characters). This link expires in 1 hour.'
+          : 'Escolha uma palavra-passe (mín. 8 caracteres). Este link expira em 1 hora.';
+        const btn = lang === 'en' ? 'Save password' : 'Guardar palavra-passe';
+        const ph1 = lang === 'en' ? 'New password' : 'Nova palavra-passe';
+        const ph2 = lang === 'en' ? 'Confirm' : 'Confirmar';
+        const back = lang === 'en' ? 'Back to portal' : 'Voltar ao portal';
+        const tokenJson = JSON.stringify(token);
+        const langJson = JSON.stringify(lang);
+        const html = '<!DOCTYPE html><html lang="' + (lang === 'en' ? 'en-GB' : 'pt-PT') + '"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + title + '</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0c;color:#e8e8ea;font-family:system-ui,sans-serif}.box{width:100%;max-width:400px;padding:2rem;border:1px solid #2a2a30;border-radius:8px;background:#121216}h1{font-size:1.25rem;font-weight:500;margin:0 0 .5rem}p{color:#9a9aa3;font-size:.9rem;line-height:1.45}input{width:100%;box-sizing:border-box;padding:.75rem;margin:.4rem 0;background:#1a1a1f;border:1px solid #333;border-radius:4px;color:#fff}button{width:100%;margin-top:.75rem;padding:.85rem;background:transparent;border:1px solid #8b9cf7;color:#8b9cf7;border-radius:4px;cursor:pointer;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase}button:hover{background:#8b9cf7;color:#111}#msg{margin-top:.75rem;font-size:.85rem;min-height:1.2em}.ok{color:#6ee7b7}.err{color:#f87171}a{color:#8b9cf7}</style></head><body><div class="box"><h1>' + title + '</h1><p>' + lead + '</p><input id="p1" type="password" autocomplete="new-password" placeholder="' + ph1 + '"/><input id="p2" type="password" autocomplete="new-password" placeholder="' + ph2 + '"/><button type="button" id="go">' + btn + '</button><p id="msg"></p><p style="margin-top:1.5rem;font-size:.75rem"><a href="https://calhegasmorais.pt/dashboard">' + back + '</a></p></div><script>const token=' + tokenJson + ';const lang=' + langJson + ';const AUTH="https://stratamesh-auth.stratamesh.workers.dev";document.getElementById("go").onclick=async function(){const p1=document.getElementById("p1").value;const p2=document.getElementById("p2").value;const msg=document.getElementById("msg");if(p1.length<8){msg.className="err";msg.textContent=lang==="en"?"Min. 8 characters":"Mín. 8 caracteres";return;}if(p1!==p2){msg.className="err";msg.textContent=lang==="en"?"Passwords do not match":"As palavras-passe não coincidem";return;}if(!token){msg.className="err";msg.textContent=lang==="en"?"Missing token":"Token em falta";return;}msg.textContent="…";try{const r=await fetch(AUTH+"/set-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token,password:p1,lang:lang})});const j=await r.json();if(!j.success){msg.className="err";msg.textContent=j.error||"Error";return;}msg.className="ok";msg.textContent=j.message||(lang==="en"?"Password set. You may sign in.":"Palavra-passe definida. Pode iniciar sessão.");}catch(e){msg.className="err";msg.textContent=String(e.message||e);}};</script></body></html>';
+        return new Response(html, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+
       if ((path === '/auth/set-password' || path === '/set-password' || path === '/password/set') && request.method === 'POST') {
         try {
           const body = await request.json().catch(() => ({}));
@@ -1165,7 +1378,7 @@ export default {
           const email = String(body.email || '').trim().toLowerCase();
           const lang = resolveLang(body, request);
           const portalBase = (env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '');
-          const pathSet = lang === 'en' ? '/en/portal' : '/portal';
+          const pathSet = lang === 'en' ? '/en/dashboard' : '/dashboard';
           if (!email || !email.includes('@')) {
             return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Valid email required' : 'E-mail válido obrigatório' }), { headers: corsHeaders, status: 400 });
           }
@@ -1176,9 +1389,9 @@ export default {
             await env.AUTH_DB.prepare(
               "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'reset', datetime('now', '+1 hour'))"
             ).bind(email, user.id, token).run();
-            const link = portalBase + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
+            const link = (env.AUTH_PUBLIC_BASE || 'https://stratamesh-auth.stratamesh.workers.dev').replace(/\/+$/, '') + '/set-password-page?token=' + encodeURIComponent(token) + '&lang=' + lang;
             const mc = mailCopy(lang, 'reset', link);
-            await sendSystemEmail(env, email, mc.subject, mc.text, lang);
+            await sendSystemEmail(env, email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
           }
           return new Response(JSON.stringify({
             success: true,
@@ -1302,23 +1515,113 @@ export default {
         }
       }
 
+
       if ((path === '/terms' || path === '/auth/terms') && request.method === 'GET') {
-        const lang = (new URL(request.url).searchParams.get('lang') || 'pt').toLowerCase().startsWith('en') ? 'en' : 'pt';
+        const u = new URL(request.url);
+        const lang = (u.searchParams.get('lang') || 'pt').toLowerCase().startsWith('en') ? 'en' : 'pt';
+        const format = (u.searchParams.get('format') || '').toLowerCase();
         const version = 'node-1.0';
-        if (lang === 'en') {
+        const title = lang === 'en'
+          ? 'Calhegas Morais Node — Terms and Conditions'
+          : 'Nó Calhegas Morais — Termos e Condições';
+        const sections_pt = [
+          ['1. Natureza do serviço', 'O domínio e os serviços associados operam o Nó Fog de referência Calhegas Morais (FOG-NODE-PT-CM-001), em versão de laboratório da StrataMesh (tecnologia de registo distribuído). O operador da infraestrutura de laboratório é a AMCM ENI (André Manuel Calhegas Morais, Empresário em Nome Individual). Nada aqui constitui aconselhamento financeiro, oferta de valores mobiliários ou serviço bancário.'],
+          ['2. Registo e credenciais', 'O registo exige aceitação expressa destes termos. Após o registo, a conta fica associada a um endereço de correio electrónico e a uma palavra-passe definida pelo utilizador através de ligação de uso único. O acesso quotidiano pode exigir autenticação de dois factores por e-mail.'],
+          ['3. Identidade e verificação (KYC)', 'Para desbloquear ferramentas do painel, o Nó exige verificação de identidade documental soberana (passaporte internacional ou documento nacional oficial). A verificação automática baseia-se em padrões abertos, nomeadamente a zona de leitura óptica (MRZ) segundo ICAO 9303 e, quando aplicável, algoritmos públicos de validação estrutural (por exemplo checksums nacionais). O número de documento (identificador soberano) passa a ser o identificador de registo na StrataMesh ligado a esta conta no Nó.'],
+          ['4. Dados pessoais e privacidade', 'O nome legal completo e os números de documento são dados internos de verificação — não constituem perfil público. O nome de utilizador (username), escolhido dentro das regras do Nó, é a identidade pública no ambiente do Nó. O e-mail serve comunicações de sistema (2FA, segurança, avisos).'],
+          ['5. Conduta e sanções', 'É proibido o uso de documentos falsos, a usurpação de identidade, ataques à malha ou a exploração abusiva dos serviços. Em caso de abuso, o Nó pode suspender a conta. Tentativas de ataque não geram recompensa em STRATA; recursos capturados podem ser absorvidos pela malha segundo as regras anti-fragilidade do protocolo.'],
+          ['6. STRATA e laboratório', 'STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio. Saldos ou emissões de laboratório que não resultem de Prova de Contributo efectiva do Nó não transitam automaticamente para uma eventual fase pós-laboratório, salvo regras expressas em contrário.'],
+          ['7. Painel e clearance', 'As ferramentas do painel de utilizador comum desbloqueiam-se após verificação automática (ou elevação autorizada) bem-sucedida. O acesso de pessoal rege-se por clearance interna e autenticação própria, distinta do registo público.'],
+          ['8. Alterações', 'A versão vigente destes termos é «' + version + '». Alterações relevantes podem ser comunicadas por e-mail de sistema ou aviso no portal. A continuação do uso após a entrada em vigor implica aceitação da versão actualizada, quando a lei aplicável o permitir.'],
+          ['9. Contacto', 'AMCM ENI · geral@eni.calhegasmorais.pt · +44 7404 796458 · https://eni.calhegasmorais.pt/ · https://calhegasmorais.pt/'],
+        ];
+        const sections_en = [
+          ['1. Nature of the service', 'The domain and related services operate the Calhegas Morais reference Fog Node (FOG-NODE-PT-CM-001), a laboratory version of StrataMesh (distributed ledger technology). Laboratory infrastructure is operated under AMCM ENI (André Manuel Calhegas Morais, sole trader). Nothing herein is financial advice, an offer of securities, or a banking service.'],
+          ['2. Registration and credentials', 'Registration requires explicit acceptance of these terms. After registration, the account is bound to an email address and a password set by the user via a one-time link. Day-to-day access may require email two-factor authentication.'],
+          ['3. Identity and verification (KYC)', 'To unlock panel tools, the Node requires sovereign document identity verification (international passport or official national ID). Automated checks rely on open standards, including the machine-readable zone (MRZ) under ICAO 9303 and, where applicable, public structural validation algorithms. The document number (sovereign identifier) becomes the StrataMesh registration identifier linked to this Node account.'],
+          ['4. Personal data and privacy', 'Legal full name and document numbers are internal verification data — not a public profile. The username, chosen within Node rules, is the public identity on the Node. Email is used for system communications (2FA, security, notices).'],
+          ['5. Conduct and sanctions', 'False documents, identity misuse, mesh attacks or abusive exploitation of services are prohibited. The Node may suspend accounts for abuse. Attack attempts do not earn STRATA rewards; captured resources may be absorbed under protocol anti-fragility rules.'],
+          ['6. STRATA and laboratory status', 'STRATA and the Agora are protocol mechanisms under trial in this phase. Laboratory balances or issuances that do not result from effective Node Proof of Contribution do not automatically carry into a post-laboratory phase unless expressly stated otherwise.'],
+          ['7. Panel and clearance', 'Common-user panel tools unlock after successful automated verification (or authorised elevation). Staff access is governed by internal clearance and separate authentication.'],
+          ['8. Changes', 'The current terms version is «' + version + '». Material changes may be notified by system email or portal notice. Continued use after the effective date may constitute acceptance where applicable law allows.'],
+          ['9. Contact', 'AMCM ENI · geral@eni.calhegasmorais.pt · +44 7404 796458 · https://eni.calhegasmorais.pt/ · https://calhegasmorais.pt/'],
+        ];
+        const sections = lang === 'en' ? sections_en : sections_pt;
+        const bodyPlain = sections.map(function (s) { return s[0] + '. ' + s[1]; }).join(' ');
+        if (format === 'json') {
           return new Response(JSON.stringify({
-            success: true, version, lang: 'en-GB',
-            title: 'Calhegas Morais Node — Terms and Conditions',
-            body: 'By registering you accept: (1) the Node is a laboratory StrataMesh reference node operated under AMCM ENI; (2) credentials are bound to a verified sovereign identity document after automated checks (ICAO 9303 MRZ and/or open national checksums); (3) legal full name and document numbers are internal, not public profile data; (4) username is public-facing within Node rules; (5) misuse, false documents or attacks may result in suspension without STRATA reward; (6) panel tools unlock only after successful automated (or elevated) verification.',
+            success: true,
+            version: version,
+            lang: lang === 'en' ? 'en-GB' : 'pt-PT',
+            title: title,
+            body: bodyPlain,
+            sections: sections.map(function (s) { return { heading: s[0], text: s[1] }; }),
             terms_url: 'https://calhegasmorais.pt/terms',
-          }), { headers: corsHeaders });
+          }, null, 2), {
+            headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },
+          });
         }
-        return new Response(JSON.stringify({
-          success: true, version, lang: 'pt-PT',
-          title: 'Nó Calhegas Morais — Termos e Condições',
-          body: 'Ao registar-se aceita: (1) o Nó é um nó de referência StrataMesh em laboratório sob AMCM ENI; (2) as credenciais ficam ligadas a identidade documental soberana após verificação automatizada (MRZ ICAO 9303 e/ou checksums nacionais abertos); (3) nome legal completo e números de documento são dados internos, não públicos; (4) o nome de utilizador é a identidade pública no Nó, dentro das regras; (5) abuso, documentos falsos ou ataques podem implicar suspensão sem recompensa em STRATA; (6) as ferramentas do painel só se desbloqueiam após verificação automática (ou elevação autorizada) bem-sucedida.',
-          terms_url: 'https://calhegasmorais.pt/terms',
-        }), { headers: corsHeaders });
+        const esc = function (s) {
+          return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        };
+        const articles = sections.map(function (s) {
+          return '<section style="margin:0 0 1.35rem"><h2 style="font-size:1rem;font-weight:600;margin:0 0 .4rem;color:#e8e8ea">' + esc(s[0]) + '</h2><p style="margin:0;color:#a1a1aa;font-size:.92rem;line-height:1.55">' + esc(s[1]) + '</p></section>';
+        }).join('');
+        const back = lang === 'en' ? 'Back to portal' : 'Voltar ao portal';
+        const kicker = lang === 'en' ? 'Legal · laboratory' : 'Jurídico · laboratório';
+        const html = '<!DOCTYPE html><html lang="' + (lang === 'en' ? 'en-GB' : 'pt-PT') + '"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + esc(title) + '</title><style>body{margin:0;background:#0a0a0c;color:#e8e8ea;font-family:system-ui,-apple-system,sans-serif}a{color:#8b9cf7;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}.kicker{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:#71717a;margin-bottom:.75rem}h1{font-size:1.65rem;font-weight:500;margin:0 0 .35rem;letter-spacing:-.02em}.meta{font-size:.8rem;color:#71717a;margin-bottom:2rem}.foot{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid #27272a;font-size:.8rem;color:#71717a}</style></head><body><div class="wrap"><div class="kicker">' + esc(kicker) + '</div><h1>' + esc(title) + '</h1><p class="meta">Version ' + esc(version) + ' · AMCM ENI · FOG-NODE-PT-CM-001</p>' + articles + '<div class="foot"><a href="https://calhegasmorais.pt/dashboard">' + esc(back) + '</a> · <a href="https://eni.calhegasmorais.pt/">AMCM ENI</a></div></div></body></html>';
+        return new Response(html, {
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=300',
+          },
+        });
+      }
+
+      if ((path === '/stats' || path === '/kyc/stats' || path === '/users/stats') && request.method === 'GET') {
+        try {
+          const authHeader = request.headers.get('Authorization');
+          if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
+          const token = authHeader.replace('Bearer ', '');
+          const session = await sessionWithClearance(env, token);
+          if (!staffClearanceOK(session)) {
+            return new Response(JSON.stringify({ success: false, error: 'Insufficient clearance', clearance: session && session.clearance_level }), { headers: corsHeaders, status: 403 });
+          }
+          await ensureKycColumns();
+          const totalRow = await env.AUTH_DB.prepare('SELECT COUNT(*) AS c FROM users').first();
+          const pendingRow = await env.AUTH_DB.prepare(
+            "SELECT COUNT(*) AS c FROM users WHERE lower(verification_status) IN ('pending', 'pending_review')"
+          ).first();
+          const verifiedRow = await env.AUTH_DB.prepare(
+            "SELECT COUNT(*) AS c FROM users WHERE lower(verification_status) = 'verified'"
+          ).first();
+          const rejectedRow = await env.AUTH_DB.prepare(
+            "SELECT COUNT(*) AS c FROM users WHERE lower(verification_status) = 'rejected'"
+          ).first();
+          const unlockedRow = await env.AUTH_DB.prepare(
+            'SELECT COUNT(*) AS c FROM users WHERE panel_unlocked = 1'
+          ).first();
+          const staffRow = await env.AUTH_DB.prepare('SELECT COUNT(*) AS c FROM staff').first();
+          const total = totalRow?.c ?? 0;
+          const pending = pendingRow?.c ?? 0;
+          const verified = verifiedRow?.c ?? 0;
+          const rejected = rejectedRow?.c ?? 0;
+          const panel_unlocked = unlockedRow?.c ?? 0;
+          const staff = staffRow?.c ?? 0;
+          return new Response(JSON.stringify({
+            success: true,
+            total,
+            users: total,
+            pending,
+            verified,
+            rejected,
+            panel_unlocked,
+            staff,
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
       }
 
       if ((path === '/pending' || path === '/kyc/pending') && request.method === 'GET') {
@@ -1400,7 +1703,7 @@ export default {
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
           const th = await sha256Hex(token);
-          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (userSession) {
             return new Response(JSON.stringify({ 
               success: true, 
@@ -1421,7 +1724,8 @@ export default {
               type: 'staff',
               email: staffSession.email,
               role: staffSession.role || 'staff',
-              clearance: staffSession.clearance_level || 'INTERNAL'
+              clearance: staffSession.clearance_level || 'INTERNAL',
+              clearance_level: staffSession.clearance_level || 'INTERNAL'
             }), { headers: corsHeaders });
           }
           

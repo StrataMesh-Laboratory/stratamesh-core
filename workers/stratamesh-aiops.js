@@ -25,7 +25,20 @@ const ACB_ROSTER = {
   economics: "ACBs earn STRATA only when hired — no mint",
 };
 
-const AIOPS_VERSION = "1.7.1-ops-formal";
+const AIOPS_VERSION = "1.10.4-sg-delta";
+const STRATAGROK = {
+  name: "STRATAGROK",
+  bot_id: "c02df87b-0431-46b7-abfc-6f65d751af8e",
+  mailbox: "grok@calhegasmorais.pt",
+};
+
+/** Standing lab backlog — executed hourly without a human prompt. */
+const STANDING_BACKLOG = [
+  { id: "SG-SPA", agent: "mesh", action: "Expose SPA registry metrics on public status pulse", success_check: "status.spa.total is a number" },
+  { id: "SG-DAG", agent: "devops", action: "Expose DAG transaction_count on status pulse used by AIOps", success_check: "status.dag.transaction_count is a number" },
+  { id: "SG-DELTA", agent: "analysis", action: "Persist cycle work evidence (not only health) for the 11h briefing", success_check: "AIOPS_KV worklog_latest exists" },
+  { id: "SG-GOSSIP", agent: "mesh", action: "Keep fog+edge gossip peers listed and honest (no fabricated members)", success_check: "gossip count >= 1" },
+];
 
 async function pulseAcbTeam(env) {
   // Full ops-cycle: top-up from Orchestrator earned STRATA + pulse (zero mint)
@@ -595,7 +608,9 @@ async function runTeamCycleBudgeted(env) {
       dev.push("TEMP mode — promote always-on Fog when ready");
     }
   }
-  reports.push(agentReport("devops", dev, !orch.ok || !status.ok ? "critical" : "info"));
+  const dagNa = !status.ok || (status.data && status.data.dag && status.data.dag.transaction_count) == null;
+  if (status.ok && dagNa) dev.push("DAG txs missing from pulse — mandate gap, not green");
+  reports.push(agentReport("devops", dev, !orch.ok || !status.ok ? "critical" : dagNa ? "warn" : "info"));
 
   // security
   const sec = [];
@@ -613,12 +628,16 @@ async function runTeamCycleBudgeted(env) {
     const d = status.data;
     if (d.phase == null && d.phase_name == null) an.push("phase missing on pulse");
     else an.push("phase=" + d.phase + " (" + (d.phase_name || "") + ")");
-    an.push("SPA " + ((d.spa && d.spa.active) ?? "?") + "/" + ((d.spa && d.spa.total) ?? "?"));
+    const spaA = d.spa && d.spa.active;
+    const spaT = d.spa && d.spa.total;
+    an.push("SPA " + (spaA ?? "?") + "/" + (spaT ?? "?"));
+    if (spaA == null || spaT == null) an.push("SPA counts absent — mesh work unfinished");
     if ((d.dag && d.dag.transaction_count) != null && d.dag.transaction_count < 1) {
       an.push("DAG idle — seed or peer sync recommended");
     }
   } else an.push("No status metrics");
-  reports.push(agentReport("analysis", an, status.ok ? "info" : "warn"));
+  const spaGap = an.some((x) => /SPA counts absent|SPA \?\/\?/.test(x));
+  reports.push(agentReport("analysis", an, !status.ok ? "warn" : spaGap ? "warn" : "info"));
 
   // mesh
   const mesh = [];
@@ -634,7 +653,8 @@ async function runTeamCycleBudgeted(env) {
   } else {
     mesh.push("IoT edge unreachable or binding missing");
   }
-  reports.push(agentReport("mesh", mesh, iot && iot.ok ? "info" : "warn"));
+  const spaMissing = mesh.some((x) => /SPA metrics missing/.test(x));
+  reports.push(agentReport("mesh", mesh, spaMissing || !(iot && iot.ok) ? "warn" : "info"));
 
   // economy
   const eco = [];
@@ -665,6 +685,7 @@ async function runTeamCycleBudgeted(env) {
     },
     reports,
     next_actions: buildNextActions(reports, status.data, handoff),
+    autonomous: true,
     handoff: handoff ? { posture: handoff.posture, generated_at: handoff.generated_at, headline: handoff.headline, mandatory: (handoff.mandatory_actions || []).length } : null,
     acb_ops,
     temporal: typeof ppcCompact === "function" ? ppcCompact("metaverse_os") : null,
@@ -677,6 +698,11 @@ async function runTeamCycleBudgeted(env) {
       await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
       await env.AIOPS_KV.put("next_actions", JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] }));
     } catch (_) {}
+  }
+  try {
+    cycle.work = await executeAutonomousSlice(env, cycle);
+  } catch (e) {
+    cycle.work = { ok: false, error: String(e.message || e) };
   }
   return cycle;
 }
@@ -880,9 +906,387 @@ function buildNextActions(reports, status, handoff) {
       });
     }
   }
-  // NO perpetual priority-3 whitepaper spam when green
+  // Standing lab backlog — always at least one self-initiated item
+  const have = new Set(actions.map((a) => a.id).filter(Boolean));
+  for (const b of STANDING_BACKLOG) {
+    if (have.has(b.id)) continue;
+    actions.push({
+      priority: 2,
+      agent: b.agent,
+      action: b.action,
+      success_check: b.success_check,
+      source: "standing_backlog",
+      id: b.id,
+    });
+    have.add(b.id);
+  }
   actions.sort((a, b) => a.priority - b.priority);
   return actions.slice(0, 8);
+}
+
+function orchCoordinate(proposals, cycle, pulse, extras) {
+  const orch = "ACB-ORCH-CMN-001";
+  const approved = [];
+  const rejected = [];
+  const deferred = [];
+  const adjusted = [];
+  const originated = [];
+  const seen = new Set();
+  const reports = (cycle && cycle.reports) || [];
+  const summary = (cycle && cycle.summary) || {};
+  const upstream = (cycle && cycle.upstream) || {};
+  const findings = reports.flatMap((r) => (r.findings || []).map((f) => "[" + r.agent + "] " + f));
+  const pulseSpa = pulse && typeof pulse.spa_total === "number" && pulse.spa_total > 0;
+  const pulseDag = pulse && typeof pulse.dag_txs === "number";
+
+  function deny(p, reason) {
+    rejected.push({ id: p.id, cargo: p.agent, reason });
+  }
+  function defer(p, reason) {
+    deferred.push({ id: p.id, cargo: p.agent, reason });
+  }
+  function ok(p, reason) {
+    approved.push({
+      id: p.id,
+      agent: p.agent,
+      action: p.action || p.verb,
+      success_check: p.success_check,
+      orch: "OK",
+      orch_id: orch,
+      scrutiny: reason,
+    });
+  }
+
+  for (const p of proposals || []) {
+    const id = p.id || p.action;
+    const text = String(p.action || p.verb || "");
+    if (!id || seen.has(id)) {
+      deny(p, "duplicado — o Orquestrador não deixa a equipa repetir o mesmo cartão");
+      continue;
+    }
+    seen.add(id);
+    if (/mainnet|token.?sale|payout|secret|private.?key/i.test(text)) {
+      deny(p, "fora de mandato lab — risco económico ou de segredo");
+      continue;
+    }
+    if (id === "SG-SPA" && pulseSpa) {
+      defer(p, "já medido no pulse (spa.total=" + pulse.spa_total + ") — não reabrir o mesmo gap");
+      continue;
+    }
+    if (id === "SG-DAG" && pulseDag) {
+      defer(p, "já medido no pulse (dag.txs=" + pulse.dag_txs + ") — fechar o cartão, não repetir");
+      continue;
+    }
+    if (id === "SG-DELTA" && extras && extras.worklog) {
+      defer(p, "worklog já existe — persistir o mesmo cartão 72 vezes não é desenvolvimento");
+      continue;
+    }
+    if (/whatsapp|meta api|B-META-WA/i.test(text + id)) {
+      defer(p, "canal secundário — não monopoliza o ciclo da malha");
+      continue;
+    }
+    // Sequence: security/upstream before cosmetics
+    if ((summary.critical || 0) > 0 && p.agent !== "security" && p.agent !== "devops" && /SG-DELTA|SG-REDDIT|docs/i.test(id + text)) {
+      defer(p, "há critical no ciclo — primeiro Security/DevOps");
+      continue;
+    }
+    ok(p, "gap ainda aberto e alinhado com o pulse");
+  }
+
+  // System-wide adjustments originated by the Orchestrator
+  if ((summary.critical || 0) > 0) {
+    originated.push({
+      id: "ORCH-CRIT",
+      agent: "security",
+      action: "Tratar findings critical do ciclo antes de qualquer cartão de roadmap",
+      success_check: "summary.critical === 0 no ciclo seguinte",
+      orch: "ORIGINATED",
+      orch_id: orch,
+    });
+  }
+  if (upstream && upstream.status && upstream.status.ok === false) {
+    originated.push({
+      id: "ORCH-STATUS",
+      agent: "devops",
+      action: "Status pulse down — restaurar publicação do Fog antes de métricas novas",
+      success_check: "status.ok === true",
+      orch: "ORIGINATED",
+      orch_id: orch,
+    });
+  }
+  if (pulseSpa && pulseDag) {
+    originated.push({
+      id: "ORCH-NEXT",
+      agent: "analysis",
+      action: "SPA e DAG já no pulse — passar à qualidade da métrica (não nula, não seed-only) e Agora settlements numéricos",
+      success_check: "agora.settlements is a number OR spa.source === gossip.peers",
+      orch: "ORIGINATED",
+      orch_id: orch,
+    });
+  }
+  if (!findings.length) {
+    originated.push({
+      id: "ORCH-SILENCE",
+      agent: "analysis",
+      action: "Ciclo sem findings — o mandato falhou; obrigar cada cargo a um gap mensurável",
+      success_check: "reports[].findings.length >= 1 para todos os cargos",
+      orch: "ORIGINATED",
+      orch_id: orch,
+    });
+  }
+
+  for (const o of originated) {
+    if (seen.has(o.id)) continue;
+    seen.add(o.id);
+    approved.push(o);
+    adjusted.push({ id: o.id, from: "orchestrator", why: o.action });
+  }
+
+  const decision =
+    approved.length && rejected.length ? "OK_PARTIAL" :
+    approved.length ? "OK_IMPLEMENT" :
+    deferred.length && !rejected.length ? "DEFER" : "HOLD";
+
+  return {
+    orch,
+    role: "coordinate+supervise+moderate+propose",
+    decision,
+    approved,
+    rejected,
+    deferred,
+    adjusted,
+    originated: originated.map((o) => o.id),
+    view: {
+      critical: summary.critical || 0,
+      warn: summary.warn || 0,
+      pulse_spa: pulse && pulse.spa_total,
+      pulse_dag: pulse && pulse.dag_txs,
+      pulse_ver: pulse && pulse.version,
+    },
+    note: "O Orquestrador não carimba a equipa. Deduplica, sequencia, defere o já medido, recusa fora de mandato, e origina ajustes com vista de sistema.",
+  };
+}
+
+async function escalateStratagrok(env, work, cycle) {
+  const subject = "ESCALADE · ORCH-SILENCE · FOG-NODE-PT-CM-001";
+  const text = [
+    "STRATAGROK " + STRATAGROK.bot_id,
+    "Mailbox: " + STRATAGROK.mailbox,
+    "",
+    "O Orquestrador declarou SILENCE / mandato falhado neste ciclo horário.",
+    "A equipa AIOps não deixou findings acionáveis o suficiente para implementar.",
+    "",
+    "cycle_id: " + ((cycle && cycle.cycle_id) || "?"),
+    "at: " + (work.at || ""),
+    "orch: " + JSON.stringify((work.orch_ok && {
+      decision: work.orch_ok.decision,
+      originated: work.orch_ok.originated,
+      deferred: (work.orch_ok.deferred || []).map((d) => d.id),
+      view: work.orch_ok.view,
+    }) || {}, null, 2),
+    "",
+    "Pedido: retomar propose → escrutínio → implementar → verificar.",
+    "Não responder com health-theatre. Fechar um gap mensurável (SPA source, Agora settlements, DAG qualidade).",
+  ].join("\n");
+  const payload = {
+    to: STRATAGROK.mailbox,
+    cc: ["amcmorais@icloud.com"],
+    subject,
+    text,
+    lang: "pt-PT",
+    kind: "system",
+    preheader: "ORCH-SILENCE — escalade STRATAGROK",
+  };
+  try {
+    if (env.DEOMAIL && typeof env.DEOMAIL.fetch === "function") {
+      const r = await env.DEOMAIL.fetch(
+        new Request("https://deomail.internal/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+      );
+      const body = await r.json().catch(() => ({}));
+      return { ok: r.ok, via: "binding", body };
+    }
+  } catch (e) {
+    /* fall through */
+  }
+  // INC-1027: workers.dev hole burned (STASIS). Binding-only; do not reopen HTTP.
+  if (false) {
+    const r = await fetch("https://stratamesh-deomail.stratamesh.workers.dev/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await r.json().catch(() => ({}));
+    return { ok: r.ok, via: "http", body };
+  }
+  return { ok: false, error: "deomail_http_disabled_inc1027", via: "disabled" };
+}
+
+async function verifyPulse() {
+  try {
+    const r = await fetch("https://status.calhegasmorais.pt/", {
+      headers: { Accept: "application/json", "User-Agent": "aiops-verify" },
+    });
+    const j = await r.json().catch(() => null);
+    const spaN = !!(j && j.spa && typeof j.spa.total === "number");
+    const dagN = !!(j && j.dag && typeof j.dag.transaction_count === "number");
+    return { ok: r.ok, version: j && j.version, spa_total: spaN ? j.spa.total : null, dag_txs: dagN ? j.dag.transaction_count : null, SG_SPA: spaN, SG_DAG: dagN };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+async function executeAutonomousSlice(env, cycle) {
+  const work = { at: new Date().toISOString(), phase: "propose-ok-implement-verify", attempted: [], results: [] };
+  const proposals = ((cycle && cycle.next_actions) || []).slice();
+  if (!proposals.length) proposals.push(...STANDING_BACKLOG);
+  work.team_proposals = proposals.map((p) => ({ cargo: p.agent, id: p.id, action: p.action }));
+  const pulse = await verifyPulse();
+  work.system_view = pulse;
+  let worklogExists = false;
+  try { worklogExists = !!(env.AIOPS_KV && (await env.AIOPS_KV.get("worklog_latest"))); } catch (_) {}
+  const decision = orchCoordinate(proposals, cycle, pulse, { worklog: worklogExists });
+  work.orch_ok = decision;
+  const silence = (decision.originated || []).includes("ORCH-SILENCE");
+  if (silence) {
+    try {
+      work.escalation = await escalateStratagrok(env, work, cycle);
+    } catch (e) {
+      work.escalation = { ok: false, error: String(e.message || e) };
+    }
+  }
+  const approved = decision.approved || [];
+  if (!approved.length) {
+    work.results.push({ step: "implement", ok: false, skipped: "orch_hold" });
+    return work;
+  }
+  for (const pick of approved) work.attempted.push(pick.id || pick.action);
+  const pick = approved[0];
+  // 1) Persist evidence in KV (always)
+  try {
+    if (env.AIOPS_KV) {
+      const entry = {
+        at: work.at,
+        cycle_id: cycle && cycle.cycle_id,
+        action: pick,
+        actions: approved,
+        summary: cycle && cycle.summary,
+        mandate: "propose → orch OK → implement → verify",
+        orch_ok: work.orch_ok,
+        verify: work.verify || null,
+        escalation: work.escalation || null,
+      };
+      await env.AIOPS_KV.put("worklog_latest", JSON.stringify(entry));
+      const hist = JSON.parse((await env.AIOPS_KV.get("worklog_history")) || "[]");
+      hist.unshift(entry);
+      await env.AIOPS_KV.put("worklog_history", JSON.stringify(hist.slice(0, 72)));
+      work.results.push({ step: "kv_worklog", ok: true });
+    }
+  } catch (e) {
+    work.results.push({ step: "kv_worklog", ok: false, error: String(e.message || e) });
+  }
+  // 2) Refresh standing handoff so the next cycle is never empty
+  try {
+    const handoff = {
+      schema: "stratamesh.handoff.v1",
+      generated_at: work.at,
+      posture: "lab_autonomous",
+      headline: "Self-initiated AIOps slice — " + (pick.id || pick.action),
+      mandatory_actions: STANDING_BACKLOG.slice(0, 3).map((b) => ({
+        id: b.id,
+        owner: b.agent,
+        verb: b.action,
+        priority: "P1",
+        success_check: b.success_check,
+      })),
+    };
+    await persistHandoff(env, handoff);
+    work.results.push({ step: "handoff", ok: true });
+  } catch (e) {
+    work.results.push({ step: "handoff", ok: false, error: String(e.message || e) });
+  }
+  // 3) GitHub issue once per approved action per calendar day (if token bound)
+  const token = env.GITHUB_PAT || env.GITHUB_TOKEN || env.GH_PAT;
+  for (const pick of approved) {
+  if (token && pick.id) {
+    try {
+      const day = work.at.slice(0, 10);
+      const stampKey = "gh_issue_" + pick.id + "_" + day;
+      const already = env.AIOPS_KV ? await env.AIOPS_KV.get(stampKey) : null;
+      if (already) {
+        work.results.push({ step: "github_issue", ok: true, id: pick.id, skipped: "already_today" });
+      } else {
+        const body = {
+          title: "[AIOps autonomous] " + pick.id + " — " + String(pick.action).slice(0, 80),
+          body:
+            "Self-initiated by stratamesh-aiops " +
+            AIOPS_VERSION +
+            " (no human prompt).\n\nAction: " +
+            pick.action +
+            "\nOwner agent: " +
+            (pick.agent || "?") +
+            "\nSuccess: " +
+            (pick.success_check || "n/a") +
+            "\nCycle: " +
+            ((cycle && cycle.cycle_id) || "") +
+            "\nNode: FOG-NODE-PT-CM-001 · lab / pre-testnet\n",
+          labels: ["aiops", "lab", "autonomous"],
+        };
+        const r = await fetch(
+          "https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/issues",
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token,
+              Accept: "application/vnd.github+json",
+              "User-Agent": "stratamesh-aiops-autonomous",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          },
+        );
+        const j = await r.json().catch(() => ({}));
+        const ok = r.status === 201;
+        if (ok && env.AIOPS_KV) await env.AIOPS_KV.put(stampKey, String(j.number || "1"), { expirationTtl: 172800 });
+        work.results.push({ step: "github_issue", ok, status: r.status, number: j.number, url: j.html_url });
+      }
+    } catch (e) {
+      work.results.push({ step: "github_issue", ok: false, error: String(e.message || e) });
+    }
+  } else {
+    work.results.push({ step: "github_issue", ok: false, id: pick.id, skipped: "no_token_or_id" });
+  }
+  }
+  // 4) Nudge Orchestrator (binding) so the SCA records the slice
+  try {
+    if (env.ORCH && typeof env.ORCH.fetch === "function") {
+      await env.ORCH.fetch(
+        new Request("https://orch.internal/tick", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "aiops-workflow", orch_ok: work.orch_ok, action: pick, at: work.at }),
+        }),
+      );
+      work.results.push({ step: "orch_tick", ok: true });
+    }
+  } catch (e) {
+    work.results.push({ step: "orch_tick", ok: false, error: String(e.message || e) });
+  }
+  const verified = await verifyPulse();
+  work.verify = verified;
+  work.results.push({ step: "verify_pulse", ok: !!verified.ok, SG_SPA: verified.SG_SPA, SG_DAG: verified.SG_DAG });
+  try {
+    if (env.AIOPS_KV) {
+      const prev = JSON.parse((await env.AIOPS_KV.get("worklog_latest")) || "{}");
+      prev.verify = verified;
+      prev.attempted = work.attempted;
+      await env.AIOPS_KV.put("worklog_latest", JSON.stringify(prev));
+    }
+  } catch (_) {}
+  return work;
 }
 
 async function loadHandoff(env) {
@@ -1101,7 +1505,14 @@ export default {
   /** Cloudflare Cron Trigger — budgeted development cycle (free-tier safe) */
   async scheduled(event, env, ctx) {
     ctx.waitUntil(
-      runTeamCycleBudgeted(env).catch(() => runTeamCycleLight(env))
+      runTeamCycleBudgeted(env)
+        .catch(() => runTeamCycleLight(env))
+        .then(async (cycle) => {
+          if (cycle && !cycle.work) {
+            try { cycle.work = await executeAutonomousSlice(env, cycle); } catch (_) {}
+          }
+          return cycle;
+        })
     );
   },
 };
@@ -1129,6 +1540,16 @@ async function handleFetch(request, env, ctx) {
 
     if (path === "/health" || path === "/api/health" || path === "/api/aiops/health") {
       try {
+        let last = null;
+        let work = null;
+        try {
+          if (env.AIOPS_KV) {
+            const raw = await env.AIOPS_KV.get("last_cycle");
+            if (raw) last = JSON.parse(raw);
+            const wraw = await env.AIOPS_KV.get("worklog_latest");
+            if (wraw) work = JSON.parse(wraw);
+          }
+        } catch (_) {}
         return json({
           status: "ok",
           worker: "stratamesh-aiops",
@@ -1137,10 +1558,13 @@ async function handleFetch(request, env, ctx) {
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
           continuous: {
-            workers_cron: "hourly_dev_cycle_budgeted",
+            workers_cron: "0 1 * * *",
+            workers_cron_note: "INC-1027 stop-probes; was hourly 0 * * * *; not re-enabled",
             host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
             note: "Workers cannot while(true); host process is the real continuous loop",
           },
+          latest_cycle: last,
+          worklog_latest: work ? { at: work.at, cycle_id: work.cycle_id, action: work.action } : null,
           timestamp: new Date().toISOString(),
         });
       } catch (e) {
@@ -1197,18 +1621,21 @@ async function handleFetch(request, env, ctx) {
 
     if (path === "/" || path === "/status") {
       try {
-        const cycle = await runTeamCycleBudgeted(env);
+        const last = env.AIOPS_KV ? await env.AIOPS_KV.get("last_cycle") : null;
+        const work = env.AIOPS_KV ? await env.AIOPS_KV.get("worklog_latest") : null;
         return json({
           service: "StrataMesh AIOps Dev Team",
           version: AIOPS_VERSION,
           mandate: "Continuous development and operations of the Calhegas Morais Fog Node — not health-check theatre",
-          latest_cycle: cycle,
+          note: "GET / serves last persisted cycle. POST or GET /cycle runs a live slice.",
+          latest_cycle: last ? JSON.parse(last) : null,
+          worklog_latest: work ? JSON.parse(work) : null,
         });
       } catch (e) {
         return json({
           service: "StrataMesh AIOps Dev Team",
           version: AIOPS_VERSION,
-          error: "cycle_failed",
+          error: "kv_read_failed",
           message: String(e && e.message || e),
         }, 200);
       }
@@ -1231,6 +1658,18 @@ async function handleFetch(request, env, ctx) {
         return json({ ok: true, persisted_kv: saved, posture: h.posture, mandatory: (h.mandatory_actions || []).length });
       }
       return json({ error: "method_not_allowed" }, 405);
+    }
+
+    if (path === "/worklog" || path === "/api/aiops/worklog") {
+      if (!env.AIOPS_KV) return json({ ok: false, error: "no_kv" }, 200);
+      const latest = await env.AIOPS_KV.get("worklog_latest");
+      const hist = await env.AIOPS_KV.get("worklog_history");
+      return json({
+        ok: true,
+        version: AIOPS_VERSION,
+        latest: latest ? JSON.parse(latest) : null,
+        history: hist ? JSON.parse(hist) : [],
+      });
     }
 
     if (path === "/actions" || path === "/api/aiops/actions" || path === "/delegate") {

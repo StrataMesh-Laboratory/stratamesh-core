@@ -8,7 +8,7 @@ const HOLON = {
   order: 5,
   parent: "open_world",
   children: ["agent"],
-  version: "3.2.0-painel-dentro",
+  version: "3.4.0-static-dynamic",
 };
 
 function j(d, s = 200) {
@@ -133,6 +133,8 @@ export default {
           sandboxes: (rows.results || []).map((s) => ({ ...s, holon: "ugc_sandbox" })),
           count: (rows.results || []).length,
           holon: HOLON,
+          structure: "sandbox_cgu_is_strata_nft",
+          valuation_note: "Colateral STRATA ≠ valor de mercado; resgate se mercado < colateral",
         });
       }
 
@@ -197,8 +199,11 @@ export default {
             world_id: parent,
             title: title || id,
             author_id: body.owner_id || body.owner || "portal",
-            author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") ? "sca" : "user"),
+            author_kind: body.author_kind || (String(body.owner_id || "").startsWith("sca") || String(body.owner_id || "").startsWith("SCA") || String(body.owner_id || "").startsWith("ACB") ? "sca" : "user"),
             status: "isolated",
+            collateral_strata: body.collateral_strata != null ? body.collateral_strata : 0.01,
+            mode: body.mode || "static",
+            burn_rate_per_hour: body.burn_rate_per_hour,
           });
           let tr;
           if (env.TOKEN && typeof env.TOKEN.fetch === "function") {

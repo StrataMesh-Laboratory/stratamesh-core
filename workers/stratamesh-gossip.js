@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.2-fog-process';
+const VERSION = '2.3.3-peer-cache';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -205,6 +205,7 @@ export default {
         service: 'stratamesh-gossip',
         version: VERSION, mesh: 'active',
         role: 'gossip-about-gossip',
+        metabolic: 'health is cheap; /peers is cached 60s',
         parallels: {
           hedera: 'event = (ts, txs[], selfParent, otherParent, sig); history = hashgraph fragment',
           iota: 'events tip-disseminate toward non-lazy tips',
@@ -214,15 +215,30 @@ export default {
     }
 
     if (path === '/peers') {
+      // Metabolic: /peers used to fetch Fog + Edge /health on every call.
+      // 2026-08-28 hour-0: ~11.5k /peers × 2 fetches doubled edge-grok vs the
+      // lockstep probe set. Cache 60s. Still live, not invented peers.
+      const edgeCaller = callerIsEdge(request);
+      const cache = caches.default;
+      const cacheKey = new Request(
+        'https://stratamesh-gossip.cache/peers?edge=' + (edgeCaller ? '1' : '0'),
+        { method: 'GET' },
+      );
+      const hit = await cache.match(cacheKey);
+      if (hit) return hit;
       const peers = await livePeers(env, request);
-      return j({
+      const resp = j({
         peers,
         count: peers.length,
         protocol: 'lab_fog_edge_mesh_active',
         lab: true,
-        note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer.',
+        cached_sec: 60,
+        note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok.',
         version: VERSION, mesh: 'active',
       });
+      resp.headers.set('Cache-Control', 'public, max-age=60');
+      try { await cache.put(cacheKey, resp.clone()); } catch (_) {}
+      return resp;
     }
 
     if (path === '/events') {

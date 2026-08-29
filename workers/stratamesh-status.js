@@ -803,7 +803,7 @@ async function buildLiveStatus(env, opts) {
       mesh_member: false,
       oracle_live: false,
       holons_ok: !!holonsH.ok,
-      note: 'Lab n=1. Fog is local-process (node_persistent). Not lab_seed. mesh_member=false while Fog /health is 530 and oracle_live=false. EDGE may gossip; it is not this SPA.',
+      note: 'Lab n=1. Fog is Grok-managed local-process 0.2.3-lab-temp (Fog /health 200). Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA.',
     },
     republic: repH.json && repH.ok ? {
       version: repH.json.version,

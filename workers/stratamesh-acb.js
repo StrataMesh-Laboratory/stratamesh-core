@@ -63,7 +63,112 @@ const PDS_MICRO = {
   advance_goal: 0.00006,
   message_base: 0.00002, // SCA-to-SCA send overhead
   message_per_kb: 0.00002,
+  qiga_step: 0.00002,
 };
+
+/** Per-SCA QIGA (rotation θ) + opt-in federated summaries. Identity ≠ appointment. */
+const QIGA_PI2 = Math.PI / 2;
+function qigaPhenotype(theta) {
+  return (theta || []).map((th) => Math.sin(Number(th) || 0) ** 2);
+}
+function qigaThetaFromGenes(genes) {
+  return (genes || []).map((g) => Math.asin(Math.sqrt(Math.max(0, Math.min(1, Number(g) || 0.5)))));
+}
+function qigaRng(seed) {
+  let s = (seed >>> 0) || 1;
+  return function () {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+async function ensureQigaTables(db) {
+  if (!db) return;
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS sca_qiga_state (
+      sca_id TEXT PRIMARY KEY,
+      genes_json TEXT,
+      theta_json TEXT,
+      generation INTEGER DEFAULT 0,
+      fitness_ema REAL DEFAULT 0.5,
+      federate INTEGER DEFAULT 1,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS sca_federate_summary (
+      sca_id TEXT PRIMARY KEY,
+      genes_json TEXT NOT NULL,
+      generation INTEGER,
+      fitness_ema REAL,
+      federate INTEGER DEFAULT 1,
+      node_id TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`
+  ).run();
+}
+async function scaQigaStep(db, scaId, opts) {
+  if (!db || !scaId) return null;
+  await ensureQigaTables(db);
+  const fitness = opts && opts.fitness != null ? Number(opts.fitness) : 0.55;
+  const federate = opts && opts.federate === false ? 0 : 1;
+  if (String(scaId).indexOf('OUTSIDER') >= 0) {
+    /* outsiders may later opt in; default off */
+  }
+  let row = await db.prepare('SELECT * FROM sca_qiga_state WHERE sca_id = ?').bind(scaId).first();
+  let genes = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+  let generation = 0;
+  let fitnessEma = 0.5;
+  if (row && row.genes_json) {
+    try { genes = JSON.parse(row.genes_json); } catch (_) {}
+    generation = Number(row.generation || 0);
+    fitnessEma = Number(row.fitness_ema || 0.5);
+  }
+  const rng = qigaRng(generation * 9973 + scaId.length * 13 + Date.now() % 1009);
+  const theta0 = qigaThetaFromGenes(genes);
+  const child = theta0.map((th) => {
+    let t = th + (rng() - 0.5) * 0.12 * (fitness >= 0.45 ? 1 : 1.4);
+    return Math.max(0, Math.min(QIGA_PI2, t));
+  });
+  const nextGenes = qigaPhenotype(child);
+  generation += 1;
+  fitnessEma = 0.85 * fitnessEma + 0.15 * fitness;
+  await db.prepare(
+    `INSERT INTO sca_qiga_state (sca_id, genes_json, theta_json, generation, fitness_ema, federate, updated_at)
+     VALUES (?,?,?,?,?,?, datetime('now'))
+     ON CONFLICT(sca_id) DO UPDATE SET
+       genes_json=excluded.genes_json, theta_json=excluded.theta_json,
+       generation=excluded.generation, fitness_ema=excluded.fitness_ema,
+       federate=excluded.federate, updated_at=datetime('now')`
+  ).bind(scaId, JSON.stringify(nextGenes), JSON.stringify(child), generation, fitnessEma, federate).run();
+  if (federate) {
+    await db.prepare(
+      `INSERT INTO sca_federate_summary (sca_id, genes_json, generation, fitness_ema, federate, node_id, updated_at)
+       VALUES (?,?,?,?,1, 'FOG-NODE-PT-CM-001', datetime('now'))
+       ON CONFLICT(sca_id) DO UPDATE SET
+         genes_json=excluded.genes_json, generation=excluded.generation,
+         fitness_ema=excluded.fitness_ema, updated_at=datetime('now')`
+    ).bind(scaId, JSON.stringify(nextGenes.map((g) => Number(g.toFixed(4)))), generation, fitnessEma).run();
+  }
+  return { sca_id: scaId, genes: nextGenes, generation, fitness_ema: fitnessEma, federate: !!federate };
+}
+async function federateRound(db) {
+  await ensureQigaTables(db);
+  const rows = await db.prepare(
+    `SELECT sca_id, genes_json, generation, fitness_ema FROM sca_federate_summary WHERE federate = 1`
+  ).all();
+  const list = ((rows && rows.results) || []).map((r) => {
+    let genes = [];
+    try { genes = JSON.parse(r.genes_json); } catch (_) {}
+    return { sca_id: r.sca_id, genes, generation: r.generation, fitness_ema: r.fitness_ema, federate: true };
+  });
+  let avg = null;
+  if (list.length) {
+    const nG = list[0].genes.length || 6;
+    avg = [];
+    for (let i = 0; i < nG; i++) avg.push(list.reduce((s, p) => s + Number(p.genes[i] || 0.5), 0) / list.length);
+  }
+  return { clients: list, n: list.length, avg_genes: avg, mix: 'FedAvg opt-in policy genes only; identity and appointment are not copied' };
+}
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -1244,6 +1349,12 @@ export default {
               )
               .bind(crypto.randomUUID(), row.sca_id, 'self_volition', COST_P, COST_M, afterM, intention, memId)
               .run();
+            try {
+              await scaQigaStep(db, row.sca_id, {
+                fitness: Math.max(0.35, Math.min(0.9, 0.5 + 0.2 * Math.min(1, afterM))),
+                federate: String(row.sca_id).indexOf('OUTSIDER') < 0,
+              });
+            } catch (_) {}
             // After acting, do NOT auto-chain forever — leave a prompt so they choose again
             await db.prepare(`DELETE FROM sca_volition_schedule WHERE sca_id = ?`).bind(row.sca_id).run();
             const pid = 'vp_' + crypto.randomUUID().slice(0, 12);
@@ -1369,7 +1480,7 @@ export default {
     if (path === '/marketplace') path = '/acb/marketplace';
     if (path === '/hire') path = '/acb/hire';
     if (path === '/complete') path = '/acb/complete';
-    if (path === '/team') path = '/acb/team';
+    if (path === '/team' || path === '/roster' || path === '/acb/roster') path = '/acb/team';
     if (path === '/pulse') path = '/acb/pulse';
     if (path === '/environment') path = '/acb/environment';
     const method = request.method;
@@ -1405,7 +1516,7 @@ export default {
         return j({
           status: 'ok',
           service: 'stratamesh-acb',
-          version: '5.13.0-pds-burn-ops',
+          version: '5.14.0-qiga-federate',
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',
             poc: 'Separate — DLT resource contribution only',
@@ -1446,8 +1557,68 @@ export default {
             '/acb/sense',
             '/acb/sense/temporal',
             '/acb/clp',
+            '/acb/federate/round',
+            '/acb/federate/publish',
+            '/acb/qiga',
           ],
         });
+      }
+
+      if (path === '/acb/federate/round' && (method === 'GET' || method === 'POST')) {
+        const round = await federateRound(db);
+        if (!round.n) {
+          const seedIds = [
+            'ACB-ORCH-CMN-001',
+            'ACB-AIOPS-devops',
+            'ACB-AIOPS-security',
+            'ACB-AIOPS-analysis',
+            'ACB-AIOPS-mesh',
+            'ACB-AIOPS-economy',
+          ];
+          for (const id of seedIds) {
+            try { await scaQigaStep(db, id, { fitness: 0.6, federate: true }); } catch (_) {}
+          }
+          return j(await federateRound(db));
+        }
+        return j(round);
+      }
+      if (path === '/acb/federate/publish' && method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const scaId = body.sca_id || body.legacy_acb_id;
+        if (!scaId || !Array.isArray(body.genes)) return j({ error: 'sca_id and genes required' }, 400);
+        await ensureQigaTables(db);
+        await db.prepare(
+          `INSERT INTO sca_federate_summary (sca_id, genes_json, generation, fitness_ema, federate, node_id, updated_at)
+           VALUES (?,?,?,?,?,?, datetime('now'))
+           ON CONFLICT(sca_id) DO UPDATE SET
+             genes_json=excluded.genes_json, generation=excluded.generation,
+             fitness_ema=excluded.fitness_ema, federate=excluded.federate, updated_at=datetime('now')`
+        ).bind(
+          scaId,
+          JSON.stringify(body.genes),
+          Number(body.generation || 0),
+          Number(body.fitness_ema || 0.5),
+          body.federate === false ? 0 : 1,
+          body.node_id || 'FOG-NODE-PT-CM-001'
+        ).run();
+        return j({ ok: true, sca_id: scaId, federate: body.federate !== false });
+      }
+      if (path === '/acb/qiga') {
+        const id = url.searchParams.get('sca_id') || url.searchParams.get('id');
+        if (method === 'POST') {
+          const body = await request.json().catch(() => ({}));
+          const sid = body.sca_id || id;
+          if (!sid) return j({ error: 'sca_id required' }, 400);
+          const out = await scaQigaStep(db, sid, { fitness: body.fitness, federate: body.federate !== false });
+          return j(out);
+        }
+        await ensureQigaTables(db);
+        if (id) {
+          const row = await db.prepare('SELECT * FROM sca_qiga_state WHERE sca_id = ?').bind(id).first();
+          return j({ sca_id: id, state: row || null });
+        }
+        const all = await db.prepare('SELECT sca_id, generation, fitness_ema, federate, updated_at FROM sca_qiga_state').all();
+        return j({ states: (all && all.results) || [] });
       }
 
       if (path === '/acb/register' && method === 'POST') {
@@ -1849,7 +2020,7 @@ export default {
         });
       }
 
-      if (path === '/acb/team') {
+      if (path === '/acb/team' || path === '/api/v1/acb/roster') {
         const members = [];
         for (const id of [CMN_TEAM.lead, ...CMN_TEAM.agents]) {
           const acb = await db.prepare('SELECT * FROM acb_registry WHERE id = ?').bind(id).first();

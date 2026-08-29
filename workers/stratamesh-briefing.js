@@ -14,8 +14,14 @@
  * Canais: DeoMail → amcmorais@icloud.com · WhatsApp (se Meta OK)
  * Cron: 0 10 * * * UTC ≈ 11:00 Europe/Lisbon (WEST)
  */
-const VERSION = "2.1.0-delta";
+const VERSION = "2.2.1-aiops-bind";
 const OWNER_EMAIL = "amcmorais@icloud.com";
+const BRIEFING_CC = ["grok@calhegasmorais.pt"];
+const STRATAGROK = {
+  name: "STRATAGROK",
+  bot_id: "c02df87b-0431-46b7-abfc-6f65d751af8e",
+  mailbox: "grok@calhegasmorais.pt",
+};
 const OWNER_WA = "447404796458";
 const LISBON_TZ = "Europe/Lisbon";
 const CYCLE_CACHE = "https://briefing.internal/cycle/last";
@@ -217,79 +223,78 @@ function computeDeltas(last, snap, channels) {
   }
   if (channels) {
     if (channels.email === false) deltas.push({ kind: "CHANNEL", text: "E-mail (DeoMail) falhou no último envio — verificar entrega." });
-    if (channels.whatsapp === false) deltas.push({ kind: "CHANNEL", text: "WhatsApp Meta API bloqueada (OAuth / access)." });
-  }
-  if (!deltas.length) {
-    deltas.push({ kind: "STABLE", text: "Sem alteração material face ao último ciclo registado." });
   }
   return deltas;
 }
 
-/** Persistent owner blockers (honest age) — not a daily reinvented plan */
-function ownerBlockers(last) {
+function ownerBlockers(last, mesh) {
+  const items = [];
+  if (mesh && mesh.spa_missing) {
+    items.push({
+      id: "B-SPA-METRICS",
+      title: "Métricas SPA / gossip incompletas no pulse AIOps",
+      since: "aberto neste ciclo",
+      need: "AIOps mesh agent preencher SPA registry + tip confidence",
+      ownerDecision: false,
+    });
+  }
+  if (mesh && mesh.dag_na) {
+    items.push({
+      id: "B-DAG-TXS",
+      title: "Status pulse sem DAG tx count",
+      since: "aberto neste ciclo",
+      need: "Status/DAG gateway expor txs no pulse que o AIOps já lê",
+      ownerDecision: false,
+    });
+  }
   const since = (last && last.blockers && last.blockers.meta_docs_since) || "2026-08-18";
-  return [
-    {
-      id: "B-META-WA",
-      title: "Verificação Meta / WhatsApp Business",
-      since,
-      need: "documentação externa do proprietário",
-      doneWhen: "Business verificado + allowlist +351 + API access OK",
-      ownerDecision: true,
-    },
-  ];
+  items.push({
+    id: "B-META-WA",
+    title: "WhatsApp Cloud API (canal secundário)",
+    since,
+    need: "token Meta — não é o canal do briefing",
+    ownerDecision: false,
+  });
+  return items;
 }
 
-function ownerAttention(blockers, channels) {
+function ownerAttention(blockers, mesh) {
   const items = [];
-  for (const b of blockers) {
-    if (b.ownerDecision) {
-      items.push({
-        decision: "Disponibilizar documentação Meta em falta (" + b.id + ")",
-        why: "bloqueado desde " + b.since + " · " + b.need,
-        rec: "sem documentos, o SCA não reabre o canal WA",
-      });
-    }
-  }
-  if (channels && channels.whatsapp === false) {
+  if (mesh && mesh.email_fail) {
     items.push({
-      decision: "Restabelecer token / app Meta Cloud API",
-      why: "API access blocked — briefing e comando por WA offline",
-      rec: "renovar token no Meta Business e actualizar secret do worker",
+      decision: "Verificar entrega DeoMail do briefing anterior",
+      why: "canal primário de comando escrito falhou",
+      rec: "inbox + logs DeoMail",
     });
   }
   if (!items.length) {
-    return { n: 0, sev: SEV.STABLE, line: "ATENÇÃO: nenhuma decisão necessária neste ciclo.", items: [] };
+    return { n: 0, sev: SEV.STABLE, line: "ATENÇÃO: nenhuma decisão do proprietário neste ciclo.", items: [] };
   }
   return {
     n: items.length,
     sev: SEV.ACTION,
-    line: "ATENÇÃO: " + items.length + " decisão" + (items.length > 1 ? "ões" : "") + " do proprietário.",
+    line: "ATENÇÃO: " + items.length + " decisão(ões) do proprietário.",
     items,
   };
 }
 
-function focusToday(deltas, blockers, snap) {
+function focusToday(deltas, blockers, snap, work) {
   const focus = [];
-  // Only non-theatre items
-  const hasChannelFail = deltas.some((d) => d.kind === "CHANNEL");
-  const hasUpstream = deltas.some((d) => d.kind === "UPSTREAM");
-  if (blockers.some((b) => b.id === "B-META-WA")) {
-    focus.push({
-      priority: "P0",
-      text: "B-META-WA — aguarda documentos (desde " + blockers[0].since + "). Sem progresso interno possível além de checklist.",
-    });
-  }
-  if (hasChannelFail) {
-    focus.push({ priority: "P0", text: "Canais de entrega — e-mail OK preferencial; WA depende de Meta." });
-  }
-  if (hasUpstream) {
-    focus.push({ priority: "P1", text: "Investigar flips de upstream reportados no delta." });
+  const gaps = (work && work.gaps) || [];
+  gaps.slice(0, 2).forEach((g) => focus.push({ priority: "P0", text: g }));
+  if (deltas.some((d) => d.kind === "UPSTREAM")) {
+    focus.push({ priority: "P1", text: "Investigar flips de upstream no delta." });
   }
   if (snap && snap.upstream_ok === snap.upstream_total && snap.upstream_total) {
-    focus.push({ priority: "P2", text: "Fog " + snap.upstream_ok + "/" + snap.upstream_total + " — manter; sem intervenção." });
+    focus.push({
+      priority: "P2",
+      text: "Fog " + snap.upstream_ok + "/" + snap.upstream_total + " operacional — trabalho é fechar gaps AIOps, não health-theatre.",
+    });
   }
-  return focus.slice(0, 4);
+  const wa = blockers.find((b) => b.id === "B-META-WA");
+  if (wa) focus.push({ priority: "P3", text: "WA continua offline (desde " + wa.since + ") — canal secundário; não monopolizar o briefing." });
+  if (!focus.length) focus.push({ priority: "P1", text: "Orquestrador + AIOps: fechar o gap listado na secção trabalho." });
+  return focus.slice(0, 5);
 }
 
 function healthLine(snap, statusJson) {
@@ -308,9 +313,79 @@ function healthLine(snap, statusJson) {
   );
 }
 
+async function probeMesh(env) {
+  const [aiopsBound, aiopsPub, edge, apiEdge, gossip, git, fog] = await Promise.all([
+    fetchBound(env, "AIOPS", "/"),
+    fetchJson("https://aiops.calhegasmorais.pt/", 6000),
+    fetchJson("https://edge.calhegasmorais.pt/health", 4000),
+    fetchJson("https://api-edge.calhegasmorais.pt/health", 4000),
+    fetchJson("https://calhegasmorais.pt/api/v1/gossip/peers", 4000),
+    fetchJson("https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/commits?per_page=4", 5000),
+    fetchJson("https://fog.calhegasmorais.pt/health", 4000),
+  ]);
+  let aiops = (aiopsBound.ok && aiopsBound.json) ? aiopsBound : aiopsPub;
+  // Always run GET /cycle via service binding: public aiops host is INC-1027 HOLD pages,
+  // and a stale KV last_cycle must not skip the 11h evidence write.
+  const ran = await fetchBound(env, "AIOPS", "/cycle");
+  let cycle = ran.ok && ran.json && ran.json.cycle_id ? ran.json : null;
+  if (cycle) {
+    aiops = { ok: true, json: { latest_cycle: cycle, worklog_latest: ran.json.work }, via: "binding:AIOPS/cycle" };
+  } else {
+    cycle = aiops.ok && aiops.json && aiops.json.latest_cycle ? aiops.json.latest_cycle : null;
+  }
+  const reports = (cycle && cycle.reports) || [];
+  const findings = [];
+  reports.forEach((r) => {
+    (r.findings || []).forEach((f) => findings.push("[" + (r.role || r.agent) + "] " + f));
+  });
+  const spa_missing = findings.some((f) => /SPA metrics missing|SPA \?\/\?/i.test(f));
+  const dag_na = findings.some((f) => /txs=n\/a/i.test(f));
+  const commits = [];
+  if (git.ok && Array.isArray(git.json)) {
+    git.json.forEach((c) => {
+      const msg = (((c.commit || {}).message) || "").split("\n")[0].slice(0, 90);
+      const at = ((c.commit || {}).author || {}).date || "";
+      if (msg) commits.push(msg + (at ? " · " + at.slice(0, 16) : ""));
+    });
+  }
+  const gaps = [];
+  if (spa_missing) gaps.push("AIOps Mesh: SPA registry / métricas ainda em falta — preencher pulse, não repetir health ok.");
+  if (dag_na) gaps.push("AIOps DevOps: DAG tx count n/a no status — ligar gateway ao pulse.");
+  if (!cycle) gaps.push("AIOps: sem latest_cycle — o mandato contínuo não está a evidenciar trabalho.");
+  if (cycle && cycle.summary && cycle.summary.info === cycle.summary.agents && !gaps.length) {
+    gaps.push("AIOps reportou só info/" + cycle.summary.agents + " agentes — mandatar trabalho concreto (SPA, DAG, gossip), não ciclo vazio.");
+  }
+  const tasks = [];
+  if (spa_missing) tasks.push({ id: "SG-SPA", text: "Expor métricas SPA no pulse AIOps e no status público." });
+  if (dag_na) tasks.push({ id: "SG-DAG", text: "Publicar contagem DAG txs no status.calhegasmorais.pt usado pelo AIOps." });
+  tasks.push({ id: "SG-DELTA", text: "Persistir evidência de trabalho do ciclo (não só health) para o briefing das 11h." });
+  tasks.push({ id: "SG-REDDIT", text: "Quando r/StrataMesh_DLT estiver público, republicar canais oficiais; senão acompanhar redditrequest." });
+  return {
+    aiops_ok: !!(aiops.ok && cycle),
+    cycle,
+    findings: findings.slice(0, 10),
+    commits: commits.slice(0, 4),
+    spa_missing,
+    dag_na,
+    gaps,
+    tasks,
+    edge_ok: !!(edge.ok && edge.json),
+    edge_id: edge.json && edge.json.node_id,
+    api_edge_ok: !!(apiEdge.ok && apiEdge.json),
+    gossip_count: gossip.json && (gossip.json.count != null ? gossip.json.count : (gossip.json.peers || []).length),
+    gossip_ok: !!(gossip.ok && gossip.json && (gossip.json.peers || gossip.json.count != null)),
+    fog: fog.ok && fog.json ? fog.json : null,
+    hold: {
+      aiops_public: !(aiopsPub.ok && aiopsPub.json && aiopsPub.json.latest_cycle),
+      edge_public: !(edge.ok && edge.json && edge.json.node_id),
+      api_edge_public: !(apiEdge.ok && apiEdge.json),
+    },
+  };
+}
+
 async function composeBriefing(env, mode) {
   const lisbon = nowLisbonParts();
-  const [statusRes, agoraRes, pocRes, intel, last] = await Promise.all([
+  const [statusRes, agoraRes, pocRes, intel, last, mesh] = await Promise.all([
     fetchBound(env, "STATUS", "/summary").then(async (r) => {
       if (r.ok && r.json) return r;
       return fetchJson("https://status.calhegasmorais.pt/summary");
@@ -325,6 +400,7 @@ async function composeBriefing(env, mode) {
     }),
     ingestFeeds(),
     loadLast(env),
+    probeMesh(env),
   ]);
 
   const statusJson = statusRes.ok ? statusRes.json : null;
@@ -333,37 +409,67 @@ async function composeBriefing(env, mode) {
     email: last && last.channels ? last.channels.email : null,
     whatsapp: last && last.channels ? last.channels.whatsapp : null,
   };
-  // Live channel probe (lightweight)
-  try {
-    const waH = await fetchJson("https://stratamesh-whatsapp.stratamesh.workers.dev/health", 3000);
-    // health ok does not mean send works — only note if health fails
-    if (!waH.ok) channels.whatsapp = false;
-  } catch (_) {}
 
   const deltas = computeDeltas(last, snap, {
     email: last && last.channels ? last.channels.email : undefined,
-    whatsapp: last && last.channels ? last.channels.whatsapp : false, // known blocked until fixed
   });
-  // Prefer known WA block until Meta fixed
-  if (!deltas.some((d) => /WhatsApp/i.test(d.text))) {
-    deltas.push({ kind: "CHANNEL", text: "WhatsApp Meta API: access blocked (confirmado em ciclos recentes)." });
+  if (mesh.aiops_ok && mesh.cycle) {
+    deltas.unshift({
+      kind: "AIOPS",
+      text:
+        "ciclo " +
+        (mesh.cycle.cycle_id || "").slice(0, 8) +
+        " · " +
+        (mesh.cycle.at || "") +
+        " · agents " +
+        ((mesh.cycle.summary && mesh.cycle.summary.agents) || "?") +
+        " crit=" +
+        ((mesh.cycle.summary && mesh.cycle.summary.critical) || 0) +
+        " warn=" +
+        ((mesh.cycle.summary && mesh.cycle.summary.warn) || 0),
+    });
+  }
+  mesh.findings.forEach((f) => deltas.push({ kind: "AIOPS", text: f }));
+  mesh.commits.forEach((c) => deltas.push({ kind: "GIT", text: c }));
+  if (mesh.edge_ok) deltas.push({ kind: "EDGE", text: (mesh.edge_id || "EDGE") + " live · api-edge " + (mesh.api_edge_ok ? "ok" : "down") });
+  if (mesh.gossip_ok) deltas.push({ kind: "GOSSIP", text: "peers=" + String(mesh.gossip_count) });
+  else deltas.push({ kind: "GOSSIP", text: "peers=null (public gossip HOLD/INC-1027 lab-hold pages — not a Fog crash)" });
+  if (mesh.fog) {
+    deltas.push({
+      kind: "FOG",
+      text:
+        (mesh.fog.node_id || "FOG-NODE-PT-CM-001") +
+        " substrate=" +
+        (mesh.fog.substrate || "local-process") +
+        " tx_count=" +
+        String(mesh.fog.tx_count) +
+        " oracle_vm=" +
+        String(mesh.fog.oracle_vm) +
+        " — local-process, not Oracle VM",
+    });
+  }
+  if (!mesh.edge_ok) {
+    deltas.push({ kind: "EDGE", text: "public EDGE + api-edge HOLD (CNAME stratamesh-lab-hold.pages.dev, INC-1027). Fog /health is the live probe." });
+  }
+  if (!deltas.length) {
+    deltas.push({ kind: "GAP", text: "Orquestrador/AIOps não deixaram evidência verificável neste ciclo — isso é falha de mandato, não estabilidade." });
   }
 
-  const blockers = ownerBlockers(last);
-  const attn = ownerAttention(blockers, { whatsapp: false });
-  const focus = focusToday(deltas, blockers, snap);
+  // External: only HIGH, max 3, with why
+  const blockers = ownerBlockers(last, mesh);
+  const attn = ownerAttention(blockers, { email_fail: last && last.channels && last.channels.email === false });
+  const focus = focusToday(deltas, blockers, snap, mesh);
   const health = healthLine(snap, statusJson);
 
-  // External: only HIGH, max 3, with why
   const intelLines = intel.events
     .filter((e) => e.rel === "HIGH")
     .slice(0, 3)
     .map((e) => e.title + " · " + e.tag + " · " + e.why);
 
-  // Build text — compact instrument
   const lines = [];
   lines.push("BRIEFING · " + lisbon.date + " · 11h " + LISBON_TZ);
   lines.push("Para: André M. Calhegas Morais · AMCM ENI");
+  lines.push("CC: " + BRIEFING_CC.join(", ") + " · " + STRATAGROK.name + " " + STRATAGROK.bot_id);
   lines.push("De: SCA-Orquestrador · Nó Calhegas Morais · " + VERSION);
   lines.push("");
   lines.push("0. SÍNTESE");
@@ -381,44 +487,47 @@ async function composeBriefing(env, mode) {
     });
   }
   lines.push("");
-  lines.push("2. DELTA DESDE " + ((last && last.date) || "ciclo zero"));
-  deltas.forEach((d, i) => lines.push("   " + (i + 1) + ". [" + d.kind + "] " + d.text));
-  lines.push("");
-  lines.push("3. BLOQUEIOS ACTIVOS");
-  blockers.forEach((b) => {
-    lines.push("   · " + b.id + " — " + b.title);
-    lines.push("     desde " + b.since + " · falta: " + b.need);
-  });
-  lines.push("");
-  lines.push("4. SINAL EXTERNO");
-  if (!intelLines.length) {
-    lines.push("   Nada accionável nos feeds deste ciclo (" + intel.feeds_ok + "/" + intel.feeds_n + " feeds).");
-  } else {
-    intelLines.forEach((t) => lines.push("   · " + t));
+  lines.push("2. TRABALHO DESDE O ÚLTIMO CICLO (AIOps + git + mesh)");
+  if (mesh.findings.length) mesh.findings.forEach((f) => lines.push("   · " + f));
+  else lines.push("   · AIOps sem findings — mandato em falta.");
+  if (mesh.commits.length) {
+    lines.push("   Git (stratamesh-core):");
+    mesh.commits.forEach((c) => lines.push("   · " + c));
   }
+  lines.push("   EDGE " + (mesh.edge_ok ? "ok" : "down") + " · api-edge " + (mesh.api_edge_ok ? "ok" : "down") + " · gossip peers=" + String(mesh.gossip_count));
   lines.push("");
-  lines.push("5. FOCO HOJE (máx. 4)");
+  lines.push("3. DELTA STATUS");
+  deltas.filter((d) => d.kind !== "AIOPS" && d.kind !== "GIT").forEach((d, i) => lines.push("   " + (i + 1) + ". [" + d.kind + "] " + d.text));
+  lines.push("");
+  lines.push("4. TAREFAS → " + STRATAGROK.name + " (" + STRATAGROK.bot_id + ")");
+  lines.push("   Mailbox: " + STRATAGROK.mailbox + " · automatizar, não apenas reportar.");
+  mesh.tasks.forEach((t) => lines.push("   · " + t.id + " — " + t.text));
+  lines.push("");
+  lines.push("5. BLOQUEIOS (WA é P3, não o briefing)");
+  blockers.forEach((b) => lines.push("   · " + b.id + " — " + b.title + " · " + b.need));
+  lines.push("");
+  lines.push("6. SINAL EXTERNO");
+  if (!intelLines.length) lines.push("   Sem HIGH accionável (" + intel.feeds_ok + "/" + intel.feeds_n + " feeds).");
+  else intelLines.forEach((t) => lines.push("   · " + t));
+  lines.push("");
+  lines.push("7. FOCO");
   focus.forEach((f) => lines.push("   " + f.priority + " · " + f.text));
   lines.push("");
-  lines.push("6. SAÚDE");
+  lines.push("8. SAÚDE");
   lines.push("   " + health);
-  if (pocRes.ok && pocRes.json) {
-    lines.push("   PdC " + (pocRes.json.version || "ok") + (pocRes.json.sole_mint_path ? " · sole mint path" : ""));
-  }
-  if (agoraRes.ok && agoraRes.json) {
-    lines.push("   Ágora " + (agoraRes.json.version || agoraRes.json.status || "ok"));
-  }
+  if (pocRes.ok && pocRes.json) lines.push("   PdC " + (pocRes.json.version || "ok"));
+  if (agoraRes.ok && agoraRes.json) lines.push("   Ágora " + (agoraRes.json.version || agoraRes.json.status || "ok"));
   lines.push("");
-  lines.push("7. PRÓXIMO");
-  lines.push("   Amanhã 11h Lisboa — só delta + decisões. Sem recontar o inventário do Nó.");
+  lines.push("9. PRÓXIMO");
+  lines.push("   Amanhã 11h Lisboa — delta de trabalho real + tarefas STRATAGROK. Sem reciclar WA.");
   lines.push("");
   lines.push(
     "Proveniência: status=" +
       (statusRes.ok ? "ok" : "down") +
-      " · agora=" +
-      (agoraRes.ok ? "ok" : "down") +
-      " · poc=" +
-      (pocRes.ok ? "ok" : "down") +
+      " · aiops=" +
+      (mesh.aiops_ok ? "ok" : "down") +
+      " · edge=" +
+      (mesh.edge_ok ? "ok" : "down") +
       " · intel=" +
       intel.feeds_ok +
       "/" +
@@ -433,14 +542,19 @@ async function composeBriefing(env, mode) {
       items: attn.items.length ? attn.items.map((i) => i.decision + " — " + i.why) : ["Nenhuma interrupção."],
     },
     {
-      kicker: "02 · Delta",
-      title: "vs " + ((last && last.date) || "baseline"),
-      items: deltas.map((d) => "[" + d.kind + "] " + d.text),
+      kicker: "02 · Trabalho",
+      title: "AIOps / git / mesh",
+      items: (mesh.findings.length ? mesh.findings : ["sem findings"]).concat(mesh.commits.slice(0, 2)),
     },
     {
-      kicker: "03 · Bloqueios",
+      kicker: "03 · STRATAGROK",
+      title: STRATAGROK.bot_id,
+      items: mesh.tasks.map((t) => t.id + " — " + t.text),
+    },
+    {
+      kicker: "04 · Bloqueios",
       title: blockers.length + " activos",
-      items: blockers.map((b) => b.id + " desde " + b.since + " — " + b.need),
+      items: blockers.map((b) => b.id + " — " + b.need),
     },
     {
       kicker: "04 · Externo",
@@ -455,7 +569,8 @@ async function composeBriefing(env, mode) {
     version: VERSION,
     snap,
     deltas,
-    blockers: { meta_docs_since: blockers[0] && blockers[0].since },
+    blockers: { meta_docs_since: "2026-08-18", ids: blockers.map((b) => b.id) },
+    stratagrok: STRATAGROK,
     attention: attn.n,
     channels: last && last.channels ? last.channels : { email: null, whatsapp: false },
   };
@@ -486,6 +601,7 @@ async function composeBriefing(env, mode) {
 async function sendEmail(env, subject, text, extra) {
   const payload = {
     to: (extra && extra.to) || OWNER_EMAIL,
+    cc: (extra && extra.cc) || BRIEFING_CC,
     subject,
     text,
     lang: "pt-PT",
@@ -588,11 +704,28 @@ async function runBriefing(env, { voice = false, mode = "daily" } = {}) {
 
 export default {
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(
-      runBriefing(env, { voice: false, mode: "daily" }).then((r) =>
-        console.log("briefing_cron", JSON.stringify({ ok: r.ok, date: r.date, email: r.email && r.email.ok, wa: r.whatsapp && r.whatsapp.ok })),
-      ),
-    );
+    // Free-plan cron can die mid-compose (RSS/intel). Always attempt mail;
+    // catch sends a one-line failure notice instead of silence.
+    ctx.waitUntil((async () => {
+      try {
+        const r = await runBriefing(env, { voice: false, mode: "daily" });
+        console.log("briefing_cron", JSON.stringify({
+          ok: r.ok, date: r.date, email: r.email && r.email.ok, wa: r.whatsapp && r.whatsapp.ok,
+        }));
+        if (r.email && r.email.ok === false) {
+          await sendEmail(env, "Briefing · entrega falhou · " + (r.date || ""),
+            "O ciclo das 11h correu mas DeoMail devolveu falha.\n" + JSON.stringify(r.email).slice(0, 800),
+            { kind: "system" });
+        }
+      } catch (e) {
+        console.log("briefing_cron_error", String(e && e.message || e));
+        try {
+          await sendEmail(env, "Briefing · falha no ciclo 11h",
+            "O cron 0 10 UTC (11h Lisbon) falhou antes de fechar o briefing.\n" + String(e && e.stack || e.message || e).slice(0, 1500),
+            { kind: "system" });
+        } catch (_) {}
+      }
+    })());
   },
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -643,6 +776,10 @@ export default {
         const voice = url.searchParams.get("voice") === "1";
         const result = await runBriefing(env, { voice, mode: "daily" });
         return j(result);
+      }
+      if (path === "/last") {
+        const last = await loadLast(env);
+        return j({ ok: !!last, version: VERSION, last });
       }
       return j({ error: "not_found", version: VERSION }, 404);
     } catch (e) {

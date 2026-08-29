@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.3-actions-proxy";
+const VERSION = "10.24.4-chat-budget";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -3001,7 +3001,7 @@ async function chat(message, env, request, body) {
   const level = cleared.level;
   let tickOut;
   try {
-    tickOut = await withTimeout(tick(env), 5000, "tick");
+    tickOut = await withTimeout(tick(env), 400, "tick");
   } catch (e) {
     tickOut = { tick: { fitness: 0, metrics: {}, error: String(e.message || e) }, upstream: {} };
   }
@@ -3541,7 +3541,23 @@ export default {
         if (!body.lang) body.lang = "pt";
       }
       const msgText = body.message || body.text || body.prompt || "";
-      let out = await chat(msgText, env, request, body);
+      let out;
+      try {
+        out = await withTimeout(chat(msgText, env, request, body), 900, "chat");
+      } catch (e) {
+        out = {
+          reply: "Orquestrador CMN (lab). Pulso aceite em orçamento <1s. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.",
+          clearance: "public",
+          account_clearance: "public",
+          pulse_id: "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z"),
+          role: "orchestrator",
+          lab: true,
+          node_id: "FOG-NODE-PT-CM-001",
+          version: VERSION,
+          source: "orch-chat-budget",
+          error: String(e && e.message ? e.message : e).slice(0, 120),
+        };
+      }
       // Persist transcript + transversal role memory when internal+ (conversation_id set inside chat)
       try {
         if (out && typeof out === "object" && out.reply) {

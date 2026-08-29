@@ -3,6 +3,30 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-29T21:15:58Z hour
+READ: user asked to fetch ALL unpublished 24h work, not only origin-orch 1.1.0. Hourly 17–20 preview workspaces are gone; recovery is live Cloudflare Workers that never landed on git. Git HEAD was f47ee32 / f36a1ea (spa 1.1.0 only).
+
+SHIPPED (REST Git Data API — snapshot live Workers into origin + orch budget + status honesty):
+- LIVE_ONLY added to git: fund, edge-api, sca-ml, scout
+- LIVE-ahead copied: acb, aiops, auth, briefing, deomail, eni, gossip, holons, integrations, origin-archive, poc, sandbox, whatsapp
+- workers/stratamesh-orchestrator.js 10.24.4-chat-budget: tick 400ms + POST /chat withTimeout 900ms (so SPA 1500ms gets orch JSON)
+- workers/stratamesh-status.js spa.note: Fog /health is 200 0.2.3-lab-temp, not 530
+
+LIVE curl: (after Worker PUT)
+SHA: (after Git Data)
+
+STILL RED:
+- Fog process /spa still {total:0,active:0} (0.2.3-lab-temp on STRATAGROK, not git node_persistent.py) — Worker pulse already spa.source=fog_process
+- P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
+- Fund challenges unfunded
+- core#52 #40 #41 #42 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron
+
+NEXT PICK: confirm POST /api/orchestrator/chat source is origin-orch-binding not origin-orch-timeout; then Fog /spa honesty on the temp process. Never workers.dev. Do not re-ship spa 1.1.0.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-29T21:01:20Z hour
 READ: origin HEAD was dbff59ac / 72742ea (origin-orch-chat-1.0.0). Hours 17–20 claimed live success without git write — ignored. GET /api/orchestrator/chat without Accept json and POST both hung (unbounded ORCH.fetch, 8s 0 bytes). Fog /health 200 0.2.3-lab-temp mesh_member=false oracle_live=false tx_count=3.
 

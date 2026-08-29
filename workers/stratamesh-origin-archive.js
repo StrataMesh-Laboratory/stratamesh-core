@@ -1,44 +1,42 @@
-/**
- * stratamesh-origin-archive — last-resort staff recovery pile.
- * origin.calhegasmorais.pt  ·  AUTH_DB staff (same table as portal)  ·  R2 pile
- * Daily snapshots via GitHub Action (not a 6th CF cron). Cheap /health.
- * Version: 0.1.0-origin-archive
- */
-const VERSION = "0.1.0-origin-archive";
-const COOKIE = "cmn_origin_session";
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
+// stratamesh-origin-archive.js
+var VERSION = "0.1.0-origin-archive";
+var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...extra },
+    headers: { "content-type": "application/json; charset=utf-8", ...extra }
   });
 }
-
+__name(json, "json");
 function html(body, status = 200, extra = {}) {
   return new Response(body, {
     status,
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...extra },
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...extra }
   });
 }
-
+__name(html, "html");
 function cookieSet(token) {
   return `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`;
 }
+__name(cookieSet, "cookieSet");
 function cookieClear() {
   return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
-
+__name(cookieClear, "cookieClear");
 function readCookie(request) {
   const raw = request.headers.get("Cookie") || "";
   const m = raw.match(new RegExp("(?:^|; )" + COOKIE + "=([^;]*)"));
   return m ? decodeURIComponent(m[1]) : "";
 }
-
+__name(readCookie, "readCookie");
 async function sha256Hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(s)));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-
+__name(sha256Hex, "sha256Hex");
 async function pbkdf2Match(password, stored) {
   const parts = String(stored || "").split(":");
   if (parts.length < 2) return false;
@@ -46,14 +44,14 @@ async function pbkdf2Match(password, stored) {
   const enc = new TextEncoder();
   const keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: enc.encode(salt), iterations: 100000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: enc.encode(salt), iterations: 1e5, hash: "SHA-256" },
     keyMat,
     256
   );
   const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
   return hash === storedHash;
 }
-
+__name(pbkdf2Match, "pbkdf2Match");
 async function totpVerify(secretB32, code) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   const clean = String(secretB32 || "").toUpperCase().replace(/=+$/, "").replace(/[^A-Z2-7]/g, "");
@@ -62,10 +60,10 @@ async function totpVerify(secretB32, code) {
   for (let i = 0; i < clean.length; i++) {
     const idx = alphabet.indexOf(clean[i]);
     if (idx < 0) continue;
-    value = (value << 5) | idx;
+    value = value << 5 | idx;
     bits += 5;
     if (bits >= 8) {
-      key.push((value >>> (bits - 8)) & 255);
+      key.push(value >>> bits - 8 & 255);
       bits -= 8;
     }
   }
@@ -74,24 +72,20 @@ async function totpVerify(secretB32, code) {
   if (!/^\d{6}$/.test(want)) return false;
   const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
   for (let w = -1; w <= 1; w++) {
-    const counter = Math.floor(Date.now() / 1000 / 30) + w;
+    const counter = Math.floor(Date.now() / 1e3 / 30) + w;
     const buf = new ArrayBuffer(8);
     const view = new DataView(buf);
-    view.setUint32(0, Math.floor(counter / 0x100000000), false);
+    view.setUint32(0, Math.floor(counter / 4294967296), false);
     view.setUint32(4, counter >>> 0, false);
     const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, new Uint8Array(buf)));
-    const offset = hmac[hmac.length - 1] & 0xf;
-    const bin =
-      ((hmac[offset] & 0x7f) << 24) |
-      ((hmac[offset + 1] & 0xff) << 16) |
-      ((hmac[offset + 2] & 0xff) << 8) |
-      (hmac[offset + 3] & 0xff);
-    const c = String(bin % 1000000).padStart(6, "0");
+    const offset = hmac[hmac.length - 1] & 15;
+    const bin = (hmac[offset] & 127) << 24 | (hmac[offset + 1] & 255) << 16 | (hmac[offset + 2] & 255) << 8 | hmac[offset + 3] & 255;
+    const c = String(bin % 1e6).padStart(6, "0");
     if (c === want) return true;
   }
   return false;
 }
-
+__name(totpVerify, "totpVerify");
 async function issueSession(env, staffId) {
   const token = crypto.randomUUID() + "." + crypto.randomUUID();
   const token_hash = await sha256Hex(token);
@@ -100,7 +94,7 @@ async function issueSession(env, staffId) {
   ).bind(-staffId, "redacted", token_hash).run();
   return token;
 }
-
+__name(issueSession, "issueSession");
 async function resolveStaff(env, request) {
   const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   const token = bearer || readCookie(request);
@@ -116,7 +110,7 @@ async function resolveStaff(env, request) {
   if (!staff) return null;
   return { token, staff };
 }
-
+__name(resolveStaff, "resolveStaff");
 function pageShell(title, inner) {
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -150,12 +144,12 @@ footer{margin-top:2rem;font-size:.75rem;color:var(--muted)}
 </head>
 <body><main class="wrap">${inner}</main></body></html>`;
 }
-
+__name(pageShell, "pageShell");
 function loginPage(err) {
   return pageShell(
-    "Origin archive · staff",
+    "Origin archive \xB7 staff",
     `<p class="kicker">origin.calhegasmorais.pt</p>
-     <h1>Arquivo de recuperação</h1>
+     <h1>Arquivo de recupera\xE7\xE3o</h1>
      <p>Last-resort static pile. Same staff table as the portal (email + password + 2FA). Not the public node.</p>
      <form class="card" method="post" action="/login">
        <label for="email">Staff email</label>
@@ -165,87 +159,81 @@ function loginPage(err) {
        <p class="err">${err || ""}</p>
        <button type="submit">Continuar</button>
      </form>
-     <p class="mono">Lab · n=1 · spa.source=lab_seed · Challenge 0 unfunded</p>`
+     <p class="mono">Lab \xB7 n=1 \xB7 spa.source=lab_seed \xB7 Challenge 0 unfunded</p>`
   );
 }
-
+__name(loginPage, "loginPage");
 function twoFaPage(challenge, channel, err) {
   return pageShell(
-    "Origin archive · 2FA",
+    "Origin archive \xB7 2FA",
     `<p class="kicker">Staff 2FA</p>
-     <h1>Código de verificação</h1>
-     <p>${channel === "totp" ? "Authenticator app (TOTP)." : "Código enviado por e-mail. Não é mostrado neste ecrã."}</p>
+     <h1>C\xF3digo de verifica\xE7\xE3o</h1>
+     <p>${channel === "totp" ? "Authenticator app (TOTP)." : "C\xF3digo enviado por e-mail. N\xE3o \xE9 mostrado neste ecr\xE3."}</p>
      <form class="card" method="post" action="/2fa">
        <input type="hidden" name="challenge" value="${challenge}"/>
-       <label for="code">Código de 6 dígitos</label>
+       <label for="code">C\xF3digo de 6 d\xEDgitos</label>
        <input id="code" name="code" inputmode="numeric" pattern="\\d{6}" maxlength="6" autocomplete="one-time-code" required/>
        <p class="err">${err || ""}</p>
        <button type="submit">Entrar</button>
      </form>`
   );
 }
-
+__name(twoFaPage, "twoFaPage");
 async function listPile(env) {
-  const obj = env.ARCHIVE && (await env.ARCHIVE.get("pile/index.json"));
+  const obj = env.ARCHIVE && await env.ARCHIVE.get("pile/index.json");
   if (obj) {
     try {
       return JSON.parse(await obj.text());
-    } catch (_) {}
+    } catch (_) {
+    }
   }
-  return { days: [], note: "empty pile — first snapshot pending" };
+  return { days: [], note: "empty pile \u2014 first snapshot pending" };
 }
-
+__name(listPile, "listPile");
 function pilePage(staff, pile) {
   const days = pile.days || [];
-  const rows = days.length
-    ? days
-        .map(
-          (d) => `<div class="row">
-            <div><strong class="mono">${d.date}</strong><div class="mono">${d.sha ? d.sha.slice(0, 8) : "—"} · ${d.files || 0} files</div></div>
+  const rows = days.length ? days.map(
+    (d) => `<div class="row">
+            <div><strong class="mono">${d.date}</strong><div class="mono">${d.sha ? d.sha.slice(0, 8) : "\u2014"} \xB7 ${d.files || 0} files</div></div>
             <a href="/v/${d.date}/">abrir</a>
           </div>`
-        )
-        .join("")
-    : `<p>No snapshots yet. Daily GitHub Action writes the pile after 00:20 UTC.</p>`;
+  ).join("") : `<p>No snapshots yet. Daily GitHub Action writes the pile after 00:20 UTC.</p>`;
   return pageShell(
-    "Origin archive · pile",
+    "Origin archive \xB7 pile",
     `<p class="kicker">Recovery pile</p>
-     <h1>Versões anteriores</h1>
-     <p>Staff <span class="mono">${staff.email}</span> · <span class="pill ok">${staff.role || "staff"}</span>
-        · <a href="/logout">sair</a></p>
+     <h1>Vers\xF5es anteriores</h1>
+     <p>Staff <span class="mono">${staff.email}</span> \xB7 <span class="pill ok">${staff.role || "staff"}</span>
+        \xB7 <a href="/logout">sair</a></p>
      <div class="card">${rows}</div>
-     <p>Latest static copy: <a href="/latest/">/latest/</a> — landing, portal, laboratório. Repo zip per day when present.</p>
+     <p>Latest static copy: <a href="/latest/">/latest/</a> \u2014 landing, portal, laborat\xF3rio. Repo zip per day when present.</p>
      <footer>Same AUTH_DB staff as the portal. No 6th cron. Fog 530 remains P1. Mesh n=1.</footer>`
   );
 }
-
-export default {
+__name(pilePage, "pilePage");
+var stratamesh_origin_archive_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
-
     if (path === "/health" && request.method === "GET") {
       return json({
         ok: true,
         service: "stratamesh-origin-archive",
         version: VERSION,
         staff_gated: true,
-        sixth_cron: false,
+        sixth_cron: false
       });
     }
-
     if (path === "/logout") {
-      return html(loginPage("Sessão encerrada."), 200, { "set-cookie": cookieClear() });
+      return html(loginPage("Sess\xE3o encerrada."), 200, { "set-cookie": cookieClear() });
     }
-
     if (path === "/login" && request.method === "POST") {
       const form = await request.formData().catch(() => null);
-      const email = String((form && form.get("email")) || "").trim().toLowerCase();
-      const password = String((form && form.get("password")) || "");
+      const email = String(form && form.get("email") || "").trim().toLowerCase();
+      const password = String(form && form.get("password") || "");
       if (!email || !password) return html(loginPage("Email and password required."), 400);
       const staff = await env.AUTH_DB.prepare("SELECT * FROM staff WHERE lower(email) = lower(?)").bind(email).first();
-      if (!staff || !staff.password_hash || !(await pbkdf2Match(password, staff.password_hash))) {
-        return html(loginPage("Credenciais inválidas."), 401);
+      if (!staff || !staff.password_hash || !await pbkdf2Match(password, staff.password_hash)) {
+        return html(loginPage("Credenciais inv\xE1lidas."), 401);
       }
       if (staff.totp_secret) {
         return html(twoFaPage("TOTP-" + staff.id, "totp"));
@@ -260,8 +248,9 @@ export default {
           used INTEGER DEFAULT 0,
           created_at TEXT DEFAULT (datetime('now'))
         )`).run();
-      } catch (_) {}
-      const code = String(Math.floor(100000 + Math.random() * 900000));
+      } catch (_) {
+      }
+      const code = String(Math.floor(1e5 + Math.random() * 9e5));
       const challenge = crypto.randomUUID();
       await env.AUTH_DB.prepare(
         "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
@@ -275,39 +264,36 @@ export default {
               body: JSON.stringify({
                 from: env.MAIL_FROM || "noreply@eni.calhegasmorais.pt",
                 to: staff.email,
-                subject: "Nó Calhegas Morais · código 2FA (origin archive)",
-                text:
-                  "Mensagem automática do Nó Calhegas Morais.\n\nCódigo origin archive: " +
-                  code +
-                  "\nVálido 10 minutos.",
+                subject: "N\xF3 Calhegas Morais \xB7 c\xF3digo 2FA (origin archive)",
+                text: "Mensagem autom\xE1tica do N\xF3 Calhegas Morais.\n\nC\xF3digo origin archive: " + code + "\nV\xE1lido 10 minutos.",
                 formal: true,
-                lang: "pt",
-              }),
+                lang: "pt"
+              })
             })
           );
         }
-      } catch (_) {}
+      } catch (_) {
+      }
       return html(twoFaPage(challenge, "email"));
     }
-
     if (path === "/2fa" && request.method === "POST") {
       const form = await request.formData().catch(() => null);
-      const challenge = String((form && form.get("challenge")) || "");
-      const code = String((form && form.get("code")) || "").trim();
-      if (!challenge || !code) return html(twoFaPage(challenge, "email", "Código obrigatório."), 400);
+      const challenge = String(form && form.get("challenge") || "");
+      const code = String(form && form.get("code") || "").trim();
+      if (!challenge || !code) return html(twoFaPage(challenge, "email", "C\xF3digo obrigat\xF3rio."), 400);
       let staff = null;
       if (challenge.startsWith("TOTP-")) {
         const sid = parseInt(challenge.slice(5), 10);
         staff = await env.AUTH_DB.prepare("SELECT * FROM staff WHERE id = ?").bind(sid).first();
-        if (!staff || !staff.totp_secret || !(await totpVerify(staff.totp_secret, code))) {
-          return html(twoFaPage(challenge, "totp", "Código TOTP inválido."), 401);
+        if (!staff || !staff.totp_secret || !await totpVerify(staff.totp_secret, code)) {
+          return html(twoFaPage(challenge, "totp", "C\xF3digo TOTP inv\xE1lido."), 401);
         }
       } else {
         const row = await env.AUTH_DB.prepare(
           "SELECT * FROM staff_otp WHERE challenge = ? AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
         ).bind(challenge).first();
         if (!row || String(row.code) !== code) {
-          return html(twoFaPage(challenge, "email", "Código inválido ou expirado."), 401);
+          return html(twoFaPage(challenge, "email", "C\xF3digo inv\xE1lido ou expirado."), 401);
         }
         await env.AUTH_DB.prepare("UPDATE staff_otp SET used = 1 WHERE id = ?").bind(row.id).run();
         staff = await env.AUTH_DB.prepare("SELECT * FROM staff WHERE id = ?").bind(row.staff_id).first();
@@ -316,10 +302,9 @@ export default {
       const token = await issueSession(env, staff.id);
       return new Response(null, {
         status: 303,
-        headers: { location: "/", "set-cookie": cookieSet(token) },
+        headers: { location: "/", "set-cookie": cookieSet(token) }
       });
     }
-
     let session = null;
     try {
       session = await resolveStaff(env, request);
@@ -328,18 +313,15 @@ export default {
     }
     if (!session) {
       if (path === "/" || path === "/login") return html(loginPage());
-      return html(loginPage("Sessão staff necessária."), 401);
+      return html(loginPage("Sess\xE3o staff necess\xE1ria."), 401);
     }
-
     if (path === "/" || path === "/pile") {
       const pile = await listPile(env);
       return html(pilePage(session.staff, pile));
     }
-
     if (path === "/api/pile") {
-      return json({ ok: true, staff: session.staff.email, ...(await listPile(env)) });
+      return json({ ok: true, staff: session.staff.email, ...await listPile(env) });
     }
-
     let key = null;
     if (path === "/latest" || path === "/latest/") {
       const pile = await listPile(env);
@@ -363,11 +345,9 @@ export default {
       const type = obj.httpMetadata?.contentType || guessType(key);
       return new Response(obj.body, { headers: { "content-type": type, "cache-control": "private, max-age=60" } });
     }
-
     return html(loginPage(), 404);
-  },
+  }
 };
-
 function guessType(key) {
   if (key.endsWith(".html")) return "text/html; charset=utf-8";
   if (key.endsWith(".json")) return "application/json; charset=utf-8";
@@ -378,3 +358,8 @@ function guessType(key) {
   if (key.endsWith(".zip")) return "application/zip";
   return "application/octet-stream";
 }
+__name(guessType, "guessType");
+export {
+  stratamesh_origin_archive_default as default
+};
+//# sourceMappingURL=stratamesh-origin-archive.js.map

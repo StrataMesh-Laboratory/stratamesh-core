@@ -4,9 +4,9 @@
  * Workers embed or mirror this module — it is not decorative UI logic.
  *
  * Pilha holónica (infraestrutura → habitação):
- *   TRD (CLP/PPC embutido em todo o fluxo) → Nó(SO/VM) → SO Metaverso Web3 → Domínio Virtual → Mundo Aberto (NFT STRATA) → Bancada CGU (Painel dentro) → Utilizador|SCA
- * CLP não é camada: é kernel temporal da TRD, selado em cada holão via ppcCompact.
- * Painel/Portal não é camada acima: vive na Bancada CGU.
+ *   TRD (CLP/PPC kernel temporal) → Nó Fog (com operador; corre e instancia SO nativos e importados na TRD) → SO Metaverso Web3 (nativo StrataMesh, partilhado, instanciado nos Fog) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU (sandbox users/SCA; Painel TanStack = kit de interface) → Utilizador|SCA
+ * CLP é kernel temporal da TRD, selado em cada holão via ppcCompact.
+ * Painel/Portal/TanStack vive na Bancada CGU.
  *
  * CLP: relative civil time.
  * Phase-1 temporal authority: PPC is planetary truth; ISO-8601 is dual wire/interop only.
@@ -41,15 +41,15 @@ const NODE_CMN = {
   sandbox_id: "sbx_9bed54e8-880",
 };
 
-/** Camadas holónicas (PT-PT). CLP ≠ camada; Painel ⊂ Bancada CGU. */
+/** Camadas holónicas (PT-PT). CLP = kernel temporal da TRD; Painel ⊂ Bancada CGU. */
 const HOLONIC_LAYERS = [
-  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "malha GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
-  { id: "node", nome: "Nó (SO/VM)", name_en: "Node OS/VM", papel: "substrato fog/edge do anfitrião", role: "fog/edge host substrate" },
-  { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
-  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "infraestrutura: domínio virtual (hipervisor) — não é lugar visitável", role: "infrastructure virtual realm (hypervisor) — not a user-facing place" },
-  { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "mundo persistente acedível (dentro de um Domínio Virtual)", role: "user-accessible persistent world (inside a Virtual Realm)" },
-  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox isolado de criação CGU (utilizadores e SCA) (+ Painel/Portal)", role: "isolated CGU/UGC sandbox (users + SCAs) (+ Panel/Portal)" },
-  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
+  { id: "dlt", nome: "TRD StrataMesh", name_en: "StrataMesh DLT", papel: "livro-razão GDA, PdC, PdS, Ágora; CLP/PPC embutido em todo o fluxo", role: "DAG mesh; PoC, PoS, Agora; CLP/PPC embedded throughout" },
+  { id: "node", nome: "Nó de Névoa", name_en: "Fog Node", papel: "holon Fog com operador; corre e instancia SO — nativo StrataMesh e outros desenvolvidos ou importados na TRD; indexa Limiar", role: "Fog holon with operator; runs and instantiates OS — native StrataMesh and others developed or imported on the DLT; indexes Edge" },
+  { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "SO nativo StrataMesh, partilhado; os Fog instanciam-no localmente; sub-sistemas: DV (VM hipervisor), Mundo Aberto, Bancada (Painel TanStack = kit de interface)", role: "native StrataMesh metaverse OS, shared, instantiated by Fog Nodes; subsystems: Virtual Realm (VM hypervisor), Open World, sandbox (Panel TanStack = UI kit)" },
+  { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "sub-sistema do SO: VM hipervisor — servidores que suportam os mundos abertos", role: "OS subsystem: VM hypervisor — servers that support the open worlds" },
+  { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "sub-sistema habitável do SO, hospedado nas VM do Domínio Virtual", role: "habitable OS subsystem, hosted on Virtual Realm VMs" },
+  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox de utilizadores e SCA, hospedada nos mundos abertos; Painel TanStack = kit de interface", role: "user/SCA sandbox hosted in open worlds; Panel TanStack = UI kit" },
+  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo", role: "standing by function and agreement" },
 ];
 
 const PPC = [
@@ -409,7 +409,7 @@ const HOLON_CONTRACTS = {
   },
   node: {
     holon: "node",
-    nome: "Nó (SO/VM)",
+    nome: "Nó de Névoa",
     possui: ["medidores_capacidade", "registo_aps", "node_id"],
     owns: ["capacity_meters", "spa_registration", "node_id"],
     invariantes: ["substrato_nao_e_standing", "recurso_nao_e_rotulo_de_funcao"],

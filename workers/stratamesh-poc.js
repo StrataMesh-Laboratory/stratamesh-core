@@ -986,7 +986,7 @@ export default {
     try {
       await ensure(db);
 
-      if (path === '/health' || path === '/' || path === '') {
+      if (path === '/health' || path === '/status' || path === '/' || path === '') {
         return j({
           status: 'healthy',
           service: 'stratamesh-poc',
