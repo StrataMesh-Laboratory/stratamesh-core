@@ -1920,24 +1920,41 @@ export default {
       const limitRaw = parseInt(url.searchParams.get('limit') || '20', 10);
       const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 20));
       const detail = url.searchParams.get('detail') === '1' || url.searchParams.get('render') === '1';
+      const cacheKey = new Request(
+        'https://stratamesh-token.cache/list?o=' + encodeURIComponent(owner || '') + '&w=' + encodeURIComponent(world_id || '') + '&l=' + limit + '&d=' + (detail ? '1' : '0')
+      );
+      if (!detail) {
+        try {
+          const hit = await caches.default.match(cacheKey);
+          if (hit) {
+            const h = new Headers(hit.headers);
+            h.set('X-Token-Cache', 'HIT');
+            return new Response(hit.body, { status: hit.status, headers: h });
+          }
+        } catch (_) {}
+      }
       try {
-        await ensureStrataFunctionalSchema(db);
         let rows = { results: [] };
+        const slim = 'id, owner, name, role, asset_type, world_id, sandbox_id, created_at';
         try {
           if (owner && world_id) {
-            rows = await db.prepare('SELECT * FROM strata_nfts WHERE owner = ? AND world_id = ? ORDER BY created_at DESC LIMIT ?').bind(owner, world_id, limit).all();
+            rows = await db.prepare(`SELECT ${slim} FROM strata_nfts WHERE owner = ? AND world_id = ? ORDER BY created_at DESC LIMIT ?`).bind(owner, world_id, limit).all();
           } else if (owner) {
-            rows = await db.prepare('SELECT * FROM strata_nfts WHERE owner = ? ORDER BY created_at DESC LIMIT ?').bind(owner, limit).all();
+            rows = await db.prepare(`SELECT ${slim} FROM strata_nfts WHERE owner = ? ORDER BY created_at DESC LIMIT ?`).bind(owner, limit).all();
           } else if (world_id) {
-            rows = await db.prepare('SELECT * FROM strata_nfts WHERE world_id = ? ORDER BY created_at DESC LIMIT ?').bind(world_id, limit).all();
+            rows = await db.prepare(`SELECT ${slim} FROM strata_nfts WHERE world_id = ? ORDER BY created_at DESC LIMIT ?`).bind(world_id, limit).all();
           } else {
-            rows = await db.prepare('SELECT * FROM strata_nfts ORDER BY created_at DESC LIMIT ?').bind(limit).all();
+            rows = await db.prepare(`SELECT ${slim} FROM strata_nfts ORDER BY created_at DESC LIMIT ?`).bind(limit).all();
           }
         } catch (_) {
-          if (owner) {
-            rows = await db.prepare('SELECT * FROM nft_assets WHERE owner = ? ORDER BY rowid DESC LIMIT ?').bind(owner, limit).all();
-          } else {
-            rows = await db.prepare('SELECT * FROM nft_assets ORDER BY rowid DESC LIMIT ?').bind(limit).all();
+          try {
+            if (owner) {
+              rows = await db.prepare('SELECT id, owner, name, role, asset_type, created_at FROM nft_assets WHERE owner = ? ORDER BY rowid DESC LIMIT ?').bind(owner, limit).all();
+            } else {
+              rows = await db.prepare('SELECT id, owner, name, role, asset_type, created_at FROM nft_assets ORDER BY rowid DESC LIMIT ?').bind(limit).all();
+            }
+          } catch (e2) {
+            return json({ success: true, nfts: [], count: 0, limit, error: String(e2.message || e2).slice(0, 80) });
           }
         }
         const out = [];
@@ -1949,7 +1966,13 @@ export default {
             out.push(n);
           }
         }
-        return json({ success: true, nfts: out, count: out.length, limit, source: 'strata_nfts', detail: !!detail });
+        const payload = { success: true, nfts: out, count: out.length, limit, source: 'strata_nfts', detail: !!detail };
+        const resp = json(payload);
+        resp.headers.set('Cache-Control', 'public, max-age=15');
+        if (!detail) {
+          try { await caches.default.put(cacheKey, resp.clone()); } catch (_) {}
+        }
+        return resp;
       } catch (e) {
         return json({ error: String(e.message || e) }, 500);
       }
@@ -2655,7 +2678,7 @@ export default {
           protocol: 'pds-402',
           burn_to: '#0',
           rail: 'STRATA PdS',
-          note: 'Retry after PdS burn to #0. No USDC. Not Cloudflare Monetization Gateway.',
+          note: 'Retry after PdS burn to #0. Not a stablecoin rail. Not Cloudflare Monetization Gateway.',
         }, 402);
       }
       const r = await executeSpa(db, env, {
