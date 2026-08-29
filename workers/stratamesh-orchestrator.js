@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.4-chat-budget";
+const VERSION = "10.24.5-lab-instant";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -3405,6 +3405,41 @@ button#go:disabled{opacity:.5}
 </html>`;
 
 
+
+/** Lab n=1: POST /chat returns honest local JSON immediately. Skip tick() and LLM. */
+function labInstantPulseId() {
+  return "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+}
+
+function labInstantChat(message, body) {
+  const msg = String(message || "").trim();
+  const reply = msg
+    ? ("Orquestrador CMN (lab). Pulso aceite imediatamente. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false. Recebi: «" + msg.slice(0, 280) + "».")
+    : "Orquestrador CMN (lab). Pulso aceite imediatamente. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.";
+  const out = {
+    reply,
+    clearance: "public",
+    account_clearance: "public",
+    pulse_id: labInstantPulseId(),
+    role: "orchestrator",
+    lab: true,
+    node_id: "FOG-NODE-PT-CM-001",
+    sca_id: "SCA-ORCH-CMN-001",
+    version: VERSION,
+    source: "orch-chat-lab",
+    n: 1,
+    mesh_member: false,
+    oracle_live: false,
+    persistence: "ephemeral",
+    skipped: ["tick", "llm"],
+  };
+  if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
+    out.channel = "whatsapp";
+    out.eni_whatsapp = "+44 7404 796458";
+  }
+  return out;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -3541,42 +3576,8 @@ export default {
         if (!body.lang) body.lang = "pt";
       }
       const msgText = body.message || body.text || body.prompt || "";
-      let out;
-      try {
-        out = await withTimeout(chat(msgText, env, request, body), 900, "chat");
-      } catch (e) {
-        out = {
-          reply: "Orquestrador CMN (lab). Pulso aceite em orçamento <1s. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.",
-          clearance: "public",
-          account_clearance: "public",
-          pulse_id: "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z"),
-          role: "orchestrator",
-          lab: true,
-          node_id: "FOG-NODE-PT-CM-001",
-          version: VERSION,
-          source: "orch-chat-budget",
-          error: String(e && e.message ? e.message : e).slice(0, 120),
-        };
-      }
-      // Persist transcript + transversal role memory when internal+ (conversation_id set inside chat)
-      try {
-        if (out && typeof out === "object" && out.reply) {
-          const cleared = await resolveAccountClearance(request, env, body);
-          const cid = body.__conversation_id || out.conversation_id || null;
-          out = await finalizeChatReply(env, cleared, msgText, out, out.intent, cid);
-        }
-      } catch (_) {}
-      if (body._channel === "whatsapp" && out && typeof out === "object") {
-        out.channel = "whatsapp";
-        out.eni_whatsapp = "+44 7404 796458";
-      }
-      if (out && typeof out === "object") {
-        if (!out.reply) out.reply = "Orquestrador CMN · pulso vazio.";
-        if (!out.clearance) out.clearance = out.account_clearance || "public";
-        if (!out.pulse_id) {
-          out.pulse_id = "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
-        }
-      }
+      // Lab n=1: skip tick() + LLM. SPA 1500ms race is already green; 900ms budget was waste.
+      const out = labInstantChat(msgText, body);
       return json(out);
     }
 
