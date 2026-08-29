@@ -16,8 +16,9 @@ circuit STASIS  if hour_spent ≥ 2 × hourly_cap      # unadjusted
 
 - **HF Inference** HOLD until **2026-09-01T00:00:00Z** (`stasis_until`). Never paid HF.
 - **AWS Free** STASIS remaining=0 (`hard_cap: 0`). Never Paid / Support / Auto-renew. Not a Fog host. Billing alarm $1.
-- **grok-bot-included** / **grok-assistant**: `unknown_remaining: "hold"` — missing numeric `daily_limit` does **not** invent a weekly cap (HOLD until a live remaining sample). Sampler/`usage_limit` still pauses those routines. Do not invent a fake weekly cap number.
-- **CF Workers Free** after **2026-08-29T00:00:00Z** is Q-gated ALLOW (`R = remaining/hours_left * pace_factor`), not STASIS. Never workers.dev. Never a 6th cron.
+- **grok-bot-included**: `unknown_remaining: "hold"` — SuperGrok does **not** refill Bot included. HOLD until a live remaining sample. Do not invent a cap. `usage_limit` pauses that routine once.
+- **grok-assistant**: SuperGrok Plus weekly **pool fraction**. `remaining = remaining_frac` (1.0 = full weekly compute pool). `daily_limit` is **1.0** (the pool), **not** a prompt/token count — grok.com Usage has no public token number. Live 2026-08-29 ~01:05 Lisbon: 4% used → remaining_frac **0.96**. Reset text "Resets August 31, 2026 at 2:55 PM" has **no timezone**; treated as **Europe/Lisbon** (session TZ) → `reset_iso=2026-08-31T14:55:00+01:00`. Prompt cost is unknown compute; snapshot `cost=0` (is the pool alive); a fire is `grok-auto`. Gate on `remaining_frac>0` + circuit. Missing sample + `unknown_remaining: hold` → HOLD. `remaining_frac==0` → STASIS.
+- **CF Workers Free** after **2026-08-29T00:00:00Z** is Q-gated ALLOW (`R = remaining/hours_left * pace_factor`), not STASIS. Live remaining = 100000 minus GraphQL workersInvocationsAdaptive since 00:00 UTC. **cf-pages** is an alias (`shares_pool: cf-worker-req`, `skip_meter`); static Pages are free; Functions share the one 100k. Never workers.dev. Never a 6th cron.
 
 ---
 
@@ -71,6 +72,9 @@ Peaks (09:00 / 18:00 / 23:00 Lisbon) **may overdraft the hour**. Quiet hours com
 | Rail | Billing | Window | Cap |
 |---|---|---|---|
 | grok-auto | quota (shared pool) | day Lisbon | 6 fires (4 slots + 2 desk) |
+| grok-assistant | quota (pool_frac) | SuperGrok weekly | remaining_frac of weekly compute pool (1.0 = full). Not a token count. Reset TZ assumed Europe/Lisbon. |
+| grok-bot-included | quota | unknown | unknown_remaining hold; SuperGrok does not refill |
+| cf-pages | alias of cf-worker-req | day UTC | static free; Functions share the one 100k |
 | xai-api | PAYG owner key | day Lisbon | 24 req · 1/hour · user-initiated |
 | deomail | token | day Lisbon | 240 · 10/h |
 | discourse | quota | day Lisbon | 6 posts |
