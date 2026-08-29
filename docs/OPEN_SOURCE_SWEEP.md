@@ -71,4 +71,5 @@ Rule: absorb **models**, not foreign ontology. STRATA mint stays **PdC-only**.
 - `/api/v1/ipfs/*` — CID / pin  
 - `/api/v1/integrations/health` — catalog probe  
 
-Last sweep: 2026-08-20
+Last sweep: 2026-08-20  
+Delta (releases + plan): [OSS-INSPIRE-2026-08.md](./OSS-INSPIRE-2026-08.md) (2026-08-29)
