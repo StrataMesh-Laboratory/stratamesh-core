@@ -902,7 +902,7 @@ export default {
 
     if ((path === "/boot" || path === "/arrancar") && (request.method === "POST" || request.method === "GET")) {
       const BOOT_MS = 1500;
-      const cacheUrl = "https://stratamesh-holons.cache/boot-v2";
+      const cacheUrl = "https://stratamesh-holons.cache/boot-v3";
       try {
         const hit = await caches.default.match(cacheUrl);
         if (hit) {
@@ -911,7 +911,7 @@ export default {
         }
       } catch (_) {}
       const started = Date.now();
-      const deadline = started + 1400;
+      const deadline = started + 1300;
       const passos = [];
       const seq = [
         ["garantir_reino_lab", {}],
@@ -920,22 +920,34 @@ export default {
         ["tic_so", {}],
         ["pulso_no", {}],
       ];
-      let timed_out = false;
-      for (const [name, args] of seq) {
-        if (deadline - Date.now() < 80) {
-          timed_out = true;
-          passos.push({ syscall: name, ok: false, error: "timeout", timeout: true });
-          continue;
+      const run = (async () => {
+        let timed_out = false;
+        for (const [name, args] of seq) {
+          if (deadline - Date.now() < 80) {
+            timed_out = true;
+            passos.push({ syscall: name, ok: false, error: "timeout", timeout: true });
+            continue;
+          }
+          const spec = SYSCALLS[name];
+          let call = { ok: false, status: 0, error: "timeout" };
+          try {
+            const step = callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args, spec.via_servico || null);
+            const left = Math.max(80, deadline - Date.now());
+            call = await Promise.race([
+              step,
+              new Promise((res) => setTimeout(() => res({ ok: false, status: 0, via: "budget", error: "timeout" }), Math.min(300, left))),
+            ]);
+          } catch (e) {
+            call = { ok: false, status: 0, error: String(e.message || e).slice(0, 80) };
+          }
+          passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, error: call.error });
         }
-        const spec = SYSCALLS[name];
-        let call = { ok: false, status: 0, error: "timeout" };
-        try {
-          call = await callHolonService(env, spec.holon, spec.endpoint, spec.metodo, args, spec.via_servico || null);
-        } catch (e) {
-          call = { ok: false, status: 0, error: String(e.message || e).slice(0, 80) };
-        }
-        passos.push({ syscall: name, ok: call.ok, status: call.status, via: call.via, error: call.error });
-      }
+        return timed_out;
+      })();
+      const timed_out = await Promise.race([
+        run,
+        new Promise((res) => setTimeout(() => res(true), 1300)),
+      ]);
       const payload = {
         ok: !timed_out && passos.every((p) => p.ok),
         error: timed_out ? "timeout" : undefined,
