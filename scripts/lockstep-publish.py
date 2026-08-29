@@ -192,6 +192,7 @@ def load_gh_token() -> str | None:
         if env.get(key):
             return env[key].strip()
     for p in (
+        Path("/tmp/gh_pat"),
         Path("/tmp/grok/connectors/github.token"),
         Path("/tmp/github.token"),
         Path("/root/.config/github.token"),

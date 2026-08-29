@@ -143,7 +143,7 @@ function originOrchHealth() {
     status: 'ok',
     service: 'stratamesh-orchestrator',
     origin: 'calhegasmorais.pt',
-    version: 'origin-orch-chat-1.0.0',
+    version: 'origin-orch-chat-1.1.0',
     node_id: 'FOG-NODE-PT-CM-001',
     sca_id: 'SCA-ORCH-CMN-001',
     lab: true,
@@ -180,7 +180,94 @@ function enrichOrchPayload(obj, fallbackMsg) {
   return out;
 }
 
-/** Origin POST /api/orchestrator/chat + GET /api/v1/orchestrator/health. Never workers.dev. */
+function abortAfter(ms) {
+  const c = new AbortController();
+  const t = setTimeout(() => { try { c.abort(); } catch (_) {} }, ms);
+  return { signal: c.signal, cancel() { clearTimeout(t); } };
+}
+
+async function withTimeout(promise, ms, label) {
+  let t;
+  const timeout = new Promise((_, rej) => {
+    t = setTimeout(() => {
+      const e = new Error(label + '_timeout');
+      e.name = 'AbortError';
+      rej(e);
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function probeFogHealth1500() {
+  const a = abortAfter(1500);
+  try {
+    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: a.signal,
+    }), 1500, 'fog_health');
+    const text = await r.text();
+    let obj = null;
+    try { obj = JSON.parse(text); } catch (_) {}
+    return {
+      ok: !!(obj && (obj.ok === true || obj.status === 'ok')),
+      http: r.status,
+      version: obj && obj.version,
+      mesh_member: !!(obj && obj.mesh_member),
+      oracle_live: !!(obj && obj.oracle_live),
+      tx_count: obj && obj.tx_count,
+      node_id: (obj && obj.node_id) || 'FOG-NODE-PT-CM-001',
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: String(e && e.name ? e.name : e).slice(0, 80),
+      mesh_member: false,
+      oracle_live: false,
+    };
+  } finally {
+    a.cancel();
+  }
+}
+
+async function tryOrch1500(env, request, body, msg) {
+  if (!(env.ORCH && typeof env.ORCH.fetch === 'function')) {
+    return { ok: false, source: 'origin-orch-no-binding' };
+  }
+  const a = abortAfter(1500);
+  try {
+    const initHeaders = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    const auth = request.headers.get('Authorization');
+    if (auth) initHeaders.Authorization = auth;
+    const xc = request.headers.get('X-Clearance');
+    if (xc) initHeaders['X-Clearance'] = xc;
+    const payload = Object.assign({}, body, { message: msg || 'lab pulse' });
+    const req = new Request('https://orchestrator.internal/chat', {
+      method: 'POST',
+      headers: initHeaders,
+      body: JSON.stringify(payload),
+    });
+    const resp = await withTimeout(env.ORCH.fetch(req), 1500, 'orch_fetch');
+    const text = await resp.text();
+    let obj = null;
+    try { obj = JSON.parse(text); } catch (_) {}
+    return { ok: true, obj, status: resp.status, source: 'origin-orch-binding' };
+  } catch (e) {
+    return {
+      ok: false,
+      source: 'origin-orch-timeout',
+      error: String(e && e.name ? e.name : e).slice(0, 120),
+    };
+  } finally {
+    a.cancel();
+  }
+}
+
+/** Origin POST /api/orchestrator/chat + GET health. AbortSignal 1500ms. Never workers.dev. */
 async function originOrchChat(request, env, corsHeaders, restPath) {
   const url = new URL(request.url);
   const path = restPath != null ? restPath : (url.pathname || '/');
@@ -191,57 +278,55 @@ async function originOrchChat(request, env, corsHeaders, restPath) {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers });
   }
-  const isChat = /\/chat\/?$/.test(path) || path === '/chat';
-  const isHealth = /\/health\/?$/.test(path) || path === '/' || path === '' || path === '/api/v1/orchestrator' || path === '/api/orchestrator';
-  if (request.method === 'GET' && isHealth && !isChat) {
-    return new Response(JSON.stringify(Object.assign(originOrchHealth(), { pulse_id: newPulseId() })), { status: 200, headers });
-  }
-  let body = {};
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    try { body = await request.json(); } catch (_) { body = {}; }
-  } else if (url.searchParams.get('message')) {
-    body = { message: url.searchParams.get('message') };
-  }
-  if (request.method === 'GET' && isChat) {
-    const accept = request.headers.get('Accept') || '';
-    if (accept.includes('application/json')) {
-      return new Response(JSON.stringify(Object.assign(originOrchHealth(), {
-        methods: ['POST'],
-        pulse_id: newPulseId(),
-        body: { message: 'string' },
-      })), { status: 200, headers });
+
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const payload = Object.assign(originOrchHealth(), {
+      methods: ['GET', 'POST', 'OPTIONS'],
+      pulse_id: newPulseId(),
+      body: { message: 'string' },
+    });
+    if (request.method === 'HEAD') {
+      return new Response(null, { status: 200, headers });
     }
+    return new Response(JSON.stringify(payload), { status: 200, headers });
   }
 
+  let body = {};
+  try { body = await request.json(); } catch (_) { body = {}; }
   const msg = (body && (body.message || body.text || body.prompt)) || '';
-  const orchPath = '/chat';
+
+  let fog = { ok: false, mesh_member: false, oracle_live: false };
+  let orch = { ok: false };
   try {
-    if (env.ORCH && typeof env.ORCH.fetch === 'function' && (request.method === 'POST' || isChat)) {
-      const initHeaders = { 'Content-Type': 'application/json', Accept: 'application/json' };
-      const auth = request.headers.get('Authorization');
-      if (auth) initHeaders.Authorization = auth;
-      const xc = request.headers.get('X-Clearance');
-      if (xc) initHeaders['X-Clearance'] = xc;
-      const payload = Object.assign({}, body, { message: msg || 'lab pulse' });
-      const resp = await env.ORCH.fetch(new Request('https://orchestrator.internal' + orchPath, {
-        method: 'POST',
-        headers: initHeaders,
-        body: JSON.stringify(payload),
-      }));
-      const text = await resp.text();
-      let obj = null;
-      try { obj = JSON.parse(text); } catch (_) {}
-      if (obj && typeof obj === 'object') {
-        const enriched = enrichOrchPayload(obj, msg);
-        const status = (resp.status >= 200 && resp.status < 500 && resp.status !== 404) ? (resp.ok ? 200 : resp.status) : 200;
-        return new Response(JSON.stringify(enriched), { status: status === 405 ? 200 : status, headers });
-      }
-    }
+    const pair = await Promise.all([
+      probeFogHealth1500(),
+      tryOrch1500(env, request, body, msg),
+    ]);
+    fog = pair[0];
+    orch = pair[1];
   } catch (e) {
-    const fb = originOrchFallback(msg, { source: 'origin-orch-binding-error', error: String(e && e.message ? e.message : e).slice(0, 180) });
-    return new Response(JSON.stringify(fb), { status: 200, headers });
+    orch = {
+      ok: false,
+      source: 'origin-orch-race-error',
+      error: String(e && e.message ? e.message : e).slice(0, 180),
+    };
   }
-  const fb = originOrchFallback(msg || 'lab pulse', { source: 'origin-orch-local' });
+
+  if (orch.ok && orch.obj && typeof orch.obj === 'object') {
+    const enriched = enrichOrchPayload(orch.obj, msg);
+    enriched.fog = fog;
+    enriched.version = 'origin-orch-chat-1.1.0';
+    return new Response(JSON.stringify(enriched), { status: 200, headers });
+  }
+
+  const timedOut = orch.source === 'origin-orch-timeout' || (orch.error && /AbortError|timeout/i.test(String(orch.error)));
+  const fb = originOrchFallback(msg || 'lab pulse', {
+    source: orch.source || 'origin-orch-local',
+    error: orch.error,
+  });
+  fb.fog = fog;
+  fb.version = 'origin-orch-chat-1.1.0';
+  if (timedOut) fb.pulse_id = 'unknown';
   return new Response(JSON.stringify(fb), { status: 200, headers });
 }
 
