@@ -9,9 +9,16 @@ import json
 import urllib.request
 from typing import List, Dict, Any
 
+# Optional Tor SOCKS5h egress (exclusive-off). See ops/tor/README.md.
+# Unset FOG_TOR_SOCKS / TOR_SOCKS → stdlib urllib, identical to before.
+try:
+    from tor_socks import urlopen as _urlopen
+except ImportError:
+    _urlopen = urllib.request.urlopen
+
 
 def get_json(url: str, timeout: float = 5) -> dict:
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    with _urlopen(url, timeout=timeout) as r:
         return json.loads(r.read().decode())
 
 
@@ -22,7 +29,7 @@ def post_json(url: str, data: dict, timeout: float = 5) -> Any:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with _urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode())
 
 
