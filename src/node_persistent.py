@@ -363,7 +363,7 @@ class PersistentFogNode:
                 phase="2",
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
-                    "version": "0.2.1-dev",
+                    "version": "0.2.2-dev",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     "mesh_member": False,
