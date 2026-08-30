@@ -1475,9 +1475,8 @@ document.getElementById('f').onsubmit = async (e) => {
       msg.textContent = j.message || (pt ? 'Código enviado.' : 'Code sent.');
       return;
     }
-    if (j.success && (j.token || j.session_token) && (j.trusted_2fa || !j.requires_2fa)) {
-      msg.style.color='var(--err)';
-      msg.textContent = pt ? '2FA obrigatório em cada entrada. Tente de novo — o código deve aparecer.' : '2FA is required on every sign-in. Try again — the code should appear.';
+    if (j.success && (j.token || j.session_token)) {
+      saveToken(j.token || j.session_token, j.type || kind || (staff ? 'staff' : 'user'));
       return;
     }
     msg.style.color = 'var(--err)';

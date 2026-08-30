@@ -24,6 +24,7 @@
     "stratamesh-origin-archive": "workers/stratamesh-origin-archive.js",
     "stratamesh-node-public": "workers/stratamesh-node-public.js",
     "stratamesh-edge-grok": "workers/stratamesh-edge-grok.js",
-    "stratamesh-auth": "workers/stratamesh-auth.js"
+    "stratamesh-auth": "workers/stratamesh-auth.js",
+    "stratamesh-agora": "workers/stratamesh-agora.js"
   }
 }

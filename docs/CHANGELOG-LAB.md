@@ -1,3 +1,12 @@
+## 2026-08-30 — Dashboard solidifying and expansion
+- **2FA trust 1h restored.** Password + trusted window (`login_trust` +1 hour) issues a session; 2FA still required when the window has lapsed. SPA gate accepts `trusted_2fa` tokens instead of treating them as failure.
+- **Tesouraria autoload.** `#panel-wallet` is `.active` on first paint; desk overlay loads `/api/auth/me` so L-STRATA appears without a second click.
+- **Ágora lab book.** Operator listings replace stub placeholders: EUR 1/2/5/10/20/50/100/200/500 and Wiener Philharmoniker gold 1, 1/2, 1/4, 1/10, 1/25 oz. Peg: 1 L-STRATA = €0.10 mesh-service-unit; 1 oz = €4,080 = 40,800 L-STRATA. Seller FOG-NODE-PT-CM-001 / AMCM ENI. Non-transitioning.
+- **L-STRATA ≠ PoC STRATA.** `users.lab_balance` (lab grant, PAYG, does not transit) vs `token_balance` (PoC #mint). One-shot reset: every registered account **50 L-STRATA** (ACB same as user); staff **500**. New accounts receive the same grant. PAYG burns L-STRATA to `#0`.
+- **Atelier Unix.** Sandbox default is the `/painel` Unix NFT workbench (iframe). Legacy 3D room is a toggle, not booted on load. `window.isScaUser` / `window.isStaffUser` — Safari `Can't find variable: isScaUser` closed.
+- **Tempo (CLP).** Widget loads: sunset variable no longer shadows the `set()` helper; `/clp` iframe + solar times for Lisboa.
+- **Câmaras / Pactos / Limiar / Identidade** expanded (motions, compact parties/trigger, edge function register, L-STRATA identity). Nav renamed: Tesouraria, Ágora, Malha, Atelier, Câmaras, Pactos, Agentes, Limiar, Saúde, Orquestrador, Tempo, Identidade, Delegado (EN: Treasury, Agora, Mesh, Atelier, Chambers, Compacts, Agents, Edge, Health, Orchestrator, Time, Identity, Delegate).
+
 ## 2026-08-30 — Individuated #mint/#0 lifecycle
 - Each registered account is an on-graph subject: ACCOUNT open (not mint) → PoC #mint → PAYG #0 → hire TRADE.
 - DAG replay restores wallets from cid (`mint:#mint->wallet|amt|kind`). Fog treasury is not a citizen.

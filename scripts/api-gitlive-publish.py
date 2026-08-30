@@ -37,6 +37,7 @@ MAIN_MODULE = {
     "stratamesh-edge-grok": "stratamesh-edge-grok.js",
     "stratamesh-origin-archive": "stratamesh-origin-archive.js",
     "stratamesh-auth": "index.js",
+    "stratamesh-agora": "index.js",
     "stratamesh-edge-api": "index.js",
     "stratamesh-fog-api": "index.js",
     "stratamesh-node-public": "index.js",

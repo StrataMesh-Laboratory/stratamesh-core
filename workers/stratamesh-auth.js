@@ -27,18 +27,40 @@ export default {
           ts TEXT DEFAULT (datetime('now'))
         )`).run().catch(() => {});
         await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN token_balance REAL DEFAULT 0').run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN lab_balance REAL DEFAULT 0').run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN lab_grant_at TEXT').run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE staff ADD COLUMN lab_balance REAL DEFAULT 0').run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE staff ADD COLUMN lab_grant_at TEXT').run().catch(() => {});
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS lab_meta (k TEXT PRIMARY KEY, v TEXT)`).run().catch(() => {});
+        try {
+          const done = await env.AUTH_DB.prepare("SELECT v FROM lab_meta WHERE k = 'lstrata_reset_v1'").first();
+          if (!done) {
+            await env.AUTH_DB.prepare("UPDATE users SET lab_balance = 50, lab_grant_at = datetime('now')").run();
+            await env.AUTH_DB.prepare("UPDATE staff SET lab_balance = 500, lab_grant_at = datetime('now')").run();
+            await env.AUTH_DB.prepare("INSERT OR REPLACE INTO lab_meta (k, v) VALUES ('lstrata_reset_v1', datetime('now'))").run();
+          }
+        } catch (_) {}
+        // New accounts after the one-shot reset: same grant (users/ACB 50, staff 500).
+        try {
+          await env.AUTH_DB.prepare("UPDATE users SET lab_balance = 50, lab_grant_at = datetime('now') WHERE lab_grant_at IS NULL OR TRIM(COALESCE(lab_grant_at,'')) = ''").run();
+          await env.AUTH_DB.prepare("UPDATE staff SET lab_balance = 500, lab_grant_at = datetime('now') WHERE lab_grant_at IS NULL OR TRIM(COALESCE(lab_grant_at,'')) = ''").run();
+        } catch (_) {}
       }
       function paygMode(bal) { return Number(bal || 0) < PAYG_FLOOR ? 'static' : 'live'; }
       function paygView(user) {
-        const bal = Number(user.token_balance || 0);
-        const mode = paygMode(bal);
+        const lab = Number(user.lab_balance != null ? user.lab_balance : 0);
+        const poc = Number(user.token_balance || 0);
+        const mode = paygMode(lab);
         return {
           ok: true,
           dashboard: true,
           user_id: user.id || user.user_id,
           email: user.email,
           wallet: user.strata_address || user.wallet,
-          balance: bal,
+          balance: lab,
+          lab_balance: lab,
+          poc_balance: poc,
+          unit: 'L-STRATA',
           mode,
           static_only: mode === 'static',
           floor: PAYG_FLOOR,
@@ -46,7 +68,7 @@ export default {
           mint_pole: '#mint',
           burn_rates: PAYG_RATES,
           static_actions: STATIC_ACTIONS,
-          note: 'PAYG subsistence. Resource actions burn to #0. Unfunded = NFTs only. Not a mint.',
+          note: 'PAYG burns L-STRATA (lab grant, non-transitioning). PoC STRATA is separate and only from #mint.',
         };
       }
       async function ensureAccountGraph() {
@@ -135,7 +157,6 @@ export default {
         )`).run().catch(() => {});
       }
       async function isLoginTrusted(email) {
-        if (env.LAB_TRUST_2FA !== '1') return false;
         try {
           await ensureLoginTrustTable();
           const row = await env.AUTH_DB.prepare(
@@ -1566,8 +1587,12 @@ export default {
               'INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             ).bind(email, '', wallet, 'pending', 'passport', doc_hash, 'basic', 0).run();
             try {
-              await env.AUTH_DB.prepare("UPDATE users SET terms_accepted_at = datetime('now'), terms_version = ?, username = ?, kyc_step = 0, panel_unlocked = 0 WHERE lower(email) = lower(?)").bind(body.terms_version || 'node-1.0', username, email).run();
-            } catch (_) {}
+              await env.AUTH_DB.prepare("UPDATE users SET lab_balance = 50, lab_grant_at = datetime('now'), terms_accepted_at = datetime('now'), terms_version = ?, username = ?, kyc_step = 0, panel_unlocked = 0 WHERE lower(email) = lower(?)").bind(body.terms_version || 'node-1.0', username, email).run();
+            } catch (_) {
+              try {
+                await env.AUTH_DB.prepare("UPDATE users SET terms_accepted_at = datetime('now'), terms_version = ?, username = ?, kyc_step = 0, panel_unlocked = 0 WHERE lower(email) = lower(?)").bind(body.terms_version || 'node-1.0', username, email).run();
+              } catch (__) {}
+            }
             user = await env.AUTH_DB.prepare('SELECT id, email, verification_status, clearance_level FROM users WHERE lower(email) = lower(?)').bind(email).first();
             if (user) {
               await ensureAccountGraph();
@@ -2038,24 +2063,25 @@ export default {
           const cost = Number(PAYG_RATES[action] != null ? PAYG_RATES[action] : 0.02);
           const staff = await env.AUTH_DB.prepare("SELECT s.*, st.email FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staff) return new Response(JSON.stringify({ ok: true, mode: 'live', charged: 0, action, payg_exempt: true }), { headers: corsHeaders });
-          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.lab_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!user) return new Response(JSON.stringify({ ok: false, mode: 'deny', reason: 'Invalid session' }), { status: 401, headers: corsHeaders });
-          const bal = Number(user.token_balance || 0);
+          const bal = Number(user.lab_balance != null ? user.lab_balance : 0);
+          const poc = Number(user.token_balance || 0);
           const mode = paygMode(bal);
           if (cost <= 0) {
-            return new Response(JSON.stringify({ ok: true, mode, charged: 0, action, balance: bal, static_only: mode === 'static', allowed: STATIC_ACTIONS }), { headers: corsHeaders });
+            return new Response(JSON.stringify({ ok: true, mode, charged: 0, action, balance: bal, lab_balance: bal, poc_balance: poc, unit: 'L-STRATA', static_only: mode === 'static', allowed: STATIC_ACTIONS }), { headers: corsHeaders });
           }
           if (mode === 'static' || bal < PAYG_FLOOR || bal < cost + PAYG_FLOOR) {
             return new Response(JSON.stringify({
-              ok: false, mode: 'static', charged: 0, action, rate: cost, balance: bal,
-              static_only: true, allowed: STATIC_ACTIONS,
-              reason: 'insufficient_subsistence — NFTs only',
+              ok: false, mode: 'static', charged: 0, action, rate: cost, balance: bal, lab_balance: bal, poc_balance: poc,
+              static_only: true, allowed: STATIC_ACTIONS, unit: 'L-STRATA',
+              reason: 'insufficient_subsistence — NFTs only (L-STRATA lab grant)',
               burn_pole: '#0',
             }), { status: 402, headers: corsHeaders });
           }
           const next = Math.round((bal - cost) * 1e6) / 1e6;
           const wallet = await ensureUserWallet(user);
-          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ?, burned_pos = COALESCE(burned_pos,0) + ? WHERE id = ?').bind(next, cost, user.user_id).run();
+          await env.AUTH_DB.prepare('UPDATE users SET lab_balance = ?, burned_pos = COALESCE(burned_pos,0) + ? WHERE id = ?').bind(next, cost, user.user_id).run();
           await env.AUTH_DB.prepare('INSERT INTO payg_ledger (user_id, action, amount, balance_after) VALUES (?,?,?,?)').bind(user.user_id, action, cost, next).run();
           const dagTx = await recordAccountEvent(user.user_id, wallet, 'burn', '#0', cost, action, null);
           if (env.TOKEN) {
@@ -2119,13 +2145,15 @@ export default {
           const th = await sha256Hex(token);
           let userSession = null;
           try {
-            userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+            userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.lab_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           } catch (_) {
             userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           }
           if (userSession) {
             const wallet = await ensureUserWallet(userSession);
             const life = await lifecycleView({ ...userSession, strata_address: wallet });
+            const lab = Number(userSession.lab_balance != null ? userSession.lab_balance : 0);
+            const poc = Number(userSession.token_balance || 0);
             return new Response(JSON.stringify({ 
               success: true, 
               type: 'user',
@@ -2133,19 +2161,23 @@ export default {
               role: userSession.clearance_level || 'basic',
               clearance: userSession.clearance_level || 'basic',
               wallet,
-              balance: userSession.token_balance || 0,
+              balance: lab,
+              lab_balance: lab,
+              poc_balance: poc,
+              unit: 'L-STRATA',
               verification_status: userSession.verification_status,
               subsistence: paygView({
                 id: userSession.user_id,
                 email: userSession.email,
                 strata_address: wallet,
-                token_balance: userSession.token_balance,
+                token_balance: poc,
+                lab_balance: lab,
               }),
               lifecycle: life,
             }), { headers: corsHeaders });
           }
           
-          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level FROM sessions s JOIN staff st ON (s.user_id = -st.id OR ABS(s.user_id) = st.id) WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level, st.lab_balance FROM sessions s JOIN staff st ON (s.user_id = -st.id OR ABS(s.user_id) = st.id) WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staffSession) {
             return new Response(JSON.stringify({ 
               success: true, 
@@ -2153,7 +2185,11 @@ export default {
               email: staffSession.email,
               role: staffSession.role || 'staff',
               clearance: staffSession.clearance_level || 'INTERNAL',
-              clearance_level: staffSession.clearance_level || 'INTERNAL'
+              clearance_level: staffSession.clearance_level || 'INTERNAL',
+              lab_balance: Number(staffSession.lab_balance != null ? staffSession.lab_balance : 500),
+              poc_balance: 0,
+              unit: 'L-STRATA',
+              payg_exempt: true,
             }), { headers: corsHeaders });
           }
           
@@ -2282,6 +2318,9 @@ export default {
           await env.AUTH_DB.prepare(
             "INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, NULL, 'verified', ?, ?, 'basic', 1)"
           ).bind(email, password_hash, 'oauth_' + provider, doc_hash).run();
+          try {
+            await env.AUTH_DB.prepare("UPDATE users SET lab_balance = 50, lab_grant_at = datetime('now') WHERE lower(email) = lower(?)").bind(email).run();
+          } catch (_) {}
           user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email).first();
         } else {
           await env.AUTH_DB.prepare(
