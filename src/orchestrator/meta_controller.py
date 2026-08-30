@@ -45,6 +45,22 @@ class FederatedMetaController:
         self.prob.observe(agg)
         self.bus.update_memory(metrics=agg)
 
+    def observe_academy(self, packets: List[Dict[str, float]]):
+        """Academy fitness packets (no answers). Same bus as Fog/Edge summaries."""
+        summaries = []
+        for p in packets or []:
+            fit = float(p.get("fitness") or p.get("academy_fitness") or 0.0)
+            summaries.append(
+                {
+                    "task_success_rate": fit,
+                    "academy_fitness": fit,
+                    "fail_closed_rate": float(p.get("fail_closed_rate") or (1.0 if fit > 0 else 0.0)),
+                    "explore_rate": float(p.get("explore") or 0.3),
+                    "task_cost": float(p.get("task_cost") or 0.0),
+                }
+            )
+        self.observe_federated(summaries)
+
     def _fitness_from_gene(self, gene: List[float]) -> float:
         """
         Toy multi-objective fitness:

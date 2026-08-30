@@ -84,6 +84,8 @@ function meta() {{
     worker_hf_token: false,
     workers_dev: false,
     ollama: "Fog residual C_mesh :11434 — Worker does not infer",
+    flux: "dual-lobe QIGA tap — unready does not breed",
+    gene_slots: (CATALOG.flux && CATALOG.flux.gene_slots) || [],
     students: CATALOG.counts.students,
     formations: CATALOG.counts.formations,
     cost: CATALOG.cost,
@@ -133,13 +135,102 @@ function gradeFormation(f, answers) {{
     cost: {{ lab_waived: true, strata: 0, rail: CATALOG.cost.rail, billed_when: CATALOG.cost.billed_when }},
   }};
 }}
+function studentIds() {{ return (CATALOG.roster || []).map((s) => s.acb_id); }}
+function fitnessFromGrade(g) {{
+  if (!g || g.unready || !g.ok) return 0;
+  const total = Math.max(1, g.total || 0);
+  const base = (g.passed || 0) / total;
+  return g.mode === "exploratory" ? Math.min(1, 0.4 + 0.6 * base) : Math.min(1, 0.5 + 0.5 * base);
+}}
+function fluxTick(acbId, grade, prev) {{
+  const students = studentIds();
+  const isStudent = students.indexOf(acbId) >= 0;
+  const violations = [];
+  (grade.results || []).forEach((r) => (r.violations || []).forEach((v) => violations.push(v)));
+  const workersDev = violations.some((v) => String(v).indexOf("workers.dev") >= 0);
+  const unready = !!(grade.unready || !grade.complete);
+  const fit = fitnessFromGrade(grade);
+  const reasons = [];
+  if (!isStudent) reasons.push("academy_student: grok@ / unknown id is not a student");
+  if (unready) reasons.push("academy_unready: unready grade is fail-closed — do not evolve");
+  if (workersDev) reasons.push("academy_workers_dev: workers.dev is not admissible");
+  const committed = isStudent && !unready && !workersDev && !!grade.complete;
+  const geneSlots = (CATALOG.flux && CATALOG.flux.gene_slots) || [];
+  const slots = ((CATALOG.flux && CATALOG.flux.formation_genes) || {{}})[grade.formation_id] || [1];
+  let st = prev || {{ acb_id: acbId, generation: 0, fitness_ema: 0.5, genes: geneSlots.map(() => 0.5) }};
+  let evolved = false;
+  if (committed) {{
+    const genes = (st.genes || geneSlots.map(() => 0.5)).slice();
+    slots.forEach((i) => {{ if (i >= 0 && i < genes.length) genes[i] = Math.max(0, Math.min(1, 0.7 * genes[i] + 0.3 * fit)); }});
+    st = {{
+      acb_id: acbId,
+      generation: (st.generation || 0) + 1,
+      fitness_ema: 0.85 * (st.fitness_ema || 0.5) + 0.15 * fit,
+      genes,
+      last_formation: grade.formation_id,
+    }};
+    evolved = true;
+  }}
+  const summary = evolved
+    ? {{
+        acb_id: acbId,
+        fitness: +fit.toFixed(4),
+        fitness_ema: +Number(st.fitness_ema).toFixed(4),
+        generation: st.generation,
+        genes: (st.genes || []).map((g) => +Number(g).toFixed(4)),
+        slots: slots.map((i) => geneSlots[i]).filter(Boolean),
+        federate: true,
+        answers: null,
+      }}
+    : null;
+  return {{
+    ok: true,
+    schema: "stratamesh.academy.flux.v1",
+    acb_id: acbId || null,
+    student: isStudent,
+    fitness: fit,
+    committed,
+    evolved,
+    unready,
+    verdict: committed ? "pass" : "fail",
+    reasons,
+    bus: "propose → constrain → commit | escalate",
+    lobes: {{ probabilistic: "fitness packet", symbolic: "fail-closed certificate" }},
+    qiga: isStudent
+      ? {{
+          generation: st.generation || 0,
+          fitness_ema: +Number(st.fitness_ema || 0.5).toFixed(4),
+          genes: (st.genes || []).map((g) => +Number(g).toFixed(4)),
+          slots: geneSlots,
+        }}
+      : null,
+    federated_summary: summary,
+    state: st,
+    note: "Worker tap: fail-closed + allele drift. Fog python3 -m academy --flux runs the full QIGA population. Summaries omit answers.",
+  }};
+}}
+async function pushAcbQiga(env, acbId, fitness) {{
+  if (!env || !env.ACB || typeof env.ACB.fetch !== "function") return {{ pushed: false, reason: "no env.ACB binding" }};
+  try {{
+    const r = await env.ACB.fetch(
+      new Request("https://acb/acb/qiga", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ sca_id: acbId, fitness, federate: true, source: "academy" }}),
+      }})
+    );
+    return {{ pushed: r.ok, status: r.status }};
+  }} catch (e) {{
+    return {{ pushed: false, error: String(e.message || e).slice(0, 80) }};
+  }}
+}}
 function pageIndex() {{
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>StrataMesh LAB · ACB Academy</title><style>${{CSS}}</style></head><body><main>
 <p class="badge">STRATAMESH LAB · v${{VERSION}}</p>
 <h1>ACB Academy</h1>
 <p>Always-on training for the Orchestrator and the AIOps team. Corrective drills lock failure modes. Exploratory drills widen competence. Fail-closed: empty answers do not pass.</p>
-<p>Ollama pulls GGUF from Hugging Face on the Fog (<code>:11434</code>, residual C_mesh). This Worker is catalog + grader only — no HF Inference, no Worker <code>HF_TOKEN</code>, no workers.dev. STRATA cost is declared and <strong>lab-waived</strong> until oracle_live and funded.</p>
+<p>Ollama pulls GGUF from Hugging Face on the Fog (<code>:11434</code>, residual C_mesh). Grades are dual-lobe QIGA packets: probabilistic fitness + symbolic fail-closed certificate. Unready does not breed. Federated summaries never include answers. No HF Inference, no Worker <code>HF_TOKEN</code>, no workers.dev. STRATA cost is <strong>lab-waived</strong>.</p>
 <p>Students: Vespera (orchestrator), Kael, Nyx, Solace, Reed, Mira. <code>grok@</code> is not a student.</p>
 <ul>
 <li><a href="/health">/health</a></li>
@@ -147,6 +238,7 @@ function pageIndex() {{
 <li><a href="/v1/formations">/v1/formations</a></li>
 <li><a href="/v1/syllabus">/v1/syllabus</a></li>
 <li><a href="/v1/models">/v1/models</a></li>
+<li><a href="/v1/flux">/v1/flux</a> dual-lobe QIGA</li>
 <li><a href="/SPEC.txt">/SPEC.txt</a></li>
 <li><a href="/openapi.json">/openapi.json</a></li>
 </ul>
@@ -167,10 +259,11 @@ Not a student: grok@calhegasmorais.pt
 GET  /health /v1/catalog /v1/formations /v1/formations/:id /v1/syllabus?role=&mode=
 GET  /v1/roster /v1/models /v1/cost /v1/progress?acb_id=
 POST /v1/enroll {{acb_id}}
-POST /v1/grade  {{formation_id, answers:[]}}
-POST /v1/run    {{formation_id, runtime:"symbolic"|"ollama"}}
-     ollama runtime is Fog-only (env.OLLAMA_URL). Worker falls back to symbolic + pull spec.
+POST /v1/grade  {{formation_id, answers:[], acb_id?}}  — grader + QIGA flux tick
+POST /v1/flux   same payload; returns dual-lobe packet
+GET  /v1/flux?acb_id=   GET /v1/flux/federated
 Fail-closed: empty answers, missing must_contain, or forbidden tokens (workers.dev, secret prefixes).
+Unready packets are not admissible — QIGA does not evolve. Federated summaries omit answers.
 `;
 }}
 function openapi() {{
@@ -257,9 +350,42 @@ export default {{
       const acb_id = String(url.searchParams.get("acb_id") || "").toUpperCase();
       const rec = acb_id ? await readKv(env, "enroll:" + acb_id) : null;
       const grades = acb_id ? await readKv(env, "grades:" + acb_id) : null;
-      return json({{ acb_id: acb_id || null, enroll: rec, grades: grades || [] }}, 200, "no-store");
+      const st = acb_id ? await readKv(env, "flux:" + acb_id) : null;
+      return json({{ acb_id: acb_id || null, enroll: rec, grades: grades || [], flux: st }}, 200, "no-store");
     }}
-    if (path === "/v1/grade" && request.method === "POST") {{
+    if (path === "/v1/flux/federated") {{
+      const fed = (await readKv(env, "flux:federated")) || {{}};
+      const clients = Object.keys(fed).map((k) => fed[k]);
+      const mean = clients.length ? clients.reduce((s, c) => s + Number(c.fitness_ema || 0), 0) / clients.length : null;
+      return json({{ ok: true, n: clients.length, mean_fitness: mean, clients, raw_answers: false }}, 200, "no-store");
+    }}
+    if (path === "/v1/flux" && request.method === "GET") {{
+      const acb_id = String(url.searchParams.get("acb_id") || "").toUpperCase();
+      const st = acb_id ? await readKv(env, "flux:" + acb_id) : null;
+      return json({{
+        ok: true,
+        schema: "stratamesh.academy.flux.v1",
+        acb_id: acb_id || null,
+        state: st,
+        slots: (CATALOG.flux && CATALOG.flux.gene_slots) || [],
+        bus: "propose → constrain → commit | escalate",
+      }}, 200, "no-store");
+    }}
+    async function runFlux(env, acbId, grade) {{
+      const prev = acbId ? await readKv(env, "flux:" + acbId) : null;
+      const flux = fluxTick(acbId, grade, prev);
+      if (flux.evolved && acbId) {{
+        await persist(env, "flux:" + acbId, flux.state);
+        const fed = (await readKv(env, "flux:federated")) || {{}};
+        if (flux.federated_summary) {{
+          fed[acbId] = flux.federated_summary;
+          await persist(env, "flux:federated", fed);
+        }}
+        flux.acb_tap = await pushAcbQiga(env, acbId, flux.fitness);
+      }}
+      return flux;
+    }}
+    if ((path === "/v1/grade" || path === "/v1/flux") && request.method === "POST") {{
       const body = await request.json().catch(() => ({{}}));
       const f = findFormation(body.formation_id);
       if (!f) return json({{ ok: false, error: "unknown_formation" }}, 404);
@@ -270,6 +396,8 @@ export default {{
         prev.push({{ at: new Date().toISOString(), formation_id: f.id, complete: out.complete }});
         await persist(env, "grades:" + acb_id, prev.slice(-50));
       }}
+      out.flux = await runFlux(env, acb_id, out);
+      if (path === "/v1/flux") return json({{ grade: out, flux: out.flux }}, 200, "no-store");
       return json(out, 200, "no-store");
     }}
     if (path === "/v1/run" && request.method === "POST") {{

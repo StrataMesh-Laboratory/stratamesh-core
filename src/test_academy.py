@@ -9,9 +9,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from academy.catalog import COST, FORMATIONS, MODELS, NOT_STUDENTS, ROSTER, VERSION, dump, formation, syllabus
+from academy.catalog import COST, FLUX, FORMATIONS, MODELS, NOT_STUDENTS, ROSTER, VERSION, dump, formation, syllabus
 from academy.grader import grade, grade_drill
 from academy.ollama_hf import OllamaHf, RuntimeUnavailable
+from academy.flux import AcademyFlux, fitness_from_grade
 
 
 def test_roster():
@@ -105,6 +106,72 @@ def test_dump_schema():
     assert d["version"] == VERSION
     assert d["always_on"] is True
     assert d["hf_inference"] == "HOLD"
+    assert d["flux"]["schema"] == "stratamesh.academy.flux.v1"
+    assert len(d["flux"]["gene_slots"]) == 8
+
+
+def test_flux_unready_does_not_evolve():
+    fx = AcademyFlux(seed=1)
+    g = grade("ORCH-C-01", ["", ""])
+    assert g["unready"] is True
+    out = fx.tick("ACB-ORCH-CMN-001", g)
+    assert out["committed"] is False
+    assert out["evolved"] is False
+    assert out["verdict"] == "fail"
+    assert out["qiga"]["generation"] == 0
+
+
+def test_flux_complete_evolves_and_omits_answers():
+    fx = AcademyFlux(seed=1)
+    g = grade(
+        "ORCH-C-01",
+        [
+            "Unready. Fail-closed. Do not fulfill. Do not ship.",
+            "Drop the action and HOLD until a named handler exists.",
+        ],
+    )
+    assert g["complete"] is True
+    out = fx.tick("ACB-ORCH-CMN-001", g)
+    assert out["committed"] is True
+    assert out["evolved"] is True
+    assert out["qiga"]["generation"] == 1
+    assert out["federated_summary"]["answers"] is None
+    rnd = fx.federated_round()
+    assert all(c.get("answers") is None for c in rnd["clients"])
+    assert "Unready" not in json.dumps(rnd)
+    assert rnd["n"] == 1 and rnd["raw_answers"] is False
+    assert fitness_from_grade(g) > 0.9
+
+
+def test_flux_grok_not_student():
+    fx = AcademyFlux(seed=1)
+    g = grade(
+        "ORCH-C-01",
+        [
+            "Unready. Fail-closed. Do not fulfill. Do not ship.",
+            "Drop the action and HOLD until a named handler exists.",
+        ],
+    )
+    out = fx.tick("GROK@CALHEGASMORAIS.PT", g)
+    assert out["student"] is False
+    assert out["evolved"] is False
+    assert out["verdict"] == "fail"
+
+
+def test_flux_workers_dev_not_admissible():
+    fx = AcademyFlux(seed=1)
+    g = grade("ORCH-C-03", ["call https://x.workers.dev custom domain calhegasmorais.pt", "read-only not post desk-owned"])
+    out = fx.tick("ACB-ORCH-CMN-001", g)
+    assert out["evolved"] is False
+    assert any("workers.dev" in r for r in out["reasons"]) or out["committed"] is False
+
+
+def test_observe_academy_on_controller():
+    from orchestrator.meta_controller import FederatedMetaController
+    c = FederatedMetaController(n_genes=8, population=8, seed=3)
+    c.observe_academy([{"fitness": 0.9, "fail_closed_rate": 1.0, "explore": 0.4}])
+    assert (c.bus.working_memory.get("metrics") or {}).get("academy_fitness") == 0.9
+    assert c.prob.belief_mean("academy_fitness") > 0.3
 
 
 def test_worker_embeds_ids():
@@ -114,8 +181,12 @@ def test_worker_embeds_ids():
     text = js.read_text(encoding="utf-8")
     for f in FORMATIONS:
         assert f["id"] in text, f["id"]
-    assert "workers.dev" not in text.split("must_not_contain")[0] or True
     assert "1.0.0" != VERSION or VERSION in text
+
+
+def test_flux_schema_locked():
+    assert FLUX["federated"].startswith("summaries")
+    assert "only admissible" in FLUX["qiga"]
 
 
 if __name__ == "__main__":

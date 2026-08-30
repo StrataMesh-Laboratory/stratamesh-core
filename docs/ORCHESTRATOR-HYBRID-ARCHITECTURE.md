@@ -17,7 +17,7 @@ The Orchestrator is upgraded from a task-routing coordinator into a **hybrid neu
    - **Probabilistic lobe** — uncertainty, prediction, pattern discovery, soft ranking
    - **Symbolic lobe** — SPA/DAO constraints, typed goals, formal rules, audit trails
 
-Neither lobe may replace the other. Every high-stakes decision requires a **bilateral commit**: a probabilistic proposal *and* a symbolic admissibility proof (or explicit waiver under escalation protocol).
+The academy (`src/academy/flux.py`, live `POST https://academy.calhegasmorais.pt/v1/flux`) is a **direct tap** on this bus: a grade is a probabilistic fitness packet constrained by the symbolic fail-closed grader. Unready packets are not admissible and **do not breed**. Federated summaries carry fitness / genes / generation — never answers.
 
 ---
 

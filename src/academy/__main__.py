@@ -9,6 +9,7 @@ import sys
 from .catalog import COST, FORMATIONS, MODELS, ROSTER, VERSION, dump, formation, syllabus
 from .grader import grade
 from .ollama_hf import OllamaHf
+from .flux import AcademyFlux
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -21,6 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--answer", action="append", default=[])
     ap.add_argument("--run")
     ap.add_argument("--runtime", choices=["symbolic", "ollama"], default="symbolic")
+    ap.add_argument("--flux", action="store_true", help="run dual-lobe QIGA tick after grade")
+    ap.add_argument("--acb", default="ACB-ORCH-CMN-001")
     args = ap.parse_args(argv)
 
     if args.dump:
@@ -36,9 +39,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.grade:
         out = grade(args.grade, args.answer)
+        if args.flux:
+            out = {"grade": out, "flux": AcademyFlux().tick(args.acb, out)}
         json.dump(out, sys.stdout, indent=2, ensure_ascii=False)
         sys.stdout.write("\n")
-        return 0 if out.get("complete") else 2
+        complete = out.get("complete") if "complete" in out else (out.get("grade") or {}).get("complete")
+        return 0 if complete else 2
     if args.run:
         f = formation(args.run)
         if not f:

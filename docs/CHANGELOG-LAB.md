@@ -1,3 +1,6 @@
+## 2026-08-30 — v0.4.1-lab Academy QIGA flux
+- Academy grades are dual-lobe packets on the Orchestrator bus. Unready does not evolve. Federated summaries omit answers. `POST /v1/flux` + Fog `python3 -m academy --flux`. Optional `env.ACB` `/acb/qiga` tap. No workers.dev.
+
 ## 2026-08-30 — v0.4.0-lab ACB Academy
 - Always-on academy at academy.calhegasmorais.pt. 19 formations (corrective + exploratory) for Orchestrator + AIOps. Ollama ← HF GGUF on Fog residual C_mesh. Grader fail-closed. STRATA cost declared, lab-waived. grok@ not a student. No Worker HF_TOKEN, no 6th cron, no workers.dev.
 

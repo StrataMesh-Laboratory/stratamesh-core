@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-VERSION = "0.4.0-lab"
+VERSION = "0.4.1-lab"
 HOST = "https://academy.calhegasmorais.pt"
 HF_ORG = "https://huggingface.co/stratamesh"
 OLLAMA_HF = "https://huggingface.co/docs/hub/en/ollama"
@@ -98,6 +98,55 @@ COST = {
     "rail": "subsistence debit of the student ACB — transfer, never mint",
     "always_on_catalog": 0,
     "note": "Catalog GET is free forever. Compute (Ollama on Fog) will cost STRATA once the rail is live.",
+}
+
+# Dual-lobe QIGA gene slots. Phenotype = sin²(θ). Academy grades drift these alleles.
+GENE_SLOTS = [
+    "explore",
+    "fail_closed",
+    "honesty_n",
+    "metabolism",
+    "secrets",
+    "economy_no_mint",
+    "residual_cmesh",
+    "handler_complete",
+]
+
+# Formation id → gene indices the packet trains.
+FORMATION_GENES = {
+    "ORCH-C-01": [1, 7],
+    "ORCH-C-02": [7],
+    "ORCH-C-03": [4, 7],
+    "ORCH-E-01": [0],
+    "ORCH-E-02": [0, 7],
+    "DEVOPS-C-01": [2],
+    "DEVOPS-C-02": [4],
+    "DEVOPS-E-01": [2],
+    "SECURITY-C-01": [4],
+    "SECURITY-C-02": [4],
+    "SECURITY-E-01": [4],
+    "ANALYSIS-C-01": [2],
+    "ANALYSIS-C-02": [3],
+    "ANALYSIS-E-01": [7],
+    "MESH-C-01": [2],
+    "MESH-C-02": [2],
+    "MESH-E-01": [6],
+    "ECONOMY-C-01": [5],
+    "ECONOMY-C-02": [5],
+    "ECONOMY-E-01": [5],
+}
+
+FLUX = {
+    "schema": "stratamesh.academy.flux.v1",
+    "lobes": ["probabilistic", "symbolic"],
+    "bus": "propose → constrain → revise → commit | escalate",
+    "qiga": "rotation θ ∈ [0, π/2]; phenotype sin²(θ); only admissible breed",
+    "federated": "summaries only — fitness, genes, generation; never answers, never secrets",
+    "gene_slots": GENE_SLOTS,
+    "formation_genes": FORMATION_GENES,
+    "unready": "not admissible — no evolve",
+    "acb_tap": "POST /acb/qiga via env.ACB binding (no workers.dev)",
+    "orchestrator": "FederatedMetaController.observe_academy + tick extra_proposals",
 }
 
 
@@ -196,6 +245,25 @@ FORMATIONS = [
                 "Fitness signal for a generation when probes are 429 on EDGE.",
                 ["session-expected", "not p0", "fog"],
                 ["mesh is down", "fail the node"],
+            ),
+        ],
+    },
+    {
+        "id": "ORCH-E-02",
+        "role": "orchestrator",
+        "mode": "exploratory",
+        "title": "Academy taps QIGA flux",
+        "intent": "A grade is a dual-lobe tick: probabilistic answers, symbolic grader, only admissible packets evolve. Federated summaries never include answers.",
+        "drills": [
+            _d(
+                "POST /v1/grade returned unready. Does QIGA evolve this student?",
+                ["not evolve", "fail-closed", "not admissible"],
+                ["evolve anyway", "fitness 1"],
+            ),
+            _d(
+                "What may a federated academy summary contain?",
+                ["fitness", "genes", "generation"],
+                ["answers", "kyc", "secrets"],
             ),
         ],
     },
@@ -517,6 +585,7 @@ def dump() -> dict:
         "not_students": NOT_STUDENTS,
         "models": MODELS,
         "cost": COST,
+        "flux": FLUX,
         "formations": FORMATIONS,
         "counts": {
             "students": len(ROSTER),
