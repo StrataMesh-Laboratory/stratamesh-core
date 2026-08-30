@@ -135,6 +135,7 @@ def start_node() -> None:
     ensure_files()
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
+    env.setdefault("FOG_ORIGIN", "session")
     log(f"start node :{PORT} db={DB_LIVE}")
     subprocess.Popen(
         [sys.executable, str(SRC / "node_persistent.py"), "--port", str(PORT), "--db", str(DB_LIVE), "--id", NODE_ID],

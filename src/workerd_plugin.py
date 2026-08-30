@@ -54,6 +54,7 @@ class WorkerdPlugin:
             "plugin": "fog-workerd",
             "port": PORT,
             "bind": "127.0.0.1",
+            "origin": os.environ.get("FOG_ORIGIN") or "session",
             "health": HEALTH,
             "binary": binp,
             "config": str(CONFIG),

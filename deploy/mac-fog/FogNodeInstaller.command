@@ -1,8 +1,8 @@
 #!/bin/bash
-# StrataMesh Fog Mac installer v3 — structural workerd layer + named tunnel
+# StrataMesh Fog Mac installer v3 — THIS Mac’s workerd :8788, not the Grok session
 # Double-click in Finder. No secrets in this file.
-# Topology: Internet → named tunnel → workerd 127.0.0.1:8788 → fog 127.0.0.1:8787
-# One origin at a time for fog.calhegasmorais.pt (stop the Grok-session persist first).
+# Mac origin:  Mac 127.0.0.1:8788 → Mac 127.0.0.1:8787
+# Session origin (temp, other host): do not use from here. One public origin.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export COPYFILE_DISABLE=1
@@ -111,6 +111,7 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
     <key>FOG_SRC</key><string>$FOG/repo</string>
     <key>WORKERD_BIN</key><string>$WD</string>
     <key>WORKERD_PORT</key><string>8788</string>
+    <key>FOG_ORIGIN</key><string>macbook</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
   </dict>
   <key>KeepAlive</key><true/>
@@ -169,8 +170,10 @@ launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
 launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
 echo
-echo "HOLD tunnel. This Mac is not the public origin yet."
-echo "One origin for fog.calhegasmorais.pt. Stop the Grok-session persist first, then:"
+echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
+echo "Does not use the Grok-session :8788."
+echo "HOLD tunnel. Public origin is still the session until you cut over."
+echo "Stop the Grok-session persist, then:"
 echo "  launchctl load $LAUNCH/pt.calhegasmorais.tunnel.plist"
 
 say "9/9 health"
