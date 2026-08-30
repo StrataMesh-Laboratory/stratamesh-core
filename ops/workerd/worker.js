@@ -1,6 +1,7 @@
 /**
- * Fog-supervised workerd. Lab n=1.
- * FOG is a capability binding to :8787 (not unrestricted loopback fetch).
+ * Structural hop: tunnel → workerd :8788 → FOG :8787
+ * /health and /workerd are local (never call fog — avoids single-thread deadlock).
+ * All other paths use the FOG capability.
  */
 export default {
   async fetch(request, env) {
@@ -10,7 +11,7 @@ export default {
         ok: true,
         runtime: "workerd",
         plugin: "fog-workerd",
-        fog: "binding:FOG",
+        layer: "tunnel→workerd:8788→fog:8787",
         mesh_member: false,
       });
     }
