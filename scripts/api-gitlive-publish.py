@@ -43,6 +43,7 @@ MAIN_MODULE = {
     "stratamesh-node-public": "index.js",
     "stratamesh-academy": "index.js",
     "stratamesh-sandbox-host": "index.js",
+    "stratamesh-eni": "index.js",
 }
 
 
