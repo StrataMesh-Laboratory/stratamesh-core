@@ -92,7 +92,8 @@
   "shipped": {
     "pages_deployment": "3f616f8f-75df-4fce-9a1a-ddf400579044",
     "pages_project": "calhegasmorais-pt",
-    "onto": "68d7d273e4c400e0b244846ef0f8725d5ee36c49"
+    "onto": "68d7d273e4c400e0b244846ef0f8725d5ee36c49",
+    "sha": "512b5a90806a77b863ca1eaf0cda0c83de1b6d85"
   },
   "next_pick": "GHA fail-watch (protocol-invariants already green). Then Fog process vs git node_persistent.py. Restore EDGE 530. Cannot reboot Mac workerd from this sandbox.",
   "p0": "260826-001576 oracle_live=false",

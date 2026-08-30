@@ -30,7 +30,7 @@ LIVE curl:
 - HEAD https://fog.calhegasmorais.pt/health → 200
 - GET https://calhegasmorais.pt/dashboard → 200 (SPA Worker intact)
 
-SHA: (this ledger commit on origin/main; Pages onto 5fdb000 / parent 68d7d27)
+SHA: 512b5a90806a77b863ca1eaf0cda0c83de1b6d85
 
 STILL RED:
 - EDGE https://edge.calhegasmorais.pt/health **530** CF 1033 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox
