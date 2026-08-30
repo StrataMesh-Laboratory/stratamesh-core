@@ -174,6 +174,9 @@ def honesty(fog_status: dict[str, Any]) -> list[str]:
         return fails
     if body.get("mesh_member") is True:
         fails.append("honesty: mesh_member true (lab n=1)")
+    prov = body.get("mesh_provision") if isinstance(body.get("mesh_provision"), dict) else {}
+    if prov.get("mesh_member") is True:
+        fails.append("honesty: mesh_provision.mesh_member true (n=1)")
     if body.get("oracle_live") is True:
         fails.append("honesty: oracle_live true")
     ver = str(body.get("version") or "")

@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.2-origin-flux";
+var VERSION = "0.1.3-mac-live";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -154,6 +154,8 @@ function publicLanding() {
      <div class="card">
        <div class="row"><span class="mono">Fog hop</span><span class="mono">tunnel → this host’s :8788 → this host’s :8787</span></div>
        <div class="row"><span class="mono">Public origin</span><span class="mono" id="fog-origin">probing…</span></div>
+       <div class="row"><span class="mono">mac_live</span><span class="mono" id="fog-mac-live">…</span></div>
+       <div class="row"><span class="mono">mesh_member</span><span class="mono">false until second host_id</span></div>
        <div class="row"><span class="mono">Roles</span><span class="mono">session (temp) · macbook (node)</span></div>
        <div class="row"><span class="mono">Rule</span><span class="mono">one named-tunnel connector · never both :8788s</span></div>
        <div class="row"><span class="mono">Git flux</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/tree/main/deploy/mac-fog">deploy/mac-fog</a></div>
@@ -175,6 +177,8 @@ function publicLanding() {
        fetch("https://fog.calhegasmorais.pt/health").then(function(r){ return r.json(); }).then(function(d){
          el.textContent = d.origin || "DARK";
          if (d.origin) el.className = "mono ok";
+         var ml = document.getElementById("fog-mac-live");
+         if (ml) { ml.textContent = String(!!d.mac_live); if (d.mac_live) ml.className = "mono ok"; }
        }).catch(function(){ el.textContent = "DARK"; });
      })();
      </script>`
@@ -260,7 +264,9 @@ var stratamesh_origin_archive_default = {
         sixth_cron: false,
         fog_probe: "https://fog.calhegasmorais.pt/health",
         fog_origin_roles: ["session", "macbook"],
-        one_connector: true
+        one_connector: true,
+        mac_live: true,
+        mesh_member: false
       });
     }
     if (path === "/logout") {

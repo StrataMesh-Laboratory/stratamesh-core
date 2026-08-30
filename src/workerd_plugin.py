@@ -92,6 +92,9 @@ class WorkerdPlugin:
             "bind": "127.0.0.1",
             "origin": role,
             "public": public,
+            "mac_live": role == "macbook",
+            "trusted": role == "macbook",
+            "mesh_member": False,
             "health": HEALTH,
             "binary": binp,
             "config": str(CONFIG),
@@ -99,7 +102,6 @@ class WorkerdPlugin:
             "last_error": self.last_error,
             "last_ok": self.last_ok,
             "started_at": self.started_at,
-            "mesh_member": False,
             "note": "workerd is OSS runtime; CF KV/D1/R2 are not on this process",
         }
 

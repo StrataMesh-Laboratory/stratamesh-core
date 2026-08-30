@@ -2,7 +2,7 @@
 
 v5 adds a Terminal stats UI at install (15s refresh). `q` quit UI · `s` stop fog.
 
-Public `fog.calhegasmorais.pt` rides the existing **macbook-server** connector → this Mac’s `127.0.0.1:8788`. Do **not** load `pt.calhegasmorais.tunnel` (fog-lab). Do **not** `pkill -x cloudflared`.
+Public `fog.calhegasmorais.pt` rides **macbook-server** → this Mac’s `127.0.0.1:8788`. `mac_live=true`. `mesh_member` stays **false** until a second distinct `host_id` (n≥2). Do **not** load `pt.calhegasmorais.tunnel`. Do **not** `pkill -x cloudflared`.
 
 | Origin | Loopback |
 |--------|----------|

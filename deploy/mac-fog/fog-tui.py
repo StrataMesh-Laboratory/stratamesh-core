@@ -101,6 +101,8 @@ def draw(msg: str = "") -> None:
     print(DIM + bar + RST)
     print(" node     ", st.get("node_id") or "—", DIM + str(st.get("version") or "") + RST)
     print(" origin   ", TEAL + str(origin) + RST, DIM + str(hop.get("layer") or "") + RST)
+    print(" mac_live ", (OK + "true" + RST) if (hop.get("mac_live") or st.get("mac_live")) else (BAD + "false" + RST),
+          DIM + " mesh_member=" + RST, st.get("mesh_member"))
     print(" hop      ", "workerd :8788", (OK + " ok" + RST) if hop.get("ok") else (BAD + " down" + RST),
           " · fog :8787", (OK + " ok" + RST) if st.get("status") else (BAD + " down" + RST))
     print(" uptime   ", ago(st.get("uptime_seconds")), DIM + "reboots" + RST, wr.get("reboots", 0))

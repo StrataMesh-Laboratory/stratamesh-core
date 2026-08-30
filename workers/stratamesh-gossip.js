@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.6-ihave';
+const VERSION = '2.3.7-mac-live';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -37,10 +37,12 @@ async function probeFogProcess() {
     lab: true,
     endpoint: FOG_ENDPOINT,
     health: FOG_HEALTH,
-    substrate: 'local-process',
+    substrate: 'workerd-serverless',
     oracle_vm: false,
     oracle_live: false,
-    note: 'Lab local-process Fog (node_persistent) via named tunnel. Not the status Worker pulse. Not an Oracle VM.',
+    mac_live: false,
+    mesh_member: false,
+    note: 'Trusted Mac Fog via workerd hop (macbook-server). mesh_member gated on second host_id.',
   };
   try {
     const ac = new AbortController();
@@ -61,6 +63,10 @@ async function probeFogProcess() {
       if (typeof data.oracle_live === 'boolean') fog.oracle_live = data.oracle_live;
       if (typeof data.oracle_vm === 'boolean') fog.oracle_vm = data.oracle_vm;
       if (typeof data.lab === 'boolean') fog.lab = data.lab;
+      if (typeof data.mac_live === 'boolean') fog.mac_live = data.mac_live;
+      if (typeof data.mesh_member === 'boolean') fog.mesh_member = data.mesh_member;
+      if (data.origin) fog.origin = data.origin;
+      if (data.runtime) fog.runtime = data.runtime;
     }
     fog.status = r.ok ? 'live' : 'degraded';
   } catch (_) {

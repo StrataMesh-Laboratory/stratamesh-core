@@ -41,6 +41,7 @@ from pq_keys import PQKeyRegistry
 from resource_meter import sample as resource_sample
 from host_fingerprint import fingerprint as host_fingerprint
 from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
+from mesh_provision import flags as mesh_flags
 
 
 class PersistentFogNode:
@@ -311,15 +312,13 @@ class PersistentFogNode:
         s.update({
             "ok": True,
             "lab": True,
-            "n": 1,
             "source": "fog_process",
             "node_id": self.node_id,
-            "mesh_member": False,
-            "oracle_live": False,
+            **mesh_flags(),
             "consensus": {
                 "n": 1,
                 "f_max": 0,
-                "note": "lab n=1; Byzantine f_max=0 until n>=3",
+                "note": "lab n=1; Byzantine f_max=0 until n>=3; mesh_member gated on second host_id",
             },
             "agora": {"settlements": {"unavailable": "n<2"}},
         })
@@ -347,7 +346,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
 </style></head><body><main class="wrap">
 <p class="kicker">fog.calhegasmorais.pt</p>
 <h1>FOG-NODE-PT-CM-001</h1>
-<p>Nó de referência Calhegas Morais · Lisboa. Local-process lab. <span class="mono">mesh_member=false</span> · <span class="mono">oracle_live=false</span> · n=1.</p>
+<p>Nó de referência Calhegas Morais · Lisboa. Trusted Mac origin via workerd. <span class="mono">mac_live=true</span> · <span class="mono">mesh_member=false</span> · n=1 · provisioned for a second host_id.</p>
 <div class="card">
 <p>JSON: <span class="mono">/health</span> · <span class="mono">/status</span> · <span class="mono">/spa</span> · <span class="mono">/gossip</span>. Not the status Worker pulse.</p>
 <div class="links">
@@ -369,16 +368,18 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
     def gossip_view(self) -> dict:
         """GET /gossip: live inventory + self as the only peer. lab_single_host_gossip."""
         nid = self.node_id
+        mf = mesh_flags()
         return {
             "protocol": "lab_single_host_gossip",
             "ok": True,
             "node_id": nid,
-            "mesh_member": False,
+            **mf,
             "peers": [
                 {
                     "id": nid,
                     "role": self.lab_role(),
-                    "substrate": "local-process",
+                    "substrate": "workerd-serverless" if mf.get("mac_live") else "local-process",
+                    "trusted": bool(mf.get("trusted")),
                 }
             ],
             "ids": self.inventory(),
@@ -422,12 +423,6 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
-            agora_book = self.agora.book()
-            if not isinstance(agora_book, dict):
-                agora_book = {}
-            agora_out = dict(agora_book)
-            # n=1: do not report a seed scalar as live settlements
-            agora_out["settlements"] = {"unavailable": "n<2"}
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
@@ -439,8 +434,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "version": "0.2.3-lab",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
-                    "mesh_member": False,
-                    "oracle_live": False,
+                    **mesh_flags(),
                     "oracle_vm": False,
                     "uptime_seconds": int(time.time() - self.started_at),
                     "storage": {"backend": "sqlite", "path": self.db_path},
@@ -448,12 +442,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
                     "service_credit": self.svc.summary(),
-                    "agora": agora_out,
-                    "consensus": {
-                        "n": 1,
-                        "f_max": 0,
-                        "note": "lab n=1; Byzantine f_max=0 until n>=3",
-                    },
+                    "agora": self.agora.book(),
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
@@ -495,20 +484,6 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def do_HEAD(self):
-        path = urlparse(self.path).path
-        if path in (
-            "/", "/status", "/v1/status", "/health", "/api/v1/health",
-            "/spa", "/gossip", "/inv", "/resources", "/tx",
-        ):
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-        else:
-            self.send_response(404)
-            self.end_headers()
-
     def do_GET(self):
         path = urlparse(self.path).path
         accept = (self.headers.get("Accept") or "")
@@ -518,16 +493,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {
-                "ok": True,
-                "version": "0.2.3-lab",
-                "node_id": NODE.node_id,
-                "lab": True,
-                "n": 1,
-                "mesh_member": False,
-                "oracle_live": False,
-                "substrate": "local-process",
-            })
+            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.2.3-lab", **mesh_flags()})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":

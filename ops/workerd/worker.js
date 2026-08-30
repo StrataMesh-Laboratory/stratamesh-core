@@ -8,13 +8,17 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const origin = env.ORIGIN || "session";
+      const mac_live = origin === "macbook";
       return Response.json({
         ok: true,
         runtime: "workerd",
         plugin: "fog-workerd",
         origin,
-        layer: "tunnel→workerd:8788→fog:8787",
+        mac_live,
+        trusted: mac_live,
         mesh_member: false,
+        mesh_provision: mac_live,
+        layer: "tunnel→workerd:8788→fog:8787",
       }, {
         headers: {
           "access-control-allow-origin": "*",
