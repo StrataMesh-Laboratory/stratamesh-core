@@ -1,11 +1,11 @@
 /**
  * stratamesh-fund — fund.calhegasmorais.pt
- * v0.4.6 — grantor exec summaries + challenge ranking. GitHub Sponsors + per-recipient; pooled fund later.
+ * v0.4.7 — grantor brief + challenge /accept surface (no EUR).
  *
  * GitHub = evidence · Fund = stats + payout routing
  * No STRATA / no GDA in V0 · no AI impact scores
  */
-const VERSION = "0.4.6-grantor-brief";
+const VERSION = "0.4.7-accept-surface";
 const ORG = "StrataMesh-Laboratory";
 const REPOS = [
   { owner: ORG, name: "stratamesh-core", role: "Protocol core" },
@@ -274,6 +274,22 @@ async function kvListClaims(env) {
   }
 }
 
+async function kvListAcceptances(env) {
+  if (!env.FUND_KV) return [];
+  try {
+    const list = await env.FUND_KV.list({ prefix: "accept:" });
+    const out = [];
+    for (const k of list.keys || []) {
+      const v = await kvGet(env, k.name);
+      if (v) out.push(v);
+    }
+    out.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+    return out;
+  } catch (_) {
+    return [];
+  }
+}
+
 
 async function ghGraphQL(env, query, variables) {
   const headers = ghHeaders(env);
@@ -477,12 +493,27 @@ async function listChallenges(env) {
           metrics_total: parsed.metrics_total,
           metrics_done: parsed.metrics_done,
           metrics: parsed.metrics,
-          accept_hint: "Comment /accept on the issue or request assignment",
+          accept_hint: "POST /api/v1/accept {challenge, github_login} or comment /accept on the issue. Acceptance is not a payout.",
         });
       }
     } catch (_) {}
   }
   items.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+  try {
+    const accepted = await kvListAcceptances(env);
+    const ids = new Set();
+    for (const a of accepted) {
+      if (a && a.id) ids.add(String(a.id));
+      if (a && a.number != null) ids.add(String(a.number));
+    }
+    for (const c of items) {
+      if (c.phase === "open" && (ids.has(String(c.id)) || ids.has(String(c.number)))) {
+        c.phase = "accepted";
+        c.accepted_via = "api";
+        c.funded = false;
+      }
+    }
+  } catch (_) {}
   return {
     challenges: items,
     open_count: items.filter((c) => c.phase === "open").length,
@@ -1641,6 +1672,11 @@ function challengesPage(lang, data, sponsors, ranking) {
         <td class="mono">${esc((pt ? c.budget_display_pt : c.budget_display_en) || c.budget_hint || "0 · sem financiamento")}</td>
         <td class="mono">${metrics}</td>
         <td>${(c.assignees || []).map((a) => "@" + esc(a)).join(", ") || '<span class="muted">—</span>'}</td>
+        <td>${
+          phase === "open"
+            ? `<button class="btn" type="button" data-accept="${esc(c.id)}">/accept</button>`
+            : '<span class="muted">—</span>'
+        }</td>
       </tr>`;
     })
     .join("");
@@ -1678,8 +1714,9 @@ function challengesPage(lang, data, sponsors, ranking) {
           <th>${pt ? "Orçamento" : "Budget"}</th>
           <th>${pt ? "Métricas" : "Metrics"}</th>
           <th>${pt ? "Grantees" : "Grantees"}</th>
+          <th>${pt ? "Aceitar" : "Accept"}</th>
         </tr></thead>
-        <tbody>${rows || `<tr><td colspan="5" class="muted">${pt ? "Sem desafios abertos." : "No open challenges."}</td></tr>`}</tbody>
+        <tbody>${rows || `<tr><td colspan="6" class="muted">${pt ? "Sem desafios abertos." : "No open challenges."}</td></tr>`}</tbody>
       </table>
     </div>
     ${rankingSectionHtml(lang, ranking)}
@@ -1687,10 +1724,26 @@ function challengesPage(lang, data, sponsors, ranking) {
       <h2>${pt ? "Como funciona" : "How it works"}</h2>
       <ol class="steps">
         <li>${pt ? "Grantor abre um Issue com métricas e financia via Sponsors ou /pagamentos (referência #issue)." : "Grantor opens an Issue with metrics and funds via Sponsors or /pagamentos (reference #issue)."}</li>
-        <li>${pt ? "Contribuidor comenta /accept — desafio passa a aceite." : "Contributor comments /accept — challenge becomes accepted."}</li>
+        <li>${pt ? "Contribuidor POST /api/v1/accept ou comenta /accept — desafio passa a aceite. Sem EUR." : "Contributor POST /api/v1/accept or comments /accept — challenge becomes accepted. No EUR."}</li>
         <li>${pt ? "Entrega com evidência; grantor confirma métricas; issue fecha e o grant é libertado." : "Delivery with evidence; grantor confirms metrics; issue closes and the grant is released."}</li>
       </ol>
-    </div>`;
+    </div>
+    <p id="acceptMsg" class="muted"></p>
+    <script>
+    document.addEventListener('click', async function(ev){
+      var btn = ev.target && ev.target.closest && ev.target.closest('[data-accept]');
+      if(!btn) return;
+      var id = btn.getAttribute('data-accept');
+      var msg = document.getElementById('acceptMsg');
+      if(msg){ msg.textContent='…'; msg.className='muted'; }
+      try{
+        var r=await fetch('/api/v1/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:id,github_login:'anonymous'})});
+        var j=await r.json();
+        if(r.ok && j.ok){ if(msg){ msg.className='okmsg'; msg.textContent='accepted '+ (j.id||id) +' · funded=false eur=0'; } btn.textContent='accepted'; btn.disabled=true; }
+        else { if(msg){ msg.className='err'; msg.textContent=(j && (j.error||j.message)) || ('HTTP '+r.status); } }
+      }catch(err){ if(msg){ msg.className='err'; msg.textContent=String(err.message||err); } }
+    });
+    </script>`;
   return shell({ lang, path, title: pt ? "Desafios · Impact Fund" : "Challenges · Impact Fund", active: "challenges", body });
 }
 
@@ -1782,6 +1835,40 @@ async function handleClaim(env, body) {
     status: "pending_review",
     payout_method,
   };
+}
+
+async function handleAccept(env, body) {
+  const challengeRaw = String(body.challenge || body.issue || body.number || "").trim();
+  const login = String(body.github_login || body.login || "anonymous")
+    .trim()
+    .replace(/^@/, "")
+    .slice(0, 39);
+  if (!challengeRaw) return { ok: false, error: "challenge_required", funded: false, eur: 0, status: 400 };
+  let number = null;
+  const m = challengeRaw.match(/#(\d+)$/) || challengeRaw.match(/^(\d+)$/);
+  if (m) number = Number(m[1]);
+  const id = number ? "stratamesh-impact-fund#" + number : challengeRaw;
+  const rec = {
+    ok: true,
+    accepted: true,
+    id,
+    number,
+    challenge: challengeRaw,
+    github_login: login || "anonymous",
+    funded: false,
+    eur: 0,
+    treasury: false,
+    phase: "accepted",
+    at: new Date().toISOString(),
+    note: "Lab acceptance surface. Not a payout. Grantor confirms metrics before any EUR. Unfunded ≠ no surface.",
+  };
+  if (env.FUND_KV) {
+    const stored = await kvPut(env, "accept:" + id + ":" + rec.at, rec);
+    rec.persistence = stored ? "fund_kv" : "ephemeral";
+  } else {
+    rec.persistence = "ephemeral";
+  }
+  return rec;
 }
 
 export default {
@@ -1908,6 +1995,47 @@ export default {
       const status = result.status && result.status >= 400 ? result.status : result.ok ? 200 : 400;
       const { status: _s, ...rest } = result;
       return json(rest, status >= 400 ? status : 200);
+    }
+
+    if ((path === "/api/v1/accept" || path === "/api/accept") && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const result = await handleAccept(env, body);
+      const status = result.status && result.status >= 400 ? result.status : result.ok ? 200 : 400;
+      const { status: _s, ...rest } = result;
+      return json(rest, status >= 400 ? status : 200);
+    }
+
+    if (path === "/api/v1/accept" || path === "/api/accept") {
+      return json({
+        ok: true,
+        service: "stratamesh-fund-accept",
+        methods: ["POST"],
+        body: { challenge: "9 | stratamesh-impact-fund#9", github_login: "optional" },
+        funded: false,
+        eur: 0,
+        treasury: false,
+        note: "POST records challenge-accepted intent. No EUR. Unfunded ≠ no surface.",
+      });
+    }
+
+    if (path === "/api/v1/acceptances") {
+      const items = await kvListAcceptances(env);
+      return json({
+        ok: true,
+        acceptances: items.map((a) => ({
+          id: a.id,
+          number: a.number,
+          github_login: a.github_login,
+          phase: a.phase,
+          funded: false,
+          eur: 0,
+          at: a.at,
+        })),
+        funded: false,
+        eur: 0,
+        treasury: false,
+        note: "Acceptance is not a payout.",
+      });
     }
 
     
