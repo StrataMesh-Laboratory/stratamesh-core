@@ -1,10 +1,10 @@
-# HANDOFF-LATEST — hourly git+live 09:12Z destyle dashboard
+# HANDOFF-LATEST — hourly git+live 2026-08-30T11:18Z destyle fund
 
-**generated_at:** 2026-08-30T09:12:00Z  
-**lisbon:** 2026-08-30T10:12:00+0100  
+**generated_at:** 2026-08-30T11:18:42Z  
+**lisbon:** 2026-08-30T12:18:42+0100  
 **agent:** grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** hourly_gitlive_09_dashboard_destyle
+**phase:** hourly_gitlive_11_fund_destyle
 
 ## Metabolism
 
@@ -21,17 +21,17 @@
 
 ## Probes (this hour, curl)
 
-- Apex `/dashboard` → 200 destyle (no IBM Plex) x-portal-source=site_content_chunks — **this hour**
-- Apex `/clp` `/roadmap` `/eni` `/` → 200 destyle — **already live 08:21; do not re-ship**
+- fund `/health` → 200 **0.4.8-destyle** (sandbox 429 CF 1015; independent fetch + CF GET script) — **this hour**
+- fund HTML destyle --accent:#c4a574 system-ui no webfonts — **this hour**
+- Apex `/dashboard` `/clp` `/roadmap` `/eni` `/` → 200 destyle — **already live; do not re-ship**
 - Status Worker destyle **0.4.7-destyle** (do not re-ship)
 - Origin archive **0.1.6-destyle**
 - Fog `/health` → 200 workerd-hop n=2 mesh_member=true (no version until workerd reboot)
-- Fog `/spa` → 200 total=1 source=fog_process n=2 mesh_member=true settlements.unavailable=n<2 (git f_max=0 not live)
+- Fog `/spa` → 200 total=1 source=fog_process n=2 mesh_member=true settlements.unavailable=**f_max=0** (Mac `g` landed)
 - Fog `/status` → 200 version=**0.3.0** settlements=0 scalar
 - Gossip host `/health` → **2.3.11-destyle** n=2; `/peers` count=1 (EDGE down)
 - EDGE `/health` → **429** CF 1015 (desk-tick 530)
-- POST `/api/orchestrator/chat` → 200 **62ms** `source=orch-chat-lab` skipped=`[tick,llm,fog]` worker `10.24.6-lab-nofog`
-- fund HTML still IBM Plex
+- POST `/api/orchestrator/chat` → 200 **63ms** `source=orch-chat-lab` skipped=`[tick,llm,fog]` worker `10.24.6-lab-nofog`
 
 ## Mesh / Fund
 
@@ -45,18 +45,19 @@
 
 | Slot | Disposition |
 |------|-------------|
-| STEP 1 remaining HTML chrome | **dashboard destyle LIVE** SHA 79a074fb + D1 portal chunks |
-| GHA fail-watch | last success 08:22; desk-tick FAIL 08:55 EDGE 530 |
+| STEP 1 remaining HTML chrome | **fund destyle LIVE** SHA e05c7814 + CF PUT |
+| GHA fail-watch | last success 09:56 on 5314b57c |
+| protocol-invariants | last success 09:09 on 79a074fb |
 | Gossip 2.3.11 | **already live** — do not re-ship |
-| Orch instant | **already live** 62ms — do not re-ship |
+| Orch instant | **already live** 63ms — do not re-ship |
 | Fog /health enrich | **git-only** — needs workerd reboot |
-| spa_view n<2 | **git f_max=0 this hour** — Mac `g` |
+| spa_view f_max=0 | **LIVE** (Mac `g`) |
 | EDGE hop | **429/530** — not this sandbox |
 | Discourse | HOLD extra |
-| Worker PUT | none this hour |
+| Worker PUT | stratamesh-fund 0.4.8-destyle |
 
 ## Efficacy
 
-**EFFICACY_SELF_SCORE:** 0.82 (dashboard destyle git+live; spa_view git-only)
+**EFFICACY_SELF_SCORE:** 0.86 (fund destyle git+live; spa_view f_max=0 now live)
 
 LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.

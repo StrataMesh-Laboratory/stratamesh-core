@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-08-30T09:12:00Z",
-  "phase": "hourly_gitlive_09_dashboard_destyle",
-  "sha": "79a074fbb2b567beb2890849fc9628d39cb2e210",
-  "ship": "destyle /dashboard portal D1 + spa_view git f_max=0",
+  "generated_at": "2026-08-30T11:18:42Z",
+  "phase": "hourly_gitlive_11_fund_destyle",
+  "sha": "e05c7814235c955605de78e96a9184cc5eeee5d6",
+  "ship": "destyle fund.calhegasmorais.pt HTML 0.4.8-destyle",
   "live": [
-    "https://calhegasmorais.pt/dashboard"
+    "https://fund.calhegasmorais.pt/health"
   ],
   "n": 2,
   "mesh_member": true,
