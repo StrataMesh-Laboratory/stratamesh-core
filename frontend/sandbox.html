@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.4.6-destyle · sandbox.calhegasmorais.pt</title>
+<title>Atelier GNU · v0.4.7-sticks · sandbox.calhegasmorais.pt</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
-<meta property="og:title" content="Atelier GNU · v0.4.6-destyle"/>
+<meta property="og:title" content="Atelier GNU · v0.4.7-sticks"/>
 <meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
@@ -65,7 +65,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   #idChip h1{font-size:13px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #btnMenu,#btnMode{display:inline-flex;align-items:center;justify-content:center}
   #phoneDock{display:flex;position:absolute;left:50%;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)));transform:translateX(-50%);gap:.35rem;z-index:6;align-items:center}
-  .stick{width:5.25rem;height:5.25rem;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)))}
+  .stick{width:5.25rem;height:5.25rem;bottom:max(4.4rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom) + 3.5rem))}
   #stkL{left:.45rem} #stkR{right:.45rem}
   #enter .card{max-width:calc(100% - 2rem);margin:0 .7rem}
   #gnu{top:max(3.15rem,calc(env(safe-area-inset-top) + 2.75rem));left:.45rem;width:calc(100% - .9rem)}
@@ -83,7 +83,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
-      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.6-destyle · holon 5 UGC</div>
+      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.7-sticks · holon 5 UGC</div>
       <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
@@ -142,12 +142,12 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   </div>
   <div id="log"></div>
   <div id="enter"><div class="card" id="enterBtn">
-    <div class="mono">v0.4.6-destyle · inhabit / orbit</div>
+    <div class="mono">v0.4.7-sticks · inhabit / orbit</div>
     <h2>Enter the GNU atelier</h2>
     <p class="muted">Left stick walk (up = forward) · drag or right stick look · tap floor to walk · tap an object to act · Orbit to circle.</p>
   </div></div>
   <aside id="atlas">
-    <div class="mono">Absorb models, not ontology · v0.4.6-destyle</div>
+    <div class="mono">Absorb models, not ontology · v0.4.7-sticks</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
     <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
@@ -174,7 +174,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <script type="module">
 import * as THREE from "three";
 
-const CORE = "v0.4.6-destyle";
+const CORE = "v0.4.7-sticks";
 const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
 const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
@@ -515,6 +515,8 @@ function setPresence(p) {
     try { document.exitPointerLock(); } catch {}
     syncOrbitToPlayer();
   }
+  stick.x = 0; stick.y = 0; look.x = 0; look.y = 0;
+  document.querySelectorAll(".stick .knob").forEach((k) => { k.style.transform = "translate(-50%, -50%)"; });
   playing = true;
   document.getElementById("enter").style.display = "none";
   applyCam();
@@ -529,40 +531,54 @@ function nudge(el, ev, target, invertY) {
   const knob = el.querySelector(".knob");
   if (knob) knob.style.transform = "translate(calc(-50% + " + (x * 18) + "px), calc(-50% + " + (-y * 18) + "px))";
   if (invertY) y = -y;
-  const dz = 0.12, m2 = Math.hypot(x, y);
+  const dz = 0.18, m2 = Math.hypot(x, y);
   if (m2 < dz) { target.x = 0; target.y = 0; return; }
   const sc = (m2 - dz) / (1 - dz);
   target.x = x / m2 * sc; target.y = y / m2 * sc;
 }
+const stickIds = new Set();
+function releaseStick(el, target, pid) {
+  stickIds.delete(pid);
+  target.x = 0; target.y = 0;
+  const knob = el.querySelector(".knob");
+  if (knob) knob.style.transform = "translate(-50%, -50%)";
+  try { el.releasePointerCapture(pid); } catch {}
+}
 function bindStick(el, target, invertY) {
   let pid = null;
+  const clear = (e) => {
+    if (pid == null) return;
+    if (e && e.pointerId != null && e.pointerId !== pid) return;
+    releaseStick(el, target, pid);
+    pid = null;
+  };
   el.addEventListener("pointerdown", (e) => {
     e.preventDefault(); e.stopPropagation();
+    if (pid != null && pid !== e.pointerId) clear();
     pid = e.pointerId;
+    stickIds.add(pid);
+    dragPid = null;
     try { el.setPointerCapture(e.pointerId); } catch {}
     nudge(el, e, target, invertY);
   });
   el.addEventListener("pointermove", (e) => {
     if (pid !== e.pointerId) return;
-    e.preventDefault();
+    e.preventDefault(); e.stopPropagation();
     nudge(el, e, target, invertY);
   });
-  const up = (e) => {
-    if (pid != null && e.pointerId !== pid) return;
-    pid = null; target.x = 0; target.y = 0;
-    const knob = el.querySelector(".knob");
-    if (knob) knob.style.transform = "translate(-50%, -50%)";
-  };
-  el.addEventListener("pointerup", up);
-  el.addEventListener("pointercancel", up);
+  el.addEventListener("pointerup", clear);
+  el.addEventListener("pointercancel", clear);
+  el.addEventListener("lostpointercapture", clear);
+  window.addEventListener("pointerup", clear);
+  window.addEventListener("pointercancel", clear);
 }
-bindStick(document.getElementById("stkL"), stick, true);
+bindStick(document.getElementById("stkL"), stick, false);
 bindStick(document.getElementById("stkR"), look, false);
 
 function applyLookDelta(dx, dy) {
   if (presence === "observe") {
     orb.theta -= dx * 0.005;
-    orb.phi = clamp(orb.phi - dy * 0.0036, 0.22, 1.42);
+    orb.phi = clamp(orb.phi - dy * 0.0024, 0.48, 1.18);
   } else {
     yaw -= dx * 0.0022;
     pitch -= dy * 0.0022;
@@ -614,6 +630,7 @@ function onTap(cx, cy) {
 const pointers = new Map();
 let dragPid = null, sx = 0, sy = 0, slx = 0, sly = 0, dragged = false, pinch0 = 0;
 canvas.addEventListener("pointerdown", (e) => {
+  if (stickIds.has(e.pointerId) || e.target.closest(".stick")) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     const pts = [...pointers.values()];
@@ -629,6 +646,7 @@ canvas.addEventListener("pointerdown", (e) => {
   try { canvas.setPointerCapture(e.pointerId); } catch {}
 });
 window.addEventListener("pointermove", (e) => {
+  if (stickIds.has(e.pointerId)) return;
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (presence === "observe" && pointers.size === 2) {
     const pts = [...pointers.values()];
@@ -677,7 +695,12 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "Escape") { playing = false; document.getElementById("enter").style.display = "flex"; try { document.exitPointerLock(); } catch {} }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
-window.addEventListener("blur", () => keys.clear());
+window.addEventListener("blur", () => {
+  keys.clear();
+  stick.x = 0; stick.y = 0; look.x = 0; look.y = 0;
+  stickIds.clear();
+  document.querySelectorAll(".stick .knob").forEach((k) => { k.style.transform = "translate(-50%, -50%)"; });
+});
 window.addEventListener("resize", layoutHud);
 if (window.visualViewport) {
   visualViewport.addEventListener("resize", layoutHud);
@@ -758,7 +781,14 @@ function tick(now) {
   const held = injected || [...keys];
   const has = (c) => held.includes(c);
   const speed = ((has("ShiftLeft") || has("ShiftRight")) ? SPRINT : WALK) * dt;
-  if (look.x || look.y) applyLookDelta(look.x * 520 * dt, look.y * -360 * dt);
+  if (look.x || look.y) {
+    if (presence === "observe") {
+      orb.theta -= look.x * 1.7 * dt;
+      orb.phi = clamp(orb.phi - look.y * 0.7 * dt, 0.48, 1.18);
+    } else {
+      applyLookDelta(look.x * 520 * dt, look.y * -360 * dt);
+    }
+  }
   const { fx, fz, rx, rz } = inhabitFlat();
   let moved = false;
   if (!typingGnu() && presence === "inhabit") {
