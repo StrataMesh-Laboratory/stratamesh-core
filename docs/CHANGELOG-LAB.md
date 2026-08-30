@@ -1,3 +1,8 @@
+## 2026-08-30 — sandbox.calhegasmorais.pt full-page GNU atelier
+- Public Holon 5 UGC host: **https://sandbox.calhegasmorais.pt/** is the full-page GNU atelier (WASD/look, dual sticks, GNU desk) — not a portal iframe, not workers.dev.
+- Worker `stratamesh-sandbox-host` serves HTML for `/` and `/:owner/:id` virtual addresses. JSON at `/health`. Apex `/api/v1/sandbox*` stays `stratamesh-sandbox`.
+- Source: `frontend/sandbox.html`. Never Fog origin.
+
 ## 2026-08-30 — Unix atelier is the 3D NFT workbench
 - EN dashboard uses English terminology and acronyms: PoC (Proof of Contribution), PoS (Proof of Subsistence), SCA (Synthetic Computational Agent), SPA (Service Pact Agreement), DAO, CLP (Planetary Lunisolar Calendar), L-STRATA, UGC, IoT.
 - Atelier is the cel-shaded Unix NFT lot (not a homepage iframe, not a voxel room). Dual sticks: walk + look. Drag-to-look in first person, same as orbit. Compose tools: manipulate, freeze, duplicate, remove, rotate. Free placement.

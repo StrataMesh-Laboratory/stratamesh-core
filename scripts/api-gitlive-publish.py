@@ -42,6 +42,7 @@ MAIN_MODULE = {
     "stratamesh-fog-api": "index.js",
     "stratamesh-node-public": "index.js",
     "stratamesh-academy": "index.js",
+    "stratamesh-sandbox-host": "index.js",
 }
 
 

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#07111c"/>
+<title>Atelier GNU · v0.4.2-lab · sandbox.calhegasmorais.pt</title>
+<meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
+<link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
+<meta property="og:title" content="Atelier GNU · v0.4.2-lab"/>
+<meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
+<meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
+<meta name="robots" content="index,follow"/>
+<style>
+:root{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--teal:#2f9e8a;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud{pointer-events:none;position:fixed;inset:0;z-index:5}
+#hud button,#hud a,#hud input,.stick{pointer-events:auto}
+.chip{border:1px solid var(--line);background:rgba(7,17,28,.82);backdrop-filter:blur(6px);border-radius:8px;padding:.45rem .7rem}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
+.muted{color:var(--muted);font-size:11px}
+#top{position:absolute;top:max(.6rem,env(safe-area-inset-top));left:.7rem;right:.7rem;display:flex;justify-content:space-between;gap:.6rem}
+#tools{position:absolute;bottom:max(.7rem,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;max-width:min(42rem,calc(100% - 1.4rem))}
+#tools button,.nav a,button.ghost{min-height:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:0 .7rem;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+#tools button.on{border-color:var(--teal);color:var(--teal)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.nav a{display:inline-flex;align-items:center;text-decoration:none;color:var(--muted)}
+.nav a.here{color:var(--teal);border-color:var(--teal)}
+#prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(47,158,138,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap}
+.stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7)}
+.stick:after{content:"";position:absolute;inset:2.2rem;border-radius:999px;border:1px solid var(--teal)}
+#stkL{left:.7rem} #stkR{right:.7rem}
+#enter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:8;pointer-events:none}
+#enter .card{pointer-events:auto;max-width:26rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.9);text-align:center;cursor:pointer}
+#enter h2{margin:.4rem 0 .3rem;font-size:1.25rem}
+#gnu{display:none;position:absolute;inset:0;z-index:12;background:rgba(7,17,28,.55)}
+#gnu.on{display:block}
+#gnu .bar{display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 .7rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.92);font:10px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+#tty{position:absolute;left:.7rem;top:2.6rem;width:min(28rem,calc(100% - 1.4rem));max-height:16rem;overflow:auto;border:1px solid var(--line);background:rgba(7,17,28,.92);border-radius:8px;padding:.6rem;font:12px/1.45 ui-monospace,Menlo,monospace;color:var(--ok)}
+#tty input{width:100%;margin-top:.4rem;min-height:44px;border:0;background:transparent;color:var(--ink);font:inherit;outline:none}
+#atlas{display:none;position:absolute;top:0;right:0;bottom:0;width:min(28rem,100%);overflow:auto;z-index:11;border-left:1px solid var(--line);background:var(--surface);padding:1rem;pointer-events:auto}
+#atlas.on{display:block}
+#atlas article{border:1px solid var(--line);border-radius:8px;padding:.6rem;margin:.45rem 0}
+#log{position:absolute;right:.7rem;bottom:5.2rem;width:16rem;max-height:8rem;overflow:hidden;font:10px ui-monospace,Menlo,monospace;color:var(--muted);display:none}
+@media(min-width:900px){#log{display:block}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.185.1/build/three.module.js"}}
+</script>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="GNU atelier first-person renderer"></canvas>
+<div id="hud">
+  <div id="top">
+    <div class="chip">
+      <div class="mono">sandbox.calhegasmorais.pt · v0.4.2-lab · holon 5 UGC</div>
+      <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
+      <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
+    </div>
+    <div>
+      <div class="nav">
+        <a class="here" href="/">Atelier</a>
+        <a href="https://calhegasmorais.pt/dashboard">Portal</a>
+        <a href="https://calhegasmorais.pt">Lab</a>
+      </div>
+      <div class="chip" style="margin-top:.35rem;text-align:right">
+        <span class="mono" id="wallet">50.0 L-STRATA</span>
+      </div>
+    </div>
+  </div>
+  <div id="tools">
+    <button data-t="phys" class="on">1 Manipulate</button>
+    <button data-t="freeze">2 Freeze</button>
+    <button data-t="dupe">3 Duplicate</button>
+    <button data-t="remove">4 Remove</button>
+    <button data-t="rotate">5 Rotate</button>
+    <button id="btnGnu">` GNU</button>
+    <button id="btnAtlas">Atlas MUD</button>
+  </div>
+  <div id="prompt">WASD walk · mouse / right stick look · E use · F tool · 1–5</div>
+  <div class="stick" id="stkL" aria-label="Move"></div>
+  <div class="stick" id="stkR" aria-label="Look"></div>
+  <div id="log"></div>
+  <div id="enter"><div class="card" id="enterBtn">
+    <div class="mono">v0.4.2-lab · inhabit WASD/look</div>
+    <h2>Enter the GNU atelier</h2>
+    <p class="muted">Left stick walk · right stick look · drag to look. A left · D right of look. Free Unix renderer — not a proprietary Unix.</p>
+  </div></div>
+  <aside id="atlas">
+    <div class="mono">Absorb models, not ontology · v0.4.2-lab</div>
+    <h2>Atlas · GNU / MUD / MMORPG</h2>
+    <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
+    <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
+    <article><b>Ranvier</b><div class="muted">Bundles → NFT Actions. Content pack until publish.</div></article>
+    <article><b>FluffOS</b><div class="muted">First-class objects. Each STRATA NFT is an object in the room. F grab/place.</div></article>
+    <article><b>GNUstep / Window Maker</b><div class="muted">Free workstation chrome. tty0 multiplexes look/go/say over this renderer.</div></article>
+    <article><b>Ryzom Core / Stendhal / Crossfire</b><div class="muted">Street + Agora are MMORPG zones; lots are other account sandboxes.</div></article>
+    <button class="ghost" id="atlasClose">Close</button>
+  </aside>
+  <div id="gnu">
+    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.2-lab · inhabit WASD/look · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
+    <div id="tty">
+      <pre id="ttyOut"></pre>
+      <form id="ttyForm"><span style="color:var(--teal)">$ </span><input id="ttyIn" autocomplete="off" spellcheck="false" placeholder="look · go n · help"/></form>
+    </div>
+  </div>
+</div>
+<script type="module">
+import * as THREE from "three";
+
+const CORE = "v0.4.2-lab";
+const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
+const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
+const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
+const ZONES = {
+  bancada: { title: "Workbench · UGC Sandbox (Holon 5)", half: 7.2, spawn: { x: 0, z: 5.2, yaw: 0 }, sky: 0xf4e4c1, fog: 0xc9a06a },
+  rua: { title: "Street · Open World", half: 22, spawn: { x: 0, z: 18.5, yaw: Math.PI }, sky: 0x1a2430, fog: 0x0e1a24 },
+  agora: { title: "Agora · Lab Book", half: 14, spawn: { x: 0, z: 11.4, yaw: Math.PI }, sky: 0x241810, fog: 0x1a120c },
+};
+const EXITS = { bancada: { n: "rua" }, rua: { n: "agora", s: "bancada" }, agora: { s: "rua" } };
+
+const canvas = document.getElementById("stage");
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(68, 1, 0.08, 80);
+camera.up.set(0, 1, 0);
+camera.rotation.order = "YXZ";
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+let zone = "bancada", yaw = 0, pitch = 0, px = 0, pz = 5.2, playing = false, tool = "phys";
+let carry = null, wallet = 50, gnu = false;
+const keys = new Set();
+let injected = null;
+const stick = { x: 0, y: 0 }, look = { x: 0, y: 0 };
+const frozen = {};
+const nfts = [];
+const groups = [];
+const logs = [];
+const tty = [`GNU Atelier ${CORE} · type help`];
+const staticRoot = new THREE.Group();
+const nftRoot = new THREE.Group();
+scene.add(staticRoot, nftRoot);
+scene.add(new THREE.HemisphereLight(0xffe6b8, 0x5a3a22, 1.05));
+const sun = new THREE.DirectionalLight(0xfff4dc, 1.05);
+sun.position.set(3, 7, 4); scene.add(sun);
+
+function toon(c, e = 0, i = 0) { return new THREE.MeshToonMaterial({ color: c, emissive: e, emissiveIntensity: i }); }
+function box(p, w, h, d, x, y, z, m) { const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); mesh.position.set(x, y, z); p.add(mesh); return mesh; }
+function applySky() {
+  const z = ZONES[zone];
+  scene.background = new THREE.Color(z.sky);
+  scene.fog = new THREE.Fog(z.fog, 14, 36);
+}
+function clear(g) { while (g.children.length) { const c = g.children[0]; g.remove(c); c.traverse((ch) => { if (ch.geometry) ch.geometry.dispose(); }); } }
+function buildZone() {
+  clear(staticRoot);
+  applySky();
+  const z = ZONES[zone];
+  const H = z.half;
+  if (zone === "bancada") {
+    box(staticRoot, H * 2, 0.08, H * 2, 0, 0, 0, toon(0xc4a574));
+    box(staticRoot, H * 2, 3.2, 0.2, 0, 1.6, -H, toon(0xd9b48a));
+    box(staticRoot, 0.2, 3.2, H * 2, -H, 1.6, 0, toon(0xc48a5a));
+    box(staticRoot, 0.2, 3.2, H * 2, H, 1.6, 0, toon(0xb87a4a));
+    box(staticRoot, 1.8, 2.4, 0.12, 0, 1.2, H - 0.2, toon(0x3a2014, 0xc45c4a, 0.35)); // door
+    const crt = box(staticRoot, 1.1, 0.7, 0.08, 0, 1.2, -H + 0.4, toon(0x0a1218, 0x2f9e8a, 0.6));
+    crt.userData.device = "tty0";
+  } else {
+    box(staticRoot, H * 2, 0.1, H * 2, 0, 0, 0, toon(zone === "agora" ? 0x3a2a1c : 0x1a2430));
+    for (let i = -3; i <= 3; i++) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.2, 2.2), toon(i % 2 ? 0x6a3a28 : 0x4a2a1c));
+      f.position.set(i * 5.4, 2.1, -H + 2);
+      f.add(new THREE.LineSegments(new THREE.EdgesGeometry(f.geometry), new THREE.LineBasicMaterial({ color: 0x0a1218 })));
+      staticRoot.add(f);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), toon(0xffd27a, 0xff9a2e, 1));
+      lamp.position.set(i * 5.4, 3.1, 2);
+      staticRoot.add(lamp);
+    }
+  }
+  document.getElementById("ztitle").textContent = z.title;
+  document.getElementById("zpath").textContent = `/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/${zone}/${ADDR.id}`;
+  const host = location.host || "sandbox.calhegasmorais.pt";
+  const mono = document.querySelector("#top .chip .mono");
+  if (mono) mono.textContent = host + " · " + CORE + " · holon 5 UGC · " + ADDR.owner + "/" + ADDR.id;
+}
+
+function seed() {
+  const names = [
+    ["Holon 5 · Workbench UGC", "creation"],
+    ["Exit · Open world", "exit"],
+    ["Fractional core", "creation"],
+    ["Verb stone", "verb"],
+    ["SPA / APS", "spa"],
+    ["GNU CRT", "verb"],
+  ];
+  names.forEach((n, i) => nfts.push({ id: "nft-" + i, name: n[0], role: n[1], zone: "bancada" }));
+  nfts.push({ id: "lot-acb", name: "Lot · ACB", role: "building", zone: "rua" });
+  nfts.push({ id: "stall-eur", name: "Stall · EUR book", role: "stall", zone: "agora" });
+}
+function rebuild() {
+  clear(nftRoot); groups.length = 0;
+  nfts.filter((n) => n.zone === zone).forEach((nft, i) => {
+    const g = new THREE.Group();
+    const a = i * GOLDEN, r = 1.5 + Math.sqrt(i + 1);
+    g.position.set(Math.cos(a) * r, 1.05, Math.sin(a) * r);
+    const color = nft.role === "exit" ? 0xc45c4a : nft.role === "spa" ? 0xc45c4a : 0xd4a017;
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.2, metalness: 0.5, roughness: 0.3 }));
+    g.add(core);
+    g.userData = { nft, vy: 0 };
+    nftRoot.add(g); groups.push(g);
+  });
+}
+
+function applyCam(bob = 0) {
+  camera.up.set(0, 1, 0);
+  camera.position.set(px, EYE + bob, pz);
+  camera.rotation.set(pitch, yaw, 0, "YXZ");
+  camera.updateMatrixWorld(true);
+}
+function lookFlat() {
+  const d = new THREE.Vector3();
+  camera.getWorldDirection(d); d.y = 0;
+  if (d.lengthSq() < 1e-6) d.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+  else d.normalize();
+  return { fx: d.x, fz: d.z, rx: -d.z, rz: d.x };
+}
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / Math.max(h, 1);
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+function log(cmd, text) {
+  logs.push(cmd + " " + text);
+  if (logs.length > 24) logs.shift();
+  document.getElementById("log").textContent = logs.slice(-6).join("\n");
+  tty.push(cmd + "  " + text);
+  document.getElementById("ttyOut").textContent = tty.slice(-18).join("\n");
+}
+function nearest(max = 1.5) {
+  let best = null, bd = max;
+  for (const g of groups) {
+    const d = Math.hypot(g.position.x - px, g.position.z - pz);
+    if (d < bd) { bd = d; best = g; }
+  }
+  return best;
+}
+function half() { return ZONES[zone].half; }
+function travel(to) {
+  zone = to;
+  const sp = ZONES[to].spawn;
+  px = sp.x; pz = sp.z; yaw = sp.yaw; pitch = 0;
+  buildZone(); rebuild(); applyCam();
+  log("go", "→ " + ZONES[to].title);
+}
+function applyTool() {
+  if (tool === "phys") {
+    if (carry) {
+      const g = groups.find((x) => x.userData.nft.id === carry);
+      if (g) { g.position.y = 0.55; g.userData.vy = 0; }
+      log("drop", "placed " + carry + " (free)");
+      carry = null; return;
+    }
+    const n = nearest();
+    if (!n || n.userData.nft.role === "exit" || n.userData.nft.role === "building") { log("get", "nothing"); return; }
+    if (frozen[n.userData.nft.id]) { log("get", "frozen"); return; }
+    carry = n.userData.nft.id; log("get", n.userData.nft.name); return;
+  }
+  const n = nearest(1.8); if (!n) { log(tool, "nothing"); return; }
+  const id = n.userData.nft.id;
+  if (tool === "freeze") { frozen[id] = !frozen[id]; log("freeze", frozen[id] ? "on" : "off"); }
+  if (tool === "dupe") {
+    const src = n.userData.nft;
+    if (src.role === "exit" || src.role === "building") { log("dupe", "protected"); return; }
+    nfts.push({ ...src, id: "nft-" + Date.now(), name: src.name + " copy" });
+    rebuild(); log("dupe", src.name);
+  }
+  if (tool === "remove") {
+    if (n.userData.nft.role === "exit" || n.userData.nft.role === "building") { log("remove", "protected"); return; }
+    const i = nfts.findIndex((x) => x.id === id); if (i >= 0) nfts.splice(i, 1);
+    rebuild(); log("remove", id);
+  }
+  if (tool === "rotate") n.rotation.y += Math.PI / 4;
+}
+function useNear() {
+  if (zone === "bancada" && pz < -half() + 2.2 && Math.abs(px) < 1.4) { toggleGnu(true); return; }
+  if (Math.abs(px) < 1.1 && pz > half() - 1.45) {
+    const to = EXITS[zone]?.n; if (to) travel(to); return;
+  }
+  if (Math.abs(px) < 1.1 && pz < -half() + 1.45) {
+    const to = EXITS[zone]?.s; if (to) travel(to); return;
+  }
+  const n = nearest(1.6);
+  log("use", n ? n.userData.nft.name : "nothing");
+}
+function toggleGnu(on) {
+  gnu = on !== undefined ? on : !gnu;
+  document.getElementById("gnu").classList.toggle("on", gnu);
+  if (gnu) { try { document.exitPointerLock(); } catch {} document.getElementById("ttyIn").focus(); }
+}
+function runCmd(raw) {
+  const [cmd, ...rest] = raw.trim().split(/\s+/); const arg = rest.join(" ");
+  if (cmd === "help") { log("help", "look go n|s get drop use say wallet mint publish ls"); return; }
+  if (cmd === "look") { const n = nearest(2); log("look", n ? n.userData.nft.name : ZONES[zone].title); return; }
+  if (cmd === "go") { const d = (arg[0] || "").toLowerCase(); const to = EXITS[zone]?.[d]; if (to) travel(to); else log("go", "no exit"); return; }
+  if (cmd === "wallet") { log("wallet", wallet.toFixed(2) + " L-STRATA (lab, non-transitioning)"); return; }
+  if (cmd === "mint") {
+    if (wallet < 0.2) { log("mint", "need 0.2 L-STRATA"); return; }
+    wallet = +(wallet - 0.2).toFixed(3);
+    nfts.push({ id: "cgu-" + Date.now(), name: arg || "Creation", role: "creation", zone });
+    document.getElementById("wallet").textContent = wallet.toFixed(1) + " L-STRATA";
+    rebuild(); log("mint", "isolated −0.2 L-STRATA"); return;
+  }
+  if (cmd === "who") { log("who", "you · mesh-local · " + zone); return; }
+  log(cmd || "?", arg || "ok");
+}
+
+function nudge(el, ev, target) {
+  const r = el.getBoundingClientRect();
+  const x = (ev.clientX - r.left) / r.width * 2 - 1;
+  const y = -((ev.clientY - r.top) / r.height * 2 - 1);
+  const mag = Math.hypot(x, y) || 1, s = Math.min(1, mag);
+  target.x = (x / mag) * s; target.y = (y / mag) * s;
+}
+function bindStick(el, target) {
+  el.addEventListener("pointerdown", (e) => { el.setPointerCapture(e.pointerId); nudge(el, e, target); });
+  el.addEventListener("pointermove", (e) => { if (e.buttons) nudge(el, e, target); });
+  el.addEventListener("pointerup", () => { target.x = 0; target.y = 0; });
+}
+bindStick(document.getElementById("stkL"), stick);
+bindStick(document.getElementById("stkR"), look);
+
+let dragging = false, lx = 0, ly = 0;
+canvas.addEventListener("pointerdown", (e) => {
+  if (gnu) return;
+  dragging = true; lx = e.clientX; ly = e.clientY;
+});
+window.addEventListener("pointerup", () => dragging = false);
+window.addEventListener("mousemove", (e) => {
+  if (gnu || !playing) return;
+  const locked = document.pointerLockElement === canvas;
+  if (!locked && !dragging) return;
+  const dx = locked ? e.movementX : e.clientX - lx;
+  const dy = locked ? e.movementY : e.clientY - ly;
+  if (!locked) { lx = e.clientX; ly = e.clientY; }
+  yaw -= dx * 0.0022; pitch -= dy * 0.0022;
+  pitch = Math.max(-1.2, Math.min(1.2, pitch));
+});
+window.addEventListener("keydown", (e) => {
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) {
+    if (e.code === "Escape") toggleGnu(false);
+    return;
+  }
+  if (e.code === "Backquote") { e.preventDefault(); toggleGnu(); return; }
+  keys.add(e.code);
+  if (e.code === "Digit1") setTool("phys");
+  if (e.code === "Digit2") setTool("freeze");
+  if (e.code === "Digit3") setTool("dupe");
+  if (e.code === "Digit4") setTool("remove");
+  if (e.code === "Digit5") setTool("rotate");
+  if (e.code === "KeyF") applyTool();
+  if (e.code === "KeyE") useNear();
+  if (e.code === "KeyV") play();
+  if (e.code === "Escape") { playing = false; document.getElementById("enter").style.display = "flex"; try { document.exitPointerLock(); } catch {} }
+});
+window.addEventListener("keyup", (e) => keys.delete(e.code));
+window.addEventListener("blur", () => keys.clear());
+window.addEventListener("resize", resize);
+
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll("#tools [data-t]").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+  log("tool", t);
+}
+document.querySelectorAll("#tools [data-t]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.t)));
+document.getElementById("btnGnu").onclick = () => toggleGnu();
+document.getElementById("gnuClose").onclick = () => toggleGnu(false);
+document.getElementById("btnAtlas").onclick = () => document.getElementById("atlas").classList.toggle("on");
+document.getElementById("atlasClose").onclick = () => document.getElementById("atlas").classList.remove("on");
+document.getElementById("ttyForm").onsubmit = (e) => {
+  e.preventDefault();
+  const v = document.getElementById("ttyIn").value;
+  document.getElementById("ttyIn").value = "";
+  if (v.trim()) runCmd(v);
+};
+function play() {
+  playing = true;
+  document.getElementById("enter").style.display = "none";
+  applyCam();
+  const req = canvas.requestPointerLock;
+  try { const p = req.call(canvas, { unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()); } catch { try { canvas.requestPointerLock(); } catch {} }
+}
+document.getElementById("enterBtn").onclick = play;
+
+let last = performance.now(), gait = 0;
+function tick(now) {
+  requestAnimationFrame(tick);
+  const dt = Math.min((now - last) / 1000, 0.1); last = now;
+  const held = injected || [...keys];
+  const has = (c) => held.includes(c);
+  const speed = ((has("ShiftLeft") || has("ShiftRight")) ? SPRINT : WALK) * dt;
+  if (look.x || look.y) {
+    yaw -= look.x * 2.6 * dt;
+    pitch -= look.y * 1.8 * dt;
+    pitch = Math.max(-1.2, Math.min(1.2, pitch));
+  }
+  applyCam();
+  const { fx, fz, rx, rz } = lookFlat();
+  if (!gnu) {
+    if (has("KeyW") || has("ArrowUp")) { px += fx * speed; pz += fz * speed; }
+    if (has("KeyS") || has("ArrowDown")) { px -= fx * speed; pz -= fz * speed; }
+    if (has("KeyA") || has("ArrowLeft")) { px -= rx * speed; pz -= rz * speed; }
+    if (has("KeyD") || has("ArrowRight")) { px += rx * speed; pz += rz * speed; }
+    if (stick.x || stick.y) { px += (fx * stick.y + rx * stick.x) * speed * 1.6; pz += (fz * stick.y + rz * stick.x) * speed * 1.6; }
+  }
+  const m = half() - 0.45;
+  px = Math.max(-m, Math.min(m, px)); pz = Math.max(-m, Math.min(m, pz));
+  if (carry) {
+    const g = groups.find((x) => x.userData.nft.id === carry);
+    if (g) { g.position.set(px + fx * 0.7, 1.35, pz + fz * 0.7); if (tool === "rotate") g.rotation.y += dt * 1.6; }
+  }
+  for (const g of groups) {
+    const id = g.userData.nft.id;
+    if (id === carry || frozen[id] || g.userData.nft.role === "exit" || g.userData.nft.role === "building") continue;
+    g.userData.vy = (g.userData.vy || 0) - 9.8 * dt;
+    g.position.y += g.userData.vy * dt;
+    if (g.position.y < 0.55) { g.position.y = 0.55; g.userData.vy = 0; }
+  }
+  renderer.render(scene, camera);
+  const north = Math.abs(px) < 1.1 && pz > half() - 1.45;
+  document.getElementById("prompt").textContent = gnu ? "GNU desk · type help · ` close" : north ? "E · go north" : `E use · F ${tool} · 1–5 · \` GNU`;
+  window.__controlsTest = {
+    getYaw: () => yaw,
+    getSpeed: () => (has("KeyW") || stick.y ? WALK : 0),
+    getPosition: () => ({ x: px, z: pz }),
+    setKeys: (codes) => { injected = codes.length ? [...codes] : null; if (!codes.length) keys.clear(); },
+    setYaw: (v) => { yaw = v; applyCam(); },
+  };
+  window.__atelierReady = true;
+}
+seed(); buildZone(); rebuild(); resize(); applyCam();
+requestAnimationFrame(tick);
+log("boot", "GNU Atelier " + CORE + " · inhabit WASD/look");
+</script>
+</body>
+</html>
