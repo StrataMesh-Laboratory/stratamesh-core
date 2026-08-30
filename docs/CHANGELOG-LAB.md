@@ -1,3 +1,6 @@
+## 2026-08-30 — fog destyle
+- Fog `/` no longer brands EDGE-GROK on the Mac landing. Same destyle as EDGE (badge + node id + JSON links). Peer roster stays `/status`.
+
 ## 2026-08-30 — origin archive aligned
 - `origin.calhegasmorais.pt` worker **0.1.5-aligned** with git `stratamesh-core` and R2 pile `2026-08-30`.
 - Honesty: n=2 · mesh_member=true · f_max=0 · Mac primary · session 30-min fallback.

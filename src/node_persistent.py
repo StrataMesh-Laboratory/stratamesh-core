@@ -319,51 +319,49 @@ class PersistentFogNode:
             "consensus": {
                 "n": mesh_flags()["n"],
                 "f_max": mesh_flags()["mesh_provision"]["f_max"],
-                "note": "n=2 Fog Mac + EDGE-GROK (session). f_max=0 until n>=3",
+                "note": "n=2 · f_max=0 until n>=3",
             },
             "agora": {"settlements": {"unavailable": "n<2"}},
         })
         return s
 
     def public_html(self) -> str:
-        """GET / for browsers. JSON remains default for /status and Accept: json."""
+        """GET / for browsers. Destylised like EDGE: node id + facts, mesh roster stays JSON."""
         spa = self.spa_view()
         ver = "0.2.3-dev"
+        mf = mesh_flags()
         return f"""<!DOCTYPE html>
-<html lang="pt-PT"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Fog · Nó Calhegas Morais</title>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FOG-NODE-PT-CM-001 · {ver}</title>
 <style>
-:root{{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--surface:#0c1a28;--teal:#2f9e8a}}
-*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;line-height:1.55}}
-.wrap{{max-width:42rem;margin:0 auto;padding:2rem 1.2rem 4rem}}
-.kicker{{font:600 .68rem/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}}
-h1{{font-size:1.6rem;margin:.4rem 0 .8rem}}p{{color:var(--muted)}}
-a{{color:var(--teal)}}.card{{background:var(--surface);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.1rem;margin:1rem 0}}
-.links a{{display:inline-block;margin:.2rem .3rem .2rem 0;padding:.4rem .7rem;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none}}
-.links a:hover{{border-color:var(--teal);color:var(--teal)}}
-.mono{{font-family:ui-monospace,monospace;font-size:.84rem;color:var(--teal)}}
-footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
-</style></head><body><main class="wrap">
-<p class="kicker">fog.calhegasmorais.pt</p>
+:root {{ --bg:#0a0a0b; --fg:#e8e6e3; --muted:#8a8780; --line:#1c1c1f; --acc:#c4a574; }}
+body {{ margin:0; font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--fg); }}
+main {{ max-width:40rem; margin:0 auto; padding:2.5rem 1.25rem 4rem; }}
+h1 {{ font-size:1.25rem; font-weight:600; }}
+p,li {{ color:var(--muted); }}
+a {{ color:var(--acc); }}
+code {{ color:var(--fg); }}
+.badge {{ display:inline-block; border:1px solid var(--line); padding:.15rem .5rem; font-size:.75rem; letter-spacing:.04em; }}
+</style>
+</head>
+<body>
+<main>
+<p class="badge">LAB · prerelease · not mainnet</p>
 <h1>FOG-NODE-PT-CM-001</h1>
-<p>Nó de referência Calhegas Morais · Lisboa. Trusted Mac origin via workerd. <span class="mono">mac_live=true</span> · <span class="mono">n=2</span> · <span class="mono">mesh_member=true</span> · EDGE-GROK session (non-continuous, expected) · f_max=0 until n≥3.</p>
-<div class="card">
-<p>JSON: <span class="mono">/health</span> · <span class="mono">/status</span> · <span class="mono">/spa</span> · <span class="mono">/gossip</span>. Not the status Worker pulse.</p>
-<div class="links">
-  <a href="/health">/health</a>
-  <a href="/status">/status</a>
-  <a href="/spa">/spa</a>
-  <a href="/gossip">/gossip</a>
-  <a href="https://gossip.calhegasmorais.pt/">Gossip Worker</a>
-  <a href="https://origin.calhegasmorais.pt/">Origin</a>
-  <a href="https://edge.calhegasmorais.pt/">EDGE</a>
-  <a href="https://calhegasmorais.pt/">Apex</a>
-  <a href="https://status.calhegasmorais.pt/status">Status pulse</a>
-</div>
-</div>
-<footer>spa.total={spa.get("total")} · source={spa.get("source")} · {ver} · LAB only · no STRATA</footer>
-</main></body></html>
+<p>v<code>{ver}</code> · origin=<code>macbook</code> · n={mf.get("n")} · mesh_member={str(mf.get("mesh_member")).lower()} · f_max={mf.get("mesh_provision", {}).get("f_max", 0)}</p>
+<p>Continuity=<code>continuous</code>. Mac workerd hop. Peer roster is JSON (<code>/status</code>), not this page. Byzantine f_max stays 0 until n≥3.</p>
+<ul>
+<li><a href="/health">/health</a> JSON</li>
+<li><a href="/status">/status</a> JSON</li>
+<li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a> JSON</li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+</ul>
+<p><code>spa.total={spa.get("total")}</code> · <code>source={spa.get("source")}</code></p>
+</main>
+</body></html>
 """
 
     def gossip_view(self) -> dict:
@@ -439,7 +437,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "consensus": {
                         "n": mesh_flags()["n"],
                         "f_max": mesh_flags()["mesh_provision"]["f_max"],
-                        "note": "n=2 Fog Mac + EDGE-GROK (session). f_max=0 until n>=3",
+                        "note": "n=2 · f_max=0 until n>=3",
                     },
                     "oracle_vm": False,
                     "uptime_seconds": int(time.time() - self.started_at),
