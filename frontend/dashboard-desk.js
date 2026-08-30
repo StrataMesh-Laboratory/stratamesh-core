@@ -202,9 +202,6 @@
   }
   window.loadSandbox = function () {
     ensureAtelier();
-    if (typeof window.loadSandboxBench === 'function') {
-      try { window.loadSandboxBench(); } catch (_) {}
-    }
   };
 
   /* ——— CLP widget (unshadowed) ——— */

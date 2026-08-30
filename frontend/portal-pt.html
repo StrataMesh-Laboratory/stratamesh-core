@@ -283,7 +283,7 @@ body.in-session .user-info{display:flex!important}
 
   <div class="panel" id="panel-sandbox">
     <h3 id="bancadaPanelTitle">Atelier GNU · Holon 5</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">1ª pessoa é uma modalidade da bancada: o ponto de vista é um NFT Avatar (identidade figural de utilizador ou SCA). Sala com chão, paredes e tecto. WASD andar. Porta para o mundo aberto onde a bancada está endereçada. Criar NFT escolhe o tipo — Avatar ou criação.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.</p>
     <div id="bancadaModeBar" style="display:none">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
       <button type="button" id="btnBancadaFps" onclick="setBancadaMode('fps')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">1ª pessoa · WASD</button>
@@ -4568,9 +4568,6 @@ async function forgotPassword(){
   }
   window.loadSandbox = function () {
     ensureAtelier();
-    if (typeof window.loadSandboxBench === 'function') {
-      try { window.loadSandboxBench(); } catch (_) {}
-    }
   };
 
   /* ——— CLP widget (unshadowed) ——— */
@@ -5315,7 +5312,10 @@ async function forgotPassword(){
   });
 
   function bootUnix() {
-    removeHomepageIframe();
+    /* GNU atelier is the workbench. Do not restack the cream bancada. */
+    window._atelierMode = 'gnu';
+    if (typeof ensureAtelier === 'function') { try { ensureAtelier(); } catch (_) {} }
+    return;
     var tries = 0;
     (function wait() {
       tries++;
@@ -5340,11 +5340,15 @@ async function forgotPassword(){
   }
 
   window.loadSandbox = function () {
-    window._atelierMode = 'unix3d';
-    bootUnix();
+    window._atelierMode = 'gnu';
+    if (typeof ensureAtelier === 'function') { try { ensureAtelier(); } catch (_) {} }
   };
   var _bench = window.loadSandboxBench;
   window.loadSandboxBench = function () {
+    if (document.getElementById('atelierFrame') || window._atelierMode === 'gnu') {
+      if (typeof ensureAtelier === 'function') try { ensureAtelier(); } catch (_) {}
+      return;
+    }
     var r;
     if (typeof _bench === 'function') {
       try { r = _bench.apply(this, arguments); } catch (_) {}

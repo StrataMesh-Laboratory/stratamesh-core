@@ -4382,9 +4382,6 @@ async function forgotPassword(){
   }
   window.loadSandbox = function () {
     ensureAtelier();
-    if (typeof window.loadSandboxBench === 'function') {
-      try { window.loadSandboxBench(); } catch (_) {}
-    }
   };
 
   /* ——— CLP widget (unshadowed) ——— */
@@ -5129,7 +5126,9 @@ async function forgotPassword(){
   });
 
   function bootUnix() {
-    removeHomepageIframe();
+    window._atelierMode = 'gnu';
+    if (typeof ensureAtelier === 'function') { try { ensureAtelier(); } catch (_) {} }
+    return;
     var tries = 0;
     (function wait() {
       tries++;
@@ -5154,11 +5153,15 @@ async function forgotPassword(){
   }
 
   window.loadSandbox = function () {
-    window._atelierMode = 'unix3d';
-    bootUnix();
+    window._atelierMode = 'gnu';
+    if (typeof ensureAtelier === 'function') { try { ensureAtelier(); } catch (_) {} }
   };
   var _bench = window.loadSandboxBench;
   window.loadSandboxBench = function () {
+    if (document.getElementById('atelierFrame') || window._atelierMode === 'gnu') {
+      if (typeof ensureAtelier === 'function') try { ensureAtelier(); } catch (_) {}
+      return;
+    }
     var r;
     if (typeof _bench === 'function') {
       try { r = _bench.apply(this, arguments); } catch (_) {}
