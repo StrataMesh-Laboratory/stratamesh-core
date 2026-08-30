@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Compile desk tools
-        run: python3 -m py_compile ops/bin/desk-tick.py ops/bin/desk-prepare.py ops/bin/desk-execute.py ops/bin/desk-publish.py ops/bin/gitlive-drift.py ops/bin/worker-inventory.py scripts/api-gitlive-publish.py
+        run: python3 -m py_compile ops/bin/desk-tick.py ops/bin/desk-prepare.py ops/bin/desk-execute.py ops/bin/desk-publish.py ops/bin/gitlive-drift.py ops/bin/worker-inventory.py ops/bin/gha-fail-watch.py scripts/api-gitlive-publish.py
       - name: Config JSON
         run: python3 -c "import json,pathlib; json.loads(pathlib.Path('ops/config/health-probes.json').read_text()); json.loads(pathlib.Path('ops/config/worker-allow.json').read_text()); print('ok', len(json.loads(pathlib.Path('ops/config/worker-allow.json').read_text())['scripts']))"
       - name: Metabolism unit tests

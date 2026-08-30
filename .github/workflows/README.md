@@ -15,7 +15,7 @@ Canonical map: [`docs/EDGE-GROK-ACTIONS-PACKAGE.md`](../../docs/EDGE-GROK-ACTION
 | `secrets-guard.yml` | PR leak scan + workers.dev in workflow diffs |
 | `release-lab.yml` | dispatch GitHub prerelease |
 | `mesh-health.yml` | daily → reusable `desk-tick` |
-| `wrangler-action-hold.yml` | no token |
+| `gha-fail-watch.yml` | failed-run log + #52 notify (no re-run) |
 
 Probes: [`ops/config/health-probes.json`](../../ops/config/health-probes.json).  
 Allow-list: [`ops/config/worker-allow.json`](../../ops/config/worker-allow.json).

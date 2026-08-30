@@ -87,7 +87,7 @@ Prepare crons are `5 3,8,11,17,20,22` (five minutes after tick).
 | `release-lab.yml` | dispatch GitHub prerelease (tag only; Discourse still Grok) |
 | `mesh-health.yml` | reusable desk-tick |
 | `wrangler-action-hold.yml` | `--version` only |
-| `.github/actions/upload-desk` | 2-day artifacts |
+| `gha-fail-watch.yml` | failed Actions log + #52 notify; Grok fixes |
 
 ## Grok execute
 

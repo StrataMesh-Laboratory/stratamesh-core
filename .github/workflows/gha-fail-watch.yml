@@ -1,0 +1,55 @@
+# Observe failed Actions runs. Log + #52 notify. Grok fixes. Never re-run from here.
+name: gha-fail-watch
+
+on:
+  workflow_run:
+    workflows:
+      - desk-tick
+      - desk-prepare
+      - desk-publish
+      - dev-labor
+      - gitlive-drift
+      - mesh-health
+      - metabolism
+      - protocol-invariants
+      - process-gossip
+      - worker-inventory
+      - secrets-guard
+      - origin-archive
+      - oracle-free
+      - wrangler-action-hold
+      - release-lab
+      - Contribution and Impact Fund routing
+    types: [completed]
+  schedule:
+    - cron: "20 4,12,18,23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: gha-fail-watch
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DESK_TICK_OUT: ${{ github.workspace }}/artifacts
+      DESK_ISSUE: "52"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Scan failed runs
+        id: watch
+        run: python3 ops/bin/gha-fail-watch.py
+      - name: Upload fail log
+        if: always()
+        uses: ./.github/actions/upload-desk
+        with:
+          name: gha-fail-log
