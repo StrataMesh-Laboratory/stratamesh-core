@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-08-30T19:20:50Z",
-  "phase": "hourly_gitlive_19_eni_destyle",
-  "sha": "b2722711051acdf1633eb267b1c33a00d77272cf",
-  "ship": "eni HTML chrome destyle 1.4.2-destyle LIVE (was IBM Plex / Instrument Serif); GHA fail-watch+protocol-invariants success on b2722711051a; Fog /status envelope LIVE; POST /spa/register total=1; CF PUT stratamesh-eni only; workers.dev 404",
+  "generated_at": "2026-08-30T20:13:00Z",
+  "phase": "hourly_gitlive_20_eni_pay_destyle",
+  "sha": "766b139e0fedafddb21476cfe54ca2ac85500db1",
+  "ship": "eni-pay /pagamentos HTML chrome destyle 1.0.1-destyle LIVE (was IBM Plex / Instrument Serif); GHA fail-watch+protocol-invariants success on 766b139e0fed; Fog /status envelope LIVE; CF PUT stratamesh-eni-pay only; workers.dev subdomain disabled 404",
   "live": [
-    "https://eni.calhegasmorais.pt/health",
-    "https://eni.calhegasmorais.pt/",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/b2722711051acdf1633eb267b1c33a00d77272cf",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33330610956",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33330611885"
+    "https://eni.calhegasmorais.pt/pagamentos/health",
+    "https://eni.calhegasmorais.pt/pagamentos",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/766b139e0fedafddb21476cfe54ca2ac85500db1",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33332982284",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33332983323"
   ],
   "n": 2,
   "mesh_member": true,
