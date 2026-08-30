@@ -3,6 +3,44 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T02:16Z hour
+READ: origin HEAD 06750ebf (Mac :8788 loopback docs) on top of 89f9309e workerd hop. Ledger 01:10 NEXT PICK was restore named tunnel stratamesh-fog-lab. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~99ms origin-orch-chat-1.1.0; POST 200 **146–226ms** source=orch-chat-lab pulse-20260830T021641Z clearance=public n=1 skipped=[tick,llm]; Fog /health 200 workerd-hop layer=tunnel→workerd:8788→fog:8787 mesh_member=false (no version/oracle_live — hop intercepts); Fog /spa 200 total=0 then POST /spa/register → total=1 source=fog_process consensus n=1 f_max=0 agora.settlements.unavailable=n<2; Fog /status 200 version=0.2.3-lab agora.settlements=0 **scalar** consensus absent; HEAD fog/health 200; gossip 2.3.6-ihave count=2 fog+edge live; fund 0.4.7-accept-surface; status 0.4.5-fog-530 spa.source=fog_process fog_health=200 fog_version=null (lie: Fog / is 0.2.3-lab). STEP 1 orch already <400ms — do not re-ship. 7332eff clobbered 01:12 /health enrich + /status envelope + do_HEAD.
+
+SHIPPED (REST Git Data API + CF PUT /content — NOT MCP, NOT paste, NOT workers.dev):
+- workers/stratamesh-status.js **0.4.6-workerd-hop**: Fog /health 200 via workerd hop; also GET Fog / for version. spa.source=fog_process fog_health=200 fog_version=0.2.3-lab. Cache key pulse-046.
+- src/node_persistent.py restore (git-only): GET /health version/mesh_member/oracle_live/substrate; GET /status agora.settlements={unavailable:n<2} + consensus n=1 f_max=0; do_HEAD 200. **Not live** — Fog process still 0.2.3-lab without envelope; workerd still intercepts /health.
+- ops/workerd/worker.js (git-only): /health adds version 0.2.3-lab oracle_live=false substrate=workerd-hop without calling fog (deadlock-safe). **Not live** until STRATAGROK reboots workerd.
+- POST Fog /spa/register → total=1 (registry empty after hop restart).
+- CF PUT workers/scripts/stratamesh-status/content main_module=worker.js bindings preserved. modified 2026-08-30T02:16:17Z etag 201f55b1 deployment_id 0e8e679a.
+- Did **not** re-ship spa/gossip/fund/orch. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT.
+
+LIVE curl:
+- GET https://status.calhegasmorais.pt/health → 200 **73ms** version **0.4.6-workerd-hop**
+- GET https://status.calhegasmorais.pt/status → 200 first **4.01s** then cache **75ms** spa.source=**fog_process** total=1 fog_health=200 fog_version=**0.2.3-lab** note workerd-hop tunnel→workerd:8788→fog:8787 (was unversioned / 0.4.5-fog-530)
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **146ms** source=orch-chat-lab reply nonempty pulse_id=pulse-20260830T021641Z clearance=public n=1 mesh_member=false oracle_live=false skipped=[tick,llm] (do not re-ship)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop **no version** (git worker.js not live until workerd reboot)
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process consensus n=1 f_max=0 agora.settlements.unavailable=n<2
+- GET https://fog.calhegasmorais.pt/status → agora.settlements=0 **scalar** consensus absent (#40 OPEN)
+- HEAD fog/health → 200
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=2 version 2.3.6-ihave endpoints fog+edge both live
+- GET https://fund.calhegasmorais.pt/health → 200 0.4.7-accept-surface (do not re-ship)
+
+SHA: 229142ca69a7dcec7cdfa0f67804743eb5cec7d0
+
+STILL RED:
+- Fog GET /health via workerd hop still lacks version/oracle_live (git ops/workerd/worker.js not loaded until host reboot)
+- Fog GET /status agora.settlements=0 scalar; consensus absent (git node_persistent.py envelope not live). #40 stays OPEN
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Reboot local workerd :8788 on STRATAGROK so Fog /health serves git hop JSON (version 0.2.3-lab oracle_live=false substrate=workerd-hop). Then restart Fog :8787 from git node_persistent.py so /status settlements envelope + consensus go live. Cannot reboot from this sandbox. Do not re-ship status 0.4.6, fund 0.4.7, orch 10.24.5, or spa 1.1.0. Never workers.dev.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T01:10Z hour
 READ: origin HEAD e9aa66b6 (VA 3-step connect). Ledger 00:17 NEXT PICK was Fog /health enrich **or** Fog /status settlements envelope — cannot hot-patch Fog process. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~82ms origin-orch-chat-1.1.0; POST 200 **114–200ms** source=orch-chat-lab pulse-20260830T011047Z clearance=public n=1 skipped=[tick,llm] fog.http=530; Fog /* **530 CF 1033** (tunnel stratamesh-fog-lab status=down conns=0); gossip 2.3.6-ihave count=2 fog degraded+edge live; fund 0.4.7-accept-surface; status 0.4.4-cache-api spa.note still claimed Fog /health 200 (lie). STEP 1 orch already <400ms — do not re-ship. Cannot hot-patch Fog process from this sandbox.
 
