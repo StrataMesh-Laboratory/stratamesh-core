@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.9-n2-probe';
+const VERSION = '2.3.10-edge-listed';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -79,24 +79,27 @@ async function probeFogProcess() {
   return fog;
 }
 
-async function livePeers(env, request) {
-  const peers = [await probeFogProcess()];
+async function probeEdge(env, request) {
   const edgeUrl = edgeGrokUrl(env);
+  const base = {
+    id: EDGE_GROK_ID,
+    role: 'edge',
+    lab: true,
+    endpoint: edgeUrl,
+    health: edgeUrl.replace(/\/$/, '') + '/health',
+    oracle_live: false,
+  };
   // Same /peers handler for public Host and service-binding Request URL.
   // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
   // Inbound request is the liveness proof — not an invented peer.
   if (callerIsEdge(request)) {
-    peers.push({
-      id: EDGE_GROK_ID,
-      role: 'edge',
+    return {
+      ...base,
       status: 'live',
-      lab: true,
       substrate: 'cloudflare-worker',
-      endpoint: edgeUrl,
       health_via: 'inbound_caller',
       note: 'Caller is EDGE-GROK-CMN-001; skipped circular /health fetch.',
-    });
-    return peers;
+    };
   }
   try {
     const ac = new AbortController();
@@ -106,29 +109,40 @@ async function livePeers(env, request) {
       signal: ac.signal,
     });
     clearTimeout(t);
-    if (r.ok) {
-      let data = null;
-      try { data = await r.json(); } catch (_) {}
-      peers.push({
-        id: (data && data.node_id) || EDGE_GROK_ID,
-        role: 'edge',
-        status: 'live',
-        lab: true,
-        n: (data && data.n) != null ? data.n : 2,
-        mesh_member: (data && data.mesh_member) !== false,
-        origin: data && data.origin,
-        runtime: data && data.runtime,
-        substrate: (data && data.origin === 'edge') ? 'workerd-serverless' : ((data && data.substrate) || 'cloudflare-worker'),
-        endpoint: edgeUrl,
-        version: data && data.version,
-        health_http: r.status,
-        health_via: 'edge_health',
-      });
+    let data = null;
+    try { data = await r.json(); } catch (_) {}
+    const peer = {
+      ...base,
+      id: (data && data.node_id) || EDGE_GROK_ID,
+      status: r.ok ? 'live' : 'degraded',
+      lab: true,
+      n: (data && data.n) != null ? data.n : undefined,
+      mesh_member: (data && typeof data.mesh_member === 'boolean') ? data.mesh_member : undefined,
+      origin: data && data.origin,
+      runtime: data && data.runtime,
+      substrate: (data && data.origin === 'edge') ? 'workerd-serverless' : ((data && data.substrate) || 'cloudflare-worker'),
+      version: data && data.version,
+      health_http: r.status,
+      health_via: 'edge_health',
+    };
+    if (!r.ok) {
+      peer.note = 'EDGE /health not 200; listed degraded (#39 keep fog+edge). Never omit. Never invent live.';
     }
+    return peer;
   } catch (_) {
-    // Edge down: do not list as live (anti-stub)
+    return {
+      ...base,
+      status: 'unreachable',
+      substrate: 'cloudflare-worker',
+      health_via: 'edge_health',
+      note: 'EDGE /health fetch failed; listed unreachable (#39). Not invented live.',
+    };
   }
-  return peers;
+}
+
+async function livePeers(env, request) {
+  // #39: always list Fog + EDGE. Degraded/unreachable is honest; omitting EDGE is not.
+  return [await probeFogProcess(), await probeEdge(env, request)];
 }
 
 function j(data, status = 200) {
@@ -158,7 +172,7 @@ footer{margin-top:2rem;color:var(--muted);font-size:.78rem}
 </style></head><body><main class="wrap">
 <p class="kicker">gossip.calhegasmorais.pt</p>
 <h1>Gossip-about-gossip</h1>
-<p>Lab mesh view for <span class="mono">FOG-NODE-PT-CM-001</span> + <span class="mono">EDGE-GROK-CMN-001</span>. Not aBFT. Not mainnet. n=1 · mesh_member=false.</p>
+<p>Lab mesh view for <span class="mono">FOG-NODE-PT-CM-001</span> + <span class="mono">EDGE-GROK-CMN-001</span>. Not aBFT. Not mainnet. oracle_live=false · liveness on /peers.</p>
 <div class="card">
 <p>JSON: <span class="mono">/health</span> · <span class="mono">/peers</span> (60s cache) · <span class="mono">/have</span> (IHAVE digest). Apex <span class="mono">/api/v1/gossip*</span>.</p>
 <div class="links">
@@ -258,7 +272,7 @@ async function cachedPeersPayload(env, request) {
   const edgeCaller = callerIsEdge(request);
   const cache = caches.default;
   const cacheKey = new Request(
-    'https://stratamesh-gossip.cache/peers?edge=' + (edgeCaller ? '1' : '0'),
+    'https://stratamesh-gossip.cache/peers?v=' + VERSION + '&edge=' + (edgeCaller ? '1' : '0'),
     { method: 'GET' },
   );
   const hit = await cache.match(cacheKey);
@@ -275,7 +289,7 @@ async function cachedPeersPayload(env, request) {
     protocol: 'lab_fog_edge_mesh_active',
     lab: true,
     cached_sec: 60,
-    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
+    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 always listed (#39): live when /health 200, else degraded/unreachable — never omitted, never invented live. Local :8788 is same-host hop, not a second Fog peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
     version: VERSION,
     mesh: 'active',
   };
