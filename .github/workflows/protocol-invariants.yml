@@ -27,6 +27,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Origin fallback state machine (30 min, no network)
+        working-directory: src
+        run: python3 test_origin_fallback.py
       - name: Tip-selection property tests
         working-directory: src
         run: python3 test_tip_selection.py

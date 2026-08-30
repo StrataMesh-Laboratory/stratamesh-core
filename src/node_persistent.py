@@ -4,8 +4,8 @@ StrataMesh Persistent Fog Node — Phase 2
 HTTP Fog Node: PersistentDAG, gossip, pins, SPA registry, finality, PoC.
 
 Endpoints:
-  GET  /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution
-  POST /submit /gossip /spa/register
+  GET  /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /origin/lease
+  POST /submit /gossip /spa/register /origin/reclaim
 
 GET /gossip is a lab_single_host_gossip view (self-peer only, mesh_member false).
 GET /tx aliases GET /inv (inventory ids). GET /tx/{id} remains the tx body.
@@ -42,6 +42,7 @@ from resource_meter import sample as resource_sample
 from host_fingerprint import fingerprint as host_fingerprint
 from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
 from mesh_provision import flags as mesh_flags
+from origin_lease import public_view as origin_public_view, verify_reclaim, write as origin_lease_write
 
 
 class PersistentFogNode:
@@ -320,7 +321,7 @@ class PersistentFogNode:
                 "f_max": mesh_flags()["mesh_provision"]["f_max"],
                 "note": "n=2 Fog Mac + EDGE-GROK (session). f_max=0 until n>=3",
             },
-            "agora": {"settlements": {"unavailable": "f_max=0"}},
+            "agora": {"settlements": {"unavailable": "n<2"}},
         })
         return s
 
@@ -489,6 +490,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.end_headers()
+
     def do_GET(self):
         path = urlparse(self.path).path
         accept = (self.headers.get("Accept") or "")
@@ -556,6 +564,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.acbs.summary())
         elif path in ("/workerd", "/workerd/health"):
             self._json(200, NODE.workerd.snapshot() if NODE and NODE.workerd else {"ok": False})
+        elif path in ("/origin/lease", "/origin"):
+            self._json(200, origin_public_view())
         elif path == "/pq":
             self._json(200, NODE.pq.summary())
         else:
@@ -571,6 +581,19 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(403, {"ok": False, "error": "local_only"})
                 return
             self._json(200, NODE.workerd.reboot())
+            return
+
+        if path == "/origin/reclaim":
+            auth = self.headers.get("Authorization") or ""
+            bearer = auth.split(" ", 1)[1].strip() if auth.lower().startswith("bearer ") else ""
+            if not verify_reclaim(bearer):
+                self._json(401, {"ok": False, "error": "reclaim_auth"})
+                return
+            origin_lease_write(
+                reclaim_requested_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                reclaim_role="macbook",
+            )
+            self._json(200, {"ok": True, "reclaim": True, "lease": origin_public_view()})
             return
 
         if path == "/submit":
@@ -810,8 +833,8 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /workerd")
-    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip /workerd/reboot")
+    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /workerd /origin/lease")
+    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip /workerd/reboot /origin/reclaim")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

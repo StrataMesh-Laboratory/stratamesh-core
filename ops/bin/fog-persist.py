@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Keep FOG :8787 + workerd plugin + optional public tunnel.
 
-Session origin is temporary. Public flux is a lease:
+Mac (macbook-server) is primary public origin.
+This session is standby: local fog+workerd stay warm, DNS stays on Mac.
 
-  session.live → --yield-public (DARK) → Mac origin-take.command → macbook.live
-  macbook.live → origin-yield.command (DARK) → --resume-public → session.live
+If Mac is down > FOG_FALLBACK_AFTER (default 1800s / 30 min):
+  start stratamesh-fog-lab connector + CNAME fog → fog-lab.
 
-Never two cloudflared connectors on the same named tunnel.
+If Mac tunnel is healthy again (or POST /origin/reclaim):
+  CNAME fog → macbook-server + drop this connector.
+
+Never two connectors on the same named tunnel.
 This process does not outlive the container. It outlives the chat session.
 """
 from __future__ import annotations
@@ -24,6 +28,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(os.environ.get("FOG_SRC") or "/tmp/sm-core")
 SRC = ROOT / "src"
+sys.path.insert(0, str(SRC))
+import origin_lease as ol  # noqa: E402
+
 DATA = Path(os.environ.get("FOG_DATA") or "/workspace/data/fog")
 SECRETS = Path(os.environ.get("FOG_SECRETS") or "/workspace/data/secrets")
 DB_LIVE = DATA / "fog.db"
@@ -33,12 +40,16 @@ BIN_CF_FALLBACK = Path("/tmp/fog-run/cloudflared")
 TOKEN_FILE = SECRETS / "tunnel_token"
 PIDFILE = DATA / "fog-persist.pid"
 LOG = DATA / "fog-persist.log"
-LEASE = DATA / "origin.lease"
 NODE_ID = os.environ.get("FOG_NODE_ID") or "FOG-NODE-PT-CM-001"
 PORT = int(os.environ.get("FOG_PORT") or "8787")
 HEALTH = f"http://127.0.0.1:{PORT}/health"
+WORKERD_HEALTH = os.environ.get("WORKERD_HEALTH") or "http://127.0.0.1:8788/health"
 PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
 ROLE = os.environ.get("FOG_ORIGIN") or "session"
+CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
+PUBLIC_UA = (
+    "Mozilla/5.0 (compatible; StrataMesh-origin-flux/2; +https://calhegasmorais.pt/)"
+)
 
 
 def log(msg: str) -> None:
@@ -56,30 +67,12 @@ def log(msg: str) -> None:
         pass
 
 
-def now_iso() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
-
 def read_lease() -> dict:
-    d = {"role": ROLE, "public": True, "updated": None, "yielded_at": None, "taken_at": None}
-    try:
-        if LEASE.is_file():
-            d.update(json.loads(LEASE.read_text(encoding="utf-8")))
-    except Exception:
-        pass
-    d["role"] = ROLE
-    return d
+    return ol.read()
 
 
 def write_lease(**kw) -> dict:
-    d = read_lease()
-    d.update(kw)
-    d["role"] = ROLE
-    d["updated"] = now_iso()
-    DATA.mkdir(parents=True, exist_ok=True)
-    LEASE.write_text(json.dumps(d, indent=2) + "\n", encoding="utf-8")
-    LEASE.chmod(0o644)
-    return d
+    return ol.write(**kw)
 
 
 def daemonize() -> None:
@@ -107,6 +100,18 @@ def healthy() -> bool:
             return r.status == 200
     except Exception:
         return False
+
+
+def workerd_healthy() -> bool:
+    try:
+        with urlopen(WORKERD_HEALTH, timeout=2) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def local_ok() -> bool:
+    return healthy() and workerd_healthy()
 
 
 def pids_comm(name: str) -> list[int]:
@@ -159,8 +164,8 @@ def ensure_files() -> None:
             shutil.copy2(DATA / "fog.ok.db", DB_LIVE)
         elif DB_FALLBACK.is_file():
             shutil.copy2(DB_FALLBACK, DB_LIVE)
-    if not LEASE.is_file():
-        write_lease(public=True, taken_at=now_iso())
+    if not ol.lease_path().is_file():
+        write_lease(public=False, dns_target="macbook")
 
 
 def start_node() -> None:
@@ -214,60 +219,246 @@ def stop_tunnel() -> None:
         time.sleep(0.4)
 
 
+def _http_json(url: str, method: str = "GET", headers: dict | None = None, body: bytes | None = None, timeout: float = 8):
+    hdrs = {"User-Agent": PUBLIC_UA, **(headers or {})}
+    req = Request(url, data=body, method=method, headers=hdrs)
+    with urlopen(req, timeout=timeout) as r:
+        raw = r.read().decode("utf-8", "replace")
+        try:
+            data = json.loads(raw) if raw else {}
+        except Exception:
+            data = {"raw": raw[:200]}
+        return r.status, data
+
+
 def public_probe() -> dict:
     try:
-        req = Request(PUBLIC, headers={"User-Agent": "StrataMesh-origin-flux/1"})
-        with urlopen(req, timeout=8) as r:
-            body = r.read().decode("utf-8", "replace")
-            try:
-                data = json.loads(body)
-            except Exception:
-                data = {"raw": body[:200]}
-            return {"ok": r.status == 200, "status": r.status, **data}
+        status, data = _http_json(PUBLIC, timeout=8)
+        return {"ok": status == 200, "status": status, **data}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
 
+def load_god_api() -> tuple[str, str] | None:
+    email = (os.environ.get("CLOUDFLARE_EMAIL") or "amcmorais@icloud.com").strip()
+    tok = (os.environ.get("GOD_API") or os.environ.get("CLOUDFLARE_WRITE_TOKEN") or "").strip()
+    if not tok:
+        for p in (Path("/tmp/god_api"), SECRETS / "god_api"):
+            if p.is_file():
+                tok = p.read_text(encoding="utf-8").strip()
+                break
+    if not tok or tok.startswith("cfut"):
+        return None
+    return email, tok
+
+
+def cf_api(method: str, path: str, payload: dict | None = None) -> dict:
+    creds = load_god_api()
+    if not creds:
+        return {"ok": False, "error": "no_god_api"}
+    email, tok = creds
+    body = None if payload is None else json.dumps(payload).encode()
+    url = "https://api.cloudflare.com/client/v4" + path
+    try:
+        status, data = _http_json(
+            url,
+            method=method,
+            headers={
+                "X-Auth-Email": email,
+                "Authorization": "Bearer " + tok,
+                "Content-Type": "application/json",
+            },
+            body=body,
+            timeout=20,
+        )
+        data["http"] = status
+        data["ok"] = bool(data.get("success")) and status in (200, 201)
+        return data
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def mac_tunnel_status() -> dict:
+    data = cf_api("GET", f"/accounts/{CF_ACCOUNT}/cfd_tunnel/{ol.MAC_TUNNEL}")
+    result = data.get("result") or {}
+    return {
+        "ok": data.get("ok"),
+        "status": result.get("status"),
+        "error": data.get("error") or data.get("errors"),
+    }
+
+
+def fog_dns_record() -> dict:
+    data = cf_api("GET", f"/zones/{ol.ZONE_ID}/dns_records?name={ol.FOG_HOST}")
+    recs = data.get("result") or []
+    rec = recs[0] if recs else {}
+    return {"ok": data.get("ok"), "id": rec.get("id"), "content": rec.get("content"), "error": data.get("error")}
+
+
+def dns_point(target: str) -> dict:
+    want = ol.TUNNEL_CNAME[target]
+    rec = fog_dns_record()
+    if not rec.get("id"):
+        return {"ok": False, "error": "fog_dns_record_missing", **rec}
+    if rec.get("content") == want:
+        return {"ok": True, "already": True, "target": target, "content": want}
+    data = cf_api(
+        "PUT",
+        f"/zones/{ol.ZONE_ID}/dns_records/{rec['id']}",
+        {
+            "type": "CNAME",
+            "name": "fog",
+            "content": want,
+            "proxied": True,
+            "ttl": 1,
+        },
+    )
+    ok = bool(data.get("ok"))
+    log(f"dns fog → {target} {'ok' if ok else 'HOLD'} content={want}")
+    return {"ok": ok, "target": target, "content": want, "cf": {"http": data.get("http"), "errors": data.get("errors")}}
+
+
+def mac_alive(probe: dict, tun: dict) -> bool:
+    if probe.get("ok") and probe.get("origin") == "macbook":
+        return True
+    if tun.get("ok") and tun.get("status") == "healthy":
+        return True
+    return False
+
+
 def yield_public() -> dict:
-    d = write_lease(public=False, yielded_at=now_iso())
+    dns = dns_point("macbook")
     stop_tunnel()
-    log("yield-public: tunnel dropped, local fog+workerd stay")
-    return {"ok": True, "lease": d, "public": public_probe()}
+    d = write_lease(
+        public=False,
+        fallback=False,
+        fallback_at=None,
+        dns_target="macbook",
+        yielded_at=ol.now_iso(),
+        reclaim_requested_at=None,
+    )
+    log("yield-public: DNS macbook-server, fog-lab connector down")
+    return {"ok": True, "lease": ol.public_view(d), "dns": dns, "public": public_probe()}
 
 
 def resume_public() -> dict:
-    d = write_lease(public=True, taken_at=now_iso(), yielded_at=None)
+    if not local_ok():
+        start_node()
+        time.sleep(1)
     start_tunnel()
-    log("resume-public: tunnel requested")
-    return {"ok": True, "lease": d}
+    dns = dns_point("session")
+    d = write_lease(
+        public=True,
+        fallback=True,
+        fallback_at=ol.now_iso(),
+        dns_target="session",
+        taken_at=ol.now_iso(),
+        yielded_at=None,
+    )
+    log("resume-public: DNS fog-lab + session connector")
+    return {"ok": bool(dns.get("ok")), "lease": ol.public_view(d), "dns": dns}
 
 
 def flux_status() -> dict:
     lease = read_lease()
+    probe = public_probe()
+    tun = mac_tunnel_status()
+    dns = fog_dns_record()
+    alive = mac_alive(probe, tun)
+    action = ol.decide(
+        lease,
+        mac_alive=alive,
+        local_ok=local_ok(),
+        now=time.time(),
+        role_name=ROLE,
+        after_sec=ol.fallback_after_sec(),
+    )
+    remaining = None
+    t0 = ol.parse_iso(lease.get("mac_down_since"))
+    if t0 and not alive:
+        remaining = max(0, int(ol.fallback_after_sec() - (time.time() - t0)))
     return {
         "ok": True,
         "role": ROLE,
-        "lease": lease,
+        "action": action,
+        "mac_alive": alive,
+        "fallback_remaining_sec": remaining,
+        "lease": ol.public_view(lease),
         "local_fog": healthy(),
+        "local_workerd": workerd_healthy(),
         "tunnel_pids": pids_comm("cloudflared"),
-        "public": public_probe(),
+        "public": probe,
+        "mac_tunnel": tun,
+        "dns": dns,
     }
+
+
+def apply_action(action: str) -> None:
+    if action == "mark_down":
+        write_lease(mac_down_since=ol.now_iso())
+        log("mac down clock started (30 min to session fallback)")
+    elif action == "clear_down":
+        write_lease(mac_down_since=None, mac_last_ok=ol.now_iso(), fallback=False)
+    elif action in ("yield_to_mac", "honor_reclaim"):
+        yield_public()
+    elif action == "take":
+        log("fallback TAKE: Mac down ≥ 30 min")
+        write_lease(fallback_reason="mac_down_30m")
+        resume_public()
+    elif action == "hold_unhealthy":
+        log("fallback HOLD: local fog/workerd not ready")
+    elif action == "wait":
+        pass
+
+
+def tick() -> str:
+    if not healthy():
+        start_node()
+        time.sleep(1)
+    lease = read_lease()
+    probe = public_probe()
+    tun = mac_tunnel_status()
+    alive = mac_alive(probe, tun)
+    # CF API miss: do not treat as Mac down.
+    if not tun.get("ok") and not (probe.get("ok") and probe.get("origin") == "macbook"):
+        if not lease.get("public"):
+            apply_action("stay")
+            if lease.get("public", False):
+                start_tunnel()
+            else:
+                if pids_comm("cloudflared"):
+                    stop_tunnel()
+            return "uncertain"
+    action = ol.decide(
+        lease,
+        mac_alive=alive,
+        local_ok=local_ok(),
+        now=time.time(),
+        role_name=ROLE,
+        after_sec=ol.fallback_after_sec(),
+    )
+    apply_action(action)
+    lease = read_lease()
+    if lease.get("public"):
+        start_tunnel()
+    else:
+        if pids_comm("cloudflared"):
+            stop_tunnel()
+    return action
 
 
 def loop() -> None:
     ensure_files()
-    log(f"watchdog up pid={os.getpid()} pgid={os.getpgid(0)} port={PORT} origin={ROLE}")
+    log(
+        f"watchdog up pid={os.getpid()} pgid={os.getpgid(0)} port={PORT} "
+        f"origin={ROLE} fallback_after={ol.fallback_after_sec()}s"
+    )
     n = 0
     while True:
-        if not healthy():
-            start_node()
-            time.sleep(1)
-        lease = read_lease()
-        if lease.get("public", True):
-            start_tunnel()
-        else:
-            if pids_comm("cloudflared"):
-                stop_tunnel()
+        try:
+            tick()
+        except Exception as e:
+            log("tick fail: " + str(e))
         n += 1
         if n % 4 == 0:
             snapshot_db()
@@ -281,7 +472,7 @@ def main() -> int:
     if "--yield-public" in sys.argv:
         print(json.dumps(yield_public(), indent=2))
         return 0
-    if "--resume-public" in sys.argv:
+    if "--resume-public" in sys.argv or "--fallback-now" in sys.argv:
         print(json.dumps(resume_public(), indent=2))
         return 0
     if "--stop" in sys.argv:

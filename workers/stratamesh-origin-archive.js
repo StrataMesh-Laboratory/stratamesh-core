@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.3-mac-live";
+var VERSION = "0.1.4-fallback-30m";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -155,9 +155,10 @@ function publicLanding() {
        <div class="row"><span class="mono">Fog hop</span><span class="mono">tunnel → this host’s :8788 → this host’s :8787</span></div>
        <div class="row"><span class="mono">Public origin</span><span class="mono" id="fog-origin">probing…</span></div>
        <div class="row"><span class="mono">mac_live</span><span class="mono" id="fog-mac-live">…</span></div>
+       <div class="row"><span class="mono">Session fallback</span><span class="mono">DNS take if Mac DARK > 30 min</span></div>
        <div class="row"><span class="mono">mesh_member</span><span class="mono">false until second host_id</span></div>
-       <div class="row"><span class="mono">Roles</span><span class="mono">session (temp) · macbook (node)</span></div>
-       <div class="row"><span class="mono">Rule</span><span class="mono">one named-tunnel connector · never both :8788s</span></div>
+       <div class="row"><span class="mono">Roles</span><span class="mono">macbook (primary) · session (standby)</span></div>
+       <div class="row"><span class="mono">Rule</span><span class="mono">one DNS target · macbook-server stays Mac-only</span></div>
        <div class="row"><span class="mono">Git flux</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/tree/main/deploy/mac-fog">deploy/mac-fog</a></div>
      </div>
      <div class="card">
@@ -263,8 +264,9 @@ var stratamesh_origin_archive_default = {
         public_landing: true,
         sixth_cron: false,
         fog_probe: "https://fog.calhegasmorais.pt/health",
-        fog_origin_roles: ["session", "macbook"],
+        fog_origin_roles: ["macbook", "session"],
         one_connector: true,
+        session_fallback_after_sec: 1800,
         mac_live: true,
         mesh_member: false
       });

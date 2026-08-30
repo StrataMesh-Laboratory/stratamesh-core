@@ -1,3 +1,10 @@
+## 2026-08-30 — session origin fallback 30m
+- Mac (`macbook-server`) stays primary public Fog. This Grok session is **standby**.
+- If Mac is down **> 30 min**, `fog-persist` starts `stratamesh-fog-lab` and PATCHes CNAME `fog.calhegasmorais.pt` to that tunnel. Mac back → DNS flips back.
+- Fast reclaim: Mac `origin-take.command` `POST /origin/reclaim` (HMAC of local tunnel token, not in git).
+- GHA `origin-fallback` every 10 min observes only (`$0`). Does not flip DNS.
+- Notes: [ORIGIN-FLUX.md](./ORIGIN-FLUX.md)
+
 ## 2026-08-30 — v0.2.3-dev
 - Prerelease vs v0.2.3-lab. **n=2** Fog Mac (continuous) + EDGE-GROK (session). `mesh_member=true`. `f_max=0`. `oracle_live=false`.
 - Notes: [RELEASE-v0.2.3-dev.md](./RELEASE-v0.2.3-dev.md)

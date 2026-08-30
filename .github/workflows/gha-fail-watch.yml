@@ -16,6 +16,7 @@ on:
       - worker-inventory
       - secrets-guard
       - origin-archive
+      - origin-fallback
       - oracle-free
       - wrangler-action-hold
       - release-lab
