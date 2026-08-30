@@ -259,6 +259,7 @@ var stratamesh_origin_archive_default = {
         ok: true,
         service: "stratamesh-origin-archive",
         version: VERSION,
+        core_prerelease: "v0.4.2-lab",
         staff_gated: true,
         public_landing: true,
         sixth_cron: false,

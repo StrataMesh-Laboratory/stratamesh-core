@@ -2319,7 +2319,9 @@ window.showPanel = function(name, btn){
     B.scene.fog = new THREE.Fog(0xc9a06a, 16, 32);
     B.scene.background = new THREE.Color(0xf4e4c1);
     B.camera = new THREE.PerspectiveCamera(68, w/h, 0.08, 40);
+    B.camera.up.set(0, 1, 0);
     B.camera.position.set(0, 1.72, 3.15);
+    B.camera.rotation.order = 'YXZ';
     B.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
     B.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     B.renderer.setSize(w, h, false);
@@ -3873,8 +3875,14 @@ window.loadACBPanel=async function(){
     if (b){
       b.px = b.px || 0; b.py = EYE; b.pz = (typeof b.pz==='number'? b.pz : 5.4);
       if (b.camera){
-        b.yaw = b.yaw || 0;
-        b.pitch = b.pitch || 0;
+        b.camera.updateMatrixWorld(true);
+        var dir = new THREE.Vector3();
+        b.camera.getWorldDirection(dir);
+        b.yaw = Math.atan2(-dir.x, -dir.z);
+        b.pitch = Math.asin(Math.max(-0.99, Math.min(0.99, dir.y)));
+        b.camera.up.set(0, 1, 0);
+        b.camera.rotation.set(b.pitch, b.yaw, 0, 'YXZ');
+        b.camera.updateMatrixWorld(true);
       }
     }
     var canvas = document.getElementById('bancadaCanvas');
@@ -3987,6 +3995,20 @@ window.loadACBPanel=async function(){
     var yaw = b.yaw || 0;
     var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     var rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    if (window._bancadaMode==='fps'){
+      b.py = EYE;
+      b.camera.up.set(0, 1, 0);
+      b.camera.position.set(b.px||0, b.py, b.pz||0);
+      b.camera.rotation.set(b.pitch || 0, yaw, 0, 'YXZ');
+      b.camera.updateMatrixWorld(true);
+      var look = new THREE.Vector3();
+      b.camera.getWorldDirection(look);
+      look.y = 0;
+      if (look.lengthSq() < 1e-6) look.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+      else look.normalize();
+      fx = look.x; fz = look.z;
+      rx = -fz; rz = fx;
+    }
     if (keys['KeyW']||keys['ArrowUp']) { b.px += fx*speed; b.pz += fz*speed; }
     if (keys['KeyS']||keys['ArrowDown']) { b.px -= fx*speed; b.pz -= fz*speed; }
     if (keys['KeyA']||keys['ArrowLeft']) { b.px -= rx*speed; b.pz -= rz*speed; }
@@ -4030,14 +4052,15 @@ window.loadACBPanel=async function(){
     }
     if (window._bancadaMode==='fps'){
       b.camera.position.set(b.px, b.py, b.pz);
-      b.camera.rotation.order = 'YXZ';
-      b.camera.rotation.y = yaw;
-      b.camera.rotation.x = b.pitch || 0;
+      b.camera.up.set(0, 1, 0);
+      b.camera.rotation.set(b.pitch || 0, b.yaw || 0, 0, 'YXZ');
     }
     window.__controlsTest = {
       getYaw: function(){ return b.yaw||0; },
       getSpeed: function(){ return keys['KeyW'] ? 1 : 0; },
-      setKeys: function(codes){ keys = {}; (codes||[]).forEach(function(c){ keys[c]=true; }); }
+      getPosition: function(){ return {x:b.px||0, z:b.pz||0}; },
+      setKeys: function(codes){ keys = {}; (codes||[]).forEach(function(c){ keys[c]=true; }); },
+      setYaw: function(v){ b.yaw = v; if(b.camera){ b.camera.up.set(0,1,0); b.camera.rotation.set(b.pitch||0, v, 0, 'YXZ'); b.camera.updateMatrixWorld(true); } }
     };
   })();
 
