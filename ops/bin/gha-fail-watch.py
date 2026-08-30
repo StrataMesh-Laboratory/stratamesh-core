@@ -114,25 +114,29 @@ def list_failures() -> list[dict]:
 
 
 def mentioned_ids() -> set[int]:
-    comments = api(f"/issues/{ISSUE}/comments?per_page=50")
     ids: set[int] = set()
-    if not isinstance(comments, list):
-        return ids
-    for c in comments:
-        body = c.get("body") or ""
-        if MARKER not in body and "actions/runs/" not in body:
-            continue
-        for part in body.replace(")", " ").replace("]", " ").split():
-            if "actions/runs/" in part:
-                try:
-                    ids.add(int(part.rstrip("/").split("actions/runs/")[-1].split("/")[0]))
-                except Exception:
-                    pass
-            if part.startswith("run_id:"):
-                try:
-                    ids.add(int(part.split(":", 1)[1]))
-                except Exception:
-                    pass
+    # listComments is oldest-first. #52 has 90+ comments — page through.
+    for page in range(1, 6):
+        comments = api(f"/issues/{ISSUE}/comments?per_page=100&page={page}")
+        if not isinstance(comments, list) or not comments:
+            break
+        for c in comments:
+            body = c.get("body") or ""
+            if MARKER not in body and "actions/runs/" not in body:
+                continue
+            for part in body.replace(")", " ").replace("]", " ").split():
+                if "actions/runs/" in part:
+                    try:
+                        ids.add(int(part.rstrip("/").split("actions/runs/")[-1].split("/")[0]))
+                    except Exception:
+                        pass
+                if part.startswith("run_id:"):
+                    try:
+                        ids.add(int(part.split(":", 1)[1]))
+                    except Exception:
+                        pass
+        if len(comments) < 100:
+            break
     return ids
 
 
@@ -148,7 +152,8 @@ def markdown(rows: list[dict], new: list[dict]) -> str:
     for r in rows:
         flag = " **NEW**" if r in new or r["id"] in {x["id"] for x in new} else ""
         lines.append(
-            f"| {r['created_at'][:16]} | {r['name']}{flag} | {r['conclusion']} | `{r['head_sha']}` | {r['event']} | [run]({r['html_url']}) |"
+            f"| {r['created_at'][:16]} | {r['name']}{flag} | {r['conclusion']} | `{r['head_sha']}` | {r['event']}"
+            f" | [run]({r['html_url']}) |"
         )
     if not rows:
         lines.append("| — | none | — | — | — | — |")

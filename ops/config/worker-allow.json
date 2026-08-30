@@ -1,5 +1,5 @@
 {
-  "note": "Grok desk-execute allow-list + gitlive-drift MAP. script_id \u2192 git path.",
+  "note": "Grok desk-execute allow-list + gitlive-drift MAP. script_id → git path. Never include csm-* (operator-private, not StrataMesh).",
   "hold_put": [
     "stratamesh-spa"
   ],
@@ -17,6 +17,7 @@
     "stratamesh-depin": "workers/stratamesh-depin.js",
     "stratamesh-holons": "workers/stratamesh-holons.js",
     "stratamesh-sandbox": "workers/stratamesh-sandbox.js",
+    "stratamesh-sandbox-host": "workers/stratamesh-sandbox-host.js",
     "stratamesh-acb": "workers/stratamesh-acb.js",
     "stratamesh-edge-api": "workers/stratamesh-edge-api.js",
     "stratamesh-fog-api": "workers/stratamesh-fog-api.js",
@@ -25,7 +26,9 @@
     "stratamesh-node-public": "workers/stratamesh-node-public.js",
     "stratamesh-edge-grok": "workers/stratamesh-edge-grok.js",
     "stratamesh-auth": "workers/stratamesh-auth.js",
-    "stratamesh-agora": "workers/stratamesh-agora.js"
+    "stratamesh-agora": "workers/stratamesh-agora.js",
+    "stratamesh-eni": "workers/stratamesh-eni.js",
+    "stratamesh-eni-pay": "workers/stratamesh-eni-pay.js"
   },
   "packages": {
     "acb-debugger": "workers/packages/acb-debugger.js",

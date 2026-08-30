@@ -7,6 +7,8 @@ on:
       - "src/academy/**"
       - "src/test_academy.py"
       - "workers/stratamesh-academy.js"
+      - "workers/packages/acb-debugger.js"
+      - "shared/cognition-lobes.js"
       - ".github/workflows/academy-invariants.yml"
   pull_request:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - "src/academy/**"
       - "src/test_academy.py"
       - "workers/stratamesh-academy.js"
+      - "workers/packages/acb-debugger.js"
+      - "shared/cognition-lobes.js"
       - ".github/workflows/academy-invariants.yml"
   workflow_dispatch:
 

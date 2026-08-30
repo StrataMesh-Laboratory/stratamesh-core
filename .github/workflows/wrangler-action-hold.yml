@@ -1,6 +1,6 @@
 # GitHub Actions are ON and core (public Linux net $0).
 # THIS file is only a wrangler *deploy* HOLD: workflow_dispatch, no token, --version.
-# Do not wrangler deploy from GHA while cf-worker-req is Q-gated (Error 1027).
+# Do not wrangler deploy from GHA. Live ships are CF REST PUT + custom domain only.
 # CI (protocol-invariants, metabolism, origin-archive, mesh-health) stays active.
 name: wrangler-action-hold
 
@@ -14,10 +14,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: STASIS notice
+      - name: HOLD notice
         run: |
-          echo "CF STASIS until 2026-08-29T00:00:00Z then Q-gated."
-          echo "workflow_dispatch only. No push trigger. No live Worker deploy."
+          echo "HOLD: no wrangler deploy from GitHub Actions."
+          echo "workflow_dispatch only. No push trigger. No workers.dev. No live Worker deploy."
+          echo "Ship path: Git Data API + CF PUT /content on calhegasmorais.pt."
       - name: wrangler --version (HOLD, not deploy)
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:

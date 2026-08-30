@@ -31,6 +31,8 @@ jobs:
       CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Self-test allow-list
+        run: python3 ops/bin/gitlive-drift.py --self-test
       - name: Compare live /content to git
         id: drift
         run: python3 ops/bin/gitlive-drift.py
@@ -41,10 +43,16 @@ jobs:
         with:
           script: |
             const marker = '<!-- stratamesh-gitlive-drift -->';
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 20,
-            });
-            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+            // Default listComments is oldest-first; page through so a 90-comment #52 still sees the last marker.
+            const all = [];
+            for (let page = 1; page <= 5; page++) {
+              const { data } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 100, page,
+              });
+              all.push(...data);
+              if (!data.length || data.length < 100) break;
+            }
+            const last = [...all].reverse().find(c => c.body && c.body.includes(marker));
             if (last && (Date.now() - new Date(last.created_at).getTime()) < 5 * 3600 * 1000) {
               core.info('skip duplicate drift comment');
               return;
