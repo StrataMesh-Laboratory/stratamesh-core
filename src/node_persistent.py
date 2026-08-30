@@ -418,6 +418,12 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
+            agora_book = self.agora.book()
+            if not isinstance(agora_book, dict):
+                agora_book = {}
+            agora_out = dict(agora_book)
+            # n=1: do not report a seed scalar as live settlements
+            agora_out["settlements"] = {"unavailable": "n<2"}
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
@@ -438,7 +444,12 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
                     "service_credit": self.svc.summary(),
-                    "agora": self.agora.book(),
+                    "agora": agora_out,
+                    "consensus": {
+                        "n": 1,
+                        "f_max": 0,
+                        "note": "lab n=1; Byzantine f_max=0 until n>=3",
+                    },
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
@@ -479,6 +490,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def do_HEAD(self):
+        path = urlparse(self.path).path
+        if path in (
+            "/", "/status", "/v1/status", "/health", "/api/v1/health",
+            "/spa", "/gossip", "/inv", "/resources", "/tx",
+        ):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def do_GET(self):
         path = urlparse(self.path).path
         accept = (self.headers.get("Accept") or "")
@@ -488,7 +513,16 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {"ok": True})
+            self._json(200, {
+                "ok": True,
+                "version": "0.2.3-lab",
+                "node_id": NODE.node_id,
+                "lab": True,
+                "n": 1,
+                "mesh_member": False,
+                "oracle_live": False,
+                "substrate": "local-process",
+            })
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":

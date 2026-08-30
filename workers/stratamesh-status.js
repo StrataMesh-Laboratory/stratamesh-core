@@ -623,7 +623,7 @@ async function svcJson(env, bindingName, path, timeoutMs = 2500) {
 async function fetchJsonPublic(url, timeoutMs = 2500) {
   try {
     const work = (async () => {
-      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4' } });
+      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.5' } });
       const json = await r.json().catch(() => null);
       return { ok: r.ok, status: r.status, json };
     })();
@@ -684,7 +684,7 @@ async function writePulseCache(env, live) {
   return;
 }
 
-const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse';
+const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-045';
 const EDGE_PULSE_MS = 30000;
 
 async function readEdgeCache() {
@@ -719,7 +719,7 @@ async function buildLiveStatus(env, opts) {
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
   const monetaryMs = (opts && opts.monetaryMs) || 2500;
-  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip] = await Promise.all([
+  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
     svcJson(env, 'POC', '/health', 4000),
     svcJson(env, 'POC', '/pool', 5000),
@@ -737,11 +737,19 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'HOLONS', '/health', 2500),
     svcJson(env, 'HOLONS', '/so', 2500),
     fetchJsonPublic('https://calhegasmorais.pt/api/v1/gossip/peers', 2500),
+    fetchJsonPublic('https://fog.calhegasmorais.pt/health', 800),
   ]);
 
   const mon = tokenSnap.json;
   const pool = (pocPool.json && pocPool.ok) ? pocPool.json : null;
   const pocOk = !!(pocHealth.ok || pocPool.ok);
+  const fogJson = fogH && fogH.json;
+  const fogCode = (fogH && fogH.status) || 0;
+  const fogOk = !!(fogH && fogH.ok && fogJson && (fogJson.ok === true || fogJson.status === 'ok' || fogJson.node_id));
+  const spaSource = fogOk ? 'fog_process' : 'fog_tunnel_down';
+  const spaNote = fogOk
+    ? ('Lab n=1. Fog local-process /health ' + fogCode + ' version=' + ((fogJson && fogJson.version) || 'unversioned') + '. Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA. Do not fake n.')
+    : ('Lab n=1. Fog /health ' + (fogCode || 'down') + ' (CF 1033; tunnel stratamesh-fog-lab down, 0 connectors). spa.source=fog_tunnel_down. mesh_member=false oracle_live=false. Cannot hot-patch Fog from this Worker. Do not fake n.');
 
   let kv = null;
   if (env.STATUS_KV) {
@@ -757,7 +765,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.4-cache-api',
+    version: '0.4.5-fog-530',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -798,6 +806,7 @@ async function buildLiveStatus(env, opts) {
       auth: authH.ok,
       ipfs: ipfsH.ok,
       holons: holonsH.ok,
+      fog: fogOk,
     },
     ipfs: ipfsH.json && ipfsH.ok ? { version: ipfsH.json.version, status: ipfsH.json.status || 'ok' } : null,
     holons: holonsH.json && holonsH.ok ? { version: holonsH.json.version, servico: holonsH.json.servico || holonsH.json.service } : null,
@@ -821,14 +830,16 @@ async function buildLiveStatus(env, opts) {
       measured: true,
     },
     spa: {
-      source: 'fog_process',
-      active: 1,
-      total: 1,
-      by_role: { fog: 1, edge: 0, other: 0 },
+      source: spaSource,
+      active: fogOk ? 1 : 0,
+      total: fogOk ? 1 : 0,
+      by_role: fogOk ? { fog: 1, edge: 0, other: 0 } : { fog: 0, edge: 0, other: 0 },
       mesh_member: false,
       oracle_live: false,
       holons_ok: !!holonsH.ok,
-      note: 'Lab n=1. Fog is Grok-managed local-process 0.2.3-lab-temp (Fog /health 200). Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA.',
+      fog_health: fogCode || null,
+      fog_version: (fogJson && fogJson.version) || null,
+      note: spaNote,
     },
     republic: repH.json && repH.ok ? {
       version: repH.json.version,
@@ -966,7 +977,7 @@ export default {
         honesty: {
           spa_source: live.spa && live.spa.source,
           dag_measured: !!(live.dag && live.dag.measured),
-          note: 'Lab inventory. spa.source=fog_process; settlements unavailable n<2; consensus n=1 f_max=0.',
+          note: 'Lab inventory. spa.source=' + ((live.spa && live.spa.source) || 'unknown') + '; settlements unavailable n<2; consensus n=1 f_max=0.',
         },
       };
       return new Response(JSON.stringify(inv, null, 2), {
@@ -978,7 +989,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.4-cache-api',
+        version: '0.4.5-fog-530',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
