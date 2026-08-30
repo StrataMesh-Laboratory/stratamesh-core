@@ -1526,7 +1526,7 @@ code { color:var(--fg); }
 <li><a href="/status">/status</a> JSON</li>
 <li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
 <li><a href="https://gossip.calhegasmorais.pt/health">Gossip /health</a></li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
 </ul>
 </main>
 </body></html>`;

@@ -48,7 +48,7 @@ def payload() -> dict:
         "substrate": "grok-session-local",
         "continuity": "session",
         "lab": True,
-        "version": "0.2.3-dev",
+        "version": "0.3.0",
         "linked_fog": FOG_ID,
         "host_id": fp["host_id"],
         "host_id_source": fp["source"],
@@ -118,7 +118,7 @@ code {{ color:var(--fg); }}
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
 </ul>
 </main>
 </body></html>

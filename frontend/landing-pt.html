@@ -168,15 +168,16 @@ details.faq p{margin:.55rem 0 0}
 <nav class="toc" aria-label="Secções"><a href="#mapa"><span class="toc-n">00</span><span class="toc-t">Mapa</span></a><a href="#rede"><span class="toc-n">01</span><span class="toc-t">Rede</span></a><a href="#valor"><span class="toc-n">02</span><span class="toc-t">Valor</span></a><a href="#no"><span class="toc-n">03</span><span class="toc-t">Nó</span></a><a href="#quem"><span class="toc-n">04</span><span class="toc-t">Quem</span></a><a href="#arquitectura"><span class="toc-n">05</span><span class="toc-t">Arquitectura</span></a><a href="#estado"><span class="toc-n">06</span><span class="toc-t">Estado</span></a><a href="#entrar"><span class="toc-n">07</span><span class="toc-t">Entrar</span></a></nav>
 <main class="wrap" id="conteudo">
   <header>
-    <p class="kicker">Laboratório v0.2.3-dev · Lisboa, Portugal · n=2</p>
+    <p class="kicker">Laboratório v0.3.0 · kit Fog Node · Lisboa · n=2</p>
     <h1>Calhegas Morais</h1>
     <p class="lead">Porta de entrada pública do <strong>Nó de Névoa Calhegas Morais</strong> — nó de referência da <strong>StrataMesh</strong>, uma rede de <a class="g" href="#glossario-trd">registo distribuído</a> orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.</p>
     <div class="plain">
       <p class="pk">Em linguagem simples</p>
-      <ol><li>A StrataMesh é uma TRD em <strong>laboratório</strong>. Dois anfitriões: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, contínuo) e EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, sessão): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>Este sítio é a porta pública desse par — não uma malha povoada nem Bizantina. Gossip lista Fog + EDGE em domínios próprios; o P0 continua aberto até n≥3.</li><li>Pode ler o projecto, ver se Fog / gossip / EDGE estão no ar e, se quiser, abrir o portal. Não é preciso pagar para começar.</li></ol>
+      <ol><li>A StrataMesh é uma TRD em <strong>laboratório</strong>. Dois anfitriões: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, contínuo) e EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, sessão): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>Este sítio é a porta pública desse par — não uma malha povoada nem Bizantina. Gossip lista Fog + EDGE em domínios próprios; o P0 continua aberto até n≥3.</li><li>v0.3.0 publica um <strong>kit Fog Node</strong>: outros operadores instanciam o mesmo SO partilhado no seu hardware. Identidade: node id + 2FA; segredos ficam na máquina.</li><li>Pode ler o projecto, ver se Fog / gossip / EDGE estão no ar e, se quiser, abrir o portal. Não é preciso pagar para começar.</li></ol>
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Entrar</a>
+      <a class="btn ghost" href="#kit">Kit Fog Node</a>
       <a class="btn ghost" href="/dashboard">Identidade</a>
       <a class="btn ghost" href="/roadmap">Mapa-mestre</a>
       <a class="btn ghost" href="/chat">Chat do Orquestrador</a>
@@ -191,7 +192,7 @@ details.faq p{margin:.55rem 0 0}
     <p class="sec-num">00 · Orientação</p>
     <h2>Como está organizada esta página</h2>
     <p>Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa é um tema separado — clique para saltar.</p>
-    <div class="map-grid" role="navigation"><a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é a StrataMesh e para que serve</span></a><a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>STRATA, contributo e a Ágora</span></a><a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que o Calhegas Morais faz na rede</span></a><a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Pessoas e agentes computacionais</span></a><a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Camadas holónicas, mundo aberto e CLP</span></a><a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>Laboratório e como aceder ao portal</span></a></div>
+    <div class="map-grid" role="navigation"><a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é a StrataMesh e para que serve</span></a><a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>STRATA, contributo e a Ágora</span></a><a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que o Calhegas Morais faz na rede</span></a><a class="map-card" href="#kit"><span class="map-num">kit</span><strong>Kit Fog Node</strong><span>Instancie o SO partilhado no seu hardware</span></a><a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Pessoas e agentes computacionais</span></a><a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Camadas holónicas, mundo aberto e CLP</span></a><a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>Laboratório e como aceder ao portal</span></a></div>
   </section>
 
   <section class="section" id="rede">
@@ -274,10 +275,25 @@ details.faq p{margin:.55rem 0 0}
     <p><a href="/clp">Tempo CLP →</a></p>
   </section>
 
+
+  <section class="section" id="kit">
+    <p class="sec-num">kit · StrataMesh LAB</p>
+    <h2>Kit Fog Node — instancie o SO partilhado</h2>
+    <p>O corte <strong>v0.3.0</strong> trata o Fog Node como produto que outros operadores podem correr. Este nó Calhegas Morais continua a ser a <strong>referência</strong>. O seu Fog é uma instanciação do mesmo SO de metaverso Web3. Recursos que contribuir viajam PdC → STRATA (<span class="mono">#mint</span> / <span class="mono">#0</span>). Política de laboratório — não é oferta pública, não é mainnet.</p>
+    <div class="grid two">
+      <div class="card"><h3>Assistente</h3><p><span class="mono">node_id</span> registado → 2FA no e-mail do operador → chaves GitHub / Cloudflare opcionais, gravadas <span class="mono">0600</span> na máquina. Nada é enviado, nada entra no git.</p></div>
+      <div class="card"><h3>Honestidade</h3><p>Um nó novo começa <span class="mono">n=1</span>, <span class="mono">mesh_member=false</span>, <span class="mono">f_max=0</span>. Este par de referência permanece n=2 até um terceiro anfitrião distinto. <span class="mono">oracle_live=false</span>.</p></div>
+    </div>
+    <pre class="stack">git clone https://github.com/StrataMesh-Laboratory/stratamesh-core.git
+cd stratamesh-core
+python3 deploy/mac-fog/fog-bootstrap.py</pre>
+    <p class="note">Peça primeiro um id <span class="mono">FOG-NODE-…</span> no <a href="https://stratamesh.discourse.group">Discourse</a>. Notas: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/deploy/fog-node/README.md">deploy/fog-node</a> · tag <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">v0.3.0</a>. Lema: <em>Intelligentia · Vigilantia · Veritas</em>.</p>
+  </section>
+
   <section class="section" id="estado">
     <p class="sec-num">06 · Laboratório</p>
     <h2>Estado actual do projecto</h2>
-    <p>Corte <strong>v0.2.3-dev</strong> (prerelease). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
+    <p>Corte <strong>v0.3.0</strong> (prerelease de laboratório, kit Fog Node). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
     <div class="live" id="livePills"><span class="pill">a verificar serviços…</span></div>
     <p class="live-meta" id="liveMeta"></p>
     <p class="note">Aviso MiCA (UE): não há oferta pública de criptoactivo neste domínio. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio.</p>
@@ -302,7 +318,7 @@ details.faq p{margin:.55rem 0 0}
       <a class="btn ghost" href="https://gossip.calhegasmorais.pt/">Gossip</a>
       <a class="btn ghost" href="https://edge.calhegasmorais.pt/">EDGE</a>
       <a class="btn ghost" href="https://stratamesh.discourse.group/t/20">Fórum t/20</a>
-      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">v0.2.3-dev</a>
+      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">v0.3.0</a>
     </div>
   </section>
 
@@ -315,11 +331,11 @@ details.faq p{margin:.55rem 0 0}
   <section class="section" id="faq">
     <p class="sec-num">FAQ</p>
     <h2>Perguntas frequentes</h2>
-    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. Corre o corte de laboratório <strong>v0.2.3-dev</strong> em Fog Mac + EDGE-GROK (n=2, mesh_member=true, f_max=0). Mecanismos de protocolo estão em ensaio. Não é malha Bizantina nem mainnet.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
+    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. Corre o corte de laboratório <strong>v0.3.0</strong> (kit Fog Node) em Fog Mac + EDGE-GROK (n=2, mesh_member=true, f_max=0). Mecanismos de protocolo estão em ensaio. Não é malha Bizantina nem mainnet. Outros operadores podem instanciar o próprio Fog pelo kit.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
   </section>
 
   <footer>
-    <p>Calhegas Morais · StrataMesh TRD · laboratório v0.2.3-dev</p>
+    <p>Calhegas Morais · StrataMesh TRD · laboratório v0.3.0</p>
     <p class="mono">FOG-NODE-PT-CM-001 · Lisboa · standing por função e acordo, não por substrato</p>
     <p class="mono"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a> — AMCM ENI — entidade legal do titular · <a href="/eni">/eni</a></p>
     <p class="mono"><a href="/termos">Termos</a> · <a href="/dashboard">Portal</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
@@ -339,7 +355,7 @@ details.faq p{margin:.55rem 0 0}
       {k:'edge', u:'https://edge.calhegasmorais.pt/health'}
     ];
     var html='';
-    var parts=['v0.2.3-dev','n=2','mesh_member=true'];
+    var parts=['v0.3.0','n=2','mesh_member=true'];
     for (var i=0;i<probes.length;i++){
       var p=probes[i];
       try{

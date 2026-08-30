@@ -26,7 +26,7 @@ export default {
         mesh_member: n >= 2,
         mesh_provision: mac_live || edge_live,
         layer,
-        version: "0.2.3-lab",
+        version: "0.3.0",
         oracle_live: false,
         substrate: "workerd-hop",
         fallback: {

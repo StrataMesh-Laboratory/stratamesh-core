@@ -181,8 +181,8 @@ def honesty(fog_status: dict[str, Any]) -> list[str]:
     if body.get("oracle_live") is True:
         fails.append("honesty: oracle_live true")
     ver = str(body.get("version") or "")
-    if ver and not ver.startswith("0.2.3"):
-        fails.append(f"honesty: Fog version {ver!r} not 0.2.3-lab*")
+    if ver and not (str(ver).startswith("0.2.3") or str(ver).startswith("0.3.")): 
+        fails.append(f"honesty: Fog version {ver!r} not 0.2.3*/0.3.*")
     return fails
 
 
