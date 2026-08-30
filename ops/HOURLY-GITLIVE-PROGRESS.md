@@ -30,7 +30,7 @@ LIVE curl:
 - GET https://fund.calhegasmorais.pt/health → 200 version **0.4.8-destyle** (do not re-ship)
 - POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **82ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
 
-SHA: (this commit)
+SHA: 5a6ea7518619c4a4e8ea3e35ea7adebafeb0783b
 
 STILL RED:
 - #40 stays OPEN — Fog /status settlements=0 scalar, not a quality number (spa_view f_max=0 **live**; /health version **now live**)

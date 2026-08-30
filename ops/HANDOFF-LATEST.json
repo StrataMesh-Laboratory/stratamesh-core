@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-08-30T14:14:57Z",
   "phase": "hourly_gitlive_14_fog_health_version_live",
-  "sha": "PENDING",
+  "sha": "5a6ea7518619c4a4e8ea3e35ea7adebafeb0783b",
   "ship": "Fog /health version=0.3.0 LIVE (Mac TUI); POST /spa/register total=1; GHA fail-watch+protocol-invariants success on a5ac9147; no Worker PUT (hour already had auth 2FA)",
   "live": [
     "https://fog.calhegasmorais.pt/health",
