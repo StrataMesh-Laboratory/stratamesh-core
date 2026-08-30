@@ -160,76 +160,42 @@
   };
   window.loadAgora = window.loadAgoraPanel;
 
-  /* ——— Unix atelier (NFT OS) as default sandbox ——— */
+  /* ——— Unix atelier is the 3D NFT workbench (not a homepage iframe) ——— */
   function ensureAtelier() {
     var panel = el('panel-sandbox');
     if (!panel) return;
-    var stage = el('atelierOs');
-    if (!stage) {
-      stage = document.createElement('div');
-      stage.id = 'atelierOs';
-      stage.innerHTML =
-        '<h3 id="atelierTitle">' + t('Atelier · bancada Unix em NFT', 'Atelier · Unix NFT workbench') + '</h3>' +
-        '<p style="color:var(--muted);font-size:.82rem;margin:0 0 .75rem;line-height:1.45">' +
-        t('O espaço de criação é um sistema Unix composto só por NFT desta conta. Sem câmara 3D por omissão.',
-          'The creation space is a Unix system composed only of this account’s NFTs. No 3D camera by default.') + '</p>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">' +
-        '<button type="button" id="btnAtelierUnix" style="padding:.4rem .75rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-size:.75rem">' + t('Bancada Unix', 'Unix workbench') + '</button>' +
-        '<button type="button" id="btnAtelierLegacy" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">' + t('Sala 3D (legado)', '3D room (legacy)') + '</button>' +
-        '<a href="/painel" target="_blank" rel="noopener" style="padding:.4rem .75rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.75rem">' + t('Abrir em ecrã inteiro', 'Open full screen') + '</a>' +
-        '</div>' +
-        '<iframe id="atelierFrame" title="Atelier Unix" src="/painel" style="width:100%;height:min(72vh,720px);border:1px solid var(--line);border-radius:8px;background:#0a0a0b"></iframe>';
-      panel.insertBefore(stage, panel.firstChild);
-      var unixBtn = el('btnAtelierUnix');
-      var legBtn = el('btnAtelierLegacy');
-      if (unixBtn) unixBtn.onclick = function () { showAtelier('unix'); };
-      if (legBtn) legBtn.onclick = function () { showAtelier('legacy'); };
-    }
-    var legacyBits = panel.querySelectorAll('#bancadaStage, #bancadaPanelTitle, #sbxTitle, #sbxColl, #sbxMode, #sbxKind, #bancadaDetail, #sandboxBench');
-    /* hide the old 3D chrome until toggled */
+    var ifr = el('atelierFrame');
+    if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
+    var os = el('atelierOs');
+    if (os) os.style.display = 'none';
+    var wrap = el('bancadaLegacyWrap');
+    if (wrap) wrap.style.display = 'block';
+    var stage = el('bancadaStage');
+    if (stage) { stage.style.display = 'block'; stage.style.touchAction = 'none'; }
     var title = el('bancadaPanelTitle');
-    if (title) title.style.display = 'none';
-    var wrap = el('bancadaLegacyWrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.id = 'bancadaLegacyWrap';
-      wrap.style.display = 'none';
-      var stage3 = el('bancadaStage');
-      if (stage3 && stage3.parentNode === panel) {
-        panel.insertBefore(wrap, stage3);
-        wrap.appendChild(stage3);
-      }
+    if (title) {
+      title.style.display = '';
+      title.textContent = t('Atelier Unix · NFT desta conta', 'Unix Atelier · NFTs of this account');
     }
-    showAtelier(window._atelierMode || 'unix');
-  }
-  function showAtelier(mode) {
-    window._atelierMode = mode;
-    var frame = el('atelierOs');
-    var wrap = el('bancadaLegacyWrap');
-    var unixBtn = el('btnAtelierUnix');
-    var legBtn = el('btnAtelierLegacy');
-    var unixOn = mode !== 'legacy';
-    if (frame) {
-      var ifr = el('atelierFrame');
-      if (ifr) ifr.style.display = unixOn ? 'block' : 'none';
+    var intro = title && title.nextElementSibling;
+    if (intro && intro.tagName === 'P') {
+      intro.textContent = t(
+        'Bancada Web3 em NFT: lote urbano cel-shaded. Órbita ou 1ª pessoa. Stick esquerdo anda, stick direito olha; no ecrã, arraste a visão como na órbita. Ferramentas: manipular, fixar, duplicar, remover, rodar. Só objectos desta conta.',
+        'Web3 NFT workbench: cel-shaded urban lot. Orbit or first person. Left stick walks, right stick looks; drag the screen to look as in orbit. Tools: manipulate, freeze, duplicate, remove, rotate. Objects of this account only.'
+      );
     }
-    if (wrap) wrap.style.display = unixOn ? 'none' : 'block';
-    if (unixBtn) unixBtn.style.background = unixOn ? 'var(--accent)' : 'var(--card)';
-    if (legBtn) legBtn.style.borderColor = unixOn ? 'var(--line2)' : 'var(--accent)';
-    if (!unixOn) {
-      try {
-        if (typeof window.__bancadaBoot === 'function') window.__bancadaBoot();
-        else if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench();
-      } catch (e) { console.warn('legacy bancada', e); }
-    }
+    window._atelierMode = 'unix3d';
+    try {
+      if (typeof window.__bancadaBoot === 'function') window.__bancadaBoot();
+      else if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench();
+    } catch (e) { console.warn('atelier boot', e); }
   }
   window.loadSandbox = function () {
     ensureAtelier();
-    if (window._atelierMode === 'legacy' && typeof window.loadSandboxBench === 'function') {
+    if (typeof window.loadSandboxBench === 'function') {
       try { window.loadSandboxBench(); } catch (_) {}
     }
   };
-  window.loadSandboxBench = window.loadSandboxBench || window.loadSandbox;
 
   /* ——— CLP widget (unshadowed) ——— */
   window.loadClpPanel = async function () {

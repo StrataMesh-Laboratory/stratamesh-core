@@ -1,3 +1,7 @@
+## 2026-08-30 — Unix atelier is the 3D NFT workbench
+- EN dashboard uses English terminology and acronyms: PoC (Proof of Contribution), PoS (Proof of Subsistence), SCA (Synthetic Computational Agent), SPA (Service Pact Agreement), DAO, CLP (Planetary Lunisolar Calendar), L-STRATA, UGC, IoT.
+- Atelier is the cel-shaded Unix NFT lot (not a homepage iframe, not a voxel room). Dual sticks: walk + look. Drag-to-look in first person, same as orbit. Compose tools: manipulate, freeze, duplicate, remove, rotate. Free placement.
+
 ## 2026-08-30 — Dashboard solidifying and expansion
 - **2FA trust 1h restored.** Password + trusted window (`login_trust` +1 hour) issues a session; 2FA still required when the window has lapsed. SPA gate accepts `trusted_2fa` tokens instead of treating them as failure.
 - **Tesouraria autoload.** `#panel-wallet` is `.active` on first paint; desk overlay loads `/api/auth/me` so L-STRATA appears without a second click.
