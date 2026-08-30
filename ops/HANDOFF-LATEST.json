@@ -1,10 +1,11 @@
 {
-  "generated_at": "2026-08-30T11:18:42Z",
-  "phase": "hourly_gitlive_11_fund_destyle",
-  "sha": "e05c7814235c955605de78e96a9184cc5eeee5d6",
-  "ship": "destyle fund.calhegasmorais.pt HTML 0.4.8-destyle",
+  "generated_at": "2026-08-30T12:13:28Z",
+  "phase": "hourly_gitlive_12_gha_edge_session",
+  "sha": "543b4bf8cb3ed839bdae8d4a7cb004dab2805368",
+  "ship": "desk-tick+edge-uptime EDGE 530/429 session-expected",
   "live": [
-    "https://fund.calhegasmorais.pt/health"
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310815809",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310816813"
   ],
   "n": 2,
   "mesh_member": true,

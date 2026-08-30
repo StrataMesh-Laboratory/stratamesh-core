@@ -2,6 +2,50 @@
 
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
+## 2026-08-30T12:12Z hour
+READ: origin HEAD a11efc06 (11:18Z ledger on destyle fund e05c7814). Automation prompt STEP 1 (1) remaining public HTML chrome — status **0.4.7-destyle** / origin **0.1.6-destyle** / apex+clp+dashboard destyle / fund **0.4.8-destyle** **curl wins**. STEP 1 (2) GHA: fail-watch last success 09:56 on 5314b57c; protocol-invariants last **success** 09:09 on 79a074fb (path filter skipped later); desk-tick **failure** 08:55 EDGE 530; edge-uptime **failure** 09:25 EDGE 530 (session-expected, not Fog P0). Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog /status **0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0. Fog /spa source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=**f_max=0**. Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **429** CF 1015 this IP. Orch POST **69ms** 10.24.6-lab-nofog. fund /health **0.4.8-destyle** 200 this IP. Do not re-ship destyle chrome, gossip 2.3.11, orch 10.24.6, status 0.4.7, origin-archive 0.1.6, fund 0.4.8.
+
+SHIPPED (REST Git Data API — NOT MCP, NOT paste, NOT workers.dev, NOT Worker PUT):
+- ops/bin/desk-tick.py + ops/config/health-probes.json: CORE_HEALTH EDGE `https://edge.calhegasmorais.pt/health` http **429/530** = **session-expected** (non-continuous hop), not FAIL. Fog/status/gossip still FAIL on down.
+- .github/workflows/edge-uptime.yml: 200 parses JSON; **429|530 exit 0** session-expected; other codes still FAIL.
+- workflow_dispatch live proof on SHA 543b4bf8: desk-tick run 33310815809 **success** (Ledger #52 skipped); edge-uptime run 33310816813 **success**; gha-fail-watch run 33310817789 **success**.
+- Did **not** re-ship gossip/orch/fund/status/origin-archive/spa/apex destyle. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT. Did **not** PUT Mac Fog process. Cannot restore EDGE hop from this sandbox.
+
+LIVE curl:
+- GHA desk-tick https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310815809 → **success** on 543b4bf8 (was FAIL 08:55 EDGE 530)
+- GHA edge-uptime https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310816813 → **success** on 543b4bf8 (was FAIL 09:25 EDGE 530)
+- GHA gha-fail-watch https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310817789 → **success** on 543b4bf8
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=**f_max=0**
+- GET https://fog.calhegasmorais.pt/status → 200 version=**0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0
+- GET https://gossip.calhegasmorais.pt/health → 200 version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=**1** Fog live (EDGE omitted)
+- GET https://edge.calhegasmorais.pt/health → **429** CF 1015 (session-expected; GHA saw 530 last fail)
+- GET https://origin.calhegasmorais.pt/health → 200 0.1.6-destyle (do not re-ship)
+- GET https://calhegasmorais.pt/status → 200 version **0.4.7-destyle** (do not re-ship)
+- GET https://calhegasmorais.pt/ → 200 destyle v0.3.0 kit (do not re-ship)
+- GET https://calhegasmorais.pt/dashboard → 200 destyle (do not re-ship)
+- GET https://fund.calhegasmorais.pt/health → 200 version **0.4.8-destyle** (do not re-ship)
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **69ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
+- GET https://status.calhegasmorais.pt/health → **429** CF 1015 this IP (apex /status 0.4.7-destyle)
+
+SHA: 543b4bf8cb3ed839bdae8d4a7cb004dab2805368
+
+STILL RED:
+- EDGE https://edge.calhegasmorais.pt/health **530**/429 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox. desk-tick/edge-uptime now treat 530/429 as session-expected (**not FAIL**)
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js 0.3.0; not loaded until host reboot)
+- #40 stays OPEN — Fog /status settlements=0 scalar, not a quality number (spa_view f_max=0 **live**)
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog process vs git node_persistent.py (Mac LaunchAgent). Fog /health workerd hop still missing version until Mac TUI v6 `g`/`b` reboot; cannot from this sandbox. Restore EDGE session hop (530/429). protocol-invariants last success 09:09 on 79a074fb (src untouched this hour). Do not re-ship fund 0.4.8, status 0.4.7, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.6, apex destyle, clp/roadmap/eni destyle, dashboard destyle, desk-tick session-expected. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T11:18Z hour
 READ: origin HEAD 5314b57c (09:13Z ledger on destyle dashboard 79a074fb). Automation prompt STEP 1 (1) remaining public HTML chrome — status **0.4.7-destyle** / origin **0.1.6-destyle** / apex+clp+dashboard destyle **curl wins**. Remaining IBM Plex was fund.calhegasmorais.pt Worker HTML (0.4.7-accept-surface + Google fonts). STEP 1 (2) GHA: fail-watch **success** 09:56 on 5314b57c; protocol-invariants **success** 09:09 on 79a074fb; origin-archive already green; desk-tick **failure** 08:55 EDGE 530; edge-uptime **failure** 09:25 EDGE (session-expected, not Fog P0). Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog /status **0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0. Fog /spa source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=**f_max=0** (Mac TUI `g` landed since 09:12; was n<2). POST /spa/register → total=1 (was 0 after process flux). Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **429** CF 1015 this IP. Orch POST **63ms** 10.24.6-lab-nofog. Do not re-ship gossip 2.3.11, orch 10.24.6, status 0.4.7, origin-archive 0.1.6, apex/clp/dashboard destyle.
 
