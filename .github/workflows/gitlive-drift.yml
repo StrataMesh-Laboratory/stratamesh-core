@@ -1,4 +1,4 @@
-# Live Cloudflare Worker bytes vs git. Observe. No PUT.
+# Live Cloudflare Worker bytes vs git. Observe. No PUT. Never fail the check.
 name: gitlive-drift
 
 on:
@@ -34,9 +34,8 @@ jobs:
       - name: Compare live /content to git
         id: drift
         run: python3 ops/bin/gitlive-drift.py
-        continue-on-error: true
       - name: Comment #52 on hard drift only
-        if: steps.drift.outcome == 'failure'
+        if: steps.drift.outputs.hard == 'true'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
@@ -49,12 +48,15 @@ jobs:
               core.info('skip duplicate drift comment');
               return;
             }
+            const scripts = process.env.HARD_SCRIPTS || '';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 52,
               body: [
-                '## gitlive-drift hard DRIFT',
+                '## gitlive-drift hard DRIFT (observe; check stays green)',
+                '',
+                'Scripts: `' + scripts + '`',
                 '',
                 'Live Worker SHA-256 ≠ git (not hold_put). **Grok execute** (Actions does not PUT):',
                 '',
@@ -67,3 +69,5 @@ jobs:
                 marker,
               ].join('\n'),
             });
+        env:
+          HARD_SCRIPTS: ${{ steps.drift.outputs.hard_scripts }}

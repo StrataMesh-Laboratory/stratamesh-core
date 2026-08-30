@@ -3,7 +3,7 @@
   "hold_put": [
     "stratamesh-spa"
   ],
-  "hold_put_note": "Do not re-ship spa 1.1.0. Git-ahead is observe-only until Grok execute.",
+  "hold_put_note": "Do not re-ship spa 1.1.0. Git-ahead is DRIFT-HOLD (observe, exit 0) until Grok execute. Never fail CI for hold_put. Hard drift comments #52 only.",
   "scripts": {
     "stratamesh-spa": "workers/stratamesh-spa.js",
     "stratamesh-status": "workers/stratamesh-status.js",

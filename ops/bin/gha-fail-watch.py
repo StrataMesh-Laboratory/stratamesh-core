@@ -20,6 +20,11 @@ API = f"https://api.github.com/repos/{OWNER}/{REPO}"
 MARKER = "<!-- stratamesh-gha-fail-watch -->"
 SELF = "gha-fail-watch"
 HOURS = int(os.environ.get("FAIL_WATCH_HOURS") or "48")
+# Observe-only / historical-red classes: never comment as "new failures".
+IGNORE_NAMES = {
+    SELF,
+    "gitlive-drift",  # hold_put spa; check is observe-only
+}
 
 
 def token() -> str:
@@ -64,7 +69,7 @@ def list_failures() -> list[dict]:
     for status in ("failure", "timed_out"):
         data = api(f"/actions/runs?status={status}&per_page=30")
         for r in data.get("workflow_runs") or []:
-            if r.get("name") == SELF:
+            if r.get("name") in IGNORE_NAMES:
                 continue
             created = r.get("created_at") or ""
             try:
@@ -138,7 +143,8 @@ def markdown(rows: list[dict], new: list[dict]) -> str:
     lines += [
         "",
         "Grok: inspect logs, fix, then `gh run rerun <id> --failed` **after** the fix is on main.",
-        "Do not replay stale SHAs (mesh-health /status, apply-and-merge).",
+        "Do not replay stale SHAs. gitlive-drift is observe-only (hold_put spa).",
+        "Rerun only after the fix is on main HEAD — never the red historical SHA.",
         "",
     ]
     return "\n".join(lines) + "\n"

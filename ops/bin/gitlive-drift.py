@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Compare git Worker sources to live CF /content. Observe only. No PUT.
 
-Needs GOD_API. Fail closed (exit 2) if token missing when --require-token.
-Exit 1 on hard drift. Exit 0 if live matches git, or only hold_put scripts differ.
+Needs GOD_API. --require-token: exit 2 if missing.
+Default: exit 0 always (observe). Hard drift is GITHUB_OUTPUT + stderr, not a red check.
+--self-test: no network; assert hold_put ⊆ scripts and spa is held.
 """
 from __future__ import annotations
 
@@ -79,16 +80,51 @@ def live_content(tok: str, script: str) -> bytes | None:
     return raw
 
 
+def self_test() -> int:
+    cfg = _load_cfg()
+    scripts = set(cfg.get("scripts") or {})
+    hold = set(cfg.get("hold_put") or [])
+    if not scripts:
+        print("FAIL scripts empty", file=sys.stderr)
+        return 1
+    if not hold:
+        print("FAIL hold_put empty — spa 1.1.0 would paint CI red", file=sys.stderr)
+        return 1
+    missing = sorted(hold - scripts)
+    if missing:
+        print("FAIL hold_put not in scripts: " + ",".join(missing), file=sys.stderr)
+        return 1
+    if "stratamesh-spa" not in hold:
+        print("FAIL stratamesh-spa must stay hold_put until Grok execute", file=sys.stderr)
+        return 1
+    print("ok hold_put=" + ",".join(sorted(hold)) + f" scripts={len(scripts)}")
+    return 0
+
+
+def _write_output(hard: list[str], soft: list[str]) -> None:
+    gh = os.environ.get("GITHUB_OUTPUT")
+    if not gh:
+        return
+    with open(gh, "a", encoding="utf-8") as fh:
+        fh.write(f"hard={'true' if hard else 'false'}\n")
+        fh.write(f"hold={'true' if soft else 'false'}\n")
+        fh.write(f"hard_scripts={','.join(hard)}\n")
+        fh.write(f"hold_scripts={','.join(soft)}\n")
+
+
 def main() -> int:
+    if "--self-test" in sys.argv:
+        return self_test()
     require = "--require-token" in sys.argv
     tok = token()
     if not tok:
         print("gitlive-drift: no GOD_API", file=sys.stderr)
+        _write_output([], [])
         return 2 if require else 0
 
     rows = []
-    hard = []
-    soft = []
+    hard: list[str] = []
+    soft: list[str] = []
     for rel, script in MAP.items():
         p = ROOT / rel
         if not p.is_file():
@@ -127,12 +163,17 @@ def main() -> int:
             fh.write("| script | status | git | live |\n|---|---|---|---|\n")
             for r in rows:
                 fh.write(f"| {r['script']} | {r['status']} | {r.get('git_sha','')} | {r.get('live_sha','')} |\n")
+            if hard:
+                fh.write("\nHard drift (Grok execute, no PUT from Actions): " + ", ".join(hard) + "\n")
+            if soft:
+                fh.write("\nHOLD_PUT (observe): " + ", ".join(soft) + "\n")
     Path("/tmp/gitlive-drift.json").write_text(json.dumps(rows, indent=2))
+    _write_output(hard, soft)
     if soft:
         print("HOLD_PUT " + ",".join(soft), file=sys.stderr)
     if hard:
         print("DRIFT " + ",".join(hard), file=sys.stderr)
-        return 1
+    # Observe: never fail the GitHub check. Hard drift is #52 comment via GITHUB_OUTPUT.
     return 0
 
 
