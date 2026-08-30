@@ -3,6 +3,50 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T06:14Z hour
+READ: origin HEAD 9f5a83cf (Mac fog-bootstrap Terminal dialogs) on destyle 2.3.11 + n=2 hop. Ledger 05:12 NEXT PICK was reboot workerd :8788 — **cannot from this sandbox**. Automation prompt STEP 1 (1) remaining public HTML chrome — **curl wins**. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version** (still needs host reboot). Fog Accept:text/html destyle 0.2.3-dev-destyle. Gossip **2.3.11-destyle** n=2. Origin.calhegasmorais.pt still IBM Plex + teal #2f9e8a. status Worker HTML still github-dark #0b0f14/#93c5fd. Apex Pages landing still IBM Plex + Instrument Serif. Orch POST already **65ms** 10.24.6-lab-nofog. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, node-public overlay.
+
+SHIPPED (REST Git Data API + CF PUT /content — NOT MCP, NOT paste, NOT workers.dev):
+- workers/stratamesh-status.js **0.4.7-destyle**: page() destyle tokens (--bg:#0a0a0b --acc:#c4a574 system-ui); LAB badge; roster note JSON `/status`. Cache key pulse-047.
+- CF PUT workers/scripts/stratamesh-status/content main_module=worker.js bindings preserved. modified 2026-08-30T06:12:53Z etag e6295e3b deployment_id dbc47539.
+- workers/stratamesh-origin-archive.js **0.1.6-destyle**: drop IBM Plex/Google fonts/teal #2f9e8a; destyle family + badge.
+- CF PUT workers/scripts/stratamesh-origin-archive/content main_module=stratamesh-origin-archive.js bindings preserved. modified 2026-08-30T06:12:54Z etag 286521cd deployment_id 07555a13.
+- git-only frontend/landing-pt.html + landing-en.html destyle (system-ui, --accent:#c4a574, no Google fonts). **Not live** — Pages project calhegasmorais-pt still IBM Plex until Pages deploy.
+- git-only status/index.html destyle tokens.
+- POST Fog /spa/register → total=1 (was 0).
+- Did **not** re-ship gossip/orch/fund/spa. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT.
+
+LIVE curl:
+- GET https://www.calhegasmorais.pt/status/health (HTML) → 200 **3.76s** destyle tokens --bg:#0a0a0b --acc:#c4a574 system-ui badge LAB v**0.4.7-destyle** roster JSON note (status.calhegasmorais.pt 429 CF 1015 this IP)
+- GET https://calhegasmorais.pt/status → 200 **3.96s** JSON version **0.4.7-destyle**
+- GET https://origin.calhegasmorais.pt/ (Accept text/html) → 200 **57ms** destyle --bg:#0a0a0b --acc:#c4a574 no IBM Plex no teal #2f9e8a no Google fonts badge LAB
+- GET https://origin.calhegasmorais.pt/health → 200 **48ms** version **0.1.6-destyle** n=2 mesh_member=true mac_live=true
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **65ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/health → 200 **55ms** version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version** (git hop JSON not live)
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false
+- GET https://calhegasmorais.pt/ → 200 Pages still IBM Plex (git destyle not live)
+- HEAD https://fog.calhegasmorais.pt/health → 200
+
+SHA: 50be3ab81763a7058a5dfe40f12c46399f339253
+
+STILL RED:
+- Apex Pages landing still IBM Plex/Instrument Serif (git destyle landing-pt/en this hour; not live until Pages deploy of calhegasmorais-pt)
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js; not loaded until host reboot)
+- Fog GET /spa agora.settlements.unavailable=n<2 at live n=2 (git spa_view f_max=0 not live). #40 stays OPEN — /status settlements=0 scalar, not a quality number
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- status.calhegasmorais.pt subdomain 429 CF 1015 from this sandbox IP (www + apex /status prove 0.4.7-destyle live)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Pages deploy destyle frontend/landing-pt.html so apex calhegasmorais.pt drops IBM Plex (git already 50be3ab8). Then GHA fail-watch + protocol-invariants. Reboot workerd :8788 still Mac-only. Do not re-ship status 0.4.7, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.6. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-30T05:12Z hour
 READ: origin HEAD 7d30ad2287e9 (chore: gitignore KeePass) on destyle 2.3.11 + n=2 hop. Ledger 04:14 NEXT PICK was reboot workerd :8788 — **cannot from this sandbox**. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 **88ms** origin-orch-chat-1.1.0 worker 10.24.6-lab-nofog; POST 200 **74ms** source=orch-chat-lab skipped=[tick,llm,fog] pulse-20260830T050852Z clearance=public n=1 mesh_member=false oracle_live=false (lab constants; Fog not awaited). Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true edge_live=false **no version/oracle_live/substrate** (destyle clobbered 04-hour hop JSON). Fog /spa 200 total=0 then POST /spa/register → total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=n<2 (destyle re-clobbered git f_max=0). Fog /status 200 version=0.2.3-lab agora.settlements=0 **scalar** consensus n=2 f_max=0. HEAD fog/health 200. gossip **2.3.11-destyle count=2** fog+edge live. fund 0.4.7-accept-surface; status 0.4.6-workerd-hop. STEP 1 orch <400ms **already live** — do not re-ship orch 10.24.6, spa 1.1.0, gossip 2.3.11, status 0.4.6, fund 0.4.7. Cannot hot-patch Fog 0.2.3-lab process or local workerd :8788 from this sandbox.
 

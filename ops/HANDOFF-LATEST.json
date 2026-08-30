@@ -1,17 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T05:12:18Z",
-  "lisbon": "2026-08-30T06:12:18+0100",
+  "generated_at": "2026-08-30T06:14:20Z",
+  "lisbon": "2026-08-30T07:14:20+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_05",
+  "phase": "hourly_gitlive_06",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "05 UTC hour: orch 10.24.6 already <400ms (74ms). git-only restore hop /health + spa_view f_max=0 (destyle clobber). No CF PUT. No ops-state PUT."
+    "reason": "06 UTC hour: destyle remaining public HTML chrome. status 0.4.7-destyle + origin-archive 0.1.6-destyle live. Apex Pages still IBM Plex (git destyle). No ops-state PUT."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
@@ -19,46 +19,31 @@
     "cf_cron": "5/5",
     "pages_apex": true,
     "STASIS_UNTIL": null,
-    "hourly_cap_after_refill": 4167,
-    "formula": "remaining / hours_until_renewal",
     "no_sixth_cron": true,
     "no_plan_upgrade": true,
     "never_workers_dev": true,
     "never_actions": false,
-    "github_actions": "public Linux net $0 — CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
+    "github_actions": "public Linux net $0 \u2014 CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
   },
   "probes": {
-    "apex": {
-      "ok": true,
-      "http": 200,
-      "note": "Cloudflare Pages landing"
-    },
     "status": {
       "ok": true,
       "http": 200,
-      "version": "0.4.6-workerd-hop",
-      "note": "do not re-ship"
+      "version": "0.4.7-destyle",
+      "note": "destyle HTML live via www; subdomain 429 this IP"
+    },
+    "origin_archive": {
+      "ok": true,
+      "http": 200,
+      "version": "0.1.6-destyle"
     },
     "fog_health": {
       "ok": true,
       "http": 200,
-      "body": {
-        "ok": true,
-        "runtime": "workerd",
-        "plugin": "fog-workerd",
-        "origin": "macbook",
-        "mac_live": true,
-        "edge_live": false,
-        "n": 2,
-        "mesh_member": true,
-        "layer": "tunnel→workerd:8788→fog:8787"
-      },
-      "note": "workerd hop intercepts /health; git worker.js version+oracle_live+substrate restored 06999074; not live until reboot"
-    },
-    "fog_root": {
-      "ok": true,
-      "http": 200,
-      "version": "0.2.3-lab"
+      "origin": "macbook",
+      "n": 2,
+      "mesh_member": true,
+      "mac_live": true
     },
     "fog_spa": {
       "ok": true,
@@ -67,115 +52,33 @@
       "source": "fog_process",
       "n": 2,
       "mesh_member": true,
-      "oracle_live": false,
-      "note": "POST /spa/register this hour; live envelope still unavailable=n<2; git f_max=0 not live"
+      "oracle_live": false
     },
-    "fog_status": {
+    "gossip": {
       "ok": true,
       "http": 200,
-      "settlements": 0,
-      "consensus": {
-        "n": 2,
-        "f_max": 0
-      },
-      "note": "#40 OPEN; /status settlements=0 scalar; spa_view envelope n<2 live"
-    },
-    "edge": {
-      "ok": true,
-      "http": 200,
-      "host": "edge.calhegasmorais.pt",
-      "note": "sandbox GET 429 CF 1015; gossip Worker GET /health 200 origin=edge version=0.2.3-dev"
-    },
-    "gossip_host": {
-      "ok": true,
-      "http": 200,
-      "path": "https://gossip.calhegasmorais.pt/peers",
-      "count": 2,
       "version": "2.3.11-destyle",
-      "endpoints": [
-        "https://fog.calhegasmorais.pt",
-        "https://edge.calhegasmorais.pt"
-      ],
-      "fog_health_http": 200,
-      "fog_status": "live",
-      "edge_health_http": 200,
-      "edge_status": "live"
+      "n": 2
     },
-    "fund": {
+    "orch_post": {
       "ok": true,
       "http": 200,
-      "version": "0.4.7-accept-surface",
-      "challenge_0": "unfunded"
-    },
-    "orch_chat": {
-      "ok": true,
-      "http": 200,
+      "ms": 65,
       "source": "orch-chat-lab",
-      "ms": 74,
-      "version_spa": "origin-orch-chat-1.1.0",
-      "worker_version": "10.24.6-lab-nofog",
-      "skipped": [
-        "tick",
-        "llm",
-        "fog"
-      ]
+      "version": "10.24.6-lab-nofog"
     }
   },
-  "mesh": {
+  "shipped": {
+    "sha": "50be3ab81763a7058a5dfe40f12c46399f339253",
+    "status": "0.4.7-destyle",
+    "origin_archive": "0.1.6-destyle"
+  },
+  "next_pick": "Pages deploy destyle landing so apex drops IBM Plex. Then GHA fail-watch. Cannot reboot Mac workerd from this sandbox.",
+  "p0": "260826-001576 oracle_live=false",
+  "lab": {
     "n": 2,
-    "lab_seed": false,
-    "spa_source": "fog_process",
     "mesh_member": true,
     "oracle_live": false,
-    "p0_open": true,
-    "incident": "260826-001576",
-    "note": "curl Fog / and /spa n=2 mesh_member=true; orch POST still lab n=1 (skipped fog)"
-  },
-  "fund": {
-    "challenge_0": "unfunded",
-    "budget_hint": "not_a_bare_integer",
-    "version": "0.4.7-accept-surface",
-    "funded": false,
-    "eur": 0
-  },
-  "identity": "≠ cargo",
-  "whatsapp": "not_briefing",
-  "headline": "Hourly 05:12Z: orch already 74ms. git-only restore hop /health + spa_view f_max=0 (destyle clobber). No Worker PUT.",
-  "posture": "lab_autonomous",
-  "mandatory_actions": [
-    {
-      "id": "STRATAGROK-WORKERD-REBOOT",
-      "owner": "stratagrok",
-      "verb": "Reboot local workerd :8788 so Fog /health serves git hop JSON (version 0.2.3-lab, oracle_live=false, substrate=workerd-hop). Then restart Fog :8787 for spa_view f_max=0. Not this sandbox.",
-      "priority": "P1",
-      "effort": "S",
-      "success_check": "GET https://fog.calhegasmorais.pt/health includes version 0.2.3-lab oracle_live=false substrate=workerd-hop"
-    },
-    {
-      "id": "STRATAGROK-GOOGLE-RESTORE",
-      "owner": "stratagrok",
-      "verb": "When STRATAGROK localhost/tunnel host is back: sign in to the restored Google account from grok@ mail Fwd Recurso aprovado (2026-08-29T22:14Z) and re-bind desk connections. Not the human owner. Not this sandbox.",
-      "priority": "P0",
-      "effort": "M",
-      "success_check": "Google session live for the restored account; grok@ notes which surfaces re-bound"
-    }
-  ],
-  "optional_actions": [
-    {
-      "id": "FOG-SPA-SETTLEMENTS",
-      "owner": "mesh",
-      "verb": "git spa_view settlements unavailable=f_max=0 restored 06999074. Live when Fog process restarts. #40 stays OPEN.",
-      "priority": "P2",
-      "success_check": "GET fog /spa agora.settlements.unavailable is f_max=0 not n<2"
-    }
-  ],
-  "efficacy_self_score": 0.85,
-  "notes": [
-    "Hourly git+live 05:12Z: STEP 1 orch already <400ms (74ms). Did not re-ship orch 10.24.6 or spa 1.1.0.",
-    "git-only ops/workerd/worker.js restore version+oracle_live+substrate (destyle clobber). SHA 06999074.",
-    "git-only spa_view f_max=0. Live /spa still n<2 until Fog restart.",
-    "POST Fog /spa/register total=1. gossip 2.3.11-destyle count=2 keep #39 OPEN.",
-    "No CF PUT. No ops-state PUT. No 6th cron. Never workers.dev. Skip extra Discourse.",
-    "P0 still open 260826-001576 (Oracle tenancy). Curl Fog n=2 mesh_member=true oracle_live=false. grok@ not SCA."
-  ]
+    "f_max": 0
+  }
 }
