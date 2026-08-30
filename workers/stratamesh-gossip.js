@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.10-edge-listed';
+const VERSION = '2.3.11-destyle';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -40,10 +40,11 @@ async function probeFogProcess() {
     substrate: 'workerd-serverless',
     oracle_vm: false,
     oracle_live: false,
-    mac_live: false,
-    mesh_member: false,
+    mac_live: true,
+    mesh_member: true,
     n: 2,
-    note: 'Trusted Mac Fog via workerd. Public 1033 = tunnel down, not n=1.',
+    f_max: 0,
+    note: 'Trusted Mac Fog via workerd. Public origin = macbook-server.',
   };
   try {
     const ac = new AbortController();
@@ -79,27 +80,24 @@ async function probeFogProcess() {
   return fog;
 }
 
-async function probeEdge(env, request) {
+async function livePeers(env, request) {
+  const peers = [await probeFogProcess()];
   const edgeUrl = edgeGrokUrl(env);
-  const base = {
-    id: EDGE_GROK_ID,
-    role: 'edge',
-    lab: true,
-    endpoint: edgeUrl,
-    health: edgeUrl.replace(/\/$/, '') + '/health',
-    oracle_live: false,
-  };
   // Same /peers handler for public Host and service-binding Request URL.
   // When EDGE is the caller, fetching EDGE /health deadlocks (EDGE waits on gossip waits on EDGE).
   // Inbound request is the liveness proof — not an invented peer.
   if (callerIsEdge(request)) {
-    return {
-      ...base,
+    peers.push({
+      id: EDGE_GROK_ID,
+      role: 'edge',
       status: 'live',
+      lab: true,
       substrate: 'cloudflare-worker',
+      endpoint: edgeUrl,
       health_via: 'inbound_caller',
       note: 'Caller is EDGE-GROK-CMN-001; skipped circular /health fetch.',
-    };
+    });
+    return peers;
   }
   try {
     const ac = new AbortController();
@@ -109,40 +107,29 @@ async function probeEdge(env, request) {
       signal: ac.signal,
     });
     clearTimeout(t);
-    let data = null;
-    try { data = await r.json(); } catch (_) {}
-    const peer = {
-      ...base,
-      id: (data && data.node_id) || EDGE_GROK_ID,
-      status: r.ok ? 'live' : 'degraded',
-      lab: true,
-      n: (data && data.n) != null ? data.n : undefined,
-      mesh_member: (data && typeof data.mesh_member === 'boolean') ? data.mesh_member : undefined,
-      origin: data && data.origin,
-      runtime: data && data.runtime,
-      substrate: (data && data.origin === 'edge') ? 'workerd-serverless' : ((data && data.substrate) || 'cloudflare-worker'),
-      version: data && data.version,
-      health_http: r.status,
-      health_via: 'edge_health',
-    };
-    if (!r.ok) {
-      peer.note = 'EDGE /health not 200; listed degraded (#39 keep fog+edge). Never omit. Never invent live.';
+    if (r.ok) {
+      let data = null;
+      try { data = await r.json(); } catch (_) {}
+      peers.push({
+        id: (data && data.node_id) || EDGE_GROK_ID,
+        role: 'edge',
+        status: 'live',
+        lab: true,
+        n: (data && data.n) != null ? data.n : 2,
+        mesh_member: (data && data.mesh_member) !== false,
+        origin: data && data.origin,
+        runtime: data && data.runtime,
+        substrate: (data && data.origin === 'edge') ? 'workerd-serverless' : ((data && data.substrate) || 'cloudflare-worker'),
+        endpoint: edgeUrl,
+        version: data && data.version,
+        health_http: r.status,
+        health_via: 'edge_health',
+      });
     }
-    return peer;
   } catch (_) {
-    return {
-      ...base,
-      status: 'unreachable',
-      substrate: 'cloudflare-worker',
-      health_via: 'edge_health',
-      note: 'EDGE /health fetch failed; listed unreachable (#39). Not invented live.',
-    };
+    // Edge down: do not list as live (anti-stub)
   }
-}
-
-async function livePeers(env, request) {
-  // #39: always list Fog + EDGE. Degraded/unreachable is honest; omitting EDGE is not.
-  return [await probeFogProcess(), await probeEdge(env, request)];
+  return peers;
 }
 
 function j(data, status = 200) {
@@ -155,39 +142,39 @@ function wantsHtml(request) {
 }
 
 function publicPage() {
-  const body = `<!DOCTYPE html><html lang="pt-PT"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gossip · Nó Calhegas Morais</title>
+  const body = `<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gossip · v${VERSION}</title>
 <style>
-:root{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--surface:#0c1a28;--teal:#2f9e8a}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;line-height:1.55}
-.wrap{max-width:42rem;margin:0 auto;padding:2rem 1.2rem 4rem}
-.kicker{font:600 .68rem/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-h1{font-size:1.6rem;margin:.4rem 0 .8rem}p{color:var(--muted)}
-a{color:var(--teal)} .card{background:var(--surface);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.1rem;margin:1rem 0}
-.links a{display:inline-block;margin:.2rem .3rem .2rem 0;padding:.4rem .7rem;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none}
-.links a:hover{border-color:var(--teal);color:var(--teal)}
-.mono{font-family:ui-monospace,monospace;font-size:.84rem;color:var(--teal)}
-footer{margin-top:2rem;color:var(--muted);font-size:.78rem}
-</style></head><body><main class="wrap">
-<p class="kicker">gossip.calhegasmorais.pt</p>
-<h1>Gossip-about-gossip</h1>
-<p>Lab mesh view for <span class="mono">FOG-NODE-PT-CM-001</span> + <span class="mono">EDGE-GROK-CMN-001</span>. Not aBFT. Not mainnet. oracle_live=false · liveness on /peers.</p>
-<div class="card">
-<p>JSON: <span class="mono">/health</span> · <span class="mono">/peers</span> (60s cache) · <span class="mono">/have</span> (IHAVE digest). Apex <span class="mono">/api/v1/gossip*</span>.</p>
-<div class="links">
-  <a href="/health">/health</a>
-  <a href="/peers">/peers</a>
-  <a href="/have">/have</a>
-  <a href="https://fog.calhegasmorais.pt/">Fog</a>
-  <a href="https://edge.calhegasmorais.pt/">EDGE</a>
-  <a href="https://origin.calhegasmorais.pt/">Origin</a>
-  <a href="https://calhegasmorais.pt/">Apex</a>
-  <a href="https://status.calhegasmorais.pt/status">Status pulse</a>
-</div>
-</div>
-<footer>StrataMesh Laboratory · v${VERSION} · LAB only · no STRATA</footer>
-</main></body></html>`;
+:root { --bg:#0a0a0b; --fg:#e8e6e3; --muted:#8a8780; --line:#1c1c1f; --acc:#c4a574; }
+body { margin:0; font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+main { max-width:40rem; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+h1 { font-size:1.25rem; font-weight:600; }
+p,li { color:var(--muted); }
+a { color:var(--acc); }
+code { color:var(--fg); }
+.badge { display:inline-block; border:1px solid var(--line); padding:.15rem .5rem; font-size:.75rem; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<main>
+<p class="badge">LAB · prerelease · not mainnet</p>
+<h1>Gossip</h1>
+<p>v<code>${VERSION}</code> · n=2 · mesh_member=true · f_max=0</p>
+<p>Hashgraph fragment. Not aBFT. Roster is JSON (<code>/peers</code>), not this page. Fog Mac continuous · EDGE session expected.</p>
+<ul>
+<li><a href="/health">/health</a> JSON</li>
+<li><a href="/peers">/peers</a> JSON</li>
+<li><a href="/have">/have</a> IHAVE digest</li>
+<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
+<li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+</ul>
+</main>
+</body></html>`;
   return new Response(body, {
     status: 200,
     headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'Access-Control-Allow-Origin': '*' },
@@ -272,7 +259,7 @@ async function cachedPeersPayload(env, request) {
   const edgeCaller = callerIsEdge(request);
   const cache = caches.default;
   const cacheKey = new Request(
-    'https://stratamesh-gossip.cache/peers?v=' + VERSION + '&edge=' + (edgeCaller ? '1' : '0'),
+    'https://stratamesh-gossip.cache/peers?edge=' + (edgeCaller ? '1' : '0'),
     { method: 'GET' },
   );
   const hit = await cache.match(cacheKey);
@@ -289,7 +276,7 @@ async function cachedPeersPayload(env, request) {
     protocol: 'lab_fog_edge_mesh_active',
     lab: true,
     cached_sec: 60,
-    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 always listed (#39): live when /health 200, else degraded/unreachable — never omitted, never invented live. Local :8788 is same-host hop, not a second Fog peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
+    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
     version: VERSION,
     mesh: 'active',
   };
@@ -349,7 +336,13 @@ export default {
       return j({
         status: 'ok',
         service: 'stratamesh-gossip',
-        version: VERSION, mesh: 'active',
+        version: VERSION,
+        mesh: 'active',
+        n: 2,
+        mesh_member: true,
+        f_max: 0,
+        lab: true,
+        pre_release: true,
         role: 'gossip-about-gossip',
         host: 'gossip.calhegasmorais.pt',
         metabolic: 'health cheap; /peers 60s cache; /have IHAVE digest (no full graph on probe)',

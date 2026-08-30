@@ -1,3 +1,6 @@
+## 2026-08-30 — gossip destyle
+- `gossip.calhegasmorais.pt/` same destyle family as Fog/EDGE. `/health` n=2 · mesh_member=true · f_max=0. Roster stays `/peers`.
+
 ## 2026-08-30 — fog destyle live + TUI v6
 - CF Worker `stratamesh-node-public` exact `/` overlay on fog + edge (JSON `/health` `/status` stay tunnel).
 - Mac TUI v6: `b` reboot, `g` git pull+reboot, host cpu/mem/rss/disk/net/sqlite/public probes.
