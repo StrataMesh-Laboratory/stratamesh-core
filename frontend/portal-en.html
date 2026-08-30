@@ -27,6 +27,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header .user-info{display:flex;align-items:center;gap:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)}
 .header .role-badge{padding:.15rem .5rem;border:1px solid var(--line2);border-radius:2px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .header .logout{cursor:pointer;color:var(--muted)}.header .logout:hover{color:var(--danger)}
+body.in-session .user-info{display:flex!important}
 .login-page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:2rem 1.25rem 4rem}
 .login-box{width:100%;max-width:400px;padding:2rem 0 0}
 .login-kicker{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
@@ -103,7 +104,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 <body>
 <div class="header">
   <h1>StrataMesh <span>CMN Portal</span></h1>
-  <div class="user-info" id="userInfo" style="display:none">
+  <div class="user-info" id="userInfo">
     <span id="userEmail"></span>
     <span class="role-badge" id="userRole"></span>
     <span class="logout" onclick="logout()">Logout</span>
@@ -795,13 +796,18 @@ function showPortal(user){
 
 function logout(){
   token=null; currentUser=null;
-  try{localStorage.removeItem('sm_token');localStorage.removeItem('token');localStorage.removeItem('auth_type');}catch(e){}
-  var login=document.getElementById('loginPage');
-  var portal=document.getElementById('portalPage');
-  if(portal){portal.style.display='none';portal.classList.remove('portal-visible');}
-  if(login){login.style.display='flex';login.classList.remove('hidden');}
-  var ui=document.getElementById('userInfo');
-  if(ui)ui.style.display='none';
+  try{
+    localStorage.removeItem('sm_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth_type');
+    localStorage.removeItem('clearance');
+    localStorage.removeItem('clearance_level');
+  }catch(e){}
+  try{
+    document.cookie='sm_token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+    document.cookie='auth_type=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+  }catch(e){}
+  location.replace('/en/dashboard');
 }
 
 
@@ -876,8 +882,8 @@ async function handleAuth(){
   if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Signing in…':'A autenticar…';}
   const path=isRegister?'/register':'/login';
   const urls=[
-    'https://stratamesh-auth.stratamesh.workers.dev'+path,
-    '/api/auth'+path
+    '/api/auth'+path,
+    'https://stratamesh-auth.stratamesh.workers.dev'+path
   ];
   let lastErr='Authentication failed';
   try{
@@ -4101,7 +4107,7 @@ window.loadACBPanel=async function(){
   var tok = params.get('setpw');
   if (!tok) return;
   var lang = params.get('lang') || 'en';
-  var AUTH = (window.SVC && SVC.auth) || (window.AUTH_BASE) || 'https://stratamesh-auth.stratamesh.workers.dev';
+  var AUTH = '/api/auth';
   var title = lang === 'en' ? 'Set password' : 'Definir palavra-passe';
   var hint = lang === 'en' ? 'Choose a password (min. 8 characters). Link expires in 1 hour.' : 'Escolha uma palavra-passe (mín. 8 caracteres). O link expira em 1 hora.';
   var box = document.createElement('div');
@@ -4145,7 +4151,7 @@ async function forgotPassword(){
     if(err){ err.style.display='block'; err.textContent = lang==='en' ? 'Enter your email above, then tap Reset password.' : 'Indique o e-mail acima e depois toque em Repor palavra-passe.'; }
     return;
   }
-  var AUTH = (window.SVC && SVC.auth) || window.AUTH_BASE || 'https://stratamesh-auth.stratamesh.workers.dev';
+  var AUTH = '/api/auth';
   if(err){ err.style.display='block'; err.style.color='var(--muted)'; err.textContent = lang==='en' ? 'Sending reset link…' : 'A enviar link de reposição…'; }
   try{
     var r = await fetch(AUTH + '/forgot-password', {

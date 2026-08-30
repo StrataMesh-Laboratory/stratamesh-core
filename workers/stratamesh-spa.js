@@ -1097,7 +1097,11 @@ async function servePortal(request, env, corsHeaders) {
     } catch (_) { me = null; }
   }
   if (!me || !me.success) {
-    return new Response(dashboardGateHtml(lang, { error: qAuth ? (lang === 'en' ? 'Session rejected after 2FA.' : 'Sessão recusada após 2FA.') : '' }), {
+    const setpw = url.searchParams.get('setpw') || url.searchParams.get('token') || '';
+    return new Response(dashboardGateHtml(lang, {
+      error: qAuth ? (lang === 'en' ? 'Session rejected after 2FA.' : 'Sessão recusada após 2FA.') : '',
+      setpw,
+    }), {
       status: 200,
       headers: {
         ...corsHeaders,
@@ -1205,7 +1209,7 @@ function injectPortalSession(html, me, token) {
     subsistence: me.subsistence || null,
     lifecycle: me.lifecycle || null,
   };
-  const style = '<style id="sm-session-boot">#loginPage{display:none!important}.portal,#portalPage{display:block!important;visibility:visible!important}</style>';
+  const style = '<style id="sm-session-boot">#loginPage{display:none!important}.portal,#portalPage{display:block!important;visibility:visible!important}#userInfo{display:flex!important}</style>';
   if (html.includes('</head>')) html = html.replace('</head>', style + '</head>');
   else html = style + html;
   const boot = `<script>
@@ -1228,6 +1232,13 @@ function injectPortalSession(html, me, token) {
     var portal = document.getElementById('portalPage');
     if (login) { login.style.display = 'none'; login.classList.add('hidden'); }
     if (portal) { portal.style.display = 'block'; portal.style.visibility = 'visible'; portal.classList.add('portal-visible'); }
+    var ui = document.getElementById('userInfo');
+    if (ui) ui.style.display = 'flex';
+    var ue = document.getElementById('userEmail');
+    if (ue) ue.textContent = me.email || '';
+    var ur = document.getElementById('userRole');
+    if (ur) ur.textContent = String(me.role || me.type || 'user').toUpperCase();
+    document.body.classList.add('in-session');
   }
   var n = 0;
   function boot(){
@@ -1323,42 +1334,75 @@ function dashboardGateHtml(lang, opts) {
   const pt = lang !== 'en';
   const title = pt ? 'Entrar' : 'Sign in';
   const presetErr = (opts && opts.error) || '';
+  const setpw = (opts && opts.setpw) || '';
   return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} · Calhegas Morais</title>
 <style>${landingShellCss()}</style></head><body>
 ${landingChrome(pt, title)}
   <p class="lead">${pt
-    ? 'O painel instancia-se na <strong>conta registada</strong>. Anónimos não têm painel. Depois da palavra-passe, o Nó pede o código de 6 dígitos (e-mail ou app).'
-    : 'The panel is instantiated on a <strong>registered account</strong>. Anonymous visitors have none. After the password, the Node asks for the 6-digit code (email or app).'}</p>
+    ? 'O painel instancia-se na <strong>conta registada</strong>. Cada entrada pede o código de 6 dígitos. Novos utilizadores: criar conta (link no e-mail para definir palavra-passe).'
+    : 'The panel is instantiated on a <strong>registered account</strong>. Every sign-in asks for the 6-digit code. New users: create an account (email link to set the password).'}</p>
 </header>
 <div class="card">
-  <h3>${pt ? 'Identidade' : 'Identity'}</h3>
+  <h3 id="boxTitle">${setpw ? (pt ? 'Definir palavra-passe' : 'Set password') : (pt ? 'Identidade' : 'Identity')}</h3>
   <form id="f">
     <label for="email">Email</label>
-    <input id="email" name="email" type="email" autocomplete="username" required placeholder="email"/>
-    <label for="password">${pt ? 'Palavra-passe' : 'Password'}</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" required/>
-    <label class="tick"><input type="checkbox" id="asStaff"/> ${pt ? 'Acesso de pessoal (staff) — não é conta comum' : 'Staff login — not a common-user account'}</label>
+    <input id="email" name="email" type="email" autocomplete="username" ${setpw ? '' : 'required'} placeholder="email"/>
+    <div id="pwRow">
+      <label for="password">${pt ? 'Palavra-passe' : 'Password'}</label>
+      <input id="password" name="password" type="password" autocomplete="current-password"/>
+    </div>
+    <div id="pw2Row" style="display:none">
+      <label for="password2">${pt ? 'Confirmar palavra-passe' : 'Confirm password'}</label>
+      <input id="password2" name="password2" type="password" autocomplete="new-password"/>
+    </div>
+    <label class="tick" id="staffRow"><input type="checkbox" id="asStaff"/> ${pt ? 'Acesso de pessoal (staff) — mesmas caixas' : 'Staff access — same boxes'}</label>
+    <label class="tick" id="termsRow" style="display:none"><input type="checkbox" id="terms"/> ${pt ? 'Aceito os termos do Nó Calhegas Morais (node-1.0)' : 'I accept the Calhegas Morais Node terms (node-1.0)'}</label>
     <div id="otp">
       <label for="code">${pt ? 'Código de 6 dígitos' : '6-digit code'}</label>
       <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="••••••"/>
     </div>
     <div class="cta-row">
-      <button class="btn" type="submit" id="go">${pt ? 'Entrar' : 'Sign in'}</button>
+      <button class="btn" type="submit" id="go">${setpw ? (pt ? 'Guardar' : 'Save') : (pt ? 'Entrar' : 'Sign in')}</button>
       <a class="btn ghost" href="${pt ? '/' : '/en'}">${pt ? 'Início' : 'Home'}</a>
     </div>
   </form>
   <p id="msg">${presetErr.replace(/[<>&]/g, '')}</p>
-  <p class="note">${pt ? 'Com o visto de pessoal, o Nó usa /staff/login (2FA e-mail ou TOTP) e abre o painel completo. Sem o visto, entra como utilizador comum.' : 'With the staff tick, the Node uses /staff/login (email or TOTP 2FA) and opens the full panel. Unticked = common user.'}</p>
+  <p class="note" id="links">
+    <a href="#" id="toReg">${pt ? 'Criar conta' : 'Create account'}</a>
+    · <a href="#" id="toReset">${pt ? 'Repor palavra-passe' : 'Reset password'}</a>
+    · <a href="#" id="toLogin">${pt ? 'Já tenho conta' : 'I have an account'}</a>
+  </p>
 </div>
 ${landingFoot(pt)}
 <script>
 const pt = ${pt ? 'true' : 'false'};
-let challenge = null, kind = 'user';
+const SETPW = ${JSON.stringify(setpw)};
+let challenge = null, kind = 'user', mode = SETPW ? 'setpw' : 'login';
 const otp = document.getElementById('otp');
 const msg = document.getElementById('msg');
 function asStaff(){ return !!(document.getElementById('asStaff') && document.getElementById('asStaff').checked); }
+function show(id, on){ const el=document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; }
+function setMode(m){
+  mode = m; challenge = null;
+  show('pwRow', m==='login' || m==='setpw');
+  show('pw2Row', m==='setpw');
+  show('staffRow', m==='login');
+  show('termsRow', m==='register');
+  otp.style.display = 'none';
+  const t = document.getElementById('boxTitle');
+  const go = document.getElementById('go');
+  if(m==='register'){ t.textContent = pt ? 'Criar conta' : 'Create account'; go.textContent = pt ? 'Enviar convite' : 'Send invite'; }
+  else if(m==='reset'){ t.textContent = pt ? 'Repor palavra-passe' : 'Reset password'; go.textContent = pt ? 'Enviar link' : 'Send link'; }
+  else if(m==='setpw'){ t.textContent = pt ? 'Definir palavra-passe' : 'Set password'; go.textContent = pt ? 'Guardar' : 'Save'; }
+  else { t.textContent = pt ? 'Identidade' : 'Identity'; go.textContent = pt ? 'Entrar' : 'Sign in'; }
+  msg.textContent = '';
+}
+document.getElementById('toReg').onclick = (e)=>{ e.preventDefault(); setMode('register'); };
+document.getElementById('toReset').onclick = (e)=>{ e.preventDefault(); setMode('reset'); };
+document.getElementById('toLogin').onclick = (e)=>{ e.preventDefault(); setMode('login'); };
+if (SETPW) setMode('setpw');
 function saveToken(token, type) {
   const t = type || kind || 'user';
   try {
@@ -1369,23 +1413,53 @@ function saveToken(token, type) {
   document.cookie = 'sm_token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
   document.cookie = 'sm_token=' + encodeURIComponent(token) + '; Path=/; SameSite=Lax; Secure; Max-Age=2592000';
   document.cookie = 'auth_type=' + encodeURIComponent(t) + '; Path=/; SameSite=Lax; Secure; Max-Age=2592000';
-  const dest = (pt ? '/dashboard' : '/en/dashboard') + '?auth=' + encodeURIComponent(token);
-  location.replace(dest);
+  location.replace((pt ? '/dashboard' : '/en/dashboard') + '?auth=' + encodeURIComponent(token));
 }
 document.getElementById('f').onsubmit = async (e) => {
   e.preventDefault();
+  msg.style.color = 'var(--muted)';
   msg.textContent = '';
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+  const password2 = (document.getElementById('password2').value || '');
   const code = (document.getElementById('code').value || '').trim();
   const staff = asStaff();
   try {
+    if (mode === 'register') {
+      if (!email) { msg.style.color='var(--err)'; msg.textContent = pt ? 'E-mail obrigatório.' : 'Email required.'; return; }
+      if (!document.getElementById('terms').checked) { msg.style.color='var(--err)'; msg.textContent = pt ? 'Aceite os termos.' : 'Accept the terms.'; return; }
+      const r = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, lang: pt ? 'pt' : 'en', terms_accepted: true, terms_version: 'node-1.0' }) });
+      const j = await r.json().catch(() => ({}));
+      msg.style.color = j.success ? 'var(--muted)' : 'var(--err)';
+      msg.textContent = j.message || j.error || (pt ? 'Consulte o e-mail para definir a palavra-passe.' : 'Check email to set your password.');
+      return;
+    }
+    if (mode === 'reset') {
+      if (!email) { msg.style.color='var(--err)'; msg.textContent = pt ? 'Indique o e-mail.' : 'Enter the email.'; return; }
+      const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, lang: pt ? 'pt' : 'en' }) });
+      const j = await r.json().catch(() => ({}));
+      msg.style.color = j.success ? 'var(--muted)' : 'var(--err)';
+      msg.textContent = j.message || j.error || (pt ? 'Se o e-mail existir, foi enviado um link (1 hora).' : 'If the email exists, a 1-hour link was sent.');
+      return;
+    }
+    if (mode === 'setpw') {
+      if (password.length < 8) { msg.style.color='var(--err)'; msg.textContent = pt ? 'Mín. 8 caracteres.' : 'Min. 8 characters.'; return; }
+      if (password !== password2) { msg.style.color='var(--err)'; msg.textContent = pt ? 'As palavras-passe não coincidem.' : 'Passwords do not match.'; return; }
+      const r = await fetch('/api/auth/set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: SETPW, password, lang: pt ? 'pt' : 'en' }) });
+      const j = await r.json().catch(() => ({}));
+      if (!j.success) { msg.style.color='var(--err)'; msg.textContent = j.error || (pt ? 'Link inválido ou expirado.' : 'Invalid or expired link.'); return; }
+      msg.textContent = j.message || (pt ? 'Palavra-passe definida. Entre com o código 2FA.' : 'Password set. Sign in with 2FA.');
+      history.replaceState({}, '', location.pathname);
+      setMode('login');
+      return;
+    }
     if (challenge) {
-      if (!code) { msg.textContent = pt ? 'Introduza o código.' : 'Enter the code.'; return; }
+      if (!code) { msg.style.color='var(--err)'; msg.textContent = pt ? 'Introduza o código.' : 'Enter the code.'; return; }
       const url = (kind === 'staff' || staff) ? '/api/auth/staff/2fa' : '/api/auth/email/verify';
       const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ challenge, code, email }) });
       const j = await r.json().catch(() => ({}));
       if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token, j.type || kind); return; }
+      msg.style.color='var(--err)';
       msg.textContent = j.error || (pt ? 'Código inválido.' : 'Invalid code.');
       return;
     }
@@ -1398,21 +1472,24 @@ document.getElementById('f').onsubmit = async (e) => {
       otp.style.display = 'block';
       document.getElementById('code').focus();
       document.getElementById('go').textContent = pt ? 'Confirmar código' : 'Confirm code';
-      msg.style.color = 'var(--muted)';
       msg.textContent = j.message || (pt ? 'Código enviado.' : 'Code sent.');
       return;
     }
-    if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token, j.type || (staff ? 'staff' : 'user')); return; }
+    if (j.success && (j.token || j.session_token) && (j.trusted_2fa || !j.requires_2fa)) {
+      msg.style.color='var(--err)';
+      msg.textContent = pt ? '2FA obrigatório em cada entrada. Tente de novo — o código deve aparecer.' : '2FA is required on every sign-in. Try again — the code should appear.';
+      return;
+    }
     msg.style.color = 'var(--err)';
     msg.textContent = j.error || (pt ? 'Falha no login.' : 'Login failed.');
   } catch (err) {
+    msg.style.color = 'var(--err)';
     msg.textContent = String(err.message || err);
   }
 };
 </script>
 </body></html>`;
 }
-
 function dashboardAppHtml(lang, me, sub) {
   const pt = lang !== 'en';
   const staticOnly = !!(sub && sub.static_only);

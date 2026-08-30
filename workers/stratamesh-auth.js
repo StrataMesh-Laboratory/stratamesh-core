@@ -135,6 +135,7 @@ export default {
         )`).run().catch(() => {});
       }
       async function isLoginTrusted(email) {
+        if (env.LAB_TRUST_2FA !== '1') return false;
         try {
           await ensureLoginTrustTable();
           const row = await env.AUTH_DB.prepare(
@@ -1580,7 +1581,7 @@ export default {
           await env.AUTH_DB.prepare(
             "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'invite', datetime('now', '+1 hour'))"
           ).bind(email, user.id, token).run();
-          const link = (env.AUTH_PUBLIC_BASE || 'https://stratamesh-auth.stratamesh.workers.dev').replace(/\/+$/, '') + '/set-password-page?token=' + encodeURIComponent(token) + '&lang=' + lang;
+          const link = ((env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '')) + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
           const mc = mailCopy(lang, 'invite', link);
           await sendSystemEmail(env, email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
           return new Response(JSON.stringify({
@@ -1637,20 +1638,10 @@ export default {
         const u = new URL(request.url);
         const token = u.searchParams.get('token') || u.searchParams.get('setpw') || '';
         const lang = (u.searchParams.get('lang') || 'pt').toLowerCase().startsWith('en') ? 'en' : 'pt';
-        const title = lang === 'en' ? 'Set password · Calhegas Morais Node' : 'Definir palavra-passe · Nó Calhegas Morais';
-        const lead = lang === 'en'
-          ? 'Choose a password (min. 8 characters). This link expires in 1 hour.'
-          : 'Escolha uma palavra-passe (mín. 8 caracteres). Este link expira em 1 hora.';
-        const btn = lang === 'en' ? 'Save password' : 'Guardar palavra-passe';
-        const ph1 = lang === 'en' ? 'New password' : 'Nova palavra-passe';
-        const ph2 = lang === 'en' ? 'Confirm' : 'Confirmar';
-        const back = lang === 'en' ? 'Back to portal' : 'Voltar ao portal';
-        const tokenJson = JSON.stringify(token);
-        const langJson = JSON.stringify(lang);
-        const html = '<!DOCTYPE html><html lang="' + (lang === 'en' ? 'en-GB' : 'pt-PT') + '"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + title + '</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0c;color:#e8e8ea;font-family:system-ui,sans-serif}.box{width:100%;max-width:400px;padding:2rem;border:1px solid #2a2a30;border-radius:8px;background:#121216}h1{font-size:1.25rem;font-weight:500;margin:0 0 .5rem}p{color:#9a9aa3;font-size:.9rem;line-height:1.45}input{width:100%;box-sizing:border-box;padding:.75rem;margin:.4rem 0;background:#1a1a1f;border:1px solid #333;border-radius:4px;color:#fff}button{width:100%;margin-top:.75rem;padding:.85rem;background:transparent;border:1px solid #8b9cf7;color:#8b9cf7;border-radius:4px;cursor:pointer;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase}button:hover{background:#8b9cf7;color:#111}#msg{margin-top:.75rem;font-size:.85rem;min-height:1.2em}.ok{color:#6ee7b7}.err{color:#f87171}a{color:#8b9cf7}</style></head><body><div class="box"><h1>' + title + '</h1><p>' + lead + '</p><input id="p1" type="password" autocomplete="new-password" placeholder="' + ph1 + '"/><input id="p2" type="password" autocomplete="new-password" placeholder="' + ph2 + '"/><button type="button" id="go">' + btn + '</button><p id="msg"></p><p style="margin-top:1.5rem;font-size:.75rem"><a href="https://calhegasmorais.pt/dashboard">' + back + '</a></p></div><script>const token=' + tokenJson + ';const lang=' + langJson + ';const AUTH="https://stratamesh-auth.stratamesh.workers.dev";document.getElementById("go").onclick=async function(){const p1=document.getElementById("p1").value;const p2=document.getElementById("p2").value;const msg=document.getElementById("msg");if(p1.length<8){msg.className="err";msg.textContent=lang==="en"?"Min. 8 characters":"Mín. 8 caracteres";return;}if(p1!==p2){msg.className="err";msg.textContent=lang==="en"?"Passwords do not match":"As palavras-passe não coincidem";return;}if(!token){msg.className="err";msg.textContent=lang==="en"?"Missing token":"Token em falta";return;}msg.textContent="…";try{const r=await fetch(AUTH+"/set-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token,password:p1,lang:lang})});const j=await r.json();if(!j.success){msg.className="err";msg.textContent=j.error||"Error";return;}msg.className="ok";msg.textContent=j.message||(lang==="en"?"Password set. You may sign in.":"Palavra-passe definida. Pode iniciar sessão.");}catch(e){msg.className="err";msg.textContent=String(e.message||e);}};</script></body></html>';
-        return new Response(html, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
-        });
+        const dest = ((env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, ''))
+          + (lang === 'en' ? '/en/dashboard' : '/dashboard')
+          + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
+        return Response.redirect(dest, 302);
       }
 
       if ((path === '/auth/set-password' || path === '/set-password' || path === '/password/set') && request.method === 'POST') {
@@ -1707,7 +1698,7 @@ export default {
             await env.AUTH_DB.prepare(
               "INSERT INTO password_tokens (email, user_id, token, purpose, expires_at) VALUES (?, ?, ?, 'reset', datetime('now', '+1 hour'))"
             ).bind(email, user.id, token).run();
-            const link = (env.AUTH_PUBLIC_BASE || 'https://stratamesh-auth.stratamesh.workers.dev').replace(/\/+$/, '') + '/set-password-page?token=' + encodeURIComponent(token) + '&lang=' + lang;
+            const link = ((env.PORTAL_BASE || 'https://calhegasmorais.pt').replace(/\/+$/, '')) + pathSet + '?setpw=' + encodeURIComponent(token) + '&lang=' + lang;
             const mc = mailCopy(lang, 'reset', link);
             await sendSystemEmail(env, email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
           }
