@@ -15,7 +15,10 @@ SECRETS="$HOME/.config/stratamesh"
 LAUNCH="$HOME/Library/LaunchAgents"
 REPO="${REPO_URL:-https://github.com/StrataMesh-Laboratory/stratamesh-core.git}"
 CF_VER="${CLOUDFLARED_VERSION:-2026.8.2}"
-NODE_ID="FOG-NODE-PT-CM-001"
+NODE_ID="${FOG_NODE_ID:-FOG-NODE-PT-CM-001}"
+if [[ -f "$HOME/.config/stratamesh/node.id" ]]; then
+  NODE_ID="$(tr -d '[:space:]' < "$HOME/.config/stratamesh/node.id")"
+fi
 
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }

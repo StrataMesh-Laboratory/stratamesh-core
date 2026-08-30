@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mac Fog runtime UI v7. 15s refresh.
+"""Mac Fog runtime UI v8. Destyle. 15s refresh.
 q quit · s stop fog · b reboot fog · g git pull + reboot · r refresh now
 Does not kill macbook-server cloudflared. caffeinate stay-awake is a LaunchAgent.
 """
@@ -19,7 +19,14 @@ FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 LAUNCH = Path.home() / "Library/LaunchAgents"
 REPO = FOG / "repo"
 INTERVAL = 15
-TEAL, DIM, OK, BAD, RST = "\033[36m", "\033[2m", "\033[32m", "\033[31m", "\033[0m"
+ACC = "\033[38;2;196;165;116m"
+FG = "\033[38;2;232;230;227m"
+MUT = "\033[38;2;138;135;128m"
+OK = "\033[38;2;122;168;116m"
+BAD = "\033[38;2;196;92;84m"
+RST = "\033[0m"
+TEAL = ACC
+DIM = MUT
 UID = os.getuid()
 FOG_LABELS = ("pt.calhegasmorais.fog", "pt.calhegasmorais.workerd")
 
@@ -33,7 +40,7 @@ def sh(args: list[str], timeout: float = 2.0) -> str:
 
 def get(url: str, timeout: float = 2.0) -> dict:
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "fog-tui/7"})
+        req = urllib.request.Request(url, headers={"User-Agent": "fog-tui/8"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode())
     except Exception as e:
@@ -259,58 +266,58 @@ def draw(msg: str = "") -> None:
     wd_rss = sum(r for _, r in wd)
     py_rss = sum(r for _, r in py)
     cf_rss = sum(r for _, r in cf)
-    cols = min(78, shutil.get_terminal_size((78, 24)).columns)
-    bar = "─" * cols
+    cols = min(76, shutil.get_terminal_size((76, 24)).columns)
+    rule = MUT + "─" * cols + RST
+    nid = st.get("node_id") or os.environ.get("FOG_NODE_ID") or "—"
 
     sys.stdout.write("\033[H\033[J")
-    print(TEAL + " FOG · MacBook runtime v7" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
-    print(DIM + bar + RST)
-    print(" node     ", st.get("node_id") or "—", DIM + str(st.get("version") or "") + RST)
-    print(" origin   ", TEAL + str(origin) + RST, DIM + str(hop.get("layer") or "") + RST)
-    print(" mac_live ", yn(hop.get("mac_live") or st.get("mac_live")),
-          DIM + " trusted=" + RST, yn(st.get("trusted") if "trusted" in st else hop.get("trusted")))
-    print(" hop      ", "workerd :8788", mark(bool(hop.get("ok"))),
-          " · fog :8787", mark(st.get("status") == "operational"))
-    print(" public   ", "fog", mark(bool(pub.get("ok"))),
-          DIM + "origin=" + str(pub.get("origin") or "—") + RST,
-          " · edge", mark(bool(edge.get("ok"))))
-    print(" uptime   ", ago(st.get("uptime_seconds")),
-          DIM + "plugin reboots" + RST, wr.get("reboots", 0))
-    print(" mesh     ", "n=%s f_max=%s member=%s oracle=%s" % (
-        n, fmax, member, st.get("oracle_live")))
-    print(" dag      ", "tx=%s tips=%s height=%s" % (
+    print(FG + " Fog Node" + RST, ACC + str(nid) + RST, MUT + time.strftime("%H:%M:%S") + RST, mark(live))
+    print(MUT + " lab · prerelease · not mainnet" + RST)
+    print(rule)
+    print(ACC + " identity" + RST)
+    print("   origin ", ACC + str(origin) + RST, MUT + str(hop.get("layer") or "") + RST,
+          "  mac_live", yn(hop.get("mac_live") or st.get("mac_live")),
+          "  trusted", yn(st.get("trusted") if "trusted" in st else hop.get("trusted")))
+    print("   mesh   ", "n=%s" % n, "  f_max=%s" % fmax, "  member=%s" % member, "  oracle=%s" % st.get("oracle_live"))
+    print("   ver    ", MUT + str(st.get("version") or "—") + RST, "  up", ago(st.get("uptime_seconds")))
+    print(rule)
+    print(ACC + " origin hop" + RST)
+    print("   workerd :8788", mark(bool(hop.get("ok"))),
+          "   fog :8787", mark(st.get("status") == "operational"),
+          "   plugin", wr.get("reboots", 0), "reboots")
+    print("   public fog  ", mark(bool(pub.get("ok"))),
+          MUT + "origin=" + str(pub.get("origin") or "—") + RST,
+          "   edge", mark(bool(edge.get("ok"))), MUT + "(session expected)" + RST)
+    print(rule)
+    print(ACC + " ledger" + RST)
+    print("   dag    tx=%s  tips=%s  height=%s" % (
         dag.get("transaction_count"), dag.get("tip_count"), dag.get("height") or dag.get("max_height")))
-    print(" spa      ", "total=%s active=%s" % (spa.get("total"), spa.get("active")),
-          " · STRATA", tok.get("total_supply"))
+    print("   spa    total=%s  active=%s   STRATA %s" % (
+        spa.get("total"), spa.get("active"), tok.get("total_supply")))
     if contrib:
-        print(" poc      ", "accepted=%s pending=%s" % (
+        print("   poc    accepted=%s  pending=%s" % (
             contrib.get("accepted") or contrib.get("count"), contrib.get("pending") or contrib.get("rejected")))
     if sub:
-        print(" subsist  ", "pressure=%s debt=%s" % (
+        print("   subsist pressure=%s  debt=%s" % (
             sub.get("pressure") or sub.get("state"), sub.get("debt") or sub.get("balance")))
-    print(DIM + bar + RST)
-    print(" host     ", brand, DIM + "ncpu=" + ncpu + RST)
-    print(" cpu      ", "load %.2f  %.2f  %.2f" % load)
-    print(" mem      ", "free", gb(free), "active", gb(active), "wired", gb(wired),
-          DIM + "compressor", gb(compressed) + RST)
-    print(" rss      ", "workerd", kb(wd_rss), "python3", kb(py_rss), "cloudflared", kb(cf_rss))
-    print(" disk     ", dsk, DIM + dsk_path + RST)
-    print(" net      ", net())
-    print(" sqlite   ", "%.1fK" % (dbn / 1024.0), DIM + "wal", "%.1fK" % (waln / 1024.0), str(stor.get("path") or db) + RST)
-    print(" procs    ", "workerd", [p for p, _ in wd] or "—",
-          " · python3", len(py),
-          " · cloudflared", len(cf))
-    print(" git      ", git_sha())
-    print(" awake    ", awake_line())
-    print(DIM + bar + RST)
-    print(" " + TEAL + "q" + RST + " quit   "
-          + TEAL + "s" + RST + " stop   "
-          + TEAL + "b" + RST + " reboot   "
-          + TEAL + "g" + RST + " git pull+reboot   "
-          + TEAL + "r" + RST + " refresh")
-    print(DIM + " 15s · reboot kickstarts fog+workerd · never kills macbook-server cloudflared" + RST)
+    print(rule)
+    print(ACC + " host" + RST)
+    print("  ", brand, MUT + "ncpu=" + ncpu + RST)
+    print("   load  %.2f  %.2f  %.2f" % load)
+    print("   mem   free", gb(free), "  active", gb(active), "  wired", gb(wired))
+    print("   rss   workerd", kb(wd_rss), "  python3", kb(py_rss), "  cloudflared", kb(cf_rss))
+    print("   disk ", dsk, MUT + dsk_path + RST)
+    print("   net  ", net())
+    print("   git  ", git_sha(), "  awake", awake_line())
+    print(rule)
+    print("  " + ACC + "q" + RST + " quit   "
+          + ACC + "s" + RST + " stop   "
+          + ACC + "b" + RST + " reboot   "
+          + ACC + "g" + RST + " pull+reboot   "
+          + ACC + "r" + RST + " refresh")
+    print(MUT + "  15s · reboot does not kill macbook-server" + RST)
     if msg:
-        print(" " + msg)
+        print("  " + ACC + msg + RST)
     sys.stdout.flush()
 
 

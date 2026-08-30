@@ -100,16 +100,16 @@ cat > "$DEST/FogInstaller.app/Contents/MacOS/FogInstaller" <<'EOS'
 #!/bin/bash
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 REPO="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog/repo"
-CMD="$REPO/deploy/mac-fog/install-apps.command"
+CMD="$REPO/deploy/mac-fog/fog-bootstrap.py"
 if [[ ! -f "$CMD" ]]; then
   mkdir -p "$(dirname "$REPO")"
   git clone --depth 1 https://github.com/StrataMesh-Laboratory/stratamesh-core.git "$REPO" || true
-  CMD="$REPO/deploy/mac-fog/install-apps.command"
+  CMD="$REPO/deploy/mac-fog/fog-bootstrap.py"
 fi
 osascript >/dev/null <<APP
 tell application "Terminal"
   activate
-  do script "bash '$CMD'"
+  do script "python3 '$CMD'"
 end tell
 APP
 EOS

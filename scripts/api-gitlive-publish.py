@@ -36,6 +36,7 @@ MAIN_MODULE = {
     "stratamesh-briefing": "stratamesh-briefing.js",
     "stratamesh-edge-grok": "stratamesh-edge-grok.js",
     "stratamesh-origin-archive": "stratamesh-origin-archive.js",
+    "stratamesh-auth": "index.js",
 }
 
 

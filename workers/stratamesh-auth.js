@@ -308,6 +308,19 @@ export default {
 
       function mailCopy(lang, kind, code) {
         const en = lang === 'en';
+        if (kind === 'fog_2fa') {
+          return {
+            subject: en
+              ? 'Calhegas Morais Node · Fog bootstrap 2FA'
+              : 'Nó Calhegas Morais · 2FA de instalação Fog',
+            text: en
+              ? ('Your Fog Node bootstrap code is: ' + code + '\n\nValid for 10 minutes. One use. Node install will not start without it.')
+              : ('O código de instalação do Nó Fog é: ' + code + '\n\nVálido 10 minutos. Uma utilização. A instalação não começa sem ele.'),
+            kind: 'fog_2fa',
+            code,
+            cta: null,
+          };
+        }
         if (kind === 'staff_2fa') {
           return {
             subject: en
@@ -633,6 +646,122 @@ export default {
         )`).run();
       }
 
+
+      function maskEmail(email) {
+        const e = String(email || '').trim();
+        const at = e.lastIndexOf('@');
+        if (at < 1) return '***';
+        return e[0] + '***@' + e.slice(at + 1);
+      }
+
+      async function ensureFogNodes() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS fog_nodes (
+          node_id TEXT PRIMARY KEY,
+          operator_email TEXT NOT NULL,
+          label TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        const n = await env.AUTH_DB.prepare('SELECT COUNT(*) AS c FROM fog_nodes').first();
+        if (!n || Number(n.c) === 0) {
+          const staff = await env.AUTH_DB.prepare('SELECT email FROM staff ORDER BY id ASC LIMIT 1').first();
+          if (staff && staff.email) {
+            await env.AUTH_DB.prepare(
+              'INSERT OR IGNORE INTO fog_nodes (node_id, operator_email, label) VALUES (?, ?, ?)'
+            ).bind('FOG-NODE-PT-CM-001', staff.email, 'Calhegas Morais Fog').run();
+          }
+        }
+      }
+
+      async function ensureBootstrapTokens() {
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS fog_bootstrap_tokens (
+          token TEXT PRIMARY KEY,
+          node_id TEXT NOT NULL,
+          operator_email TEXT NOT NULL,
+          expires_at TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+      }
+
+      // Fog hardware bootstrap: node_id → 2FA to registered operator email → short token
+      if ((path === '/fog/bootstrap/challenge' || path === '/fog-bootstrap-challenge') && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const lang = resolveLang(body, request);
+          const nodeId = String(body.node_id || body.node || '').trim().toUpperCase();
+          if (!nodeId || nodeId.length < 8) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Registered node id required.' : 'Indique o id de nó registado.' }), { headers: corsHeaders, status: 400 });
+          }
+          await ensureFogNodes();
+          await ensureEmailOtpTable();
+          const row = await env.AUTH_DB.prepare('SELECT node_id, operator_email, label FROM fog_nodes WHERE upper(node_id) = ?').bind(nodeId).first();
+          if (!row) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Unknown node id.' : 'Id de nó desconhecido.', node_id: nodeId }), { headers: corsHeaders, status: 404 });
+          }
+          const code = sixDigit();
+          const challenge = crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO email_otp (email, code, challenge, purpose, expires_at) VALUES (?, ?, ?, 'fog_bootstrap', datetime('now', '+10 minutes'))"
+          ).bind(row.operator_email, code, challenge).run();
+          const mc = mailCopy(lang, 'fog_2fa', code);
+          queueSystemEmail(env, ctx, row.operator_email, mc.subject, mc.text, lang, { kind: mc.kind, code: mc.code, cta: mc.cta });
+          return new Response(JSON.stringify({
+            success: true,
+            requires_2fa: true,
+            challenge,
+            channel: 'email',
+            node_id: row.node_id,
+            label: row.label || null,
+            operator_masked: maskEmail(row.operator_email),
+            email_sent: true,
+            expires_in: 600,
+            message: lang === 'en'
+              ? ('A 6-digit code was sent to the registered operator ' + maskEmail(row.operator_email) + '.')
+              : ('Foi enviado um código de 6 dígitos ao operador registado ' + maskEmail(row.operator_email) + '.'),
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      if ((path === '/fog/bootstrap/verify' || path === '/fog-bootstrap-verify') && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const lang = resolveLang(body, request);
+          const nodeId = String(body.node_id || '').trim().toUpperCase();
+          const challenge = String(body.challenge || '').trim();
+          const code = String(body.code || '').trim();
+          if (!nodeId || !challenge || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'node_id, challenge and code required' }), { headers: corsHeaders, status: 400 });
+          }
+          await ensureFogNodes();
+          await ensureBootstrapTokens();
+          const otp = await env.AUTH_DB.prepare(
+            "SELECT * FROM email_otp WHERE challenge = ? AND purpose = 'fog_bootstrap' AND used = 0 AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1"
+          ).bind(challenge).first();
+          if (!otp || String(otp.code) !== code) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Invalid or expired code.' : 'Código inválido ou expirado.' }), { headers: corsHeaders, status: 401 });
+          }
+          const node = await env.AUTH_DB.prepare('SELECT * FROM fog_nodes WHERE upper(node_id) = ?').bind(nodeId).first();
+          if (!node || String(node.operator_email).toLowerCase() !== String(otp.email).toLowerCase()) {
+            return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Node does not match this challenge.' : 'O nó não corresponde a este desafio.' }), { headers: corsHeaders, status: 401 });
+          }
+          await env.AUTH_DB.prepare('UPDATE email_otp SET used = 1 WHERE id = ?').bind(otp.id).run();
+          const token = crypto.randomUUID() + crypto.randomUUID();
+          await env.AUTH_DB.prepare(
+            "INSERT INTO fog_bootstrap_tokens (token, node_id, operator_email, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
+          ).bind(token, node.node_id, node.operator_email).run();
+          return new Response(JSON.stringify({
+            success: true,
+            bootstrap_token: token,
+            node_id: node.node_id,
+            operator_masked: maskEmail(node.operator_email),
+            expires_in: 86400,
+            message: lang === 'en' ? 'Operator verified. Continue with GitHub and Cloudflare keys.' : 'Operador verificado. Continue com as chaves GitHub e Cloudflare.',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
 
       // --- STAFF-only login (separate from public users / future CMD) ---
       
