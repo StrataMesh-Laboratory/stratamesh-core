@@ -1,3 +1,8 @@
+## 2026-08-30 — Fog keep-up plugins (ping × quality stream)
+- `src/fog_plugins/{ping,keepup,rails}.py` on the Mac Fog runtime. GET `/ping` `/contribution/metrics` `/contribution/stream`. POST `/contribution/tick` loopback.
+- Score = quantity × quality. Unready does not contribute. `#mint` / `#0` rails exist and stay unarmed (`oracle_live=false`). workers.dev refused.
+- TUI shows keep-up Q/K/S. JSONL `$FOG_DATA/keepup.jsonl`.
+
 ## 2026-08-30 — Actions: origin-archive / gitlive-drift retries
 - origin-archive: never PATCH a PAT-owned `archive-YYYY-MM-DD` (`GITHUB_TOKEN` cannot update). `gh release create` + view-exists = green.
 - gitlive-drift: comment `continue-on-error`; check stays observe-only. Old SHA retries cannot pick up YAML — dispatch on main, do not rerun doomed commits.

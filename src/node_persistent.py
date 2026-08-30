@@ -4,7 +4,7 @@ StrataMesh Persistent Fog Node — Phase 2
 HTTP Fog Node: PersistentDAG, gossip, pins, SPA registry, finality, PoC.
 
 Endpoints:
-  GET  /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /origin/lease
+  GET  /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /contribution/metrics /ping /origin/lease
   POST /submit /gossip /spa/register /origin/reclaim
 
 GET /gossip is a lab_single_host_gossip view (self-peer only, mesh_member false).
@@ -43,6 +43,9 @@ from host_fingerprint import fingerprint as host_fingerprint
 from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
 from mesh_provision import flags as mesh_flags
 from origin_lease import public_view as origin_public_view, verify_reclaim, write as origin_lease_write
+from fog_plugins.ping import PingPlugin
+from fog_plugins.keepup import KeepUpPlugin
+from fog_plugins.rails import RailsPlug
 
 
 class PersistentFogNode:
@@ -71,6 +74,16 @@ class PersistentFogNode:
         self.db_path = db_path
         self.workerd = WorkerdPlugin()
         self.workerd.attach()
+        self.ping = PingPlugin()
+        self.rails = RailsPlug(poc=self.poc, token=self.token, subsistence=self.subsistence)
+        self.keepup = KeepUpPlugin(
+            node_id,
+            ping=self.ping,
+            mesh_flags=mesh_flags,
+            resource_sample=resource_sample,
+        )
+        self.keepup.on_sample = lambda sample: self.rails.ingest(sample, node_id)
+        self.keepup.attach()
 
     def submit(self, tx_type: str = "standard", cid: str | None = None) -> dict:
         with self.lock:
@@ -452,6 +465,9 @@ code {{ color:var(--fg); }}
                     "acbs": self.acbs.summary(),
                     "pq_keys": self.pq.summary(),
                     "workerd": wrd,
+                    "ping": self.ping.snapshot() if getattr(self, "ping", None) else None,
+                    "keepup": self.keepup.snapshot() if getattr(self, "keepup", None) else None,
+                    "rails": self.rails.snapshot() if getattr(self, "rails", None) else None,
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -545,6 +561,24 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, NODE.finality_engine.run(NODE.dag, tips))
         elif path == "/contribution":
             self._json(200, NODE.poc.summary())
+        elif path in ("/contribution/metrics", "/keepup", "/keepup/metrics"):
+            self._json(200, {
+                "ok": True,
+                "keepup": NODE.keepup.snapshot() if NODE.keepup else None,
+                "rails": NODE.rails.snapshot() if NODE.rails else None,
+                "poc": NODE.poc.summary(),
+            })
+        elif path in ("/contribution/stream", "/keepup/stream"):
+            n = 20
+            q = urlparse(self.path).query
+            if "n=" in q:
+                try:
+                    n = max(1, min(200, int(q.split("n=")[1].split("&")[0])))
+                except Exception:
+                    n = 20
+            self._json(200, {"ok": True, "schema": "stratamesh.fog.keepup.v1", "samples": NODE.keepup.stream_tail(n)})
+        elif path in ("/ping", "/runtime/ping"):
+            self._json(200, NODE.ping.snapshot() if NODE.ping else {"ok": False})
         elif path == "/token":
             self._json(200, NODE.token.summary())
         elif path == "/svc":
@@ -572,6 +606,17 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", 0))
         raw = self.rfile.read(length) if length else b"{}"
+
+        if path in ("/contribution/tick", "/keepup/tick", "/ping/tick"):
+            if not is_loopback_not_tunnel(self):
+                self._json(403, {"ok": False, "error": "local_only"})
+                return
+            sample = NODE.keepup.measure()
+            self._json(200, {"ok": True, "sample": {
+                "quantity": sample.quantity, "quality": sample.quality, "score": sample.score,
+                "admissible": sample.admissible, "unready": sample.unready,
+            }, "rails": NODE.rails.snapshot()})
+            return
 
         if path in ("/workerd/reboot", "/workerd/restart"):
             if not is_loopback_not_tunnel(self):
@@ -830,12 +875,16 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /workerd /origin/lease")
-    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip /workerd/reboot /origin/reclaim")
+    print("  GET /status /health /ping /contribution /contribution/metrics /workerd /origin/lease")
+    print("  POST /submit /contribution/tick /token/mint /workerd/reboot /origin/reclaim")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nShutting down.")
+        if NODE.keepup:
+            NODE.keepup.shutdown()
+        if NODE.workerd:
+            NODE.workerd.shutdown()
         NODE.dag.close()
 
 

@@ -36,6 +36,9 @@ jobs:
       - name: I1–I6 named checks (miniature LabLedger + DAG replay)
         working-directory: src
         run: python3 test_economic_invariants.py
+      - name: Fog ping + keep-up stream (no STRATA movement)
+        working-directory: src
+        run: python3 test_fog_plugins.py
       - name: Resource-proof MVP (compute hash work-token)
         working-directory: src
         run: python3 test_resource_proof.py

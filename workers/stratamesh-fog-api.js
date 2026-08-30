@@ -252,6 +252,10 @@ This does NOT replace:
 
 3. ENDPOINTS
 ------------
+This Worker is the installer API. Runtime ping + keep-up live on the Mac Fog process
+(:8787 via workerd :8788): GET /ping  GET /contribution/metrics  POST /contribution/tick
+(loopback). Quantity × quality stream; STRATA #mint / #0 unarmed until oracle_live.
+
 GET  /                         Index JSON (HTML if Accept: text/html)
 GET  /health                   Liveness + mesh flags
 GET  /v1/meta                  Same as health without live probes

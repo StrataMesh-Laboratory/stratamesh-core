@@ -234,6 +234,8 @@ def draw(msg: str = "") -> None:
     prov = st.get("mesh_provision") if isinstance(st.get("mesh_provision"), dict) else {}
     sub = st.get("subsistence") if isinstance(st.get("subsistence"), dict) else {}
     contrib = st.get("contribution") if isinstance(st.get("contribution"), dict) else {}
+    keep = st.get("keepup") if isinstance(st.get("keepup"), dict) else {}
+    rails = st.get("rails") if isinstance(st.get("rails"), dict) else {}
     stor = st.get("storage") if isinstance(st.get("storage"), dict) else {}
     n = hop.get("n")
     if n is None:
@@ -296,6 +298,21 @@ def draw(msg: str = "") -> None:
     print("   spa    total=%s  active=%s   supply %s" % (
         spa.get("total"), spa.get("active"), tok.get("total_supply")))
     print(MUT + "   PoC resources → #mint · use → #0 · not a public offer" + RST)
+    last = (keep.get("last") or {}) if keep else {}
+    print("   keep-up Q=%.3f  K=%.3f  S=%.3f  %s" % (
+        float(last.get("quantity") or keep.get("quantity_sum") or 0),
+        float(last.get("quality") or keep.get("quality_mean") or 0),
+        float(last.get("score") or keep.get("score_ema") or 0),
+        (OK + "admissible" + RST) if last.get("admissible") else (MUT + "measuring" + RST),
+    ))
+    ping = (keep.get("ping") or st.get("ping") or {})
+    lastp = ping.get("last") if isinstance(ping, dict) else {}
+    wrp = lastp.get("workerd") if isinstance(lastp, dict) else None
+    print("   ping   workerd", mark(bool(wrp and wrp.get("ok"))) if wrp else MUT + "—" + RST,
+          "  rtt", MUT + str((wrp or {}).get("rtt_ms") or ping.get("rtt_ema_ms") or "—") + "ms" + RST)
+    if rails:
+        print("   rails  mint_armed=%s  burn_armed=%s  pending_poc=%s" % (
+            rails.get("mint_armed"), rails.get("burn_armed"), rails.get("pending_poc")))
     if contrib:
         print("   poc    accepted=%s  pending=%s" % (
             contrib.get("accepted") or contrib.get("count"), contrib.get("pending") or contrib.get("rejected")))
