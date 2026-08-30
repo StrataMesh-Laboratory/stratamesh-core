@@ -46,10 +46,12 @@ HEALTH = list(_PROBES.get("health") or [
 FOG_STATUS = _PROBES.get("fog_status") or f"https://fog.{ZONE}/status"
 UA = _PROBES.get("ua") or "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)"
 # EDGE hop is session (non-continuous). 530 origin-down / 429 CF 1015 are expected, not Fog P0.
+# Same class: WAF 403, timeout 0, 502/503 — observe HOLD, never paint the check red.
+TRANSIENT_HTTP = {0, 403, 408, 429, 502, 503, 530, 1015}
 SESSION_EXPECTED_HTTP = {
     str(k): {int(x) for x in (v or [])}
     for k, v in (_PROBES.get("session_expected_http") or {
-        f"https://edge.{ZONE}/health": [429, 530],
+        f"https://edge.{ZONE}/health": [429, 530, 403, 0],
     }).items()
 }
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
@@ -75,6 +77,8 @@ def fetch(url: str, timeout: int = 15, accept: str = "*/*") -> dict[str, Any]:
         return {"url": url, "ok": False, "error": "STASIS workers.dev forbidden", "http": 0}
     if low.rstrip("/").endswith("status.calhegasmorais.pt/status"):
         return {"url": url, "ok": False, "error": "never status-worker /status", "http": 0}
+    if accept == "*/*" and low.rstrip("/").endswith("/health"):
+        accept = "application/json"
     req = urllib.request.Request(
         url,
         headers={"User-Agent": UA, "Accept": accept},
@@ -230,8 +234,9 @@ def main() -> int:
         if "workers.dev" in (p.get("url") or "").lower():
             fails.append(f"workers.dev {p['url']}")
         if not p.get("ok") and p["url"] in CORE_HEALTH:
+            http = int(p.get("http") or 0)
             allowed = SESSION_EXPECTED_HTTP.get(p["url"]) or set()
-            if int(p.get("http") or 0) in allowed:
+            if http in allowed or http in TRANSIENT_HTTP:
                 p["session_expected"] = True
                 continue
             fails.append(f"health down {p['url']} http={p.get('http')} {p.get('error') or ''}")

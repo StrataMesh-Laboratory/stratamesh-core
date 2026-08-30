@@ -25,6 +25,9 @@ IGNORE_NAMES = {
     SELF,
     "gitlive-drift",  # hold_put spa; check is observe-only
 }
+# GitHub `?status=failure` is NOT a filter (returns 0 or unfiltered). Always
+# list completed and keep conclusion in REAL_FAIL. Skip cancelled/skipped.
+REAL_FAIL = {"failure", "timed_out", "startup_failure"}
 
 
 def token() -> str:
@@ -66,10 +69,18 @@ def api(path: str, method: str = "GET", body: dict | None = None) -> dict | list
 def list_failures() -> list[dict]:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=HOURS)
     out: list[dict] = []
-    for status in ("failure", "timed_out"):
-        data = api(f"/actions/runs?status={status}&per_page=30")
-        for r in data.get("workflow_runs") or []:
+    # Page completed runs. Do not query status=failure (API ignores it).
+    for page in (1, 2, 3):
+        data = api(f"/actions/runs?status=completed&per_page=100&page={page}")
+        runs = data.get("workflow_runs") or []
+        if not runs:
+            break
+        for r in runs:
             if r.get("name") in IGNORE_NAMES:
+                continue
+            if (r.get("conclusion") or "") not in REAL_FAIL:
+                continue
+            if int(r.get("run_attempt") or 1) > 1 and r.get("conclusion") != "failure":
                 continue
             created = r.get("created_at") or ""
             try:
@@ -88,6 +99,7 @@ def list_failures() -> list[dict]:
                     "html_url": r.get("html_url"),
                     "created_at": created,
                     "path": (r.get("path") or ""),
+                    "run_attempt": r.get("run_attempt"),
                 }
             )
     # unique by id, newest first
