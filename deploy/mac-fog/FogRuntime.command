@@ -8,4 +8,10 @@ TUI="$FOG/bin/fog-tui.py"
 [[ -f "$TUI" ]] || TUI="$FOG/repo/deploy/mac-fog/fog-tui.py"
 [[ -f "$TUI" ]] || { echo "fog-tui.py missing"; read -r _; exit 1; }
 export FOG_HOME="$FOG"
-exec /usr/bin/caffeinate -ims python3 "$TUI"
+# libmalloc: unset, never export =0 (that prints "can't turn off ... not enabled").
+unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory \
+      MallocScribble MallocGuardEdges MallocNanoZone || true
+# Drop CPython/libmalloc startup chatter on fd 2; keep real errors.
+# grep -v exits 1 when every line is noise — || true so exec still runs.
+exec /usr/bin/caffeinate -ims python3 "$TUI" \
+  2> >(grep -v -F 'MallocStackLogging' >&2 || true)

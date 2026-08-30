@@ -7,6 +7,9 @@ NO_TUI=0
 [[ "${1:-}" == "--no-tui" ]] && NO_TUI=1
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# libmalloc: unset, never export =0 (that prints "can't turn off ... not enabled").
+unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory \
+      MallocScribble MallocGuardEdges MallocNanoZone || true
 FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"
 LAUNCH="$HOME/Library/LaunchAgents"
 UIDN="$(id -u)"
@@ -63,5 +66,6 @@ export FOG_HOME="$FOG"
 TUI="$FOG/bin/fog-tui.py"
 [[ -f "$TUI" ]] || TUI="$FOG/repo/deploy/mac-fog/fog-tui.py"
 if [[ -f "$TUI" ]]; then
-  exec /usr/bin/caffeinate -ims python3 "$TUI"
+  exec /usr/bin/caffeinate -ims python3 "$TUI" \
+    2> >(grep -v -F 'MallocStackLogging' >&2 || true)
 fi

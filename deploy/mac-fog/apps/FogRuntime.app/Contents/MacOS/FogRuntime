@@ -3,13 +3,25 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"
 TUI="$FOG/bin/fog-tui.py"
 [[ -f "$TUI" ]] || TUI="$FOG/repo/deploy/mac-fog/fog-tui.py"
+CMD="$FOG/bin/FogRuntime.command"
+[[ -f "$CMD" ]] || CMD="$FOG/repo/deploy/mac-fog/FogRuntime.command"
 if [[ ! -f "$TUI" ]]; then
   osascript -e 'display dialog "fog-tui.py missing. Run Fog Installer first." buttons {"OK"} default button 1' >/dev/null
   exit 1
 fi
+# Prefer the .command (unset + fd-2 filter). Fallback: inline the same quiet launch.
+if [[ -f "$CMD" ]]; then
+  osascript >/dev/null <<APP
+tell application "Terminal"
+  activate
+  do script "export FOG_HOME='$FOG'; bash '$CMD'"
+end tell
+APP
+  exit 0
+fi
 osascript >/dev/null <<APP
 tell application "Terminal"
   activate
-  do script "export FOG_HOME='$FOG'; exec /usr/bin/caffeinate -ims python3 '$TUI'"
+  do script "unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory MallocScribble MallocGuardEdges MallocNanoZone; export FOG_HOME='$FOG'; exec /usr/bin/caffeinate -ims python3 '$TUI' 2> >(grep -v -F MallocStackLogging >&2 || true)"
 end tell
 APP

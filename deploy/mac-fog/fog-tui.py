@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog runtime UI v0.3.0. Destyle. 15s.
 q quit · s stop · b reboot · g git pull+reboot · r refresh
+
+macOS libmalloc may print MallocStackLogging on Python start. That is not a
+hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
+drop the line on fd 2. quiet_mac_malloc() is a second filter for late writes.
 """
 from __future__ import annotations
 
@@ -10,6 +14,7 @@ import select
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -28,6 +33,84 @@ TEAL = ACC
 DIM = MUT
 UID = os.getuid()
 FOG_LABELS = ("pt.calhegasmorais.fog", "pt.calhegasmorais.workerd")
+
+# libmalloc knobs. Pop them. Never export MallocStackLogging=0.
+MAC_MALLOC_ENV = (
+    "MallocStackLogging",
+    "MallocStackLoggingNoCompact",
+    "MallocStackLoggingDirectory",
+    "MallocScribble",
+    "MallocGuardEdges",
+    "MallocNanoZone",
+)
+
+
+def is_mac_malloc_noise(line: str) -> bool:
+    s = (line or "").lower()
+    if "mallocstacklogging" not in s and "malloc stack logging" not in s:
+        return False
+    return (
+        "can't turn off" in s
+        or "cannot turn off" in s
+        or "not enabled" in s
+        or "was not enabled" in s
+    )
+
+
+def quiet_mac_malloc() -> None:
+    """Drop macOS libmalloc chatter.
+
+    C writes the line to fd 2 during (and after) interpreter init. Wrapping
+    sys.stderr is not enough. Setting MallocStackLogging=0 *prints* the line.
+    Launchers unset + grep -v; this pump catches late writes. Idempotent.
+    Set FOG_TUI_KEEP_STDERR=1 to skip the dup2 (tests).
+    """
+    for k in MAC_MALLOC_ENV:
+        os.environ.pop(k, None)
+    if getattr(quiet_mac_malloc, "_installed", False):
+        return
+    if os.environ.get("FOG_TUI_KEEP_STDERR", "").strip().lower() in ("1", "true", "yes"):
+        return
+    try:
+        orig_fd = os.dup(2)
+        r_fd, w_fd = os.pipe()
+        os.dup2(w_fd, 2)
+        os.close(w_fd)
+    except OSError:
+        return
+
+    def _pump() -> None:
+        buf = b""
+        try:
+            while True:
+                chunk = os.read(r_fd, 4096)
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    raw, buf = buf.split(b"\n", 1)
+                    text = raw.decode("utf-8", "replace")
+                    if is_mac_malloc_noise(text):
+                        continue
+                    try:
+                        os.write(orig_fd, raw + b"\n")
+                    except OSError:
+                        return
+            if buf and not is_mac_malloc_noise(buf.decode("utf-8", "replace")):
+                try:
+                    os.write(orig_fd, buf)
+                except OSError:
+                    return
+        except Exception:
+            pass
+        finally:
+            try:
+                os.close(r_fd)
+            except OSError:
+                pass
+
+    threading.Thread(target=_pump, name="fog-tui-stderr", daemon=True).start()
+    quiet_mac_malloc._installed = True  # type: ignore[attr-defined]
 
 
 def sh(args: list[str], timeout: float = 2.0) -> str:
@@ -204,13 +287,24 @@ def git_pull_reboot() -> str:
         return "no git repo at %s" % repo
     fetch = sh(["git", "-C", str(repo), "fetch", "origin"], timeout=30)
     pull = sh(["git", "-C", str(repo), "pull", "--ff-only", "origin", "main"], timeout=30)
+    copied = []
     tui_src = repo / "deploy/mac-fog/fog-tui.py"
     tui_dst = FOG / "bin/fog-tui.py"
-    copied = ""
     if tui_src.is_file():
+        tui_dst.parent.mkdir(parents=True, exist_ok=True)
         tui_dst.write_bytes(tui_src.read_bytes())
-        copied = " tui copied"
-    return ("pull %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", reboot_fog())) + copied
+        copied.append("tui copied")
+    cmd_src = repo / "deploy/mac-fog/FogRuntime.command"
+    cmd_dst = FOG / "bin/FogRuntime.command"
+    if cmd_src.is_file():
+        cmd_dst.write_bytes(cmd_src.read_bytes())
+        try:
+            cmd_dst.chmod(0o755)
+        except OSError:
+            pass
+        copied.append("runtime.command copied")
+    extra = (" " + " · ".join(copied)) if copied else ""
+    return ("pull %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", reboot_fog())) + extra
 
 
 def mark(ok: bool) -> str:
@@ -286,7 +380,7 @@ def draw(msg: str = "") -> None:
     print("   ver    ", MUT + str(st.get("version") or "0.3.0") + RST, "  up", ago(st.get("uptime_seconds")))
     print(rule)
     print(ACC + " origin hop" + RST)
-    print("   workerd :8788", mark(bool(hop.get("ok"))),
+    print("   workerd :8788", mark(hop.get("ok") is True),
           "   fog :8787", mark(st.get("status") == "operational"),
           "   plugin", wr.get("reboots", 0), "reboots")
     print("   public   ", mark(bool(pub.get("ok"))),
@@ -366,6 +460,7 @@ def confirm(prompt: str) -> bool:
 
 
 def main() -> int:
+    quiet_mac_malloc()
     print("\033[?25l", end="")
     msg = ""
     try:
