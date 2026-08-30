@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-08-30T18:08:20Z",
-  "phase": "hourly_gitlive_18_sandbox_destyle",
-  "sha": "7ff35200a38d41ce8d27c3c1e34300ebed30d5f5",
-  "ship": "sandbox HTML chrome destyle 0.4.3-destyle LIVE (was --teal:#2f9e8a); GHA fail-watch+protocol-invariants success on f6787cf9; Fog /status envelope LIVE; POST /spa/register total=1; CF PUT stratamesh-sandbox-host only",
+  "generated_at": "2026-08-30T19:20:50Z",
+  "phase": "hourly_gitlive_19_eni_destyle",
+  "sha": "b2722711051acdf1633eb267b1c33a00d77272cf",
+  "ship": "eni HTML chrome destyle 1.4.2-destyle LIVE (was IBM Plex / Instrument Serif); GHA fail-watch+protocol-invariants success on b2722711051a; Fog /status envelope LIVE; POST /spa/register total=1; CF PUT stratamesh-eni only; workers.dev 404",
   "live": [
-    "https://sandbox.calhegasmorais.pt/health",
-    "https://sandbox.calhegasmorais.pt/",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/7ff35200a38d41ce8d27c3c1e34300ebed30d5f5",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33327028821",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33327029719"
+    "https://eni.calhegasmorais.pt/health",
+    "https://eni.calhegasmorais.pt/",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/b2722711051acdf1633eb267b1c33a00d77272cf",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33330610956",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33330611885"
   ],
   "n": 2,
   "mesh_member": true,
