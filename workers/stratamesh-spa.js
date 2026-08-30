@@ -1119,6 +1119,20 @@ async function servePortal(request, env, corsHeaders) {
       },
     });
   }
+  const portalHtml = await loadPortalHtml(env, lang);
+  if (portalHtml) {
+    return new Response(injectPortalSession(portalHtml, me, token), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Dashboard': 'portal',
+        'X-Portal-Type': me.type || 'user',
+        'Set-Cookie': 'sm_token=' + encodeURIComponent(token) + '; Path=/; Secure; SameSite=Lax; Max-Age=2592000',
+      },
+    });
+  }
   const sub = me.subsistence || (me.type === 'staff'
     ? { mode: 'live', static_only: false, payg_exempt: true, balance: null, dashboard: true }
     : { mode: (Number(me.balance || 0) < 0.1 ? 'static' : 'live'), static_only: Number(me.balance || 0) < 0.1, balance: me.balance || 0, dashboard: true, floor: 0.1 });
@@ -1132,6 +1146,92 @@ async function servePortal(request, env, corsHeaders) {
       'Set-Cookie': 'sm_token=' + encodeURIComponent(token) + '; Path=/; Secure; SameSite=Lax; Max-Age=2592000',
     },
   });
+}
+
+async function loadPortalHtml(env, lang) {
+  const keys = lang === 'en' ? ['portal-en', 'portal-pt', 'portal'] : ['portal-pt', 'portal', 'portal-en'];
+  const db = env.LEDGER || env.DB;
+  if (db) {
+    for (const key of keys) {
+      try {
+        const { results: chunks } = await db.prepare(
+          "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+        ).bind(key).all();
+        if (chunks && chunks.length) {
+          const html = chunks.map((c) => c.value || '').join('');
+          if (html && html.length > 1000) return html;
+        }
+      } catch (_) {}
+      try {
+        const { results } = await db.prepare(
+          "SELECT value FROM site_content WHERE key = ? LIMIT 1"
+        ).bind(key).all();
+        if (results && results[0] && results[0].value && results[0].value.length > 1000) {
+          return results[0].value;
+        }
+      } catch (_) {}
+    }
+  }
+  try {
+    const pr = await fetch('https://stratamesh-portal.stratamesh.workers.dev/');
+    if (pr.ok) {
+      const html = await pr.text();
+      if (html && html.length > 1000) return html;
+    }
+  } catch (_) {}
+  return null;
+}
+
+function jsonForScript(obj) {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function injectPortalSession(html, me, token) {
+  const session = {
+    success: true,
+    token,
+    type: me.type || 'user',
+    auth_type: me.type || 'user',
+    email: me.email || '',
+    role: me.role || me.clearance || 'user',
+    clearance: me.clearance || me.clearance_level || '',
+    clearance_level: me.clearance_level || me.clearance || '',
+    wallet: me.wallet || me.strata_address || '',
+    strata_address: me.wallet || me.strata_address || '',
+    balance: me.balance,
+    subsistence: me.subsistence || null,
+    lifecycle: me.lifecycle || null,
+  };
+  const boot = `<script>
+(function(){
+  var me = ${jsonForScript(session)};
+  try {
+    localStorage.setItem('sm_token', me.token);
+    localStorage.setItem('token', me.token);
+    localStorage.setItem('auth_type', me.type || 'user');
+    if (me.clearance) localStorage.setItem('clearance', me.clearance);
+    if (me.clearance_level) localStorage.setItem('clearance_level', me.clearance_level);
+    if (me.email) localStorage.setItem('sm_email', me.email);
+    if (me.wallet) localStorage.setItem('strata_address', me.wallet);
+  } catch (e) {}
+  window.__SM_SESSION = me;
+  window.currentUser = me;
+  window.token = me.token;
+  function boot(){
+    try {
+      if (typeof showPortal === 'function') { showPortal(me); return; }
+    } catch (e) {}
+    setTimeout(boot, 40);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script></body>`;
+  if (html.includes('</body>')) return html.replace('</body>', boot);
+  return html + boot;
 }
 
 function sessionToken(request) {
@@ -1176,6 +1276,8 @@ input{width:100%;box-sizing:border-box;padding:.75rem .85rem;background:var(--bg
 code{font-family:ui-monospace,monospace;color:var(--fg);font-size:.85em}
 footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
 footer .mono{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.06em;margin-top:.5rem}
+.tick{display:flex;align-items:flex-start;gap:.65rem;margin:1rem 0 .4rem;color:var(--muted);font-size:.9rem;cursor:pointer;line-height:1.4}
+.tick input{width:auto;min-width:1.1rem;height:1.1rem;margin:.15rem 0 0;accent-color:var(--accent);flex-shrink:0}
 #otp{display:none}`;
 }
 
@@ -1223,6 +1325,7 @@ ${landingChrome(pt, title)}
     <input id="email" name="email" type="email" autocomplete="username" required placeholder="email"/>
     <label for="password">${pt ? 'Palavra-passe' : 'Password'}</label>
     <input id="password" name="password" type="password" autocomplete="current-password" required/>
+    <label class="tick"><input type="checkbox" id="asStaff"/> ${pt ? 'Acesso de pessoal (staff) — não é conta comum' : 'Staff login — not a common-user account'}</label>
     <div id="otp">
       <label for="code">${pt ? 'Código de 6 dígitos' : '6-digit code'}</label>
       <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="••••••"/>
@@ -1233,7 +1336,7 @@ ${landingChrome(pt, title)}
     </div>
   </form>
   <p id="msg">${presetErr.replace(/[<>&]/g, '')}</p>
-  <p class="note">${pt ? 'Contas de pessoal e de utilizador usam o mesmo formulário. O código chega por e-mail (DeoMail) ou app TOTP.' : 'Staff and user accounts use the same form. The code arrives by email (DeoMail) or TOTP app.'}</p>
+  <p class="note">${pt ? 'Com o visto de pessoal, o Nó usa /staff/login (2FA e-mail ou TOTP) e abre o painel completo. Sem o visto, entra como utilizador comum.' : 'With the staff tick, the Node uses /staff/login (email or TOTP 2FA) and opens the full panel. Unticked = common user.'}</p>
 </div>
 ${landingFoot(pt)}
 <script>
@@ -1241,13 +1344,17 @@ const pt = ${pt ? 'true' : 'false'};
 let challenge = null, kind = 'user';
 const otp = document.getElementById('otp');
 const msg = document.getElementById('msg');
-function saveToken(token) {
+function asStaff(){ return !!(document.getElementById('asStaff') && document.getElementById('asStaff').checked); }
+function saveToken(token, type) {
+  const t = type || kind || 'user';
   try {
     localStorage.setItem('sm_token', token);
     localStorage.setItem('token', token);
+    localStorage.setItem('auth_type', t);
   } catch (_) {}
   document.cookie = 'sm_token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
   document.cookie = 'sm_token=' + encodeURIComponent(token) + '; Path=/; SameSite=Lax; Secure; Max-Age=2592000';
+  document.cookie = 'auth_type=' + encodeURIComponent(t) + '; Path=/; SameSite=Lax; Secure; Max-Age=2592000';
   const dest = (pt ? '/dashboard' : '/en/dashboard') + '?auth=' + encodeURIComponent(token);
   location.replace(dest);
 }
@@ -1257,21 +1364,23 @@ document.getElementById('f').onsubmit = async (e) => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const code = (document.getElementById('code').value || '').trim();
+  const staff = asStaff();
   try {
     if (challenge) {
       if (!code) { msg.textContent = pt ? 'Introduza o código.' : 'Enter the code.'; return; }
-      const url = kind === 'staff' ? '/api/auth/staff/2fa' : '/api/auth/email/verify';
+      const url = (kind === 'staff' || staff) ? '/api/auth/staff/2fa' : '/api/auth/email/verify';
       const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ challenge, code, email }) });
       const j = await r.json().catch(() => ({}));
-      if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token); return; }
+      if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token, j.type || kind); return; }
       msg.textContent = j.error || (pt ? 'Código inválido.' : 'Invalid code.');
       return;
     }
-    const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, lang: pt ? 'pt' : 'en' }) });
+    const url = staff ? '/api/auth/staff/login' : '/api/auth/login';
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, lang: pt ? 'pt' : 'en' }) });
     const j = await r.json().catch(() => ({}));
     if (j.requires_2fa && j.challenge) {
       challenge = j.challenge;
-      kind = j.type === 'staff' || (j.channel === 'totp') ? 'staff' : 'user';
+      kind = staff || j.type === 'staff' || j.channel === 'totp' ? 'staff' : 'user';
       otp.style.display = 'block';
       document.getElementById('code').focus();
       document.getElementById('go').textContent = pt ? 'Confirmar código' : 'Confirm code';
@@ -1279,7 +1388,7 @@ document.getElementById('f').onsubmit = async (e) => {
       msg.textContent = j.message || (pt ? 'Código enviado.' : 'Code sent.');
       return;
     }
-    if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token); return; }
+    if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token, j.type || (staff ? 'staff' : 'user')); return; }
     msg.style.color = 'var(--err)';
     msg.textContent = j.error || (pt ? 'Falha no login.' : 'Login failed.');
   } catch (err) {
