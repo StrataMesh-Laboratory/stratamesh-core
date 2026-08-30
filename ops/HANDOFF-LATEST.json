@@ -1,17 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T00:18:50Z",
-  "lisbon": "2026-08-30T01:18:50+0100",
+  "generated_at": "2026-08-30T01:11:20Z",
+  "lisbon": "2026-08-30T02:11:20+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_00",
+  "phase": "hourly_gitlive_01",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "00 UTC hour: shipped fund 0.4.7-accept-surface. Orch already live. KV 10048 window ended 00:00 UTC. No ops-state PUT."
+    "reason": "01 UTC hour: shipped status 0.4.5-fog-530. Orch already live. Fog tunnel down. No ops-state PUT."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
@@ -36,9 +36,10 @@
     "status": {
       "ok": true,
       "http": 200,
-      "version": "0.4.4-cache-api",
-      "spa_source": "fog_process",
-      "spa_total": 1,
+      "version": "0.4.5-fog-530",
+      "spa_source": "fog_tunnel_down",
+      "spa_total": 0,
+      "fog_health": 530,
       "agora_settlements": {
         "unavailable": "n<2"
       },
@@ -48,47 +49,24 @@
       }
     },
     "fog_health": {
-      "ok": true,
-      "http": 200,
-      "body": {
-        "ok": true
-      },
-      "note": "git 0.2.3-lab returns {ok:true} only; version lives on GET /"
+      "ok": false,
+      "http": 530,
+      "body": "error code: 1033",
+      "note": "tunnel stratamesh-fog-lab down, 0 connectors. Cannot hot-patch this sandbox."
     },
     "fog_root": {
-      "ok": true,
-      "http": 200,
-      "version": "0.2.3-lab",
-      "mesh_member": false,
-      "oracle_live": false
+      "ok": false,
+      "http": 530
     },
     "fog_spa": {
-      "ok": true,
-      "http": 200,
-      "total": 1,
-      "active": 1,
-      "source": "fog_process",
-      "n": 1,
-      "mesh_member": false,
-      "oracle_live": false,
-      "consensus": {
-        "n": 1,
-        "f_max": 0
-      },
-      "agora": {
-        "settlements": {
-          "unavailable": "n<2"
-        }
-      },
-      "note": "Live git 0.2.3-lab process; honesty envelope is real. Not invented. Not hot-patched this sandbox."
+      "ok": false,
+      "http": 530,
+      "note": "unreachable; status Worker does not invent fog_process"
     },
     "fog_status": {
-      "ok": true,
-      "http": 200,
-      "version": "0.2.3-lab",
-      "agora_settlements": 0,
-      "consensus": null,
-      "note": "scalar settlements; #40 OPEN"
+      "ok": false,
+      "http": 530,
+      "note": "#40 OPEN; git envelope not live until restart"
     },
     "aiops": {
       "ok": true,
@@ -98,51 +76,44 @@
     "edge": {
       "ok": true,
       "http": 200,
-      "version": "1.5.3-ping-real-fog",
       "host": "edge.calhegasmorais.pt"
     },
-    "gossip_apex": {
+    "gossip_host": {
       "ok": true,
       "http": 200,
-      "path": "https://calhegasmorais.pt/api/v1/gossip/peers",
+      "path": "https://gossip.calhegasmorais.pt/peers",
       "count": 2,
       "version": "2.3.6-ihave",
       "endpoints": [
         "https://fog.calhegasmorais.pt",
         "https://edge.calhegasmorais.pt"
       ],
-      "note": "apex later 429/1015 this hour; hostname /peers 200"
-    },
-    "gossip_host": {
-      "ok": true,
-      "http": 200,
-      "path": "https://gossip.calhegasmorais.pt/health",
-      "version": "2.3.6-ihave",
-      "note": "hostname exists; /peers count=2"
+      "fog_health_http": 530,
+      "fog_status": "degraded"
     },
     "fund": {
       "ok": true,
       "http": 200,
       "version": "0.4.7-accept-surface",
-      "challenge_0": "unfunded",
-      "accept": "POST /api/v1/accept 200 funded=false eur=0 persistence=fund_kv"
+      "challenge_0": "unfunded"
     },
     "orch_chat": {
       "ok": true,
       "http": 200,
       "source": "orch-chat-lab",
-      "ms": 116,
+      "ms": 114,
       "version_spa": "origin-orch-chat-1.1.0",
       "skipped": [
         "tick",
         "llm"
-      ]
+      ],
+      "fog_http": 530
     }
   },
   "mesh": {
     "n": 1,
     "lab_seed": false,
-    "spa_source": "fog_process",
+    "spa_source": "fog_tunnel_down",
     "mesh_member": false,
     "oracle_live": false,
     "p0_open": true,
@@ -152,15 +123,22 @@
     "challenge_0": "unfunded",
     "budget_hint": "not_a_bare_integer",
     "version": "0.4.7-accept-surface",
-    "accept": 200,
     "funded": false,
     "eur": 0
   },
   "identity": "\u2260 cargo",
   "whatsapp": "not_briefing",
-  "headline": "Hourly 00:17Z: fund 0.4.7-accept-surface POST /api/v1/accept 200 unfunded. Orch-chat-lab 116ms already live. Fog /spa honesty live on 0.2.3-lab.",
+  "headline": "Hourly 01:10Z: status 0.4.5-fog-530 spa.source=fog_tunnel_down fog_health=530. Orch-chat-lab 114ms already live. Fog tunnel down.",
   "posture": "lab_autonomous",
   "mandatory_actions": [
+    {
+      "id": "STRATAGROK-FOG-TUNNEL",
+      "owner": "stratagrok",
+      "verb": "Start cloudflared connector for named tunnel stratamesh-fog-lab (id 9cff5878-0962-420f-ab46-9f6a42c3d307) so fog.calhegasmorais.pt/health returns 200. Then the git node_persistent.py /health enrich + /status envelope + do_HEAD go live. Not this sandbox.",
+      "priority": "P0",
+      "effort": "M",
+      "success_check": "GET https://fog.calhegasmorais.pt/health 200 with version/mesh_member/oracle_live"
+    },
     {
       "id": "STRATAGROK-GOOGLE-RESTORE",
       "owner": "stratagrok",
@@ -174,23 +152,23 @@
     {
       "id": "FOG-HEALTH-ENRICH",
       "owner": "mesh",
-      "verb": "git node_persistent.py GET /health is {ok:true} only. Enrich version/mesh_member/oracle_live when process can restart. Cannot hot-patch this sandbox.",
+      "verb": "git node_persistent.py GET /health now includes version/mesh_member/oracle_live. Live when tunnel + process restart.",
       "priority": "P2",
       "success_check": "GET fog /health includes version 0.2.3-lab mesh_member=false oracle_live=false"
     },
     {
       "id": "FOG-STATUS-SETTLEMENTS",
       "owner": "mesh",
-      "verb": "Fog GET /status agora.settlements=0 scalar. #40 stays OPEN. spa_view already has unavailable:n<2.",
+      "verb": "git Fog GET /status agora.settlements={unavailable:n<2} + consensus. #40 stays OPEN until live. Tunnel currently 530.",
       "priority": "P2"
     }
   ],
-  "efficacy_self_score": 0.9,
+  "efficacy_self_score": 0.88,
   "notes": [
-    "Hourly git+live 00:17Z: STEP 1 orch instant already live (116ms orch-chat-lab). Shipped ledger NEXT PICK fund accept.",
-    "CF PUT stratamesh-fund 0.4.7-accept-surface main_module=stratamesh-fund.js. POST /api/v1/accept 200 funded=false.",
-    "Fog process is git 0.2.3-lab. GET /spa honesty envelope live. Cannot hot-patch /health or /status from this sandbox.",
-    "KV ops-state 10048 window ended 00:00 UTC. No ops-state PUT. FUND_KV accept write succeeded. No 6th cron. Never workers.dev. Skip extra Discourse.",
-    "P0 still open 260826-001576 (Oracle tenancy). Lab honest. grok@ not SCA."
+    "Hourly git+live 01:10Z: STEP 1 orch instant already live (114ms orch-chat-lab). Fog tunnel down. Shipped status Worker honesty.",
+    "CF PUT stratamesh-status 0.4.5-fog-530 main_module=worker.js. spa.source=fog_tunnel_down fog_health=530.",
+    "Fog process git /health enrich + /status envelope + do_HEAD committed; not live (530).",
+    "No ops-state PUT. No 6th cron. Never workers.dev. Skip extra Discourse.",
+    "P0 still open 260826-001576 (Oracle tenancy) plus Fog tunnel down. Lab honest. grok@ not SCA."
   ]
 }
