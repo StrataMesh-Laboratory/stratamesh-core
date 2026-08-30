@@ -27,34 +27,59 @@ REPO = FOG / "repo"
 REPO_URL = "https://github.com/StrataMesh-Laboratory/stratamesh-core.git"
 
 
-def osa(script: str) -> str:
-    r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-    if r.returncode != 0:
-        raise SystemExit(1)
-    return (r.stdout or "").strip()
+def as_lit(s: str) -> str:
+    return json.dumps(s).replace("\\n", '" & return & "')
+
+
+def osa(*lines: str) -> tuple[int, str, str]:
+    r = subprocess.run(["osascript", *[x for ln in lines for x in ("-e", ln)]], capture_output=True, text=True)
+    return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 
 
 def dialog(title: str, prompt: str, default: str = "", hidden: bool = False, extra: str = "") -> str:
     hid = " with hidden answer" if hidden else ""
-    extra_btn = extra
-    script = (
-        'Tell application "System Events" to display dialog %s default answer %s '
-        'buttons {"Cancelar","Continuar"} default button "Continuar" with title %s%s%s'
-        % (json.dumps(prompt), json.dumps(default), json.dumps(title), hid, extra_btn)
+    core = (
+        "display dialog %s default answer %s buttons {\"Cancelar\",\"Continuar\"} "
+        "default button \"Continuar\" with title %s%s"
+        % (as_lit(prompt), as_lit(default), as_lit(title), hid)
     )
-    out = osa(script)
-    # "button returned:Continuar, text returned:..."
-    marker = "text returned:"
-    if marker in out:
-        return out.split(marker, 1)[1]
-    return out
+    scripts = [
+        'tell application "Terminal"\nactivate\n%s\nend tell' % core,
+        core,
+    ]
+    last_err = ""
+    for sc in scripts:
+        code, out, err = osa(sc)
+        last_err = err or last_err
+        if code == 0:
+            marker = "text returned:"
+            if marker in out:
+                return out.split(marker, 1)[1]
+            return out
+        if "User canceled" in err or "não deu" in err.lower() or "-128" in err:
+            raise SystemExit(1)
+    print("Aviso: pop-up indisponível (%s). A usar o Terminal." % (last_err or "osascript"), file=sys.stderr)
+    print()
+    print("== %s ==" % title)
+    print(prompt)
+    if hidden:
+        import getpass
+        return getpass.getpass("→ ").strip()
+    return input("→ [%s] " % default).strip() or default
 
 
 def alert(title: str, prompt: str) -> None:
-    osa(
-        'display dialog %s buttons {"OK"} default button 1 with title %s'
-        % (json.dumps(prompt), json.dumps(title))
-    )
+    core = "display dialog %s buttons {\"OK\"} default button 1 with title %s" % (as_lit(prompt), as_lit(title))
+    for sc in ('tell application "Terminal"\nactivate\n%s\nend tell' % core, core):
+        code, _, err = osa(sc)
+        if code == 0:
+            return
+        if "User canceled" in err or "-128" in err:
+            return
+    print()
+    print("== %s ==" % title)
+    print(prompt)
+    input("⏎  ")
 
 
 def http_json(method: str, url: str, body: dict | None = None, token: str | None = None, timeout: float = 20) -> dict:
