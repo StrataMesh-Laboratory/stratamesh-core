@@ -1096,7 +1096,7 @@ async function servePortal(request, env, corsHeaders) {
   }
   if (!me || !me.success) {
     return new Response(dashboardGateHtml(lang), {
-      status: 401,
+      status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/html; charset=utf-8',
@@ -1128,51 +1128,146 @@ function sessionToken(request) {
   return '';
 }
 
-function dashboardCss() {
-  return ':root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--ok:#7aa874;--bad:#c45c54}'
-    + 'body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}'
-    + 'main{max-width:42rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}h1{font-size:1.25rem;font-weight:600}'
-    + 'p,li{color:var(--muted)}a{color:var(--acc)}code{color:var(--fg)}'
-    + '.badge{display:inline-block;border:1px solid var(--line);padding:.15rem .5rem;font-size:.75rem;letter-spacing:.04em}'
-    + 'input{width:100%;box-sizing:border-box;padding:.75rem;margin:.35rem 0;background:#111;border:1px solid var(--line);color:var(--fg);border-radius:4px}'
-    + 'button,.btn{display:inline-block;margin:.4rem .4rem 0 0;padding:.7rem 1rem;border:1px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;text-decoration:none}'
-    + 'button:disabled,.btn.off{opacity:.35;pointer-events:none;border-color:var(--line);color:var(--muted)}'
-    + '.card{border:1px solid var(--line);padding:1rem;margin:1rem 0}'
-    + '.nft{border-bottom:1px solid var(--line);padding:.5rem 0;color:var(--fg)}';
+function landingShellCss() {
+  return `:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113;--ok:#6b8f71;--err:#c45c4a}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:hidden;max-width:100%}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.75;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+.top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand strong{color:var(--fg);font-weight:500}
+.lang{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.12em;display:flex;align-items:center;gap:.35rem;color:var(--muted)}
+.lang a{color:var(--muted);padding:.2rem .35rem}.lang a.active{color:var(--fg);border-bottom:1px solid var(--accent)}
+.wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--line)}
+.kicker{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-family:system-ui,sans-serif;font-weight:400;font-size:clamp(2rem,5vw,2.8rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.85rem}
+.lead,.muted,p{color:var(--muted);margin-bottom:.9rem}
+p strong{color:var(--fg);font-weight:400}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1.05rem 1.1rem;margin:1.15rem 0}
+.card h3{margin:0 0 .4rem;font-size:.82rem;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;font-weight:500;color:var(--accent)}
+label{display:block;font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:.7rem 0 .25rem}
+input{width:100%;box-sizing:border-box;padding:.75rem .85rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:3px;font:1rem/1.4 system-ui,sans-serif}
+.cta-row{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.2rem}
+.btn,button.btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:3px;cursor:pointer}
+.btn:hover,button.btn:hover{background:var(--accent);color:#111}
+.btn.ghost{border-color:var(--line2);color:var(--muted)}
+.btn.off,button:disabled{opacity:.35;pointer-events:none;border-color:var(--line);color:var(--muted)}
+.note{font-size:.88rem;border-left:2px solid var(--line2);padding:.55rem 0 .55rem .9rem;margin:1rem 0;color:var(--muted)}
+#msg{min-height:1.4rem;color:var(--err);font-size:.9rem}
+.nft{border-bottom:1px solid var(--line);padding:.5rem 0;color:var(--fg);font-family:ui-monospace,monospace;font-size:.78rem}
+code{font-family:ui-monospace,monospace;color:var(--fg);font-size:.85em}
+footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+footer .mono{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.06em;margin-top:.5rem}
+#otp{display:none}`;
+}
+
+function landingChrome(pt, title) {
+  const home = pt ? '/' : '/en';
+  const dash = pt ? '/dashboard' : '/en/dashboard';
+  return `<div class="top"><div class="top-inner">
+    <div class="brand"><strong>Calhegas Morais</strong> · ${pt ? 'Nó CMN' : 'CMN Node'}</div>
+    <div class="lang">
+      <a href="/dashboard" class="${pt ? 'active' : ''}" hreflang="pt-PT">PT</a><span class="sep">/</span>
+      <a href="/en/dashboard" class="${pt ? '' : 'active'}" hreflang="en-GB">EN</a>
+    </div>
+  </div></div>
+<main class="wrap" id="conteudo">
+<header>
+  <p class="kicker">${pt ? 'Laboratório · painel da conta' : 'Laboratory · account panel'}</p>
+  <h1>${title}</h1>`;
+}
+
+function landingFoot(pt) {
+  return `<footer>
+    <p>Calhegas Morais · StrataMesh TRD · ${pt ? 'laboratório' : 'laboratory'}</p>
+    <p class="mono">FOG-NODE-PT-CM-001 · Lisboa</p>
+    <p class="mono"><a href="${pt ? '/' : '/en'}">${pt ? 'Início' : 'Home'}</a> · <a href="/chat">${pt ? 'Chat' : 'Chat'}</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
+  </footer></main>`;
 }
 
 function dashboardGateHtml(lang) {
   const pt = lang !== 'en';
+  const title = pt ? 'Entrar' : 'Sign in';
   return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${pt ? 'Painel · registo obrigatório' : 'Dashboard · registered only'}</title>
-<style>${dashboardCss()}</style></head><body><main>
-<p class="badge">STRATAMESH LAB · ${pt ? 'não é mainnet' : 'not mainnet'}</p>
-<h1>${pt ? 'O painel é de contas registadas' : 'The dashboard is for registered accounts'}</h1>
-<p>${pt ? 'Anónimos não têm painel — o painel instancia-se na conta. Serviços do Nó são PAYG em STRATA (queima para #0). Sem subsistência, só dados estáticos (NFT).' : 'Anonymous visitors have no dashboard — it is instantiated on the account. Node services are PAYG STRATA (burn to #0). Without subsistence, only static NFT data.'}</p>
-<form id="f">
-<input name="email" type="email" required placeholder="email"/>
-<input name="password" type="password" required placeholder="${pt ? 'palavra-passe' : 'password'}"/>
-<button type="submit">${pt ? 'Entrar' : 'Sign in'}</button>
-</form>
-<p id="msg"></p>
-<p><a href="/api/auth/register">${pt ? 'Criar conta' : 'Create account'}</a> · <a href="/">${pt ? 'Início' : 'Home'}</a></p>
+<title>${title} · Calhegas Morais</title>
+<style>${landingShellCss()}</style></head><body>
+${landingChrome(pt, title)}
+  <p class="lead">${pt
+    ? 'O painel instancia-se na <strong>conta registada</strong>. Anónimos não têm painel. Depois da palavra-passe, o Nó pede o código de 6 dígitos (e-mail ou app).'
+    : 'The panel is instantiated on a <strong>registered account</strong>. Anonymous visitors have none. After the password, the Node asks for the 6-digit code (email or app).'}</p>
+</header>
+<div class="card">
+  <h3>${pt ? 'Identidade' : 'Identity'}</h3>
+  <form id="f">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="username" required placeholder="email"/>
+    <label for="password">${pt ? 'Palavra-passe' : 'Password'}</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required/>
+    <div id="otp">
+      <label for="code">${pt ? 'Código de 6 dígitos' : '6-digit code'}</label>
+      <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="••••••"/>
+    </div>
+    <div class="cta-row">
+      <button class="btn" type="submit" id="go">${pt ? 'Entrar' : 'Sign in'}</button>
+      <a class="btn ghost" href="${pt ? '/' : '/en'}">${pt ? 'Início' : 'Home'}</a>
+    </div>
+  </form>
+  <p id="msg"></p>
+  <p class="note">${pt ? 'Contas de pessoal e de utilizador usam o mesmo formulário. O código chega por e-mail (DeoMail) ou app TOTP.' : 'Staff and user accounts use the same form. The code arrives by email (DeoMail) or TOTP app.'}</p>
+</div>
+${landingFoot(pt)}
 <script>
 const pt = ${pt ? 'true' : 'false'};
+let challenge = null, kind = 'user';
+const otp = document.getElementById('otp');
+const msg = document.getElementById('msg');
+function saveToken(token) {
+  localStorage.setItem('sm_token', token);
+  localStorage.setItem('token', token);
+  document.cookie = 'sm_token=' + encodeURIComponent(token) + '; Path=/; SameSite=Lax; Secure';
+  location.href = pt ? '/dashboard' : '/en/dashboard';
+}
 document.getElementById('f').onsubmit = async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const body = { email: fd.get('email'), password: fd.get('password') };
-  const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({}));
-  if (!j.success || !j.token) { document.getElementById('msg').textContent = j.error || (pt ? 'Falha no login' : 'Login failed'); return; }
-  localStorage.setItem('sm_token', j.token);
-  localStorage.setItem('token', j.token);
-  document.cookie = 'sm_token=' + encodeURIComponent(j.token) + '; Path=/; SameSite=Lax; Secure';
-  location.href = pt ? '/dashboard' : '/en/dashboard';
+  msg.textContent = '';
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const code = (document.getElementById('code').value || '').trim();
+  try {
+    if (challenge) {
+      if (!code) { msg.textContent = pt ? 'Introduza o código.' : 'Enter the code.'; return; }
+      const url = kind === 'staff' ? '/api/auth/staff/2fa' : '/api/auth/email/verify';
+      const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ challenge, code, email }) });
+      const j = await r.json().catch(() => ({}));
+      if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token); return; }
+      msg.textContent = j.error || (pt ? 'Código inválido.' : 'Invalid code.');
+      return;
+    }
+    const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, lang: pt ? 'pt' : 'en' }) });
+    const j = await r.json().catch(() => ({}));
+    if (j.requires_2fa && j.challenge) {
+      challenge = j.challenge;
+      kind = j.type === 'staff' || (j.channel === 'totp') ? 'staff' : 'user';
+      otp.style.display = 'block';
+      document.getElementById('code').focus();
+      document.getElementById('go').textContent = pt ? 'Confirmar código' : 'Confirm code';
+      msg.style.color = 'var(--muted)';
+      msg.textContent = j.message || (pt ? 'Código enviado.' : 'Code sent.');
+      return;
+    }
+    if (j.success && (j.token || j.session_token)) { saveToken(j.token || j.session_token); return; }
+    msg.style.color = 'var(--err)';
+    msg.textContent = j.error || (pt ? 'Falha no login.' : 'Login failed.');
+  } catch (err) {
+    msg.textContent = String(err.message || err);
+  }
 };
 </script>
-</main></body></html>`;
+</body></html>`;
 }
 
 function dashboardAppHtml(lang, me, sub) {
@@ -1182,30 +1277,34 @@ function dashboardAppHtml(lang, me, sub) {
   const mode = (sub && sub.mode) || (staticOnly ? 'static' : 'live');
   return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${pt ? 'Painel' : 'Dashboard'} · ${me.email || ''}</title>
-<style>${dashboardCss()}</style></head><body><main>
-<p class="badge">STRATAMESH LAB · PAYG · #0</p>
-<h1>${pt ? 'Painel da conta' : 'Account dashboard'}</h1>
-<p>${me.email || ''} · ${me.type || 'user'} · wallet <code>${me.wallet || '—'}</code></p>
+<title>${pt ? 'Painel' : 'Dashboard'} · Calhegas Morais</title>
+<style>${landingShellCss()}</style></head><body>
+${landingChrome(pt, pt ? 'Painel' : 'Dashboard')}
+  <p class="lead">${me.email || ''} · ${me.type || 'user'} · wallet <code>${me.wallet || '—'}</code></p>
+</header>
 <p>${pt ? 'Saldo' : 'Balance'} <code id="bal">${bal}</code> STRATA · ${pt ? 'modo' : 'mode'} <code id="mode">${mode}</code> · floor 0.1</p>
 <p>${pt ? 'Ciclo' : 'Lifecycle'} #mint → <code id="minted">—</code> · #0 ← <code id="burned">—</code> · ${pt ? 'circulante' : 'circulating'} <code id="circ">${bal}</code></p>
-<p class="muted">${staticOnly ? (pt ? 'Sem subsistência: só NFT estáticos. Acções que gastam recursos estão bloqueadas.' : 'No subsistence: static NFTs only. Resource-spending actions are locked.') : (pt ? 'PdC credita esta carteira desde #mint. Serviços queimam para #0. Contratação é transferência, não emissão.' : 'PoC credits this wallet from #mint. Services burn to #0. Hire is transfer, not mint.')}</p>
+<p class="note">${staticOnly ? (pt ? 'Sem subsistência: só NFT estáticos. Acções que gastam recursos estão bloqueadas.' : 'No subsistence: static NFTs only. Resource-spending actions are locked.') : (pt ? 'PdC credita esta carteira desde #mint. Serviços queimam para #0. Contratação é transferência, não emissão.' : 'PoC credits this wallet from #mint. Services burn to #0. Hire is transfer, not mint.')}</p>
 <div class="card">
-  <p>${pt ? 'Acções com recurso' : 'Resource actions'}</p>
-  <a class="btn ${staticOnly ? 'off' : ''}" data-act="orch_chat" href="/chat">${pt ? 'Orquestrador' : 'Orchestrator'}</a>
-  <a class="btn ${staticOnly ? 'off' : ''}" data-act="sandbox_run" href="/painel">${pt ? 'Sandbox OS' : 'OS sandbox'}</a>
-  <a class="btn ${staticOnly ? 'off' : ''}" data-act="va_api" href="/api/edge/SPEC.txt">VA API</a>
-  <a class="btn ${staticOnly ? 'off' : ''}" data-act="agora_order" href="/dashboard">${pt ? 'Ágora' : 'Agora'}</a>
+  <h3>${pt ? 'Acções com recurso' : 'Resource actions'}</h3>
+  <div class="cta-row">
+    <a class="btn ${staticOnly ? 'off' : ''}" data-act="orch_chat" href="/chat">${pt ? 'Orquestrador' : 'Orchestrator'}</a>
+    <a class="btn ${staticOnly ? 'off' : ''}" data-act="sandbox_run" href="/painel">${pt ? 'Sandbox OS' : 'OS sandbox'}</a>
+    <a class="btn ghost ${staticOnly ? 'off' : ''}" data-act="va_api" href="/api/edge/SPEC.txt">VA API</a>
+  </div>
 </div>
 <div class="card">
-  <p>${pt ? 'Dados estáticos (NFT) — sem queima' : 'Static data (NFT) — no burn'}</p>
+  <h3>${pt ? 'NFT estáticos — sem queima' : 'Static NFTs — no burn'}</h3>
   <div id="nfts">${pt ? 'A carregar…' : 'Loading…'}</div>
 </div>
 <div class="card">
-  <p>${pt ? 'Eventos on-graph' : 'On-graph events'}</p>
+  <h3>${pt ? 'Eventos on-graph' : 'On-graph events'}</h3>
   <div id="evs">${pt ? 'A carregar…' : 'Loading…'}</div>
 </div>
-<p><a href="/">${pt ? 'Início' : 'Home'}</a> · <button type="button" id="out">${pt ? 'Sair' : 'Sign out'}</button></p>
+<div class="cta-row">
+  <a class="btn ghost" href="${pt ? '/' : '/en'}">${pt ? 'Início' : 'Home'}</a>
+  <button class="btn ghost" type="button" id="out">${pt ? 'Sair' : 'Sign out'}</button>
+</div>
 <script>
 const TOKEN = localStorage.getItem('sm_token') || localStorage.getItem('token') || '';
 const STATIC = ${staticOnly ? 'true' : 'false'};
@@ -1270,7 +1369,8 @@ document.getElementById('out').onclick = () => {
   } catch (e) { box.textContent = ${JSON.stringify(pt ? 'NFT indisponível.' : 'NFTs unavailable.')}; }
 })();
 </script>
-</main></body></html>`;
+${landingFoot(pt)}
+</body></html>`;
 }
 
 function jsonResponse(data, corsHeaders, status = 200) {

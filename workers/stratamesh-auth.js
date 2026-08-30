@@ -325,15 +325,15 @@ export default {
       if (path === '/login' && request.method === 'POST') {
         try {
           const loginBody = await request.json();
-          const email = loginBody.email;
+          const email = String(loginBody.email || '').trim();
           const password = loginBody.password;
           const lang = resolveLang(loginBody, request);
           if (!email || !password) {
             return new Response(JSON.stringify({ success: false, error: 'Email and password required' }), { headers: corsHeaders, status: 400 });
           }
           
-          const user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
-          if (user) {
+          const user = await env.AUTH_DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email.toLowerCase()).first();
+          if (user && user.password_hash && String(user.password_hash).includes(':') && !String(user.password_hash).includes('no_password')) {
             const [salt, storedHash] = user.password_hash.split(':');
             const enc = new TextEncoder();
             const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
@@ -387,16 +387,60 @@ export default {
             }), { headers: corsHeaders });
           }
           
-          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE lower(email) = lower(?)').bind(email).first();
-          if (staff) {
+          const staff = await env.AUTH_DB.prepare('SELECT * FROM staff WHERE lower(email) = lower(?)').bind(email.toLowerCase()).first();
+          if (staff && staff.password_hash) {
+            const parts = String(staff.password_hash).split(':');
+            if (parts.length < 2) {
+              return new Response(JSON.stringify({ success: false, error: 'Staff credentials misconfigured' }), { headers: corsHeaders, status: 500 });
+            }
+            const [saltS, storedHashS] = parts;
+            const encS = new TextEncoder();
+            const keyMatS = await crypto.subtle.importKey('raw', encS.encode(password), 'PBKDF2', false, ['deriveBits']);
+            const bitsS = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: encS.encode(saltS), iterations: 100000, hash: 'SHA-256' }, keyMatS, 256);
+            const hashS = btoa(String.fromCharCode(...new Uint8Array(bitsS)));
+            if (hashS !== storedHashS) {
+              return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Invalid password' : 'Palavra-passe inválida' }), { headers: corsHeaders, status: 401 });
+            }
+            await ensureStaffTotpColumn();
+            if (await isLoginTrusted(staff.email)) {
+              const token = crypto.randomUUID() + crypto.randomUUID();
+              await env.AUTH_DB.prepare(
+                "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+              ).bind(-Math.abs(staff.id), token, token).run();
+              return new Response(JSON.stringify({
+                success: true, token, session_token: token, type: 'staff', trusted_2fa: true,
+                email: staff.email, role: staff.role, clearance: staff.clearance_level || 'INTERNAL',
+                clearance_level: staff.clearance_level || 'INTERNAL',
+              }), { headers: corsHeaders });
+            }
+            if (staff.totp_secret) {
+              return new Response(JSON.stringify({
+                success: true, requires_2fa: true, challenge: 'TOTP-' + staff.id, channel: 'totp', type: 'staff',
+                message: lang === 'en' ? 'Enter the 6-digit code from your authenticator app.' : 'Introduza o código de 6 dígitos da app autenticadora.',
+                email: staff.email, role: staff.role,
+              }), { headers: corsHeaders });
+            }
+            await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS staff_otp (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              staff_id INTEGER NOT NULL, code TEXT NOT NULL, challenge TEXT NOT NULL,
+              expires_at TEXT NOT NULL, used INTEGER DEFAULT 0,
+              created_at TEXT DEFAULT (datetime('now'))
+            )`).run();
+            const codeS = sixDigit();
+            const challengeS = crypto.randomUUID();
+            await env.AUTH_DB.prepare(
+              "INSERT INTO staff_otp (staff_id, code, challenge, expires_at) VALUES (?, ?, ?, datetime('now', '+10 minutes'))"
+            ).bind(staff.id, codeS, challengeS).run();
+            const mcS = mailCopy(lang, 'staff_2fa', codeS);
+            queueSystemEmail(env, ctx, staff.email, mcS.subject, mcS.text, lang, { kind: mcS.kind, code: mcS.code, cta: mcS.cta });
             return new Response(JSON.stringify({
-              success: false,
-              error: 'Use /staff/login for staff accounts (email 2FA required)',
-              staff_login: '/api/auth/staff/login',
-            }), { headers: corsHeaders, status: 400 });
+              success: true, requires_2fa: true, challenge: challengeS, channel: 'email', type: 'staff',
+              message: lang === 'en' ? 'Password OK. Enter the 6-digit code from your email.' : 'Password OK. Introduza o código de 6 dígitos do e-mail.',
+              email_sent: true, email: staff.email,
+            }), { headers: corsHeaders });
           }
           
-          return new Response(JSON.stringify({ success: false, error: 'User not found' }), { headers: corsHeaders, status: 404 });
+          return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'User not found' : 'Utilizador não encontrado' }), { headers: corsHeaders, status: 404 });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
