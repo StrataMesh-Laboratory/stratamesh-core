@@ -255,8 +255,8 @@ export default {
         const token = crypto.randomUUID() + '.' + crypto.randomUUID();
         const token_hash = await sha256Hex(token);
         await env.AUTH_DB.prepare(
-          "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
-        ).bind(userId, 'redacted', token_hash).run();
+          "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
+        ).bind(userId, token, token_hash).run();
         return token;
       }
       async function verifyTurnstile(env, token, ip) {
@@ -2120,11 +2120,18 @@ export default {
       
       if (path === '/me' && request.method === 'GET') {
         try {
+          await ensurePayg();
+          await ensureAccountGraph();
           const authHeader = request.headers.get('Authorization');
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
-          const token = authHeader.replace('Bearer ', '');
+          const token = authHeader.replace(/^Bearer\s+/i, '').trim();
           const th = await sha256Hex(token);
-          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          let userSession = null;
+          try {
+            userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          } catch (_) {
+            userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          }
           if (userSession) {
             const wallet = await ensureUserWallet(userSession);
             const life = await lifecycleView({ ...userSession, strata_address: wallet });
@@ -2147,7 +2154,7 @@ export default {
             }), { headers: corsHeaders });
           }
           
-          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const staffSession = await env.AUTH_DB.prepare("SELECT s.*, st.email, st.role, st.clearance_level FROM sessions s JOIN staff st ON (s.user_id = -st.id OR ABS(s.user_id) = st.id) WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staffSession) {
             return new Response(JSON.stringify({ 
               success: true, 

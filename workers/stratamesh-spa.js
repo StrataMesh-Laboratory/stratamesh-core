@@ -1080,7 +1080,9 @@ document.getElementById('q').addEventListener('keydown', function (ev) {
 
 async function servePortal(request, env, corsHeaders) {
   const lang = pickLang(request);
-  const token = sessionToken(request);
+  const url = new URL(request.url);
+  const qAuth = (url.searchParams.get('auth') || url.searchParams.get('sm') || '').trim();
+  const token = qAuth || sessionToken(request);
   let me = null;
   if (token && env.AUTH) {
     try {
@@ -1095,13 +1097,25 @@ async function servePortal(request, env, corsHeaders) {
     } catch (_) { me = null; }
   }
   if (!me || !me.success) {
-    return new Response(dashboardGateHtml(lang), {
+    return new Response(dashboardGateHtml(lang, { error: qAuth ? (lang === 'en' ? 'Session rejected after 2FA.' : 'Sessão recusada após 2FA.') : '' }), {
       status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
         'X-Dashboard': 'registered_only',
+        'X-Me': token ? 'fail' : 'none',
+      },
+    });
+  }
+  if (qAuth) {
+    const loc = lang === 'en' ? '/en/dashboard' : '/dashboard';
+    return new Response(null, {
+      status: 303,
+      headers: {
+        Location: loc,
+        'Cache-Control': 'no-store',
+        'Set-Cookie': 'sm_token=' + encodeURIComponent(qAuth) + '; Path=/; Secure; SameSite=Lax; Max-Age=2592000',
       },
     });
   }
@@ -1115,6 +1129,7 @@ async function servePortal(request, env, corsHeaders) {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Dashboard': sub.static_only ? 'static_nft' : 'live',
+      'Set-Cookie': 'sm_token=' + encodeURIComponent(token) + '; Path=/; Secure; SameSite=Lax; Max-Age=2592000',
     },
   });
 }
@@ -1188,9 +1203,10 @@ function landingFoot(pt) {
   </footer></main>`;
 }
 
-function dashboardGateHtml(lang) {
+function dashboardGateHtml(lang, opts) {
   const pt = lang !== 'en';
   const title = pt ? 'Entrar' : 'Sign in';
+  const presetErr = (opts && opts.error) || '';
   return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} · Calhegas Morais</title>
@@ -1216,7 +1232,7 @@ ${landingChrome(pt, title)}
       <a class="btn ghost" href="${pt ? '/' : '/en'}">${pt ? 'Início' : 'Home'}</a>
     </div>
   </form>
-  <p id="msg"></p>
+  <p id="msg">${presetErr.replace(/[<>&]/g, '')}</p>
   <p class="note">${pt ? 'Contas de pessoal e de utilizador usam o mesmo formulário. O código chega por e-mail (DeoMail) ou app TOTP.' : 'Staff and user accounts use the same form. The code arrives by email (DeoMail) or TOTP app.'}</p>
 </div>
 ${landingFoot(pt)}
@@ -1226,10 +1242,14 @@ let challenge = null, kind = 'user';
 const otp = document.getElementById('otp');
 const msg = document.getElementById('msg');
 function saveToken(token) {
-  localStorage.setItem('sm_token', token);
-  localStorage.setItem('token', token);
-  document.cookie = 'sm_token=' + encodeURIComponent(token) + '; Path=/; SameSite=Lax; Secure';
-  location.href = pt ? '/dashboard' : '/en/dashboard';
+  try {
+    localStorage.setItem('sm_token', token);
+    localStorage.setItem('token', token);
+  } catch (_) {}
+  document.cookie = 'sm_token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+  document.cookie = 'sm_token=' + encodeURIComponent(token) + '; Path=/; SameSite=Lax; Secure; Max-Age=2592000';
+  const dest = (pt ? '/dashboard' : '/en/dashboard') + '?auth=' + encodeURIComponent(token);
+  location.replace(dest);
 }
 document.getElementById('f').onsubmit = async (e) => {
   e.preventDefault();
