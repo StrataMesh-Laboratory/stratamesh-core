@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.4-fallback-30m";
+var VERSION = "0.1.5-aligned";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -156,10 +156,10 @@ function publicLanding() {
        <div class="row"><span class="mono">Public origin</span><span class="mono" id="fog-origin">probing…</span></div>
        <div class="row"><span class="mono">mac_live</span><span class="mono" id="fog-mac-live">…</span></div>
        <div class="row"><span class="mono">Session fallback</span><span class="mono">DNS take if Mac DARK > 30 min</span></div>
-       <div class="row"><span class="mono">mesh_member</span><span class="mono">false until second host_id</span></div>
+       <div class="row"><span class="mono">mesh_member</span><span class="mono">true · n=2 Fog Mac + EDGE session · f_max=0</span></div>
        <div class="row"><span class="mono">Roles</span><span class="mono">macbook (primary) · session (standby)</span></div>
        <div class="row"><span class="mono">Rule</span><span class="mono">one DNS target · macbook-server stays Mac-only</span></div>
-       <div class="row"><span class="mono">Git flux</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/tree/main/deploy/mac-fog">deploy/mac-fog</a></div>
+       <div class="row"><span class="mono">Git</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">stratamesh-core</a></div>
      </div>
      <div class="card">
        <div class="row"><span class="mono">Fog process</span><a href="https://fog.calhegasmorais.pt/">fog.calhegasmorais.pt</a></div>
@@ -170,7 +170,7 @@ function publicLanding() {
        <div class="row"><span class="mono">Status pulse</span><a href="https://status.calhegasmorais.pt/status">status.calhegasmorais.pt</a></div>
      </div>
      <p><a class="pill" href="/login">Staff login</a></p>
-     <p class="mono">Lab · n=1 · spa.source=fog_process · mesh_member=false · Challenge 0 unfunded</p>
+     <p class="mono">Lab · n=2 · mesh_member=true · f_max=0 · spa.source=fog_process · Challenge 0 unfunded</p>
      <script>
      (function(){
        var el = document.getElementById("fog-origin");
@@ -200,7 +200,7 @@ function loginPage(err) {
        <p class="err">${err || ""}</p>
        <button type="submit">Continuar</button>
      </form>
-     <p class="mono">Lab \xB7 n=1 \xB7 spa.source=fog_process \xB7 Challenge 0 unfunded</p>`
+     <p class="mono">Lab \xB7 n=2 \xB7 mesh_member=true \xB7 f_max=0 \xB7 Challenge 0 unfunded</p>`
   );
 }
 __name(loginPage, "loginPage");
@@ -247,7 +247,7 @@ function pilePage(staff, pile) {
         \xB7 <a href="/logout">sair</a></p>
      <div class="card">${rows}</div>
      <p>Latest static copy: <a href="/latest/">/latest/</a> \u2014 landing, portal, laborat\xF3rio. Repo zip per day when present.</p>
-     <footer>Same AUTH_DB staff as the portal. No 6th cron. Fog 530 remains P1. Mesh n=1.</footer>`
+     <footer>Same AUTH_DB staff as the portal. No 6th cron. Mesh n=2 · f_max=0. Fog 530 not claimed.</footer>`
   );
 }
 __name(pilePage, "pilePage");
@@ -268,7 +268,11 @@ var stratamesh_origin_archive_default = {
         one_connector: true,
         session_fallback_after_sec: 1800,
         mac_live: true,
-        mesh_member: false
+        mesh_member: true,
+        n: 2,
+        f_max: 0,
+        git: "https://github.com/StrataMesh-Laboratory/stratamesh-core",
+        archive_day: "2026-08-30"
       });
     }
     if (path === "/logout") {

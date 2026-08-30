@@ -1,3 +1,8 @@
+## 2026-08-30 — origin archive aligned
+- `origin.calhegasmorais.pt` worker **0.1.5-aligned** with git `stratamesh-core` and R2 pile `2026-08-30`.
+- Honesty: n=2 · mesh_member=true · f_max=0 · Mac primary · session 30-min fallback.
+- Local live-workers copy refreshed off the same module. Pages hold no longer claims the origin hostname.
+
 ## 2026-08-30 — session origin fallback 30m
 - Mac (`macbook-server`) stays primary public Fog. This Grok session is **standby**.
 - If Mac is down **> 30 min**, `fog-persist` starts `stratamesh-fog-lab` and PATCHes CNAME `fog.calhegasmorais.pt` to that tunnel. Mac back → DNS flips back.
