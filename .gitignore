@@ -11,3 +11,9 @@ node_modules/
 src/*.db
 data/
 
+
+# local secrets vault — never publish
+PRIVATE.gitignore/
+persistent/
+**/GROK_DATA_SECRETS.pdf
+**/GROK DATA SECRETS.pdf
