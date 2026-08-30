@@ -566,23 +566,27 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
   </div>
 
   <div class="panel" id="panel-va">
-    <h3>Assistente virtual (API)</h3>
-    <p style="font-size:.85rem;color:var(--muted);max-width:42rem;line-height:1.45">Ligue o <em>seu</em> AI a esta conta via <span style="font-family:ui-monospace,monospace">api-edge.calhegasmorais.pt</span>. Token único, válido <strong>7 dias</strong>, renovável. Não substitui o registo aberto sem conta. Não partilhe o token; é mostrado uma vez.</p>
+    <h3>Assistente virtual</h3>
+    <p style="font-size:.85rem;color:var(--muted);max-width:44rem;line-height:1.45">Três passos: ligar esta conta → copiar o pacote → colar no <em>seu</em> AI. Token de <strong>7 dias</strong>, renovável. Depois de sair desta página o valor deixa de ser visível — só renovar gera um novo.</p>
+    <ol id="vaSteps" style="font-size:.82rem;line-height:1.55;max-width:44rem;color:var(--muted);padding-left:1.2rem">
+      <li id="vaStep1">Ligar — gera <span style="font-family:ui-monospace,monospace">smva_</span></li>
+      <li id="vaStep2">Copiar o pacote (instruções + token) para o AI</li>
+      <li id="vaStep3">O AI faz GET <span style="font-family:ui-monospace,monospace">/v1/va/me</span> com o Bearer</li>
+    </ol>
     <div class="stat-grid">
       <div class="stat-card"><div class="value" id="vaStatus">—</div><div class="label">Estado</div></div>
-      <div class="stat-card"><div class="value" id="vaExpiry" style="font-size:.95rem">—</div><div class="label">Expira</div></div>
+      <div class="stat-card"><div class="value" id="vaExpiry" style="font-size:.95rem">—</div><div class="label">Expira / dias</div></div>
       <div class="stat-card"><div class="value" id="vaPrefix" style="font-size:.85rem">—</div><div class="label">Prefixo</div></div>
     </div>
     <p id="vaHint" style="font-size:.8rem;color:var(--muted)"></p>
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0">
-      <button type="button" onclick="vaConnect()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Ligar / gerar (7 dias)</button>
-      <button type="button" onclick="vaRenew()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Renovar 7 dias</button>
-      <button type="button" onclick="vaRevoke()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Revogar</button>
-      <a href="https://api-edge.calhegasmorais.pt/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções para o AI</a>
+      <button type="button" id="vaPrimary" onclick="vaPrimary()" style="padding:.5rem 1rem;background:var(--fg);color:var(--bg,#111);border:0;border-radius:4px;cursor:pointer;font-weight:600">Ligar · 7 dias</button>
+      <button type="button" id="vaCopyBtn" onclick="vaCopy()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Copiar pacote</button>
+      <button type="button" id="vaRevokeBtn" onclick="vaRevoke()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Revogar</button>
+      <a href="https://api-edge.calhegasmorais.pt/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções</a>
     </div>
-    <label style="font-size:.75rem;color:var(--muted)">Token (uma vez — copie para o assistente)</label>
-    <textarea id="vaTokenBox" readonly rows="3" style="width:100%;max-width:42rem;display:block;margin:.35rem 0 0;padding:.6rem;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:ui-monospace,monospace;font-size:.78rem;border-radius:6px" placeholder="smva_… aparece aqui uma vez"></textarea>
-    <button type="button" onclick="vaCopy()" style="margin-top:.4rem;padding:.35rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">Copiar token</button>
+    <label style="font-size:.75rem;color:var(--muted)">Pacote para colar no AI (uma vez por emissão)</label>
+    <textarea id="vaTokenBox" readonly rows="8" style="width:100%;max-width:44rem;display:block;margin:.35rem 0 0;padding:.6rem;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:ui-monospace,monospace;font-size:.75rem;border-radius:6px" placeholder="O pacote aparece aqui depois de Ligar ou Renovar."></textarea>
   </div>
 </div>
 
@@ -1039,11 +1043,17 @@ function showToast(m,e){
 function authHeaders(extra){const h=Object.assign({'Content-Type':'application/json'},extra||{});if(token)h['Authorization']='Bearer '+token;return h;}
 
 var _vaActive=null;
+var _vaMode='off';
 async function vaApi(path, opt){
   var r=await fetch((SVC.va||'https://api-edge.calhegasmorais.pt')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
   var j=await r.json().catch(function(){return {ok:false,error:'bad_json',http:r.status};});
   j.http=r.status;
   return j;
+}
+function vaSetPrimary(label, mode){
+  _vaMode=mode;
+  var b=document.getElementById('vaPrimary');
+  if(b) b.textContent=label;
 }
 function vaPaintMeta(k){
   _vaActive=k||null;
@@ -1051,47 +1061,71 @@ function vaPaintMeta(k){
   var ex=document.getElementById('vaExpiry');
   var px=document.getElementById('vaPrefix');
   var hint=document.getElementById('vaHint');
+  var hasPaste=!!((document.getElementById('vaTokenBox')||{}).value);
   if(!st) return;
-  if(!k){ st.textContent='desligado'; if(ex) ex.textContent='—'; if(px) px.textContent='—'; if(hint) hint.textContent='Gere um token de 7 dias e cole-o no seu AI com as instruções.'; return; }
-  st.textContent=k.revoked_at?'revogado':(k.expired?'expirado':'ligado');
-  if(ex) ex.textContent=k.expires_at?String(k.expires_at).replace('T',' ').slice(0,16)+' UTC':'—';
+  if(!k){
+    st.textContent=T('desligado','off');
+    if(ex) ex.textContent='—';
+    if(px) px.textContent='—';
+    if(hint) hint.textContent=T('Passo 1: Ligar. O pacote só aparece uma vez.','Step 1: Connect. The pack is shown once.');
+    vaSetPrimary(T('Ligar · 7 dias','Connect · 7 days'), 'connect');
+    return;
+  }
+  var expired=!!k.expired;
+  st.textContent=k.revoked_at?T('revogado','revoked'):(expired?T('expirado','expired'):T('ligado','on'));
+  var days=(k.days_left!=null)?k.days_left:null;
+  if(ex) ex.textContent=k.expires_at?(String(k.expires_at).replace('T',' ').slice(0,16)+(days!=null?(' · '+days+'d'):'')):'—';
   if(px) px.textContent=k.prefix||'—';
-  if(hint) hint.textContent=k.expired?'Renove para obter um novo smva_.':'O AI usa Authorization: Bearer smva_… em /v1/va/me e /v1/va/act.';
+  if(expired){
+    if(hint) hint.textContent=T('Expirado. Renovar gera um token novo (o antigo deixa de valer).','Expired. Renew issues a new token (old one dies).');
+    vaSetPrimary(T('Renovar · 7 dias','Renew · 7 days'), 'renew');
+  } else {
+    if(hint) hint.textContent=hasPaste
+      ? T('Passo 2: copiar o pacote e colar no AI.','Step 2: copy the pack into your AI.')
+      : T('Token já emitido esta semana — não volta a ser mostrado. Renovar se o AI ainda não o tiver.','Token already issued this week — not shown again. Renew if the AI never got it.');
+    vaSetPrimary(T('Renovar · 7 dias','Renew · 7 days'), 'renew');
+  }
 }
-function vaShowToken(tok, exp){
+function vaShowToken(j){
   var box=document.getElementById('vaTokenBox');
-  if(box){ box.value=tok||''; box.focus(); box.select(); }
-  if(typeof showToast==='function') showToast(T('Token de 7 dias — copie agora','7-day token — copy now'));
-  if(exp){ var ex=document.getElementById('vaExpiry'); if(ex) ex.textContent=String(exp).replace('T',' ').slice(0,16)+' UTC'; }
+  var pack=j.paste||j.token||'';
+  if(box){ box.value=pack; box.focus(); box.select(); }
+  if(typeof showToast==='function') showToast(T('Pacote de 7 dias — copie agora','7-day pack — copy now'));
+  vaPaintMeta(j.key);
 }
 async function loadVaPanel(){
   try{
+    var box=document.getElementById('vaTokenBox'); if(box && !box.value) box.value='';
     var j=await vaApi('/v1/va/keys');
     if(j.http===401){ vaPaintMeta(null); var h=document.getElementById('vaHint'); if(h) h.textContent=T('Inicie sessão para ligar o assistente.','Sign in to connect the assistant.'); return; }
     var keys=(j.keys||[]).filter(function(k){return !k.revoked_at;});
     vaPaintMeta(keys[keys.length-1]||null);
   }catch(e){ vaPaintMeta(null); }
 }
+async function vaPrimary(){
+  if(_vaMode==='renew') return vaRenew();
+  return vaConnect();
+}
 async function vaConnect(){
   try{
-    var list=await vaApi('/v1/va/keys');
-    var live=(list.keys||[]).filter(function(k){return !k.revoked_at && !k.expired;});
-    if(live.length){ if(typeof showToast==='function') showToast(T('Já existe um token activo — use Renovar','A live token exists — use Renew'),'error'); vaPaintMeta(live[live.length-1]); return; }
-    var j=await vaApi('/v1/va/keys',{method:'POST',body:JSON.stringify({label:'dashboard-va'})});
+    var j=await vaApi('/v1/va/connect',{method:'POST',body:'{}'});
+    if(j.already){ vaPaintMeta(j.key); if(typeof showToast==='function') showToast(T('Já ligado — renovar só se o AI não tiver o token','Already on — renew only if the AI never got the token')); return; }
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
-    vaPaintMeta(j.key); vaShowToken(j.token, j.expires_at);
+    vaShowToken(j);
   }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
 }
 async function vaRenew(){
   try{
+    if(!confirm(T('Renovar invalida o token actual. Continuar?','Renew kills the current token. Continue?'))) return;
     var j=await vaApi('/v1/va/keys/renew',{method:'POST',body:'{}'});
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
-    vaPaintMeta(j.key); vaShowToken(j.token, j.expires_at);
+    vaShowToken(j);
   }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
 }
 async function vaRevoke(){
   try{
     if(!_vaActive||!_vaActive.id){ if(typeof showToast==='function') showToast(T('Nada a revogar','Nothing to revoke'),'error'); return; }
+    if(!confirm(T('Revogar agora? O AI perde o acesso.','Revoke now? The AI loses access.'))) return;
     var j=await vaApi('/v1/va/keys/'+_vaActive.id,{method:'DELETE'});
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
     var box=document.getElementById('vaTokenBox'); if(box) box.value='';
@@ -1102,9 +1136,9 @@ async function vaRevoke(){
 function vaCopy(){
   var box=document.getElementById('vaTokenBox');
   var t=box&&box.value;
-  if(!t){ if(typeof showToast==='function') showToast(T('Gere o token primeiro','Generate the token first'),'error'); return; }
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ showToast(T('Copiado','Copied')); }); return; }
-  box.select(); document.execCommand('copy'); if(typeof showToast==='function') showToast(T('Copiado','Copied'));
+  if(!t){ if(typeof showToast==='function') showToast(T('Ligue ou renove primeiro para ver o pacote','Connect or renew first to see the pack'),'error'); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ showToast(T('Pacote copiado','Pack copied')); }); return; }
+  box.select(); document.execCommand('copy'); if(typeof showToast==='function') showToast(T('Pacote copiado','Pack copied'));
 }
 
 async function loadWallet(){

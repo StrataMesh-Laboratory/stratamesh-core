@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.3.1-va-week";
+const VERSION = "1.3.2-va-flow";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -816,6 +816,11 @@ async function issueVaRow(env, sess, ids, label, existingId) {
 
 function publicKey(meta) {
   const expired = isExpired(meta);
+  let days_left = null;
+  if (meta.expires_at) {
+    const ms = Date.parse(meta.expires_at) - Date.now();
+    days_left = Number.isFinite(ms) ? Math.max(0, Math.ceil(ms / 86400000)) : null;
+  }
   return {
     id: meta.id,
     label: meta.label,
@@ -824,9 +829,22 @@ function publicKey(meta) {
     created_at: meta.created_at,
     expires_at: meta.expires_at || null,
     ttl_days: 7,
+    days_left,
     expired,
     revoked_at: meta.revoked_at || null,
   };
+}
+
+function pastePack(token, exp) {
+  return [
+    "You are this account's personal StrataMesh assistant (user or SCA). Lab n=1 · mesh_member=false.",
+    "1. GET https://api-edge.calhegasmorais.pt/v1/va/instructions.txt",
+    "2. Authorization: Bearer " + token,
+    "3. GET https://api-edge.calhegasmorais.pt/v1/va/me",
+    '4. POST https://api-edge.calhegasmorais.pt/v1/va/act {"action":"dashboard.snapshot"}',
+    "Expires: " + (exp || "7 days") + ". Operator renews in dashboard → Assistente.",
+    "Do not call *.workers.dev. Do not POST /v1/integrations with this Bearer.",
+  ].join("\n");
 }
 
 async function handleVaKeys(env, request, path) {
@@ -857,11 +875,12 @@ async function handleVaKeys(env, request, path) {
     return json({
       ok: true,
       token: issued.raw,
+      paste: pastePack(issued.raw, issued.row.expires_at),
       shown_once: true,
       expires_at: issued.row.expires_at,
       ttl_days: 7,
       key: publicKey(issued.row),
-      note: "Valid 7 days. Store in the assistant. Not stored in plaintext. Renew from the dashboard.",
+      note: "Valid 7 days. Copy the paste pack into the assistant now. Not stored in plaintext.",
     }, 201, "no-store");
   }
 
@@ -876,15 +895,30 @@ async function handleVaKeys(env, request, path) {
       ok: true,
       renewed: true,
       token: issued.raw,
+      paste: pastePack(issued.raw, issued.row.expires_at),
       shown_once: true,
       expires_at: issued.row.expires_at,
       ttl_days: 7,
       key: publicKey(issued.row),
-      note: "Previous token is dead. Paste the new smva_ into the assistant.",
+      note: "Previous token is dead. Paste the new pack into the assistant.",
     }, 200, "no-store");
   }
 
-  if (request.method === "POST" && path === "/v1/va/keys") {
+  if (request.method === "POST" && (path === "/v1/va/keys" || path === "/v1/va/connect")) {
+    if (path === "/v1/va/connect") {
+      for (const id of ids) {
+        const meta = await kvGet(env, "va:i:" + id);
+        if (meta && !meta.revoked_at && !isExpired(meta)) {
+          return json({
+            ok: true,
+            already: true,
+            key: publicKey(meta),
+            note: "Live token already issued. It is not shown again. Renew to rotate (invalidates the old one).",
+          }, 200, "no-store");
+        }
+      }
+      return mintNew("dashboard-va");
+    }
     const body = await request.json().catch(() => ({}));
     return mintNew(body.label);
   }
@@ -1071,7 +1105,7 @@ export default {
         controls: ORIGIN + "/v1/va/controls",
       }, 200, "no-store");
     }
-    if (path === "/v1/va/keys" || path.startsWith("/v1/va/keys/")) {
+    if (path === "/v1/va/keys" || path.startsWith("/v1/va/keys/") || path === "/v1/va/connect") {
       return handleVaKeys(env, request, path);
     }
     if (path === "/v1/va/prefs") {
