@@ -3,6 +3,53 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T09:12Z hour
+READ: origin HEAD 8fac2aed (08:30Z observe HOLD on destyle clp/roadmap/eni Pages 579c3e5b + D1 live). Automation prompt STEP 1 (1) remaining public HTML chrome — status 0.4.7-destyle / origin 0.1.6-destyle / apex+clp destyle **curl wins**. Remaining IBM Plex was SPA D1 `/dashboard` (x-portal-source=site_content_chunks). STEP 1 (2) GHA: fail-watch **success** 08:22 on dfed2c49; protocol-invariants last **success** on 5fdb000 (path filter skipped later); origin-archive 05:30 Release 403 already **idempotent success** 05:34; desk-tick **failure** 08:55 run 33302778072 — EDGE /health **530** (session hop down; cannot restore from this sandbox). Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog /status **0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0. Fog /spa total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=**n<2** (v0.3.0 kit clobbered git f_max=0). Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **429** CF 1015 this IP. Orch POST **62ms** 10.24.6-lab-nofog. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, status 0.4.7, origin-archive 0.1.6, apex/clp destyle.
+
+SHIPPED (REST Git Data API + D1 chunks — NOT MCP, NOT paste, NOT workers.dev, NOT Worker PUT):
+- Destyle remaining public HTML chrome: `/dashboard` portal — drop IBM Plex / Instrument Serif / Google fonts; system-ui destyle tokens --bg:#0a0a0b --accent:#c4a574. Roster stays JSON.
+- D1 `stratamesh-ledger` `site_content_chunks` keys **portal-pt**, **portal**, **portal-en** (SPA Worker `stratamesh-spa` serves custom-domain /dashboard from LEDGER).
+- Zone cache purge for `/dashboard` `/en/dashboard`.
+- git frontend/portal.html + portal-pt.html + portal-en.html lockstep to destyle live.
+- git src/node_persistent.py spa_view settlements unavailable=**f_max=0** (v0.3.0 kit had restored the n<2 lie). **Not live** until Mac TUI v6 `g` pull+reboot.
+- Did **not** re-ship gossip/orch/fund/status/origin-archive/spa Worker. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT. Did **not** PUT Mac Fog process. desk-tick EDGE 530 not fixed from this sandbox.
+
+LIVE curl:
+- GET https://calhegasmorais.pt/dashboard → 200 **255ms** destyle --accent:#c4a574 system-ui ui-monospace **no IBM Plex no Google fonts** x-portal-source=site_content_chunks (was IBM Plex)
+- GET https://www.calhegasmorais.pt/dashboard → 200 destyle **no IBM Plex** x-portal-source=site_content_chunks
+- GET https://calhegasmorais.pt/clp → 200 destyle (do not re-ship)
+- GET https://calhegasmorais.pt/ → 200 destyle v0.3.0 kit (do not re-ship)
+- GET https://origin.calhegasmorais.pt/health → 200 0.1.6-destyle (do not re-ship)
+- GET https://calhegasmorais.pt/status → 200 version **0.4.7-destyle**
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **62ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/health → 200 version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=**1** Fog live (EDGE omitted)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=n<2 (git f_max=0 this hour; not live until Mac `g`)
+- GET https://fog.calhegasmorais.pt/status → 200 version=**0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0
+- GET https://edge.calhegasmorais.pt/health → **429** CF 1015 (desk-tick saw 530)
+- GET https://fund.calhegasmorais.pt/ → 200 still IBM Plex + Google fonts (not this pick)
+
+SHA: 79a074fbb2b567beb2890849fc9628d39cb2e210
+
+STILL RED:
+- EDGE https://edge.calhegasmorais.pt/health **530**/429 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox
+- desk-tick FAIL 08:55 — EDGE in CORE_HEALTH; 530 is session-expected, not a Fog P0
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js 0.3.0; not loaded until host reboot)
+- Fog GET /spa agora.settlements.unavailable=n<2 at live n=2 (git spa_view f_max=0 this hour; not live until Mac `g`). #40 stays OPEN — /status settlements=0 scalar, not a quality number
+- fund.calhegasmorais.pt HTML still IBM Plex + Google fonts (JSON /health 0.4.7-accept-surface)
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog process vs git node_persistent.py spa_view settlements unavailable=f_max=0 (git this hour; live still n<2). Mac TUI v6 `g` pull+reboot; cannot from this sandbox. Restore EDGE session hop (530/429). Destyle fund.calhegasmorais.pt HTML if still IBM Plex. desk-tick: treat EDGE 530 as session-expected (not FAIL). Do not re-ship status 0.4.7, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.6, apex destyle, clp/roadmap/eni destyle, dashboard destyle. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
+
 ## 2026-08-30T08:30Z hour
 READ: origin HEAD dfed2c49 (08:21Z ledger already on main; destyle clp/roadmap/eni Pages 579c3e5b + D1 live). This invocation arrived ~3 min after 08:21 ship (pushed_at 08:22:41Z). Hour wall >25 min — **no second pile-up**. Automation prompt STEP 1 (1) remaining public HTML chrome (status/origin/apex/clp/roadmap/eni) — **curl wins** destyle. STEP 1 (2) GHA: fail-watch **success** dispatch 08:22 on dfed2c49; protocol-invariants last **success** on 5fdb000; origin-archive 05:30 Release **403** "Resource not accessible by integration" (GITHUB_TOKEN cannot UPDATE PAT-owned release archive-2026-08-30) already **idempotent success** 05:34 skip on HEAD — do not replay stale SHA 953e1a9c. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog Accept:text/html destyle 0.3.0. Fog /status **0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0. Fog /spa total=1 source=fog_process n=2 mesh_member=true oracle_live=false agora.settlements.unavailable=**n<2** (git spa_view still n<2). Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **429** CF 1015 this IP (was 530). Orch POST **62ms** 10.24.6-lab-nofog. status 0.4.7-destyle. origin 0.1.6-destyle. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, status 0.4.7, origin-archive 0.1.6, apex/clp destyle.
 

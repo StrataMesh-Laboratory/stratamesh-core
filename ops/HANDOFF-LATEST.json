@@ -1,87 +1,14 @@
 {
-  "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T08:30:00Z",
-  "lisbon": "2026-08-30T09:30:00+0100",
-  "agent": "grok@calhegasmorais.pt",
-  "node": "FOG-NODE-PT-CM-001",
-  "desk": "https://fog.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_08_observe",
-  "reserved_metabolic_peak": false,
-  "stasis": {
-    "armed": false,
-    "stasis_until": null,
-    "worker_http": "ok",
-    "reason": "08Z already shipped destyle 08:21; this invocation observe-only"
-  },
-  "metabolism": {
-    "schema": "stratamesh.metabolism.v1.3",
-    "grok_auto": "5 slots armed",
-    "cf_cron": "5/5",
-    "pages_apex": true,
-    "STASIS_UNTIL": null,
-    "no_sixth_cron": true,
-    "no_plan_upgrade": true,
-    "never_workers_dev": true
-  },
-  "probes": {
-    "apex": {
-      "ok": true,
-      "http": 200,
-      "destyle": true
-    },
-    "status": {
-      "ok": true,
-      "http": 200,
-      "version": "0.4.7-destyle"
-    },
-    "fog_health": {
-      "ok": true,
-      "http": 200,
-      "origin": "macbook",
-      "n": 2,
-      "mesh_member": true,
-      "mac_live": true
-    },
-    "fog_spa": {
-      "ok": true,
-      "http": 200,
-      "total": 1,
-      "source": "fog_process",
-      "n": 2,
-      "mesh_member": true,
-      "oracle_live": false,
-      "settlements_unavailable": "n<2"
-    },
-    "gossip": {
-      "ok": true,
-      "version": "2.3.11-destyle",
-      "n": 2,
-      "peers": 1
-    },
-    "edge": {
-      "ok": false,
-      "http": 429,
-      "note": "CF 1015; sandbox no workerd"
-    },
-    "orch_post": {
-      "ok": true,
-      "http": 200,
-      "source": "orch-chat-lab",
-      "ms": 62,
-      "n": 1
-    }
-  },
-  "shipped": {},
-  "next_pick": "Fog process vs git spa_view f_max=0 \u2014 Mac TUI v6 g; restore EDGE; destyle /dashboard IBM Plex",
-  "p0": "260826-001576 oracle_live=false",
-  "lab": {
-    "n": 2,
-    "mesh_member": true,
-    "oracle_live": false,
-    "f_max": 0
-  },
-  "disposition": "HOLD",
-  "ships": 0,
-  "efficacy_self_score": 0.4,
-  "parent": "dfed2c4982d0fadc0c98215d71e2bdd10ddee784"
+  "generated_at": "2026-08-30T09:12:00Z",
+  "phase": "hourly_gitlive_09_dashboard_destyle",
+  "sha": "79a074fbb2b567beb2890849fc9628d39cb2e210",
+  "ship": "destyle /dashboard portal D1 + spa_view git f_max=0",
+  "live": [
+    "https://calhegasmorais.pt/dashboard"
+  ],
+  "n": 2,
+  "mesh_member": true,
+  "oracle_live": false,
+  "workers_dev": false,
+  "sixth_cron": false
 }
