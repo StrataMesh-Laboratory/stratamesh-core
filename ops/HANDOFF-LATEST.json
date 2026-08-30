@@ -1,17 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T06:14:20Z",
-  "lisbon": "2026-08-30T07:14:20+0100",
+  "generated_at": "2026-08-30T07:12:00Z",
+  "lisbon": "2026-08-30T08:12:00+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_06",
+  "phase": "hourly_gitlive_07",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "06 UTC hour: destyle remaining public HTML chrome. status 0.4.7-destyle + origin-archive 0.1.6-destyle live. Apex Pages still IBM Plex (git destyle). No ops-state PUT."
+    "reason": "07 UTC hour: Pages destyle live 3f616f8f. Apex no IBM Plex. EDGE 530. No ops-state PUT."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
@@ -26,11 +26,21 @@
     "github_actions": "public Linux net $0 \u2014 CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
   },
   "probes": {
+    "apex": {
+      "ok": true,
+      "http": 200,
+      "destyle": true,
+      "ibm_plex": false
+    },
+    "apex_en": {
+      "ok": true,
+      "http": 200,
+      "destyle": true
+    },
     "status": {
       "ok": true,
       "http": 200,
-      "version": "0.4.7-destyle",
-      "note": "destyle HTML live via www; subdomain 429 this IP"
+      "version": "0.4.7-destyle"
     },
     "origin_archive": {
       "ok": true,
@@ -54,26 +64,37 @@
       "mesh_member": true,
       "oracle_live": false
     },
+    "fog_status": {
+      "ok": true,
+      "http": 200,
+      "version": "0.3.0"
+    },
     "gossip": {
       "ok": true,
       "http": 200,
       "version": "2.3.11-destyle",
-      "n": 2
+      "n": 2,
+      "peers_count": 1
+    },
+    "edge": {
+      "ok": false,
+      "http": 530,
+      "note": "CF 1033"
     },
     "orch_post": {
       "ok": true,
       "http": 200,
-      "ms": 65,
+      "ms": 62,
       "source": "orch-chat-lab",
       "version": "10.24.6-lab-nofog"
     }
   },
   "shipped": {
-    "sha": "50be3ab81763a7058a5dfe40f12c46399f339253",
-    "status": "0.4.7-destyle",
-    "origin_archive": "0.1.6-destyle"
+    "pages_deployment": "3f616f8f-75df-4fce-9a1a-ddf400579044",
+    "pages_project": "calhegasmorais-pt",
+    "onto": "68d7d273e4c400e0b244846ef0f8725d5ee36c49"
   },
-  "next_pick": "Pages deploy destyle landing so apex drops IBM Plex. Then GHA fail-watch. Cannot reboot Mac workerd from this sandbox.",
+  "next_pick": "GHA fail-watch (protocol-invariants already green). Then Fog process vs git node_persistent.py. Restore EDGE 530. Cannot reboot Mac workerd from this sandbox.",
   "p0": "260826-001576 oracle_live=false",
   "lab": {
     "n": 2,

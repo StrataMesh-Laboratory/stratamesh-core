@@ -3,6 +3,51 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T07:12Z hour
+READ: origin HEAD 5fdb000 then Mac fast-forward 68d7d27 (api-fog installer + api-edge n=2 honesty) on destyle 2.3.11 + n=2 hop. Ledger 06:14 NEXT PICK was Pages deploy destyle landing so apex drops IBM Plex. Automation prompt STEP 1 (1) status + origin chrome — **curl wins** already destyle 0.4.7 / 0.1.6. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog Accept:text/html destyle 0.2.3-dev-destyle. Fog /status **0.3.0** (Mac kit live) agora.settlements=0 scalar consensus n=2 f_max=0. Fog /spa total=0 then POST /spa/register → total=1. Gossip **2.3.11-destyle** n=2. EDGE /health **530** CF 1033 (was 200 last hour). Gossip /peers count=**1** Fog only (EDGE omitted while 530 — honest). Origin 0.1.6-destyle. status 0.4.7-destyle. Apex Pages still IBM Plex + Instrument Serif until this hour. Orch POST **62–65ms** 10.24.6-lab-nofog. protocol-invariants **success** on 5fdb000. gha-fail-watch last run success 05:20Z. origin-archive 05:30 failure then 05:34 success (idempotent). Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, status 0.4.7, origin-archive 0.1.6.
+
+SHIPPED (REST Git Data API + CF Pages Direct Upload — NOT MCP, NOT paste, NOT workers.dev, NOT Worker PUT):
+- Cloudflare Pages project **calhegasmorais-pt** production deployment **3f616f8f** (created 2026-08-30T07:10Z). Direct-upload destyle `index.html` + `en.html` from git `frontend/landing-pt.html` / `landing-en.html` (system-ui, --accent:#c4a574, no Google fonts, no IBM Plex). Assets + clp + status-widget preserved. **No Pages Functions** (orchestrator stays Worker `stratamesh-orchestrator`).
+- Zone cache purge for `/` and `/en` (custom-domain HTML was stale vs pages.dev).
+- POST Fog /spa/register → total=1 (was 0 after Mac 0.3.0 process).
+- Did **not** re-ship gossip/orch/fund/status/origin-archive. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT. Did **not** PUT Mac's new stratamesh-fog-api (git 68d7d27; not this pick).
+
+LIVE curl:
+- GET https://calhegasmorais.pt/ → 200 **75ms** destyle --bg:#0a0a0b --acc:#c4a574 system-ui **no IBM Plex no Instrument Serif no Google fonts** (was IBM Plex)
+- GET https://calhegasmorais.pt/en → 200 **75ms** destyle --acc:#c4a574 **no IBM Plex**
+- GET https://www.calhegasmorais.pt/ → 200 destyle same family
+- GET https://3f616f8f.calhegasmorais-pt.pages.dev/ → 200 destyle
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **62ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
+- GET https://status.calhegasmorais.pt/health → 200 0.4.7-destyle (do not re-ship)
+- GET https://origin.calhegasmorais.pt/health → 200 0.1.6-destyle (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/health → 200 version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=**1** Fog live (EDGE 530 omitted)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false
+- GET https://fog.calhegasmorais.pt/status → 200 version=**0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0
+- GET https://edge.calhegasmorais.pt/health → **530** CF 1033
+- GET https://fund.calhegasmorais.pt/health → 200 0.4.7-accept-surface (do not re-ship)
+- HEAD https://fog.calhegasmorais.pt/health → 200
+- GET https://calhegasmorais.pt/dashboard → 200 (SPA Worker intact)
+
+SHA: (this ledger commit on origin/main; Pages onto 5fdb000 / parent 68d7d27)
+
+STILL RED:
+- EDGE https://edge.calhegasmorais.pt/health **530** CF 1033 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js; not loaded until host reboot)
+- Fog GET /spa agora.settlements.unavailable=n<2 at live n=2 (git spa_view f_max=0 not live). #40 stays OPEN — /status settlements=0 scalar, not a quality number
+- Pages CLP `/clp` still Google fonts (unique page preserved; not this pick)
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: GHA fail-watch (protocol-invariants already green on 5fdb000; origin-archive 05:30 Release failure already succeeded 05:34 idempotent). Then Fog process vs git node_persistent.py — Mac TUI v6 `g` pull+reboot; cannot from this sandbox. Restore EDGE session hop (530). Destyle remaining Pages `/clp` if still googleapis. Do not re-ship status 0.4.7, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.6, apex destyle. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T06:14Z hour
 READ: origin HEAD 9f5a83cf (Mac fog-bootstrap Terminal dialogs) on destyle 2.3.11 + n=2 hop. Ledger 05:12 NEXT PICK was reboot workerd :8788 — **cannot from this sandbox**. Automation prompt STEP 1 (1) remaining public HTML chrome — **curl wins**. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version** (still needs host reboot). Fog Accept:text/html destyle 0.2.3-dev-destyle. Gossip **2.3.11-destyle** n=2. Origin.calhegasmorais.pt still IBM Plex + teal #2f9e8a. status Worker HTML still github-dark #0b0f14/#93c5fd. Apex Pages landing still IBM Plex + Instrument Serif. Orch POST already **65ms** 10.24.6-lab-nofog. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, node-public overlay.
 
