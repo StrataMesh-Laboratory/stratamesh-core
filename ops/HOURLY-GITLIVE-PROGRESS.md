@@ -2,6 +2,52 @@
 
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
+## 2026-08-30T21:11Z hour
+READ: origin HEAD b11f98f5 (21:01Z token **3.5.4-circ-split** + status **0.4.8-circ-split** already on main this hour — not re-shipped). Automation prompt STEP 1 (1) remaining public HTML chrome — status **0.4.8-circ-split** destyle family / origin **0.1.6-destyle** / sandbox **0.4.6-destyle** / apex+clp+dashboard destyle / fund **0.4.8-destyle** / gossip **2.3.11-destyle** / academy HTML **0.4.3-lab** destyle / eni HTML destyle --accent:#c4a574 / pagamentos **1.0.1-destyle** **curl wins**. DeoMail public `/` is JSON roster; **GET /preview** still IBM Plex Mono + Georgia + `--accent:#c4b5a0` / version **1.4.5-fingerprint-free**. STEP 1 (2) GHA fail_total last 24h = **0**; fail-watch schedule already **success** 21:06 on b11f98f5. STEP 1 (3) Fog process vs git: /status agora.settlements={"unavailable":"f_max=0"} **envelope LIVE**. Cannot hot-patch Mac LaunchAgent from this sandbox. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **version=0.3.0 oracle_live=false substrate=workerd-hop**. Fog /spa total=**3** source=fog_process n=2. Gossip **2.3.11-destyle** n=2 /peers count=**2** (Fog+EDGE). EDGE /health **200** origin=edge n=2 mesh_member=true (session hop up this hour). Do not re-ship destyle chrome (status/origin/gossip/fund/academy/apex/sandbox/eni/eni-pay), gossip 2.3.11, orch 10.24.8, status 0.4.8-circ-split, origin-archive 0.1.6, fund 0.4.8, academy 0.4.3, sandbox 0.4.6-destyle, token 3.5.4-circ-split.
+
+SHIPPED (REST Git Data API — NOT MCP, NOT paste, NOT workers.dev):
+- Destyle **deomail.calhegasmorais.pt/preview** email HTML chrome to Fog/EDGE family: drop IBM Plex Mono / Georgia; system-ui + ui-monospace; `--acc:#c4a574` (was `#c4b5a0`). version **1.4.6-destyle**. Roster `/` `/health` stay JSON. Layout copy unchanged (secrets stay env-only).
+- Git Data API commit **1f0b9e184ba5f958fab22cc213df29c1c18ed2d7**. CF PUT `stratamesh-deomail` main_module=stratamesh-deomail.js. workers.dev subdomain **already disabled**; POST enabled=false kept. Custom domain live.
+- GHA green (no failed runs to fix); dispatched fail-watch + protocol-invariants on 1f0b9e184ba5 both **success**.
+- Fog /status envelope **LIVE**. /spa total=3 source=fog_process. EDGE hop **LIVE** this hour (was 530 last hour).
+- Did **not** re-ship gossip/orch/fund/status/origin-archive/spa/apex/academy/sandbox/eni/eni-pay destyle / token circ-split. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT. Did **not** PUT Mac Fog process or workerd :8788.
+
+LIVE curl:
+- GHA gha-fail-watch https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33335696758 → **success** on 1f0b9e184ba5
+- GHA protocol-invariants dispatch https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33335697550 → **success** on 1f0b9e184ba5
+- GET https://deomail.calhegasmorais.pt/health → 200 version **1.4.6-destyle** destyle=true workers_dev=false
+- GET https://deomail.calhegasmorais.pt/preview?kind=2fa Accept:text/html → 200 HTML #c4a574 system-ui ui-monospace **no IBM Plex** **no Georgia**
+- GET https://stratamesh-deomail.stratamesh.workers.dev/health → **404** CF 1042 (never workers.dev)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **version=0.3.0 oracle_live=false substrate=workerd-hop**
+- GET https://fog.calhegasmorais.pt/spa → 200 total=**3** source=fog_process n=2 mesh_member=true oracle_live=false agora.settlements.unavailable=**f_max=0**
+- GET https://fog.calhegasmorais.pt/status → 200 version=**0.3.0** agora.settlements={"unavailable":"f_max=0"} **LIVE envelope**
+- GET https://gossip.calhegasmorais.pt/health → 200 version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=**2** Fog+EDGE live
+- GET https://edge.calhegasmorais.pt/health → **200** origin=edge n=2 mesh_member=true node_id=EDGE-GROK-CMN-001 (session hop up)
+- GET https://origin.calhegasmorais.pt/health → 200 0.1.6-destyle (do not re-ship)
+- GET https://status.calhegasmorais.pt/health → 200 version **0.4.8-circ-split** (21:01 this hour; do not re-ship)
+- GET https://sandbox.calhegasmorais.pt/health → 200 version **0.4.6-destyle** (do not re-ship)
+- GET https://fund.calhegasmorais.pt/health → 200 version **0.4.8-destyle** (do not re-ship)
+- GET https://eni.calhegasmorais.pt/pagamentos/health → 200 version **1.0.1-destyle** (do not re-ship)
+- GET https://academy.calhegasmorais.pt/ Accept:text/html → 200 HTML 0.4.3-lab destyle --acc:#c4a574 **no IBM Plex**
+
+SHA: 1f0b9e184ba5f958fab22cc213df29c1c18ed2d7
+
+STILL RED:
+- #40 stays OPEN — Fog /status settlements envelope **live** (unavailable=f_max=0); still not a quality number until n≥3 f_max>0
+- EDGE session hop is **up this hour** (200 origin=edge) but non-continuous expected; cannot start EDGE from this sandbox when it drops
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- gitlive-drift observe SHA-256 academy+origin-archive ≠ git file (live versions match; do not re-PUT)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog process vs git (Mac TUI v6 `g`) — cannot from this sandbox. EDGE session hop is non-continuous — cannot from this sandbox. Public HTML chrome destyle family **curl wins** (DeoMail preview destyle this hour). Do not re-ship deomail 1.4.6-destyle, eni-pay 1.0.1-destyle, eni destyle, sandbox 0.4.6-destyle, fund 0.4.8, status 0.4.8-circ-split, token 3.5.4-circ-split, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.8, academy 0.4.3, apex destyle, clp/roadmap destyle, dashboard destyle, Fog /health 0.3.0 hop, Fog /status settlements envelope, Agora.book honesty 294fbfbd. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false. EDGE origin=edge n=2. P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T20:12Z hour
 READ: origin HEAD 64a10ce5 (20:06Z sandbox phone HUD **0.4.4-destyle** already on main this hour — not re-shipped). Automation prompt STEP 1 (1) remaining public HTML chrome — status **0.4.7-destyle** / origin **0.1.6-destyle** / sandbox **0.4.4-destyle** / apex+clp+dashboard destyle / fund **0.4.8-destyle** / gossip **2.3.11-destyle** / academy HTML **0.4.3-lab** destyle / eni **1.4.2-destyle** --acc:#c4a574 **curl wins**. **eni.calhegasmorais.pt/pagamentos** still IBM Plex + Instrument Serif Google Fonts / --accent:#c4b5a0 / version **1.0.0-eni-pay** (stratamesh-eni-pay). STEP 1 (2) GHA fail_total last 24h = **0**. STEP 1 (3) Fog process vs git: /status agora.settlements={"unavailable":"f_max=0"} **envelope LIVE**. Cannot hot-patch Mac LaunchAgent from this sandbox. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **version=0.3.0 oracle_live=false substrate=workerd-hop**. Fog /spa total=**3** source=fog_process n=2. Gossip **2.3.11-destyle** n=2 /peers count=**1** (EDGE session down). EDGE /health **530** CF 1033 session-expected. Do not re-ship destyle chrome (status/origin/gossip/fund/academy/apex/sandbox/eni 1.4.2), gossip 2.3.11, orch 10.24.8, status 0.4.7, origin-archive 0.1.6, fund 0.4.8, academy 0.4.3, sandbox 0.4.4-destyle, eni 1.4.2-destyle.
 

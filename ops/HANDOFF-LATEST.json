@@ -1,18 +1,17 @@
 {
-  "generated_at": "2026-08-30T20:13:00Z",
-  "phase": "hourly_gitlive_20_eni_pay_destyle",
-  "sha": "766b139e0fedafddb21476cfe54ca2ac85500db1",
-  "ship": "eni-pay /pagamentos HTML chrome destyle 1.0.1-destyle LIVE (was IBM Plex / Instrument Serif); GHA fail-watch+protocol-invariants success on 766b139e0fed; Fog /status envelope LIVE; CF PUT stratamesh-eni-pay only; workers.dev subdomain disabled 404",
-  "live": [
-    "https://eni.calhegasmorais.pt/pagamentos/health",
-    "https://eni.calhegasmorais.pt/pagamentos",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/766b139e0fedafddb21476cfe54ca2ac85500db1",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33332982284",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33332983323"
-  ],
-  "n": 2,
+  "generated_at": "2026-08-30T21:12:00Z",
+  "lisbon": "2026-08-30T22:12:00+0100",
+  "agent": "grok@calhegasmorais.pt",
+  "node": "FOG-NODE-PT-CM-001",
+  "phase": "hourly_gitlive_21_deomail_destyle",
+  "sha": "1f0b9e184ba5f958fab22cc213df29c1c18ed2d7",
+  "ship": "deomail 1.4.6-destyle",
+  "gha_fail_watch": 33335696758,
+  "gha_protocol_invariants": 33335697550,
+  "fog_n": 2,
   "mesh_member": true,
   "oracle_live": false,
+  "edge": "200 origin=edge",
   "workers_dev": false,
   "sixth_cron": false
 }
