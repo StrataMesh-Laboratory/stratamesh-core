@@ -1,17 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T02:16:50Z",
-  "lisbon": "2026-08-30T03:16:50+0100",
+  "generated_at": "2026-08-30T03:17:05Z",
+  "lisbon": "2026-08-30T04:17:05+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_02",
+  "phase": "hourly_gitlive_03",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "02 UTC hour: shipped status 0.4.6-workerd-hop. Orch already live. Fog tunnel back via workerd hop. No ops-state PUT."
+    "reason": "03 UTC hour: shipped orch 10.24.6-lab-nofog. POST /api/orchestrator/chat 65-105ms. No ops-state PUT."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
@@ -71,18 +71,25 @@
       "http": 200,
       "total": 1,
       "source": "fog_process",
-      "note": "POST /spa/register this hour after hop restart; honesty envelope live"
+      "note": "POST /spa/register this hour; honesty envelope live"
     },
     "fog_status": {
       "ok": true,
       "http": 200,
-      "settlements": 0,
-      "note": "#40 OPEN; git envelope not live until Fog process restart"
+      "settlements": {
+        "unavailable": "n<2"
+      },
+      "consensus": {
+        "n": 1,
+        "f_max": 0
+      },
+      "note": "#40 OPEN; envelope live but not a number at n=1"
     },
     "edge": {
       "ok": true,
-      "http": 200,
-      "host": "edge.calhegasmorais.pt"
+      "http": 429,
+      "host": "edge.calhegasmorais.pt",
+      "note": "CF 1015 rate limited this probe; gossip still lists edge live"
     },
     "gossip_host": {
       "ok": true,
@@ -107,11 +114,13 @@
       "ok": true,
       "http": 200,
       "source": "orch-chat-lab",
-      "ms": 146,
+      "ms": 65,
       "version_spa": "origin-orch-chat-1.1.0",
+      "worker_version": "10.24.6-lab-nofog",
       "skipped": [
         "tick",
-        "llm"
+        "llm",
+        "fog"
       ]
     }
   },
@@ -133,16 +142,16 @@
   },
   "identity": "≠ cargo",
   "whatsapp": "not_briefing",
-  "headline": "Hourly 02:16Z: status 0.4.6-workerd-hop spa.source=fog_process fog_health=200 fog_version=0.2.3-lab. Orch-chat-lab 146ms already live. Fog tunnel back via workerd hop.",
+  "headline": "Hourly 03:16Z: orch 10.24.6-lab-nofog POST /api/orchestrator/chat 65-105ms skipped=[tick,llm,fog]. Route stolen from spa. Fog /status settlements envelope live.",
   "posture": "lab_autonomous",
   "mandatory_actions": [
     {
       "id": "STRATAGROK-WORKERD-REBOOT",
       "owner": "stratagrok",
-      "verb": "Reboot local workerd :8788 so Fog /health serves git hop JSON (version 0.2.3-lab, oracle_live=false, substrate=workerd-hop). Then restart Fog :8787 from git node_persistent.py so /status settlements envelope + consensus go live. Not this sandbox.",
+      "verb": "Reboot local workerd :8788 so Fog /health serves git hop JSON (version 0.2.3-lab, oracle_live=false, substrate=workerd-hop). Not this sandbox.",
       "priority": "P1",
       "effort": "S",
-      "success_check": "GET https://fog.calhegasmorais.pt/health includes version 0.2.3-lab oracle_live=false; GET /status agora.settlements.unavailable=n<2"
+      "success_check": "GET https://fog.calhegasmorais.pt/health includes version 0.2.3-lab oracle_live=false"
     },
     {
       "id": "STRATAGROK-GOOGLE-RESTORE",
@@ -160,20 +169,14 @@
       "verb": "git ops/workerd/worker.js /health now includes version/oracle_live/substrate. Live when workerd reboots.",
       "priority": "P2",
       "success_check": "GET fog /health includes version 0.2.3-lab mesh_member=false oracle_live=false"
-    },
-    {
-      "id": "FOG-STATUS-SETTLEMENTS",
-      "owner": "mesh",
-      "verb": "git Fog GET /status agora.settlements={unavailable:n<2} + consensus restored (was clobbered by 7332eff). #40 stays OPEN until live.",
-      "priority": "P2"
     }
   ],
-  "efficacy_self_score": 0.9,
+  "efficacy_self_score": 0.92,
   "notes": [
-    "Hourly git+live 02:16Z: STEP 1 orch instant already live (146ms orch-chat-lab). Fog tunnel restored via workerd hop. Shipped status Worker honesty.",
-    "CF PUT stratamesh-status 0.4.6-workerd-hop main_module=worker.js. spa.source=fog_process fog_health=200 fog_version=0.2.3-lab.",
-    "Fog process git /health enrich + /status envelope + do_HEAD restored after 7332eff clobber; workerd /health enrich committed; not live until host reboot.",
-    "POST Fog /spa/register → total=1 after hop restart.",
+    "Hourly git+live 03:16Z: STEP 1 orch instant was 442-904ms (SPA awaited Fog hop). Shipped orch Worker 10.24.6 + route steal.",
+    "CF PUT stratamesh-orchestrator 10.24.6-lab-nofog main_module=index.js. POST 65-105ms.",
+    "Did not re-ship spa 1.1.0. spa skip-Fog is git-only.",
+    "Fog /status settlements envelope now live. #40 stays OPEN (not a number at n=1).",
     "No ops-state PUT. No 6th cron. Never workers.dev. Skip extra Discourse.",
     "P0 still open 260826-001576 (Oracle tenancy). Lab honest. grok@ not SCA."
   ]

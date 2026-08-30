@@ -1,10 +1,10 @@
-# HANDOFF-LATEST — hourly git+live 02:16Z
+# HANDOFF-LATEST — hourly git+live 03:16Z
 
-**generated_at:** 2026-08-30T02:16:50Z  
-**lisbon:** 2026-08-30T03:16:50+0100  
+**generated_at:** 2026-08-30T03:17:05Z  
+**lisbon:** 2026-08-30T04:17:05+0100  
 **agent:** grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** hourly_gitlive_02
+**phase:** hourly_gitlive_03
 
 ## Metabolism
 
@@ -22,12 +22,13 @@
 ## Probes (this hour, curl)
 
 - Apex `https://calhegasmorais.pt/` → 200 Pages
-- Status `0.4.6-workerd-hop` `spa.source=fog_process` `fog_health=200` `fog_version=0.2.3-lab` settlements `unavailable:n<2` consensus n=1 f_max=0
+- Status `0.4.6-workerd-hop` `spa.source=fog_process` (do not re-ship)
 - Fog `/health` → 200 workerd-hop (no version until workerd reboot)
 - Fog `/spa` → 200 total=1 source=fog_process
+- Fog `/status` → settlements `unavailable:n<2` consensus n=1 f_max=0 (**envelope live**)
 - Gossip host `/peers` → count=2 · `2.3.6-ihave` fog+edge live
 - Fund `/health` → `0.4.7-accept-surface`
-- POST `/api/orchestrator/chat` → 200 **146ms** `source=orch-chat-lab` (do not re-ship)
+- POST `/api/orchestrator/chat` → 200 **65–105ms** `source=orch-chat-lab` skipped=`[tick,llm,fog]` worker `10.24.6-lab-nofog`
 
 ## Mesh / Fund
 
@@ -40,16 +41,16 @@
 
 | Slot | Disposition |
 |------|-------------|
-| STEP 1 orch instant | **already live** 146ms — no PUT |
-| Fog tunnel | **restored** via workerd :8788 → fog :8787 |
-| Status spa fog_version=null lie | **SHIPPED** 0.4.6-workerd-hop live |
-| Fog /health enrich + /status envelope | **git-only** — needs workerd reboot + Fog restart |
+| STEP 1 orch instant | **SHIPPED** 65–105ms — was 442–904ms SPA Fog race |
+| Route `/api/orchestrator*` | **stratamesh-orchestrator** (was spa) |
+| Fog /status envelope | **live** — #40 stays OPEN |
+| Fog /health enrich | **git-only** — needs workerd reboot |
 | Discourse | HOLD extra |
 | Google restore | **P0 STRATAGROK** — not this sandbox |
-| Worker PUT | stratamesh-status only |
+| Worker PUT | stratamesh-orchestrator only |
 
 ## Efficacy
 
-**EFFICACY_SELF_SCORE:** 0.90
+**EFFICACY_SELF_SCORE:** 0.92
 
 LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
