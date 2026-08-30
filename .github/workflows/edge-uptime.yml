@@ -1,0 +1,23 @@
+# $0 Actions ping. Does not start localhost. EDGE assistant persist is the boot.
+name: edge-uptime
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: ping public edge
+        run: |
+          set -e
+          code=$(curl -sS -m 12 -o /tmp/e.json -w "%{http_code}" https://edge.calhegasmorais.pt/health || echo 000)
+          echo "http=$code"
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/e.json"))
+          print("node", d.get("node_id"), "n", d.get("n"), "member", d.get("mesh_member"),
+                "origin", d.get("origin"), "runtime", d.get("runtime") or d.get("substrate"))
+          PY
+          test "$code" = "200"

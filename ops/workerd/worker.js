@@ -8,16 +8,24 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const origin = env.ORIGIN || "session";
+      const mac_live = origin === "macbook";
+      const edge_live = origin === "edge";
+      const n = (mac_live || edge_live) ? 2 : 1;
+      const layer = edge_live
+        ? "tunnel→workerd:8788→edge:8789"
+        : "tunnel→workerd:8788→fog:8787";
       return Response.json({
         ok: true,
         runtime: "workerd",
-        plugin: "fog-workerd",
+        plugin: edge_live ? "edge-workerd" : "fog-workerd",
         origin,
-        layer: "tunnel→workerd:8788→fog:8787",
-        version: "0.2.3-lab",
-        oracle_live: false,
-        mesh_member: false,
-        substrate: "workerd-hop",
+        mac_live,
+        edge_live,
+        trusted: mac_live || edge_live,
+        n,
+        mesh_member: n >= 2,
+        mesh_provision: mac_live || edge_live,
+        layer,
       }, {
         headers: {
           "access-control-allow-origin": "*",
