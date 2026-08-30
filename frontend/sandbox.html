@@ -4,35 +4,36 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.4.3-destyle · sandbox.calhegasmorais.pt</title>
+<title>Atelier GNU · v0.4.4-destyle · sandbox.calhegasmorais.pt</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
-<meta property="og:title" content="Atelier GNU · v0.4.3-destyle"/>
+<meta property="og:title" content="Atelier GNU · v0.4.4-destyle"/>
 <meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
 <style>
-:root{--bg:#07111c;--fg:#e8e6e3;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--teal:#c4a574;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28}
+:root{--bg:#07111c;--fg:#e8e6e3;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--teal:#c4a574;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28;--vv-bottom:0px}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
-canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+html,body{margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+canvas#stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;display:block;touch-action:none}
 #hud{pointer-events:none;position:fixed;inset:0;z-index:5}
 #hud button,#hud a,#hud input,.stick{pointer-events:auto}
 .chip{border:1px solid var(--line);background:rgba(7,17,28,.82);backdrop-filter:blur(6px);border-radius:8px;padding:.45rem .7rem}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
 h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .muted{color:var(--muted);font-size:11px}
-#top{position:absolute;top:max(.6rem,env(safe-area-inset-top));left:.7rem;right:.7rem;display:flex;justify-content:space-between;gap:.6rem}
-#tools{position:absolute;bottom:max(.7rem,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;max-width:min(42rem,calc(100% - 1.4rem))}
-#tools button,.nav a,button.ghost{min-height:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:0 .7rem;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
-#tools button.on{border-color:var(--teal);color:var(--teal)}
+#top{position:absolute;top:max(.6rem,env(safe-area-inset-top));left:.7rem;right:.7rem;display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}
+#tools{position:absolute;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)));left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;max-width:min(42rem,calc(100% - 1.4rem))}
+#tools button,.nav a,button.ghost,#phoneDock button,#btnMenu,#sheet button{min-height:44px;min-width:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:0 .7rem;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+#tools button.on,#phoneDock button.on,#sheet button.on{border-color:var(--teal);color:var(--teal)}
 .nav{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
 .nav a{display:inline-flex;align-items:center;text-decoration:none;color:var(--muted)}
 .nav a.here{color:var(--teal);border-color:var(--teal)}
-#prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap}
-.stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7)}
+#prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap;max-width:min(36rem,calc(100% - 12rem));overflow:hidden;text-overflow:ellipsis}
+.stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7);touch-action:none;-webkit-user-select:none;user-select:none}
 .stick:after{content:"";position:absolute;inset:2.2rem;border-radius:999px;border:1px solid var(--teal)}
 #stkL{left:.7rem} #stkR{right:.7rem}
+#phoneDock,#btnMenu{display:none}
 #enter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:8;pointer-events:none}
 #enter .card{pointer-events:auto;max-width:26rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.9);text-align:center;cursor:pointer}
 #enter h2{margin:.4rem 0 .3rem;font-size:1.25rem}
@@ -45,6 +46,24 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 #atlas.on{display:block}
 #atlas article{border:1px solid var(--line);border-radius:8px;padding:.6rem;margin:.45rem 0}
 #log{position:absolute;right:.7rem;bottom:5.2rem;width:16rem;max-height:8rem;overflow:hidden;font:10px ui-monospace,Menlo,monospace;color:var(--muted);display:none}
+#sheet{display:none;position:absolute;inset:0;z-index:13;background:rgba(7,17,28,.55);pointer-events:auto}
+#sheet.on{display:flex;align-items:flex-end}
+#sheet .panel{width:100%;max-height:70dvh;overflow:auto;border-top:1px solid var(--line);background:var(--surface);border-radius:14px 14px 0 0;padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+#sheet .row{display:flex;flex-wrap:wrap;gap:.3rem;margin:.55rem 0}
+#hud.busy .stick,#hud.busy #phoneDock,#hud.busy #tools,#hud.busy #prompt{visibility:hidden;pointer-events:none}
+@media(max-width:719px){
+  #idMeta,#zpath,.desk-nav,#walletChip,#tools,#prompt{display:none}
+  #idChip{padding:.28rem .55rem;max-width:calc(100% - 4.25rem)}
+  #idChip h1{font-size:13px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #btnMenu{display:inline-flex;align-items:center;justify-content:center}
+  #phoneDock{display:flex;position:absolute;left:50%;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)));transform:translateX(-50%);gap:.35rem;z-index:6;align-items:center}
+  .stick{width:5.25rem;height:5.25rem;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)))}
+  .stick:after{inset:1.45rem}
+  #stkL{left:.45rem} #stkR{right:.45rem}
+  #enter .card{max-width:calc(100% - 2rem);margin:0 .7rem}
+  #gnu .bar span:nth-child(2){display:none}
+  #tty{max-height:40dvh;width:calc(100% - 1.4rem)}
+}
 @media(min-width:900px){#log{display:block}}
 </style>
 <script type="importmap">
@@ -55,42 +74,71 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <canvas id="stage" tabindex="0" aria-label="GNU atelier first-person renderer"></canvas>
 <div id="hud">
   <div id="top">
-    <div class="chip">
-      <div class="mono">sandbox.calhegasmorais.pt · v0.4.3-destyle · holon 5 UGC</div>
+    <div class="chip" id="idChip">
+      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.4-destyle · holon 5 UGC</div>
       <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
-    <div>
-      <div class="nav">
+    <div id="topRight">
+      <button class="ghost" id="btnMenu" type="button" aria-label="Menu">Menu</button>
+      <div class="nav desk-nav">
         <a class="here" href="/">Atelier</a>
         <a href="https://calhegasmorais.pt/dashboard">Portal</a>
         <a href="https://calhegasmorais.pt">Lab</a>
       </div>
-      <div class="chip" style="margin-top:.35rem;text-align:right">
+      <div class="chip" id="walletChip" style="margin-top:.35rem;text-align:right">
         <span class="mono" id="wallet">50.0 L-STRATA</span>
       </div>
     </div>
   </div>
   <div id="tools">
-    <button data-t="phys" class="on">1 Manipulate</button>
-    <button data-t="freeze">2 Freeze</button>
-    <button data-t="dupe">3 Duplicate</button>
-    <button data-t="remove">4 Remove</button>
-    <button data-t="rotate">5 Rotate</button>
-    <button id="btnGnu">` GNU</button>
-    <button id="btnAtlas">Atlas MUD</button>
+    <button type="button" data-t="phys" class="on">1 Manipulate</button>
+    <button type="button" data-t="freeze">2 Freeze</button>
+    <button type="button" data-t="dupe">3 Duplicate</button>
+    <button type="button" data-t="remove">4 Remove</button>
+    <button type="button" data-t="rotate">5 Rotate</button>
+    <button type="button" id="btnGnu">GNU</button>
+    <button type="button" id="btnAtlas">Atlas MUD</button>
+  </div>
+  <div id="phoneDock">
+    <button type="button" id="btnUse">Use</button>
+    <button type="button" id="btnTool" class="on">1 Phys</button>
+    <button type="button" id="btnGnuPhone">GNU</button>
   </div>
   <div id="prompt">WASD walk · mouse / right stick look · E use · F tool · 1–5</div>
   <div class="stick" id="stkL" aria-label="Move"></div>
   <div class="stick" id="stkR" aria-label="Look"></div>
+  <div id="sheet">
+    <div class="panel">
+      <div class="mono">Atelier</div>
+      <p class="muted" id="sheetPath"></p>
+      <p class="mono" id="sheetWallet">50.0 L-STRATA</p>
+      <div class="nav row" style="justify-content:flex-start">
+        <a class="here" href="/">Atelier</a>
+        <a href="https://calhegasmorais.pt/dashboard">Portal</a>
+        <a href="https://calhegasmorais.pt">Lab</a>
+      </div>
+      <div class="row" id="sheetTools">
+        <button type="button" data-t="phys" class="on">1 Manipulate</button>
+        <button type="button" data-t="freeze">2 Freeze</button>
+        <button type="button" data-t="dupe">3 Duplicate</button>
+        <button type="button" data-t="remove">4 Remove</button>
+        <button type="button" data-t="rotate">5 Rotate</button>
+      </div>
+      <div class="row">
+        <button type="button" class="ghost" id="btnAtlasSheet">Atlas MUD</button>
+        <button type="button" class="ghost" id="sheetClose">Close</button>
+      </div>
+    </div>
+  </div>
   <div id="log"></div>
   <div id="enter"><div class="card" id="enterBtn">
-    <div class="mono">v0.4.3-destyle · inhabit WASD/look</div>
+    <div class="mono">v0.4.4-destyle · inhabit WASD/look</div>
     <h2>Enter the GNU atelier</h2>
     <p class="muted">Left stick walk · right stick look · drag to look. A left · D right of look. Free Unix renderer — not a proprietary Unix.</p>
   </div></div>
   <aside id="atlas">
-    <div class="mono">Absorb models, not ontology · v0.4.3-destyle</div>
+    <div class="mono">Absorb models, not ontology · v0.4.4-destyle</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
     <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
@@ -101,7 +149,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
     <button class="ghost" id="atlasClose">Close</button>
   </aside>
   <div id="gnu">
-    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.3-destyle · inhabit WASD/look · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
+    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.4-destyle · inhabit WASD/look · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
     <div id="tty">
       <pre id="ttyOut"></pre>
       <form id="ttyForm"><span style="color:var(--teal)">$ </span><input id="ttyIn" autocomplete="off" spellcheck="false" placeholder="look · go n · help"/></form>
@@ -111,7 +159,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <script type="module">
 import * as THREE from "three";
 
-const CORE = "v0.4.3-destyle";
+const CORE = "v0.4.4-destyle";
 const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
 const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
@@ -184,8 +232,10 @@ function buildZone() {
   document.getElementById("ztitle").textContent = z.title;
   document.getElementById("zpath").textContent = `/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/${zone}/${ADDR.id}`;
   const host = location.host || "sandbox.calhegasmorais.pt";
-  const mono = document.querySelector("#top .chip .mono");
+  const mono = document.getElementById("idMeta");
   if (mono) mono.textContent = host + " · " + CORE + " · holon 5 UGC · " + ADDR.owner + "/" + ADDR.id;
+  const sp = document.getElementById("sheetPath");
+  if (sp) sp.textContent = document.getElementById("zpath").textContent;
 }
 
 function seed() {
@@ -229,7 +279,9 @@ function lookFlat() {
   return { fx: d.x, fz: d.z, rx: -d.z, rz: d.x };
 }
 function resize() {
-  const w = innerWidth, h = innerHeight;
+  const vv = window.visualViewport;
+  const w = Math.round((vv && vv.width) || innerWidth);
+  const h = Math.round((vv && vv.height) || innerHeight);
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
@@ -301,6 +353,7 @@ function toggleGnu(on) {
   gnu = on !== undefined ? on : !gnu;
   document.getElementById("gnu").classList.toggle("on", gnu);
   if (gnu) { try { document.exitPointerLock(); } catch {} document.getElementById("ttyIn").focus(); }
+  busyHud();
 }
 function runCmd(raw) {
   const [cmd, ...rest] = raw.trim().split(/\s+/); const arg = rest.join(" ");
@@ -313,12 +366,29 @@ function runCmd(raw) {
     wallet = +(wallet - 0.2).toFixed(3);
     nfts.push({ id: "cgu-" + Date.now(), name: arg || "Creation", role: "creation", zone });
     document.getElementById("wallet").textContent = wallet.toFixed(1) + " L-STRATA";
+    const sw = document.getElementById("sheetWallet");
+    if (sw) sw.textContent = wallet.toFixed(1) + " L-STRATA";
     rebuild(); log("mint", "isolated −0.2 L-STRATA"); return;
   }
   if (cmd === "who") { log("who", "you · mesh-local · " + zone); return; }
   log(cmd || "?", arg || "ok");
 }
 
+function isPhone() {
+  return innerWidth < 720 || matchMedia("(pointer: coarse)").matches;
+}
+function layoutHud() {
+  const vv = window.visualViewport;
+  const gap = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0;
+  document.documentElement.style.setProperty("--vv-bottom", gap + "px");
+  resize();
+}
+function busyHud() {
+  const on = gnu
+    || document.getElementById("atlas").classList.contains("on")
+    || document.getElementById("sheet").classList.contains("on");
+  document.getElementById("hud").classList.toggle("busy", on);
+}
 function nudge(el, ev, target) {
   const r = el.getBoundingClientRect();
   const x = (ev.clientX - r.left) / r.width * 2 - 1;
@@ -327,9 +397,24 @@ function nudge(el, ev, target) {
   target.x = (x / mag) * s; target.y = (y / mag) * s;
 }
 function bindStick(el, target) {
-  el.addEventListener("pointerdown", (e) => { el.setPointerCapture(e.pointerId); nudge(el, e, target); });
-  el.addEventListener("pointermove", (e) => { if (e.buttons) nudge(el, e, target); });
-  el.addEventListener("pointerup", () => { target.x = 0; target.y = 0; });
+  let pid = null;
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    pid = e.pointerId;
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    nudge(el, e, target);
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (pid !== e.pointerId) return;
+    e.preventDefault();
+    nudge(el, e, target);
+  });
+  const up = (e) => {
+    if (pid != null && e.pointerId !== pid) return;
+    pid = null; target.x = 0; target.y = 0;
+  };
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
 }
 bindStick(document.getElementById("stkL"), stick);
 bindStick(document.getElementById("stkR"), look);
@@ -369,18 +454,65 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
-window.addEventListener("resize", resize);
+window.addEventListener("resize", layoutHud);
+if (window.visualViewport) {
+  visualViewport.addEventListener("resize", layoutHud);
+  visualViewport.addEventListener("scroll", layoutHud);
+}
 
+const TOOL_SHORT = { phys: "1 Phys", freeze: "2 Freeze", dupe: "3 Dupe", remove: "4 Remove", rotate: "5 Rotate" };
+const TOOL_ORDER = ["phys", "freeze", "dupe", "remove", "rotate"];
 function setTool(t) {
   tool = t;
-  document.querySelectorAll("#tools [data-t]").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("#hud [data-t]").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+  const bt = document.getElementById("btnTool");
+  if (bt) { bt.textContent = TOOL_SHORT[t] || t; bt.classList.add("on"); }
   log("tool", t);
 }
-document.querySelectorAll("#tools [data-t]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.t)));
+document.querySelectorAll("#hud [data-t]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.t)));
 document.getElementById("btnGnu").onclick = () => toggleGnu();
+document.getElementById("btnGnuPhone").onclick = () => toggleGnu();
 document.getElementById("gnuClose").onclick = () => toggleGnu(false);
-document.getElementById("btnAtlas").onclick = () => document.getElementById("atlas").classList.toggle("on");
-document.getElementById("atlasClose").onclick = () => document.getElementById("atlas").classList.remove("on");
+function toggleAtlas(on) {
+  const el = document.getElementById("atlas");
+  if (on === undefined) el.classList.toggle("on");
+  else el.classList.toggle("on", on);
+  if (el.classList.contains("on")) document.getElementById("sheet").classList.remove("on");
+  busyHud();
+}
+document.getElementById("btnAtlas").onclick = () => toggleAtlas();
+document.getElementById("atlasClose").onclick = () => toggleAtlas(false);
+document.getElementById("btnAtlasSheet").onclick = () => toggleAtlas(true);
+document.getElementById("btnUse").onclick = () => useNear();
+(function bindToolCycle() {
+  const el = document.getElementById("btnTool");
+  let hold = null, cycled = false;
+  const cycle = () => setTool(TOOL_ORDER[(TOOL_ORDER.indexOf(tool) + 1) % TOOL_ORDER.length]);
+  el.addEventListener("pointerdown", () => {
+    cycled = false;
+    hold = setTimeout(() => { cycled = true; cycle(); }, 380);
+  });
+  el.addEventListener("pointerup", () => {
+    if (hold) clearTimeout(hold); hold = null;
+    if (!cycled) applyTool();
+  });
+  el.addEventListener("pointercancel", () => { if (hold) clearTimeout(hold); hold = null; });
+  el.addEventListener("contextmenu", (e) => { e.preventDefault(); cycle(); });
+})();
+function openSheet(on) {
+  const el = document.getElementById("sheet");
+  el.classList.toggle("on", on === undefined ? !el.classList.contains("on") : on);
+  const w = document.getElementById("wallet");
+  const sw = document.getElementById("sheetWallet");
+  if (w && sw) sw.textContent = w.textContent;
+  busyHud();
+}
+document.getElementById("btnMenu").onclick = () => openSheet(true);
+document.getElementById("sheetClose").onclick = () => openSheet(false);
+document.getElementById("sheetTools").addEventListener("click", () => openSheet(false));
+document.getElementById("sheet").addEventListener("click", (e) => {
+  if (e.target.id === "sheet") openSheet(false);
+});
 document.getElementById("ttyForm").onsubmit = (e) => {
   e.preventDefault();
   const v = document.getElementById("ttyIn").value;
@@ -391,6 +523,7 @@ function play() {
   playing = true;
   document.getElementById("enter").style.display = "none";
   applyCam();
+  if (isPhone()) return;
   const req = canvas.requestPointerLock;
   try { const p = req.call(canvas, { unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()); } catch { try { canvas.requestPointerLock(); } catch {} }
 }
@@ -432,7 +565,10 @@ function tick(now) {
   }
   renderer.render(scene, camera);
   const north = Math.abs(px) < 1.1 && pz > half() - 1.45;
-  document.getElementById("prompt").textContent = gnu ? "GNU desk · type help · ` close" : north ? "E · go north" : `E use · F ${tool} · 1–5 · \` GNU`;
+  document.getElementById("prompt").textContent = gnu
+    ? (isPhone() ? "GNU · close" : "GNU desk · type help · ` close")
+    : north ? (isPhone() ? "Use · go north" : "E · go north")
+    : (isPhone() ? TOOL_SHORT[tool] : `E use · F ${tool} · 1–5 · \` GNU`);
   window.__controlsTest = {
     getYaw: () => yaw,
     getSpeed: () => (has("KeyW") || stick.y ? WALK : 0),
@@ -442,7 +578,7 @@ function tick(now) {
   };
   window.__atelierReady = true;
 }
-seed(); buildZone(); rebuild(); resize(); applyCam();
+seed(); buildZone(); rebuild(); layoutHud(); applyCam();
 requestAnimationFrame(tick);
 log("boot", "GNU Atelier " + CORE + " · inhabit WASD/look");
 </script>

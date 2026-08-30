@@ -1,3 +1,9 @@
+## 2026-08-30 — sandbox phone HUD (0.4.4-destyle)
+- Phone no longer stacks desktop chrome on the analog sticks (identity chip + 1–5 + WASD prompt + GNU/Atlas overlapped walk/look).
+- Compact title · Menu sheet · Use / hold-to-cycle tool / GNU dock. Sticks sit in the corners above the home indicator.
+- iOS sticks track pointerId (not `buttons`). No pointer-lock on coarse pointer. Destyle tokens unchanged. 3D CRT phosphor stays 0x2f9e8a.
+- Never Fog origin. Never workers.dev. One Worker PUT (`stratamesh-sandbox-host`).
+
 ## 2026-08-30 — sandbox destyle HTML chrome (0.4.3-destyle)
 - GNU atelier HUD accent is destyle alias `--teal:#c4a574` / `--acc:#c4a574` (was phosphor `#2f9e8a` on HTML chrome). 3D CRT phosphor stays in-world.
 - Version **0.4.3-destyle**. Never workers.dev. Never Fog origin.
