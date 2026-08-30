@@ -438,6 +438,9 @@ code {{ color:var(--fg); }}
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
+            agora_book = self.agora.book()
+            # Honesty (#40): len(settlement_log)==0 is not a quality number at f_max=0.
+            agora_book["settlements"] = {"unavailable": "f_max=0"}
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
@@ -462,7 +465,7 @@ code {{ color:var(--fg); }}
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
                     "service_credit": self.svc.summary(),
-                    "agora": self.agora.book(),
+                    "agora": agora_book,
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
