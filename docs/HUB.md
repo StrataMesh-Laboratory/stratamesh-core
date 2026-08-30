@@ -20,6 +20,7 @@ Desk split and renewal dates: [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-
 |---------------|-------------|------|------|
 | [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core) | [stratamesh/README](https://huggingface.co/spaces/stratamesh/README) | static Space | Org card. Free. |
 | same | [stratamesh/lab](https://huggingface.co/datasets/stratamesh/lab) | dataset | Public lab facts. No weights, no tokens, no secrets. |
+| git `src/academy/` | (catalog in git; Hub dataset later) | academy formations | Ollama pulls GGUF via `hf.co/…`. Worker does **not** infer. |
 | same | [stratamesh/edge-grok](https://huggingface.co/stratamesh/edge-grok) | model (private) | Desk means, not a being. |
 | [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node) | same org card | — | Node surface lives on GitHub + calhegasmorais.pt |
 | [stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory) | same org card | — | Charter / posture |

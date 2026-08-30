@@ -40,7 +40,7 @@ Write extracted values to `/tmp/*` umask 077 chmod 600. Never echo.
 4. Ship **one** NEXT PICK via REST (`scripts/api-gitlive-publish.py` `commit_files` + `cf_put_content`). Cap ~25 min.
 5. Append ledger + #52 REST comment. Never claim SUCCESS without git SHA **and** live curl.
 
-`main_module` map: spa/orchestrator/`stratamesh-node-public`/`stratamesh-edge-api`/`stratamesh-fog-api` → `index.js`; status → `worker.js`; fund → `stratamesh-fund.js`; gossip → `stratamesh-gossip.js`; origin-archive → `stratamesh-origin-archive.js`. Git Data API (`ghp_`) only — refuse `ghu_` connector tokens.
+`main_module` map: spa/orchestrator/`stratamesh-node-public`/`stratamesh-edge-api`/`stratamesh-fog-api`/`stratamesh-academy` → `index.js`; status → `worker.js`; fund → `stratamesh-fund.js`; gossip → `stratamesh-gossip.js`; origin-archive → `stratamesh-origin-archive.js`. Git Data API (`ghp_`) only — refuse `ghu_` connector tokens.
 
 ## Locked
 

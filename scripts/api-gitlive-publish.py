@@ -40,6 +40,7 @@ MAIN_MODULE = {
     "stratamesh-edge-api": "index.js",
     "stratamesh-fog-api": "index.js",
     "stratamesh-node-public": "index.js",
+    "stratamesh-academy": "index.js",
 }
 
 

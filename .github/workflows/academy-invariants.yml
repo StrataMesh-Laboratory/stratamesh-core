@@ -1,0 +1,28 @@
+# ACB Academy — in-process only. No Workers, no Ollama, no HF inference.
+name: academy-invariants
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/academy/**"
+      - "src/test_academy.py"
+      - "workers/stratamesh-academy.js"
+      - ".github/workflows/academy-invariants.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/academy/**"
+      - "src/test_academy.py"
+      - "workers/stratamesh-academy.js"
+      - ".github/workflows/academy-invariants.yml"
+  workflow_dispatch:
+
+jobs:
+  catalog-grader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Academy invariants (no network)
+        working-directory: src
+        run: python3 test_academy.py

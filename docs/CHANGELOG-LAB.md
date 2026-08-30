@@ -1,3 +1,6 @@
+## 2026-08-30 — v0.4.0-lab ACB Academy
+- Always-on academy at academy.calhegasmorais.pt. 19 formations (corrective + exploratory) for Orchestrator + AIOps. Ollama ← HF GGUF on Fog residual C_mesh. Grader fail-closed. STRATA cost declared, lab-waived. grok@ not a student. No Worker HF_TOKEN, no 6th cron, no workers.dev.
+
 ## 2026-08-30 — v0.3.1 iOS Edge
 - `C_mesh=f(1-U)` + iPhone/iPad PWA (`/app`) + SwiftUI kit. Heartbeat on api-edge.
 

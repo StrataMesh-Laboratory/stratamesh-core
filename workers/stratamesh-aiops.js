@@ -1632,7 +1632,17 @@ async function handleFetch(request, env, ctx) {
     }
 
     if (path === "/team" || path === "/api/aiops/team") {
-      return json({ team: TEAM, standing: "substrate-neutral", source: "whitepaper + Orchestrator mandate" });
+      return json({
+        team: TEAM,
+        standing: "substrate-neutral",
+        source: "whitepaper + Orchestrator mandate",
+        academy: "https://academy.calhegasmorais.pt/v1/syllabus",
+        formations: TEAM.map((a) => ({
+          id: a.id,
+          syllabus: "https://academy.calhegasmorais.pt/v1/syllabus?role=" + a.id,
+        })),
+        orchestrator: "https://academy.calhegasmorais.pt/v1/syllabus?role=orchestrator",
+      });
     }
 
     if (path === "/cycle-budgeted" || path === "/cycle" || path === "/api/aiops/cycle" || path === "/run") {
