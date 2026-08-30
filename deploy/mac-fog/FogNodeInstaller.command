@@ -1,9 +1,11 @@
 #!/bin/bash
-# StrataMesh Fog Mac installer v3 — workerd layer + named tunnel
+# StrataMesh Fog Mac installer v3 — structural workerd layer + named tunnel
 # Double-click in Finder. No secrets in this file.
+# Topology: Internet → named tunnel → workerd 127.0.0.1:8788 → fog 127.0.0.1:8787
 # One origin at a time for fog.calhegasmorais.pt (stop the Grok-session persist first).
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+export COPYFILE_DISABLE=1
 
 ROOT="${STRATAMESH_HOME:-$HOME/StrataMesh}"
 FOG="$ROOT/fog"
@@ -18,7 +20,7 @@ NODE_ID="FOG-NODE-PT-CM-001"
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }
 
-osascript -e 'display notification "StrataMesh Fog v3" with title "Installer"' >/dev/null 2>&1 || true
+osascript -e 'display notification "StrataMesh Fog v3 — workerd layer" with title "Installer"' >/dev/null 2>&1 || true
 
 say "1/9 host"
 ARCH=$(uname -m)
@@ -31,17 +33,13 @@ PY=""
 for c in python3.13 python3.12 python3.11 python3; do
   if command -v "$c" >/dev/null 2>&1; then
     v=$("$c" -c 'import sys; print("%d.%d"%sys.version_info[:2])')
-    stub=$("$c" -c 'import sys; print("/Library/Developer/CommandLineTools" in (sys.base_prefix+sys.prefix))' 2>/dev/null || echo 0)
     case "$v" in 3.1[1-9]|3.[2-9]*) PY=$c; break ;; esac
   fi
 done
 if [[ -z "$PY" ]]; then
-  if command -v brew >/dev/null 2>&1; then
-    brew install python@3.12
-    PY=$(command -v python3.12 || command -v python3)
-  else
-    die "install Python 3.11+ from python.org or brew, then re-run"
-  fi
+  command -v brew >/dev/null 2>&1 || die "install Python 3.11+ from python.org or brew, then re-run"
+  brew install python@3.12
+  PY=$(command -v python3.12 || command -v python3)
 fi
 echo "python=$PY $($PY --version)"
 
@@ -51,21 +49,21 @@ if [[ -d "$FOG/repo/.git" ]]; then
 else
   git clone --depth 1 "$REPO" "$FOG/repo"
 fi
-# fog runtime is src + ops/workerd
 ln -sfn "$FOG/repo/src" "$SRC"
 ln -sfn "$FOG/repo/ops/workerd" "$FOG/workerd-config"
+[[ -f "$FOG/workerd-config/config.capnp" ]] || die "ops/workerd/config.capnp missing — pull stratamesh-core"
 
 say "4/9 venv + psutil"
 "$PY" -m venv "$FOG/venv"
 "$FOG/venv/bin/pip" install -q --upgrade pip
 "$FOG/venv/bin/pip" install -q psutil || true
 
-say "5/9 workerd (OSS runtime on :8788)"
-if command -v npm >/dev/null 2>&1; then
-  npm install --prefix "$FOG/workerd-runtime" workerd --no-fund --no-audit
-else
-  die "need node/npm (brew install node) for workerd"
+say "5/9 workerd (OSS runtime, plugin-owned on :8788)"
+if ! command -v npm >/dev/null 2>&1; then
+  command -v brew >/dev/null 2>&1 || die "need node/npm (brew install node) for workerd"
+  brew install node
 fi
+npm install --prefix "$FOG/workerd-runtime" workerd --no-fund --no-audit
 WD="$FOG/workerd-runtime/node_modules/.bin/workerd"
 [[ -x "$WD" ]] || die "workerd binary missing"
 "$WD" --version || true
@@ -73,14 +71,14 @@ WD="$FOG/workerd-runtime/node_modules/.bin/workerd"
 say "6/9 cloudflared $CF_VER"
 if [[ "$ARCH" == "arm64" ]]; then CF_ARCH=arm64; else CF_ARCH=amd64; fi
 CF_URL="https://github.com/cloudflare/cloudflared/releases/download/${CF_VER}/cloudflared-darwin-${CF_ARCH}.tgz"
-curl -fsSL "$CF_URL" -o /tmp/cf.tgz
-tar -xzf /tmp/cf.tgz -C "$FOG/bin"
-mv -f "$FOG/bin/cloudflared" "$FOG/bin/cloudflared" 2>/dev/null || true
-# tarball may drop binary in cwd name
-find "$FOG/bin" /tmp -name 'cloudflared' -type f 2>/dev/null | head -1 | while read -r f; do
-  cp -f "$f" "$FOG/bin/cloudflared"
-done
+TMPCF=$(mktemp -d)
+curl -fsSL "$CF_URL" -o "$TMPCF/cf.tgz"
+tar -xzf "$TMPCF/cf.tgz" -C "$TMPCF"
+CFBIN=$(find "$TMPCF" -type f -name 'cloudflared' | head -1)
+[[ -n "$CFBIN" ]] || die "cloudflared missing from tarball"
+cp -f "$CFBIN" "$FOG/bin/cloudflared"
 chmod 755 "$FOG/bin/cloudflared"
+rm -rf "$TMPCF"
 "$FOG/bin/cloudflared" --version || true
 
 say "7/9 tunnel token (hidden, local file only)"
@@ -92,8 +90,7 @@ if [[ ! -s "$TOKFILE" ]]; then
 fi
 chmod 600 "$TOKFILE"
 
-say "8/9 LaunchAgents (KeepAlive) fog :8787 · workerd :8788 · tunnel → :8788"
-# fog
+say "8/9 LaunchAgents — fog KeepAlive (owns workerd via plugin). Tunnel HOLD."
 cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -113,6 +110,8 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
     <key>FOG_DATA</key><string>$DATA</string>
     <key>FOG_SRC</key><string>$FOG/repo</string>
     <key>WORKERD_BIN</key><string>$WD</string>
+    <key>WORKERD_PORT</key><string>8788</string>
+    <key>PYTHONUNBUFFERED</key><string>1</string>
   </dict>
   <key>KeepAlive</key><true/>
   <key>RunAtLoad</key><true/>
@@ -120,7 +119,9 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
   <key>StandardErrorPath</key><string>$FOG/log/fog.err</string>
 </dict></plist>
 EOF
-# workerd (belt; fog plugin also reboots)
+
+# Optional belt: workerd LaunchAgent. Not loaded — fog plugin owns :8788 so reboot
+# (POST /workerd/reboot, local-only) does not fight launchd KeepAlive.
 cat > "$LAUNCH/pt.calhegasmorais.workerd.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -134,12 +135,12 @@ cat > "$LAUNCH/pt.calhegasmorais.workerd.plist" <<EOF
     <string>$FOG/workerd-config/config.capnp</string>
   </array>
   <key>KeepAlive</key><true/>
-  <key>RunAtLoad</key><true/>
+  <key>RunAtLoad</key><false/>
   <key>StandardOutPath</key><string>$FOG/log/workerd.out</string>
   <key>StandardErrorPath</key><string>$FOG/log/workerd.err</string>
 </dict></plist>
 EOF
-# tunnel wrapper (token via env, never argv)
+
 cat > "$FOG/bin/run-tunnel.sh" <<'EOS'
 #!/bin/bash
 set -euo pipefail
@@ -157,7 +158,7 @@ cat > "$LAUNCH/pt.calhegasmorais.tunnel.plist" <<EOF
     <string>$FOG/bin/run-tunnel.sh</string>
   </array>
   <key>KeepAlive</key><true/>
-  <key>RunAtLoad</key><true/>
+  <key>RunAtLoad</key><false/>
   <key>StandardOutPath</key><string>$FOG/log/tunnel.out</string>
   <key>StandardErrorPath</key><string>$FOG/log/tunnel.err</string>
 </dict></plist>
@@ -167,14 +168,15 @@ launchctl unload "$LAUNCH/pt.calhegasmorais.fog.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
 launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
-launchctl load "$LAUNCH/pt.calhegasmorais.workerd.plist"
-echo "HOLD tunnel load until this session's persist is stopped (one origin)."
-echo "Then: launchctl load $LAUNCH/pt.calhegasmorais.tunnel.plist"
+echo
+echo "HOLD tunnel. This Mac is not the public origin yet."
+echo "One origin for fog.calhegasmorais.pt. Stop the Grok-session persist first, then:"
+echo "  launchctl load $LAUNCH/pt.calhegasmorais.tunnel.plist"
 
 say "9/9 health"
-sleep 2
-curl -sf -m 5 http://127.0.0.1:8787/health && echo " fog :8787 ok" || echo " fog starting…"
-curl -sf -m 5 http://127.0.0.1:8788/workerd && echo || echo " workerd starting…"
+sleep 3
+curl -sf -m 5 http://127.0.0.1:8787/health && echo "  fog :8787 ok" || echo "  fog starting…"
+curl -sf -m 5 http://127.0.0.1:8788/workerd && echo "  workerd :8788 ok" || echo "  workerd starting (fog plugin)…"
 echo
 echo "Layer: tunnel → workerd :8788 → fog :8787"
 echo "Stop:  $(dirname "$0")/stop-fog.command"
