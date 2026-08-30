@@ -27,7 +27,11 @@ def as_lit(s: str) -> str:
 
 
 def osa(*lines: str) -> tuple[int, str, str]:
-    r = subprocess.run(["osascript", *[x for ln in lines for x in ("-e", ln)]], capture_output=True, text=True)
+    r = subprocess.run(
+        ["osascript", *[x for ln in lines for x in ("-e", ln)]],
+        capture_output=True,
+        text=True,
+    )
     return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 
 
@@ -57,13 +61,7 @@ def dialog(title: str, prompt: str, default: str = "", hidden: bool = False, ext
         import getpass
         return getpass.getpass("-> ").strip() or default
     raw = input("-> [%s] " % default)
-    return (raw.strip() or default)
-
-
-def alert(title: str, prompt: str) -> None:
-    print()
-    print("== %s ==" % title)
-    print(prompt)
+    return raw.strip() or default
 
 
 def ask_until(title: str, prompt: str, ok, hidden: bool = True) -> str:
@@ -132,7 +130,7 @@ def main() -> int:
     resume = node_file.is_file() and boot_file.is_file() and boot_file.stat().st_size > 10
     if resume:
         node_id = node_file.read_text().strip().upper()
-        print("2FA ja verificado para", node_id, "— a retomar chaves.")
+        print("2FA ja verificado para", node_id)
     else:
         node_id = dialog("No Fog", "Id de no registado:", "FOG-NODE-PT-CM-001", hidden=False).strip().upper()
         if not node_id:
@@ -154,39 +152,47 @@ def main() -> int:
         write_secret("node.id", node_id)
         write_secret("bootstrap.token", vr.get("bootstrap_token") or "")
 
-    def gh_ok(val: str):
-        if val.startswith("ghp_") or val.startswith("github_pat_"):
-            who = http_json("GET", "https://api.github.com/user", token=val)
-            if who.get("login"):
-                return True, who["login"]
-            return False, "Token recusado pela API GitHub."
-        return False, "Tem de comecar por ghp_ (ou github_pat_)."
+    gh_path = SECRETS / "github.pat"
+    cf_path = SECRETS / "god_api"
+    if gh_path.is_file() and cf_path.is_file() and gh_path.stat().st_size > 10 and cf_path.stat().st_size > 10:
+        gh = gh_path.read_text().strip()
+        who = http_json("GET", "https://api.github.com/user", token=gh)
+        print("Chaves GitHub/CF ja no disco.")
+    else:
 
-    gh = ask_until(
-        "GitHub",
-        "Cole o Personal Access Token (ghp_). Permissoes: repo StrataMesh-Laboratory.",
-        gh_ok,
-        hidden=True,
-    )
-    who = http_json("GET", "https://api.github.com/user", token=gh)
-    write_secret("github.pat", gh)
-    write_secret("gh_pat", gh)
+        def gh_ok(val: str):
+            if val.startswith("ghp_") or val.startswith("github_pat_"):
+                w = http_json("GET", "https://api.github.com/user", token=val)
+                if w.get("login"):
+                    return True, w["login"]
+                return False, "Token recusado pela API GitHub."
+            return False, "Tem de comecar por ghp_ (ou github_pat_)."
 
-    def cf_ok(val: str):
-        if len(val) < 20:
-            return False, "Token demasiado curto."
-        if val.startswith("cfat_") or val.startswith("v1.0-") or len(val) >= 30:
-            return True, "ok"
-        return False, "Cole o token Cloudflare (cfat_)."
+        gh = ask_until(
+            "GitHub",
+            "Cole o Personal Access Token (ghp_). Permissoes: repo StrataMesh-Laboratory.",
+            gh_ok,
+            hidden=True,
+        )
+        who = http_json("GET", "https://api.github.com/user", token=gh)
+        write_secret("github.pat", gh)
+        write_secret("gh_pat", gh)
 
-    cf = ask_until(
-        "Cloudflare",
-        "Cole o API token Cloudflare (cfat_). Workers + DNS + Account.",
-        cf_ok,
-        hidden=True,
-    )
-    write_secret("cloudflare.token", cf)
-    write_secret("god_api", cf)
+        def cf_ok(val: str):
+            if len(val) < 20:
+                return False, "Token demasiado curto."
+            if val.startswith("cfat_") or val.startswith("v1.0-") or len(val) >= 30:
+                return True, "ok"
+            return False, "Cole o token Cloudflare (cfat_)."
+
+        cf = ask_until(
+            "Cloudflare",
+            "Cole o API token Cloudflare (cfat_). Workers + DNS + Account.",
+            cf_ok,
+            hidden=True,
+        )
+        write_secret("cloudflare.token", cf)
+        write_secret("god_api", cf)
 
     tun_path = SECRETS / "tunnel.token"
     if not tun_path.is_file() or tun_path.stat().st_size < 20:

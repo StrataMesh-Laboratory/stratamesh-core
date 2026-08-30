@@ -54,15 +54,24 @@ else
 fi
 ln -sfn "$FOG/repo/src" "$SRC"
 mkdir -p "$FOG/workerd-config"
-cp -f "$FOG/repo/ops/workerd/worker.js" "$FOG/workerd-config/worker.js"
+SRCW="$FOG/repo/ops/workerd/worker.js"
+DSTW="$FOG/workerd-config/worker.js"
+if [[ -e "$DSTW" && "$SRCW" -ef "$DSTW" ]]; then
+  echo "worker.js already in place"
+else
+  cp -f "$SRCW" "$DSTW"
+fi
 python3 - "$FOG/repo/ops/workerd/config.capnp" "$FOG/workerd-config/config.capnp" <<'PY'
 import sys
 from pathlib import Path
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 text = src.read_text()
-if 'text = "session"' not in text:
+if 'text = "macbook"' in text:
+    dest.write_text(text)
+elif 'text = "session"' in text:
+    dest.write_text(text.replace('text = "session"', 'text = "macbook"', 1))
+else:
     raise SystemExit("ORIGIN binding missing in config.capnp")
-dest.write_text(text.replace('text = "session"', 'text = "macbook"', 1))
 PY
 [[ -f "$FOG/workerd-config/config.capnp" ]] || die "workerd-config write failed"
 grep -q 'text = "macbook"' "$FOG/workerd-config/config.capnp" || die "ORIGIN not macbook"
