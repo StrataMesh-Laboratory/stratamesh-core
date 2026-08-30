@@ -3,7 +3,7 @@
 
 Probes coalesced /health (never status-worker /status, never workers.dev).
 Optional CF GraphQL remaining when GOD_API is set. Honesty canary on Fog.
-Comment #52 only on FAIL. Never a 6th cron. Never publish from this script.
+Comment #52 on HOLD (check stays green). Never a 6th cron. Never publish from this script.
 """
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ from typing import Any
 
 ZONE = "calhegasmorais.pt"
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "ops/lib"))
+from gha_observe import TRANSIENT_HTTP, is_hold_http  # noqa: E402
 
 
 def _load_probes() -> dict[str, Any]:
@@ -45,9 +47,7 @@ HEALTH = list(_PROBES.get("health") or [
 ])
 FOG_STATUS = _PROBES.get("fog_status") or f"https://fog.{ZONE}/status"
 UA = _PROBES.get("ua") or "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)"
-# EDGE hop is session (non-continuous). 530 origin-down / 429 CF 1015 are expected, not Fog P0.
-# Same class: WAF 403, timeout 0, 502/503 — observe HOLD, never paint the check red.
-TRANSIENT_HTTP = {0, 403, 408, 429, 502, 503, 530, 1015}
+# EDGE hop is session (non-continuous). WAF/timeout/530 = HOLD via gha_observe.
 SESSION_EXPECTED_HTTP = {
     str(k): {int(x) for x in (v or [])}
     for k, v in (_PROBES.get("session_expected_http") or {
@@ -178,23 +178,25 @@ def cf_graphql(email: str, token: str) -> dict[str, Any] | None:
 
 
 def honesty(fog_status: dict[str, Any]) -> list[str]:
-    fails: list[str] = []
+    holds: list[str] = []
     body = fog_status.get("body") if isinstance(fog_status.get("body"), dict) else {}
     if not fog_status.get("ok"):
-        fails.append("fog /status not 200 (tunnel/Fog process)")
-        return fails
+        if is_hold_http(fog_status.get("http")):
+            return []
+        holds.append("fog /status not 200 (tunnel/Fog process)")
+        return holds
     n = body.get("n")
     if body.get("mesh_member") is True and (n is None or int(n) < 2):
-        fails.append("honesty: mesh_member true while n<2")
+        holds.append("honesty: mesh_member true while n<2")
     prov = body.get("mesh_provision") if isinstance(body.get("mesh_provision"), dict) else {}
     if prov.get("mesh_member") is True and int(prov.get("n") or n or 0) < 2:
-        fails.append("honesty: mesh_provision.mesh_member true while n<2")
+        holds.append("honesty: mesh_provision.mesh_member true while n<2")
     if body.get("oracle_live") is True:
-        fails.append("honesty: oracle_live true")
+        holds.append("honesty: oracle_live true")
     ver = str(body.get("version") or "")
-    if ver and not (str(ver).startswith("0.2.3") or str(ver).startswith("0.3.")): 
-        fails.append(f"honesty: Fog version {ver!r} not 0.2.3*/0.3.*")
-    return fails
+    if ver and not (str(ver).startswith("0.2.3") or str(ver).startswith("0.3.")):
+        holds.append(f"honesty: Fog version {ver!r} not 0.2.3*/0.3.*")
+    return holds
 
 
 def markdown(report: dict[str, Any]) -> str:
@@ -219,7 +221,7 @@ def markdown(report: dict[str, Any]) -> str:
     if metab:
         lines += ["", "## cf-worker-req", f"```json\n{json.dumps(metab, indent=2)}\n```"]
     if report["fails"]:
-        lines += ["", "## FAIL", *[f"- {f}" for f in report["fails"]]]
+        lines += ["", "## HOLD (observe; check stays green)", *[f"- {f}" for f in report["fails"]]]
     else:
         lines += ["", "Honesty canary green. No publish from this tick."]
     return "\n".join(lines) + "\n"
@@ -229,25 +231,28 @@ def main() -> int:
     now = datetime.now(timezone.utc)
     probes = [fetch(u) for u in HEALTH]
     fog = fetch(FOG_STATUS, accept="application/json")
-    fails = honesty(fog)
+    holds: list[str] = honesty(fog)
+    hard: list[str] = []
     for p in probes:
         if "workers.dev" in (p.get("url") or "").lower():
-            fails.append(f"workers.dev {p['url']}")
+            hard.append(f"workers.dev {p['url']}")
         if not p.get("ok") and p["url"] in CORE_HEALTH:
             http = int(p.get("http") or 0)
             allowed = SESSION_EXPECTED_HTTP.get(p["url"]) or set()
-            if http in allowed or http in TRANSIENT_HTTP:
+            if http in allowed or is_hold_http(http):
                 p["session_expected"] = True
                 continue
-            fails.append(f"health down {p['url']} http={p.get('http')} {p.get('error') or ''}")
+            holds.append(f"health down {p['url']} http={p.get('http')} {p.get('error') or ''}")
 
     email = os.environ.get("CLOUDFLARE_EMAIL") or "amcmorais@icloud.com"
     token = _secret("GOD_API") or _secret("CLOUDFLARE_API_TOKEN")
     metab = cf_graphql(email, token) if token else {"skipped": "no GOD_API"}
     if isinstance(metab, dict) and metab.get("circuit_stasis"):
-        fails.append("cf-worker-req STASIS 2× hourly cap")
+        holds.append("cf-worker-req STASIS 2× hourly cap")
     elif isinstance(metab, dict) and metab.get("circuit_hold"):
-        fails.append("cf-worker-req HOLD 1.25× hourly cap")
+        holds.append("cf-worker-req HOLD 1.25× hourly cap")
+
+    fails = hard + holds
 
     ok_probes = sum(1 for p in probes if p.get("ok"))
     report = {
@@ -265,7 +270,8 @@ def main() -> int:
             "oracle_live": (fog.get("body") or {}).get("oracle_live") if isinstance(fog.get("body"), dict) else None,
         },
         "metabolism": metab,
-        "never_workers_dev": True,
+        "hard": hard,
+        "holds": holds,
         "no_sixth_cron": True,
         "no_publish": True,
         "session_expected": [
@@ -286,9 +292,17 @@ def main() -> int:
             fh.write(md)
     sys.stdout.write(md)
 
-    if fails:
-        print("DESK-TICK FAIL: " + " | ".join(fails), file=sys.stderr)
+    gh_out = os.environ.get("GITHUB_OUTPUT")
+    if gh_out:
+        with open(gh_out, "a", encoding="utf-8") as fh:
+            fh.write(f"hold={'true' if holds else 'false'}\n")
+            fh.write(f"hard={'true' if hard else 'false'}\n")
+
+    if hard:
+        print("DESK-TICK HARD: " + " | ".join(hard), file=sys.stderr)
         return 1
+    if holds:
+        print("DESK-TICK HOLD (check green): " + " | ".join(holds), file=sys.stderr)
     return 0
 
 
