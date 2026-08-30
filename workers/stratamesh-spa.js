@@ -1205,6 +1205,9 @@ function injectPortalSession(html, me, token) {
     subsistence: me.subsistence || null,
     lifecycle: me.lifecycle || null,
   };
+  const style = '<style id="sm-session-boot">#loginPage{display:none!important}.portal,#portalPage{display:block!important;visibility:visible!important}</style>';
+  if (html.includes('</head>')) html = html.replace('</head>', style + '</head>');
+  else html = style + html;
   const boot = `<script>
 (function(){
   var me = ${jsonForScript(session)};
@@ -1218,19 +1221,30 @@ function injectPortalSession(html, me, token) {
     if (me.wallet) localStorage.setItem('strata_address', me.wallet);
   } catch (e) {}
   window.__SM_SESSION = me;
-  window.currentUser = me;
+  window.currentUser = Object.assign({}, window.currentUser || {}, me);
   window.token = me.token;
+  function reveal(){
+    var login = document.getElementById('loginPage');
+    var portal = document.getElementById('portalPage');
+    if (login) { login.style.display = 'none'; login.classList.add('hidden'); }
+    if (portal) { portal.style.display = 'block'; portal.style.visibility = 'visible'; portal.classList.add('portal-visible'); }
+  }
+  var n = 0;
   function boot(){
-    try {
-      if (typeof showPortal === 'function') { showPortal(me); return; }
-    } catch (e) {}
-    setTimeout(boot, 40);
+    reveal();
+    var fn = window.__showPortalImpl || window.showPortal;
+    if (typeof fn === 'function' && fn.name !== 'smShowPortalProxy') {
+      try { fn(me); } catch (e) { console.warn('showPortal', e); }
+      return;
+    }
+    if (++n < 80) setTimeout(boot, 50);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
-</script></body>`;
-  if (html.includes('</body>')) return html.replace('</body>', boot);
+</script>`;
+  const idx = html.toLowerCase().lastIndexOf('</body>');
+  if (idx >= 0) return html.slice(0, idx) + boot + html.slice(idx);
   return html + boot;
 }
 

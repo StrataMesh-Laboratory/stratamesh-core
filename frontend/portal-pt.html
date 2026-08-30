@@ -84,6 +84,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 #termsRow .terms-more{margin:0.5rem 0 0 1.75rem;font-size:0.75rem;color:var(--muted);line-height:1.4}
 #termsRow .terms-more a{color:var(--accent);text-decoration:none}
 #termsRow .terms-more a:hover{text-decoration:underline}
+.tick{display:flex;align-items:flex-start;gap:.65rem;margin:.85rem 0 .35rem;cursor:pointer;color:var(--muted);font-size:.88rem;line-height:1.4}
+.tick input{width:auto!important;min-width:1.1rem;max-width:1.15rem;height:1.15rem;margin:.15rem 0 0;padding:0;flex-shrink:0;accent-color:var(--accent)}
 
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -115,8 +117,12 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <input type="email" id="email" placeholder="Email" autocomplete="email">
     <input type="password" id="password" placeholder="Palavra-passe" autocomplete="current-password">
+    <label class="tick" for="asStaff">
+      <input type="checkbox" id="asStaff" />
+      <span>Acesso de pessoal (staff) — mesmas caixas</span>
+    </label>
     <div id="user2faRow" style="display:none;margin:.5rem 0">
-      <input id="userOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos do e-mail)" autocomplete="one-time-code">
+      <input id="userOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos)" autocomplete="one-time-code">
       <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem"></p>
     </div>
 
@@ -140,22 +146,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <button type="button" id="btnApple" disabled onclick="startOAuth('apple')">Apple (pending credentials)</button>
     </div>
 
-    <div class="toggle" onclick="showStaffLogin()" id="staffToggle">Acesso de pessoal</div>
-    <div id="staffBox">
-      <p>Apenas pessoal · email + palavra-passe · 2FA (lab)</p>
-      <input id="staffEmail" type="email" placeholder="Email de pessoal" autocomplete="username">
-      <input id="staffPass" type="password" placeholder="Palavra-passe de pessoal" autocomplete="current-password">
-      <div id="staff2faRow" style="display:none">
-        <input id="staffOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos)" autocomplete="one-time-code">
-        <p id="staffOtpHint"></p>
-      </div>
-      <div id="staffError"></div>
-      <button type="button" onclick="staffAuth()" id="staffBtn">Continuar (pessoal)</button>
-      <div class="toggle" onclick="hideStaffLogin()">← Back to user login</div>
-    </div>
-
     <p class="login-foot">
-      <a href="https://stratamesh-spa.stratamesh.workers.dev/">← Site</a>
+      <a href="/">← Início</a>
       · <a href="/chat">Orquestrador</a>
     </p>
   </div>
@@ -627,6 +619,8 @@ else { try { document.documentElement.lang = 'en-GB'; } catch (e) {} }
 function T(pt, en){ return LANG==='en' ? en : pt; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 let isRegister=false,userChallenge=null,currentUser=null,token=localStorage.getItem('sm_token')||localStorage.getItem('token');
+window.showPortal = function smShowPortalProxy(){ if (window.__showPortalImpl) return window.__showPortalImpl.apply(this, arguments); };
+window.showPortal = window.showPortal || function(){};
 
 function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast '+(e||'success');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 
@@ -650,6 +644,8 @@ function toggleMode(){
   if(link){ link.href='https://stratamesh-auth.stratamesh.workers.dev/terms?lang='+(LANG==='en'?'en':'pt'); link.textContent=LANG==='en'?'Read full terms':'Ler termos completos'; }
   var reset=document.getElementById('resetPwToggle');
   if(reset) reset.style.display=isRegister?'none':'block';
+  var staffLab=document.querySelector('label.tick[for="asStaff"]');
+  if(staffLab) staffLab.style.display=isRegister?'none':'flex';
   var u2=document.getElementById('user2faRow');
   if(u2) u2.style.display='none';
   userChallenge=null;
@@ -913,6 +909,10 @@ function getTurnstileToken(){
 }
 
 async function handleAuth(){
+  const staffTick=document.getElementById('asStaff');
+  if(staffTick && staffTick.checked && !isRegister){
+    return staffAuth();
+  }
   const e=(document.getElementById('email').value||'').trim();
   const p=document.getElementById('password').value||'';
   const errEl=document.getElementById('loginError');
@@ -1579,6 +1579,7 @@ let html=pulse+'<div class="diag-wizard"><h4>Service Health Check</h4>';let issu
 if(token){loadUser()}
 
 window.showPortal = showPortal;
+window.__showPortalImpl = showPortal;
 window.handleAuth = handleAuth;
 window.staffAuth = staffAuth;
 window.logout = logout;
@@ -1652,31 +1653,34 @@ function hideStaffLogin(){
   if (r) r.style.display = 'none';
 }
 async function staffAuth(){
-  const email = ((document.getElementById('staffEmail')||{}).value||'').trim();
-  const pass = (document.getElementById('staffPass')||{}).value||'';
-  const otp = (document.getElementById('staffOtp')||{}).value||'';
-  const btn = document.getElementById('staffBtn');
-  const errEl = document.getElementById('staffError');
+  const email = ((document.getElementById('email')||{}).value||'').trim();
+  const pass = (document.getElementById('password')||{}).value||'';
+  const otp = ((document.getElementById('userOtp')||{}).value||'').trim();
+  const btn = document.getElementById('authBtn');
+  const errEl = document.getElementById('loginError');
   function setErr(msg){ if(errEl){ errEl.textContent=msg||''; errEl.style.display=msg?'block':'none'; } try{ if(msg) showToast(msg,'error'); }catch(_){} }
   if(!email||!pass){ setErr('Email de pessoal and password required'); return; }
   if(btn) btn.disabled = true;
   setErr('');
   try {
+    const AUTH = '/api/auth';
     if (!staffChallenge) {
-      const r = await fetch(AUTH_BASE + '/staff/login', {
+      const r = await fetch(AUTH + '/staff/login', {
         method: 'POST', headers: {'Content-Type':'application/json','Accept':'application/json'},
-        body: JSON.stringify({email, password: pass, lang: 'pt'})
+        body: JSON.stringify({email, password: pass, lang: LANG==='en'?'en':'pt'})
       });
       const j = await r.json().catch(()=>({}));
       if (!j.success) throw new Error(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')'));
       if (j.requires_2fa) {
         staffChallenge = j.challenge;
-        const row = document.getElementById('staff2faRow');
+        const row = document.getElementById('user2faRow');
         if (row) row.style.display = 'block';
-        const hint = document.getElementById('staffOtpHint');
-        if (hint) hint.textContent = j.lab_otp ? ('Lab 2FA code: ' + j.lab_otp) : 'Enter the 2FA code';
-        if (btn) { btn.disabled = false; btn.textContent = 'Verify 2FA'; }
-        try{ showToast('2FA required — enter the code'); }catch(_){}
+        const hint = document.getElementById('userOtpHint');
+        if (hint) hint.textContent = j.message || (LANG==='en'?'Enter the 6-digit code':'Introduza o código de 6 dígitos');
+        const otpEl = document.getElementById('userOtp');
+        if (otpEl) otpEl.focus();
+        if (btn) { btn.disabled = false; btn.textContent = LANG==='en'?'Confirm code':'Confirmar código'; }
+        try{ showToast(LANG==='en'?'2FA required':'2FA necessário'); }catch(_){}
         return;
       }
       if (j.token) {
@@ -1684,13 +1688,13 @@ async function staffAuth(){
         try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
         currentUser = Object.assign({ type:'staff', email: email }, j);
         try{ showToast('Acesso de pessoal concedido'); }catch(_){}
-        showPortal(currentUser);
+        (window.showPortal||function(){})(currentUser);
         return;
       }
       throw new Error(j.error||'Unexpected staff login response');
     } else {
-      if(!otp){ setErr('2FA code required'); if(btn) btn.disabled=false; return; }
-      const r = await fetch(AUTH_BASE + '/staff/2fa', {
+      if(!otp){ setErr(LANG==='en'?'2FA code required':'Código 2FA obrigatório'); if(btn) btn.disabled=false; return; }
+      const r = await fetch(AUTH + '/staff/2fa', {
         method: 'POST', headers: {'Content-Type':'application/json','Accept':'application/json'},
         body: JSON.stringify({challenge: staffChallenge, code: otp, email})
       });
@@ -1701,13 +1705,13 @@ async function staffAuth(){
       currentUser = Object.assign({ type:'staff', email: email }, j);
       staffChallenge = null;
       try{ showToast('Acesso de pessoal concedido'); }catch(_){}
-      showPortal(currentUser);
+      (window.showPortal||function(){})(currentUser);
       return;
     }
   } catch (e) {
     setErr(e.message||String(e));
   } finally {
-    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = 'Continuar (pessoal)'; }
+    if (btn) { btn.disabled = false; if(!staffChallenge) btn.textContent = LANG==='en'?'Continue':'Continuar'; }
   }
 }
 
