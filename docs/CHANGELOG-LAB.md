@@ -1,3 +1,9 @@
+## 2026-08-30 — Heraldic icons transparent (Casa de Morais + Spencer-Morais)
+- Replaced muddy parchment-backed photo-icons with drawn heater shields on a clear ground.
+- Casa de Morais: gules, tower argent, waves azure/argent. Favicon 32/48/192/512 + svg + ico.
+- Spencer-Morais vault 1.1.1: matrimonial (casal) and dynastic/house (quarteado) as separate transparent icons.
+- SPA serves embed first (does not rely on Fog R2). Never workers.dev. Never Fog origin.
+
 ## 2026-08-30 — GNU board compact (0.4.6-destyle)
 - Phone GNU was a full-viewport overlay: close bar sat under Safari chrome, sticks hid, look/tap froze.
 - GNU is now a small control board under the title chip. Close is 44px and visible. No autofocus on coarse (no keyboard freeze). World keeps moving.
