@@ -23,7 +23,7 @@ async function serveEni(env) {
     });
   } catch (_) {}
   return new Response(
-    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>AMCM ENI</title></head><body style=\"background:#0a0a0b;color:#e8e6e3;font-family:sans-serif;padding:2rem\"><h1>AMCM ENI</h1><p>Página da entidade legal temporariamente indisponível. Contacto: amcmorais@icloud.com</p><p><a href=\"https://calhegasmorais.pt/\" style=\"color:#c4b5a0\">Nó CMN</a></p></body></html>",
+    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>AMCM ENI</title></head><body style=\"background:#0a0a0b;color:#e8e6e3;font-family:sans-serif;padding:2rem\"><h1>AMCM ENI</h1><p>Página da entidade legal temporariamente indisponível. Contacto: amcmorais@icloud.com</p><p><a href=\"https://calhegasmorais.pt/\" style=\"color:#c4a574\">Nó CMN</a></p></body></html>",
     { headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
@@ -43,8 +43,8 @@ body{font-family:system-ui,sans-serif;background:#0a0a0b;color:#e8e6e3;line-heig
 h1{font-size:1.35rem;font-weight:600}
 .box{border:1px solid #2a2a2e;border-radius:6px;padding:1rem 1.1rem;margin:1.25rem 0;background:#111}
 .muted{color:#8a8780;font-size:.92rem}
-pre{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.78rem;color:#c4b5a0;background:#111;border:1px solid #1c1c1f;padding:1rem;border-radius:4px;max-height:70vh;overflow:auto}
-a{color:#c4b5a0}
+pre{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.78rem;color:#c4a574;background:#111;border:1px solid #1c1c1f;padding:1rem;border-radius:4px;max-height:70vh;overflow:auto}
+a{color:#c4a574}
 </style>
 </head>
 <body>
@@ -1019,7 +1019,7 @@ function fallbackHome(lang) {
     : "<h1>Calhegas Morais</h1><p>Reference Fog node · StrataMesh DLT laboratory.</p><p><a href=\"/dashboard\">Portal</a></p>";
   return `<!DOCTYPE html><html lang="${isPt ? "pt-PT" : "en-GB"}"><head><meta charset="UTF-8"><title>${title}</title>
 <style>body{font-family:system-ui;background:#0a0a0b;color:#e8e6e3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.box{max-width:28rem;padding:2rem}a{color:#c4b5a0}</style></head><body><div class="box">${body}</div></body></html>`;
+.box{max-width:28rem;padding:2rem}a{color:#c4a574}</style></head><body><div class="box">${body}</div></body></html>`;
 }
 
 
@@ -1033,7 +1033,7 @@ function serveNodeChat(request, env, lang) {
 <title>${title}</title>
 <link rel="icon" href="/favicon.ico"/>
 <style>
-:root{--bg:#0a0a0c;--fg:#e8e8ea;--muted:#8a8780;--line:#2a2a30;--accent:#8b9cf7;--card:#121216}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--accent:#c4a574;--card:#111113}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column}
 header{padding:1rem 1.25rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
@@ -1058,7 +1058,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <header>
   <div>
     <h1>${pt ? 'Orquestrador' : 'Orchestrator'}</h1>
-    <div class="meta">FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001</div>
+    <div class="meta">FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001 · destyle</div>
   </div>
   <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
     <span class="badge" id="clr">clearance: public</span>
