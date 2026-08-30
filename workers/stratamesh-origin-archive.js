@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.1-public-landing";
+var VERSION = "0.1.2-origin-flux";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -150,16 +150,34 @@ function publicLanding() {
     "Origin · Nó Calhegas Morais",
     `<p class="kicker">origin.calhegasmorais.pt</p>
      <h1>Origin archive</h1>
-     <p>Staff-gated last-resort pile. Not the public Fog node. Not PHP SYSTEM LOGIN. Apex is Cloudflare Pages.</p>
+     <p>Staff-gated last-resort pile. Not the public Fog process. Not PHP SYSTEM LOGIN. Apex is Cloudflare Pages.</p>
+     <div class="card">
+       <div class="row"><span class="mono">Fog hop</span><span class="mono">tunnel → this host’s :8788 → this host’s :8787</span></div>
+       <div class="row"><span class="mono">Public origin</span><span class="mono" id="fog-origin">probing…</span></div>
+       <div class="row"><span class="mono">Roles</span><span class="mono">session (temp) · macbook (node)</span></div>
+       <div class="row"><span class="mono">Rule</span><span class="mono">one named-tunnel connector · never both :8788s</span></div>
+       <div class="row"><span class="mono">Git flux</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/tree/main/deploy/mac-fog">deploy/mac-fog</a></div>
+     </div>
      <div class="card">
        <div class="row"><span class="mono">Fog process</span><a href="https://fog.calhegasmorais.pt/">fog.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Fog /health</span><a href="https://fog.calhegasmorais.pt/health">origin probe</a></div>
        <div class="row"><span class="mono">Gossip</span><a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a></div>
        <div class="row"><span class="mono">EDGE desk</span><a href="https://edge.calhegasmorais.pt/">edge.calhegasmorais.pt</a></div>
        <div class="row"><span class="mono">Apex / Pages</span><a href="https://calhegasmorais.pt/">calhegasmorais.pt</a></div>
        <div class="row"><span class="mono">Status pulse</span><a href="https://status.calhegasmorais.pt/status">status.calhegasmorais.pt</a></div>
      </div>
      <p><a class="pill" href="/login">Staff login</a></p>
-     <p class="mono">Lab · n=1 · spa.source=fog_process · mesh_member=false · Challenge 0 unfunded</p>`
+     <p class="mono">Lab · n=1 · spa.source=fog_process · mesh_member=false · Challenge 0 unfunded</p>
+     <script>
+     (function(){
+       var el = document.getElementById("fog-origin");
+       if (!el) return;
+       fetch("https://fog.calhegasmorais.pt/health").then(function(r){ return r.json(); }).then(function(d){
+         el.textContent = d.origin || "DARK";
+         if (d.origin) el.className = "mono ok";
+       }).catch(function(){ el.textContent = "DARK"; });
+     })();
+     </script>`
   );
 }
 __name(publicLanding, "publicLanding");
@@ -239,7 +257,10 @@ var stratamesh_origin_archive_default = {
         version: VERSION,
         staff_gated: true,
         public_landing: true,
-        sixth_cron: false
+        sixth_cron: false,
+        fog_probe: "https://fog.calhegasmorais.pt/health",
+        fog_origin_roles: ["session", "macbook"],
+        one_connector: true
       });
     }
     if (path === "/logout") {

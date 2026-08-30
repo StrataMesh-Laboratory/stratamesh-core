@@ -15,6 +15,11 @@ export default {
         origin,
         layer: "tunnel→workerd:8788→fog:8787",
         mesh_member: false,
+      }, {
+        headers: {
+          "access-control-allow-origin": "*",
+          "cache-control": "no-store",
+        },
       });
     }
     return env.FOG.fetch(request);

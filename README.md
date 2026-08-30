@@ -18,9 +18,9 @@ API: `GET https://calhegasmorais.pt/api/v1/token/monetary` · `POST /api/v1/toke
 - Status JSON: https://status.calhegasmorais.pt/status
 - Live dashboard: https://status.calhegasmorais.pt/live
 - Site: https://calhegasmorais.pt/
-- Fog: https://fog.calhegasmorais.pt/
+- Fog: https://fog.calhegasmorais.pt/ · probe `GET /health` → `"origin": "session"|"macbook"` (one named-tunnel connector)
 - Gossip: https://gossip.calhegasmorais.pt/
-- Origin: https://origin.calhegasmorais.pt/
+- Origin: https://origin.calhegasmorais.pt/ — staff archive + same fog origin flux ([deploy/mac-fog](deploy/mac-fog))
 - Hub (catalog): https://huggingface.co/stratamesh
 
 ## Ops (lab)
