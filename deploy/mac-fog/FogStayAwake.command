@@ -3,6 +3,8 @@
 # Suspended ≠ powered off. CPU-halt sleep cannot run workerd; we prevent idle
 # sleep and kickstart :8787/:8788 within 2 min of wake (so 30 min fallback does not trip).
 # Lid + battery will still sleep. On charger, optional sudo disablesleep.
+NO_TUI=0
+[[ "${1:-}" == "--no-tui" ]] && NO_TUI=1
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"
@@ -54,6 +56,9 @@ echo "Does not kill macbook-server. Lid+battery still sleeps (hardware)."
 echo "On charger, lid-closed stay-up:  sudo pmset -c disablesleep 1"
 pmset -g assertions 2>/dev/null | grep -i -e caffeinate -e PreventUserIdle -e PreventSystem || true
 
+if [[ "$NO_TUI" == 1 ]]; then
+  exit 0
+fi
 export FOG_HOME="$FOG"
 TUI="$FOG/bin/fog-tui.py"
 [[ -f "$TUI" ]] || TUI="$FOG/repo/deploy/mac-fog/fog-tui.py"

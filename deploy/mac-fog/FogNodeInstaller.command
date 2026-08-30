@@ -219,6 +219,7 @@ echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
 echo "Public fog.calhegasmorais.pt rides macbook-server. HOLD fog-lab tunnel plist."
 echo "Runtime UI: $FOG/bin/fog-tui.py  (q quit · s stop · b reboot · g pull+reboot · 15s)"
 echo "Stay-awake:  FogStayAwake.command  (caffeinate -ims + 2min wake kick)"
+bash "$FOG/repo/deploy/mac-fog/build-apps.sh" || echo "build-apps skipped (run on Mac)"
 
 say "9/9 health"
 sleep 3

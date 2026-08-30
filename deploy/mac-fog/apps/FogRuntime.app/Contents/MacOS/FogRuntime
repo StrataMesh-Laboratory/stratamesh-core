@@ -1,0 +1,15 @@
+#!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"
+TUI="$FOG/bin/fog-tui.py"
+[[ -f "$TUI" ]] || TUI="$FOG/repo/deploy/mac-fog/fog-tui.py"
+if [[ ! -f "$TUI" ]]; then
+  osascript -e 'display dialog "fog-tui.py missing. Run Fog Installer first." buttons {"OK"} default button 1' >/dev/null
+  exit 1
+fi
+osascript >/dev/null <<APP
+tell application "Terminal"
+  activate
+  do script "export FOG_HOME='$FOG'; exec /usr/bin/caffeinate -ims python3 '$TUI'"
+end tell
+APP

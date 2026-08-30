@@ -1,3 +1,6 @@
+## 2026-08-30 — Fog Installer + .app
+- `FogInstaller.app` / `FogStayAwake.app` / `FogRuntime.app` (ad-hoc sign). `install-apps.command` + `build-apps.sh`.
+
 ## 2026-08-30 — Mac stay-awake v7
 - `FogStayAwake.command` + `pt.calhegasmorais.fog-awake` (`caffeinate -ims`, 2 min wake kick). Idle sleep held. Lid+battery still sleeps.
 

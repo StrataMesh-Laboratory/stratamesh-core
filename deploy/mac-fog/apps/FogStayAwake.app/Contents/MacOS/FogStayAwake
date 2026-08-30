@@ -1,0 +1,17 @@
+#!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"
+CMD="$FOG/repo/deploy/mac-fog/FogStayAwake.command"
+[[ -x "$CMD" ]] || CMD="$HOME/StrataMesh/fog/repo/deploy/mac-fog/FogStayAwake.command"
+if [[ ! -f "$CMD" ]]; then
+  osascript -e 'display dialog "Fog repo missing. Run Fog Installer first." buttons {"OK"} default button 1' >/dev/null
+  exit 1
+fi
+bash "$CMD" --no-tui || true
+osascript >/dev/null <<APP
+tell application "Terminal"
+  activate
+  do script "export FOG_HOME='$FOG'; bash '$CMD'"
+end tell
+APP
+osascript -e 'display notification "Stay-awake loaded (caffeinate). Lid+battery still sleeps." with title "StrataMesh Fog"' >/dev/null 2>&1 || true
