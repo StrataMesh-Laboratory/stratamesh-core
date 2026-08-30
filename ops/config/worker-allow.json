@@ -1,5 +1,9 @@
 {
-  "note": "Grok desk-execute allow-list + gitlive-drift MAP. script_id → git path.",
+  "note": "Grok desk-execute allow-list + gitlive-drift MAP. script_id \u2192 git path.",
+  "hold_put": [
+    "stratamesh-spa"
+  ],
+  "hold_put_note": "Do not re-ship spa 1.1.0. Git-ahead is observe-only until Grok execute.",
   "scripts": {
     "stratamesh-spa": "workers/stratamesh-spa.js",
     "stratamesh-status": "workers/stratamesh-status.js",

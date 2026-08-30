@@ -2,7 +2,7 @@
 """Compare git Worker sources to live CF /content. Observe only. No PUT.
 
 Needs GOD_API. Fail closed (exit 2) if token missing when --require-token.
-Exit 1 on drift. Exit 0 if live matches git SHA-256.
+Exit 1 on hard drift. Exit 0 if live matches git, or only hold_put scripts differ.
 """
 from __future__ import annotations
 
@@ -21,15 +21,14 @@ CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
 EMAIL = os.environ.get("CLOUDFLARE_EMAIL") or "amcmorais@icloud.com"
 
 
-def _load_map() -> dict[str, str]:
+def _load_cfg() -> dict:
     p = ROOT / "ops/config/worker-allow.json"
-    data = json.loads(p.read_text()) if p.is_file() else {}
-    scripts = data.get("scripts") or {}
-    return {rel: name for name, rel in scripts.items()}
+    return json.loads(p.read_text()) if p.is_file() else {}
 
 
-# git path → CF script id
-MAP = _load_map()
+_CFG = _load_cfg()
+MAP = {rel: name for name, rel in (_CFG.get("scripts") or {}).items()}
+HOLD_PUT = set(_CFG.get("hold_put") or [])
 
 
 def token() -> str:
@@ -71,10 +70,9 @@ def live_content(tok: str, script: str) -> bytes | None:
             ptype = (part.get_content_type() or "").lower()
             if fn.endswith(".js") or "javascript" in ptype:
                 return payload
-        # last non-json part
         for part in msg.iter_parts():
             payload = part.get_payload(decode=True) or b""
-            if payload.startswith(b"{") or b"\"success\"" in payload[:40]:
+            if payload.startswith(b"{") or b'"success"' in payload[:40]:
                 continue
             if len(payload) > 100:
                 return payload
@@ -89,7 +87,8 @@ def main() -> int:
         return 2 if require else 0
 
     rows = []
-    drifted = []
+    hard = []
+    soft = []
     for rel, script in MAP.items():
         p = ROOT / rel
         if not p.is_file():
@@ -99,21 +98,23 @@ def main() -> int:
         live_b = live_content(tok, script)
         if live_b is None:
             rows.append({"script": script, "git": rel, "status": "live_fetch_fail", "git_sha": sha256_bytes(git_b)[:12]})
-            drifted.append(script)
+            hard.append(script)
             continue
         gs, ls = sha256_bytes(git_b), sha256_bytes(live_b)
         match = gs == ls
+        hold = script in HOLD_PUT
+        status = "match" if match else ("DRIFT-HOLD" if hold else "DRIFT")
         rows.append({
             "script": script,
             "git": rel,
-            "status": "match" if match else "DRIFT",
+            "status": status,
             "git_sha": gs[:12],
             "live_sha": ls[:12],
             "git_bytes": len(git_b),
             "live_bytes": len(live_b),
         })
         if not match:
-            drifted.append(script)
+            (soft if hold else hard).append(script)
 
     print("| script | status | git | live |")
     print("|---|---|---|---|")
@@ -127,8 +128,10 @@ def main() -> int:
             for r in rows:
                 fh.write(f"| {r['script']} | {r['status']} | {r.get('git_sha','')} | {r.get('live_sha','')} |\n")
     Path("/tmp/gitlive-drift.json").write_text(json.dumps(rows, indent=2))
-    if drifted:
-        print("DRIFT " + ",".join(drifted), file=sys.stderr)
+    if soft:
+        print("HOLD_PUT " + ",".join(soft), file=sys.stderr)
+    if hard:
+        print("DRIFT " + ",".join(hard), file=sys.stderr)
         return 1
     return 0
 
