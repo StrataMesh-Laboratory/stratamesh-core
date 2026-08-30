@@ -1,10 +1,10 @@
-# HANDOFF-LATEST — hourly git+live 03:16Z
+# HANDOFF-LATEST — hourly git+live 04:14Z
 
-**generated_at:** 2026-08-30T03:17:05Z  
-**lisbon:** 2026-08-30T04:17:05+0100  
+**generated_at:** 2026-08-30T04:14:20Z  
+**lisbon:** 2026-08-30T05:14:20+0100  
 **agent:** grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** hourly_gitlive_03
+**phase:** hourly_gitlive_04
 
 ## Metabolism
 
@@ -22,18 +22,18 @@
 ## Probes (this hour, curl)
 
 - Apex `https://calhegasmorais.pt/` → 200 Pages
-- Status `0.4.6-workerd-hop` `spa.source=fog_process` (do not re-ship)
-- Fog `/health` → 200 workerd-hop (no version until workerd reboot)
-- Fog `/spa` → 200 total=1 source=fog_process
-- Fog `/status` → settlements `unavailable:n<2` consensus n=1 f_max=0 (**envelope live**)
-- Gossip host `/peers` → count=2 · `2.3.6-ihave` fog+edge live
+- Status `0.4.6-workerd-hop` (do not re-ship)
+- Fog `/health` → 200 workerd-hop n=2 mesh_member=true (no version until workerd reboot)
+- Fog `/spa` → 200 total=1 source=fog_process n=2 mesh_member=true
+- Fog `/status` → settlements `0` scalar · consensus n=2 f_max=0
+- Gossip host `/peers` → count=2 · **2.3.10-edge-listed** fog+edge live
 - Fund `/health` → `0.4.7-accept-surface`
-- POST `/api/orchestrator/chat` → 200 **65–105ms** `source=orch-chat-lab` skipped=`[tick,llm,fog]` worker `10.24.6-lab-nofog`
+- POST `/api/orchestrator/chat` → 200 **69ms** `source=orch-chat-lab` skipped=`[tick,llm,fog]` worker `10.24.6-lab-nofog`
 
 ## Mesh / Fund
 
-- n=1 · spa_source=fog_process · **not** lab_seed
-- mesh_member=false · oracle_live=false
+- Fog n=2 · spa_source=fog_process · mesh_member=true · oracle_live=false
+- orch POST still lab n=1 (skipped fog — latency)
 - Challenge 0 **unfunded** · accept surface live (not a payout)
 - Identity ≠ cargo · WhatsApp is not briefing
 
@@ -41,16 +41,16 @@
 
 | Slot | Disposition |
 |------|-------------|
-| STEP 1 orch instant | **SHIPPED** 65–105ms — was 442–904ms SPA Fog race |
-| Route `/api/orchestrator*` | **stratamesh-orchestrator** (was spa) |
-| Fog /status envelope | **live** — #40 stays OPEN |
+| STEP 1 orch instant | **already live** 69ms — do not re-ship |
+| Gossip #39 count 1→2 | **SHIPPED** 2.3.10-edge-listed |
 | Fog /health enrich | **git-only** — needs workerd reboot |
+| Fog spa settlements | **git-only** f_max=0 — needs Fog restart |
 | Discourse | HOLD extra |
 | Google restore | **P0 STRATAGROK** — not this sandbox |
-| Worker PUT | stratamesh-orchestrator only |
+| Worker PUT | stratamesh-gossip only |
 
 ## Efficacy
 
-**EFFICACY_SELF_SCORE:** 0.92
+**EFFICACY_SELF_SCORE:** 0.90
 
-LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.

@@ -3,6 +3,43 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T04:14Z hour
+READ: origin HEAD 45848766 (FAQ honesty v0.2.3-dev n=2). Ledger 03:16 NEXT PICK was reboot workerd :8788 for hop /health version — **cannot from this sandbox**. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~97ms origin-orch-chat-1.1.0 worker 10.24.6-lab-nofog; POST 200 **70ms** source=orch-chat-lab skipped=[tick,llm,fog] pulse-20260830T040843Z clearance=public n=1 (lab constants; Fog not awaited). Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true edge_live=false **no version/oracle_live/substrate** (hop JSON matches origin worker.js; last-hour version fields were clobbered by n=2 hop). Fog /spa 200 total=0 then POST /spa/register → total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=n<2 (stale at n=2). Fog /status 200 version=0.2.3-lab agora.settlements=0 **scalar** consensus n=2 f_max=0. gossip **2.3.9-n2-probe count=1** (EDGE omitted when /health not 200 — #39 regression vs count=2). fund 0.4.7-accept-surface; status 0.4.6-workerd-hop. STEP 1 orch <400ms **already live** — do not re-ship orch 10.24.6 or spa 1.1.0. Curl Fog now n=2 mesh_member=true (was n=1 last hour) — narrate curl.
+
+SHIPPED (REST Git Data API + CF PUT /content — NOT MCP, NOT paste, NOT workers.dev):
+- workers/stratamesh-gossip.js **2.3.10-edge-listed**: always list Fog + EDGE (#39). EDGE live when /health 200, else degraded/unreachable — never omitted, never invented live. Cache key includes VERSION (bust 2.3.9 60s cache).
+- CF PUT workers/scripts/stratamesh-gossip/content main_module=stratamesh-gossip.js bindings preserved. modified 2026-08-30T04:13:30Z etag 1e0b667e deployment_id e9250fc2.
+- git-only ops/workerd/worker.js /health adds version 0.2.3-lab oracle_live=false substrate=workerd-hop (deadlock-safe; not live until host reboot).
+- git-only src/node_persistent.py spa_view settlements unavailable=f_max=0 (n<2 was a lie at n=2). **Not live** — Fog process still serves n<2.
+- POST Fog /spa/register → total=1 (was 0 after hop/process flux).
+- Did **not** re-ship orch/spa/fund/status. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT.
+
+LIVE curl:
+- GET https://gossip.calhegasmorais.pt/health → 200 **70ms** version **2.3.10-edge-listed**
+- GET https://gossip.calhegasmorais.pt/peers → 200 **292ms** count=**2** version 2.3.10-edge-listed endpoints fog.calhegasmorais.pt (live health_http=200 n=2 mesh_member=true) + edge.calhegasmorais.pt (live health_http=200 origin=edge runtime=workerd version=0.2.3-dev) (was count=1 EDGE omitted)
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **69ms** source=orch-chat-lab reply nonempty pulse_id=pulse-20260830T041344Z clearance=public n=1 mesh_member=false oracle_live=false skipped=[tick,llm,fog] worker_version=10.24.6-lab-nofog (do not re-ship)
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false consensus n=2 f_max=0 agora.settlements.unavailable=n<2 (git f_max=0 not live)
+- GET https://fog.calhegasmorais.pt/status → 200 version=0.2.3-lab agora.settlements=0 **scalar** consensus n=2 f_max=0 (#40 OPEN)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop **no version** (git worker.js not live until workerd reboot)
+- GET https://fund.calhegasmorais.pt/health → 200 0.4.7-accept-surface (do not re-ship)
+- GET https://status.calhegasmorais.pt/health → 200 0.4.6-workerd-hop (do not re-ship)
+
+SHA: c97faed0f84f3d89f5f6a743aab50c180fcaea68
+
+STILL RED:
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js restored this hour; not loaded until host reboot)
+- Fog GET /spa agora.settlements.unavailable=n<2 at live n=2 (git spa_view f_max=0 not live). #40 stays OPEN — /status settlements=0 scalar, not a quality number
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Reboot local workerd :8788 on STRATAGROK so Fog /health serves git hop JSON (version 0.2.3-lab oracle_live=false substrate=workerd-hop). Then restart Fog :8787 so spa_view settlements unavailable=f_max=0. Cannot reboot from this sandbox. Do not re-ship gossip 2.3.10, orch 10.24.6, status 0.4.6, fund 0.4.7, or spa 1.1.0. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T03:16Z hour
 READ: origin HEAD 1dae74dc (mac-fog v5 runtime UI) on top of workerd hop + origin flux. Ledger 02:16 NEXT PICK was reboot workerd :8788 — cannot from this sandbox. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~84ms origin-orch-chat-1.1.0; POST 200 **442–904ms** source=orch-chat-lab skipped=[tick,llm] but awaited Fog /health via SPA Promise.all (workerd hop ~407ms). Route owner was stratamesh-spa `/api/orchestrator*` not the orch Worker. Fog /health 200 workerd-hop no version; Fog /spa total=0 then POST /spa/register → total=1 source=fog_process; Fog /status 200 agora.settlements={unavailable:n<2} consensus n=1 f_max=0 (**envelope live**); gossip 2.3.6-ihave count=2; fund 0.4.7-accept-surface; status 0.4.6-workerd-hop. STEP 1 orch <400ms was **not** met until this hour.
 
