@@ -2,7 +2,7 @@
  * api-fog.calhegasmorais.pt — MacOS Fog Node installer API
  * FOG-NODE-PT-CM-001 · lab only · secrets never stored here
  */
-const VERSION = "1.0.0-installer";
+const VERSION = "1.0.1-v030";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -13,7 +13,7 @@ const EDGE_PUBLIC = "https://edge.calhegasmorais.pt";
 const GOSSIP = "https://gossip.calhegasmorais.pt";
 const AUTH_APEX = "https://calhegasmorais.pt/api/auth";
 const REPO = "https://github.com/StrataMesh-Laboratory/stratamesh-core";
-const TAG = "v0.2.3-dev";
+const TAG = "v0.3.0";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
