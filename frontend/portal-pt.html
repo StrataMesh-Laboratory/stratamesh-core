@@ -179,6 +179,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button type="button" data-panel="orch" onclick="showPanel('orch',this)">Orquestrador</button>
     <button type="button" data-panel="clp" onclick="showPanel('clp',this)">CLP</button>
     <button type="button" data-panel="profile" onclick="showPanel('profile',this)">Perfil</button>
+    <button type="button" data-panel="va" onclick="showPanel('va',this)">Assistente</button>
     <!-- Pessoal only -->
     <button type="button" data-panel="kyc-user" onclick="showPanel('kyc-user',this)">KYC</button>
     <button type="button" data-panel="kyc" data-staff="1" onclick="showPanel('kyc',this)" style="display:none">Fila KYC</button>
@@ -563,6 +564,26 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <div class="stat-card"><div class="value" id="profileClearance">--</div><div class="label">Clearance</div></div>
     </div>
   </div>
+
+  <div class="panel" id="panel-va">
+    <h3>Assistente virtual (API)</h3>
+    <p style="font-size:.85rem;color:var(--muted);max-width:42rem;line-height:1.45">Ligue o <em>seu</em> AI a esta conta via <span style="font-family:ui-monospace,monospace">api-edge.calhegasmorais.pt</span>. Token único, válido <strong>7 dias</strong>, renovável. Não substitui o registo aberto sem conta. Não partilhe o token; é mostrado uma vez.</p>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="value" id="vaStatus">—</div><div class="label">Estado</div></div>
+      <div class="stat-card"><div class="value" id="vaExpiry" style="font-size:.95rem">—</div><div class="label">Expira</div></div>
+      <div class="stat-card"><div class="value" id="vaPrefix" style="font-size:.85rem">—</div><div class="label">Prefixo</div></div>
+    </div>
+    <p id="vaHint" style="font-size:.8rem;color:var(--muted)"></p>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0">
+      <button type="button" onclick="vaConnect()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Ligar / gerar (7 dias)</button>
+      <button type="button" onclick="vaRenew()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Renovar 7 dias</button>
+      <button type="button" onclick="vaRevoke()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Revogar</button>
+      <a href="https://api-edge.calhegasmorais.pt/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções para o AI</a>
+    </div>
+    <label style="font-size:.75rem;color:var(--muted)">Token (uma vez — copie para o assistente)</label>
+    <textarea id="vaTokenBox" readonly rows="3" style="width:100%;max-width:42rem;display:block;margin:.35rem 0 0;padding:.6rem;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:ui-monospace,monospace;font-size:.78rem;border-radius:6px" placeholder="smva_… aparece aqui uma vez"></textarea>
+    <button type="button" onclick="vaCopy()" style="margin-top:.4rem;padding:.35rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">Copiar token</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -578,6 +599,7 @@ const SVC = {
   sandbox: '/api/v1/sandbox',
   orch: '/api/v1/orchestrator',
   holons: '/api/v1/holons',
+  va: 'https://api-edge.calhegasmorais.pt',
   auth: 'https://stratamesh-auth.stratamesh.workers.dev',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
@@ -1015,6 +1037,75 @@ function showToast(m,e){
 
 
 function authHeaders(extra){const h=Object.assign({'Content-Type':'application/json'},extra||{});if(token)h['Authorization']='Bearer '+token;return h;}
+
+var _vaActive=null;
+async function vaApi(path, opt){
+  var r=await fetch((SVC.va||'https://api-edge.calhegasmorais.pt')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
+  var j=await r.json().catch(function(){return {ok:false,error:'bad_json',http:r.status};});
+  j.http=r.status;
+  return j;
+}
+function vaPaintMeta(k){
+  _vaActive=k||null;
+  var st=document.getElementById('vaStatus');
+  var ex=document.getElementById('vaExpiry');
+  var px=document.getElementById('vaPrefix');
+  var hint=document.getElementById('vaHint');
+  if(!st) return;
+  if(!k){ st.textContent='desligado'; if(ex) ex.textContent='—'; if(px) px.textContent='—'; if(hint) hint.textContent='Gere um token de 7 dias e cole-o no seu AI com as instruções.'; return; }
+  st.textContent=k.revoked_at?'revogado':(k.expired?'expirado':'ligado');
+  if(ex) ex.textContent=k.expires_at?String(k.expires_at).replace('T',' ').slice(0,16)+' UTC':'—';
+  if(px) px.textContent=k.prefix||'—';
+  if(hint) hint.textContent=k.expired?'Renove para obter um novo smva_.':'O AI usa Authorization: Bearer smva_… em /v1/va/me e /v1/va/act.';
+}
+function vaShowToken(tok, exp){
+  var box=document.getElementById('vaTokenBox');
+  if(box){ box.value=tok||''; box.focus(); box.select(); }
+  if(typeof showToast==='function') showToast(T('Token de 7 dias — copie agora','7-day token — copy now'));
+  if(exp){ var ex=document.getElementById('vaExpiry'); if(ex) ex.textContent=String(exp).replace('T',' ').slice(0,16)+' UTC'; }
+}
+async function loadVaPanel(){
+  try{
+    var j=await vaApi('/v1/va/keys');
+    if(j.http===401){ vaPaintMeta(null); var h=document.getElementById('vaHint'); if(h) h.textContent=T('Inicie sessão para ligar o assistente.','Sign in to connect the assistant.'); return; }
+    var keys=(j.keys||[]).filter(function(k){return !k.revoked_at;});
+    vaPaintMeta(keys[keys.length-1]||null);
+  }catch(e){ vaPaintMeta(null); }
+}
+async function vaConnect(){
+  try{
+    var list=await vaApi('/v1/va/keys');
+    var live=(list.keys||[]).filter(function(k){return !k.revoked_at && !k.expired;});
+    if(live.length){ if(typeof showToast==='function') showToast(T('Já existe um token activo — use Renovar','A live token exists — use Renew'),'error'); vaPaintMeta(live[live.length-1]); return; }
+    var j=await vaApi('/v1/va/keys',{method:'POST',body:JSON.stringify({label:'dashboard-va'})});
+    if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
+    vaPaintMeta(j.key); vaShowToken(j.token, j.expires_at);
+  }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
+}
+async function vaRenew(){
+  try{
+    var j=await vaApi('/v1/va/keys/renew',{method:'POST',body:'{}'});
+    if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
+    vaPaintMeta(j.key); vaShowToken(j.token, j.expires_at);
+  }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
+}
+async function vaRevoke(){
+  try{
+    if(!_vaActive||!_vaActive.id){ if(typeof showToast==='function') showToast(T('Nada a revogar','Nothing to revoke'),'error'); return; }
+    var j=await vaApi('/v1/va/keys/'+_vaActive.id,{method:'DELETE'});
+    if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
+    var box=document.getElementById('vaTokenBox'); if(box) box.value='';
+    vaPaintMeta(null);
+    if(typeof showToast==='function') showToast(T('Token revogado','Token revoked'));
+  }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
+}
+function vaCopy(){
+  var box=document.getElementById('vaTokenBox');
+  var t=box&&box.value;
+  if(!t){ if(typeof showToast==='function') showToast(T('Gere o token primeiro','Generate the token first'),'error'); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ showToast(T('Copiado','Copied')); }); return; }
+  box.select(); document.execCommand('copy'); if(typeof showToast==='function') showToast(T('Copiado','Copied'));
+}
 
 async function loadWallet(){
   var b=document.getElementById('strataBalance');
@@ -2084,6 +2175,7 @@ window.showPanel = function(name, btn){
     else if(n==='system') loadSystemPanel();
     else if(n==='diagnostics') { /* idle until user runs */ }
     else if(n==='clp' && typeof loadClpPanel==='function') loadClpPanel();
+    else if(n==='va' && typeof loadVaPanel==='function') loadVaPanel();
   } catch (e) { console.warn('showPanel', e); }
 };
 // boot panels if session already visible
@@ -2308,6 +2400,7 @@ window.showPanel = function(name, btn){
     else if(n==='diagnostics') { /* user runs */ }
     else if(n==='clp') loadClpPanel();
     else if(n==='profile') loadProfilePanel();
+    else if(n==='va' && typeof loadVaPanel==='function') loadVaPanel();
     else if(n==='orch') { /* chat ready */ }
   } catch (e) { console.warn('showPanel', e); }
 };

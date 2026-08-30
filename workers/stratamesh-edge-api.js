@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.3.0-va";
+const VERSION = "1.3.1-va-week";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -622,6 +622,7 @@ function installGuide(ORIGIN) {
 
 const AUTH_ME = "https://calhegasmorais.pt/api/auth/me";
 const VA_PREFIX = "smva_";
+const VA_TTL_SEC = 7 * 24 * 3600;
 const APEX = "https://calhegasmorais.pt";
 
 const VA_CONTROLS = [
@@ -661,9 +662,13 @@ The human or SCA must already have a StrataMesh account (do not invent one).
     -H 'Content-Type: application/json' \\
     -d '{"label":"home-assistant","scopes":["dashboard.read","dashboard.prefs"]}'
 
-Response shows token ONCE: smva_<hex>. Store it in the assistant. Never commit it.
+Response shows token ONCE: smva_<hex>. Valid **7 days**. Store it in the assistant. Never commit it.
 
-List/revoke with the same dashboard session:
+Renew (same dashboard session; new token shown once, old hash dropped):
+  POST ${ORIGIN}/v1/va/keys/{id}/renew
+  POST ${ORIGIN}/v1/va/keys/renew     ← newest active, or mint if none
+
+List/revoke:
   GET    ${ORIGIN}/v1/va/keys
   DELETE ${ORIGIN}/v1/va/keys/{id}
 
@@ -689,7 +694,7 @@ The live dashboard at ${APEX}/dashboard applies prefs when the owner is signed i
 - Keys prove the assistant acts for one existing account (user|SCA).
 - Ledger writes (SPA execute, NFT mint) stay on the dashboard session + PdS-402.
 - VA cannot mint STRATA, cannot set mesh_member=true, cannot add a 6th cron.
-- Max 5 keys per account. Hashes only in KV. Raw token never stored.
+- Max 5 keys per account. **TTL 7 days**, renewable from the dashboard. Hashes only in KV. Raw token never stored.
 
 END
 `;
@@ -739,10 +744,22 @@ async function kvGet(env, key) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-async function kvPut(env, key, obj) {
+async function kvPut(env, key, obj, ttlSec) {
   if (!env.API_KV) return false;
-  await env.API_KV.put(key, JSON.stringify(obj));
+  const opt = ttlSec ? { expirationTtl: Math.max(60, Math.floor(ttlSec)) } : {};
+  await env.API_KV.put(key, JSON.stringify(obj), opt);
   return true;
+}
+
+function weekExpiry() {
+  const exp = new Date(Date.now() + VA_TTL_SEC * 1000).toISOString();
+  return { expires_at: exp, ttl_sec: VA_TTL_SEC, kv_ttl: VA_TTL_SEC + 86400 };
+}
+
+function isExpired(row) {
+  if (!row || !row.expires_at) return false;
+  const t = Date.parse(row.expires_at);
+  return Number.isFinite(t) && t < Date.now();
 }
 
 async function resolveVa(request, env) {
@@ -751,6 +768,7 @@ async function resolveVa(request, env) {
   const hash = await sha256Hex(token);
   const row = await kvGet(env, "va:k:" + hash);
   if (!row || row.revoked_at) return null;
+  if (isExpired(row)) return { expired: true, id: row.id, owner_id: row.owner_id, expires_at: row.expires_at };
   row.last_used_at = new Date().toISOString();
   try { await env.API_KV.put("va:k:" + hash, JSON.stringify(row)); } catch (_) {}
   return row;
@@ -758,6 +776,7 @@ async function resolveVa(request, env) {
 
 async function requireVaOrSession(request, env) {
   const va = await resolveVa(request, env);
+  if (va && va.expired) return { ok: false, status: 401, error: "va_expired", hint: "Renew from dashboard /v1/va/keys/{id}/renew", expires_at: va.expires_at };
   if (va) return { ok: true, via: "va", owner_id: va.owner_id, owner_kind: va.owner_kind, key_id: va.id };
   const sess = await resolveSession(request);
   if (sess) return { ok: true, via: "session", owner_id: sess.owner_id, owner_kind: sess.owner_kind };
@@ -769,6 +788,45 @@ function mintToken() {
   crypto.getRandomValues(bytes);
   const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
   return VA_PREFIX + hex;
+}
+
+async function issueVaRow(env, sess, ids, label, existingId) {
+  const raw = mintToken();
+  const hash = await sha256Hex(raw);
+  const ttl = weekExpiry();
+  const id = existingId || ("vak_" + raw.slice(5, 13));
+  const row = {
+    id,
+    hash,
+    owner_id: sess.owner_id,
+    owner_kind: sess.owner_kind,
+    label: String(label || "personal-va").slice(0, 80),
+    scopes: ["dashboard.read", "dashboard.prefs"],
+    prefix: raw.slice(0, 12),
+    created_at: new Date().toISOString(),
+    expires_at: ttl.expires_at,
+    ttl_days: 7,
+  };
+  await kvPut(env, "va:k:" + hash, row, ttl.kv_ttl);
+  await kvPut(env, "va:i:" + id, row, ttl.kv_ttl);
+  const next = ids.includes(id) ? ids : ids.concat([id]);
+  await kvPut(env, "va:o:" + sess.owner_id, next, ttl.kv_ttl);
+  return { raw, row, ids: next };
+}
+
+function publicKey(meta) {
+  const expired = isExpired(meta);
+  return {
+    id: meta.id,
+    label: meta.label,
+    prefix: meta.prefix,
+    scopes: meta.scopes,
+    created_at: meta.created_at,
+    expires_at: meta.expires_at || null,
+    ttl_days: 7,
+    expired,
+    revoked_at: meta.revoked_at || null,
+  };
 }
 
 async function handleVaKeys(env, request, path) {
@@ -783,41 +841,69 @@ async function handleVaKeys(env, request, path) {
     const keys = [];
     for (const id of ids) {
       const meta = await kvGet(env, "va:i:" + id);
-      if (meta) keys.push({ id: meta.id, label: meta.label, prefix: meta.prefix, scopes: meta.scopes, created_at: meta.created_at, revoked_at: meta.revoked_at || null });
+      if (meta) keys.push(publicKey(meta));
     }
-    return json({ ok: true, owner_id: sess.owner_id, owner_kind: sess.owner_kind, keys }, 200, "no-store");
+    return json({ ok: true, owner_id: sess.owner_id, owner_kind: sess.owner_kind, ttl_days: 7, keys }, 200, "no-store");
   }
 
-  if (request.method === "POST" && path === "/v1/va/keys") {
+  async function mintNew(label) {
     const active = [];
     for (const id of ids) {
       const meta = await kvGet(env, "va:i:" + id);
-      if (meta && !meta.revoked_at) active.push(id);
+      if (meta && !meta.revoked_at && !isExpired(meta)) active.push(id);
     }
     if (active.length >= 5) return json({ ok: false, error: "max_keys", max: 5 }, 409, "no-store");
-    const body = await request.json().catch(() => ({}));
-    const raw = mintToken();
-    const hash = await sha256Hex(raw);
-    const id = "vak_" + raw.slice(5, 13);
-    const row = {
-      id,
-      owner_id: sess.owner_id,
-      owner_kind: sess.owner_kind,
-      label: String(body.label || "personal-va").slice(0, 80),
-      scopes: Array.isArray(body.scopes) ? body.scopes.slice(0, 8) : ["dashboard.read", "dashboard.prefs"],
-      prefix: raw.slice(0, 12),
-      created_at: new Date().toISOString(),
-    };
-    await kvPut(env, "va:k:" + hash, row);
-    await kvPut(env, "va:i:" + id, row);
-    await kvPut(env, ownerKey, ids.concat([id]));
+    const issued = await issueVaRow(env, sess, ids, label);
     return json({
       ok: true,
-      token: raw,
+      token: issued.raw,
       shown_once: true,
-      key: { id: row.id, label: row.label, prefix: row.prefix, scopes: row.scopes, owner_kind: row.owner_kind },
-      note: "Store token in the assistant. It is not stored in plaintext. Open registry stays zero-auth.",
+      expires_at: issued.row.expires_at,
+      ttl_days: 7,
+      key: publicKey(issued.row),
+      note: "Valid 7 days. Store in the assistant. Not stored in plaintext. Renew from the dashboard.",
     }, 201, "no-store");
+  }
+
+  async function rotate(id) {
+    const meta = await kvGet(env, "va:i:" + id);
+    if (!meta || meta.owner_id !== sess.owner_id) return json({ ok: false, error: "not_found" }, 404, "no-store");
+    if (meta.hash) {
+      try { await env.API_KV.delete("va:k:" + meta.hash); } catch (_) {}
+    }
+    const issued = await issueVaRow(env, sess, ids, meta.label || "personal-va", id);
+    return json({
+      ok: true,
+      renewed: true,
+      token: issued.raw,
+      shown_once: true,
+      expires_at: issued.row.expires_at,
+      ttl_days: 7,
+      key: publicKey(issued.row),
+      note: "Previous token is dead. Paste the new smva_ into the assistant.",
+    }, 200, "no-store");
+  }
+
+  if (request.method === "POST" && path === "/v1/va/keys") {
+    const body = await request.json().catch(() => ({}));
+    return mintNew(body.label);
+  }
+
+  if (request.method === "POST" && path === "/v1/va/keys/renew") {
+    let newest = null;
+    for (const id of ids) {
+      const meta = await kvGet(env, "va:i:" + id);
+      if (meta && !meta.revoked_at) newest = meta;
+    }
+    if (!newest) {
+      return mintNew("personal-va");
+    }
+    return rotate(newest.id);
+  }
+
+  if (request.method === "POST" && path.startsWith("/v1/va/keys/") && path.endsWith("/renew")) {
+    const id = path.slice("/v1/va/keys/".length, -"/renew".length);
+    return rotate(id);
   }
 
   if (request.method === "DELETE" && path.startsWith("/v1/va/keys/")) {
@@ -825,7 +911,10 @@ async function handleVaKeys(env, request, path) {
     const meta = await kvGet(env, "va:i:" + id);
     if (!meta || meta.owner_id !== sess.owner_id) return json({ ok: false, error: "not_found" }, 404, "no-store");
     meta.revoked_at = new Date().toISOString();
-    await kvPut(env, "va:i:" + id, meta);
+    await kvPut(env, "va:i:" + id, meta, 86400);
+    if (meta.hash) {
+      try { await env.API_KV.delete("va:k:" + meta.hash); } catch (_) {}
+    }
     return json({ ok: true, revoked: id }, 200, "no-store");
   }
 
