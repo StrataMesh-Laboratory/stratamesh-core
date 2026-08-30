@@ -1,3 +1,9 @@
+## 2026-08-30 — Honest STRATA circulation (token 3.5.4-circ-split, status 0.4.8-circ-split)
+- The ~2.6M headline was **not** PoC STRATA and **not** L-STRATA. It was `SUM(token_balances)` excluding `#mint`/`#0` (unclassified genesis/test rows, including ~1e6 on the Fog treasury wallet).
+- **L-STRATA** (lab_only / `lab_bootstrap`+`lab_grant`) and **PdC STRATA** (`poc_contribution`, sole protocol mint) are distinct versions. Status HTML now shows two cards, not one "Circulação".
+- `circulating_supply` / `total_supply` = origin-ledger classified sum only. Raw D1 SUM is `ledger_balance_sum` with `statistics_note` — not a circulation statistic. Ledger rows not purged.
+- Status health_fallback no longer maps `health.total_supply` onto circulating. Guard rejects a 2.6M-shaped SUM. Cache key `pulse-048-circ`. HOLD spa. Never Fog origin. Never workers.dev. No 6th cron.
+
 ## 2026-08-30 — Heraldic icons transparent (Casa de Morais + Spencer-Morais)
 - Replaced muddy parchment-backed photo-icons with drawn heater shields on a clear ground.
 - Casa de Morais: gules, tower argent, waves azure/argent. Favicon 32/48/192/512 + svg + ico.

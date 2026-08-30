@@ -585,13 +585,15 @@ pre{background:var(--card);padding:1rem;overflow:auto;font-size:.72rem;border:1p
 <p class="muted">${s.timestamp||''} · fonte ${s.source||''}</p>
 <p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||11} · ${upLine}</p>
 <div class="grid">
-  <div class="card"><div class="v">${mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'}</div><div class="l">Circulação</div></div>
+  <div class="card"><div class="v">${mon.circulating_lab_only!=null?Number(mon.circulating_lab_only).toLocaleString('pt-PT',{maximumFractionDigits:2}):'—'}</div><div class="l">L-STRATA lab</div></div>
+  <div class="card"><div class="v">${mon.circulating_transit_eligible!=null?Number(mon.circulating_transit_eligible).toLocaleString('pt-PT',{maximumFractionDigits:8}):'—'}</div><div class="l">PdC STRATA</div></div>
   <div class="card"><div class="v">${mon.out_of_circulation!=null?Number(mon.out_of_circulation).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—'}</div><div class="l">#0 queima</div></div>
-  <div class="card"><div class="v">${mon.mint_emitted!=null?Number(mon.mint_emitted).toLocaleString('pt-PT',{maximumFractionDigits:6}):'—'}</div><div class="l">#mint emitido</div></div>
+  <div class="card"><div class="v">${mon.mint_emitted!=null?Number(mon.mint_emitted).toLocaleString('pt-PT',{maximumFractionDigits:8}):'—'}</div><div class="l">#mint emitido</div></div>
   <div class="card"><div class="v">${sum.mesh_classes||0}</div><div class="l">Classes malha</div></div>
   <div class="card"><div class="v">${(s.agora&&s.agora.rate&&s.agora.rate.strata_per_quote!=null)?Number(s.agora.rate.strata_per_quote).toFixed(2):'—'}</div><div class="l">STRATA/EUR</div></div>
   <div class="card"><div class="v">${(s.auth&&s.auth.users!=null)?s.auth.users:'—'}</div><div class="l">Utilizadores</div></div>
 </div>
+<p class="muted">L-STRATA (laboratório, não transitável) ≠ PdC STRATA (único mint de protocolo). O SUM do livro D1 não é circulação${mon.ledger_balance_sum!=null?' ('+Number(mon.ledger_balance_sum).toLocaleString('pt-PT',{maximumFractionDigits:0})+' unidades não classificadas).':'.'}</p>
 <p class="muted">${(mon.flow||'')}</p>
 <p class="muted">Roster is JSON (<code>/status</code>), not this page. Fog Mac continuous · EDGE session expected.</p>
 <p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
@@ -625,7 +627,7 @@ async function svcJson(env, bindingName, path, timeoutMs = 2500) {
 async function fetchJsonPublic(url, timeoutMs = 2500) {
   try {
     const work = (async () => {
-      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.7' } });
+      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.8' } });
       const json = await r.json().catch(() => null);
       return { ok: r.ok, status: r.status, json };
     })();
@@ -636,30 +638,73 @@ async function fetchJsonPublic(url, timeoutMs = 2500) {
   }
 }
 
-async function tokenSnapshot(env, monetaryMs = 2500) {
+function honestCirculation(src) {
+  const j = src || {};
+  const bd = j.breakdown || {};
+  const lab = Number(
+    j.circulating_lab_only ?? j.l_strata ?? bd.lab_only_strata ?? 0
+  );
+  const poc = Number(
+    j.circulating_transit_eligible ?? j.poc_strata ?? bd.transit_eligible_poc ?? 0
+  );
+  const classified = j.classified_circulating != null
+    ? Number(j.classified_circulating)
+    : (lab + poc);
+  const ledger = j.ledger_balance_sum != null
+    ? Number(j.ledger_balance_sum)
+    : (bd.ledger_balance_sum != null ? Number(bd.ledger_balance_sum) : null);
+  let circ = j.circulating_supply;
+  // Guard: never treat the unclassified D1 SUM (~2.6M) as circulation.
+  if (classified >= 0 && circ != null && Number(circ) > Math.max(classified * 10, classified + 1000)) {
+    circ = classified;
+  } else if (circ == null) {
+    circ = classified;
+  }
+  return {
+    circulating_supply: circ,
+    circulating_lab_only: lab,
+    circulating_transit_eligible: poc,
+    classified_circulating: classified,
+    l_strata: lab,
+    poc_strata: poc,
+    ledger_balance_sum: ledger,
+    unclassified_ledger_sum: j.unclassified_ledger_sum != null
+      ? Number(j.unclassified_ledger_sum)
+      : (ledger != null ? Math.max(0, ledger - classified) : null),
+    statistics_note: j.statistics_note || bd.statistics_note ||
+      'L-STRATA lab ≠ PdC STRATA. SUM(token_balances) is not circulating supply.',
+  };
+}
+
+async function tokenSnapshot(env, monetaryMs = 4000) {
   const [health, mon] = await Promise.all([
     svcJson(env, 'TOKEN', '/health', 4000),
     svcJson(env, 'TOKEN', '/monetary', monetaryMs),
   ]);
-  if (mon.ok && mon.json && mon.json.circulating_supply != null) {
-    return { ok: true, json: mon.json, version: (mon.json.version || (health.json && health.json.version)), source: 'monetary' };
+  if (mon.ok && mon.json && (mon.json.circulating_lab_only != null || mon.json.circulating_supply != null || mon.json.success)) {
+    const hon = honestCirculation(mon.json);
+    return {
+      ok: true,
+      json: Object.assign({}, mon.json, hon),
+      version: (mon.json.version || (health.json && health.json.version)),
+      source: 'monetary',
+    };
   }
   if (health.ok && health.json) {
     const h = health.json;
     const bd = h.breakdown || {};
+    const hon = honestCirculation(h);
     return {
       ok: true,
       source: 'health_fallback',
       version: h.version,
       json: {
-        circulating_supply: h.total_supply,
-        circulating_lab_only: bd.lab_only_strata,
-        circulating_transit_eligible: bd.transit_eligible_poc,
-        out_of_circulation: null,
+        ...hon,
+        out_of_circulation: hon.out_of_circulation != null ? hon.out_of_circulation : null,
         mint_emitted: bd.transit_eligible_poc,
         flow: h.holonic_note || h.emission_policy,
         poles: null,
-        fog_wallet: bd.fog_wallet || null,
+        fog_wallet: bd.fog_wallet || h.fog_wallet || null,
         version: h.version,
       },
     };
@@ -686,7 +731,7 @@ async function writePulseCache(env, live) {
   return;
 }
 
-const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-047';
+const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-048-circ';
 const EDGE_PULSE_MS = 30000;
 
 async function readEdgeCache() {
@@ -720,7 +765,7 @@ async function buildLiveStatus(env, opts) {
   const clp = typeof clpAddress === 'function' ? clpAddress() : null;
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
-  const monetaryMs = (opts && opts.monetaryMs) || 2500;
+  const monetaryMs = (opts && opts.monetaryMs) || 4000;
   const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH, fogRootH] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
     svcJson(env, 'POC', '/health', 4000),
@@ -771,7 +816,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.7-destyle',
+    version: '0.4.8-circ-split',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -782,6 +827,12 @@ async function buildLiveStatus(env, opts) {
       circulating_supply: mon.circulating_supply,
       circulating_lab_only: mon.circulating_lab_only,
       circulating_transit_eligible: mon.circulating_transit_eligible,
+      classified_circulating: mon.classified_circulating,
+      l_strata: mon.l_strata,
+      poc_strata: mon.poc_strata,
+      ledger_balance_sum: mon.ledger_balance_sum,
+      unclassified_ledger_sum: mon.unclassified_ledger_sum,
+      statistics_note: mon.statistics_note,
       out_of_circulation: mon.out_of_circulation,
       mint_emitted: (mon.poles && mon.poles.mint && mon.poles.mint.total_emitted != null)
         ? mon.poles.mint.total_emitted
@@ -888,6 +939,8 @@ async function buildLiveStatus(env, opts) {
       upstream_ok: [tokenSnap, { ok: pocOk }, acbH, orchH, dagH, repH, agoraH, aiopsLast, authH, ipfsH, holonsH].filter((x) => x && x.ok).length,
       upstream_total: 11,
       circulating: mon ? mon.circulating_supply : null,
+      circulating_lab_only: mon ? mon.circulating_lab_only : null,
+      circulating_transit_eligible: mon ? mon.circulating_transit_eligible : null,
       burned: mon ? mon.out_of_circulation : null,
       mint_emitted: (mon && mon.poles && mon.poles.mint && mon.poles.mint.total_emitted != null)
         ? mon.poles.mint.total_emitted
@@ -995,7 +1048,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.7-destyle',
+        version: '0.4.8-circ-split',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
@@ -1015,12 +1068,18 @@ export default {
           summary: live.summary,
           monetary: live.monetary && {
             circulating_supply: live.monetary.circulating_supply,
+            circulating_lab_only: live.monetary.circulating_lab_only,
+            circulating_transit_eligible: live.monetary.circulating_transit_eligible,
+            classified_circulating: live.monetary.classified_circulating,
+            ledger_balance_sum: live.monetary.ledger_balance_sum,
+            unclassified_ledger_sum: live.monetary.unclassified_ledger_sum,
             out_of_circulation: live.monetary.out_of_circulation,
             mint_emitted: live.monetary.mint_emitted,
             burn_sink: live.monetary.burn_sink,
             mint_source: live.monetary.mint_source,
             flow: live.monetary.flow,
             source: live.monetary.source,
+            statistics_note: live.monetary.statistics_note,
           },
           agora_rate: live.agora && live.agora.rate,
           upstream: live.upstream,

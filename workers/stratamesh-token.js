@@ -111,9 +111,11 @@ async function dagSubmit(env, payload, content) {
  *  not a separate entity. Prefer NODE_WALLET.
  *
  * STRATA units themselves may be:
- *  lab_only — laboratory version, not transitável to the published network
- *  poc_contribution — transit-eligible protocol mint via stratamesh-poc
+ *  lab_only (L-STRATA) — laboratory version, not transitável to the published network
+ *  poc_contribution (PoC / PdC STRATA) — transit-eligible protocol mint via stratamesh-poc
  * The "stub" character is of the lab STRATA units, not of the Fog wallet.
+ * Circulation statistics MUST publish those two origin-ledger figures separately.
+ * SUM(token_balances) is an unclassified ledger total, not circulating supply.
  *
  * User / SCA accounts are a distinct holonic layer (entities with Painel + Bancada).
  * Do not conflate TRD poles, Fog wallet, and user/SCA account wallets.
@@ -122,6 +124,27 @@ const STRATA_MINT_SOURCE = '#mint';
 const STRATA_BURN_SINK = '#0';
 const NODE_WALLET = 'FOG-NODE-PT-CM-001';
 const LEGACY_TREASURY_ALIAS = 'treasury';
+const TOKEN_VERSION = '3.5.4-circ-split';
+const CIRCULATION_STATISTICS_NOTE =
+  'L-STRATA (lab_only / lab_bootstrap+lab_grant) and PoC STRATA (poc_contribution) are distinct versions. circulating_supply is their origin-ledger classified sum only. ledger_balance_sum is SUM(token_balances) excluding #mint/#0 and is NOT a circulation statistic — it includes unclassified genesis/test rows (historically published as ~2.6M Circulação). Neither figure is mainnet.';
+
+function originCirculationStats(ledgerSum, labOnly, poc) {
+  const lab = Number(labOnly || 0);
+  const pocN = Number(poc || 0);
+  const classified = lab + pocN;
+  const ledger = Number(ledgerSum || 0);
+  return {
+    circulating_supply: classified,
+    circulating_lab_only: lab,
+    circulating_transit_eligible: pocN,
+    classified_circulating: classified,
+    l_strata: lab,
+    poc_strata: pocN,
+    ledger_balance_sum: ledger,
+    unclassified_ledger_sum: Math.max(0, ledger - classified),
+    statistics_note: CIRCULATION_STATISTICS_NOTE,
+  };
+}
 /**
  * Smart-contract STRATA NFT: static ↔ dynamic operational lifecycle.
  * APS/SPA is one kind of such NFT — not a separate architectural layer.
@@ -1802,21 +1825,26 @@ export default {
         const r = await db.prepare('SELECT COUNT(*) as c FROM nft_assets').first();
         nfts = r?.c ?? 0;
       } catch (_) {}
+      const circ = originCirculationStats(supply, lab_only_supply, transit_eligible_supply);
       return json({
         service: 'stratamesh-token',
         status: 'active',
-        version: '3.5.3-pds402-page',
-        total_supply: supply,
+        version: TOKEN_VERSION,
+        total_supply: circ.classified_circulating,
         holders,
         nft_count: nfts,
+        ...circ,
         breakdown: {
           lab_only_strata: lab_only_supply,
           transit_eligible_poc: transit_eligible_supply,
+          classified_circulating: circ.classified_circulating,
+          ledger_balance_sum: circ.ledger_balance_sum,
+          unclassified_ledger_sum: circ.unclassified_ledger_sum,
           fog_wallet: {
             address: NODE_WALLET,
             role: 'node_treasury',
             balance: fog_wallet_balance,
-            note: 'Carteira/tesouraria do Nó Fog — not a user/SCA account. Lab units on this wallet are laboratory version; only PoC units transit to published.',
+            note: 'Carteira/tesouraria do Nó Fog — not a user/SCA account. Lab units on this wallet are laboratory version; only PoC units transit to published. Fog wallet D1 balance is not origin-ledger L-STRATA.',
           },
         },
         engines: [
@@ -1849,13 +1877,16 @@ export default {
     }
 
     if (path === '/supply' || path === '/status') {
+      const circ = originCirculationStats(supply, lab_only_supply, transit_eligible_supply);
       return json({
         success: true,
-        total_supply: supply,
+        version: TOKEN_VERSION,
+        total_supply: circ.classified_circulating,
         holders,
         status: 'active',
         lab_only_strata: lab_only_supply,
         transit_eligible_poc: transit_eligible_supply,
+        ...circ,
         fog_wallet: { address: NODE_WALLET, balance: fog_wallet_balance, role: 'node_treasury' },
       });
     }
@@ -3211,11 +3242,10 @@ export default {
         strata_versions: {
           lab_only: labSum,
           transit_eligible_poc: pocSum,
-          note: 'Lab STRATA are laboratory-version units (not transitável). Only PoC-earned units transit to the published network. The stub character is of those lab units, not of the Fog wallet.',
+          note: 'Lab STRATA (L-STRATA) are laboratory-version units (not transitável). Only PoC-earned units transit to the published network. The stub character is of those lab units, not of the Fog wallet. These two are not one circulating stock.',
         },
-        circulating_supply: circulating,
-        circulating_lab_only: labSum,
-        circulating_transit_eligible: pocSum,
+        version: TOKEN_VERSION,
+        ...originCirculationStats(circulating, labSum, pocSum),
         out_of_circulation: Number(sink?.balance || 0),
         flow: 'PoC → #mint emits → Fog wallet and/or user/SCA wallets → resource use burns → #0. Lab bootstrap credits the Fog treasury as lab-only units.',
       });
