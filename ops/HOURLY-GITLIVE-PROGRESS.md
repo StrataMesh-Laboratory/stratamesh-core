@@ -30,7 +30,7 @@ LIVE curl:
 - GET https://fund.calhegasmorais.pt/health → 200 version **0.4.8-destyle** (do not re-ship)
 - POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **64ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
 
-SHA: b13fd903d32ff33c05486ec679c93087cf92a283
+SHA: e45208291a03cdc954e6cf085f837785ef890ff8
 
 STILL RED:
 - Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js 0.3.0; not loaded until Mac TUI v6 `g`/`b` reboot)
