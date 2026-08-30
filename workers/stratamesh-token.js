@@ -107,8 +107,9 @@ async function dagSubmit(env, payload, content) {
  * Fog holon (not an entity, no user/SCA account):
  *  NODE_WALLET = FOG-NODE-PT-CM-001 — carteira / tesouraria do Nó.
  *  What the Node produces (PdC) and spends (operation) goes through this wallet.
- *  LEGACY_TREASURY_ALIAS ("treasury") is a historical ledger row for the same Fog treasury —
- *  not a separate entity. Prefer NODE_WALLET.
+ *  LEGACY_TREASURY_ALIAS ("treasury") is an unclassified genesis stub (~1e6).
+ *  It is NOT Fog PdC and MUST NOT be summed into the Nó wallet.
+ *  Prefer NODE_WALLET. Do not alias treasury → Fog for balances or display.
  *
  * STRATA units themselves may be:
  *  lab_only (L-STRATA) — laboratory version, not transitável to the published network
@@ -124,7 +125,7 @@ const STRATA_MINT_SOURCE = '#mint';
 const STRATA_BURN_SINK = '#0';
 const NODE_WALLET = 'FOG-NODE-PT-CM-001';
 const LEGACY_TREASURY_ALIAS = 'treasury';
-const TOKEN_VERSION = '3.5.4-circ-split';
+const TOKEN_VERSION = '3.5.5-fog-honest';
 const CIRCULATION_STATISTICS_NOTE =
   'L-STRATA (lab_only / lab_bootstrap+lab_grant) and PoC STRATA (poc_contribution) are distinct versions. circulating_supply is their origin-ledger classified sum only. ledger_balance_sum is SUM(token_balances) excluding #mint/#0 and is NOT a circulation statistic — it includes unclassified genesis/test rows (historically published as ~2.6M Circulação). Neither figure is mainnet.';
 
@@ -167,15 +168,75 @@ function isSpaNft(nft) {
 }
 
 function isNodeWallet(account) {
-  const a = String(account || '');
-  return a === NODE_WALLET || a === LEGACY_TREASURY_ALIAS;
+  return String(account || '') === NODE_WALLET;
 }
 
 function resolveWalletAccount(account) {
-  const a = String(account || '');
-  if (a === LEGACY_TREASURY_ALIAS) return NODE_WALLET;
-  return a;
+  return String(account || '');
 }
+
+async function fogWalletStats(db) {
+  const empty = {
+    address: NODE_WALLET,
+    role: 'node_treasury',
+    balance: 0,
+    l_strata: 0,
+    poc_strata: 0,
+    genesis_stub_not_fog: {
+      account: LEGACY_TREASURY_ALIAS,
+      balance: 0,
+      note: 'Unclassified genesis row. Not Fog PdC. Not L-STRATA. Never merge into Névoa STRATA.',
+    },
+    note: 'Fog D1 row only (FOG-NODE-PT-CM-001). The ~1e6 on account "treasury" is leftover genesis — the Nó did not mint it.',
+  };
+  if (!db) return empty;
+  let d1 = 0, lab = 0, poc = 0, stub = 0;
+  try {
+    d1 = Number(
+      (await db
+        .prepare("SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account = ?")
+        .bind(NODE_WALLET)
+        .first())?.s || 0
+    );
+  } catch (_) {}
+  try {
+    stub = Number(
+      (await db
+        .prepare("SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account = ?")
+        .bind(LEGACY_TREASURY_ALIAS)
+        .first())?.s || 0
+    );
+  } catch (_) {}
+  try {
+    await ensureLabOrigin(db);
+    lab = Number(
+      (await db
+        .prepare("SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE account = ? AND origin IN ('lab_bootstrap','lab_grant')")
+        .bind(NODE_WALLET)
+        .first())?.s || 0
+    );
+    poc = Number(
+      (await db
+        .prepare("SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE account = ? AND origin = 'poc_contribution'")
+        .bind(NODE_WALLET)
+        .first())?.s || 0
+    );
+  } catch (_) {}
+  return {
+    address: NODE_WALLET,
+    role: 'node_treasury',
+    balance: d1,
+    l_strata: lab,
+    poc_strata: poc,
+    genesis_stub_not_fog: {
+      account: LEGACY_TREASURY_ALIAS,
+      balance: stub,
+      note: 'Unclassified genesis row. Not Fog PdC. Not L-STRATA. Never merge into Névoa STRATA.',
+    },
+    note: 'Fog D1 row only. ~1e6 on "treasury" is leftover genesis — the Nó did not mint it.',
+  };
+}
+
 
 async function ensureMonetaryPoles(db) {
   if (!db) return;
@@ -1771,7 +1832,13 @@ export default {
       holders = 0,
       lab_only_supply = 0,
       transit_eligible_supply = 0,
-      fog_wallet_balance = 0;
+      fog_wallet_info = {
+        address: NODE_WALLET,
+        role: 'node_treasury',
+        balance: 0,
+        l_strata: 0,
+        poc_strata: 0,
+      };
     if (db) {
       try {
         const r = await db
@@ -1809,13 +1876,7 @@ export default {
         transit_eligible_supply = Number(pocR?.s || 0);
       } catch (_) {}
       try {
-        const fog = await db
-          .prepare(
-            "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account IN (?, ?)"
-          )
-          .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
-          .first();
-        fog_wallet_balance = Number(fog?.s || 0);
+        fog_wallet_info = await fogWalletStats(db);
       } catch (_) {}
     }
 
@@ -1840,12 +1901,7 @@ export default {
           classified_circulating: circ.classified_circulating,
           ledger_balance_sum: circ.ledger_balance_sum,
           unclassified_ledger_sum: circ.unclassified_ledger_sum,
-          fog_wallet: {
-            address: NODE_WALLET,
-            role: 'node_treasury',
-            balance: fog_wallet_balance,
-            note: 'Carteira/tesouraria do Nó Fog — not a user/SCA account. Lab units on this wallet are laboratory version; only PoC units transit to published. Fog wallet D1 balance is not origin-ledger L-STRATA.',
-          },
+          fog_wallet: fog_wallet_info,
         },
         engines: [
           'fungible_STRATA',
@@ -1887,7 +1943,7 @@ export default {
         lab_only_strata: lab_only_supply,
         transit_eligible_poc: transit_eligible_supply,
         ...circ,
-        fog_wallet: { address: NODE_WALLET, balance: fog_wallet_balance, role: 'node_treasury' },
+        fog_wallet: fog_wallet_info,
       });
     }
 
@@ -1974,44 +2030,23 @@ export default {
       }
       const account = resolveWalletAccount(rawAccount);
       try {
-        // Fog treasury: merge NODE_WALLET + legacy "treasury" row (same holon, not a second entity)
-        let rows;
-        if (isNodeWallet(rawAccount)) {
-          rows = await db
-            .prepare(
-              "SELECT token_type, SUM(balance) as balance, SUM(total_minted) as total_minted, SUM(total_burned) as total_burned FROM token_balances WHERE account IN (?, ?) GROUP BY token_type"
-            )
-            .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
-            .all();
-        } else {
-          rows = await db
-            .prepare('SELECT token_type, balance, total_minted, total_burned FROM token_balances WHERE account = ?')
-            .bind(account)
-            .all();
-        }
+        // Fog: NODE_WALLET row only. Do not merge genesis stub "treasury" (~1e6).
+        const rows = await db
+          .prepare('SELECT token_type, balance, total_minted, total_burned FROM token_balances WHERE account = ?')
+          .bind(account)
+          .all();
         let origins = [];
         try {
           await ensureLabOrigin(db);
-          if (isNodeWallet(rawAccount)) {
-            origins = (
-              await db
-                .prepare(
-                  'SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account IN (?, ?) GROUP BY origin'
-                )
-                .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
-                .all()
-            ).results || [];
-          } else {
-            origins =
-              (await db.prepare('SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account = ? GROUP BY origin').bind(account).all())
-                .results || [];
-          }
+          origins =
+            (await db.prepare('SELECT origin, SUM(amount) as amount FROM strata_origin_ledger WHERE account = ? GROUP BY origin').bind(account).all())
+              .results || [];
         } catch (_) {}
         const lab = origins.filter((o) => o.origin === 'lab_bootstrap' || o.origin === 'lab_grant').reduce((a, o) => a + Number(o.amount || 0), 0);
         const poc = origins.filter((o) => o.origin === 'poc_contribution').reduce((a, o) => a + Number(o.amount || 0), 0);
         const out = {
           success: true,
-          account: isNodeWallet(rawAccount) ? NODE_WALLET : account,
+          account,
           balances: rows.results || [],
           lab_policy: {
             lab_only_balance: lab,
@@ -2020,14 +2055,13 @@ export default {
           },
           origin_breakdown: origins,
         };
-        if (isNodeWallet(rawAccount)) {
+        if (isNodeWallet(account)) {
+          const fog = await fogWalletStats(db);
           out.wallet_role = 'node_treasury';
           out.holon = 'fog';
+          out.fog_wallet = fog;
           out.note =
-            'Carteira/tesouraria do Nó Fog. O Nó não é entidade e não tem conta de utilizador/SCA; tem carteira. Linha legada "treasury" no ledger é a mesma tesouraria.';
-          if (String(rawAccount) === LEGACY_TREASURY_ALIAS) {
-            out.resolved_from_alias = LEGACY_TREASURY_ALIAS;
-          }
+            'Carteira do Nó Fog (FOG-NODE-PT-CM-001) only. Account "treasury" (~1e6 genesis) is NOT this wallet and is not PdC.';
         } else {
           out.wallet_role = 'account_wallet';
           out.holon = account.startsWith('SCA-') ? 'sca' : 'user';
@@ -3172,6 +3206,7 @@ export default {
         circulating = 0,
         total_minted = 0,
         fogBal = 0,
+        fogInfo = null,
         labSum = 0,
         pocSum = 0;
       try {
@@ -3191,13 +3226,8 @@ export default {
           .first();
         circulating = Number(circ?.s || 0);
         total_minted = Number(mint?.total_minted || 0);
-        const fog = await db
-          .prepare(
-            "SELECT COALESCE(SUM(balance),0) as s FROM token_balances WHERE token_type IN ('STRATA','strata') AND account IN (?, ?)"
-          )
-          .bind(NODE_WALLET, LEGACY_TREASURY_ALIAS)
-          .first();
-        fogBal = Number(fog?.s || 0);
+        fogInfo = await fogWalletStats(db);
+        fogBal = Number(fogInfo.balance || 0);
         await ensureLabOrigin(db);
         labSum = Number(
           (await db.prepare("SELECT COALESCE(SUM(amount),0) as s FROM strata_origin_ledger WHERE origin IN ('lab_bootstrap','lab_grant')").first())?.s || 0
@@ -3232,12 +3262,11 @@ export default {
             note: 'TRD pole: resource consumption moves STRATA here; they cannot leave',
           },
         },
-        fog_wallet: {
+        fog_wallet: fogInfo || {
           address: NODE_WALLET,
           role: 'node_treasury',
           balance: fogBal,
-          legacy_alias: LEGACY_TREASURY_ALIAS,
-          note: 'Tesouraria do Nó = carteira do Fog. Linha legada "treasury" no ledger é a mesma carteira, não uma entidade stub.',
+          note: 'Fog D1 row only. Account "treasury" (~1e6 genesis) is not this wallet.',
         },
         strata_versions: {
           lab_only: labSum,

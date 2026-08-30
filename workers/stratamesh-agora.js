@@ -4,7 +4,8 @@
  *
  * Lab book (non-transitioning L-STRATA) is the operator offering:
  *   1 L-STRATA = €0.10 = 1 mesh-service-unit (Fog Lisbon 100W·h × overhead).
- *   Wiener Philharmoniker 1 oz lab ref €4,080 (Münze Österreich ~Aug 2026).
+ *   Wiener Philharmoniker L-STRATA = (spot EUR per oz × fraction) / 0.10.
+ *   Spot is live XAU/EUR (Swissquote mid, fallback gold-api USD × Frankfurter).
  * D1 user listings still merge in; lab rows always present.
  */
 function j(data, status = 200) {
@@ -15,11 +16,85 @@ function j(data, status = 200) {
 }
 
 const LAB_EUR_PER_LSTRATA = 0.10;
-const LAB_GOLD_OZ_EUR = 4080;
 const LAB_SELLER = 'FOG-NODE-PT-CM-001';
 const LAB_SELLER_ENI = 'AMCM ENI';
+const AGORA_VERSION = '3.3.1-gold-spot';
+let _goldSpotCache = null;
 
-function labBook() {
+async function fetchJson(url, timeoutMs) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs || 2500);
+  try {
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-agora/' + AGORA_VERSION },
+    });
+    const json = await r.json().catch(() => null);
+    return { ok: r.ok, json };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e).slice(0, 160) };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function goldSpotEurPerOz() {
+  const now = Date.now();
+  if (_goldSpotCache && now - _goldSpotCache.at < 60000 && _goldSpotCache.eur_per_oz > 0) {
+    return _goldSpotCache;
+  }
+  const sq = await fetchJson(
+    'https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/EUR',
+    2500
+  );
+  try {
+    const arr = Array.isArray(sq.json) ? sq.json : [];
+    const prices = (arr[0] && arr[0].spreadProfilePrices) || [];
+    const std = prices.find((p) => p.spreadProfile === 'standard') || prices[0];
+    const bid = Number(std && std.bid);
+    const ask = Number(std && std.ask);
+    if (bid > 0 && ask > 0) {
+      _goldSpotCache = {
+        ok: true,
+        eur_per_oz: (bid + ask) / 2,
+        source: 'swissquote_xau_eur_mid',
+        at: now,
+        stale: false,
+      };
+      return _goldSpotCache;
+    }
+  } catch (_) {}
+  const [g, fx] = await Promise.all([
+    fetchJson('https://api.gold-api.com/price/XAU', 2500),
+    fetchJson('https://api.frankfurter.app/latest?from=USD&to=EUR', 2500),
+  ]);
+  const usd = Number(g.json && g.json.price);
+  const usdEur = Number(fx.json && fx.json.rates && fx.json.rates.EUR);
+  if (usd > 0 && usdEur > 0) {
+    _goldSpotCache = {
+      ok: true,
+      eur_per_oz: usd * usdEur,
+      source: 'gold-api_usd*frankfurter',
+      at: now,
+      usd_per_oz: usd,
+      fx_usd_eur: usdEur,
+      stale: false,
+    };
+    return _goldSpotCache;
+  }
+  if (_goldSpotCache && _goldSpotCache.eur_per_oz > 0) {
+    return Object.assign({}, _goldSpotCache, { stale: true });
+  }
+  return { ok: false, eur_per_oz: null, source: 'unavailable', at: now, stale: true };
+}
+
+function round2(n) {
+  return Math.round(Number(n) * 100) / 100;
+}
+
+async function labBook() {
+  const spot = await goldSpotEurPerOz();
+  const ozEur = Number(spot.eur_per_oz);
   const eurLots = [1, 2, 5, 10, 20, 50, 100, 200, 500];
   const goldLots = [
     { label: '1 oz', frac: 1 },
@@ -50,33 +125,59 @@ function labBook() {
       note: 'Lab L-STRATA, non-transitioning. Peg 1 L-STRATA = €0.10 mesh-service-unit.',
     };
   });
-  const gold = goldLots.map((o) => {
-    const eurVal = LAB_GOLD_OZ_EUR * o.frac;
-    const amount = eurVal / LAB_EUR_PER_LSTRATA;
-    return {
-      listing_id: 'LAB-AU-' + String(o.label).replace(/\s+/g, ''),
-      node_id: LAB_SELLER,
-      seller: LAB_SELLER,
-      seller_eni: LAB_SELLER_ENI,
-      token_amount: amount,
-      amount_lstrata: amount,
-      price_per_token: LAB_EUR_PER_LSTRATA,
-      reference_currency: 'XAU',
-      quote_asset: 'XAU',
-      quote_total: eurVal,
-      gold_oz: o.frac,
-      gold_label: o.label,
-      gold_coin: 'Wiener Philharmoniker',
-      listing_type: 'lab_gold_wiener_philharmoniker',
-      status: 'active',
-      unit: 'L-STRATA',
-      non_transitioning: true,
-      book: 'gold',
-      title: 'Wiener Philharmoniker ' + o.label,
-      note: 'Lab L-STRATA for Münze Österreich Wiener Philharmoniker gold. 1 oz = €4,080 lab ref.',
-    };
-  });
-  return { eur, gold, all: eur.concat(gold), peg: { eur_per_lstrata: LAB_EUR_PER_LSTRATA, gold_oz_eur: LAB_GOLD_OZ_EUR } };
+  const gold = ozEur > 0
+    ? goldLots.map((o) => {
+        const eurVal = ozEur * o.frac;
+        const amount = round2(eurVal / LAB_EUR_PER_LSTRATA);
+        return {
+          listing_id: 'LAB-AU-' + String(o.label).replace(/\s+/g, ''),
+          node_id: LAB_SELLER,
+          seller: LAB_SELLER,
+          seller_eni: LAB_SELLER_ENI,
+          token_amount: amount,
+          amount_lstrata: amount,
+          price_per_token: LAB_EUR_PER_LSTRATA,
+          reference_currency: 'XAU',
+          quote_asset: 'XAU',
+          quote_total: round2(eurVal),
+          gold_oz: o.frac,
+          gold_label: o.label,
+          gold_coin: 'Wiener Philharmoniker',
+          gold_spot_eur_per_oz: round2(ozEur),
+          gold_spot_source: spot.source,
+          gold_spot_at: new Date(spot.at).toISOString(),
+          listing_type: 'lab_gold_wiener_philharmoniker',
+          status: 'active',
+          unit: 'L-STRATA',
+          non_transitioning: true,
+          book: 'gold',
+          title: 'Wiener Philharmoniker ' + o.label,
+          note:
+            'L-STRATA = (spot EUR/oz × ' +
+            o.frac +
+            ') / 0.10. Spot ' +
+            round2(ozEur) +
+            ' EUR/oz (' +
+            spot.source +
+            (spot.stale ? ', stale' : '') +
+            '). Index is gold, not a fixed EUR face.',
+        };
+      })
+    : [];
+  return {
+    eur,
+    gold,
+    all: eur.concat(gold),
+    peg: {
+      eur_per_lstrata: LAB_EUR_PER_LSTRATA,
+      gold_oz_eur: ozEur > 0 ? round2(ozEur) : null,
+      gold_spot_source: spot.source,
+      gold_spot_at: new Date(spot.at).toISOString(),
+      formula: 'l_strata = (gold_spot_eur_per_oz * oz_fraction) / 0.10',
+      stale: !!spot.stale,
+      ok: !!spot.ok,
+    },
+  };
 }
 
 export default {
@@ -98,17 +199,21 @@ export default {
     }
 
     const db = env.STRATAMESH_LEDGER || env.LEDGER || env.DB;
-    const lab = labBook();
+    const lab = await labBook();
     try {
       if (path === '/agora/health') {
         return j({
           status: 'active',
-          version: '3.3.0-lab-book',
+          version: AGORA_VERSION,
           role: 'P2P exchange: L-STRATA listed for external value (EUR / Wiener Philharmoniker gold). Not a mint.',
           external_value_exchange: true,
           lab_peg: lab.peg,
           settlement: 'lab_intent + agora_payments verification_status',
         });
+      }
+
+      if (path === '/agora/gold-spot' || path === '/gold-spot') {
+        return j({ success: true, peg: lab.peg, gold: lab.gold, formula: lab.peg.formula });
       }
 
 
@@ -394,7 +499,7 @@ export default {
         return j({
           success: true,
           status: 'operational',
-          version: '3.3.0-lab-book',
+          version: AGORA_VERSION,
           total_listings: total_listings + lab.all.length,
           lab_listings: lab.all.length,
           total_trades,

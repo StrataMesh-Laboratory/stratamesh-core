@@ -125,9 +125,22 @@
       setText('agoraOrders', String(all.length));
       var meta = el('agoraQuoteMeta');
       if (meta) {
+        var oz = book.peg && book.peg.gold_oz_eur;
+        var lOz = oz != null ? Number(oz) / 0.10 : null;
+        var src = (book.peg && book.peg.gold_spot_source) || '';
         meta.innerHTML =
           t('Paridade de laboratório', 'Laboratory peg') +
-          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b> · 1 oz Wiener Philharmoniker = €4 080 = 40 800 L-STRATA.<br>' +
+          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b>' +
+          (oz != null
+            ? (' · 1 oz Wiener Philharmoniker = <b style="color:var(--fg)">€' +
+              Number(oz).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) +
+              '</b> spot = <b style="color:var(--fg)">' +
+              Number(lOz).toLocaleString('pt-PT', { maximumFractionDigits: 0 }) +
+              ' L-STRATA</b>' +
+              (src ? (' <span style="color:var(--muted)">(' + esc(src) + ')</span>') : '') +
+              ' · ' + t('L-STRATA = EUR do ouro / 0,10', 'L-STRATA = gold EUR / 0.10'))
+            : (' · ' + t('spot de ouro indisponível', 'gold spot unavailable'))) +
+          '.<br>' +
           t('Vendedor', 'Seller') + ' <code>' + esc(book.seller || 'FOG-NODE-PT-CM-001') + '</code> · ' +
           esc(book.seller_eni || 'AMCM ENI') + ' · ' +
           t('L-STRATA não transita para a rede publicada.', 'L-STRATA does not transit to the published network.');

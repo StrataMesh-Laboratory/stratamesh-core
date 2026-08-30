@@ -261,7 +261,7 @@ body.in-session .user-info{display:flex!important}
       <span id="ecoStatus" style="margin-left:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)"></span>
     </div>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem">
-      <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Névoa STRATA</div></div>
+      <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Névoa STRATA</div><div id="ecoFogNote" class="label" style="text-transform:none;letter-spacing:0;font-size:.62rem;margin-top:.35rem;color:var(--muted)"></div></div>
       <div class="stat-card"><div class="value" id="ecoCirc">—</div><div class="label">Circulação</div></div>
       <div class="stat-card"><div class="value" id="ecoSink">—</div><div class="label">#0 queima</div></div>
       <div class="stat-card"><div class="value" id="ecoMint">—</div><div class="label">#mint</div></div>
@@ -1993,8 +1993,15 @@ async function loadEconomy(){
       var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
       if(rb.ok){
         var bj=await rb.json();
-        var strata=(bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance;
-        var ef=document.getElementById('ecoFogBal'); if(ef&&strata!=null) ef.textContent=fmt(strata,5);
+        var fog = bj.fog_wallet || {};
+        var lab = (fog.l_strata != null) ? Number(fog.l_strata) : (bj.lab_policy && bj.lab_policy.lab_only_balance);
+        var poc = (fog.poc_strata != null) ? Number(fog.poc_strata) : (bj.lab_policy && bj.lab_policy.transit_eligible_poc_balance);
+        var d1row = fog.balance != null ? fog.balance : ((bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance);
+        var strata = (lab != null || poc != null) ? (Number(lab||0) + Number(poc||0)) : d1row;
+        var ef=document.getElementById('ecoFogBal');
+        if(ef&&strata!=null) ef.textContent=fmt(strata,5);
+        var elab=document.getElementById('ecoFogNote');
+        if(elab) elab.textContent='L-STRATA '+fmt(lab,2)+' · PdC '+fmt(poc,8)+' · D1 '+fmt(d1row,4)+' (sem genesis treasury)';
       }
     }catch(_){}
     if(typeof loadMonetaryPoles==='function') await loadMonetaryPoles();
@@ -3533,8 +3540,14 @@ var nftEl=document.getElementById('walletNftList');
       var depin=await get('/api/v1/depin/providers').catch(function(){return {providers:[]};});
       var svc=await get('/api/v1/agent-services/list').catch(function(){return {services:[]};});
       var bal=await get('/api/v1/token/balance?account=FOG-NODE-PT-CM-001').catch(function(){return null;});
-      var fog=bal&&bal.balances&&bal.balances[0]?bal.balances[0].balance:null;
-      set('ecoFogBal', fog!=null?Number(fog).toFixed(4):'—');
+      var fogW=bal&&bal.fog_wallet?bal.fog_wallet:{};
+      var labN=fogW.l_strata!=null?Number(fogW.l_strata):(bal&&bal.lab_policy?Number(bal.lab_policy.lab_only_balance||0):null);
+      var pocN=fogW.poc_strata!=null?Number(fogW.poc_strata):(bal&&bal.lab_policy?Number(bal.lab_policy.transit_eligible_poc_balance||0):null);
+      var d1N=fogW.balance!=null?Number(fogW.balance):(bal&&bal.balances&&bal.balances[0]?Number(bal.balances[0].balance):null);
+      var fog=(labN!=null||pocN!=null)?(Number(labN||0)+Number(pocN||0)):d1N;
+      set('ecoFogBal', fog!=null?Number(fog).toLocaleString('pt-PT',{maximumFractionDigits:4}):'—');
+      var nEl=document.getElementById('ecoFogNote');
+      if(nEl) nEl.textContent='L-STRATA '+(labN!=null?labN:'—')+' · PdC '+(pocN!=null?pocN:'—')+' · D1 '+(d1N!=null?Number(d1N).toFixed(4):'—')+' (sem genesis treasury)';
       set('ecoCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:0}):'—');
       set('ecoSink', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(3):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(3):'—'));
       set('ecoMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):'—');
@@ -4516,7 +4529,7 @@ async function forgotPassword(){
       if (meta) {
         meta.innerHTML =
           t('Paridade de laboratório', 'Laboratory peg') +
-          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b> · 1 oz Wiener Philharmoniker = €4 080 = 40 800 L-STRATA.<br>' +
+          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b> · 1 oz Wiener Philharmoniker = spot EUR / 0.10 L-STRATA.<br>' +
           t('Vendedor', 'Seller') + ' <code>' + esc(book.seller || 'FOG-NODE-PT-CM-001') + '</code> · ' +
           esc(book.seller_eni || 'AMCM ENI') + ' · ' +
           t('L-STRATA não transita para a rede publicada.', 'L-STRATA does not transit to the published network.');

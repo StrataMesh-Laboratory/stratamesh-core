@@ -1,3 +1,8 @@
+## 2026-08-30 — Fog wallet un-aliased + Wiener Philharmoniker gold spot
+- **Névoa STRATA ~1 000 014** was FOG-NODE-PT-CM-001 (~14.42) **plus** leftover genesis on account `treasury` (1 000 000). The Nó did not mint that million. Token 3.5.5-fog-honest no longer merges `treasury` into Fog. Display = origin L-STRATA + PdC on FOG-NODE only.
+- **Ágora Wiener Philharmoniker** L-STRATA is no longer a frozen €4 080/oz. Formula: `(spot EUR/oz × fraction) / 0.10`. Spot from Swissquote XAU/EUR mid (fallback gold-api USD × Frankfurter). EUR lots stay 1 L-STRATA = €0.10.
+- Never Fog origin. Never workers.dev. No 6th cron. HOLD spa PUT.
+
 ## 2026-08-30 — Login 1101 (SPA origin-orch-chat-1.1.2-login)
 - Dashboard / login (calhegasmorais.pt/dashboard) returned Cloudflare Error 1101: Worker threw exception (Ray a336d88329da94ad).
 - RCA: heraldic ICON_EMBED referenced `iconR2Map` on every GET but never defined → ReferenceError before the login gate.
