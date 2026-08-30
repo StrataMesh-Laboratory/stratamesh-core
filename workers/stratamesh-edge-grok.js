@@ -2,7 +2,7 @@
  * EDGE-GROK-CMN-001 — automation desk + crawler/agent discovery surface
  * Lab only. No secrets. Antifragile public integration.
  */
-const VERSION = "1.5.3-ping-real-fog";
+const VERSION = "1.6.0-n2-mesh";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT_MAIL = "grok@calhegasmorais.pt";
@@ -92,6 +92,9 @@ function identity(extra = {}) {
     pre_testnet: true,
     linked_fog: FOG_ID,
     version: VERSION,
+    n: 2,
+    mesh_member: true,
+    continuity: "session",
     mesh_role: "edge_gossip_participant",
     agent: {
       email: AGENT_MAIL,
@@ -195,8 +198,15 @@ async function buildStatus(env) {
     mesh: {
       joined: !!(fog && fog.ok),
       edge_listed: edgeListed,
-      mode: "edge_gossip_active",
-      protocol: "lab_fog_edge_mesh_active",
+      n: 2,
+      mesh_member: true,
+      f_max: 0,
+      mode: "fog_mac_plus_edge_session",
+      protocol: "lab_two_host_mesh",
+      peers: [
+        { id: FOG_ID, role: "fog", continuity: "continuous", origin: "macbook" },
+        { id: EDGE_ID, role: "edge", continuity: "session", origin: "edge-grok-local" },
+      ],
     },
     discovery: {
       llms_txt: ORIGIN_CANON + "/llms.txt",

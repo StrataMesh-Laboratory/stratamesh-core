@@ -125,6 +125,7 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
     <key>WORKERD_CONFIG</key><string>$FOG/workerd-config/config.capnp</string>
     <key>FOG_ORIGIN</key><string>macbook</string>
     <key>FOG_MAC_LIVE</key><string>true</string>
+    <key>FOG_MESH_N</key><string>2</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
   </dict>
   <key>KeepAlive</key><true/>

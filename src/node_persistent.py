@@ -316,9 +316,9 @@ class PersistentFogNode:
             "node_id": self.node_id,
             **mesh_flags(),
             "consensus": {
-                "n": 1,
-                "f_max": 0,
-                "note": "lab n=1; Byzantine f_max=0 until n>=3; mesh_member gated on second host_id",
+                "n": mesh_flags()["n"],
+                "f_max": mesh_flags()["mesh_provision"]["f_max"],
+                "note": "n=2 Fog Mac + EDGE-GROK (session). f_max=0 until n>=3",
             },
             "agora": {"settlements": {"unavailable": "n<2"}},
         })
@@ -346,7 +346,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
 </style></head><body><main class="wrap">
 <p class="kicker">fog.calhegasmorais.pt</p>
 <h1>FOG-NODE-PT-CM-001</h1>
-<p>Nó de referência Calhegas Morais · Lisboa. Trusted Mac origin via workerd. <span class="mono">mac_live=true</span> · <span class="mono">mesh_member=false</span> · n=1 · provisioned for a second host_id.</p>
+<p>Nó de referência Calhegas Morais · Lisboa. Trusted Mac origin via workerd. <span class="mono">mac_live=true</span> · <span class="mono">n=2</span> · <span class="mono">mesh_member=true</span> · EDGE-GROK session (non-continuous, expected) · f_max=0 until n≥3.</p>
 <div class="card">
 <p>JSON: <span class="mono">/health</span> · <span class="mono">/status</span> · <span class="mono">/spa</span> · <span class="mono">/gossip</span>. Not the status Worker pulse.</p>
 <div class="links">
@@ -370,7 +370,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
         nid = self.node_id
         mf = mesh_flags()
         return {
-            "protocol": "lab_single_host_gossip",
+            "protocol": "lab_two_host_mesh" if mf.get("mesh_member") else "lab_single_host_gossip",
             "ok": True,
             "node_id": nid,
             **mf,

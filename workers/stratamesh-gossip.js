@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.7-mac-live';
+const VERSION = '2.3.8-n2';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';

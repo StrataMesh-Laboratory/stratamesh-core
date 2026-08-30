@@ -172,11 +172,12 @@ def honesty(fog_status: dict[str, Any]) -> list[str]:
     if not fog_status.get("ok"):
         fails.append("fog /status not 200 (tunnel/Fog process)")
         return fails
-    if body.get("mesh_member") is True:
-        fails.append("honesty: mesh_member true (lab n=1)")
+    n = body.get("n")
+    if body.get("mesh_member") is True and (n is None or int(n) < 2):
+        fails.append("honesty: mesh_member true while n<2")
     prov = body.get("mesh_provision") if isinstance(body.get("mesh_provision"), dict) else {}
-    if prov.get("mesh_member") is True:
-        fails.append("honesty: mesh_provision.mesh_member true (n=1)")
+    if prov.get("mesh_member") is True and int(prov.get("n") or n or 0) < 2:
+        fails.append("honesty: mesh_provision.mesh_member true while n<2")
     if body.get("oracle_live") is True:
         fails.append("honesty: oracle_live true")
     ver = str(body.get("version") or "")

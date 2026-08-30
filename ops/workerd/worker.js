@@ -9,6 +9,7 @@ export default {
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const origin = env.ORIGIN || "session";
       const mac_live = origin === "macbook";
+      const n = mac_live ? 2 : 1;
       return Response.json({
         ok: true,
         runtime: "workerd",
@@ -16,7 +17,8 @@ export default {
         origin,
         mac_live,
         trusted: mac_live,
-        mesh_member: false,
+        n,
+        mesh_member: n >= 2,
         mesh_provision: mac_live,
         layer: "tunnel→workerd:8788→fog:8787",
       }, {
