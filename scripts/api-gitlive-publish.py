@@ -44,6 +44,7 @@ MAIN_MODULE = {
     "stratamesh-academy": "index.js",
     "stratamesh-sandbox-host": "index.js",
     "stratamesh-eni": "index.js",
+    "stratamesh-eni-pay": "index.js",
 }
 
 

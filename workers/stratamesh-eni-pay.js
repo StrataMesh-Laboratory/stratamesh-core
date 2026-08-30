@@ -2,7 +2,7 @@
  * AMCM ENI — Payment portal (services, assets, node project donations)
  * Banking credentials: env secrets only (never client HTML, never git).
  */
-const VERSION = "1.0.0-eni-pay";
+const VERSION = "1.0.1-destyle";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -84,35 +84,34 @@ function portalPage() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pagamentos · AMCM ENI</title>
 <meta name="robots" content="noindex,nofollow">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4b5a0;--card:#111113;--ok:#6b8f71}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--acc:#c4a574;--card:#111113;--ok:#6b8f71}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:300;line-height:1.7;min-height:100vh}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.7;min-height:100vh}
 a{color:var(--accent);text-decoration:none}
 .wrap{max-width:28rem;margin:0 auto;padding:2rem 1.25rem 4rem}
-.kicker{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
-h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.85rem;letter-spacing:-.02em;margin-bottom:.5rem}
+.kicker{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+h1{font-family:system-ui,sans-serif;font-weight:400;font-size:1.85rem;letter-spacing:-.02em;margin-bottom:.5rem}
 .lead{color:var(--muted);font-size:.95rem;margin-bottom:1.5rem}
-label{display:block;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:1rem 0 .4rem}
+label{display:block;font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:1rem 0 .4rem}
 input,select,textarea{width:100%;padding:.75rem .85rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font:inherit}
 textarea{min-height:4.5rem;resize:vertical}
 .row{display:grid;grid-template-columns:1fr 7rem;gap:.65rem}
-button{margin-top:1.25rem;width:100%;padding:.9rem;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:3px}
+button{margin-top:1.25rem;width:100%;padding:.9rem;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:ui-monospace,monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:3px}
 button:hover{background:var(--accent);color:#111}
 button:disabled{opacity:.45;cursor:not-allowed}
 .note{font-size:.82rem;color:var(--muted);margin-top:1rem;border-left:2px solid var(--line2);padding-left:.75rem}
 .err{color:#c47b7b;font-size:.88rem;margin-top:.75rem;display:none}
 .card{display:none;margin-top:1.5rem;padding:1.15rem;background:var(--card);border:1px solid var(--line);border-radius:4px}
 .card.on{display:block}
-.card h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.25rem;margin-bottom:.75rem}
-.card .ref{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--accent);letter-spacing:.06em;margin:.5rem 0}
+.card h2{font-family:system-ui,sans-serif;font-weight:400;font-size:1.25rem;margin-bottom:.75rem}
+.card .ref{font-family:ui-monospace,monospace;font-size:1rem;color:var(--accent);letter-spacing:.06em;margin:.5rem 0}
 .card dl{font-size:.88rem}
-.card dt{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:.65rem}
+.card dt{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:.65rem}
 .card dd{margin:0;color:var(--fg);word-break:break-all}
 .top{font-size:.8rem;color:var(--muted);margin-bottom:1.5rem}
 .top a{margin-right:.75rem}
-.copy{margin-top:.5rem;font-size:.65rem;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;padding:0;width:auto}
+.copy{margin-top:.5rem;font-size:.65rem;font-family:ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;padding:0;width:auto}
 </style>
 </head>
 <body>
@@ -233,12 +232,14 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const db = env.LEDGER || env.DB;
 
-    if (path === "/health") {
+    if (path === "/health" || path === "/pagamentos/health") {
       const b = bankingFromEnv(env);
       return json({
         status: "ok",
         service: "stratamesh-eni-pay",
         version: VERSION,
+        destyle: true,
+        workers_dev: false,
         banking_configured: !!(b.iban && b.swift),
         purposes: Object.keys(PURPOSES),
         contact: b.email,
