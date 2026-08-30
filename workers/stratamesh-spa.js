@@ -1080,70 +1080,172 @@ document.getElementById('q').addEventListener('keydown', function (ev) {
 
 async function servePortal(request, env, corsHeaders) {
   const lang = pickLang(request);
-  const keys = [`portal-${lang}`, lang === 'en' ? 'portal-pt' : 'portal-en', 'portal'];
-  // Prefer chunked site_content (economy portal), then monolithic, then portal worker, then fallback
-  try {
-    if (env.LEDGER) {
-      for (const key of keys) {
-        try {
-          const { results: chunks } = await env.LEDGER.prepare(
-            "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
-          ).bind(key).all();
-          if (chunks && chunks.length) {
-            const html = chunks.map((c) => c.value || "").join("");
-            if (html) {
-              return new Response(html, {
-                status: 200,
-                headers: {
-                  ...corsHeaders,
-                  "Content-Type": "text/html; charset=utf-8",
-                  "Cache-Control": "no-cache",
-                  "Content-Language": lang,
-                  "X-Portal-Source": "site_content_chunks",
-                },
-              });
-            }
-          }
-        } catch (_) {}
-        const { results } = await env.LEDGER.prepare(
-          "SELECT value FROM site_content WHERE key = ? LIMIT 1"
-        ).bind(key).all();
-        if (results && results[0] && results[0].value) {
-          return new Response(results[0].value, {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "no-cache",
-              "Content-Language": lang,
-              "X-Portal-Source": "site_content",
-            },
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.error("LEDGER error:", e);
+  const token = sessionToken(request);
+  let me = null;
+  if (token && env.AUTH) {
+    try {
+      const authUrl = new URL(request.url);
+      authUrl.pathname = '/me';
+      authUrl.search = '';
+      const r = await env.AUTH.fetch(new Request(authUrl.toString(), {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+      }));
+      me = await r.json().catch(() => null);
+    } catch (_) { me = null; }
   }
-  try {
-    const pr = await fetch("https://stratamesh-portal.stratamesh.workers.dev/");
-    if (pr.ok) {
-      const html = await pr.text();
-      return new Response(html, {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache",
-          "X-Portal-Source": "stratamesh-portal",
-        },
-      });
-    }
-  } catch (_) {}
-  return new Response(fallbackPortal, {
+  if (!me || !me.success) {
+    return new Response(dashboardGateHtml(lang), {
+      status: 401,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Dashboard': 'registered_only',
+      },
+    });
+  }
+  const sub = me.subsistence || (me.type === 'staff'
+    ? { mode: 'live', static_only: false, payg_exempt: true, balance: null, dashboard: true }
+    : { mode: (Number(me.balance || 0) < 0.1 ? 'static' : 'live'), static_only: Number(me.balance || 0) < 0.1, balance: me.balance || 0, dashboard: true, floor: 0.1 });
+  return new Response(dashboardAppHtml(lang, me, sub), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Dashboard': sub.static_only ? 'static_nft' : 'live',
+    },
   });
+}
+
+function sessionToken(request) {
+  const h = request.headers.get('Authorization') || '';
+  if (h.toLowerCase().startsWith('bearer ')) return h.slice(7).trim();
+  const cookie = request.headers.get('Cookie') || '';
+  const m = cookie.match(/(?:^|;\s*)sm_token=([^;]+)/);
+  if (m) return decodeURIComponent(m[1].trim());
+  return '';
+}
+
+function dashboardCss() {
+  return ':root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--ok:#7aa874;--bad:#c45c54}'
+    + 'body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}'
+    + 'main{max-width:42rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}h1{font-size:1.25rem;font-weight:600}'
+    + 'p,li{color:var(--muted)}a{color:var(--acc)}code{color:var(--fg)}'
+    + '.badge{display:inline-block;border:1px solid var(--line);padding:.15rem .5rem;font-size:.75rem;letter-spacing:.04em}'
+    + 'input{width:100%;box-sizing:border-box;padding:.75rem;margin:.35rem 0;background:#111;border:1px solid var(--line);color:var(--fg);border-radius:4px}'
+    + 'button,.btn{display:inline-block;margin:.4rem .4rem 0 0;padding:.7rem 1rem;border:1px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;text-decoration:none}'
+    + 'button:disabled,.btn.off{opacity:.35;pointer-events:none;border-color:var(--line);color:var(--muted)}'
+    + '.card{border:1px solid var(--line);padding:1rem;margin:1rem 0}'
+    + '.nft{border-bottom:1px solid var(--line);padding:.5rem 0;color:var(--fg)}';
+}
+
+function dashboardGateHtml(lang) {
+  const pt = lang !== 'en';
+  return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${pt ? 'Painel · registo obrigatório' : 'Dashboard · registered only'}</title>
+<style>${dashboardCss()}</style></head><body><main>
+<p class="badge">STRATAMESH LAB · ${pt ? 'não é mainnet' : 'not mainnet'}</p>
+<h1>${pt ? 'O painel é de contas registadas' : 'The dashboard is for registered accounts'}</h1>
+<p>${pt ? 'Anónimos não têm painel — o painel instancia-se na conta. Serviços do Nó são PAYG em STRATA (queima para #0). Sem subsistência, só dados estáticos (NFT).' : 'Anonymous visitors have no dashboard — it is instantiated on the account. Node services are PAYG STRATA (burn to #0). Without subsistence, only static NFT data.'}</p>
+<form id="f">
+<input name="email" type="email" required placeholder="email"/>
+<input name="password" type="password" required placeholder="${pt ? 'palavra-passe' : 'password'}"/>
+<button type="submit">${pt ? 'Entrar' : 'Sign in'}</button>
+</form>
+<p id="msg"></p>
+<p><a href="/api/auth/register">${pt ? 'Criar conta' : 'Create account'}</a> · <a href="/">${pt ? 'Início' : 'Home'}</a></p>
+<script>
+const pt = ${pt ? 'true' : 'false'};
+document.getElementById('f').onsubmit = async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = { email: fd.get('email'), password: fd.get('password') };
+  const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!j.success || !j.token) { document.getElementById('msg').textContent = j.error || (pt ? 'Falha no login' : 'Login failed'); return; }
+  localStorage.setItem('sm_token', j.token);
+  localStorage.setItem('token', j.token);
+  document.cookie = 'sm_token=' + encodeURIComponent(j.token) + '; Path=/; SameSite=Lax; Secure';
+  location.href = pt ? '/dashboard' : '/en/dashboard';
+};
+</script>
+</main></body></html>`;
+}
+
+function dashboardAppHtml(lang, me, sub) {
+  const pt = lang !== 'en';
+  const staticOnly = !!(sub && sub.static_only);
+  const bal = sub && sub.balance != null ? sub.balance : (me.balance || 0);
+  const mode = (sub && sub.mode) || (staticOnly ? 'static' : 'live');
+  return `<!DOCTYPE html><html lang="${pt ? 'pt-PT' : 'en-GB'}"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${pt ? 'Painel' : 'Dashboard'} · ${me.email || ''}</title>
+<style>${dashboardCss()}</style></head><body><main>
+<p class="badge">STRATAMESH LAB · PAYG · #0</p>
+<h1>${pt ? 'Painel da conta' : 'Account dashboard'}</h1>
+<p>${me.email || ''} · ${me.type || 'user'} · wallet <code>${me.wallet || '—'}</code></p>
+<p>${pt ? 'Saldo' : 'Balance'} <code id="bal">${bal}</code> STRATA · ${pt ? 'modo' : 'mode'} <code id="mode">${mode}</code> · floor 0.1</p>
+<p class="muted">${staticOnly ? (pt ? 'Sem subsistência: só NFT estáticos. Acções que gastam recursos estão bloqueadas.' : 'No subsistence: static NFTs only. Resource-spending actions are locked.') : (pt ? 'Serviços do Nó queimam STRATA da carteira para #0 (PAYG).' : 'Node services burn STRATA from the wallet to #0 (PAYG).')}</p>
+<div class="card">
+  <p>${pt ? 'Acções com recurso' : 'Resource actions'}</p>
+  <a class="btn ${staticOnly ? 'off' : ''}" data-act="orch_chat" href="/chat">${pt ? 'Orquestrador' : 'Orchestrator'}</a>
+  <a class="btn ${staticOnly ? 'off' : ''}" data-act="sandbox_run" href="/painel">${pt ? 'Sandbox OS' : 'OS sandbox'}</a>
+  <a class="btn ${staticOnly ? 'off' : ''}" data-act="va_api" href="/api/edge/SPEC.txt">VA API</a>
+  <a class="btn ${staticOnly ? 'off' : ''}" data-act="agora_order" href="/dashboard">${pt ? 'Ágora' : 'Agora'}</a>
+</div>
+<div class="card">
+  <p>${pt ? 'Dados estáticos (NFT) — sem queima' : 'Static data (NFT) — no burn'}</p>
+  <div id="nfts">${pt ? 'A carregar…' : 'Loading…'}</div>
+</div>
+<p><a href="/">${pt ? 'Início' : 'Home'}</a> · <button type="button" id="out">${pt ? 'Sair' : 'Sign out'}</button></p>
+<script>
+const TOKEN = localStorage.getItem('sm_token') || localStorage.getItem('token') || '';
+const STATIC = ${staticOnly ? 'true' : 'false'};
+async function tick(action) {
+  if (!TOKEN) return;
+  const r = await fetch('/api/auth/payg/tick', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+TOKEN }, body: JSON.stringify({ action: action || 'dashboard_tick' }) });
+  const j = await r.json().catch(() => ({}));
+  if (j.balance != null) document.getElementById('bal').textContent = j.balance;
+  if (j.mode) document.getElementById('mode').textContent = j.mode;
+  if (j.mode === 'static' && !STATIC) location.reload();
+  return j;
+}
+tick('dashboard_tick');
+setInterval(() => tick('dashboard_tick'), 15000);
+document.querySelectorAll('a.btn[data-act]').forEach((a) => {
+  a.addEventListener('click', async (e) => {
+    if (STATIC) { e.preventDefault(); return; }
+    const j = await tick(a.getAttribute('data-act'));
+    if (j && j.ok === false) { e.preventDefault(); alert(j.reason || 'PAYG'); }
+  });
+});
+document.getElementById('out').onclick = () => {
+  localStorage.removeItem('sm_token'); localStorage.removeItem('token');
+  document.cookie = 'sm_token=; Path=/; Max-Age=0';
+  location.href = '/dashboard';
+};
+(async () => {
+  const wallet = ${JSON.stringify(me.wallet || '')};
+  const box = document.getElementById('nfts');
+  try {
+    const r = await fetch('/api/token/list?owner=' + encodeURIComponent(wallet), { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const j = await r.json().catch(() => ({}));
+    const list = j.tokens || j.nfts || j.items || [];
+    if (!list.length) { box.textContent = ${JSON.stringify(pt ? 'Nenhum NFT nesta carteira.' : 'No NFTs on this wallet.')}; return; }
+    box.innerHTML = '';
+    list.slice(0, 40).forEach((t) => {
+      const d = document.createElement('div');
+      d.className = 'nft';
+      d.textContent = (t.title || t.id || t.token_id || t.cid || JSON.stringify(t)).toString().slice(0, 120);
+      box.appendChild(d);
+    });
+  } catch (e) { box.textContent = ${JSON.stringify(pt ? 'NFT indisponível.' : 'NFTs unavailable.')}; }
+})();
+</script>
+</main></body></html>`;
 }
 
 function jsonResponse(data, corsHeaders, status = 200) {

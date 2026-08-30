@@ -46,6 +46,7 @@ from origin_lease import public_view as origin_public_view, verify_reclaim, writ
 from fog_plugins.ping import PingPlugin
 from fog_plugins.keepup import KeepUpPlugin
 from fog_plugins.rails import RailsPlug
+from subsistence.user_payg import PaygRuntime, BURN_RATES, STATIC_ACTIONS
 
 
 class PersistentFogNode:
@@ -84,6 +85,7 @@ class PersistentFogNode:
         )
         self.keepup.on_sample = lambda sample: self.rails.ingest(sample, node_id)
         self.keepup.attach()
+        self.payg = PaygRuntime()
 
     def submit(self, tx_type: str = "standard", cid: str | None = None) -> dict:
         with self.lock:
@@ -468,6 +470,14 @@ code {{ color:var(--fg); }}
                     "ping": self.ping.snapshot() if getattr(self, "ping", None) else None,
                     "keepup": self.keepup.snapshot() if getattr(self, "keepup", None) else None,
                     "rails": self.rails.snapshot() if getattr(self, "rails", None) else None,
+                    "payg": {
+                        "floor": 0.1,
+                        "burn_pole": "#0",
+                        "dashboard": "registered_only",
+                        "static_actions": sorted(STATIC_ACTIONS),
+                        "burn_rates": dict(BURN_RATES),
+                        "note": "Citizen PAYG. Anonymous have no dashboard. Unfunded = NFTs only.",
+                    },
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -586,7 +596,24 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/agora":
             self._json(200, NODE.agora.book())
         elif path == "/nft":
+            # Static NFT data — no PAYG burn
             self._json(200, NODE.nfts.summary())
+        elif path in ("/payg", "/payg/rates", "/account/rates"):
+            self._json(200, {
+                "ok": True,
+                "floor": 0.1,
+                "burn_pole": "#0",
+                "dashboard": "registered_only",
+                "burn_rates": dict(BURN_RATES),
+                "static_actions": sorted(STATIC_ACTIONS),
+            })
+        elif path in ("/account/subsistence", "/payg/me"):
+            q = urlparse(self.path).query
+            uid = ""
+            for part in q.split("&"):
+                if part.startswith("user="):
+                    uid = part.split("=", 1)[1]
+            self._json(200, NODE.payg.snapshot(uid) if uid else {"ok": False, "error": "user required", "dashboard": False})
         elif path == "/gov":
             self._json(200, NODE.gov.summary())
         elif path == "/sandbox":
@@ -616,6 +643,25 @@ class Handler(BaseHTTPRequestHandler):
                 "quantity": sample.quantity, "quality": sample.quality, "score": sample.score,
                 "admissible": sample.admissible, "unready": sample.unready,
             }, "rails": NODE.rails.snapshot()})
+            return
+
+        if path in ("/account/spend", "/payg/tick", "/payg/spend"):
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            uid = str(data.get("user_id") or data.get("user") or "")
+            action = str(data.get("action") or "dashboard_tick")
+            wallet = str(data.get("wallet") or "")
+            if wallet and uid and uid not in NODE.payg.accounts:
+                try:
+                    NODE.payg.register(uid, wallet, float(data.get("balance") or 0), fund_via_poc=False)
+                except ValueError as e:
+                    self._json(403, {"ok": False, "error": str(e)})
+                    return
+            g = NODE.payg.gate(uid or None, action, anonymous=not uid)
+            code = 200 if g.ok else (401 if g.mode == "deny" else 402)
+            self._json(code, g.as_dict())
             return
 
         if path in ("/workerd/reboot", "/workerd/restart"):

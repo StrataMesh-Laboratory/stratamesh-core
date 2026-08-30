@@ -13,6 +13,42 @@ export default {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Content-Type': 'application/json'
       };
+      const PAYG_RATES = { health:0, status:0, ontology:0, nft_view:0, nft_list:0, dashboard_tick:0.001, orch_chat:0.02, spa_execute:0.05, sandbox_run:0.04, va_api:0.03, agora_order:0.01, nft_mint:0.10, nft_transfer:0.02 };
+      const PAYG_FLOOR = 0.1;
+      const STATIC_ACTIONS = Object.keys(PAYG_RATES).filter((k) => PAYG_RATES[k] <= 0);
+      async function ensurePayg() {
+        if (!env.AUTH_DB) return;
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS payg_ledger (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          action TEXT NOT NULL,
+          amount REAL NOT NULL,
+          balance_after REAL,
+          ts TEXT DEFAULT (datetime('now'))
+        )`).run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN token_balance REAL DEFAULT 0').run().catch(() => {});
+      }
+      function paygMode(bal) { return Number(bal || 0) < PAYG_FLOOR ? 'static' : 'live'; }
+      function paygView(user) {
+        const bal = Number(user.token_balance || 0);
+        const mode = paygMode(bal);
+        return {
+          ok: true,
+          dashboard: true,
+          user_id: user.id || user.user_id,
+          email: user.email,
+          wallet: user.strata_address || user.wallet,
+          balance: bal,
+          mode,
+          static_only: mode === 'static',
+          floor: PAYG_FLOOR,
+          burn_pole: '#0',
+          mint_pole: '#mint',
+          burn_rates: PAYG_RATES,
+          static_actions: STATIC_ACTIONS,
+          note: 'PAYG subsistence. Resource actions burn to #0. Unfunded = NFTs only. Not a mint.',
+        };
+      }
 
       async function ensureLoginTrustTable() {
         await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS login_trust (
@@ -1851,6 +1887,61 @@ export default {
           return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
         }
       }
+
+      if ((path === '/subsistence' || path === '/payg') && request.method === 'GET') {
+        try {
+          const authHeader = request.headers.get('Authorization') || '';
+          if (!authHeader) return new Response(JSON.stringify({ ok: false, dashboard: false, error: 'anonymous — register to instantiate a dashboard' }), { status: 401, headers: corsHeaders });
+          const token = authHeader.replace(/^Bearer\s+/i, '');
+          const th = await sha256Hex(token);
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (user) return new Response(JSON.stringify(paygView({ id: user.user_id, email: user.email, strata_address: user.strata_address, token_balance: user.token_balance })), { headers: corsHeaders });
+          const staff = await env.AUTH_DB.prepare("SELECT s.*, st.email FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (staff) return new Response(JSON.stringify({ ok: true, dashboard: true, type: 'staff', email: staff.email, mode: 'live', static_only: false, payg_exempt: true, note: 'staff operator, not a citizen PAYG rail' }), { headers: corsHeaders });
+          return new Response(JSON.stringify({ ok: false, dashboard: false, error: 'Invalid session' }), { status: 401, headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if ((path === '/payg/tick' || path === '/payg/spend') && request.method === 'POST') {
+        try {
+          await ensurePayg();
+          const authHeader = request.headers.get('Authorization') || '';
+          if (!authHeader) return new Response(JSON.stringify({ ok: false, mode: 'deny', reason: 'anonymous — dashboard is registered-only' }), { status: 401, headers: corsHeaders });
+          const token = authHeader.replace(/^Bearer\s+/i, '');
+          const th = await sha256Hex(token);
+          const body = await request.json().catch(() => ({}));
+          const action = String(body.action || 'dashboard_tick');
+          const cost = Number(PAYG_RATES[action] != null ? PAYG_RATES[action] : 0.02);
+          const staff = await env.AUTH_DB.prepare("SELECT s.*, st.email FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (staff) return new Response(JSON.stringify({ ok: true, mode: 'live', charged: 0, action, payg_exempt: true }), { headers: corsHeaders });
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (!user) return new Response(JSON.stringify({ ok: false, mode: 'deny', reason: 'Invalid session' }), { status: 401, headers: corsHeaders });
+          const bal = Number(user.token_balance || 0);
+          const mode = paygMode(bal);
+          if (cost <= 0) {
+            return new Response(JSON.stringify({ ok: true, mode, charged: 0, action, balance: bal, static_only: mode === 'static', allowed: STATIC_ACTIONS }), { headers: corsHeaders });
+          }
+          if (mode === 'static' || bal < PAYG_FLOOR || bal < cost + PAYG_FLOOR) {
+            return new Response(JSON.stringify({
+              ok: false, mode: 'static', charged: 0, action, rate: cost, balance: bal,
+              static_only: true, allowed: STATIC_ACTIONS,
+              reason: 'insufficient_subsistence — NFTs only',
+              burn_pole: '#0',
+            }), { status: 402, headers: corsHeaders });
+          }
+          const next = Math.round((bal - cost) * 1e6) / 1e6;
+          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ? WHERE id = ?').bind(next, user.user_id).run();
+          await env.AUTH_DB.prepare('INSERT INTO payg_ledger (user_id, action, amount, balance_after) VALUES (?,?,?,?)').bind(user.user_id, action, cost, next).run();
+          return new Response(JSON.stringify({
+            ok: true, mode: paygMode(next), charged: cost, action, balance: next,
+            static_only: paygMode(next) === 'static', burn_pole: '#0', reason: 'burned_to_#0',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
       
       if (path === '/me' && request.method === 'GET') {
         try {
@@ -1868,7 +1959,13 @@ export default {
               clearance: userSession.clearance_level || 'basic',
               wallet: userSession.strata_address,
               balance: userSession.token_balance || 0,
-              verification_status: userSession.verification_status
+              verification_status: userSession.verification_status,
+              subsistence: paygView({
+                id: userSession.user_id,
+                email: userSession.email,
+                strata_address: userSession.strata_address,
+                token_balance: userSession.token_balance,
+              }),
             }), { headers: corsHeaders });
           }
           

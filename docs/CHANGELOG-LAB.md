@@ -1,3 +1,9 @@
+## 2026-08-30 — Registered-user PAYG subsistence
+- Dashboard is **registered-only**. Anonymous get a login/register gate (no instantiated panel).
+- Citizen wallets PAYG-burn STRATA to `#0` for resource actions (dashboard tick, orch, sandbox, VA, agora, NFT mint). Floor 0.1 → static NFTs only.
+- Fog `NODE_WALLET` is not a citizen rail. Not a mint. Hire remains transfer.
+- `src/subsistence/user_payg.py` + Auth `GET /subsistence` `POST /payg/tick`.
+
 ## 2026-08-30 — Fog keep-up plugins (ping × quality stream)
 - `src/fog_plugins/{ping,keepup,rails}.py` on the Mac Fog runtime. GET `/ping` `/contribution/metrics` `/contribution/stream`. POST `/contribution/tick` loopback.
 - Score = quantity × quality. Unready does not contribute. `#mint` / `#0` rails exist and stay unarmed (`oracle_live=false`). workers.dev refused.

@@ -39,6 +39,9 @@ jobs:
       - name: Fog ping + keep-up stream (no STRATA movement)
         working-directory: src
         run: python3 test_fog_plugins.py
+      - name: User PAYG subsistence (registered dashboard, burn to #0)
+        working-directory: src
+        run: python3 test_user_payg.py
       - name: Resource-proof MVP (compute hash work-token)
         working-directory: src
         run: python3 test_resource_proof.py
