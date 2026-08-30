@@ -1,11 +1,12 @@
 {
-  "generated_at": "2026-08-30T12:13:28Z",
-  "phase": "hourly_gitlive_12_gha_edge_session",
-  "sha": "543b4bf8cb3ed839bdae8d4a7cb004dab2805368",
-  "ship": "desk-tick+edge-uptime EDGE 530/429 session-expected",
+  "generated_at": "2026-08-30T13:19:16Z",
+  "phase": "hourly_gitlive_13_fog_process_observe",
+  "sha": "b13fd903d32ff33c05486ec679c93087cf92a283",
+  "ship": "observe Fog process vs git; POST /spa/register total=1; no Worker PUT (hour already had academy+origin-archive)",
   "live": [
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310815809",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33310816813"
+    "https://fog.calhegasmorais.pt/spa",
+    "https://edge.calhegasmorais.pt/health",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33313499590"
   ],
   "n": 2,
   "mesh_member": true,
