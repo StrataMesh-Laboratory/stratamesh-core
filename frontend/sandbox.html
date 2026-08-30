@@ -4,17 +4,17 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.4.7-sticks · sandbox.calhegasmorais.pt</title>
+<title>Atelier GNU · v0.4.8-touch · sandbox.calhegasmorais.pt</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
-<meta property="og:title" content="Atelier GNU · v0.4.7-sticks"/>
+<meta property="og:title" content="Atelier GNU · v0.4.8-touch"/>
 <meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
 <style>
 :root{--bg:#07111c;--fg:#e8e6e3;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--teal:#c4a574;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28;--vv-bottom:0px}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+html,body{margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;touch-action:none}
 canvas#stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;display:block;touch-action:none;cursor:grab}
 canvas#stage:active{cursor:grabbing}
 #hud{pointer-events:none;position:fixed;inset:0;z-index:5}
@@ -32,7 +32,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .nav a{display:inline-flex;align-items:center;text-decoration:none;color:var(--muted)}
 .nav a.here{color:var(--teal);border-color:var(--teal)}
 #prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap;max-width:min(36rem,calc(100% - 12rem));overflow:hidden;text-overflow:ellipsis}
-.stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7);touch-action:none;-webkit-user-select:none;user-select:none}
+.stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7);touch-action:none;-webkit-user-select:none;user-select:none;z-index:8;-webkit-touch-callout:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:38%;height:38%;border-radius:999px;border:1px solid var(--teal);background:rgba(196,165,116,.28);transform:translate(-50%,-50%);pointer-events:none}
 #stkL{left:.7rem} #stkR{right:.7rem}
 #phoneDock,#btnMenu{display:none}
@@ -83,7 +83,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
-      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.7-sticks · holon 5 UGC</div>
+      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.8-touch · holon 5 UGC</div>
       <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
@@ -142,12 +142,12 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   </div>
   <div id="log"></div>
   <div id="enter"><div class="card" id="enterBtn">
-    <div class="mono">v0.4.7-sticks · inhabit / orbit</div>
+    <div class="mono">v0.4.8-touch · inhabit / orbit</div>
     <h2>Enter the GNU atelier</h2>
     <p class="muted">Left stick walk (up = forward) · drag or right stick look · tap floor to walk · tap an object to act · Orbit to circle.</p>
   </div></div>
   <aside id="atlas">
-    <div class="mono">Absorb models, not ontology · v0.4.7-sticks</div>
+    <div class="mono">Absorb models, not ontology · v0.4.8-touch</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
     <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
@@ -174,7 +174,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <script type="module">
 import * as THREE from "three";
 
-const CORE = "v0.4.7-sticks";
+const CORE = "v0.4.8-touch";
 const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
 const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
@@ -503,6 +503,10 @@ function syncOrbitToPlayer() {
   orb.phi = 1.05;
   if (!orb.r) orb.r = 5.8;
 }
+function restPads() {
+  movePad.rest();
+  lookPad.rest();
+}
 function setPresence(p) {
   presence = p === "observe" ? "observe" : "inhabit";
   const hud = document.getElementById("hud");
@@ -511,78 +515,117 @@ function setPresence(p) {
   btn.textContent = presence === "observe" ? "Inhabit" : "Orbit";
   btn.classList.toggle("on", presence === "observe");
   avatar.visible = presence === "observe";
+  restPads();
   if (presence === "observe") {
     try { document.exitPointerLock(); } catch {}
     syncOrbitToPlayer();
+    orb.r = Math.max(orb.r, 4.4);
+    orb.phi = clamp(orb.phi, 0.55, 1.12);
+  } else {
+    pitch = 0;
   }
-  stick.x = 0; stick.y = 0; look.x = 0; look.y = 0;
-  document.querySelectorAll(".stick .knob").forEach((k) => { k.style.transform = "translate(-50%, -50%)"; });
   playing = true;
   document.getElementById("enter").style.display = "none";
   applyCam();
   log("mode", presence);
 }
-function nudge(el, ev, target, invertY) {
-  const r = el.getBoundingClientRect();
-  let x = (ev.clientX - r.left) / r.width * 2 - 1;
-  let y = -((ev.clientY - r.top) / r.height * 2 - 1);
-  const mag = Math.hypot(x, y) || 1, s = Math.min(1, mag);
-  x = (x / mag) * s; y = (y / mag) * s;
+
+function makePad(el, target) {
   const knob = el.querySelector(".knob");
-  if (knob) knob.style.transform = "translate(calc(-50% + " + (x * 18) + "px), calc(-50% + " + (-y * 18) + "px))";
-  if (invertY) y = -y;
-  const dz = 0.18, m2 = Math.hypot(x, y);
-  if (m2 < dz) { target.x = 0; target.y = 0; return; }
-  const sc = (m2 - dz) / (1 - dz);
-  target.x = x / m2 * sc; target.y = y / m2 * sc;
-}
-const stickIds = new Set();
-function releaseStick(el, target, pid) {
-  stickIds.delete(pid);
-  target.x = 0; target.y = 0;
-  const knob = el.querySelector(".knob");
-  if (knob) knob.style.transform = "translate(-50%, -50%)";
-  try { el.releasePointerCapture(pid); } catch {}
-}
-function bindStick(el, target, invertY) {
-  let pid = null;
-  const clear = (e) => {
-    if (pid == null) return;
-    if (e && e.pointerId != null && e.pointerId !== pid) return;
-    releaseStick(el, target, pid);
-    pid = null;
+  let held = null;
+  let ox = 0, oy = 0;
+  const reach = 52;
+  function rest() {
+    held = null;
+    target.x = 0;
+    target.y = 0;
+    if (knob) knob.style.transform = "translate(-50%, -50%)";
+  }
+  function apply(cx, cy) {
+    let dx = cx - ox;
+    let dy = cy - oy;
+    const mag = Math.hypot(dx, dy);
+    const cap = mag > reach ? reach / mag : 1;
+    dx *= cap; dy *= cap;
+    const nx = dx / reach;
+    const ny = dy / reach;
+    if (knob) knob.style.transform = "translate(calc(-50% + " + (nx * 18) + "px), calc(-50% + " + (ny * 18) + "px))";
+    const m = Math.hypot(nx, ny);
+    if (m < 0.18) { target.x = 0; target.y = 0; return; }
+    const sc = (m - 0.18) / 0.82;
+    target.x = (nx / m) * sc;
+    target.y = (-ny / m) * sc;
+  }
+  function grab(kind, id, cx, cy) {
+    held = kind + ":" + id;
+    ox = cx;
+    oy = cy;
+    apply(cx, cy);
+  }
+  function is(kind, id) { return held === kind + ":" + id; }
+
+  el.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const t = e.changedTouches[0];
+    grab("t", t.identifier, t.clientX, t.clientY);
+  }, { passive: false, capture: true });
+  window.addEventListener("touchmove", (e) => {
+    if (!held || held[0] !== "t") return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (is("t", t.identifier)) {
+        e.preventDefault();
+        apply(t.clientX, t.clientY);
+      }
+    }
+  }, { passive: false });
+  const tend = (e) => {
+    if (!held || held[0] !== "t") return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (is("t", e.changedTouches[i].identifier)) rest();
+    }
   };
+  window.addEventListener("touchend", tend);
+  window.addEventListener("touchcancel", tend);
+
   el.addEventListener("pointerdown", (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (pid != null && pid !== e.pointerId) clear();
-    pid = e.pointerId;
-    stickIds.add(pid);
-    dragPid = null;
+    if (e.pointerType === "touch") return;
+    e.preventDefault();
+    e.stopPropagation();
+    grab("p", e.pointerId, e.clientX, e.clientY);
     try { el.setPointerCapture(e.pointerId); } catch {}
-    nudge(el, e, target, invertY);
-  });
+  }, { capture: true });
   el.addEventListener("pointermove", (e) => {
-    if (pid !== e.pointerId) return;
-    e.preventDefault(); e.stopPropagation();
-    nudge(el, e, target, invertY);
+    if (e.pointerType === "touch") return;
+    if (!is("p", e.pointerId)) return;
+    e.preventDefault();
+    apply(e.clientX, e.clientY);
   });
-  el.addEventListener("pointerup", clear);
-  el.addEventListener("pointercancel", clear);
-  el.addEventListener("lostpointercapture", clear);
-  window.addEventListener("pointerup", clear);
-  window.addEventListener("pointercancel", clear);
+  const pend = (e) => {
+    if (e.pointerType === "touch") return;
+    if (!is("p", e.pointerId)) return;
+    if (e.type === "lostpointercapture" && e.buttons) return;
+    rest();
+  };
+  el.addEventListener("pointerup", pend);
+  el.addEventListener("pointercancel", pend);
+  el.addEventListener("lostpointercapture", pend);
+  window.addEventListener("pointerup", pend);
+  window.addEventListener("pointercancel", pend);
+  return { rest, held: () => held != null };
 }
-bindStick(document.getElementById("stkL"), stick, false);
-bindStick(document.getElementById("stkR"), look, false);
+const movePad = makePad(document.getElementById("stkL"), stick);
+const lookPad = makePad(document.getElementById("stkR"), look);
 
 function applyLookDelta(dx, dy) {
   if (presence === "observe") {
     orb.theta -= dx * 0.005;
-    orb.phi = clamp(orb.phi - dy * 0.0024, 0.48, 1.18);
+    orb.phi = clamp(orb.phi + dy * 0.0022, 0.55, 1.12);
   } else {
     yaw -= dx * 0.0022;
     pitch -= dy * 0.0022;
-    pitch = clamp(pitch, -1.2, 1.2);
+    pitch = clamp(pitch, -1.1, 1.1);
   }
 }
 function pick(cx, cy) {
@@ -629,8 +672,12 @@ function onTap(cx, cy) {
 
 const pointers = new Map();
 let dragPid = null, sx = 0, sy = 0, slx = 0, sly = 0, dragged = false, pinch0 = 0;
+function onStickSurface(node) {
+  return !!(node && node.closest && node.closest(".stick"));
+}
 canvas.addEventListener("pointerdown", (e) => {
-  if (stickIds.has(e.pointerId) || e.target.closest(".stick")) return;
+  if (e.pointerType === "touch") return;
+  if (onStickSurface(e.target) || movePad.held() || lookPad.held()) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     const pts = [...pointers.values()];
@@ -645,13 +692,31 @@ canvas.addEventListener("pointerdown", (e) => {
   document.getElementById("enter").style.display = "none";
   try { canvas.setPointerCapture(e.pointerId); } catch {}
 });
+canvas.addEventListener("touchstart", (e) => {
+  if (onStickSurface(e.target)) return;
+  const t = e.changedTouches[0];
+  const id = "t" + t.identifier;
+  pointers.set(id, { x: t.clientX, y: t.clientY });
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    pinch0 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    dragPid = null;
+    return;
+  }
+  dragPid = id;
+  sx = slx = t.clientX; sy = sly = t.clientY;
+  dragged = false;
+  playing = true;
+  document.getElementById("enter").style.display = "none";
+}, { passive: true });
 window.addEventListener("pointermove", (e) => {
-  if (stickIds.has(e.pointerId)) return;
+  if (e.pointerType === "touch") return;
+  if (movePad.held() || lookPad.held()) return;
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (presence === "observe" && pointers.size === 2) {
     const pts = [...pointers.values()];
     const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-    if (pinch0 > 8) orb.r = clamp(orb.r * (pinch0 / Math.max(d, 8)), 2.2, 16);
+    if (pinch0 > 8) orb.r = clamp(orb.r * (pinch0 / Math.max(d, 8)), 4.4, 14);
     pinch0 = d;
     return;
   }
@@ -662,7 +727,27 @@ window.addEventListener("pointermove", (e) => {
   if (!dragged) return;
   applyLookDelta(dx, dy);
 });
+window.addEventListener("touchmove", (e) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const id = "t" + t.identifier;
+    if (pointers.has(id)) pointers.set(id, { x: t.clientX, y: t.clientY });
+    if (dragPid === id) {
+      const dx = t.clientX - slx, dy = t.clientY - sly;
+      slx = t.clientX; sly = t.clientY;
+      if (Math.hypot(t.clientX - sx, t.clientY - sy) > 10) dragged = true;
+      if (dragged) applyLookDelta(dx, dy);
+    }
+  }
+  if (presence === "observe" && pointers.size === 2) {
+    const pts = [...pointers.values()];
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (pinch0 > 8) orb.r = clamp(orb.r * (pinch0 / Math.max(d, 8)), 4.4, 14);
+    pinch0 = d;
+  }
+}, { passive: true });
 function endPtr(e) {
+  if (e.pointerType === "touch") return;
   pointers.delete(e.pointerId);
   if (dragPid !== e.pointerId) return;
   if (!dragged) onTap(e.clientX, e.clientY);
@@ -670,6 +755,19 @@ function endPtr(e) {
 }
 window.addEventListener("pointerup", endPtr);
 window.addEventListener("pointercancel", endPtr);
+function endTouch(e) {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const id = "t" + t.identifier;
+    pointers.delete(id);
+    if (dragPid === id) {
+      if (!dragged) onTap(t.clientX, t.clientY);
+      dragPid = null; dragged = false;
+    }
+  }
+}
+window.addEventListener("touchend", endTouch);
+window.addEventListener("touchcancel", endTouch);
 canvas.addEventListener("wheel", (e) => {
   if (presence !== "observe" || typingGnu()) return;
   e.preventDefault();
@@ -697,9 +795,7 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => {
   keys.clear();
-  stick.x = 0; stick.y = 0; look.x = 0; look.y = 0;
-  stickIds.clear();
-  document.querySelectorAll(".stick .knob").forEach((k) => { k.style.transform = "translate(-50%, -50%)"; });
+  restPads();
 });
 window.addEventListener("resize", layoutHud);
 if (window.visualViewport) {
@@ -781,12 +877,16 @@ function tick(now) {
   const held = injected || [...keys];
   const has = (c) => held.includes(c);
   const speed = ((has("ShiftLeft") || has("ShiftRight")) ? SPRINT : WALK) * dt;
+  if (!movePad.held()) { stick.x = 0; stick.y = 0; }
+  if (!lookPad.held()) { look.x = 0; look.y = 0; }
   if (look.x || look.y) {
     if (presence === "observe") {
-      orb.theta -= look.x * 1.7 * dt;
-      orb.phi = clamp(orb.phi - look.y * 0.7 * dt, 0.48, 1.18);
+      orb.theta -= look.x * 1.6 * dt;
+      orb.r = clamp(orb.r - look.y * 6 * dt, 4.4, 14);
     } else {
-      applyLookDelta(look.x * 520 * dt, look.y * -360 * dt);
+      yaw -= look.x * 1.9 * dt;
+      pitch += look.y * 1.3 * dt;
+      pitch = clamp(pitch, -1.1, 1.1);
     }
   }
   const { fx, fz, rx, rz } = inhabitFlat();
