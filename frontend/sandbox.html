@@ -4,15 +4,15 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.4.2-lab · sandbox.calhegasmorais.pt</title>
+<title>Atelier GNU · v0.4.3-destyle · sandbox.calhegasmorais.pt</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
-<meta property="og:title" content="Atelier GNU · v0.4.2-lab"/>
+<meta property="og:title" content="Atelier GNU · v0.4.3-destyle"/>
 <meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
 <style>
-:root{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--teal:#2f9e8a;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28}
+:root{--bg:#07111c;--fg:#e8e6e3;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--teal:#c4a574;--warn:#c4a574;--danger:#c45c4a;--ok:#6fbf73;--surface:#0c1a28}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
 canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
@@ -29,7 +29,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .nav{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
 .nav a{display:inline-flex;align-items:center;text-decoration:none;color:var(--muted)}
 .nav a.here{color:var(--teal);border-color:var(--teal)}
-#prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(47,158,138,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap}
+#prompt{position:absolute;bottom:4.6rem;left:50%;transform:translateX(-50%);padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.85);font:11px ui-monospace,Menlo,monospace;white-space:nowrap}
 .stick{position:absolute;bottom:5.2rem;width:7.5rem;height:7.5rem;border-radius:999px;border:1px solid var(--line);background:rgba(12,26,40,.7)}
 .stick:after{content:"";position:absolute;inset:2.2rem;border-radius:999px;border:1px solid var(--teal)}
 #stkL{left:.7rem} #stkR{right:.7rem}
@@ -56,7 +56,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <div id="hud">
   <div id="top">
     <div class="chip">
-      <div class="mono">sandbox.calhegasmorais.pt · v0.4.2-lab · holon 5 UGC</div>
+      <div class="mono">sandbox.calhegasmorais.pt · v0.4.3-destyle · holon 5 UGC</div>
       <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
@@ -85,12 +85,12 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   <div class="stick" id="stkR" aria-label="Look"></div>
   <div id="log"></div>
   <div id="enter"><div class="card" id="enterBtn">
-    <div class="mono">v0.4.2-lab · inhabit WASD/look</div>
+    <div class="mono">v0.4.3-destyle · inhabit WASD/look</div>
     <h2>Enter the GNU atelier</h2>
     <p class="muted">Left stick walk · right stick look · drag to look. A left · D right of look. Free Unix renderer — not a proprietary Unix.</p>
   </div></div>
   <aside id="atlas">
-    <div class="mono">Absorb models, not ontology · v0.4.2-lab</div>
+    <div class="mono">Absorb models, not ontology · v0.4.3-destyle</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
     <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
@@ -101,7 +101,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
     <button class="ghost" id="atlasClose">Close</button>
   </aside>
   <div id="gnu">
-    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.2-lab · inhabit WASD/look · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
+    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.3-destyle · inhabit WASD/look · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
     <div id="tty">
       <pre id="ttyOut"></pre>
       <form id="ttyForm"><span style="color:var(--teal)">$ </span><input id="ttyIn" autocomplete="off" spellcheck="false" placeholder="look · go n · help"/></form>
@@ -111,7 +111,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <script type="module">
 import * as THREE from "three";
 
-const CORE = "v0.4.2-lab";
+const CORE = "v0.4.3-destyle";
 const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
 const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;

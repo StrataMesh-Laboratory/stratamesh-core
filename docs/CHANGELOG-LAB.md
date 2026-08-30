@@ -1,3 +1,7 @@
+## 2026-08-30 — sandbox destyle HTML chrome (0.4.3-destyle)
+- GNU atelier HUD accent is destyle alias `--teal:#c4a574` / `--acc:#c4a574` (was phosphor `#2f9e8a` on HTML chrome). 3D CRT phosphor stays in-world.
+- Version **0.4.3-destyle**. Never workers.dev. Never Fog origin.
+
 ## 2026-08-30 — sandbox.calhegasmorais.pt full-page GNU atelier
 - Public Holon 5 UGC host: **https://sandbox.calhegasmorais.pt/** is the full-page GNU atelier (WASD/look, dual sticks, GNU desk) — not a portal iframe, not workers.dev.
 - Worker `stratamesh-sandbox-host` serves HTML for `/` and `/:owner/:id` virtual addresses. JSON at `/health`. Apex `/api/v1/sandbox*` stays `stratamesh-sandbox`.
