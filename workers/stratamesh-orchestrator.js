@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.7-lab-debug";
+const VERSION = "10.24.8-lab-debug";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -3425,17 +3425,18 @@ async function labInstantChat(message, body, env) {
     fog = { skipped: true, ok: false, error: String(e.message || e).slice(0, 80) };
   }
   try {
-    const r = await fetch("https://academy.calhegasmorais.pt/v1/debug/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ message: msg, acb_id: "ACB-ORCH-CMN-001", lang: (body && body.lang) || "pt" }),
-      signal: AbortSignal.timeout(2500),
-    });
+    const payload = JSON.stringify({ message: msg, acb_id: "ACB-ORCH-CMN-001", lang: (body && body.lang) || "pt" });
+    const headers = { "Content-Type": "application/json", Accept: "application/json" };
+    const req = new Request("https://academy.calhegasmorais.pt/v1/debug/chat", { method: "POST", headers, body: payload });
+    const r = (env && env.ACADEMY && typeof env.ACADEMY.fetch === "function")
+      ? await env.ACADEMY.fetch(req)
+      : await fetch(req, { signal: AbortSignal.timeout(4000) });
     const j = await r.json();
     if (j && j.reply) {
       j.pulse_id = j.pulse_id || labInstantPulseId();
       j.version = VERSION;
       j.fog = fog;
+      j.source = j.source || "academy-debug-chat";
       if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
         j.channel = "whatsapp";
         j.eni_whatsapp = "+44 7404 796458";
