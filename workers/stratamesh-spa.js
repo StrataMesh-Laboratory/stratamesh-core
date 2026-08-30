@@ -143,7 +143,7 @@ function originOrchHealth() {
     status: 'ok',
     service: 'stratamesh-orchestrator',
     origin: 'calhegasmorais.pt',
-    version: 'origin-orch-chat-1.1.0',
+    version: 'origin-orch-chat-1.1.1-nofog',
     node_id: 'FOG-NODE-PT-CM-001',
     sca_id: 'SCA-ORCH-CMN-001',
     lab: true,
@@ -295,15 +295,19 @@ async function originOrchChat(request, env, corsHeaders, restPath) {
   try { body = await request.json(); } catch (_) { body = {}; }
   const msg = (body && (body.message || body.text || body.prompt)) || '';
 
-  let fog = { ok: false, mesh_member: false, oracle_live: false };
+  // Lab n=1: do not await Fog /health (workerd hop ~400ms). Honest constants already on the pulse.
+  let fog = {
+    skipped: true,
+    ok: false,
+    http: 0,
+    mesh_member: false,
+    oracle_live: false,
+    node_id: 'FOG-NODE-PT-CM-001',
+    reason: 'fog_health_not_awaited',
+  };
   let orch = { ok: false };
   try {
-    const pair = await Promise.all([
-      probeFogHealth1500(),
-      tryOrch1500(env, request, body, msg),
-    ]);
-    fog = pair[0];
-    orch = pair[1];
+    orch = await tryOrch1500(env, request, body, msg);
   } catch (e) {
     orch = {
       ok: false,

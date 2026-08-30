@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.5-lab-instant";
+const VERSION = "10.24.6-lab-nofog";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -3431,7 +3431,8 @@ function labInstantChat(message, body) {
     mesh_member: false,
     oracle_live: false,
     persistence: "ephemeral",
-    skipped: ["tick", "llm"],
+    skipped: ["tick", "llm", "fog"],
+    fog: { skipped: true, mesh_member: false, oracle_live: false, reason: "lab constants; Fog /health not awaited" },
   };
   if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
     out.channel = "whatsapp";
@@ -3532,10 +3533,30 @@ export default {
         memory: mem,
       });
     }
-    if (path === "/chat" || path === "/api/chat") {
-      if (request.method === "GET") {
+    const isApiOrch = path.startsWith("/api/orchestrator") || path.startsWith("/api/v1/orchestrator");
+    if (path === "/chat" || path === "/api/chat" || isApiOrch) {
+      if (request.method === "GET" || request.method === "HEAD") {
         const accept = request.headers.get("Accept") || "";
-        if (accept.includes("application/json") && !accept.includes("text/html")) {
+        if (isApiOrch || (accept.includes("application/json") && !accept.includes("text/html"))) {
+          if (request.method === "HEAD") {
+            return new Response(null, { status: 200, headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" } });
+          }
+          if (isApiOrch) {
+            return json({
+              status: "ok",
+              service: "stratamesh-orchestrator",
+              origin: "calhegasmorais.pt",
+              version: "origin-orch-chat-1.1.0",
+              worker_version: VERSION,
+              node_id: "FOG-NODE-PT-CM-001",
+              sca_id: "SCA-ORCH-CMN-001",
+              lab: true,
+              endpoints: ["POST /api/orchestrator/chat", "GET /api/v1/orchestrator/health"],
+              methods: ["GET", "POST", "OPTIONS"],
+              pulse_id: labInstantPulseId(),
+              body: { message: "string" },
+            });
+          }
           return json({
             service: "orchestrator-chat",
             version: VERSION,
@@ -3576,7 +3597,7 @@ export default {
         if (!body.lang) body.lang = "pt";
       }
       const msgText = body.message || body.text || body.prompt || "";
-      // Lab n=1: skip tick() + LLM. SPA 1500ms race is already green; 900ms budget was waste.
+      // Lab n=1: skip tick() + LLM + Fog /health. SPA 1500ms Fog race was the <400ms leak (workerd hop).
       const out = labInstantChat(msgText, body);
       return json(out);
     }

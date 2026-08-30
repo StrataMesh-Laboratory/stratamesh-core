@@ -109,8 +109,7 @@ export async function onRequest(context) {
     try { body = await request.json(); } catch (_) { body = {}; }
   }
   const msg = (body && (body.message || body.text || body.prompt)) || '';
-  let fog = { ok: false, mesh_member: false, oracle_live: false };
-  try { fog = await probeFogHealth1500(); } catch (_) {}
+  const fog = { skipped: true, ok: false, http: 0, mesh_member: false, oracle_live: false, reason: 'fog_health_not_awaited' };
   try {
     const orch = env && (env.ORCH || env.ORCHESTRATOR);
     if (orch && typeof orch.fetch === 'function' && request.method === 'POST') {
