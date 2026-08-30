@@ -10,8 +10,9 @@ on:
     paths:
       - "ops/**"
       - "scripts/**"
-      - ".github/workflows/**"
       - ".github/actions/**"
+      - ".github/workflows/dev-labor.yml"
+      - ".github/workflows/desk-tick.yml"
       - "docs/EDGE-GROK-ACTIONS-PACKAGE.md"
 
 permissions:

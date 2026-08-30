@@ -23,6 +23,10 @@ permissions:
 jobs:
   route:
     name: Route contribution / fund links
+    if: >
+      github.event_name != 'issue_comment'
+      || (github.event.comment.user.type != 'Bot'
+          && contains(github.event.comment.body, '/accept'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

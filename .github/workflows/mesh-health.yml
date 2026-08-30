@@ -1,8 +1,7 @@
-# Daily cheap health — same probes as desk-tick (ops/config/health-probes.json).
+# Alias of desk-tick. Schedule removed — 09:00 UTC is now on desk-tick cron.
+# Keep dispatch so humans can still fire a full probe without waiting.
 name: mesh-health
 on:
-  schedule:
-    - cron: "0 9 * * *"
   workflow_dispatch:
 
 permissions:

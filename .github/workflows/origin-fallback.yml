@@ -1,14 +1,15 @@
 # Observe public Fog origin. $0 runner. Does not flip DNS (session persist does).
+# Was */10 (144/day) — WAF-hostile and overlapped edge-uptime. Twice hourly, offset.
 name: origin-fallback
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "3,33 * * * *"
   workflow_dispatch:
 
 concurrency:
   group: origin-fallback
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -22,6 +23,8 @@ jobs:
       DESK_ISSUE: "52"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Probe fog origin
         id: probe
         run: python3 ops/bin/origin-fallback-watch.py

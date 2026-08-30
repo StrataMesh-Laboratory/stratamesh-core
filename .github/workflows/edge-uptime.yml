@@ -1,11 +1,16 @@
 # $0 Actions ping. Does not start localhost. EDGE assistant persist is the boot.
 # WAF/hop/HTML are session-expected (non-continuous). Not a Fog P0. Not FAIL.
-# RCA: 200 + HTML / json.load throw, or 403/000 without Accept+UA, painted the check red.
+# Was */15 (96/day). Twice hourly, offset from origin-fallback :03/:33 and desk-tick :00.
 name: edge-uptime
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "18,48 * * * *"
   workflow_dispatch:
+
+concurrency:
+  group: edge-uptime
+  cancel-in-progress: false
+
 jobs:
   ping:
     runs-on: ubuntu-latest
