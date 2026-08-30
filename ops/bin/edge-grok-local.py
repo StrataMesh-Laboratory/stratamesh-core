@@ -48,7 +48,7 @@ def payload() -> dict:
         "substrate": "grok-session-local",
         "continuity": "session",
         "lab": True,
-        "version": "0.2.3-lab",
+        "version": "0.2.3-dev",
         "linked_fog": FOG_ID,
         "host_id": fp["host_id"],
         "host_id_source": fp["source"],

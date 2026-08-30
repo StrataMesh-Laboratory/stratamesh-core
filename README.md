@@ -1,6 +1,6 @@
 # StrataMesh Core
 
-**Release:** [v0.2.3-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-lab) — reference Fog node (**not mainnet**, prerelease)
+**Release:** [v0.2.3-dev](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev) — Fog Mac + EDGE session, n=2 (**not mainnet**, prerelease)
 
 **STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
 Motto: *Intelligentia · Vigilantia · Veritas*
@@ -46,7 +46,7 @@ Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUB
 Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.3-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
-Lab freeze **v0.2.3-lab** exercises whitepaper pillars in-process. Production splits into:
+Lab freeze **v0.2.3-dev** exercises whitepaper pillars with two distinct hosts (Fog Mac continuous + EDGE session). Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 

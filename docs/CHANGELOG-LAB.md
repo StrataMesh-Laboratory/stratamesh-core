@@ -1,3 +1,9 @@
+## 2026-08-30 — v0.2.3-dev
+- Prerelease vs v0.2.3-lab. **n=2** Fog Mac (continuous) + EDGE-GROK (session). `mesh_member=true`. `f_max=0`. `oracle_live=false`.
+- Notes: [RELEASE-v0.2.3-dev.md](./RELEASE-v0.2.3-dev.md)
+- Fog git version `0.2.3-dev`. Hop `origin=macbook` via workerd. EDGE hop `origin=edge`.
+- Gossip `2.3.9-n2-probe`. Not testnet. Not mainnet.
+
 ## 2026-08-29 — v0.2.3-lab
 - Lab prerelease vs v0.2.2-lab. **Not major. Not testnet. Not mainnet.** Notes: [RELEASE-v0.2.3-lab.md](./RELEASE-v0.2.3-lab.md)
 - Protocol: ingest-guard (#48); spa_view honesty; #16 gossip→real Fog; #36 on-graph metabolism (lab spend, not mint)

@@ -170,12 +170,12 @@ details.faq p{margin:.55rem 0 0}
 <nav class="toc" aria-label="Sections"><a href="#mapa"><span class="toc-n">00</span><span class="toc-t">Map</span></a><a href="#rede"><span class="toc-n">01</span><span class="toc-t">Network</span></a><a href="#valor"><span class="toc-n">02</span><span class="toc-t">Value</span></a><a href="#no"><span class="toc-n">03</span><span class="toc-t">Node</span></a><a href="#quem"><span class="toc-n">04</span><span class="toc-t">Who</span></a><a href="#arquitectura"><span class="toc-n">05</span><span class="toc-t">Architecture</span></a><a href="#estado"><span class="toc-n">06</span><span class="toc-t">Status</span></a><a href="#entrar"><span class="toc-n">07</span><span class="toc-t">Enter</span></a></nav>
 <main class="wrap" id="conteudo">
   <header>
-    <p class="kicker">Laboratory v0.2.3-lab · Lisbon, Portugal · n=1</p>
+    <p class="kicker">Laboratory v0.2.3-dev · Lisbon, Portugal · n=2</p>
     <h1>Calhegas Morais</h1>
     <p class="lead">Public entry to the <strong>Calhegas Morais Fog Node</strong> — a reference node of <strong>StrataMesh</strong>, a <a class="g" href="#glossario-trd">distributed ledger</a> network built around real contribution, an open market, and a Web3 metaverse operating system.</p>
     <div class="plain">
       <p class="pk">In plain language</p>
-      <ol><li>StrataMesh is a DLT in the <strong>lab</strong>. Today <strong>one</strong> Fog node runs in Lisbon (<span class="mono">FOG-NODE-PT-CM-001</span>): n=1, <span class="mono">mesh_member=false</span>, no second host.</li><li>This site is that node’s public door — not a populated mesh. Gossip lists Fog + EDGE on custom domains; multi-host P0 stays open.</li><li>You can read the project, see whether Fog / gossip / EDGE are up, and open the portal if you wish. You do not need to pay to start.</li></ol>
+      <ol><li>StrataMesh is a DLT in the <strong>lab</strong>. Two hosts: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, continuous) and EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, session): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>This site is the public door of that pair — not a populated mesh and not Byzantine. Gossip lists Fog + EDGE on custom domains; P0 stays open until n≥3.</li><li>You can read the project, see whether Fog / gossip / EDGE are up, and open the portal if you wish. You do not need to pay to start.</li></ol>
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Sign in</a>
@@ -279,7 +279,7 @@ details.faq p{margin:.55rem 0 0}
   <section class="section" id="estado">
     <p class="sec-num">06 · Laboratory</p>
     <h2>Current project status</h2>
-    <p>Cut <strong>v0.2.3-lab</strong> (prerelease). Local Fog process via tunnel; gossip at <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (Fog+EDGE, not a mesh); EDGE desk at <a href="https://edge.calhegasmorais.pt/">edge.calhegasmorais.pt</a>. Challenge 0 unfunded. grok@ is an external assistant, <strong>not</strong> an SCA. None of this is mainnet or financial advice.</p>
+    <p>Cut <strong>v0.2.3-dev</strong> (prerelease). Fog Mac via workerd hop; EDGE session via workerd; gossip at <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 unfunded. grok@ is an external assistant, <strong>not</strong> an SCA. None of this is mainnet or financial advice.</p>
     <div class="live" id="livePills"><span class="pill">checking services…</span></div>
     <p class="live-meta" id="liveMeta"></p>
     <p class="note">MiCA notice (EU): there is no public offer of a crypto-asset on this domain. STRATA and the Agora, in this phase, are protocol mechanisms under trial.</p>
@@ -304,7 +304,7 @@ details.faq p{margin:.55rem 0 0}
       <a class="btn ghost" href="https://gossip.calhegasmorais.pt/">Gossip</a>
       <a class="btn ghost" href="https://edge.calhegasmorais.pt/">EDGE</a>
       <a class="btn ghost" href="https://stratamesh.discourse.group/t/20">Forum t/20</a>
-      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-lab">v0.2.3-lab</a>
+      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">v0.2.3-dev</a>
     </div>
   </section>
 
@@ -321,7 +321,7 @@ details.faq p{margin:.55rem 0 0}
   </section>
 
   <footer>
-    <p>Calhegas Morais · StrataMesh DLT · laboratory v0.2.3-lab</p>
+    <p>Calhegas Morais · StrataMesh DLT · laboratory v0.2.3-dev</p>
     <p class="mono">FOG-NODE-PT-CM-001 · Lisbon · standing by function and agreement, not substrate</p>
     <p class="mono"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a> — AMCM ENI — legal entity of the holder · <a href="/eni">/eni</a></p>
     <p class="mono"><a href="/terms">Terms</a> · <a href="/dashboard">Portal</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
@@ -341,7 +341,7 @@ details.faq p{margin:.55rem 0 0}
       {k:'edge', u:'https://edge.calhegasmorais.pt/health'}
     ];
     var html='';
-    var parts=['v0.2.3-lab','n=1','mesh_member=false'];
+    var parts=['v0.2.3-dev','n=2','mesh_member=true'];
     for (var i=0;i<probes.length;i++){
       var pr=probes[i];
       try{

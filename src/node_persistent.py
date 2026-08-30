@@ -327,7 +327,7 @@ class PersistentFogNode:
     def public_html(self) -> str:
         """GET / for browsers. JSON remains default for /status and Accept: json."""
         spa = self.spa_view()
-        ver = "0.2.3-lab"
+        ver = "0.2.3-dev"
         return f"""<!DOCTYPE html>
 <html lang="pt-PT"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -431,7 +431,7 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                 phase="2",
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
-                    "version": "0.2.3-lab",
+                    "version": "0.2.3-dev",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     **mesh_flags(),
@@ -498,7 +498,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.2.3-lab", **mesh_flags()})
+            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.2.3-dev", **mesh_flags()})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":
