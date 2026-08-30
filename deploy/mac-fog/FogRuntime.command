@@ -1,5 +1,5 @@
 #!/bin/bash
-# StrataMesh Fog runtime UI v5 — 15s refresh. q quit · s stop fog.
+# StrataMesh Fog runtime UI v6 — 15s. q quit · s stop · b reboot · g git pull+reboot.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 FOG="${STRATAMESH_HOME:-$HOME/StrataMesh}/fog"

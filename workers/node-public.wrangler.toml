@@ -1,0 +1,4 @@
+name = "stratamesh-node-public"
+main = "stratamesh-node-public.js"
+compatibility_date = "2024-12-01"
+workers_dev = false

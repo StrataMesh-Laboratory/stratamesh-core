@@ -1,3 +1,7 @@
+## 2026-08-30 — fog destyle live + TUI v6
+- CF Worker `stratamesh-node-public` exact `/` overlay on fog + edge (JSON `/health` `/status` stay tunnel).
+- Mac TUI v6: `b` reboot, `g` git pull+reboot, host cpu/mem/rss/disk/net/sqlite/public probes.
+
 ## 2026-08-30 — fog destyle
 - Fog `/` no longer brands EDGE-GROK on the Mac landing. Same destyle as EDGE (badge + node id + JSON links). Peer roster stays `/status`.
 

@@ -188,7 +188,7 @@ chmod 755 "$FOG/bin/fog-tui.py" "$FOG/repo/deploy/mac-fog/FogRuntime.command" 2>
 echo
 echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
 echo "Public fog.calhegasmorais.pt rides macbook-server. HOLD fog-lab tunnel plist."
-echo "Runtime UI: $FOG/bin/fog-tui.py  (q quit · s stop fog · 15s refresh)"
+echo "Runtime UI: $FOG/bin/fog-tui.py  (q quit · s stop · b reboot · g pull+reboot · 15s)"
 
 say "9/9 health"
 sleep 3
@@ -197,7 +197,8 @@ curl -sf -m 5 http://127.0.0.1:8788/workerd && echo "  workerd :8788 ok" || echo
 echo
 echo "Layer: workerd :8788 → fog :8787  (public via macbook-server)"
 echo "Stop fog:  $(dirname "$0")/stop-fog.command   or  s  in the runtime UI"
-echo "LAB n=1  mesh_member=false  v5"
+echo "Reboot:    b  in the runtime UI (kickstart fog+workerd, keeps macbook-server)"
+echo "LAB n=2  mesh_member=true  f_max=0  v6"
 export FOG_HOME="$FOG"
 osascript <<APP >/dev/null 2>&1 || true
 tell application "Terminal"
