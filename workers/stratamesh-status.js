@@ -623,7 +623,7 @@ async function svcJson(env, bindingName, path, timeoutMs = 2500) {
 async function fetchJsonPublic(url, timeoutMs = 2500) {
   try {
     const work = (async () => {
-      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.5' } });
+      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.6' } });
       const json = await r.json().catch(() => null);
       return { ok: r.ok, status: r.status, json };
     })();
@@ -684,7 +684,7 @@ async function writePulseCache(env, live) {
   return;
 }
 
-const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-045';
+const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-046';
 const EDGE_PULSE_MS = 30000;
 
 async function readEdgeCache() {
@@ -719,7 +719,7 @@ async function buildLiveStatus(env, opts) {
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
   const monetaryMs = (opts && opts.monetaryMs) || 2500;
-  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH] = await Promise.all([
+  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH, fogRootH] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
     svcJson(env, 'POC', '/health', 4000),
     svcJson(env, 'POC', '/pool', 5000),
@@ -738,17 +738,21 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'HOLONS', '/so', 2500),
     fetchJsonPublic('https://calhegasmorais.pt/api/v1/gossip/peers', 2500),
     fetchJsonPublic('https://fog.calhegasmorais.pt/health', 800),
+    fetchJsonPublic('https://fog.calhegasmorais.pt/', 800),
   ]);
 
   const mon = tokenSnap.json;
   const pool = (pocPool.json && pocPool.ok) ? pocPool.json : null;
   const pocOk = !!(pocHealth.ok || pocPool.ok);
   const fogJson = fogH && fogH.json;
+  const fogRoot = fogRootH && fogRootH.json;
   const fogCode = (fogH && fogH.status) || 0;
-  const fogOk = !!(fogH && fogH.ok && fogJson && (fogJson.ok === true || fogJson.status === 'ok' || fogJson.node_id));
+  const fogOk = !!(fogH && fogH.ok && fogJson && (fogJson.ok === true || fogJson.status === 'ok' || fogJson.node_id || fogJson.runtime === 'workerd'));
+  const fogHop = !!(fogJson && (fogJson.plugin === 'fog-workerd' || fogJson.runtime === 'workerd'));
+  const fogVersion = (fogJson && fogJson.version) || (fogRoot && fogRoot.version) || null;
   const spaSource = fogOk ? 'fog_process' : 'fog_tunnel_down';
   const spaNote = fogOk
-    ? ('Lab n=1. Fog local-process /health ' + fogCode + ' version=' + ((fogJson && fogJson.version) || 'unversioned') + '. Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA. Do not fake n.')
+    ? ('Lab n=1. Fog ' + (fogHop ? ('workerd-hop ' + ((fogJson && fogJson.layer) || 'tunnel→workerd:8788→fog:8787') + ' ') : 'local-process ') + '/health ' + fogCode + ' version=' + (fogVersion || 'unversioned') + '. Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA. Do not fake n.')
     : ('Lab n=1. Fog /health ' + (fogCode || 'down') + ' (CF 1033; tunnel stratamesh-fog-lab down, 0 connectors). spa.source=fog_tunnel_down. mesh_member=false oracle_live=false. Cannot hot-patch Fog from this Worker. Do not fake n.');
 
   let kv = null;
@@ -765,7 +769,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.5-fog-530',
+    version: '0.4.6-workerd-hop',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -838,7 +842,7 @@ async function buildLiveStatus(env, opts) {
       oracle_live: false,
       holons_ok: !!holonsH.ok,
       fog_health: fogCode || null,
-      fog_version: (fogJson && fogJson.version) || null,
+      fog_version: fogVersion,
       note: spaNote,
     },
     republic: repH.json && repH.ok ? {
@@ -989,7 +993,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.5-fog-530',
+        version: '0.4.6-workerd-hop',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });

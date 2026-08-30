@@ -12,7 +12,13 @@ export default {
         runtime: "workerd",
         plugin: "fog-workerd",
         layer: "tunnel→workerd:8788→fog:8787",
+        version: "0.2.3-lab",
+        node_id: "FOG-NODE-PT-CM-001",
+        lab: true,
+        n: 1,
         mesh_member: false,
+        oracle_live: false,
+        substrate: "workerd-hop",
       });
     }
     return env.FOG.fetch(request);
