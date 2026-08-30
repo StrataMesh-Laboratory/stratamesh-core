@@ -39,6 +39,9 @@ jobs:
       - name: Fog ping + keep-up stream (no STRATA movement)
         working-directory: src
         run: python3 test_fog_plugins.py
+      - name: Agora /status settlements honesty (#40 envelope, not scalar 0)
+        working-directory: src
+        run: python3 test_status_settlements.py
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py

@@ -48,6 +48,23 @@ class Trade:
     ts: float = field(default_factory=time.time)
 
 
+def settlements_honesty(log_len: int = 0, f_max: int | None = None):
+    """#40: len(settlement_log)==0 is not a quality number at f_max=0.
+
+    Live Fog GET /status overlays this envelope; book() must not reintroduce a scalar 0.
+    """
+    if f_max is None:
+        try:
+            from mesh_provision import flags as mesh_flags
+
+            f_max = int(mesh_flags().get("mesh_provision", {}).get("f_max", 0) or 0)
+        except Exception:
+            f_max = 0
+    if int(f_max) <= 0:
+        return {"unavailable": "f_max=0"}
+    return int(log_len)
+
+
 class Agora:
     def __init__(self, token_ledger=None, service_ledger=None):
         self.orders: Dict[str, Order] = {}
@@ -167,7 +184,7 @@ class Agora:
             ],
             "trades": len(self.trades),
             "last_price": self.trades[-1].price if self.trades else None,
-            "settlements": len(self.settlement_log),
+            "settlements": settlements_honesty(len(self.settlement_log)),
         }
 
 
