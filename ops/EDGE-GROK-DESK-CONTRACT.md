@@ -53,7 +53,7 @@ ROADMAP-PUBLIC-v0.3 Stage 1 (Adversarial lab).
 
 **Still open:** multi-host INV/TX on ≥2 **real** hosts.
 
-Current lab: `FOG-NODE-PT-CM-001` local-process n=1, `oracle_live=false`, `same_host_as_edge_local=true`. Local EDGE `EDGE-GROK-CMN-001` on `:8788` is the **same host**, not a second machine. Local `/inv` is genesis-only. Local `/gossip` and `/tx` are not wired. I1–I6 CI and resource-proof MVP already landed. Do not claim mesh. Oracle tenancy grok90 remains incident `260826-001576`.
+**Current lab (2026-08-30):** `FOG-NODE-PT-CM-001` Mac workerd origin `n=2`, `mesh_member=true`, `f_max=0`, `oracle_live=false`. EDGE `EDGE-GROK-CMN-001` is a **distinct session host** (expected non-continuous). Session Fog is 30-min Mac-dark DNS fallback only. Gossip is `https://gossip.calhegasmorais.pt/`. Do not claim aBFT. Oracle tenancy grok90 remains incident `260826-001576`.
 
 ## Next three joint moves
 

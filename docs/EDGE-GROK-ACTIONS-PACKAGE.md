@@ -7,7 +7,7 @@
 python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json
 ```
 
-Locked: no `workers.dev`, no 6th CF cron, no wrangler **deploy** from GHA, probe **`/health`** not status-worker **`/status`**, lab `n=1` / `mesh_member=false`.
+Locked: no `workers.dev`, no 6th CF cron, no wrangler **deploy** from GHA, probe **`/health`** not status-worker **`/status`**, lab `n=2` / `mesh_member=true` / `f_max=0` until n≥3.
 
 ## Split of labour
 
@@ -113,4 +113,4 @@ Do not put SuperGrok, DeoMail, Dropbox, or Reddit in Actions.
 
 ## Honesty
 
-Fog `/status` via tunnel (not Worker 100k): `mesh_member===false`. CI never hits status-worker `/status` (17 bindings). Never `workers.dev`.
+Fog `/health` via tunnel (not Worker 100k): `n=2` `mesh_member===true` `f_max=0`. CI never hits status-worker `/status` (17 bindings). Never `workers.dev`. Browser `/` is destyle; roster is JSON.

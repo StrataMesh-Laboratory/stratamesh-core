@@ -111,6 +111,11 @@ The prompt must include live CF/GitHub/DeoMail credentials for that run (session
 |------|------|----------------|
 | **Night Diagnostic FOG-NODE-PT-CM-001** | Delta-first operator briefing · ranks ≤5 actions for morning | **23:00** Europe/Lisbon |
 | **StrataMesh 24h Dev Cycle** | Execute ranked dev/ops work with AIOps + Orchestrator | **09:00** Europe/Lisbon |
+| **CMN Fog Hourly Git+Live (#52)** | Intensive git+live REST ship | **hourly** |
+| **Watchdog P0 Mesh Escalate** | Cheap `/health`; HOLD unless P0 | **04:00** |
+| **Discourse lab ops pulse** | t/20 only | **18:00** |
+
+Canonical prompts (no secrets): [`ops/GROK-AUTOMATIONS.md`](../ops/GROK-AUTOMATIONS.md). Vault: `/persistent/PRIVATE.gitignore/` (gitignored).
 
 ### Night Diagnostic quality bar
 - Delta-first, evidence-linked, non-repetitive

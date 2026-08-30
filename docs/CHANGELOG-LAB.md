@@ -1,3 +1,6 @@
+## 2026-08-30 — Grok automations
+- Five Grok Automations re-prompted: n=2 destyle Mac origin, gossip host exists, 30min fallback, vault secrets (no tokens in prompt). Canonical: `ops/GROK-AUTOMATIONS.md`.
+
 ## 2026-08-30 — gossip destyle
 - `gossip.calhegasmorais.pt/` same destyle family as Fog/EDGE. `/health` n=2 · mesh_member=true · f_max=0. Roster stays `/peers`.
 
