@@ -18,6 +18,12 @@
     "stratamesh-holons": "workers/stratamesh-holons.js",
     "stratamesh-sandbox": "workers/stratamesh-sandbox.js",
     "stratamesh-acb": "workers/stratamesh-acb.js",
-    "stratamesh-edge-api": "workers/stratamesh-edge-api.js"
+    "stratamesh-edge-api": "workers/stratamesh-edge-api.js",
+    "stratamesh-fog-api": "workers/stratamesh-fog-api.js",
+    "stratamesh-academy": "workers/stratamesh-academy.js",
+    "stratamesh-origin-archive": "workers/stratamesh-origin-archive.js",
+    "stratamesh-node-public": "workers/stratamesh-node-public.js",
+    "stratamesh-edge-grok": "workers/stratamesh-edge-grok.js",
+    "stratamesh-auth": "workers/stratamesh-auth.js"
   }
 }

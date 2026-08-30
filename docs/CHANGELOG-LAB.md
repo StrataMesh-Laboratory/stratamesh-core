@@ -1,3 +1,8 @@
+## 2026-08-30 — Actions: origin-archive / gitlive-drift retries
+- origin-archive: never PATCH a PAT-owned `archive-YYYY-MM-DD` (`GITHUB_TOKEN` cannot update). `gh release create` + view-exists = green.
+- gitlive-drift: comment `continue-on-error`; check stays observe-only. Old SHA retries cannot pick up YAML — dispatch on main, do not rerun doomed commits.
+- apply-and-merge: empty PR number is inspect-only, not a red X.
+
 ## 2026-08-30 — v0.4.1-lab Academy QIGA flux
 - Academy grades are dual-lobe packets on the Orchestrator bus. Unready does not evolve. Federated summaries omit answers. `POST /v1/flux` + Fog `python3 -m academy --flux`. Optional `env.ACB` `/acb/qiga` tap. No workers.dev.
 

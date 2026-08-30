@@ -1,7 +1,7 @@
 # Daily snapshot — GitHub Action, NOT a 6th Cloudflare cron.
-# Idempotent: if archive-YYYY-MM-DD already exists, skip (success).
-# GITHUB_TOKEN cannot UPDATE a release created by a PAT ("Resource not accessible
-# by integration"). Treat already-done as green, same class as gitlive-drift hold_put.
+# Idempotent: archive-YYYY-MM-DD already published → skip (success).
+# GITHUB_TOKEN cannot UPDATE a release created by a PAT
+# ("Resource not accessible by integration"). Never PATCH. Never softprops.
 name: origin-archive
 on:
   schedule:
@@ -19,12 +19,12 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Skip if today's archive exists
         id: have
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           DAY=$(date -u +%F)
           echo "DAY=$DAY" >> "$GITHUB_ENV"
@@ -47,12 +47,27 @@ jobs:
           cp workers/stratamesh-origin-archive.js /tmp/pile/$DAY/ 2>/dev/null || true
           printf '%s\n' "{\"date\":\"$DAY\",\"sha\":\"${GITHUB_SHA}\",\"note\":\"daily origin archive + fog origin flux\"}" > /tmp/pile/$DAY/manifest.json
           tar -C /tmp/pile -czf /tmp/origin-archive-$DAY.tar.gz $DAY
-      - name: Release
+      - name: Release (create only; never update PAT-owned)
         if: steps.have.outputs.exists != 'true'
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          tag_name: archive-${{ env.DAY }}
-          name: Origin archive ${{ env.DAY }}
-          files: /tmp/origin-archive-${{ env.DAY }}.tar.gz
-          body: Daily last-resort static pile for origin.calhegasmorais.pt. Staff-gated. Not a 6th CF cron.
-          make_latest: false
+        run: |
+          DAY="${DAY:?}"
+          TAG="archive-$DAY"
+          TAR="/tmp/origin-archive-$DAY.tar.gz"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "race: $TAG appeared — skip (GITHUB_TOKEN must not PATCH)"
+            exit 0
+          fi
+          if gh release create "$TAG" "$TAR" \
+              --title "Origin archive $DAY" \
+              --notes "Daily last-resort static pile for origin.calhegasmorais.pt. Staff-gated. Not a 6th CF cron." \
+              --latest=false; then
+            echo "created $TAG"
+            exit 0
+          fi
+          # PAT-owned tag or concurrent create: GITHUB_TOKEN cannot update. Green if viewable.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG exists (PAT-owned or race) — idempotent success"
+            exit 0
+          fi
+          echo "FAIL could not create or view $TAG"
+          exit 1

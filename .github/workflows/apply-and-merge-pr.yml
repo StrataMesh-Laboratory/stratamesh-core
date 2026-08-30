@@ -36,7 +36,9 @@ jobs:
             const raw = process.env.PR_NUMBER || '';
             const prNum = parseInt(raw, 10);
             if (isNaN(prNum) || prNum <= 0) {
-              throw new Error('Invalid PR number: ' + JSON.stringify(process.env.PR_NUMBER));
+              core.notice('No PR number — inspect-only, not a failure.');
+              core.setOutput('number', '');
+              return;
             }
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,

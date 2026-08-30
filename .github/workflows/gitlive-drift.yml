@@ -35,7 +35,8 @@ jobs:
         id: drift
         run: python3 ops/bin/gitlive-drift.py
       - name: Comment #52 on hard drift only
-        if: steps.drift.outputs.hard == 'true'
+        if: always() && steps.drift.outputs.hard == 'true'
+        continue-on-error: true
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
