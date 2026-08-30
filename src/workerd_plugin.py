@@ -24,6 +24,33 @@ LEASE = DATA / "origin.lease"
 POLL_SEC = 8
 
 
+def _pids_named(name: str) -> list[int]:
+    """Linux /proc or macOS pgrep. Never throw if /proc is missing."""
+    pids: list[int] = []
+    proc = Path("/proc")
+    if proc.is_dir():
+        me = os.getpid()
+        for p in proc.iterdir():
+            if not p.name.isdigit():
+                continue
+            pid = int(p.name)
+            if pid == me:
+                continue
+            try:
+                comm = (p / "comm").read_text().strip()
+            except Exception:
+                continue
+            if comm == name:
+                pids.append(pid)
+        return pids
+    try:
+        out = subprocess.check_output(["pgrep", "-x", name], text=True)
+        pids.extend(int(x) for x in out.split() if x.strip().isdigit())
+    except Exception:
+        pass
+    return pids
+
+
 def _which_workerd() -> str | None:
     env = (os.environ.get("WORKERD_BIN") or "").strip()
     if env and Path(env).is_file():
@@ -126,20 +153,7 @@ class WorkerdPlugin:
                 pids.append(int(PIDFILE.read_text().strip()))
             except Exception:
                 pass
-        proc = Path("/proc")
-        me = os.getpid()
-        for p in proc.iterdir():
-            if not p.name.isdigit():
-                continue
-            pid = int(p.name)
-            if pid == me:
-                continue
-            try:
-                comm = (p / "comm").read_text().strip()
-            except Exception:
-                continue
-            if comm == "workerd":
-                pids.append(pid)
+        pids.extend(_pids_named("workerd"))
         for pid in set(pids):
             try:
                 os.kill(pid, signal.SIGTERM)
