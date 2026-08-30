@@ -3,7 +3,7 @@
  * From: noreply@eni.calhegasmorais.pt
  * Layout kinds: 2fa · briefing · update · invite · reset · register · system
  */
-const VERSION = "1.4.5-fingerprint-free";
+const VERSION = "1.4.6-destyle";
 const API_BASE = "https://api.deomail.com/v1";
 const DEFAULT_FROM = "noreply@eni.calhegasmorais.pt";
 
@@ -12,7 +12,7 @@ const T = {
   card: "#111113",
   fg: "#e8e6e3",
   muted: "#9a9790",
-  accent: "#c4b5a0",
+  accent: "#c4a574",
   line: "#1c1c1f",
   ok: "#6b8f71",
   action: "#c47a3a",
@@ -87,16 +87,16 @@ function sectionHtml(sec) {
   const isAttn = sec.kind === "attention";
   const isHealth = sec.kind === "health";
   const accent = flag ? flagColor(flag) : T.accent;
-  const kicker = sec.kicker ? `<div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${accent};margin:0 0 6px;">${escapeHtml(sec.kicker)}</div>` : "";
+  const kicker = sec.kicker ? `<div style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${accent};margin:0 0 6px;">${escapeHtml(sec.kicker)}</div>` : "";
   const titleSize = isAttn ? "20px" : isHealth ? "15px" : "18px";
-  const title = sec.title ? `<div style="font-family:${isHealth ? "'IBM Plex Mono',ui-monospace,monospace" : "Georgia,'Times New Roman',serif"};font-size:${titleSize};color:${isAttn ? accent : T.fg};margin:0 0 8px;">${escapeHtml(sec.title)}</div>` : "";
+  const title = sec.title ? `<div style="font-family:${isHealth ? "ui-monospace,monospace" : "system-ui,sans-serif"};font-size:${titleSize};color:${isAttn ? accent : T.fg};margin:0 0 8px;">${escapeHtml(sec.title)}</div>` : "";
   const body = sec.body ? `<div style="color:${T.fg};font-size:15px;line-height:1.6;margin:0 0 8px;">${typeof sec.body === "string" && sec.body.includes("<") ? sec.body : textToHtml(sec.body)}</div>` : "";
   let items = "";
   if (Array.isArray(sec.items) && sec.items.length) {
     items = "<table role='presentation' width='100%' cellspacing='0' cellpadding='0'>" +
       sec.items.map((it, i) =>
-        `<tr><td style="padding:6px 0;color:${T.muted};font-size:13px;font-family:'IBM Plex Mono',ui-monospace,monospace;width:28px;vertical-align:top;">${String(i + 1).padStart(2, "0")}</td>` +
-        `<td style="padding:6px 0;color:${T.fg};font-size:${isHealth ? "13px" : "15px"};line-height:1.5;font-family:${isHealth ? "'IBM Plex Mono',ui-monospace,monospace" : "Georgia,'Times New Roman',serif"};">${escapeHtml(it)}</td></tr>`
+        `<tr><td style="padding:6px 0;color:${T.muted};font-size:13px;font-family:ui-monospace,monospace;width:28px;vertical-align:top;">${String(i + 1).padStart(2, "0")}</td>` +
+        `<td style="padding:6px 0;color:${T.fg};font-size:${isHealth ? "13px" : "15px"};line-height:1.5;font-family:${isHealth ? "ui-monospace,monospace" : "system-ui,sans-serif"};">${escapeHtml(it)}</td></tr>`
       ).join("") +
       "</table>";
   }
@@ -110,7 +110,7 @@ function ctaHtml(cta) {
   if (!cta || !cta.href) return "";
   const label = escapeHtml(cta.label || "Abrir");
   return `<tr><td style="padding:8px 0 4px;">
-    <a href="${escapeHtml(cta.href)}" style="display:inline-block;padding:12px 22px;background:${T.accent};color:${T.bg};text-decoration:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">${label}</a>
+    <a href="${escapeHtml(cta.href)}" style="display:inline-block;padding:12px 22px;background:${T.accent};color:${T.bg};text-decoration:none;font-family:ui-monospace,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">${label}</a>
   </td></tr>`;
 }
 
@@ -118,13 +118,13 @@ function codeBlock(code) {
   const digits = escapeHtml(String(code || "").replace(/\s/g, ""));
   return `<tr><td style="padding:12px 0 20px;">
     <div style="border:1px solid ${T.line};background:${T.bg};padding:22px 12px;text-align:center;">
-      <div style="font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:32px;letter-spacing:0.28em;color:${T.fg};font-weight:500;">${digits}</div>
+      <div style="font-family:ui-monospace,Consolas,monospace;font-size:32px;letter-spacing:0.28em;color:${T.fg};font-weight:500;">${digits}</div>
     </div>
   </td></tr>`;
 }
 
 /**
- * Editorial HTML matching calhegasmorais.pt (dark, serif brand, mono kickers).
+ * Destyle HTML matching Fog/EDGE family (system-ui + ui-monospace, --acc #c4a574).
  * kinds: 2fa | staff_2fa | briefing | update | invite | reset | register | system
  */
 function eniMail(opts) {
@@ -145,7 +145,7 @@ function eniMail(opts) {
         : "Use este código para concluir a sessão no Nó Calhegas Morais."
     }</td></tr>`;
     inner += codeBlock(code);
-    inner += `<tr><td style="padding:0 0 16px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${T.muted};">${c.valid}</td></tr>`;
+    inner += `<tr><td style="padding:0 0 16px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${T.muted};">${c.valid}</td></tr>`;
     inner += `<tr><td style="padding:0 0 8px;color:${T.muted};font-size:14px;line-height:1.5;">${c.ignore}</td></tr>`;
   } else if (sections.length) {
     inner += sections.map(sectionHtml).join("");
@@ -168,13 +168,13 @@ function eniMail(opts) {
     <tr><td align="center">
       <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:${T.card};border:1px solid ${T.line};max-width:560px;width:100%;">
         <tr><td style="padding:22px 28px;border-bottom:1px solid ${T.line};">
-          <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:${T.accent};">${escapeHtml(kickerFor(kind, opts.lang))}</div>
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:${T.fg};margin-top:6px;">${escapeHtml(c.node)}</div>
-          <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${T.muted};margin-top:6px;">${c.brand} · ${c.fog}</div>
+          <div style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:${T.accent};">${escapeHtml(kickerFor(kind, opts.lang))}</div>
+          <div style="font-family:system-ui,sans-serif;font-size:22px;color:${T.fg};margin-top:6px;">${escapeHtml(c.node)}</div>
+          <div style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${T.muted};margin-top:6px;">${c.brand} · ${c.fog}</div>
         </td></tr>
         <tr><td style="padding:28px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-            ${subject ? `<tr><td style="padding:0 0 16px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:${T.muted};">${escapeHtml(subject)}</td></tr>` : ""}
+            ${subject ? `<tr><td style="padding:0 0 16px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:${T.muted};">${escapeHtml(subject)}</td></tr>` : ""}
             ${inner}
           </table>
         </td></tr>
@@ -255,6 +255,8 @@ export default {
           default_from: env.DEOMAIL_FROM || DEFAULT_FROM,
           configured: !!env.DEOMAIL_API_KEY,
           version: VERSION,
+          destyle: true,
+          workers_dev: false,
           layout: ["2fa", "briefing", "update", "invite", "reset", "register", "system"],
           endpoints: [
             "GET /health",
