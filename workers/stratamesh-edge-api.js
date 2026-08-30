@@ -2,13 +2,15 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.3.2-va-flow";
+const VERSION = "1.4.0-mesh-n2";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
 const DESK = "https://edge.calhegasmorais.pt";
 const PRIMARY = "https://api-edge.calhegasmorais.pt";
-const WORKERS = "https://stratamesh-edge-api.stratamesh.workers.dev";
+const FOG_API = "https://api-fog.calhegasmorais.pt";
+const FOG_PUBLIC = "https://fog.calhegasmorais.pt";
+const GOSSIP = "https://gossip.calhegasmorais.pt";
 const KV_PREFIX = "integ:";
 
 const EDGE_APP_HTML = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\"/>\n<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"/>\n<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"/>\n<meta name=\"theme-color\" content=\"#0a0a0b\"/>\n<title>StrataMesh LAB \u00b7 Edge</title>\n<link rel=\"manifest\" href=\"manifest.webmanifest\"/>\n<style>\n:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--ok:#7aa874;--bad:#c45c54}\n*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif}\nmain{max-width:28rem;margin:0 auto;padding:calc(2rem + env(safe-area-inset-top)) 1.25rem 4rem}\nh1{font-size:1.15rem;font-weight:600;margin:.2rem 0}\n.brand{color:var(--acc);letter-spacing:.08em;font-size:.72rem}\n.motto{color:var(--muted);font-size:.8rem}\n.card{border:1px solid var(--line);padding:1rem;margin:1rem 0}\nlabel{display:block;color:var(--muted);font-size:.75rem;margin:.6rem 0 .2rem}\ninput{width:100%;background:#111;border:1px solid var(--line);color:var(--fg);padding:.6rem .7rem;font:inherit}\nbutton{background:transparent;border:1px solid var(--acc);color:var(--acc);padding:.55rem .9rem;margin:.4rem .3rem 0 0;font:inherit}\n.gauge{height:8px;background:var(--line);margin:.5rem 0 1rem}\n.gauge>i{display:block;height:8px;background:var(--acc);width:0}\n.k{color:var(--muted);font-size:.8rem} .v{color:var(--fg)}\n.ok{color:var(--ok)} .bad{color:var(--bad)}\n</style>\n</head>\n<body>\n<main>\n<p class=\"brand\">STRATAMESH LAB</p>\n<h1>Edge Node</h1>\n<p class=\"motto\">Intelligentia \u00b7 Vigilantia \u00b7 Veritas</p>\n<p class=\"k\">C_mesh = f(1\u2212U) \u00b7 residual only \u00b7 session expected \u00b7 not a Fog \u00b7 not mainnet</p>\n<div id=\"wiz\" class=\"card\">\n  <p>Registered <b>EDGE</b> node id, then the 6-digit code mailed to the operator.</p>\n  <label>Node id</label>\n  <input id=\"nid\" placeholder=\"EDGE-NODE-\u2026\" autocomplete=\"off\"/>\n  <label>2FA code</label>\n  <input id=\"otp\" inputmode=\"numeric\" maxlength=\"6\" placeholder=\"000000\"/>\n  <button id=\"go\">Connect</button>\n  <p id=\"werr\" class=\"bad\"></p>\n</div>\n<div id=\"dash\" class=\"card\" hidden>\n  <p><span class=\"k\">node</span> <span id=\"d-id\" class=\"v\"></span></p>\n  <p><span class=\"k\">C_mesh</span> <span id=\"d-c\" class=\"v\"></span> \u00b7 <span id=\"d-why\" class=\"k\"></span></p>\n  <div class=\"gauge\"><i id=\"bar\"></i></div>\n  <p class=\"k\">U <span id=\"d-u\"></span> \u00b7 battery <span id=\"d-b\"></span> \u00b7 fg <span id=\"d-fg\"></span></p>\n  <p class=\"k\">parent Fog indexed \u00b7 duty drops in background</p>\n  <button id=\"pulse\">Pulse now</button>\n  <button id=\"out\">Sign out</button>\n  <p id=\"d-msg\" class=\"k\"></p>\n</div>\n</main>\n<script>\nconst AUTH=\"https://calhegasmorais.pt/api/auth\";\nconst API=\"https://api-edge.calhegasmorais.pt\";\nconst W={cpu:0.35,batt:0.25,therm:0.15,net:0.15,fg:0.10};\nfunction clip(x){return Math.max(0,Math.min(1,x))}\nfunction sample(){\n  const fg=document.visibilityState===\"visible\";\n  const batt=1, cpu=fg?0.12:0.04, thermal=\"nominal\", net=navigator.onLine?0.08:0.4;\n  const battStress=1-batt;\n  const U=clip(W.cpu*cpu+W.batt*battStress+W.therm*0+W.net*net+W.fg*(fg?0:1));\n  const blocked=batt<0.2||!navigator.onLine;\n  const residual=Math.max(0,1-U);\n  const duty=fg?1:0.25;\n  return {U,cpu,battery:batt,thermal,net,foreground:fg,blocked,C_mesh:blocked?0:residual*duty,why:blocked?\"safety_clamp\":\"residual\",duty};\n}\nasync function j(method,url,body,token){\n  const r=await fetch(url,{method,headers:{\"content-type\":\"application/json\",...(token?{authorization:\"Bearer \"+token}:{})},body:body?JSON.stringify(body):undefined});\n  const t=await r.text(); let o={}; try{o=JSON.parse(t)}catch(e){o={raw:t.slice(0,200)}}\n  o.http=r.status; return o;\n}\nconst st=()=>JSON.parse(localStorage.getItem(\"sm_edge\")||\"null\");\nfunction save(o){localStorage.setItem(\"sm_edge\",JSON.stringify(o))}\nconst wiz=document.getElementById(\"wiz\"), dash=document.getElementById(\"dash\");\nfunction show(){\n  const s=st();\n  wiz.hidden=!!s; dash.hidden=!s;\n  if(s){document.getElementById(\"d-id\").textContent=s.node_id; paint(sample());}\n}\nfunction paint(x){\n  document.getElementById(\"d-c\").textContent=x.C_mesh.toFixed(3);\n  document.getElementById(\"d-why\").textContent=x.why;\n  document.getElementById(\"d-u\").textContent=x.U.toFixed(3);\n  document.getElementById(\"d-b\").textContent=x.battery.toFixed(2);\n  document.getElementById(\"d-fg\").textContent=x.foreground?\"yes\":\"no\";\n  document.getElementById(\"bar\").style.width=(x.C_mesh*100)+\"%\";\n}\ndocument.getElementById(\"go\").onclick=async()=>{\n  const node_id=document.getElementById(\"nid\").value.trim().toUpperCase();\n  const code=document.getElementById(\"otp\").value.trim();\n  const err=document.getElementById(\"werr\"); err.textContent=\"\";\n  if(!node_id.startsWith(\"EDGE\")&&!node_id.startsWith(\"FOG\")){err.textContent=\"Use an EDGE-\u2026 id issued by the lab.\";return;}\n  let ch=JSON.parse(sessionStorage.getItem(\"sm_ch\")||\"null\");\n  if(!ch||ch.node_id!==node_id){\n    ch=await j(\"POST\",AUTH+\"/fog/bootstrap/challenge\",{node_id,lang:\"en\"});\n    if(!ch.success){err.textContent=ch.error||\"unknown node\";return;}\n    sessionStorage.setItem(\"sm_ch\",JSON.stringify(ch));\n    err.textContent=\"Code sent to \"+(ch.operator_masked||\"operator\")+\". Enter it.\";\n    return;\n  }\n  const vr=await j(\"POST\",AUTH+\"/fog/bootstrap/verify\",{node_id,challenge:ch.challenge,code,lang:\"en\"});\n  if(!vr.success){err.textContent=vr.error||\"bad code\";return;}\n  save({node_id:vr.node_id,token:vr.bootstrap_token});\n  sessionStorage.removeItem(\"sm_ch\"); show(); pulse();\n};\ndocument.getElementById(\"out\").onclick=()=>{localStorage.removeItem(\"sm_edge\");show()};\ndocument.getElementById(\"pulse\").onclick=()=>pulse();\nasync function pulse(){\n  const s=st(); if(!s)return;\n  const x=sample(); paint(x);\n  const r=await j(\"POST\",API+\"/v1/edge/heartbeat\",{node_id:s.node_id,usage:x,continuity:\"session\",parent_fog:\"FOG-NODE-PT-CM-001\",substrate:\"ios-pwa\"},s.token);\n  document.getElementById(\"d-msg\").textContent=r.ok?\"heartbeat \"+(r.stored||\"ok\"):(r.error||\"offline\");\n}\ndocument.addEventListener(\"visibilitychange\",()=>{if(st())pulse()});\nshow();\nif(st()){pulse(); setInterval(()=>{if(document.visibilityState===\"visible\")pulse()},30000)}\n</script>\n</body>\n</html>\n";
@@ -53,9 +55,8 @@ function html(body, status = 200) {
 }
 
 function originOf(url) {
-  if (url.hostname.includes("workers.dev")) return url.origin;
   if (url.hostname.startsWith("api-edge.")) return PRIMARY;
-  if (url.hostname.startsWith("api.edge.")) return PRIMARY; // redirect mindset
+  if (url.hostname.startsWith("api.edge.")) return PRIMARY;
   return PRIMARY;
 }
 
@@ -66,6 +67,14 @@ function meta() {
     version: VERSION,
     lab: true,
     pre_testnet: true,
+    not_mainnet: true,
+    n: 2,
+    mesh_member: true,
+    mesh_provision: true,
+    f_max: 0,
+    origin: "edge",
+    continuity: "session",
+    oracle_live: false,
     managed_by: {
       node_id: EDGE_ID,
       agent: AGENT,
@@ -73,12 +82,18 @@ function meta() {
       desk: DESK,
     },
     linked_fog: FOG_ID,
+    sister: {
+      api_fog: FOG_API,
+      note: "MacOS Fog installer + node_id 2FA. Secrets stay on the Mac. Does not replace this registry.",
+    },
     policy: {
       secrets_stored: false,
       va_key_hashes_only: true,
       public_read: true,
       write: "lab_registration_only",
       va: "optional_account_bearer — does not replace zero-auth registry",
+      fog_installer: FOG_API,
+      workers_dev: false,
       antifragile: true,
       auth: "none_for_read",
     },
@@ -107,18 +122,30 @@ const SEED = [
     name: "Calhegas Morais Fog status",
     type: "fog_status",
     status: "active",
-    base_url: "https://status.calhegasmorais.pt/",
-    health_url: "https://status.calhegasmorais.pt/health",
+    base_url: FOG_PUBLIC,
+    health_url: FOG_PUBLIC + "/health",
     managed_by: FOG_ID,
+  },
+  {
+    id: "api-fog-installer",
+    name: "Fog Node MacOS installer API",
+    type: "fog_installer",
+    status: "active",
+    base_url: FOG_API,
+    health_url: FOG_API + "/health",
+    spec: FOG_API + "/SPEC.txt",
+    bootstrap: FOG_API + "/v1/bootstrap/challenge",
+    managed_by: FOG_ID,
+    note: "node_id + emailed 2FA. GitHub/CF tokens never posted here.",
   },
   {
     id: "gossip-mesh",
     name: "Fog gossip mesh API",
     type: "gossip",
     status: "active",
-    base_url: "https://calhegasmorais.pt/api/v1/gossip",
-    health_url: "https://calhegasmorais.pt/api/v1/gossip/health",
-    peers_url: "https://calhegasmorais.pt/api/v1/gossip/peers",
+    base_url: GOSSIP,
+    health_url: GOSSIP + "/health",
+    peers_url: GOSSIP + "/peers",
     managed_by: FOG_ID,
   },
   {
@@ -168,10 +195,10 @@ function openApiDoc(ORIGIN) {
       title: "api-edge StrataMesh integration management",
       version: VERSION,
       description:
-        "Lab integration registry managed by EDGE-GROK / grok@calhegasmorais.pt. Read is public. Write is lab registration only. No authentication for GET. Never send secrets.",
+        "Lab integration registry + optional personal VA. Mesh honesty n=2 (this Edge + Mac Fog), f_max=0, oracle_live=false. Fog installer is a different host: https://api-fog.calhegasmorais.pt. Read is public. Write is lab registration only. Never send secrets. Do not call workers.dev.",
       contact: { email: AGENT, url: DESK },
     },
-    servers: [{ url: ORIGIN }, { url: PRIMARY }, { url: WORKERS }],
+    servers: [{ url: ORIGIN }, { url: PRIMARY }],
     paths: {
       "/": {
         get: {
@@ -293,16 +320,18 @@ function fullSpecText(ORIGIN) {
 ================================================================================
 Version: ${VERSION}
 Primary host: ${PRIMARY}
-Workers host: ${WORKERS}
 This origin: ${ORIGIN}
-Managed by: ${EDGE_ID} / ${AGENT} (external_assistant)
+Managed by: ${EDGE_ID} / ${AGENT} (external_assistant, continuity=session)
 Desk: ${DESK}
 Fog: ${FOG_ID}
-Lab / pre-testnet: true
+Fog installer API: ${FOG_API}
+Lab / pre-testnet: true · not mainnet
+Mesh honesty: n=2 · mesh_member=true (this Edge + Mac Fog) · f_max=0 · oracle_live=false
 Authentication for all GET endpoints: NONE
 Authentication for POST /v1/integrations: NONE (public lab registration)
 Write token: DOES NOT EXIST — never ask operator for Bearer/API keys for this registry
-Secrets stored on this API: NONE
+Secrets stored on this API: NONE (VA key hashes only)
+workers.dev: DO NOT CALL
 Webhook/callback: OPTIONAL field webhook_url only; not required to register
 ================================================================================
 
@@ -322,7 +351,7 @@ to EDGE-GROK and the Calhegas Morais Fog graph. Public read. Lab registration wr
 7) ${ORIGIN}/v1/integrations
 8) ${ORIGIN}/health
 
-Also valid on ${PRIMARY} and ${WORKERS}.
+Also valid on ${PRIMARY}. Fog hardware install is ${FOG_API}, not this host.
 
 3. ENDPOINTS AND METHODS
 ------------------------
@@ -346,6 +375,9 @@ GET  /sitemap.xml              Lists SPEC/README/openapi for crawlers
 GET  /v1/va/instructions.txt   Personal VA setup (AI-readable). Does NOT replace this registry.
 GET  /v1/va/me                  Account VA identity (Bearer smva_)
 POST /v1/va/act                 Allow-listed dashboard remote control (Bearer smva_)
+GET  /v1/mesh                   Live Fog / Edge / Gossip / api-fog probes
+
+Fog installer (different host): ${FOG_API}/SPEC.txt
 
 4. AUTHENTICATION / AUTHORIZATION
 ---------------------------------
@@ -378,6 +410,7 @@ Mesh gossip listing still requires fog health-check of a public /health URL.
 - Seed integrations cannot be deleted
 - No OAuth, no payment rails, no mainnet claims
 - Prefer ${PRIMARY} (hyphen). Nested host api.edge may fail TLS.
+- Fog MacOS installer lives on ${FOG_API} (node_id + 2FA). Do not POST ghp_/cfat_ here.
 
 7. OPENAPI (EMBEDDED JSON)
 --------------------------
@@ -390,7 +423,9 @@ Desk llms: ${DESK}/llms.txt
 SDK: https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md
 Paste: https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/PASTE-INTO-AGENT.md
 Gossip peers: https://calhegasmorais.pt/api/v1/gossip/peers
-Fog status: https://status.calhegasmorais.pt/
+Fog public: ${FOG_PUBLIC}/health
+Fog installer: ${FOG_API}/SPEC.txt
+Gossip: ${GOSSIP}
 
 END OF SPEC
 `;
@@ -428,11 +463,13 @@ Users and SCAs only. Lab n=1. mesh_member=false.
 
 ## Hosts
 Primary: ${PRIMARY}
-Workers: ${WORKERS}
-Avoid broken TLS on api.edge (use api-edge with hyphen).
+Fog installer: ${FOG_API}
+Avoid broken TLS on api.edge (use api-edge with hyphen). Never call *.workers.dev.
 
 ## Rules
-Lab only. No secrets. mesh_member false until fog checks public /health.
+Lab n=2 · this Edge API is mesh_member=true · f_max=0 · oracle_live=false.
+Personal VA accounts stay mesh_member=false.
+Hardware Fog install is ${FOG_API}, not this host.
 `;
 }
 
@@ -453,6 +490,8 @@ function catalog(ORIGIN) {
       readme_html: ORIGIN + "/README",
       va_instructions: ORIGIN + "/v1/va/instructions.txt",
       va_me: ORIGIN + "/v1/va/me",
+      mesh: ORIGIN + "/v1/mesh",
+      fog_installer: FOG_API + "/v1/install",
     },
     desk: { home: DESK, health: DESK + "/health" },
     bot_fetch_order: [
@@ -641,8 +680,11 @@ const VA_CONTROLS = [
 function vaInstructions(ORIGIN) {
   return `# Personal Virtual Assistant — api-edge.calhegasmorais.pt
 
-Lab n=1 · mesh_member=false · oracle_live=false · no STRATA mint
+Lab mesh n=2 (EDGE session + Mac Fog) · this VA is NOT a mesh member.
+oracle_live=false · f_max=0 · no STRATA mint
 This surface is OPTIONAL and does NOT replace the unlinked open registry.
+Fog hardware installer is a different host: ${FOG_API}/SPEC.txt
+
 
 Open registry (no account, no Bearer):
   ${ORIGIN}/SPEC.txt
@@ -1036,6 +1078,31 @@ async function listEdgeHeartbeats(env) {
 }
 
 
+
+async function probeMesh() {
+  const targets = [
+    { id: "fog", url: FOG_PUBLIC + "/health" },
+    { id: "edge", url: DESK + "/health" },
+    { id: "gossip", url: GOSSIP + "/health" },
+    { id: "api_fog", url: FOG_API + "/health" },
+  ];
+  const out = {};
+  for (const t of targets) {
+    const r = await fetchJson(t.url, {}, 1500);
+    const d = r.data || {};
+    out[t.id] = {
+      ok: !!r.ok,
+      http: r.http,
+      origin: d.origin || null,
+      n: d.n ?? null,
+      mesh_member: d.mesh_member ?? null,
+      version: d.version || d.service || null,
+      error: r.error || null,
+    };
+  }
+  return out;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -1059,7 +1126,7 @@ export default {
       return text(`User-agent: *\nAllow: /\nAllow: /SPEC.txt\nAllow: /instructions.txt\nAllow: /openapi.txt\nAllow: /openapi.json\nAllow: /llms.txt\nAllow: /README\nAllow: /v1/\nAllow: /health\nCrawl-delay: 1\nSitemap: ${ORIGIN}/sitemap.xml\n`);
     }
     if (path === "/sitemap.xml") {
-      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations", "/v1/va/instructions.txt"];
+      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations", "/v1/va/instructions.txt", "/v1/mesh"];
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
           urls.map((u) => `  <url><loc>${ORIGIN}${u}</loc></url>`).join("\n") +
@@ -1092,6 +1159,10 @@ export default {
       return listEdgeHeartbeats(env);
     }
 
+    if (path === "/v1/mesh") {
+      const probes = await probeMesh();
+      return json({ ok: true, ...meta(), probes, timestamp: new Date().toISOString() }, 200, "no-store");
+    }
     if (path === "/health" || path === "/v1/health") {
       return json({ ...meta(), timestamp: new Date().toISOString() }, 200, "no-store");
     }
@@ -1236,8 +1307,16 @@ export default {
         personal_va: {
           optional: true,
           replaces_open_registry: false,
+          mesh_member: false,
           instructions: ORIGIN + "/v1/va/instructions.txt",
         },
+        sister: {
+          api_fog: FOG_API,
+          install: FOG_API + "/v1/install",
+          spec: FOG_API + "/SPEC.txt",
+          note: "MacOS Fog installer. node_id + 2FA. Secrets stay local.",
+        },
+        mesh: { n: 2, mesh_member: true, f_max: 0, oracle_live: false, origin: "edge" },
         bot_fetch_order: [
           ORIGIN + "/SPEC.txt",
           ORIGIN + "/v1/install-guide",
@@ -1253,7 +1332,7 @@ export default {
 
     return json({
       error: "not_found",
-      try: ["/SPEC.txt", "/README", "/openapi.txt", "/v1/va/instructions.txt", "/health", "/v1/integrations"],
+      try: ["/SPEC.txt", "/README", "/openapi.txt", "/v1/va/instructions.txt", "/health", "/v1/integrations", "/v1/mesh", FOG_API + "/SPEC.txt"],
     }, 404, "no-store");
   },
 };

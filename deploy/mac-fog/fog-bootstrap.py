@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Fog Node bootstrap wizard (macOS). Terminal prompts (pop-ups optional via FOG_DIALOGS=1)."""
+"""Fog Node bootstrap wizard (macOS).
+
+Identity API: https://api-fog.calhegasmorais.pt
+  POST /fog/bootstrap/challenge|verify|session
+Secrets (GitHub PAT, CF token, tunnel token) stay in ~/.config/stratamesh — never posted.
+Override host with FOG_AUTH_BASE. Pop-ups optional via FOG_DIALOGS=1.
+"""
 from __future__ import annotations
 
 import json
@@ -10,7 +16,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-AUTH = os.environ.get("FOG_AUTH_BASE", "https://calhegasmorais.pt/api/auth").rstrip("/")
+AUTH = os.environ.get("FOG_AUTH_BASE", "https://api-fog.calhegasmorais.pt").rstrip("/")
+AUTH_FALLBACK = "https://calhegasmorais.pt/api/auth"
 HOME = Path.home()
 FOG = Path(os.environ.get("STRATAMESH_HOME") or (HOME / "StrataMesh")) / "fog"
 SECRETS = HOME / ".config" / "stratamesh"
@@ -122,6 +129,7 @@ def ensure_repo() -> None:
 
 
 def main() -> int:
+    global AUTH
     ensure_repo()
     print()
     print("  STRATAMESH LAB")
@@ -148,6 +156,11 @@ def main() -> int:
         if not node_id:
             return 1
         ch = http_json("POST", AUTH + "/fog/bootstrap/challenge", {"node_id": node_id, "lang": "pt"})
+        if not ch.get("success") and AUTH.rstrip("/") != AUTH_FALLBACK:
+            print("api-fog challenge missed, retrying apex auth…")
+            ch = http_json("POST", AUTH_FALLBACK + "/fog/bootstrap/challenge", {"node_id": node_id, "lang": "pt"})
+            if ch.get("success"):
+                AUTH = AUTH_FALLBACK  # noqa: local reuse of module-level name
         if not ch.get("success"):
             print("Falha 2FA:", ch.get("error") or ch)
             return 1

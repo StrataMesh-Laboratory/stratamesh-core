@@ -1,0 +1,4 @@
+name = "stratamesh-edge-api"
+main = "stratamesh-edge-api.js"
+compatibility_date = "2024-09-01"
+workers_dev = false
