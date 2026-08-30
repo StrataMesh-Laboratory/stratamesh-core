@@ -26,5 +26,10 @@
     "stratamesh-edge-grok": "workers/stratamesh-edge-grok.js",
     "stratamesh-auth": "workers/stratamesh-auth.js",
     "stratamesh-agora": "workers/stratamesh-agora.js"
+  },
+  "packages": {
+    "acb-debugger": "workers/packages/acb-debugger.js",
+    "cognition-lobes": "shared/cognition-lobes.js",
+    "stasis-metabolism": "shared/cognition-lobes.js"
   }
 }

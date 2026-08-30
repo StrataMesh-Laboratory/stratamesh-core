@@ -12,7 +12,7 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.6-lab-nofog";
+const VERSION = "10.24.7-lab-debug";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -3406,16 +3406,46 @@ button#go:disabled{opacity:.5}
 
 
 
-/** Lab n=1: POST /chat returns honest local JSON immediately. Skip tick() and LLM. */
+/** Lab chat: Fog /health + academy debugger. Never echo-only. Worker does not infer. */
 function labInstantPulseId() {
   return "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
 }
 
-function labInstantChat(message, body) {
+async function labInstantChat(message, body, env) {
   const msg = String(message || "").trim();
-  const reply = msg
-    ? ("Orquestrador CMN (lab). Pulso aceite imediatamente. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false. Recebi: «" + msg.slice(0, 280) + "».")
-    : "Orquestrador CMN (lab). Pulso aceite imediatamente. SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.";
+  let fog = { skipped: true, reason: "probe failed" };
+  try {
+    const r = await fetch("https://fog.calhegasmorais.pt/health", {
+      headers: { Accept: "application/json", "User-Agent": "SCA-ORCH-CMN-001" },
+      signal: AbortSignal.timeout(1500),
+    });
+    const j = await r.json();
+    fog = { skipped: false, ok: r.ok, n: j.n, mesh_member: j.mesh_member, version: j.version, origin: j.origin, oracle_live: j.oracle_live === true, http: r.status };
+  } catch (e) {
+    fog = { skipped: true, ok: false, error: String(e.message || e).slice(0, 80) };
+  }
+  try {
+    const r = await fetch("https://academy.calhegasmorais.pt/v1/debug/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ message: msg, acb_id: "ACB-ORCH-CMN-001", lang: (body && body.lang) || "pt" }),
+      signal: AbortSignal.timeout(2500),
+    });
+    const j = await r.json();
+    if (j && j.reply) {
+      j.pulse_id = j.pulse_id || labInstantPulseId();
+      j.version = VERSION;
+      j.fog = fog;
+      if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
+        j.channel = "whatsapp";
+        j.eni_whatsapp = "+44 7404 796458";
+      }
+      return j;
+    }
+  } catch (_) {}
+  const n = fog.n;
+  const member = fog.mesh_member;
+  const reply = "Orquestrador CMN (lab-debug). Fog n=" + String(n) + " mesh_member=" + String(member) + " version=" + String(fog.version || "?") + ". Lóbulos: academy cognition-lobes. Não ecoo a mensagem. Pedido registado (" + msg.slice(0, 120) + ").";
   const out = {
     reply,
     clearance: "public",
@@ -3426,13 +3456,13 @@ function labInstantChat(message, body) {
     node_id: "FOG-NODE-PT-CM-001",
     sca_id: "SCA-ORCH-CMN-001",
     version: VERSION,
-    source: "orch-chat-lab",
-    n: 1,
-    mesh_member: false,
-    oracle_live: false,
+    source: "orch-chat-debug",
+    n: n,
+    mesh_member: member,
+    oracle_live: !!fog.oracle_live,
     persistence: "ephemeral",
-    skipped: ["tick", "llm", "fog"],
-    fog: { skipped: true, mesh_member: false, oracle_live: false, reason: "lab constants; Fog /health not awaited" },
+    skipped: fog.skipped ? ["academy_debug"] : [],
+    fog,
   };
   if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
     out.channel = "whatsapp";
@@ -3597,8 +3627,8 @@ export default {
         if (!body.lang) body.lang = "pt";
       }
       const msgText = body.message || body.text || body.prompt || "";
-      // Lab n=1: skip tick() + LLM + Fog /health. SPA 1500ms Fog race was the <400ms leak (workerd hop).
-      const out = labInstantChat(msgText, body);
+      // Lab-debug: Fog /health + academy debugger (not echo). SPA 1500ms Fog race still avoided (1.5s cap).
+      const out = await labInstantChat(msgText, body, env);
       return json(out);
     }
 
