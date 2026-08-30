@@ -45,6 +45,13 @@ HEALTH = list(_PROBES.get("health") or [
 ])
 FOG_STATUS = _PROBES.get("fog_status") or f"https://fog.{ZONE}/status"
 UA = _PROBES.get("ua") or "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)"
+# EDGE hop is session (non-continuous). 530 origin-down / 429 CF 1015 are expected, not Fog P0.
+SESSION_EXPECTED_HTTP = {
+    str(k): {int(x) for x in (v or [])}
+    for k, v in (_PROBES.get("session_expected_http") or {
+        f"https://edge.{ZONE}/health": [429, 530],
+    }).items()
+}
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
 CF_DAILY = 100_000
 
@@ -201,6 +208,8 @@ def markdown(report: dict[str, Any]) -> str:
             if isinstance(p.get("body"), dict)
             else ""
         )
+        if p.get("session_expected"):
+            note = f"session-expected http={p.get('http')} (EDGE hop, not Fog P0)"
         lines.append(f"| `{p['url']}` | {p.get('http', 0)} | {p.get('ms', 0)} | {note} |")
     metab = report.get("metabolism")
     if metab:
@@ -221,6 +230,10 @@ def main() -> int:
         if "workers.dev" in (p.get("url") or "").lower():
             fails.append(f"workers.dev {p['url']}")
         if not p.get("ok") and p["url"] in CORE_HEALTH:
+            allowed = SESSION_EXPECTED_HTTP.get(p["url"]) or set()
+            if int(p.get("http") or 0) in allowed:
+                p["session_expected"] = True
+                continue
             fails.append(f"health down {p['url']} http={p.get('http')} {p.get('error') or ''}")
 
     email = os.environ.get("CLOUDFLARE_EMAIL") or "amcmorais@icloud.com"
@@ -250,6 +263,11 @@ def main() -> int:
         "never_workers_dev": True,
         "no_sixth_cron": True,
         "no_publish": True,
+        "session_expected": [
+            {"url": p["url"], "http": p.get("http")}
+            for p in probes
+            if p.get("session_expected")
+        ],
     }
 
     md = markdown(report)

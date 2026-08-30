@@ -18,5 +18,8 @@
     "https://fund.calhegasmorais.pt/health",
     "https://calhegasmorais.pt/api/v1/holons/health"
   ],
-  "fog_status": "https://fog.calhegasmorais.pt/status"
+  "fog_status": "https://fog.calhegasmorais.pt/status",
+  "session_expected_http": {
+    "https://edge.calhegasmorais.pt/health": [429, 530]
+  }
 }

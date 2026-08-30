@@ -1,4 +1,5 @@
 # $0 Actions ping. Does not start localhost. EDGE assistant persist is the boot.
+# 530/429 = session hop down (non-continuous expected). Not a Fog P0. Not FAIL.
 name: edge-uptime
 on:
   schedule:
@@ -11,13 +12,24 @@ jobs:
     steps:
       - name: ping public edge
         run: |
-          set -e
-          code=$(curl -sS -m 12 -o /tmp/e.json -w "%{http_code}" https://edge.calhegasmorais.pt/health || echo 000)
+          code=$(curl -sS -m 12 -o /tmp/e.body -w "%{http_code}" https://edge.calhegasmorais.pt/health || echo 000)
           echo "http=$code"
-          python3 - <<'PY'
+          case "$code" in
+            200)
+              python3 - <<'PY'
           import json
-          d=json.load(open("/tmp/e.json"))
+          d=json.load(open("/tmp/e.body"))
           print("node", d.get("node_id"), "n", d.get("n"), "member", d.get("mesh_member"),
                 "origin", d.get("origin"), "runtime", d.get("runtime") or d.get("substrate"))
           PY
-          test "$code" = "200"
+              ;;
+            429|530)
+              echo "EDGE session-expected http=$code (non-continuous hop; not Fog P0)"
+              exit 0
+              ;;
+            *)
+              echo "EDGE unexpected http=$code"
+              head -c 240 /tmp/e.body || true
+              exit 1
+              ;;
+          esac
