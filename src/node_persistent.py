@@ -40,6 +40,7 @@ from acb import ACBRegistry
 from pq_keys import PQKeyRegistry
 from resource_meter import sample as resource_sample
 from host_fingerprint import fingerprint as host_fingerprint
+from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
 
 
 class PersistentFogNode:
@@ -66,6 +67,8 @@ class PersistentFogNode:
         self.started_at = time.time()
         self.lock = threading.Lock()
         self.db_path = db_path
+        self.workerd = WorkerdPlugin()
+        self.workerd.attach()
 
     def submit(self, tx_type: str = "standard", cid: str | None = None) -> dict:
         with self.lock:
@@ -413,17 +416,12 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
         }
 
     def status(self) -> dict:
+        wrd = self.workerd.snapshot() if getattr(self, "workerd", None) else None
         with self.lock:
             self.spas.apply_opt_out_grace()
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
-            agora_book = self.agora.book()
-            if not isinstance(agora_book, dict):
-                agora_book = {}
-            agora_out = dict(agora_book)
-            # n=1: do not report a seed scalar as live settlements
-            agora_out["settlements"] = {"unavailable": "n<2"}
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
@@ -444,17 +442,13 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
                     "service_credit": self.svc.summary(),
-                    "agora": agora_out,
-                    "consensus": {
-                        "n": 1,
-                        "f_max": 0,
-                        "note": "lab n=1; Byzantine f_max=0 until n>=3",
-                    },
+                    "agora": self.agora.book(),
                     "nfts": self.nfts.summary(),
                     "governance": self.gov.summary(),
                     "sandbox": self.sandbox.summary(),
                     "acbs": self.acbs.summary(),
                     "pq_keys": self.pq.summary(),
+                    "workerd": wrd,
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -490,20 +484,6 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def do_HEAD(self):
-        path = urlparse(self.path).path
-        if path in (
-            "/", "/status", "/v1/status", "/health", "/api/v1/health",
-            "/spa", "/gossip", "/inv", "/resources", "/tx",
-        ):
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-        else:
-            self.send_response(404)
-            self.end_headers()
-
     def do_GET(self):
         path = urlparse(self.path).path
         accept = (self.headers.get("Accept") or "")
@@ -513,16 +493,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {
-                "ok": True,
-                "version": "0.2.3-lab",
-                "node_id": NODE.node_id,
-                "lab": True,
-                "n": 1,
-                "mesh_member": False,
-                "oracle_live": False,
-                "substrate": "local-process",
-            })
+            self._json(200, {"ok": True})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":
@@ -578,6 +549,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.sandbox.summary())
         elif path == "/acb":
             self._json(200, NODE.acbs.summary())
+        elif path in ("/workerd", "/workerd/health"):
+            self._json(200, NODE.workerd.snapshot() if NODE and NODE.workerd else {"ok": False})
         elif path == "/pq":
             self._json(200, NODE.pq.summary())
         else:
@@ -587,6 +560,13 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", 0))
         raw = self.rfile.read(length) if length else b"{}"
+
+        if path in ("/workerd/reboot", "/workerd/restart"):
+            if not is_loopback_not_tunnel(self):
+                self._json(403, {"ok": False, "error": "local_only"})
+                return
+            self._json(200, NODE.workerd.reboot())
+            return
 
         if path == "/submit":
             try:
@@ -825,8 +805,8 @@ def main():
     NODE = PersistentFogNode(node_id=args.id, db_path=args.db)
     server = HTTPServer(("0.0.0.0", args.port), Handler)
     print(f"Persistent Fog Node {args.id} on :{args.port}  db={args.db}")
-    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution")
-    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip")
+    print("  GET /status /health /inv /tx /tx/{id} /gossip /resources /spa /finality /contribution /workerd")
+    print("  POST /submit /spa/register /token/mint /agora/order /nft/mint /nft/transfer /gossip /workerd/reboot")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
