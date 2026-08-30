@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
-const VERSION = '2.3.8-n2';
+const VERSION = '2.3.9-n2-probe';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
 const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
@@ -42,7 +42,8 @@ async function probeFogProcess() {
     oracle_live: false,
     mac_live: false,
     mesh_member: false,
-    note: 'Trusted Mac Fog via workerd hop (macbook-server). mesh_member gated on second host_id.',
+    n: 2,
+    note: 'Trusted Mac Fog via workerd. Public 1033 = tunnel down, not n=1.',
   };
   try {
     const ac = new AbortController();
@@ -65,8 +66,10 @@ async function probeFogProcess() {
       if (typeof data.lab === 'boolean') fog.lab = data.lab;
       if (typeof data.mac_live === 'boolean') fog.mac_live = data.mac_live;
       if (typeof data.mesh_member === 'boolean') fog.mesh_member = data.mesh_member;
+      if (typeof data.n === 'number') fog.n = data.n;
       if (data.origin) fog.origin = data.origin;
       if (data.runtime) fog.runtime = data.runtime;
+      if (data.plugin) fog.plugin = data.plugin;
     }
     fog.status = r.ok ? 'live' : 'degraded';
   } catch (_) {
@@ -111,7 +114,11 @@ async function livePeers(env, request) {
         role: 'edge',
         status: 'live',
         lab: true,
-        substrate: (data && data.substrate) || 'cloudflare-worker',
+        n: (data && data.n) != null ? data.n : 2,
+        mesh_member: (data && data.mesh_member) !== false,
+        origin: data && data.origin,
+        runtime: data && data.runtime,
+        substrate: (data && data.origin === 'edge') ? 'workerd-serverless' : ((data && data.substrate) || 'cloudflare-worker'),
         endpoint: edgeUrl,
         version: data && data.version,
         health_http: r.status,

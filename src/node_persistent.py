@@ -435,6 +435,11 @@ footer{{margin-top:2rem;color:var(--muted);font-size:.78rem}}
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     **mesh_flags(),
+                    "consensus": {
+                        "n": mesh_flags()["n"],
+                        "f_max": mesh_flags()["mesh_provision"]["f_max"],
+                        "note": "n=2 Fog Mac + EDGE-GROK (session). f_max=0 until n>=3",
+                    },
                     "oracle_vm": False,
                     "uptime_seconds": int(time.time() - self.started_at),
                     "storage": {"backend": "sqlite", "path": self.db_path},

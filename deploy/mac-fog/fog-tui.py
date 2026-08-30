@@ -88,6 +88,18 @@ def draw(msg: str = "") -> None:
     spa = st.get("spa") if isinstance(st.get("spa"), dict) else {}
     tok = st.get("token") if isinstance(st.get("token"), dict) else {}
     cons = st.get("consensus") if isinstance(st.get("consensus"), dict) else {}
+    prov = st.get("mesh_provision") if isinstance(st.get("mesh_provision"), dict) else {}
+    n = hop.get("n") if hop.get("n") is not None else st.get("n")
+    if n is None:
+        n = cons.get("n") if cons.get("n") is not None else prov.get("n")
+    fmax = cons.get("f_max")
+    if fmax is None:
+        fmax = prov.get("f_max")
+    member = hop.get("mesh_member")
+    if member is None:
+        member = st.get("mesh_member")
+    if member is None:
+        member = prov.get("mesh_member")
     load = os.getloadavg()
     free, wired, active = mem()
     db = FOG / "data/fog.db"
@@ -107,7 +119,7 @@ def draw(msg: str = "") -> None:
           " · fog :8787", (OK + " ok" + RST) if st.get("status") else (BAD + " down" + RST))
     print(" uptime   ", ago(st.get("uptime_seconds")), DIM + "reboots" + RST, wr.get("reboots", 0))
     print(" mesh     ", "n=%s f_max=%s member=%s oracle=%s" % (
-        cons.get("n"), cons.get("f_max"), st.get("mesh_member"), st.get("oracle_live")))
+        n, fmax, member, st.get("oracle_live")))
     print(" dag      ", "tx=%s tips=%s" % (dag.get("transaction_count"), dag.get("tip_count")),
           DIM + str((dag.get("tips_sample") or [""])[0]) + RST)
     print(" spa      ", "total=%s active=%s" % (spa.get("total"), spa.get("active")),
