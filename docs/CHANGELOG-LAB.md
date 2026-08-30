@@ -1,3 +1,10 @@
+## 2026-08-30 — sandbox orbit + tap + stick Y (0.4.5-destyle)
+- **Orbit** presence: drag / right stick / pinch-wheel around the avatar. C / Orbit toggle. V inhabit.
+- **Tap floor to walk**, **tap object to act** (walk-then-tool). CRT tap opens GNU. Door tap uses exit.
+- Move stick **up/down inverted** so push-up walks forward of look (left/right unchanged). Look via canvas drag + right stick.
+- Workbench: desk+CRT, window fill, rug, beams, door frame, shelves. Street lanterns + windows. Agora columns + stalls.
+- Destyle tokens kept. 3D CRT phosphor 0x2f9e8a. Never Fog origin. Never workers.dev. One Worker PUT.
+
 ## 2026-08-30 — sandbox phone HUD (0.4.4-destyle)
 - Phone no longer stacks desktop chrome on the analog sticks (identity chip + 1–5 + WASD prompt + GNU/Atlas overlapped walk/look).
 - Compact title · Menu sheet · Use / hold-to-cycle tool / GNU dock. Sticks sit in the corners above the home indicator.
