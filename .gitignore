@@ -17,3 +17,7 @@ PRIVATE.gitignore/
 persistent/
 **/GROK_DATA_SECRETS.pdf
 **/GROK DATA SECRETS.pdf
+
+*.kdbx
+*.kdbx.master
+lab.kdbx
