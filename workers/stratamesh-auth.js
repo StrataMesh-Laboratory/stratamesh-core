@@ -49,6 +49,81 @@ export default {
           note: 'PAYG subsistence. Resource actions burn to #0. Unfunded = NFTs only. Not a mint.',
         };
       }
+      async function ensureAccountGraph() {
+        if (!env.AUTH_DB) return;
+        await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS account_events (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER,
+          wallet TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          pole TEXT,
+          amount REAL DEFAULT 0,
+          action TEXT,
+          counterparty TEXT,
+          dag_tx TEXT,
+          ts TEXT DEFAULT (datetime('now'))
+        )`).run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN minted_poc REAL DEFAULT 0').run().catch(() => {});
+        await env.AUTH_DB.prepare('ALTER TABLE users ADD COLUMN burned_pos REAL DEFAULT 0').run().catch(() => {});
+      }
+      function isPoleWallet(w) {
+        const a = String(w || '');
+        return a === '#mint' || a === '#0' || a === 'FOG-NODE-PT-CM-001' || a === 'treasury';
+      }
+      async function ensureUserWallet(user) {
+        if (!user) return null;
+        const uid = user.id || user.user_id;
+        if (user.strata_address && !isPoleWallet(user.strata_address)) return user.strata_address;
+        const w = 'sm:u:' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+        await env.AUTH_DB.prepare('UPDATE users SET strata_address = ? WHERE id = ?').bind(w, uid).run();
+        await ensureAccountGraph();
+        const eid = 'open_' + crypto.randomUUID().slice(0, 10);
+        await env.AUTH_DB.prepare(
+          'INSERT INTO account_events (id, user_id, wallet, kind, pole, amount, action) VALUES (?,?,?,?,?,?,?)'
+        ).bind(eid, uid, w, 'open', null, 0, 'account_open').run().catch(() => {});
+        user.strata_address = w;
+        return w;
+      }
+      async function recordAccountEvent(userId, wallet, kind, pole, amount, action, counterparty) {
+        await ensureAccountGraph();
+        const id = (kind || 'ev') + '_' + crypto.randomUUID().slice(0, 10);
+        await env.AUTH_DB.prepare(
+          'INSERT INTO account_events (id, user_id, wallet, kind, pole, amount, action, counterparty) VALUES (?,?,?,?,?,?,?,?)'
+        ).bind(id, userId, wallet, kind, pole || null, amount || 0, action || null, counterparty || null).run().catch(() => {});
+        return id;
+      }
+      async function lifecycleView(user) {
+        await ensureAccountGraph();
+        const wallet = await ensureUserWallet(user);
+        const uid = user.id || user.user_id;
+        const minted = Number(user.minted_poc || 0);
+        const burned = Number(user.burned_pos || 0);
+        const bal = Number(user.token_balance || 0);
+        let events = [];
+        try {
+          const rows = await env.AUTH_DB.prepare(
+            'SELECT id, kind, pole, amount, action, counterparty, ts FROM account_events WHERE user_id = ? ORDER BY ts DESC LIMIT 50'
+          ).bind(uid).all();
+          events = (rows && rows.results) || [];
+        } catch (_) {}
+        return {
+          ok: true,
+          user_id: uid,
+          email: user.email,
+          wallet,
+          minted_from_mint: minted,
+          burned_to_zero: burned,
+          circulating: bal,
+          mode: paygMode(bal),
+          static_only: paygMode(bal) === 'static',
+          dashboard: true,
+          poles: { mint: '#mint', burn: '#0' },
+          node_treasury: 'FOG-NODE-PT-CM-001',
+          citizen: true,
+          events,
+          note: 'Individuated #mint → wallet → #0. Hire is transfer. Fog treasury is not this account.',
+        };
+      }
 
       async function ensureLoginTrustTable() {
         await env.AUTH_DB.prepare(`CREATE TABLE IF NOT EXISTS login_trust (
@@ -1441,13 +1516,21 @@ export default {
           }
           if (!user) {
             const doc_hash = 'pending_' + crypto.randomUUID().replace(/-/g, '');
+            const wallet = 'sm:u:' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
             await env.AUTH_DB.prepare(
               'INSERT INTO users (email, password_hash, strata_address, verification_status, doc_type, doc_hash, clearance_level, email_confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-            ).bind(email, '', null, 'pending', 'passport', doc_hash, 'basic', 0).run();
+            ).bind(email, '', wallet, 'pending', 'passport', doc_hash, 'basic', 0).run();
             try {
               await env.AUTH_DB.prepare("UPDATE users SET terms_accepted_at = datetime('now'), terms_version = ?, username = ?, kyc_step = 0, panel_unlocked = 0 WHERE lower(email) = lower(?)").bind(body.terms_version || 'node-1.0', username, email).run();
             } catch (_) {}
             user = await env.AUTH_DB.prepare('SELECT id, email, verification_status, clearance_level FROM users WHERE lower(email) = lower(?)').bind(email).first();
+            if (user) {
+              await ensureAccountGraph();
+              const wrow = await env.AUTH_DB.prepare('SELECT strata_address FROM users WHERE id = ?').bind(user.id).first();
+              if (wrow && wrow.strata_address) {
+                await recordAccountEvent(user.id, wrow.strata_address, 'open', null, 0, 'account_open', null);
+              }
+            }
           }
           const token = crypto.randomUUID() + '-' + crypto.randomUUID();
           await env.AUTH_DB.prepare(
@@ -1888,14 +1971,18 @@ export default {
         }
       }
 
-      if ((path === '/subsistence' || path === '/payg') && request.method === 'GET') {
+      if ((path === '/subsistence' || path === '/payg' || path === '/lifecycle') && request.method === 'GET') {
         try {
           const authHeader = request.headers.get('Authorization') || '';
           if (!authHeader) return new Response(JSON.stringify({ ok: false, dashboard: false, error: 'anonymous — register to instantiate a dashboard' }), { status: 401, headers: corsHeaders });
           const token = authHeader.replace(/^Bearer\s+/i, '');
           const th = await sha256Hex(token);
-          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
-          if (user) return new Response(JSON.stringify(paygView({ id: user.user_id, email: user.email, strata_address: user.strata_address, token_balance: user.token_balance })), { headers: corsHeaders });
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (user) {
+            const wallet = await ensureUserWallet(user);
+            const lv = await lifecycleView({ ...user, strata_address: wallet, token_balance: user.token_balance, minted_poc: user.minted_poc, burned_pos: user.burned_pos });
+            return new Response(JSON.stringify(lv), { headers: corsHeaders });
+          }
           const staff = await env.AUTH_DB.prepare("SELECT s.*, st.email FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staff) return new Response(JSON.stringify({ ok: true, dashboard: true, type: 'staff', email: staff.email, mode: 'live', static_only: false, payg_exempt: true, note: 'staff operator, not a citizen PAYG rail' }), { headers: corsHeaders });
           return new Response(JSON.stringify({ ok: false, dashboard: false, error: 'Invalid session' }), { status: 401, headers: corsHeaders });
@@ -1916,7 +2003,7 @@ export default {
           const cost = Number(PAYG_RATES[action] != null ? PAYG_RATES[action] : 0.02);
           const staff = await env.AUTH_DB.prepare("SELECT s.*, st.email FROM sessions s JOIN staff st ON ABS(s.user_id) = st.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (staff) return new Response(JSON.stringify({ ok: true, mode: 'live', charged: 0, action, payg_exempt: true }), { headers: corsHeaders });
-          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (!user) return new Response(JSON.stringify({ ok: false, mode: 'deny', reason: 'Invalid session' }), { status: 401, headers: corsHeaders });
           const bal = Number(user.token_balance || 0);
           const mode = paygMode(bal);
@@ -1932,12 +2019,56 @@ export default {
             }), { status: 402, headers: corsHeaders });
           }
           const next = Math.round((bal - cost) * 1e6) / 1e6;
-          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ? WHERE id = ?').bind(next, user.user_id).run();
+          const wallet = await ensureUserWallet(user);
+          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ?, burned_pos = COALESCE(burned_pos,0) + ? WHERE id = ?').bind(next, cost, user.user_id).run();
           await env.AUTH_DB.prepare('INSERT INTO payg_ledger (user_id, action, amount, balance_after) VALUES (?,?,?,?)').bind(user.user_id, action, cost, next).run();
+          const dagTx = await recordAccountEvent(user.user_id, wallet, 'burn', '#0', cost, action, null);
+          if (env.TOKEN) {
+            try {
+              const burnUrl = new URL('https://token.internal/burn');
+              await env.TOKEN.fetch(new Request(burnUrl.toString(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account: wallet, amount: cost, reason: action, resource_class: 'payg' }),
+              }));
+            } catch (_) {}
+          }
           return new Response(JSON.stringify({
             ok: true, mode: paygMode(next), charged: cost, action, balance: next,
-            static_only: paygMode(next) === 'static', burn_pole: '#0', reason: 'burned_to_#0',
+            wallet, static_only: paygMode(next) === 'static', burn_pole: '#0', reason: 'burned_to_#0',
+            dag_tx: dagTx, minted: false,
           }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if ((path === '/lifecycle/transfer' || path === '/payg/transfer') && request.method === 'POST') {
+        try {
+          await ensurePayg();
+          const authHeader = request.headers.get('Authorization') || '';
+          if (!authHeader) return new Response(JSON.stringify({ ok: false, error: 'anonymous' }), { status: 401, headers: corsHeaders });
+          const token = authHeader.replace(/^Bearer\s+/i, '');
+          const th = await sha256Hex(token);
+          const body = await request.json().catch(() => ({}));
+          const to = String(body.to || body.recipient || '');
+          const amount = Number(body.amount || 0);
+          if (!to || !(amount > 0)) return new Response(JSON.stringify({ ok: false, error: 'to and amount > 0' }), { status: 400, headers: corsHeaders });
+          if (isPoleWallet(to)) return new Response(JSON.stringify({ ok: false, error: 'pole_not_transfer', mint: false }), { status: 403, headers: corsHeaders });
+          const user = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          if (!user) return new Response(JSON.stringify({ ok: false, error: 'Invalid session' }), { status: 401, headers: corsHeaders });
+          const from = await ensureUserWallet(user);
+          const bal = Number(user.token_balance || 0);
+          if (bal < amount + PAYG_FLOOR) return new Response(JSON.stringify({ ok: false, error: 'insufficient_subsistence', mint: false }), { status: 402, headers: corsHeaders });
+          const dest = await env.AUTH_DB.prepare('SELECT id, token_balance, strata_address FROM users WHERE strata_address = ?').bind(to).first();
+          if (!dest) return new Response(JSON.stringify({ ok: false, error: 'unknown_recipient' }), { status: 404, headers: corsHeaders });
+          const nextFrom = Math.round((bal - amount) * 1e6) / 1e6;
+          const nextTo = Math.round((Number(dest.token_balance || 0) + amount) * 1e6) / 1e6;
+          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ? WHERE id = ?').bind(nextFrom, user.user_id).run();
+          await env.AUTH_DB.prepare('UPDATE users SET token_balance = ? WHERE id = ?').bind(nextTo, dest.id).run();
+          await recordAccountEvent(user.user_id, from, 'transfer_out', null, amount, 'hire', to);
+          await recordAccountEvent(dest.id, to, 'transfer_in', null, amount, 'hire', from);
+          return new Response(JSON.stringify({ ok: true, from, to, amount, mint: false, reason: 'hire', balance: nextFrom }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: corsHeaders });
         }
@@ -1949,23 +2080,26 @@ export default {
           if (!authHeader) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { headers: corsHeaders, status: 401 });
           const token = authHeader.replace('Bearer ', '');
           const th = await sha256Hex(token);
-          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
+          const userSession = await env.AUTH_DB.prepare("SELECT s.*, u.email, u.clearance_level, u.verification_status, u.strata_address, u.token_balance, u.minted_poc, u.burned_pos, u.id as user_id FROM sessions s JOIN users u ON s.user_id = u.id WHERE (s.token_hash = ? OR s.token = ?) AND s.expires_at > datetime('now')").bind(th, token).first();
           if (userSession) {
+            const wallet = await ensureUserWallet(userSession);
+            const life = await lifecycleView({ ...userSession, strata_address: wallet });
             return new Response(JSON.stringify({ 
               success: true, 
               type: 'user',
               email: userSession.email,
               role: userSession.clearance_level || 'basic',
               clearance: userSession.clearance_level || 'basic',
-              wallet: userSession.strata_address,
+              wallet,
               balance: userSession.token_balance || 0,
               verification_status: userSession.verification_status,
               subsistence: paygView({
                 id: userSession.user_id,
                 email: userSession.email,
-                strata_address: userSession.strata_address,
+                strata_address: wallet,
                 token_balance: userSession.token_balance,
               }),
+              lifecycle: life,
             }), { headers: corsHeaders });
           }
           

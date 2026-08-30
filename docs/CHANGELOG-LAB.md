@@ -1,3 +1,8 @@
+## 2026-08-30 — Individuated #mint/#0 lifecycle
+- Each registered account is an on-graph subject: ACCOUNT open (not mint) → PoC #mint → PAYG #0 → hire TRADE.
+- DAG replay restores wallets from cid (`mint:#mint->wallet|amt|kind`). Fog treasury is not a citizen.
+- Auth `/lifecycle` + Token `GET /lifecycle?account=`. Dashboard shows minted/burned/events.
+
 ## 2026-08-30 — Registered-user PAYG subsistence
 - Dashboard is **registered-only**. Anonymous get a login/register gate (no instantiated panel).
 - Citizen wallets PAYG-burn STRATA to `#0` for resource actions (dashboard tick, orch, sandbox, VA, agora, NFT mint). Floor 0.1 → static NFTs only.

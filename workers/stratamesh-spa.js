@@ -1188,7 +1188,8 @@ function dashboardAppHtml(lang, me, sub) {
 <h1>${pt ? 'Painel da conta' : 'Account dashboard'}</h1>
 <p>${me.email || ''} · ${me.type || 'user'} · wallet <code>${me.wallet || '—'}</code></p>
 <p>${pt ? 'Saldo' : 'Balance'} <code id="bal">${bal}</code> STRATA · ${pt ? 'modo' : 'mode'} <code id="mode">${mode}</code> · floor 0.1</p>
-<p class="muted">${staticOnly ? (pt ? 'Sem subsistência: só NFT estáticos. Acções que gastam recursos estão bloqueadas.' : 'No subsistence: static NFTs only. Resource-spending actions are locked.') : (pt ? 'Serviços do Nó queimam STRATA da carteira para #0 (PAYG).' : 'Node services burn STRATA from the wallet to #0 (PAYG).')}</p>
+<p>${pt ? 'Ciclo' : 'Lifecycle'} #mint → <code id="minted">—</code> · #0 ← <code id="burned">—</code> · ${pt ? 'circulante' : 'circulating'} <code id="circ">${bal}</code></p>
+<p class="muted">${staticOnly ? (pt ? 'Sem subsistência: só NFT estáticos. Acções que gastam recursos estão bloqueadas.' : 'No subsistence: static NFTs only. Resource-spending actions are locked.') : (pt ? 'PdC credita esta carteira desde #mint. Serviços queimam para #0. Contratação é transferência, não emissão.' : 'PoC credits this wallet from #mint. Services burn to #0. Hire is transfer, not mint.')}</p>
 <div class="card">
   <p>${pt ? 'Acções com recurso' : 'Resource actions'}</p>
   <a class="btn ${staticOnly ? 'off' : ''}" data-act="orch_chat" href="/chat">${pt ? 'Orquestrador' : 'Orchestrator'}</a>
@@ -1200,6 +1201,10 @@ function dashboardAppHtml(lang, me, sub) {
   <p>${pt ? 'Dados estáticos (NFT) — sem queima' : 'Static data (NFT) — no burn'}</p>
   <div id="nfts">${pt ? 'A carregar…' : 'Loading…'}</div>
 </div>
+<div class="card">
+  <p>${pt ? 'Eventos on-graph' : 'On-graph events'}</p>
+  <div id="evs">${pt ? 'A carregar…' : 'Loading…'}</div>
+</div>
 <p><a href="/">${pt ? 'Início' : 'Home'}</a> · <button type="button" id="out">${pt ? 'Sair' : 'Sign out'}</button></p>
 <script>
 const TOKEN = localStorage.getItem('sm_token') || localStorage.getItem('token') || '';
@@ -1210,6 +1215,7 @@ async function tick(action) {
   const j = await r.json().catch(() => ({}));
   if (j.balance != null) document.getElementById('bal').textContent = j.balance;
   if (j.mode) document.getElementById('mode').textContent = j.mode;
+  if (j.balance != null) document.getElementById('circ').textContent = j.balance;
   if (j.mode === 'static' && !STATIC) location.reload();
   return j;
 }
@@ -1230,6 +1236,25 @@ document.getElementById('out').onclick = () => {
 (async () => {
   const wallet = ${JSON.stringify(me.wallet || '')};
   const box = document.getElementById('nfts');
+  const evs = document.getElementById('evs');
+  try {
+    const lr = await fetch('/api/auth/lifecycle', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const life = await lr.json().catch(() => ({}));
+    if (life.minted_from_mint != null) document.getElementById('minted').textContent = life.minted_from_mint;
+    if (life.burned_to_zero != null) document.getElementById('burned').textContent = life.burned_to_zero;
+    if (life.circulating != null) document.getElementById('circ').textContent = life.circulating;
+    const events = life.events || [];
+    if (!events.length) evs.textContent = ${JSON.stringify(pt ? 'Ainda sem eventos. Abrir a conta não emite STRATA.' : 'No events yet. Opening an account is not a mint.')};
+    else {
+      evs.innerHTML = '';
+      events.slice(0, 20).forEach((e) => {
+        const d = document.createElement('div');
+        d.className = 'nft';
+        d.textContent = [e.kind, e.pole || '', e.amount, e.action || e.reason || ''].filter(Boolean).join(' · ');
+        evs.appendChild(d);
+      });
+    }
+  } catch (e) { evs.textContent = '—'; }
   try {
     const r = await fetch('/api/token/list?owner=' + encodeURIComponent(wallet), { headers: { Authorization: 'Bearer ' + TOKEN } });
     const j = await r.json().catch(() => ({}));

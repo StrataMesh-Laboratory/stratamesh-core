@@ -47,6 +47,7 @@ from fog_plugins.ping import PingPlugin
 from fog_plugins.keepup import KeepUpPlugin
 from fog_plugins.rails import RailsPlug
 from subsistence.user_payg import PaygRuntime, BURN_RATES, STATIC_ACTIONS
+from account_lifecycle import AccountGraph
 
 
 class PersistentFogNode:
@@ -85,7 +86,8 @@ class PersistentFogNode:
         )
         self.keepup.on_sample = lambda sample: self.rails.ingest(sample, node_id)
         self.keepup.attach()
-        self.payg = PaygRuntime()
+        self.lifecycle = AccountGraph(dag=self.dag, token=self.token)
+        self.payg = PaygRuntime(lab_ledger=self.lifecycle.lab, graph=self.lifecycle)
 
     def submit(self, tx_type: str = "standard", cid: str | None = None) -> dict:
         with self.lock:
@@ -473,11 +475,13 @@ code {{ color:var(--fg); }}
                     "payg": {
                         "floor": 0.1,
                         "burn_pole": "#0",
+                        "mint_pole": "#mint",
                         "dashboard": "registered_only",
                         "static_actions": sorted(STATIC_ACTIONS),
                         "burn_rates": dict(BURN_RATES),
                         "note": "Citizen PAYG. Anonymous have no dashboard. Unfunded = NFTs only.",
                     },
+                    "lifecycle": self.lifecycle.summary() if getattr(self, "lifecycle", None) else None,
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
@@ -614,6 +618,24 @@ class Handler(BaseHTTPRequestHandler):
                 if part.startswith("user="):
                     uid = part.split("=", 1)[1]
             self._json(200, NODE.payg.snapshot(uid) if uid else {"ok": False, "error": "user required", "dashboard": False})
+        elif path in ("/account/lifecycle", "/lifecycle"):
+            q = urlparse(self.path).query
+            wallet = ""
+            uid = ""
+            for part in q.split("&"):
+                if part.startswith("wallet="):
+                    wallet = part.split("=", 1)[1]
+                if part.startswith("user="):
+                    uid = part.split("=", 1)[1]
+            if uid and not wallet:
+                acc = NODE.lifecycle.get(user_id=uid)
+                wallet = acc.wallet if acc else ""
+            if not wallet:
+                self._json(400, {"ok": False, "error": "wallet or user required"})
+            else:
+                self._json(200, NODE.lifecycle.snapshot(wallet))
+        elif path in ("/accounts", "/account/list"):
+            self._json(200, NODE.lifecycle.summary())
         elif path == "/gov":
             self._json(200, NODE.gov.summary())
         elif path == "/sandbox":
@@ -662,6 +684,60 @@ class Handler(BaseHTTPRequestHandler):
             g = NODE.payg.gate(uid or None, action, anonymous=not uid)
             code = 200 if g.ok else (401 if g.mode == "deny" else 402)
             self._json(code, g.as_dict())
+            return
+
+        if path in ("/account/open",):
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            uid = str(data.get("user_id") or data.get("user") or "")
+            wallet = str(data.get("wallet") or "") or None
+            if not uid:
+                self._json(400, {"ok": False, "error": "user_id required"})
+                return
+            try:
+                acc = NODE.lifecycle.open(uid, wallet)
+                NODE.payg.register(uid, acc.wallet, 0.0)
+            except ValueError as e:
+                self._json(403, {"ok": False, "error": str(e)})
+                return
+            self._json(200, NODE.lifecycle.snapshot(acc.wallet))
+            return
+
+        if path in ("/account/contribute", "/account/mint-poc"):
+            if not is_loopback_not_tunnel(self):
+                self._json(403, {"ok": False, "error": "local_only"})
+                return
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            wallet = str(data.get("wallet") or "")
+            amount = float(data.get("amount") or data.get("units") or 0)
+            kind = str(data.get("kind") or "poc")
+            if not wallet:
+                self._json(400, {"ok": False, "error": "wallet required"})
+                return
+            if NODE.lifecycle.get(wallet=wallet) is None:
+                self._json(404, {"ok": False, "error": "unknown_account"})
+                return
+            NODE.poc.record(wallet, kind, units=amount, weight=1.0)
+            self._json(200, NODE.lifecycle.mint_poc(wallet, amount, kind=kind))
+            return
+
+        if path in ("/account/transfer",):
+            try:
+                data = json.loads(raw.decode() or "{}")
+            except Exception:
+                data = {}
+            r = NODE.lifecycle.transfer(
+                str(data.get("from") or ""),
+                str(data.get("to") or ""),
+                float(data.get("amount") or 0),
+                str(data.get("reason") or "hire"),
+            )
+            self._json(200 if r.get("ok") else 400, r)
             return
 
         if path in ("/workerd/reboot", "/workerd/restart"):

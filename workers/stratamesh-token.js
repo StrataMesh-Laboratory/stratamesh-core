@@ -271,6 +271,9 @@ async function burnStrataToSink(db, from_account, amount, reason, meta) {
     sink = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(STRATA_BURN_SINK).first())?.balance || 0);
     payer = Number((await db.prepare("SELECT balance FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(from_account).first())?.balance || 0);
   } catch (_) {}
+  if (isCitizenWallet(from_account)) {
+    await recordLifecycle(db, from_account, 'burn', cost, '#0', reason || 'resource_use', null);
+  }
   return {
     ok: true,
     burn_id: id,
@@ -281,9 +284,101 @@ async function burnStrataToSink(db, from_account, amount, reason, meta) {
     from_balance: payer,
     sink_balance: sink,
     out_of_circulation: true,
+    pole: '#0',
   };
 }
 
+
+
+async function ensureAccountGraph(db) {
+  if (!db) return;
+  await db.prepare(`CREATE TABLE IF NOT EXISTS account_graph (
+    wallet TEXT PRIMARY KEY,
+    user_id TEXT,
+    opened_at TEXT DEFAULT (datetime('now')),
+    opened_tx TEXT
+  )`).run().catch(() => {});
+  await db.prepare(`CREATE TABLE IF NOT EXISTS lifecycle_events (
+    id TEXT PRIMARY KEY,
+    wallet TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    pole TEXT,
+    amount REAL DEFAULT 0,
+    reason TEXT,
+    counterparty TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`).run().catch(() => {});
+}
+
+function isCitizenWallet(account) {
+  const a = String(account || '');
+  if (!a || isMintSource(a) || isBurnSink(a) || isNodeWallet(a) || a.startsWith('#')) return false;
+  return true;
+}
+
+async function openCitizenAccount(db, userId, wallet) {
+  wallet = resolveWalletAccount(wallet);
+  if (!isCitizenWallet(wallet)) return { ok: false, error: 'not_a_citizen_wallet' };
+  await ensureAccountGraph(db);
+  await ensureMonetaryPoles(db);
+  await db.prepare(
+    `INSERT INTO account_graph (wallet, user_id) VALUES (?, ?)
+     ON CONFLICT(wallet) DO UPDATE SET user_id = COALESCE(excluded.user_id, account_graph.user_id)`
+  ).bind(wallet, String(userId || '')).run().catch(() => {});
+  await db.prepare(
+    `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned)
+     VALUES (?, 'STRATA', 0, 0, 0) ON CONFLICT(account, token_type) DO NOTHING`
+  ).bind(wallet).run().catch(() => {});
+  const id = 'open_' + crypto.randomUUID().slice(0, 10);
+  await db.prepare(
+    `INSERT INTO lifecycle_events (id, wallet, kind, pole, amount, reason) VALUES (?,?,?,?,?,?)`
+  ).bind(id, wallet, 'open', null, 0, 'account_open').run().catch(() => {});
+  return { ok: true, wallet, user_id: userId, opened: true, mint: false };
+}
+
+async function recordLifecycle(db, wallet, kind, amount, pole, reason, counterparty) {
+  if (!db || !wallet) return null;
+  await ensureAccountGraph(db);
+  const id = (kind || 'ev') + '_' + crypto.randomUUID().slice(0, 10);
+  await db.prepare(
+    `INSERT INTO lifecycle_events (id, wallet, kind, pole, amount, reason, counterparty) VALUES (?,?,?,?,?,?,?)`
+  ).bind(id, wallet, kind, pole || null, Number(amount) || 0, reason || null, counterparty || null).run().catch(() => {});
+  return id;
+}
+
+async function mintToCitizen(db, wallet, amount, kind) {
+  wallet = resolveWalletAccount(wallet);
+  const amt = Number(amount);
+  if (!isCitizenWallet(wallet)) return { ok: false, error: 'not_a_citizen_wallet' };
+  if (!(amt > 0)) return { ok: false, error: 'amount' };
+  await openCitizenAccount(db, null, wallet);
+  await recordMintEmission(db, wallet, amt);
+  const rec = await recordOrigin(db, wallet, amt, 'poc_contribution', { kind: kind || 'poc', pole: '#mint' });
+  await recordLifecycle(db, wallet, 'mint', amt, '#mint', kind || 'poc', null);
+  return { ok: true, wallet, amount: amt, pole: '#mint', origin: rec, mint: true };
+}
+
+async function lifecycleSnapshot(db, wallet) {
+  wallet = resolveWalletAccount(wallet);
+  await ensureAccountGraph(db);
+  const acc = await db.prepare('SELECT * FROM account_graph WHERE wallet = ?').bind(wallet).first().catch(() => null);
+  const bal = await db.prepare("SELECT * FROM token_balances WHERE account = ? AND token_type IN ('STRATA','strata')").bind(wallet).first().catch(() => null);
+  const ev = await db.prepare('SELECT id, kind, pole, amount, reason, counterparty, created_at FROM lifecycle_events WHERE wallet = ? ORDER BY created_at DESC LIMIT 50').bind(wallet).all().catch(() => ({ results: [] }));
+  return {
+    ok: true,
+    wallet,
+    user_id: acc && acc.user_id,
+    opened_at: acc && acc.opened_at,
+    minted_from_mint: Number(bal && bal.total_minted || 0),
+    burned_to_zero: Number(bal && bal.total_burned || 0),
+    circulating: Number(bal && bal.balance || 0),
+    events: (ev && ev.results) || [],
+    poles: { mint: '#mint', burn: '#0' },
+    node_treasury: NODE_WALLET,
+    citizen: isCitizenWallet(wallet),
+    note: 'Individuated #mint → wallet → #0. Hire is transfer. Fog treasury is not this account.',
+  };
+}
 
 async function ensureLabOrigin(db) {
   if (!db) return;
@@ -3164,9 +3259,26 @@ export default {
         `INSERT INTO token_balances (account, token_type, balance, total_minted, total_burned) VALUES (?, 'STRATA', ?, 0, 0)
          ON CONFLICT(account, token_type) DO UPDATE SET balance = balance + excluded.balance`
       ).bind(to, amount).run();
-      return json({ success: true, from, to, amount });
+      return json({ success: true, from, to, amount, mint: false, note: 'hire/transfer — not a mint' });
     }
 
+    if ((path === '/lifecycle' || path === '/account/lifecycle') && request.method === 'GET') {
+      const wallet = url.searchParams.get('account') || url.searchParams.get('wallet');
+      if (!wallet) return json({ ok: false, error: 'account required' }, 400);
+      if (isMintSource(wallet) || isBurnSink(wallet) || isNodeWallet(wallet)) {
+        return json({ ok: false, error: 'not_a_citizen_wallet', wallet }, 403);
+      }
+      return json(await lifecycleSnapshot(db, wallet));
+    }
+
+    if ((path === '/account/open' || path === '/lifecycle/open') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const wallet = body.wallet || body.account;
+      const userId = body.user_id || body.user;
+      if (!wallet) return json({ ok: false, error: 'wallet required' }, 400);
+      const r = await openCitizenAccount(db, userId, wallet);
+      return json(r, r.ok ? 200 : 400);
+    }
 
     return json({
       error: 'not found',
@@ -3189,6 +3301,8 @@ export default {
         'POST /transfer',
         'POST /lab/grant',
         'GET /monetary',
+        'GET /lifecycle?account=',
+        'POST /account/open',
         'POST /burn',
         'POST /transfer-fungible',
         'POST /nft/bundle/attach',

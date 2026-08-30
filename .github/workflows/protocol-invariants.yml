@@ -42,6 +42,9 @@ jobs:
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py
+      - name: Per-account #mint/#0 lifecycle on-graph
+        working-directory: src
+        run: python3 test_account_lifecycle.py
       - name: Resource-proof MVP (compute hash work-token)
         working-directory: src
         run: python3 test_resource_proof.py

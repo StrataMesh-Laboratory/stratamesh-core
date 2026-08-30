@@ -27,6 +27,8 @@ class TxType(Enum):
     FINALITY = "finality"
     MINT = "mint"
     TRADE = "trade"
+    ACCOUNT = "account"  # registered wallet open — not a mint
+    BURN = "burn"        # wallet → #0
 
 
 @dataclass

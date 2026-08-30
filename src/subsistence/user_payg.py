@@ -90,10 +90,11 @@ class Gate:
 class PaygRuntime:
     """In-process citizen PAYG. LabLedger burns to #0 when provided."""
 
-    def __init__(self, lab_ledger: Optional[LabLedger] = None):
+    def __init__(self, lab_ledger: Optional[LabLedger] = None, graph=None):
         self.accounts: Dict[str, UserAccount] = {}
         self.by_wallet: Dict[str, str] = {}
-        self.lab = lab_ledger or LabLedger()
+        self.graph = graph
+        self.lab = lab_ledger or (graph.lab if graph is not None else LabLedger())
         self.events: List[dict] = []
 
     def register(self, user_id: str, wallet: str, balance: float = 0.0, *, fund_via_poc: bool = False) -> UserAccount:
@@ -104,8 +105,12 @@ class PaygRuntime:
         acc = UserAccount(user_id=user_id, wallet=wallet, balance=max(0.0, float(balance)))
         self.accounts[user_id] = acc
         self.by_wallet[wallet] = user_id
-        # Existing STRATA only. PAYG never mints. fund_via_poc = prior PoC credit.
-        if fund_via_poc and acc.balance > 0:
+        if self.graph is not None:
+            self.graph.open(user_id, wallet)
+            if fund_via_poc and acc.balance > 0:
+                self.graph.mint_poc(wallet, acc.balance, kind="prior_poc")
+                acc.balance = self.graph.balance(wallet)
+        elif fund_via_poc and acc.balance > 0:
             self.lab.mint_poc(wallet, acc.balance)
         return acc
 
@@ -119,7 +124,7 @@ class PaygRuntime:
         if not acc:
             return {"ok": False, "error": "unknown_user", "mode": "deny", "dashboard": False}
         mode = self.mode_of(acc)
-        return {
+        out = {
             "ok": True,
             "user_id": acc.user_id,
             "wallet": acc.wallet,
@@ -135,6 +140,17 @@ class PaygRuntime:
             "resource_actions": sorted(RESOURCE_ACTIONS),
             "note": "PAYG subsistence. Resource actions burn to #0. Unfunded = NFTs only.",
         }
+        if self.graph is not None:
+            snap = self.graph.snapshot(acc.wallet)
+            if snap.get("ok"):
+                out["lifecycle"] = {
+                    "minted_from_#mint": snap.get("minted_from_#mint"),
+                    "burned_to_#0": snap.get("burned_to_#0"),
+                    "circulating": snap.get("circulating"),
+                    "opened_tx": snap.get("opened_tx"),
+                    "events": snap.get("events"),
+                }
+        return out
 
     def gate(self, user_id: Optional[str], action: str, *, anonymous: bool = False) -> Gate:
         if anonymous or not user_id:
@@ -174,12 +190,18 @@ class PaygRuntime:
             )
 
         # Debit citizen → #0. PAYG never mints.
-        if self.lab.balances.get(acc.wallet, 0.0) >= cost:
-            if not self.lab.burn(acc.wallet, cost):
-                return Gate(False, "static", action, cost, 0.0, acc.balance, "burn_rejected", True, static_allowed)
-        acc.balance = max(0.0, acc.balance - cost)
+        if self.graph is not None:
+            br = self.graph.burn(acc.wallet, cost, action)
+            if not br.get("ok"):
+                return Gate(False, "static", action, cost, 0.0, acc.balance, br.get("error") or "burn_rejected", True, static_allowed)
+            acc.balance = self.graph.balance(acc.wallet)
+        else:
+            if self.lab.balances.get(acc.wallet, 0.0) >= cost:
+                if not self.lab.burn(acc.wallet, cost):
+                    return Gate(False, "static", action, cost, 0.0, acc.balance, "burn_rejected", True, static_allowed)
+            acc.balance = max(0.0, acc.balance - cost)
         acc.spent += cost
         acc.ticks += 1
-        self.events.append({"user_id": user_id, "action": action, "amount": cost, "pole": "#0"})
+        self.events.append({"user_id": user_id, "action": action, "amount": cost, "pole": "#0", "wallet": acc.wallet})
         new_mode = self.mode_of(acc)
         return Gate(True, new_mode, action, cost, cost, acc.balance, "burned_to_#0", new_mode == "static", static_allowed)
