@@ -260,7 +260,7 @@ body.in-session .user-info{display:flex!important}
       <span id="ecoStatus" style="margin-left:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)"></span>
     </div>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem">
-      <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Fog STRATA</div><div id="ecoFogNote" class="label" style="text-transform:none;letter-spacing:0;font-size:.62rem;margin-top:.35rem;color:var(--muted)"></div></div>
+      <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Fog STRATA</div></div>
       <div class="stat-card"><div class="value" id="ecoCirc">—</div><div class="label">Circulation</div></div>
       <div class="stat-card"><div class="value" id="ecoSink">—</div><div class="label">#0 burn</div></div>
       <div class="stat-card"><div class="value" id="ecoMint">—</div><div class="label">#mint</div></div>
@@ -283,34 +283,8 @@ body.in-session .user-info{display:flex!important}
   <div class="panel" id="panel-sandbox">
     <h3>Unix Atelier · UGC NFT</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First person is a workbench modality: the viewpoint is an Avatar NFT (figural identity of a user or SCA — Synthetic Computational Agent). Cel-shaded urban lot. WASD walk; right stick or drag to look, as in orbit. Door to the open world. Mint NFT chooses Avatar or creation.</p>
-    <div id="bancadaStage" style="position:relative;width:100%;height:min(72vh,680px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f4e4c1;margin-bottom:1rem">
-      <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
-      <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Click to enter 1st person · WASD walk · mouse look · E at the world door</div>
-      <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Open-world door</div>
-        <div id="bancadaWorldName" style="margin-top:.75rem;font-size:1.4rem;color:var(--fg)">cmn-lab-world</div>
-        <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">The sandbox is addressed to this world. The 1st-person viewpoint (Avatar NFT) continues through the door.</p>
-        <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Back to sandbox</button>
-      </div>
-      <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
-        <div style="pointer-events:none;background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);color:#1a1008">
-          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Immersive sandbox</div>
-          <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:#1a1008">—</div>
-          <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:#4a3018;line-height:1.45">Loading the space…</div>
-        </div>
-        <div style="pointer-events:auto;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end">
-          <div style="background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.5rem .75rem;font-size:.72rem;color:#4a3018">
-            <span id="bancadaCount">0</span> NFTs · <span id="bancadaObjCount">0</span> objects
-          </div>
-          <button type="button" onclick="setBancadaMode('fps')" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Inhabit</button>
-          <button type="button" onclick="setBancadaMode('orbit');document.exitPointerLock&&document.exitPointerLock()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Interior orbit</button>
-          <button type="button" onclick="window._bancadaPresence='compose';setBancadaMode('orbit');document.exitPointerLock&&document.exitPointerLock()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Compose</button>
-          <button type="button" onclick="resetBancadaCam()" style="pointer-events:auto;padding:.4rem .7rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.72rem">Reset camera</button>
-        </div>
-      </div>
-      <div id="bancadaPrompt" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:3;background:#1a1008;color:#ffe6b8;border:1px solid #d4a017;padding:.4rem .9rem;font-size:.78rem;pointer-events:none">WASD walk · E use · F grab/drop · drag to look · 1–5 tools</div>
-      <canvas id="bancadaRadar" width="112" height="112" aria-hidden="true" style="position:absolute;bottom:12px;right:12px;z-index:3;border:1px solid #6b2e1c;background:#fff6e4;pointer-events:none"></canvas>
-      <div id="bancadaEmpty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;pointer-events:none">No NFTs in this sandbox — create the first object below.</div>
+        <div id="bancadaStage" style="position:relative;width:100%;height:min(78vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#07111c;margin-bottom:1rem">
+      <iframe id="atelierFrame" title="Atelier GNU" src="https://sandbox.calhegasmorais.pt/" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Ateliers</div></div>
@@ -1815,15 +1789,8 @@ async function loadEconomy(){
       var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
       if(rb.ok){
         var bj=await rb.json();
-        var fog = bj.fog_wallet || {};
-        var lab = (fog.l_strata != null) ? Number(fog.l_strata) : (bj.lab_policy && bj.lab_policy.lab_only_balance);
-        var poc = (fog.poc_strata != null) ? Number(fog.poc_strata) : (bj.lab_policy && bj.lab_policy.transit_eligible_poc_balance);
-        var d1row = fog.balance != null ? fog.balance : ((bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance);
-        var strata = (lab != null || poc != null) ? (Number(lab||0) + Number(poc||0)) : d1row;
-        var ef=document.getElementById('ecoFogBal');
-        if(ef&&strata!=null) ef.textContent=fmt(strata,5);
-        var elab=document.getElementById('ecoFogNote');
-        if(elab) elab.textContent='L-STRATA '+fmt(lab,2)+' · PdC '+fmt(poc,8)+' · D1 '+fmt(d1row,4)+' (sem genesis treasury)';
+        var strata=(bj.balances&&bj.balances[0]&&bj.balances[0].balance)!=null?bj.balances[0].balance:bj.balance;
+        var ef=document.getElementById('ecoFogBal'); if(ef&&strata!=null) ef.textContent=fmt(strata,5);
       }
     }catch(_){}
     if(typeof loadMonetaryPoles==='function') await loadMonetaryPoles();
@@ -3354,14 +3321,8 @@ var nftEl=document.getElementById('walletNftList');
       var depin=await get('/api/v1/depin/providers').catch(function(){return {providers:[]};});
       var svc=await get('/api/v1/agent-services/list').catch(function(){return {services:[]};});
       var bal=await get('/api/v1/token/balance?account=FOG-NODE-PT-CM-001').catch(function(){return null;});
-      var fogW=bal&&bal.fog_wallet?bal.fog_wallet:{};
-      var labN=fogW.l_strata!=null?Number(fogW.l_strata):(bal&&bal.lab_policy?Number(bal.lab_policy.lab_only_balance||0):null);
-      var pocN=fogW.poc_strata!=null?Number(fogW.poc_strata):(bal&&bal.lab_policy?Number(bal.lab_policy.transit_eligible_poc_balance||0):null);
-      var d1N=fogW.balance!=null?Number(fogW.balance):(bal&&bal.balances&&bal.balances[0]?Number(bal.balances[0].balance):null);
-      var fog=(labN!=null||pocN!=null)?(Number(labN||0)+Number(pocN||0)):d1N;
-      set('ecoFogBal', fog!=null?Number(fog).toLocaleString('en-GB',{maximumFractionDigits:4}):'—');
-      var nEl=document.getElementById('ecoFogNote');
-      if(nEl) nEl.textContent='L-STRATA '+(labN!=null?labN:'—')+' · PoC '+(pocN!=null?pocN:'—')+' · D1 '+(d1N!=null?Number(d1N).toFixed(4):'—')+' (no treasury genesis)';
+      var fog=bal&&bal.balances&&bal.balances[0]?bal.balances[0].balance:null;
+      set('ecoFogBal', fog!=null?Number(fog).toFixed(4):'—');
       set('ecoCirc', mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString('pt-PT',{maximumFractionDigits:0}):'—');
       set('ecoSink', mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(3):(mon&&mon.poles&&mon.poles.burn_sink?Number(mon.poles.burn_sink.balance||0).toFixed(3):'—'));
       set('ecoMint', mon&&mon.poles&&mon.poles.mint?Number(mon.poles.mint.total_emitted||0).toFixed(5):'—');
@@ -4344,23 +4305,9 @@ async function forgotPassword(){
       setText('agoraOrders', String(all.length));
       var meta = el('agoraQuoteMeta');
       if (meta) {
-        var oz = book.peg && book.peg.gold_oz_eur;
-        var lOz = oz != null ? Number(oz) / 0.10 : null;
-        var src = (book.peg && book.peg.gold_spot_source) || '';
-        var at = (book.peg && book.peg.gold_spot_at) || '';
         meta.innerHTML =
           t('Paridade de laboratório', 'Laboratory peg') +
-          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b>' +
-          (oz != null
-            ? (' · 1 oz Wiener Philharmoniker = <b style="color:var(--fg)">€' +
-              Number(oz).toLocaleString('en-GB', { maximumFractionDigits: 2 }) +
-              '</b> gold spot = <b style="color:var(--fg)">' +
-              Number(lOz).toLocaleString('en-GB', { maximumFractionDigits: 0 }) +
-              ' L-STRATA</b>' +
-              (src ? (' <span style="color:var(--muted)">(' + esc(src) + (at ? (' · ' + String(at).slice(0, 19)) : '') + ')</span>') : '') +
-              ' · ' + t('L-STRATA = (EUR/oz × fracção) / 0,10', 'L-STRATA = (EUR/oz × fraction) / 0.10'))
-            : (' · ' + t('spot de ouro indisponível — a Ágora tenta Swissquote XAU/EUR', 'gold spot unavailable — Agora tries Swissquote XAU/EUR'))) +
-          '.<br>' +
+          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b> · 1 oz Wiener Philharmoniker = €4 080 = 40 800 L-STRATA.<br>' +
           t('Vendedor', 'Seller') + ' <code>' + esc(book.seller || 'FOG-NODE-PT-CM-001') + '</code> · ' +
           esc(book.seller_eni || 'AMCM ENI') + ' · ' +
           t('L-STRATA não transita para a rede publicada.', 'L-STRATA does not transit to the published network.');
@@ -4397,31 +4344,41 @@ async function forgotPassword(){
   function ensureAtelier() {
     var panel = el('panel-sandbox');
     if (!panel) return;
-    var ifr = el('atelierFrame');
-    if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
-    var os = el('atelierOs');
-    if (os) os.style.display = 'none';
-    var wrap = el('bancadaLegacyWrap');
-    if (wrap) wrap.style.display = 'block';
+    var bar = el('bancadaModeBar');
+    if (bar) bar.style.display = 'none';
+    ['bancadaHud','bancadaPrompt','bancadaRadar','bancadaLockHint','bancadaEmpty','bancadaWorldLoad','unixTools','unixStickMove','unixStickLook'].forEach(function (id) {
+      var n = el(id); if (n) n.style.display = 'none';
+    });
     var stage = el('bancadaStage');
-    if (stage) { stage.style.display = 'block'; stage.style.touchAction = 'none'; }
+    if (stage) {
+      stage.style.background = '#07111c';
+      stage.style.display = 'block';
+      var canvas = el('bancadaCanvas');
+      if (canvas) canvas.style.display = 'none';
+      var ifr = el('atelierFrame');
+      if (!ifr) {
+        ifr = document.createElement('iframe');
+        ifr.id = 'atelierFrame';
+        ifr.title = 'Atelier GNU';
+        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.setAttribute('allow', 'fullscreen; pointer-lock');
+        ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
+        stage.appendChild(ifr);
+      }
+    }
     var title = el('bancadaPanelTitle');
     if (title) {
       title.style.display = '';
-      title.textContent = t('Atelier Unix · NFT desta conta', 'Unix Atelier · NFTs of this account');
+      title.textContent = t('Atelier GNU · Holon 5', 'GNU Atelier · Holon 5');
     }
     var intro = title && title.nextElementSibling;
     if (intro && intro.tagName === 'P') {
       intro.textContent = t(
-        'Bancada Web3 em NFT: lote urbano cel-shaded. Órbita ou 1ª pessoa. Stick esquerdo anda, stick direito olha; no ecrã, arraste a visão como na órbita. Ferramentas: manipular, fixar, duplicar, remover, rodar. Só objectos desta conta.',
-        'Web3 NFT workbench: cel-shaded urban lot. Orbit or first person. Left stick walks, right stick looks; drag the screen to look as in orbit. Tools: manipulate, freeze, duplicate, remove, rotate. Objects of this account only.'
+        'Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.',
+        'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.'
       );
     }
-    window._atelierMode = 'unix3d';
-    try {
-      if (typeof window.__bancadaBoot === 'function') window.__bancadaBoot();
-      else if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench();
-    } catch (e) { console.warn('atelier boot', e); }
+    window._atelierMode = 'gnu';
   }
   window.loadSandbox = function () {
     ensureAtelier();
@@ -4736,22 +4693,9 @@ async function forgotPassword(){
   function t(pt, en) { return PT ? pt : en; }
 
   function removeHomepageIframe() {
-    var ifr = document.getElementById('atelierFrame');
-    if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
-    var os = document.getElementById('atelierOs');
-    if (os) os.style.display = 'none';
-    var wrap = document.getElementById('bancadaLegacyWrap');
-    if (wrap) wrap.style.display = 'block';
-    var stage = document.getElementById('bancadaStage');
-    if (stage) {
-      stage.style.display = 'block';
-      stage.style.touchAction = 'none';
-    }
-    var title = document.getElementById('bancadaPanelTitle');
-    if (title) {
-      title.style.display = '';
-      title.textContent = t('Atelier Unix · NFT nesta conta', 'Unix Atelier · NFTs of this account');
-    }
+    /* RCA: this used to tear out the GNU atelier iframe and boot the legacy bancada.
+       That merge is what stacked the cream HUD on the workbench. Keep GNU. */
+    if (typeof ensureAtelier === 'function') ensureAtelier();
   }
 
   function toon(c, e, em) {
@@ -4961,6 +4905,7 @@ async function forgotPassword(){
   }
 
   function mountHud() {
+    if (document.getElementById('atelierFrame')) return;
     var stage = document.getElementById('bancadaStage');
     if (!stage || document.getElementById('unixTools')) return;
     var tools = document.createElement('div');

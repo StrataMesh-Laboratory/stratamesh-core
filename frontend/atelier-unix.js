@@ -15,22 +15,18 @@
   function t(pt, en) { return PT ? pt : en; }
 
   function removeHomepageIframe() {
-    var ifr = document.getElementById('atelierFrame');
-    if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
-    var os = document.getElementById('atelierOs');
-    if (os) os.style.display = 'none';
-    var wrap = document.getElementById('bancadaLegacyWrap');
-    if (wrap) wrap.style.display = 'block';
     var stage = document.getElementById('bancadaStage');
-    if (stage) {
-      stage.style.display = 'block';
-      stage.style.touchAction = 'none';
+    if (stage && !document.getElementById('atelierFrame')) {
+      var ifr = document.createElement('iframe');
+      ifr.id = 'atelierFrame';
+      ifr.title = 'Atelier GNU';
+      ifr.src = 'https://sandbox.calhegasmorais.pt/';
+      ifr.setAttribute('allow', 'fullscreen; pointer-lock');
+      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
+      stage.appendChild(ifr);
     }
-    var title = document.getElementById('bancadaPanelTitle');
-    if (title) {
-      title.style.display = '';
-      title.textContent = t('Atelier Unix · NFT nesta conta', 'Unix Atelier · NFTs of this account');
-    }
+    var bar = document.getElementById('bancadaModeBar');
+    if (bar) bar.style.display = 'none';
   }
 
   function toon(c, e, em) {
@@ -240,6 +236,7 @@
   }
 
   function mountHud() {
+    if (document.getElementById('atelierFrame')) return;
     var stage = document.getElementById('bancadaStage');
     if (!stage || document.getElementById('unixTools')) return;
     var tools = document.createElement('div');

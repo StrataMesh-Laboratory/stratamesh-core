@@ -125,23 +125,9 @@
       setText('agoraOrders', String(all.length));
       var meta = el('agoraQuoteMeta');
       if (meta) {
-        var oz = book.peg && book.peg.gold_oz_eur;
-        var lOz = oz != null ? Number(oz) / 0.10 : null;
-        var src = (book.peg && book.peg.gold_spot_source) || '';
-        var at = (book.peg && book.peg.gold_spot_at) || '';
         meta.innerHTML =
           t('Paridade de laboratório', 'Laboratory peg') +
-          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b>' +
-          (oz != null
-            ? (' · 1 oz Wiener Philharmoniker = <b style="color:var(--fg)">€' +
-              Number(oz).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) +
-              '</b> spot ouro = <b style="color:var(--fg)">' +
-              Number(lOz).toLocaleString('pt-PT', { maximumFractionDigits: 0 }) +
-              ' L-STRATA</b>' +
-              (src ? (' <span style="color:var(--muted)">(' + esc(src) + (at ? (' · ' + String(at).slice(0, 19)) : '') + ')</span>') : '') +
-              ' · ' + t('L-STRATA = (EUR/oz × fracção) / 0,10', 'L-STRATA = (EUR/oz × fraction) / 0.10'))
-            : (' · ' + t('spot de ouro indisponível — a Ágora tenta Swissquote XAU/EUR', 'gold spot unavailable — Agora tries Swissquote XAU/EUR'))) +
-          '.<br>' +
+          ': <b style="color:var(--fg)">1 L-STRATA = €0.10</b> · 1 oz Wiener Philharmoniker = €4 080 = 40 800 L-STRATA.<br>' +
           t('Vendedor', 'Seller') + ' <code>' + esc(book.seller || 'FOG-NODE-PT-CM-001') + '</code> · ' +
           esc(book.seller_eni || 'AMCM ENI') + ' · ' +
           t('L-STRATA não transita para a rede publicada.', 'L-STRATA does not transit to the published network.');
@@ -178,31 +164,41 @@
   function ensureAtelier() {
     var panel = el('panel-sandbox');
     if (!panel) return;
-    var ifr = el('atelierFrame');
-    if (ifr && ifr.parentNode) ifr.parentNode.removeChild(ifr);
-    var os = el('atelierOs');
-    if (os) os.style.display = 'none';
-    var wrap = el('bancadaLegacyWrap');
-    if (wrap) wrap.style.display = 'block';
+    var bar = el('bancadaModeBar');
+    if (bar) bar.style.display = 'none';
+    ['bancadaHud','bancadaPrompt','bancadaRadar','bancadaLockHint','bancadaEmpty','bancadaWorldLoad','unixTools','unixStickMove','unixStickLook'].forEach(function (id) {
+      var n = el(id); if (n) n.style.display = 'none';
+    });
     var stage = el('bancadaStage');
-    if (stage) { stage.style.display = 'block'; stage.style.touchAction = 'none'; }
+    if (stage) {
+      stage.style.background = '#07111c';
+      stage.style.display = 'block';
+      var canvas = el('bancadaCanvas');
+      if (canvas) canvas.style.display = 'none';
+      var ifr = el('atelierFrame');
+      if (!ifr) {
+        ifr = document.createElement('iframe');
+        ifr.id = 'atelierFrame';
+        ifr.title = 'Atelier GNU';
+        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.setAttribute('allow', 'fullscreen; pointer-lock');
+        ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
+        stage.appendChild(ifr);
+      }
+    }
     var title = el('bancadaPanelTitle');
     if (title) {
       title.style.display = '';
-      title.textContent = t('Atelier Unix · NFT desta conta', 'Unix Atelier · NFTs of this account');
+      title.textContent = t('Atelier GNU · Holon 5', 'GNU Atelier · Holon 5');
     }
     var intro = title && title.nextElementSibling;
     if (intro && intro.tagName === 'P') {
       intro.textContent = t(
-        'Bancada Web3 em NFT: lote urbano cel-shaded. Órbita ou 1ª pessoa. Stick esquerdo anda, stick direito olha; no ecrã, arraste a visão como na órbita. Ferramentas: manipular, fixar, duplicar, remover, rodar. Só objectos desta conta.',
-        'Web3 NFT workbench: cel-shaded urban lot. Orbit or first person. Left stick walks, right stick looks; drag the screen to look as in orbit. Tools: manipulate, freeze, duplicate, remove, rotate. Objects of this account only.'
+        'Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.',
+        'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.'
       );
     }
-    window._atelierMode = 'unix3d';
-    try {
-      if (typeof window.__bancadaBoot === 'function') window.__bancadaBoot();
-      else if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench();
-    } catch (e) { console.warn('atelier boot', e); }
+    window._atelierMode = 'gnu';
   }
   window.loadSandbox = function () {
     ensureAtelier();
