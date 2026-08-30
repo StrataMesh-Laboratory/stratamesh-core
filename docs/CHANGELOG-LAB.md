@@ -1,3 +1,9 @@
+## 2026-08-30 — Login 1101 (SPA origin-orch-chat-1.1.2-login)
+- Dashboard / login (calhegasmorais.pt/dashboard) returned Cloudflare Error 1101: Worker threw exception (Ray a336d88329da94ad).
+- RCA: heraldic ICON_EMBED referenced `iconR2Map` on every GET but never defined → ReferenceError before the login gate.
+- Fix: define `iconR2Map`, hoist ICON_EMBED to module scope, try/catch around fetch so login cannot 1101.
+- Operator PUT of stratamesh-spa to restore Entrar. Never Fog origin. Never workers.dev. No 6th cron.
+
 ## 2026-08-30 — Honest STRATA circulation (token 3.5.4-circ-split, status 0.4.8-circ-split)
 - The ~2.6M headline was **not** PoC STRATA and **not** L-STRATA. It was `SUM(token_balances)` excluding `#mint`/`#0` (unclassified genesis/test rows, including ~1e6 on the Fog treasury wallet).
 - **L-STRATA** (lab_only / `lab_bootstrap`+`lab_grant`) and **PdC STRATA** (`poc_contribution`, sole protocol mint) are distinct versions. Status HTML now shows two cards, not one "Circulação".
