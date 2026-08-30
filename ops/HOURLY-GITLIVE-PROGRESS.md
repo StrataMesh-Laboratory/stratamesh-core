@@ -30,7 +30,7 @@ LIVE curl:
 - GET https://calhegasmorais.pt/dashboard → 200 still IBM Plex + Google fonts (portal snapshot; not this pick — pile-up HOLD)
 - HEAD https://fog.calhegasmorais.pt/health → 200
 
-SHA: parent dfed2c4982d0fadc0c98215d71e2bdd10ddee784 (observe docs commit follows)
+SHA: 961644fe779d2e9300585be5aaeecc4ecc81e5f2
 
 STILL RED:
 - EDGE https://edge.calhegasmorais.pt/health **530**/429 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox
