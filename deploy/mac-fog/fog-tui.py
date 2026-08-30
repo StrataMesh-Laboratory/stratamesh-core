@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Mac Fog runtime UI v6. 15s refresh.
+"""Mac Fog runtime UI v7. 15s refresh.
 q quit · s stop fog · b reboot fog · g git pull + reboot · r refresh now
-Does not kill macbook-server cloudflared.
+Does not kill macbook-server cloudflared. caffeinate stay-awake is a LaunchAgent.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def sh(args: list[str], timeout: float = 2.0) -> str:
 
 def get(url: str, timeout: float = 2.0) -> dict:
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "fog-tui/6"})
+        req = urllib.request.Request(url, headers={"User-Agent": "fog-tui/7"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode())
     except Exception as e:
@@ -125,6 +125,13 @@ def net() -> str:
             except ValueError:
                 continue
     return "—"
+
+
+def awake_line() -> str:
+    out = sh(["pmset", "-g", "assertions"])
+    if "caffeinate" in out.lower() and "PreventUserIdleSystemSleep" in out:
+        return OK + "caffeinate" + RST + DIM + " idle-sleep held" + RST
+    return DIM + "idle-sleep possible · run FogStayAwake.command" + RST
 
 
 def git_sha() -> str:
@@ -256,7 +263,7 @@ def draw(msg: str = "") -> None:
     bar = "─" * cols
 
     sys.stdout.write("\033[H\033[J")
-    print(TEAL + " FOG · MacBook runtime v6" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
+    print(TEAL + " FOG · MacBook runtime v7" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
     print(DIM + bar + RST)
     print(" node     ", st.get("node_id") or "—", DIM + str(st.get("version") or "") + RST)
     print(" origin   ", TEAL + str(origin) + RST, DIM + str(hop.get("layer") or "") + RST)
@@ -294,6 +301,7 @@ def draw(msg: str = "") -> None:
           " · python3", len(py),
           " · cloudflared", len(cf))
     print(" git      ", git_sha())
+    print(" awake    ", awake_line())
     print(DIM + bar + RST)
     print(" " + TEAL + "q" + RST + " quit   "
           + TEAL + "s" + RST + " stop   "

@@ -184,11 +184,41 @@ launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
 launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
 cp -f "$FOG/repo/deploy/mac-fog/fog-tui.py" "$FOG/bin/fog-tui.py"
-chmod 755 "$FOG/bin/fog-tui.py" "$FOG/repo/deploy/mac-fog/FogRuntime.command" 2>/dev/null || true
+cp -f "$FOG/repo/deploy/mac-fog/fog-awake.sh" "$FOG/bin/fog-awake.sh"
+chmod 755 "$FOG/bin/fog-tui.py" "$FOG/bin/fog-awake.sh" \
+  "$FOG/repo/deploy/mac-fog/FogRuntime.command" \
+  "$FOG/repo/deploy/mac-fog/FogStayAwake.command" 2>/dev/null || true
+cat > "$LAUNCH/pt.calhegasmorais.fog-awake.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>pt.calhegasmorais.fog-awake</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-ims</string>
+    <string>/bin/bash</string>
+    <string>$FOG/bin/fog-awake.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FOG_HOME</key><string>$FOG</string>
+  </dict>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>$FOG/log/fog-awake.out</string>
+  <key>StandardErrorPath</key><string>$FOG/log/fog-awake.err</string>
+</dict></plist>
+EOF
+launchctl bootout "gui/$(id -u)/pt.calhegasmorais.fog-awake" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$LAUNCH/pt.calhegasmorais.fog-awake.plist" 2>/dev/null \
+  || launchctl load "$LAUNCH/pt.calhegasmorais.fog-awake.plist"
 echo
 echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
 echo "Public fog.calhegasmorais.pt rides macbook-server. HOLD fog-lab tunnel plist."
 echo "Runtime UI: $FOG/bin/fog-tui.py  (q quit · s stop · b reboot · g pull+reboot · 15s)"
+echo "Stay-awake:  FogStayAwake.command  (caffeinate -ims + 2min wake kick)"
 
 say "9/9 health"
 sleep 3
@@ -198,7 +228,7 @@ echo
 echo "Layer: workerd :8788 → fog :8787  (public via macbook-server)"
 echo "Stop fog:  $(dirname "$0")/stop-fog.command   or  s  in the runtime UI"
 echo "Reboot:    b  in the runtime UI (kickstart fog+workerd, keeps macbook-server)"
-echo "LAB n=2  mesh_member=true  f_max=0  v6"
+echo "LAB n=2  mesh_member=true  f_max=0  v7"
 export FOG_HOME="$FOG"
 osascript <<APP >/dev/null 2>&1 || true
 tell application "Terminal"

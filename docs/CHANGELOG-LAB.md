@@ -1,3 +1,6 @@
+## 2026-08-30 — Mac stay-awake v7
+- `FogStayAwake.command` + `pt.calhegasmorais.fog-awake` (`caffeinate -ims`, 2 min wake kick). Idle sleep held. Lid+battery still sleeps.
+
 ## 2026-08-30 — aiops destyle
 - `aiops.calhegasmorais.pt/` destyle family. `/health` n=2 · mesh_member=true · f_max=0. Cycle JSON unchanged.
 

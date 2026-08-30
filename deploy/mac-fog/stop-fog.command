@@ -3,7 +3,7 @@
 set -euo pipefail
 LAUNCH="$HOME/Library/LaunchAgents"
 UIDN="$(id -u)"
-for l in pt.calhegasmorais.fog pt.calhegasmorais.workerd; do
+for l in pt.calhegasmorais.fog pt.calhegasmorais.workerd pt.calhegasmorais.fog-awake; do
   launchctl bootout "gui/${UIDN}/${l}" 2>/dev/null || true
   launchctl unload "$LAUNCH/${l}.plist" 2>/dev/null || true
   echo "unloaded $l"
