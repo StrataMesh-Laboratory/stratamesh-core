@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Mac Fog runtime UI v8. Destyle. 15s refresh.
-q quit · s stop fog · b reboot fog · g git pull + reboot · r refresh now
-Does not kill macbook-server cloudflared. caffeinate stay-awake is a LaunchAgent.
+"""StrataMesh LAB Fog runtime UI v0.3.0. Destyle. 15s.
+q quit · s stop · b reboot · g git pull+reboot · r refresh
 """
 from __future__ import annotations
 
@@ -271,29 +270,32 @@ def draw(msg: str = "") -> None:
     nid = st.get("node_id") or os.environ.get("FOG_NODE_ID") or "—"
 
     sys.stdout.write("\033[H\033[J")
-    print(FG + " Fog Node" + RST, ACC + str(nid) + RST, MUT + time.strftime("%H:%M:%S") + RST, mark(live))
-    print(MUT + " lab · prerelease · not mainnet" + RST)
+    print(ACC + " STRATAMESH" + RST + FG + " LAB" + RST,
+          MUT + "v0.3.0" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
+    print(FG + " Fog Node" + RST, ACC + str(nid) + RST)
+    print(MUT + " Intelligentia · Vigilantia · Veritas" + RST)
+    print(MUT + " shared web3 metaverse OS · lab · not mainnet" + RST)
     print(rule)
     print(ACC + " identity" + RST)
     print("   origin ", ACC + str(origin) + RST, MUT + str(hop.get("layer") or "") + RST,
           "  mac_live", yn(hop.get("mac_live") or st.get("mac_live")),
           "  trusted", yn(st.get("trusted") if "trusted" in st else hop.get("trusted")))
     print("   mesh   ", "n=%s" % n, "  f_max=%s" % fmax, "  member=%s" % member, "  oracle=%s" % st.get("oracle_live"))
-    print("   ver    ", MUT + str(st.get("version") or "—") + RST, "  up", ago(st.get("uptime_seconds")))
+    print("   ver    ", MUT + str(st.get("version") or "0.3.0") + RST, "  up", ago(st.get("uptime_seconds")))
     print(rule)
     print(ACC + " origin hop" + RST)
     print("   workerd :8788", mark(bool(hop.get("ok"))),
           "   fog :8787", mark(st.get("status") == "operational"),
           "   plugin", wr.get("reboots", 0), "reboots")
-    print("   public fog  ", mark(bool(pub.get("ok"))),
-          MUT + "origin=" + str(pub.get("origin") or "—") + RST,
-          "   edge", mark(bool(edge.get("ok"))), MUT + "(session expected)" + RST)
+    print("   public   ", mark(bool(pub.get("ok"))),
+          MUT + "origin=" + str(pub.get("origin") or "—") + RST)
     print(rule)
-    print(ACC + " ledger" + RST)
+    print(ACC + " STRATA" + RST)
     print("   dag    tx=%s  tips=%s  height=%s" % (
         dag.get("transaction_count"), dag.get("tip_count"), dag.get("height") or dag.get("max_height")))
-    print("   spa    total=%s  active=%s   STRATA %s" % (
+    print("   spa    total=%s  active=%s   supply %s" % (
         spa.get("total"), spa.get("active"), tok.get("total_supply")))
+    print(MUT + "   PoC resources → #mint · use → #0 · not a public offer" + RST)
     if contrib:
         print("   poc    accepted=%s  pending=%s" % (
             contrib.get("accepted") or contrib.get("count"), contrib.get("pending") or contrib.get("rejected")))
@@ -315,7 +317,7 @@ def draw(msg: str = "") -> None:
           + ACC + "b" + RST + " reboot   "
           + ACC + "g" + RST + " pull+reboot   "
           + ACC + "r" + RST + " refresh")
-    print(MUT + "  15s · reboot does not kill macbook-server" + RST)
+    print(MUT + "  15s · reboot does not kill the public named-tunnel" + RST)
     if msg:
         print("  " + ACC + msg + RST)
     sys.stdout.flush()

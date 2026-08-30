@@ -1,8 +1,8 @@
 # StrataMesh Core
 
-**Release:** [v0.2.3-dev](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev) — Fog Mac + EDGE session, n=2 (**not mainnet**, prerelease)
+**Release:** [v0.3.0](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0) — Fog Node kit (StrataMesh LAB). **Not mainnet.**
 
-**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) · Lisbon  
+**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
 Motto: *Intelligentia · Vigilantia · Veritas*
 
 ## Monetary poles (STRATA)

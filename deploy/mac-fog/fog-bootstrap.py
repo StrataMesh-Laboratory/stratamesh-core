@@ -123,7 +123,14 @@ def ensure_repo() -> None:
 
 def main() -> int:
     ensure_repo()
-    print("Fog Node bootstrap — chaves so em ~/.config/stratamesh")
+    print()
+    print("  STRATAMESH LAB")
+    print("  Fog Node wizard  v0.3.0")
+    print("  Intelligentia · Vigilantia · Veritas")
+    print("  Shared web3 metaverse OS on this machine.")
+    print("  Resources → PoC → STRATA. Lab · not mainnet.")
+    print("  Secrets stay in ~/.config/stratamesh — never git.")
+    print()
 
     node_file = SECRETS / "node.id"
     boot_file = SECRETS / "bootstrap.token"
@@ -132,7 +139,12 @@ def main() -> int:
         node_id = node_file.read_text().strip().upper()
         print("2FA ja verificado para", node_id)
     else:
-        node_id = dialog("No Fog", "Id de no registado:", "FOG-NODE-PT-CM-001", hidden=False).strip().upper()
+        node_id = dialog(
+            "Fog Node",
+            "Registered node id (issued by the lab). Example FOG-NODE-PT-CM-001:",
+            "",
+            hidden=False,
+        ).strip().upper()
         if not node_id:
             return 1
         ch = http_json("POST", AUTH + "/fog/bootstrap/challenge", {"node_id": node_id, "lang": "pt"})
@@ -140,7 +152,7 @@ def main() -> int:
             print("Falha 2FA:", ch.get("error") or ch)
             return 1
         masked = ch.get("operator_masked") or "operador@"
-        code = dialog("2FA do operador", "Codigo de 6 digitos enviado a %s:" % masked, hidden=False).strip()
+        code = dialog("2FA", "6-digit code mailed to %s:" % masked, hidden=False).strip()
         vr = http_json(
             "POST",
             AUTH + "/fog/bootstrap/verify",
@@ -152,60 +164,65 @@ def main() -> int:
         write_secret("node.id", node_id)
         write_secret("bootstrap.token", vr.get("bootstrap_token") or "")
 
+    who = {}
     gh_path = SECRETS / "github.pat"
     cf_path = SECRETS / "god_api"
-    if gh_path.is_file() and cf_path.is_file() and gh_path.stat().st_size > 10 and cf_path.stat().st_size > 10:
+    if gh_path.is_file() and gh_path.stat().st_size > 10:
         gh = gh_path.read_text().strip()
         who = http_json("GET", "https://api.github.com/user", token=gh)
-        print("Chaves GitHub/CF ja no disco.")
+        print("GitHub PAT already on disk.")
     else:
 
         def gh_ok(val: str):
+            if not val:
+                return True, "skip"
             if val.startswith("ghp_") or val.startswith("github_pat_"):
                 w = http_json("GET", "https://api.github.com/user", token=val)
                 if w.get("login"):
                     return True, w["login"]
-                return False, "Token recusado pela API GitHub."
-            return False, "Tem de comecar por ghp_ (ou github_pat_)."
+                return False, "GitHub API refused the token."
+            return False, "Empty to skip, or a token starting ghp_."
 
-        gh = ask_until(
-            "GitHub",
-            "Cole o Personal Access Token (ghp_). Permissoes: repo StrataMesh-Laboratory.",
-            gh_ok,
-            hidden=True,
-        )
-        who = http_json("GET", "https://api.github.com/user", token=gh)
-        write_secret("github.pat", gh)
-        write_secret("gh_pat", gh)
+        gh = ask_until("GitHub (optional)", "PAT ghp_ for git write. Empty = public clone only.", gh_ok, hidden=True)
+        if gh:
+            who = http_json("GET", "https://api.github.com/user", token=gh)
+            write_secret("github.pat", gh)
+
+    if cf_path.is_file() and cf_path.stat().st_size > 10:
+        cf = cf_path.read_text().strip()
+        print("Cloudflare token already on disk.")
+    else:
 
         def cf_ok(val: str):
-            if len(val) < 20:
-                return False, "Token demasiado curto."
-            if val.startswith("cfat_") or val.startswith("v1.0-") or len(val) >= 30:
+            if not val:
+                return True, "skip"
+            if len(val) >= 20:
                 return True, "ok"
-            return False, "Cole o token Cloudflare (cfat_)."
+            return False, "Empty to skip, or Cloudflare API token."
 
-        cf = ask_until(
-            "Cloudflare",
-            "Cole o API token Cloudflare (cfat_). Workers + DNS + Account.",
-            cf_ok,
-            hidden=True,
-        )
-        write_secret("cloudflare.token", cf)
-        write_secret("god_api", cf)
+        cf = ask_until("Cloudflare (optional)", "API token for your own account/tunnel. Empty = local Fog.", cf_ok, hidden=True)
+        if cf:
+            write_secret("cloudflare.token", cf)
+            write_secret("god_api", cf)
+            acc = http_json("GET", "https://api.cloudflare.com/client/v4/accounts?per_page=1", token=cf)
+            rows = acc.get("result") if isinstance(acc.get("result"), list) else []
+            if rows and rows[0].get("id"):
+                write_secret("cf_account", rows[0]["id"])
 
     tun_path = SECRETS / "tunnel.token"
     if not tun_path.is_file() or tun_path.stat().st_size < 20:
-        tun = dialog(
-            "Tunel Cloudflare",
-            "Token do named tunnel macbook-server (vazio = saltar / manter disco).",
-            hidden=True,
-        ).strip()
+        tun = dialog("Named tunnel (optional)", "Your Cloudflare named-tunnel token. Empty = local only.", hidden=True).strip()
         if tun:
             write_secret("tunnel.token", tun)
 
-    write_secret("cf_account", "f3645fcb56675cf7250d8ba7358eb252")
-    print("Identidade ok:", node_id, "GitHub @" + str(who.get("login")), "— a instalar.")
+    sys.path.insert(0, str(REPO / "src"))
+    try:
+        from fog_profile import save as save_profile
+        save_profile({"node_id": node_id, "origin": "macbook" if node_id == "FOG-NODE-PT-CM-001" else "local"})
+    except Exception as e:
+        print("profile note:", e)
+
+    print("Identity ok:", node_id, "GitHub @" + str(who.get("login") or "skip"), "— installing.")
 
     env = os.environ.copy()
     env["FOG_NODE_ID"] = node_id

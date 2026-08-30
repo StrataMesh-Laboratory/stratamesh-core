@@ -1,8 +1,6 @@
 #!/bin/bash
-# StrataMesh Fog Mac installer v5 — THIS Mac’s workerd :8788 + runtime UI
-# Double-click in Finder. No secrets in this file.
-# Mac origin:  Mac 127.0.0.1:8788 → Mac 127.0.0.1:8787
-# Do not load fog-lab tunnel plist; public fog rides existing macbook-server connector.
+# StrataMesh LAB Fog Node installer v0.3.0
+# No secrets in this file. Node id + tokens live in ~/.config/stratamesh.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export COPYFILE_DISABLE=1
@@ -15,15 +13,30 @@ SECRETS="$HOME/.config/stratamesh"
 LAUNCH="$HOME/Library/LaunchAgents"
 REPO="${REPO_URL:-https://github.com/StrataMesh-Laboratory/stratamesh-core.git}"
 CF_VER="${CLOUDFLARED_VERSION:-2026.8.2}"
-NODE_ID="${FOG_NODE_ID:-FOG-NODE-PT-CM-001}"
-if [[ -f "$HOME/.config/stratamesh/node.id" ]]; then
-  NODE_ID="$(tr -d '[:space:]' < "$HOME/.config/stratamesh/node.id")"
+NODE_ID="${FOG_NODE_ID:-}"
+if [[ -z "$NODE_ID" && -f "$SECRETS/node.id" ]]; then
+  NODE_ID="$(tr -d '[:space:]' < "$SECRETS/node.id")"
+fi
+NODE_ID="${NODE_ID:-UNREGISTERED}"
+if [[ "$NODE_ID" == "FOG-NODE-PT-CM-001" ]]; then
+  ORIGIN="${FOG_ORIGIN:-macbook}"
+  AGENT="pt.calhegasmorais.fog"
+  MESH_N="${FOG_MESH_N:-2}"
+else
+  ORIGIN="${FOG_ORIGIN:-local}"
+  AGENT="lab.stratamesh.fog"
+  MESH_N="${FOG_MESH_N:-1}"
 fi
 
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }
 
-osascript -e 'display notification "StrataMesh Fog v5 — runtime UI" with title "Installer"' >/dev/null 2>&1 || true
+printf "\n  STRATAMESH LAB  ·  Fog Node v0.3.0\n"
+printf "  Intelligentia · Vigilantia · Veritas\n"
+printf "  node=%s  origin=%s  agent=%s\n" "$NODE_ID" "$ORIGIN" "$AGENT"
+printf "  lab · not mainnet · secrets never in git\n\n"
+
+osascript -e 'display notification "StrataMesh LAB Fog Node v0.3.0" with title "Installer"' >/dev/null 2>&1 || true
 
 say "1/9 host"
 ARCH=$(uname -m)
@@ -61,20 +74,22 @@ if [[ -e "$DSTW" && "$SRCW" -ef "$DSTW" ]]; then
 else
   cp -f "$SRCW" "$DSTW"
 fi
-python3 - "$FOG/repo/ops/workerd/config.capnp" "$FOG/workerd-config/config.capnp" <<'PY'
+python3 - "$FOG/repo/ops/workerd/config.capnp" "$FOG/workerd-config/config.capnp" "$ORIGIN" <<'PY'
 import sys
 from pathlib import Path
-src, dest = Path(sys.argv[1]), Path(sys.argv[2])
+src, dest, origin = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
 text = src.read_text()
-if 'text = "macbook"' in text:
-    dest.write_text(text)
-elif 'text = "session"' in text:
-    dest.write_text(text.replace('text = "session"', 'text = "macbook"', 1))
+for old in ('session', 'macbook', 'local', 'edge'):
+    needle = 'text = "%s"' % old
+    if needle in text:
+        text = text.replace(needle, 'text = "%s"' % origin, 1)
+        break
 else:
     raise SystemExit("ORIGIN binding missing in config.capnp")
+dest.write_text(text)
 PY
 [[ -f "$FOG/workerd-config/config.capnp" ]] || die "workerd-config write failed"
-grep -q 'text = "macbook"' "$FOG/workerd-config/config.capnp" || die "ORIGIN not macbook"
+grep -q "text = \"$ORIGIN\"" "$FOG/workerd-config/config.capnp" || die "ORIGIN not $ORIGIN"
 
 say "4/9 venv + psutil"
 "$PY" -m venv "$FOG/venv"
@@ -104,21 +119,22 @@ chmod 755 "$FOG/bin/cloudflared"
 rm -rf "$TMPCF"
 "$FOG/bin/cloudflared" --version || true
 
-say "7/9 tunnel token (hidden, local file only)"
+say "7/9 tunnel token (local file only — optional)"
 TOKFILE="$SECRETS/tunnel.token"
 if [[ ! -s "$TOKFILE" ]]; then
-  TOK=$(osascript -e 'Tell application "System Events" to display dialog "Paste the Cloudflare named-tunnel token (hidden). Not stored in git." default answer "" with hidden answer' -e 'text returned of result' 2>/dev/null || true)
-  [[ -n "${TOK:-}" ]] || die "token required once — save at $TOKFILE"
-  printf "%s" "$TOK" > "$TOKFILE"
+  echo "no named-tunnel token on disk — this Fog stays local until you add $TOKFILE"
+else
+  chmod 600 "$TOKFILE"
 fi
-chmod 600 "$TOKFILE"
 
-say "8/9 LaunchAgents — fog KeepAlive (owns workerd via plugin). Tunnel HOLD."
-cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
+say "8/9 LaunchAgents — fog KeepAlive (owns workerd via plugin)."
+MAC_LIVE=false
+[[ "$ORIGIN" == "macbook" ]] && MAC_LIVE=true
+cat > "$LAUNCH/${AGENT}.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>pt.calhegasmorais.fog</string>
+  <key>Label</key><string>$AGENT</string>
   <key>WorkingDirectory</key><string>$SRC</string>
   <key>ProgramArguments</key>
   <array>
@@ -135,9 +151,10 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
     <key>WORKERD_BIN</key><string>$WD</string>
     <key>WORKERD_PORT</key><string>8788</string>
     <key>WORKERD_CONFIG</key><string>$FOG/workerd-config/config.capnp</string>
-    <key>FOG_ORIGIN</key><string>macbook</string>
-    <key>FOG_MAC_LIVE</key><string>true</string>
-    <key>FOG_MESH_N</key><string>2</string>
+    <key>FOG_ORIGIN</key><string>$ORIGIN</string>
+    <key>FOG_MAC_LIVE</key><string>$MAC_LIVE</string>
+    <key>FOG_MESH_N</key><string>$MESH_N</string>
+    <key>FOG_NODE_ID</key><string>$NODE_ID</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
   </dict>
   <key>KeepAlive</key><true/>
@@ -191,20 +208,21 @@ cat > "$LAUNCH/pt.calhegasmorais.tunnel.plist" <<EOF
 </dict></plist>
 EOF
 
-launchctl unload "$LAUNCH/pt.calhegasmorais.fog.plist" 2>/dev/null || true
+launchctl unload "$LAUNCH/${AGENT}.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
-launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
+launchctl load "$LAUNCH/${AGENT}.plist"
 cp -f "$FOG/repo/deploy/mac-fog/fog-tui.py" "$FOG/bin/fog-tui.py"
 cp -f "$FOG/repo/deploy/mac-fog/fog-awake.sh" "$FOG/bin/fog-awake.sh"
 chmod 755 "$FOG/bin/fog-tui.py" "$FOG/bin/fog-awake.sh" \
   "$FOG/repo/deploy/mac-fog/FogRuntime.command" \
   "$FOG/repo/deploy/mac-fog/FogStayAwake.command" 2>/dev/null || true
-cat > "$LAUNCH/pt.calhegasmorais.fog-awake.plist" <<EOF
+AWAKE="${AGENT}-awake"
+cat > "$LAUNCH/${AWAKE}.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>pt.calhegasmorais.fog-awake</string>
+  <key>Label</key><string>$AWAKE</string>
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/caffeinate</string>
@@ -223,9 +241,9 @@ cat > "$LAUNCH/pt.calhegasmorais.fog-awake.plist" <<EOF
   <key>StandardErrorPath</key><string>$FOG/log/fog-awake.err</string>
 </dict></plist>
 EOF
-launchctl bootout "gui/$(id -u)/pt.calhegasmorais.fog-awake" 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" "$LAUNCH/pt.calhegasmorais.fog-awake.plist" 2>/dev/null \
-  || launchctl load "$LAUNCH/pt.calhegasmorais.fog-awake.plist"
+launchctl bootout "gui/$(id -u)/${AWAKE}" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$LAUNCH/${AWAKE}.plist" 2>/dev/null \
+  || launchctl load "$LAUNCH/${AWAKE}.plist"
 echo
 echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
 echo "Public fog.calhegasmorais.pt rides macbook-server. HOLD fog-lab tunnel plist."

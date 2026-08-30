@@ -321,21 +321,21 @@ class PersistentFogNode:
                 "f_max": mesh_flags()["mesh_provision"]["f_max"],
                 "note": "n=2 · f_max=0 until n>=3",
             },
-            "agora": {"settlements": {"unavailable": "f_max=0"}},
+            "agora": {"settlements": {"unavailable": "n<2"}},
         })
         return s
 
     def public_html(self) -> str:
         """GET / for browsers. Destylised like EDGE: node id + facts, mesh roster stays JSON."""
         spa = self.spa_view()
-        ver = "0.2.3-dev"
+        ver = "0.3.0"
         mf = mesh_flags()
         return f"""<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>FOG-NODE-PT-CM-001 · {ver}</title>
+<title>{self.node_id} · {ver}</title>
 <style>
 :root {{ --bg:#0a0a0b; --fg:#e8e6e3; --muted:#8a8780; --line:#1c1c1f; --acc:#c4a574; }}
 body {{ margin:0; font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--fg); }}
@@ -349,15 +349,14 @@ code {{ color:var(--fg); }}
 </head>
 <body>
 <main>
-<p class="badge">LAB · prerelease · not mainnet</p>
-<h1>FOG-NODE-PT-CM-001</h1>
-<p>v<code>{ver}</code> · origin=<code>macbook</code> · n={mf.get("n")} · mesh_member={str(mf.get("mesh_member")).lower()} · f_max={mf.get("mesh_provision", {}).get("f_max", 0)}</p>
-<p>Continuity=<code>continuous</code>. Mac workerd hop. Peer roster is JSON (<code>/status</code>), not this page. Byzantine f_max stays 0 until n≥3.</p>
+<p class="badge">STRATAMESH LAB · prerelease · not mainnet</p>
+<h1>{self.node_id}</h1>
+<p>v<code>{ver}</code> · origin=<code>{mesh_flags().get("mesh_provision", {}).get("trusted_origin") or "local"}</code> · n={mf.get("n")} · mesh_member={str(mf.get("mesh_member")).lower()} · f_max={mf.get("mesh_provision", {}).get("f_max", 0)}</p>
+<p>Fog Node of the shared web3 metaverse OS. Continuity and peer roster are JSON (<code>/status</code>). Byzantine f_max stays 0 until n≥3. STRATA via PoC — not a public offer.</p>
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
 </ul>
 <p><code>spa.total={spa.get("total")}</code> · <code>source={spa.get("source")}</code></p>
 </main>
@@ -430,7 +429,7 @@ code {{ color:var(--fg); }}
                 phase="2",
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
-                    "version": "0.2.3-dev",
+                    "version": "0.3.0",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     **mesh_flags(),
@@ -504,7 +503,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.2.3-dev", **mesh_flags()})
+            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.3.0", **mesh_flags()})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":

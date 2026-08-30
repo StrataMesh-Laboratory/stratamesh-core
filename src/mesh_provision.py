@@ -1,10 +1,4 @@
-"""Mesh membership gates.
-
-n=1  → mesh_member false (one host_id)
-n=2  → mesh_member true when Fog Mac and EDGE-GROK are distinct hosts
-       EDGE continuity may be session (expected). f_max still 0 until n>=3.
-Equal host_ids still forbid mesh_member (see host_fingerprint).
-"""
+"""Mesh membership gates. Generic Fog Nodes start n=1 until they peer."""
 from __future__ import annotations
 
 import os
@@ -15,8 +9,22 @@ N_MIN_MEMBER = 2
 N_MIN_BYZANTINE = 3
 
 
+def _profile() -> dict:
+    try:
+        from fog_profile import load
+        return load()
+    except Exception:
+        return {}
+
+
 def origin_role() -> str:
-    return (os.environ.get("FOG_ORIGIN") or "").strip() or "session"
+    p = _profile()
+    return (os.environ.get("FOG_ORIGIN") or p.get("origin") or "").strip() or "session"
+
+
+def this_node_id() -> str:
+    p = _profile()
+    return (os.environ.get("FOG_NODE_ID") or p.get("node_id") or FOG_ID).strip()
 
 
 def mac_live() -> bool:
@@ -43,9 +51,29 @@ def flags() -> dict:
     n = mesh_n()
     member = n >= N_MIN_MEMBER
     f_max = 0 if n < N_MIN_BYZANTINE else 1
+    nid = this_node_id()
+    cmn = nid == FOG_ID
+    peers = [
+        {
+            "id": nid,
+            "role": "fog",
+            "continuity": "continuous" if live or role == "local" else "session",
+            "origin": role,
+        }
+    ]
+    if cmn and n >= 2:
+        peers.append(
+            {
+                "id": EDGE_ID,
+                "role": "edge",
+                "continuity": "session",
+                "origin": "edge-grok-local",
+                "note": "non-continuous expected (EDGE)",
+            }
+        )
     return {
         "mac_live": live,
-        "trusted": live or role == "edge",
+        "trusted": live or role in ("edge", "local", "macbook"),
         "mesh_member": member,
         "oracle_live": False,
         "n": n,
@@ -59,21 +87,7 @@ def flags() -> dict:
             "runtime": "workerd" if role != "edge" else "edge-grok-local",
             "serverless_hop": role != "edge",
             "trusted_origin": "macbook" if live else role,
-            "peers": [
-                {
-                    "id": FOG_ID,
-                    "role": "fog",
-                    "continuity": "continuous",
-                    "origin": "macbook",
-                },
-                {
-                    "id": EDGE_ID,
-                    "role": "edge",
-                    "continuity": "session",
-                    "origin": "edge-grok-local",
-                    "note": "non-continuous expected (EDGE)",
-                },
-            ],
+            "peers": peers,
             "next": "n>=3 → f_max>0" if member else "second distinct host_id → mesh_member=true",
         },
     }

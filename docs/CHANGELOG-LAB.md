@@ -1,3 +1,6 @@
+## 2026-08-30 — v0.3.0 Fog Node kit
+- Generic Fog Node wizard/installer/TUI (StrataMesh LAB). No secrets in git. Optional GH/CF. New nodes n=1. CMN remains n=2.
+
 ## 2026-08-30 — Fog installer wizard
 - macOS Fog Installer: node id → operator 2FA email → GitHub/CF hidden tokens → install → destyle TUI v8. Auth `/fog/bootstrap/challenge|verify`.
 

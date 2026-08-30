@@ -5,10 +5,10 @@
   <key>CFBundleExecutable</key><string>FogStayAwake</string>
   <key>CFBundleIdentifier</key><string>pt.calhegasmorais.fog.stayawake</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>CFBundleName</key><string>Fog Stay Awake</string>
-  <key>CFBundleDisplayName</key><string>Fog Stay Awake</string>
+  <key>CFBundleName</key><string>StrataMesh Fog</string>
+  <key>CFBundleDisplayName</key><string>StrataMesh Fog</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2.3</string>
+  <key>CFBundleShortVersionString</key><string>0.3.0</string>
   <key>CFBundleVersion</key><string>7</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
