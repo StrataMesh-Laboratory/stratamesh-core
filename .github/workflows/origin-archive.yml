@@ -1,20 +1,44 @@
-# Copy to .github/workflows/origin-archive.yml in stratamesh-core.
 # Daily snapshot — GitHub Action, NOT a 6th Cloudflare cron.
+# Idempotent: if archive-YYYY-MM-DD already exists, skip (success).
+# GITHUB_TOKEN cannot UPDATE a release created by a PAT ("Resource not accessible
+# by integration"). Treat already-done as green, same class as gitlive-drift hold_put.
 name: origin-archive
 on:
   schedule:
     - cron: "20 0 * * *"
   workflow_dispatch:
+
 permissions:
   contents: write
+
+concurrency:
+  group: origin-archive
+  cancel-in-progress: true
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Pack day
+      - name: Skip if today's archive exists
+        id: have
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           DAY=$(date -u +%F)
+          echo "DAY=$DAY" >> "$GITHUB_ENV"
+          if gh release view "archive-$DAY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "archive-$DAY already published — skip (idempotent success)"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "archive-$DAY missing — will pack+release"
+          fi
+      - name: Pack day
+        if: steps.have.outputs.exists != 'true'
+        run: |
+          DAY="${DAY:?}"
           mkdir -p /tmp/pile/$DAY /tmp/pile/$DAY/mac-fog /tmp/pile/$DAY/workerd
           cp -a frontend/. /tmp/pile/$DAY/ 2>/dev/null || true
           cp -a ops/METABOLISM.md /tmp/pile/$DAY/ 2>/dev/null || true
@@ -23,11 +47,12 @@ jobs:
           cp workers/stratamesh-origin-archive.js /tmp/pile/$DAY/ 2>/dev/null || true
           printf '%s\n' "{\"date\":\"$DAY\",\"sha\":\"${GITHUB_SHA}\",\"note\":\"daily origin archive + fog origin flux\"}" > /tmp/pile/$DAY/manifest.json
           tar -C /tmp/pile -czf /tmp/origin-archive-$DAY.tar.gz $DAY
-          echo "DAY=$DAY" >> "$GITHUB_ENV"
       - name: Release
+        if: steps.have.outputs.exists != 'true'
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: archive-${{ env.DAY }}
           name: Origin archive ${{ env.DAY }}
           files: /tmp/origin-archive-${{ env.DAY }}.tar.gz
           body: Daily last-resort static pile for origin.calhegasmorais.pt. Staff-gated. Not a 6th CF cron.
+          make_latest: false
