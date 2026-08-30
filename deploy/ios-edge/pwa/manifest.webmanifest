@@ -1,0 +1,9 @@
+{
+  "name": "StrataMesh LAB Edge",
+  "short_name": "LAB Edge",
+  "start_url": "/app/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "description": "Indexed Edge Node. C_mesh = f(1-U). Session expected. Not a Fog."
+}

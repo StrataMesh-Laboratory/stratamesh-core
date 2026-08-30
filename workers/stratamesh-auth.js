@@ -763,6 +763,32 @@ export default {
         }
       }
 
+      if ((path === '/fog/bootstrap/session' || path === '/fog-bootstrap-session') && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const token = String(body.token || body.bootstrap_token || '').trim();
+          if (!token) {
+            return new Response(JSON.stringify({ success: false, error: 'token required' }), { headers: corsHeaders, status: 400 });
+          }
+          await ensureBootstrapTokens();
+          const row = await env.AUTH_DB.prepare(
+            "SELECT node_id, operator_email, expires_at FROM fog_bootstrap_tokens WHERE token = ? AND expires_at > datetime('now')"
+          ).bind(token).first();
+          if (!row) {
+            return new Response(JSON.stringify({ success: false, error: 'invalid or expired' }), { headers: corsHeaders, status: 401 });
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            node_id: row.node_id,
+            operator_masked: maskEmail(row.operator_email),
+            expires_at: row.expires_at,
+            role: String(row.node_id || '').toUpperCase().startsWith('EDGE') ? 'edge' : 'fog',
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
       // --- STAFF-only login (separate from public users / future CMD) ---
       
       // --- Staff TOTP enroll / status ---

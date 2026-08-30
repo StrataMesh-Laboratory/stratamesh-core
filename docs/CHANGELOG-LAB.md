@@ -1,3 +1,6 @@
+## 2026-08-30 — v0.3.1 iOS Edge
+- `C_mesh=f(1-U)` + iPhone/iPad PWA (`/app`) + SwiftUI kit. Heartbeat on api-edge.
+
 ## 2026-08-30 — v0.3.0 Fog Node kit
 - Generic Fog Node wizard/installer/TUI (StrataMesh LAB). No secrets in git. Optional GH/CF. New nodes n=1. CMN remains n=2.
 
