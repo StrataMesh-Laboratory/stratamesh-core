@@ -2,6 +2,44 @@
 
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
+
+## 2026-08-30T00:17Z hour
+READ: origin HEAD a960a0fa (dashboard Assistente VA 1.3.1-va-week). Ledger 23:09 NEXT PICK was Fund POST /api/v1/accept 404 **or** Fog /health enrich. Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~82ms origin-orch-chat-1.1.0; POST 200 **199ms** source=orch-chat-lab pulse-20260830T001411Z clearance=public n=1 skipped=[tick,llm]; Fog / 200 version=0.2.3-lab mesh_member=false oracle_live=false; Fog /spa 200 total=1 source=fog_process consensus n=1 f_max=0 agora.settlements.unavailable=n<2; Fog /health 200 {ok:true} only; Fog /status 200 agora.settlements=0 scalar consensus=null; gossip 2.3.6-ihave count=2 fog+edge; fund 0.4.6-grantor-brief POST /api/v1/accept **404**; status 0.4.4-cache-api. KV 10048 window ended 00:00 UTC. STEP 1 orch already <400ms — do not re-ship. Fog spa honesty already live on 0.2.3-lab process — cannot hot-patch this sandbox. Shipped ledger NEXT PICK: fund accept.
+
+SHIPPED (REST Git Data API + CF PUT /content — NOT MCP, NOT paste, NOT workers.dev):
+- workers/stratamesh-fund.js **0.4.7-accept-surface**: POST|GET /api/v1/accept + GET /api/v1/acceptances. Acceptance is not a payout. funded=false eur=0 treasury=false. KV persist fail-open (honesty: persistence=fund_kv only when put succeeds).
+- CF PUT workers/scripts/stratamesh-fund/content main_module=stratamesh-fund.js bindings preserved. modified 2026-08-30T00:17:44Z etag ac8d30d1 deployment_id f767810b.
+- Did **not** re-ship spa/gossip/status/orch. No extra Discourse. No /actions. No 6th cron. No ops-state KV PUT.
+
+LIVE curl:
+- POST https://fund.calhegasmorais.pt/api/v1/accept {challenge:9,github_login:anonymous} → 200 **287ms** ok=true accepted=true id=stratamesh-impact-fund#9 funded=false eur=0 treasury=false phase=accepted persistence=fund_kv (was 404)
+- GET https://fund.calhegasmorais.pt/api/v1/accept → 200 ~48ms methods=[POST] funded=false eur=0
+- GET https://fund.calhegasmorais.pt/api/v1/acceptances → 200 n=1 funded=false
+- GET https://fund.calhegasmorais.pt/health → 200 **0.4.7-accept-surface** kv_bound=true challenges open=9
+- POST empty /api/v1/accept → 400 challenge_required funded=false
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **116ms** source=orch-chat-lab skipped=[tick,llm] (do not re-ship)
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process (git 0.2.3-lab process; **not invented**)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=2 version 2.3.6-ihave endpoints fog+edge
+- GET https://fog.calhegasmorais.pt/status → agora.settlements=0 **scalar** consensus=null (#40 OPEN)
+- HEAD fog/health → 501
+
+SHA: c2470e6c0371b76f492fc83c2931e8f34875fb9d
+
+STILL RED:
+- Fog GET /status agora.settlements=0 scalar; consensus absent on /status (spa_view has the envelope). #40 stays OPEN
+- Fog GET /health is {ok:true} only (git 0.2.3-lab by design) — cannot hot-patch this sandbox
+- HEAD fog/health 501 (no do_HEAD)
+- Cannot hot-patch Fog process from this sandbox (no :8787 / no tunnel connector here)
+- P0 OPEN 260826-001576 oracle_live=false mesh_member=false n=1
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog GET /health enrich with version/mesh_member/oracle_live when the 0.2.3-lab process can be restarted — cannot hot-patch from this sandbox. **or** Fog GET /status agora.settlements envelope matching spa_view (unavailable:n<2) + consensus n=1 f_max=0. Do not re-ship fund 0.4.7, orch 10.24.5, or spa 1.1.0. Never workers.dev.
+
+LAB n=1 mesh_member=false oracle_live=false P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-29T23:09Z hour
 READ: origin HEAD 9982b0d2 (desk fund MAP + Google restore owner=stratagrok). Ledger 22:04 NEXT PICK was Fog /spa honesty (cannot hot-patch temp). Automation prompt NEXT PICK still orch instant — **curl wins**. Re-probe: GET /api/orchestrator/chat 200 ~76ms origin-orch-chat-1.1.0; POST 200 **109ms** source=orch-chat-lab pulse-20260829T230533Z clearance=public n=1 skipped=[tick,llm]; Fog / 200 version=0.2.3-lab (not lab-temp) mesh_member=false oracle_live=false; Fog /spa 200 total=1 source=fog_process consensus n=1 f_max=0 agora.settlements.unavailable=n<2; Fog /health 200 {ok:true} only (git node_persistent.py); Fog /status 200 settlements=0 scalar; gossip 2.3.5-host count=2 fog+edge; gossip.calhegasmorais.pt/health 200; fund 0.4.6-grantor-brief POST /api/v1/accept 404; status 0.4.4-cache-api spa.source=fog_process. KV ops-state 10048 until 00:00 UTC. Hour already had 23:02 Discourse t/20#11 + 23:06 desk git — **no second Worker pile-up**. Do not re-ship orch 10.24.5 or spa 1.1.0.
 

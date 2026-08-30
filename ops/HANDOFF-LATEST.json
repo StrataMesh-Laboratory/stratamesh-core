@@ -1,17 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-29T23:11:11Z",
-  "lisbon": "2026-08-30T00:11:11+0100",
+  "generated_at": "2026-08-30T00:18:50Z",
+  "lisbon": "2026-08-30T01:18:50+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
   "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_23",
+  "phase": "hourly_gitlive_00",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "23:00 Lisbon peak consumed. No Worker PUT this hour (orch already live). KV 10048 until 00:00 UTC."
+    "reason": "00 UTC hour: shipped fund 0.4.7-accept-surface. Orch already live. KV 10048 window ended 00:00 UTC. No ops-state PUT."
   },
   "metabolism": {
     "schema": "stratamesh.metabolism.v1.2",
@@ -25,7 +25,7 @@
     "no_plan_upgrade": true,
     "never_workers_dev": true,
     "never_actions": false,
-    "github_actions": "public Linux net $0 — CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
+    "github_actions": "public Linux net $0 \u2014 CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
   },
   "probes": {
     "apex": {
@@ -82,6 +82,14 @@
       },
       "note": "Live git 0.2.3-lab process; honesty envelope is real. Not invented. Not hot-patched this sandbox."
     },
+    "fog_status": {
+      "ok": true,
+      "http": 200,
+      "version": "0.2.3-lab",
+      "agora_settlements": 0,
+      "consensus": null,
+      "note": "scalar settlements; #40 OPEN"
+    },
     "aiops": {
       "ok": true,
       "http": 200,
@@ -98,31 +106,32 @@
       "http": 200,
       "path": "https://calhegasmorais.pt/api/v1/gossip/peers",
       "count": 2,
-      "version": "2.3.5-host",
+      "version": "2.3.6-ihave",
       "endpoints": [
         "https://fog.calhegasmorais.pt",
         "https://edge.calhegasmorais.pt"
-      ]
+      ],
+      "note": "apex later 429/1015 this hour; hostname /peers 200"
     },
     "gossip_host": {
       "ok": true,
       "http": 200,
       "path": "https://gossip.calhegasmorais.pt/health",
-      "version": "2.3.5-host",
-      "note": "hostname exists (prompt stale)"
+      "version": "2.3.6-ihave",
+      "note": "hostname exists; /peers count=2"
     },
     "fund": {
       "ok": true,
       "http": 200,
-      "version": "0.4.6-grantor-brief",
+      "version": "0.4.7-accept-surface",
       "challenge_0": "unfunded",
-      "accept": "POST /api/v1/accept 404"
+      "accept": "POST /api/v1/accept 200 funded=false eur=0 persistence=fund_kv"
     },
     "orch_chat": {
       "ok": true,
       "http": 200,
       "source": "orch-chat-lab",
-      "ms": 109,
+      "ms": 116,
       "version_spa": "origin-orch-chat-1.1.0",
       "skipped": [
         "tick",
@@ -142,12 +151,14 @@
   "fund": {
     "challenge_0": "unfunded",
     "budget_hint": "not_a_bare_integer",
-    "version": "0.4.6-grantor-brief",
-    "accept": 404
+    "version": "0.4.7-accept-surface",
+    "accept": 200,
+    "funded": false,
+    "eur": 0
   },
-  "identity": "≠ cargo",
+  "identity": "\u2260 cargo",
   "whatsapp": "not_briefing",
-  "headline": "Hourly 23:09Z: orch-chat-lab 109ms already live; Fog /spa honesty live on 0.2.3-lab. No Worker PUT. Ledger only (hour already had desk 9982b0d2).",
+  "headline": "Hourly 00:17Z: fund 0.4.7-accept-surface POST /api/v1/accept 200 unfunded. Orch-chat-lab 116ms already live. Fog /spa honesty live on 0.2.3-lab.",
   "posture": "lab_autonomous",
   "mandatory_actions": [
     {
@@ -160,13 +171,6 @@
     }
   ],
   "optional_actions": [
-    {
-      "id": "FUND-ACCEPT-404",
-      "owner": "fund",
-      "verb": "Live stratamesh-fund 0.4.6 POST /api/v1/accept → 404. Next Worker PUT if the hour is empty.",
-      "priority": "P2",
-      "success_check": "POST https://fund.calhegasmorais.pt/api/v1/accept is not 404 (honest unfunded body ok)"
-    },
     {
       "id": "FOG-HEALTH-ENRICH",
       "owner": "mesh",
@@ -181,12 +185,12 @@
       "priority": "P2"
     }
   ],
-  "efficacy_self_score": 0.87,
+  "efficacy_self_score": 0.9,
   "notes": [
-    "Hourly git+live 23:09Z: STEP 1 orch instant already live (109ms orch-chat-lab). Stop Worker PUT.",
-    "Fog process is git 0.2.3-lab (not lab-temp). GET /spa honesty envelope live. GET / still JSON+HTML landing.",
-    "23:00 Lisbon reserved peak consumed. Desk already shipped 9982b0d2 + t/20 post 11 — this run appends ledger only.",
-    "KV ops-state 10048 until 00:00 UTC. No KV PUT. No 6th cron. Never workers.dev. Skip extra Discourse.",
+    "Hourly git+live 00:17Z: STEP 1 orch instant already live (116ms orch-chat-lab). Shipped ledger NEXT PICK fund accept.",
+    "CF PUT stratamesh-fund 0.4.7-accept-surface main_module=stratamesh-fund.js. POST /api/v1/accept 200 funded=false.",
+    "Fog process is git 0.2.3-lab. GET /spa honesty envelope live. Cannot hot-patch /health or /status from this sandbox.",
+    "KV ops-state 10048 window ended 00:00 UTC. No ops-state PUT. FUND_KV accept write succeeded. No 6th cron. Never workers.dev. Skip extra Discourse.",
     "P0 still open 260826-001576 (Oracle tenancy). Lab honest. grok@ not SCA."
   ]
 }
