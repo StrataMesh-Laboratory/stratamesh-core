@@ -25,7 +25,7 @@ const ACB_ROSTER = {
   economics: "ACBs earn STRATA only when hired — no mint",
 };
 
-const AIOPS_VERSION = "1.10.4-sg-delta";
+const AIOPS_VERSION = "1.10.5-destyle";
 const STRATAGROK = {
   name: "STRATAGROK",
   bot_id: "c02df87b-0431-46b7-abfc-6f65d751af8e",
@@ -1493,6 +1493,53 @@ async function orchestratorChat(message, env) {
 }
 
 
+function wantsHtml(request) {
+  return String(request.headers.get("Accept") || "").includes("text/html");
+}
+
+function publicPage() {
+  const body = `<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AIOps · v${AIOPS_VERSION}</title>
+<style>
+:root { --bg:#0a0a0b; --fg:#e8e6e3; --muted:#8a8780; --line:#1c1c1f; --acc:#c4a574; }
+body { margin:0; font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+main { max-width:40rem; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+h1 { font-size:1.25rem; font-weight:600; }
+p,li { color:var(--muted); }
+a { color:var(--acc); }
+code { color:var(--fg); }
+.badge { display:inline-block; border:1px solid var(--line); padding:.15rem .5rem; font-size:.75rem; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<main>
+<p class="badge">LAB · prerelease · not mainnet</p>
+<h1>AIOps</h1>
+<p>v<code>${AIOPS_VERSION}</code> · n=2 · mesh_member=true · f_max=0</p>
+<p>Dev team worker. Not aBFT. Cycle roster is JSON (<code>/health</code>, <code>/status</code>), not this page. Fog Mac continuous · EDGE session expected.</p>
+<ul>
+<li><a href="/health">/health</a> JSON</li>
+<li><a href="/status">/status</a> JSON</li>
+<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
+<li><a href="https://gossip.calhegasmorais.pt/health">Gossip /health</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-dev">tag v0.2.3-dev</a></li>
+</ul>
+</main>
+</body></html>`;
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     try {
@@ -1554,6 +1601,12 @@ async function handleFetch(request, env, ctx) {
           status: "ok",
           worker: "stratamesh-aiops",
           version: AIOPS_VERSION,
+          n: 2,
+          mesh_member: true,
+          f_max: 0,
+          lab: true,
+          pre_release: true,
+          host: "aiops.calhegasmorais.pt",
           acb_roster: ACB_ROSTER,
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
@@ -1620,6 +1673,7 @@ async function handleFetch(request, env, ctx) {
     }
 
     if (path === "/" || path === "/status") {
+      if (path === "/" && wantsHtml(request) && request.method === "GET") return publicPage();
       try {
         const last = env.AIOPS_KV ? await env.AIOPS_KV.get("last_cycle") : null;
         const work = env.AIOPS_KV ? await env.AIOPS_KV.get("worklog_latest") : null;

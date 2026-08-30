@@ -1,3 +1,6 @@
+## 2026-08-30 — aiops destyle
+- `aiops.calhegasmorais.pt/` destyle family. `/health` n=2 · mesh_member=true · f_max=0. Cycle JSON unchanged.
+
 ## 2026-08-30 — Grok automations
 - Five Grok Automations re-prompted: n=2 destyle Mac origin, gossip host exists, 30min fallback, vault secrets (no tokens in prompt). Canonical: `ops/GROK-AUTOMATIONS.md`.
 
