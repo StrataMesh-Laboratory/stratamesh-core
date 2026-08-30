@@ -1,3 +1,8 @@
+## 2026-08-30 — GNU board compact (0.4.6-destyle)
+- Phone GNU was a full-viewport overlay: close bar sat under Safari chrome, sticks hid, look/tap froze.
+- GNU is now a small control board under the title chip. Close is 44px and visible. No autofocus on coarse (no keyboard freeze). World keeps moving.
+- tty 5.5rem on phone, last 5 lines. Destyle tokens kept. Never Fog origin. Never workers.dev.
+
 ## 2026-08-30 — sandbox orbit + tap + stick Y (0.4.5-destyle)
 - **Orbit** presence: drag / right stick / pinch-wheel around the avatar. C / Orbit toggle. V inhabit.
 - **Tap floor to walk**, **tap object to act** (walk-then-tool). CRT tap opens GNU. Door tap uses exit.

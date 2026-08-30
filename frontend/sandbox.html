@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.4.5-destyle · sandbox.calhegasmorais.pt</title>
+<title>Atelier GNU · v0.4.6-destyle · sandbox.calhegasmorais.pt</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/"/>
-<meta property="og:title" content="Atelier GNU · v0.4.5-destyle"/>
+<meta property="og:title" content="Atelier GNU · v0.4.6-destyle"/>
 <meta property="og:url" content="https://sandbox.calhegasmorais.pt/"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
@@ -41,11 +41,15 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 #enter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:8;pointer-events:none}
 #enter .card{pointer-events:auto;max-width:26rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.9);text-align:center;cursor:pointer}
 #enter h2{margin:.4rem 0 .3rem;font-size:1.25rem}
-#gnu{display:none;position:absolute;inset:0;z-index:12;background:rgba(7,17,28,.55)}
+#gnu{display:none;position:absolute;z-index:12;pointer-events:none;background:transparent;inset:auto;top:max(3.35rem,calc(env(safe-area-inset-top) + 3.05rem));left:.7rem;width:min(22rem,calc(100% - 1.4rem))}
 #gnu.on{display:block}
-#gnu .bar{display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 .7rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.92);font:10px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
-#tty{position:absolute;left:.7rem;top:2.6rem;width:min(28rem,calc(100% - 1.4rem));max-height:16rem;overflow:auto;border:1px solid var(--line);background:rgba(7,17,28,.92);border-radius:8px;padding:.6rem;font:12px/1.45 ui-monospace,Menlo,monospace;color:var(--ok)}
-#tty input{width:100%;margin-top:.4rem;min-height:44px;border:0;background:transparent;color:var(--ink);font:inherit;outline:none}
+#gnu .board{pointer-events:auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:rgba(7,17,28,.92)}
+#gnu .bar{display:flex;align-items:center;justify-content:space-between;gap:.4rem;min-height:44px;padding:0 .35rem 0 .7rem;border-bottom:1px solid var(--line);font:10px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+#gnu .bar #gnuClose{min-height:40px;min-width:40px;padding:0 .65rem}
+#tty{max-height:7.2rem;overflow:auto;padding:.4rem .65rem .3rem;font:11px/1.4 ui-monospace,Menlo,monospace;color:var(--ok)}
+#tty pre{margin:0;white-space:pre-wrap;word-break:break-word}
+#tty form{display:flex;align-items:center;gap:.35rem;margin-top:.2rem}
+#tty input{flex:1;min-height:36px;border:0;background:transparent;color:var(--ink);font:inherit;outline:none}
 #atlas{display:none;position:absolute;top:0;right:0;bottom:0;width:min(28rem,100%);overflow:auto;z-index:11;border-left:1px solid var(--line);background:var(--surface);padding:1rem;pointer-events:auto}
 #atlas.on{display:block}
 #atlas article{border:1px solid var(--line);border-radius:8px;padding:.6rem;margin:.45rem 0}
@@ -64,8 +68,9 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   .stick{width:5.25rem;height:5.25rem;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)))}
   #stkL{left:.45rem} #stkR{right:.45rem}
   #enter .card{max-width:calc(100% - 2rem);margin:0 .7rem}
+  #gnu{top:max(3.15rem,calc(env(safe-area-inset-top) + 2.75rem));left:.45rem;width:calc(100% - .9rem)}
   #gnu .bar span:nth-child(2){display:none}
-  #tty{max-height:40dvh;width:calc(100% - 1.4rem)}
+  #tty{max-height:5.5rem}
 }
 @media(min-width:900px){#log{display:block}}
 </style>
@@ -78,7 +83,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
-      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.5-destyle · holon 5 UGC</div>
+      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.4.6-destyle · holon 5 UGC</div>
       <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
@@ -137,12 +142,12 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
   </div>
   <div id="log"></div>
   <div id="enter"><div class="card" id="enterBtn">
-    <div class="mono">v0.4.5-destyle · inhabit / orbit</div>
+    <div class="mono">v0.4.6-destyle · inhabit / orbit</div>
     <h2>Enter the GNU atelier</h2>
     <p class="muted">Left stick walk (up = forward) · drag or right stick look · tap floor to walk · tap an object to act · Orbit to circle.</p>
   </div></div>
   <aside id="atlas">
-    <div class="mono">Absorb models, not ontology · v0.4.5-destyle</div>
+    <div class="mono">Absorb models, not ontology · v0.4.6-destyle</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
     <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
@@ -153,17 +158,23 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
     <button class="ghost" id="atlasClose">Close</button>
   </aside>
   <div id="gnu">
-    <div class="bar"><span>GNU · sandbox.calhegasmorais.pt</span><span>GNU Atelier v0.4.5-destyle · inhabit / orbit · Holon 5 UGC</span><button class="ghost" id="gnuClose">close</button></div>
-    <div id="tty">
-      <pre id="ttyOut"></pre>
-      <form id="ttyForm"><span style="color:var(--teal)">$ </span><input id="ttyIn" autocomplete="off" spellcheck="false" placeholder="look · go n · help"/></form>
+    <div class="board">
+      <div class="bar">
+        <span>GNU</span>
+        <span>look · go n · help</span>
+        <button class="ghost" id="gnuClose" type="button" aria-label="Close GNU">Close</button>
+      </div>
+      <div id="tty">
+        <pre id="ttyOut"></pre>
+        <form id="ttyForm"><span style="color:var(--teal)">$ </span><input id="ttyIn" autocomplete="off" spellcheck="false" placeholder="look · go n · help" enterkeyhint="go"/></form>
+      </div>
     </div>
   </div>
 </div>
 <script type="module">
 import * as THREE from "three";
 
-const CORE = "v0.4.5-destyle";
+const CORE = "v0.4.6-destyle";
 const parts = location.pathname.replace(/\/+$/, "").split("/").filter((p) => p && p !== "sandbox.html" && p !== "index.html");
 const ADDR = { owner: parts[0] || "guest", id: parts[1] || "cmn-lab-workbench" };
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
@@ -377,7 +388,7 @@ function log(cmd, text) {
   if (logs.length > 24) logs.shift();
   document.getElementById("log").textContent = logs.slice(-6).join("\n");
   tty.push(cmd + "  " + text);
-  document.getElementById("ttyOut").textContent = tty.slice(-18).join("\n");
+  document.getElementById("ttyOut").textContent = tty.slice(isPhone() ? -5 : -14).join("\n");
 }
 function nearest(max = 1.5) {
   let best = null, bd = max;
@@ -438,11 +449,19 @@ function useNear() {
   const n = nearest(1.6);
   log("use", n ? n.userData.nft.name : "nothing");
 }
+function typingGnu() {
+  return gnu && document.activeElement && document.activeElement.id === "ttyIn";
+}
 function toggleGnu(on) {
   gnu = on !== undefined ? on : !gnu;
   document.getElementById("gnu").classList.toggle("on", gnu);
-  if (gnu) { try { document.exitPointerLock(); } catch {} document.getElementById("ttyIn").focus(); }
-  busyHud();
+  const input = document.getElementById("ttyIn");
+  if (gnu) {
+    try { document.exitPointerLock(); } catch {}
+    if (!isPhone()) input.focus();
+  } else {
+    input.blur();
+  }
 }
 function runCmd(raw) {
   const [cmd, ...rest] = raw.trim().split(/\s+/); const arg = rest.join(" ");
@@ -570,7 +589,6 @@ function pick(cx, cy) {
   return null;
 }
 function onTap(cx, cy) {
-  if (gnu) return;
   playing = true;
   document.getElementById("enter").style.display = "none";
   const hit = pick(cx, cy);
@@ -596,7 +614,6 @@ function onTap(cx, cy) {
 const pointers = new Map();
 let dragPid = null, sx = 0, sy = 0, slx = 0, sly = 0, dragged = false, pinch0 = 0;
 canvas.addEventListener("pointerdown", (e) => {
-  if (gnu) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     const pts = [...pointers.values()];
@@ -636,7 +653,7 @@ function endPtr(e) {
 window.addEventListener("pointerup", endPtr);
 window.addEventListener("pointercancel", endPtr);
 canvas.addEventListener("wheel", (e) => {
-  if (presence !== "observe" || gnu) return;
+  if (presence !== "observe" || typingGnu()) return;
   e.preventDefault();
   orb.r = clamp(orb.r * (1 + Math.sign(e.deltaY) * 0.08), 2.2, 16);
 }, { passive: false });
@@ -744,7 +761,7 @@ function tick(now) {
   if (look.x || look.y) applyLookDelta(look.x * 520 * dt, look.y * -360 * dt);
   const { fx, fz, rx, rz } = inhabitFlat();
   let moved = false;
-  if (!gnu && presence === "inhabit") {
+  if (!typingGnu() && presence === "inhabit") {
     if (has("KeyW") || has("ArrowUp")) { px += fx * speed; pz += fz * speed; moved = true; }
     if (has("KeyS") || has("ArrowDown")) { px -= fx * speed; pz -= fz * speed; moved = true; }
     if (has("KeyA") || has("ArrowLeft")) { px -= rx * speed; pz -= rz * speed; moved = true; }
@@ -756,7 +773,7 @@ function tick(now) {
     }
   }
   if (moved) walk = null;
-  if (!gnu && walk) {
+  if (!typingGnu() && walk) {
     const dx = walk.x - px, dz = walk.z - pz;
     const dist = Math.hypot(dx, dz);
     if (dist < 0.32) {
