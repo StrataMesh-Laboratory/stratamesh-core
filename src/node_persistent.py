@@ -321,7 +321,7 @@ class PersistentFogNode:
                 "f_max": mesh_flags()["mesh_provision"]["f_max"],
                 "note": "n=2 · f_max=0 until n>=3",
             },
-            "agora": {"settlements": {"unavailable": "n<2"}},
+            "agora": {"settlements": {"unavailable": "f_max=0"}},
         })
         return s
 

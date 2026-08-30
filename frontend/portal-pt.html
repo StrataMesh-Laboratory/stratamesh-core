@@ -6,40 +6,38 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#8b1a1a">
+  <meta name="theme-color" content="#0a0a0b">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portal · Calhegas Morais · StrataMesh</title>
 <meta name="description" content="Portal StrataMesh CMN — autenticação, carteira, Ágora, Orquestrador.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4b5a0;--ok:#9caf88;--card:#111113;--danger:#c47a7a}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--ok:#9caf88;--card:#111113;--danger:#c47a7a}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{overflow-x:hidden;max-width:100%}
 img,svg,video,canvas,pre,table{max-width:100%}
 p,li,td,th,label,span,div,a,button,input,textarea{word-wrap:break-word;overflow-wrap:anywhere}
 pre,code{white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-width:100%}
-body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:300;line-height:1.55;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.55;min-height:100vh;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header{max-width:960px;margin:0 auto;padding:1.1rem 1.5rem;display:flex;align-items:baseline;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line)}
-.header h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.35rem;letter-spacing:-.01em}
-.header h1 span{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:.6rem}
-.header .user-info{display:flex;align-items:center;gap:.75rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted)}
+.header h1{font-family:Georgia,ui-serif,serif;font-weight:400;font-size:1.35rem;letter-spacing:-.01em}
+.header h1 span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:.6rem}
+.header .user-info{display:flex;align-items:center;gap:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)}
 .header .role-badge{padding:.15rem .5rem;border:1px solid var(--line2);border-radius:2px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .header .logout{cursor:pointer;color:var(--muted)}.header .logout:hover{color:var(--danger)}
 .login-page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:2rem 1.25rem 4rem}
 .login-box{width:100%;max-width:400px;padding:2rem 0 0}
-.login-kicker{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
-.login-box h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:2rem;letter-spacing:-.02em;margin-bottom:.35rem}
+.login-kicker{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.login-box h2{font-family:Georgia,ui-serif,serif;font-weight:400;font-size:2rem;letter-spacing:-.02em;margin-bottom:.35rem}
 .login-lead{font-size:.9rem;color:var(--muted);margin-bottom:1.75rem}
-.login-box input{width:100%;padding:.85rem 1rem;margin-bottom:.65rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-family:'IBM Plex Sans',sans-serif;font-size:.95rem;font-weight:300}
+.login-box input{width:100%;padding:.85rem 1rem;margin-bottom:.65rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-family:system-ui,sans-serif;font-size:.95rem;font-weight:300}
 .login-box input:focus{outline:none;border-color:var(--accent)}
-.login-box button#authBtn,.login-box button#staffBtn{width:100%;margin-top:.5rem;padding:.9rem 1rem;background:transparent;border:1px solid var(--accent);border-radius:4px;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
+.login-box button#authBtn,.login-box button#staffBtn{width:100%;margin-top:.5rem;padding:.9rem 1rem;background:transparent;border:1px solid var(--accent);border-radius:4px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
 .login-box button#authBtn:hover,.login-box button#staffBtn:hover{background:var(--accent);color:#111}
 .login-box button:disabled{opacity:.45;cursor:not-allowed}
-.login-box .toggle{text-align:center;margin-top:1.1rem;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.04em;color:var(--muted);cursor:pointer}
+.login-box .toggle{text-align:center;margin-top:1.1rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;letter-spacing:.04em;color:var(--muted);cursor:pointer}
 .login-box .toggle:hover{color:var(--accent)}
 .login-box .error{color:var(--danger);font-size:.85rem;margin:.5rem 0 .35rem;min-height:1.2em;display:none}
 .portal.portal-visible{display:block!important;visibility:visible!important}
@@ -47,29 +45,29 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 #staffError{color:var(--danger);font-size:.85rem;margin:.5rem 0;display:none}
 
 #socialLogin{margin:1.5rem 0 .5rem;display:flex;flex-direction:column;gap:.5rem}
-#socialLogin p{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:.25rem}
-#socialLogin button{width:100%;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:.88rem;font-weight:300;cursor:not-allowed;transition:border-color .15s,color .15s}
+#socialLogin p{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:.25rem}
+#socialLogin button{width:100%;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--muted);font-family:system-ui,sans-serif;font-size:.88rem;font-weight:300;cursor:not-allowed;transition:border-color .15s,color .15s}
 #socialLogin button:not(:disabled){color:var(--fg);cursor:pointer}
 #socialLogin button:not(:disabled):hover{border-color:var(--accent);color:var(--accent)}
 #staffBox{display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--line)}
 #staffBox p{font-size:.8rem;color:var(--muted);margin-bottom:.75rem}
 #staffBox input{width:100%;padding:.8rem 1rem;margin-bottom:.55rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-size:.9rem}
-#staffOtpHint{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ok);margin-top:.35rem}
-.login-foot{margin-top:2rem;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.06em;color:var(--muted)}
+#staffOtpHint{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.7rem;color:var(--ok);margin-top:.35rem}
+.login-foot{margin-top:2rem;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.06em;color:var(--muted)}
 .login-foot a{color:var(--muted)}.login-foot a:hover{color:var(--accent)}
 .portal{display:none;max-width:960px;margin:0 auto;padding:1.25rem 1.5rem 4rem}
 .nav{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1.75rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}
-.nav button{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:.45rem .75rem;background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;border-radius:2px}
+.nav button{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:.45rem .75rem;background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;border-radius:2px}
 .nav button:hover{color:var(--fg)}.nav button.active{color:var(--fg);border-color:var(--line2)}
 .panel{display:none}.panel.active{display:block}
-.panel h3{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:1.6rem;margin-bottom:.35rem;letter-spacing:-.01em}
+.panel h3{font-family:Georgia,ui-serif,serif;font-weight:400;font-size:1.6rem;margin-bottom:.35rem;letter-spacing:-.01em}
 .panel>p,.panel .lead{color:var(--muted);font-size:.9rem;margin-bottom:1.25rem}
 .stat-grid,.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.85rem;margin-bottom:1.5rem}
 .stat-card,.admin-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.1rem}
-.stat-card .value{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--fg);margin-bottom:.25rem}
+.stat-card .value{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1rem;color:var(--fg);margin-bottom:.25rem}
 .stat-card .label,.admin-card p{font-size:.72rem;color:var(--muted);letter-spacing:.04em}
-.admin-card h4{font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;color:var(--fg)}
-.diag-run-btn,#orchSend{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;cursor:pointer}
+.admin-card h4{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;color:var(--fg)}
+.diag-run-btn,#orchSend{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;cursor:pointer}
 .diag-run-btn:hover,#orchSend:hover{background:var(--accent);color:#111}
 #orchChat{height:320px;overflow-y:auto;overflow-x:hidden;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;margin-bottom:.75rem;font-size:.88rem;line-height:1.55}
 #orchInput{flex:1;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-size:.9rem}
@@ -187,7 +185,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <button type="button" data-panel="system" data-staff="1" data-min-clearance="secret" onclick="showPanel('system',this)" style="display:none">Sistema</button>
     <button type="button" data-panel="holons" data-staff="1" data-min-clearance="confidential" onclick="showPanel('holons',this)" style="display:none">Holões / SO</button>
   </div>
-  <p id="panelModeHint" style="font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.06em;color:var(--muted);margin:.35rem 0 0.75rem;text-transform:uppercase"></p>
+  <p id="panelModeHint" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.65rem;letter-spacing:.06em;color:var(--muted);margin:.35rem 0 0.75rem;text-transform:uppercase"></p>
 
   <div class="panel" id="panel-wallet">
     <h3>Carteira STRATA</h3>
@@ -202,7 +200,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.25rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Pólos monetários</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Pólos monetários</div>
         <div style="margin-top:.65rem;font-size:.82rem;line-height:1.55">
           <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:.35rem 0"><span>#mint emitido</span><strong id="walletMint">—</strong></div>
           <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:.35rem 0"><span>#0 fora de circulação</span><strong id="walletBurn">—</strong></div>
@@ -211,7 +209,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <p style="margin:.65rem 0 0;font-size:.72rem;color:var(--muted);line-height:1.4">#mint só emite via PdC e nunca recebe. #0 só recebe queimas e nunca transfere.</p>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Transferir STRATA</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Transferir STRATA</div>
         <div style="margin-top:.65rem;display:flex;flex-direction:column;gap:.5rem">
           <input id="walletTo" placeholder="Destinatário (conta)" style="padding:.6rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2,#333);color:var(--fg);border-radius:4px">
           <input id="walletAmt" type="number" step="0.0001" min="0" placeholder="Quantidade" style="padding:.6rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2,#333);color:var(--fg);border-radius:4px">
@@ -223,13 +221,13 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.25rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:180px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem">
-          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">NFT · posse por frações</div>
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">NFT · posse por frações</div>
           <button type="button" onclick="loadWallet()" style="padding:.3rem .55rem;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.68rem">Actualizar</button>
         </div>
         <div id="walletNftList" style="font-size:.8rem"><p style="color:var(--muted)">A carregar…</p></div>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:180px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Conta</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Conta</div>
         <div id="walletAccountMeta" style="font-size:.8rem;line-height:1.55;color:var(--muted)">—</div>
         <div class="stat-card" style="margin-top:.75rem"><div class="value" id="nodeRank" style="font-size:1rem">—</div><div class="label">Contexto</div></div>
       </div>
@@ -252,11 +250,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:160px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Livro · listagens</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Livro · listagens</div>
         <div id="agoraBook"><p style="color:var(--muted);font-size:.82rem">A sincronizar…</p></div>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:160px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Cotação</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Cotação</div>
         <div id="agoraQuoteMeta" style="font-size:.82rem;line-height:1.55;color:var(--muted)">—</div>
       </div>
     </div>
@@ -267,7 +265,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Dois motores: contribuição de recursos (Q_C) e serviços de valor acrescentado. Mint só por PdC.</p>
     <div style="margin-bottom:1rem">
       <button type="button" onclick="loadEconomyPanel()" style="padding:.45rem .85rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Actualizar</button>
-      <span id="ecoStatus" style="margin-left:.75rem;font-family:IBM Plex Mono,monospace;font-size:.68rem;color:var(--muted)"></span>
+      <span id="ecoStatus" style="margin-left:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)"></span>
     </div>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="ecoFogBal">—</div><div class="label">Névoa STRATA</div></div>
@@ -280,11 +278,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">PdC / pool</div>
-        <pre id="ecoPoc" style="margin:0;font-family:IBM Plex Mono,monospace;font-size:.72rem;color:var(--muted);white-space:pre-wrap;max-height:200px;overflow:auto">—</pre>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">PdC / pool</div>
+        <pre id="ecoPoc" style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;color:var(--muted);white-space:pre-wrap;max-height:200px;overflow:auto">—</pre>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Mercado laboral SCA</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Mercado laboral SCA</div>
         <div id="ecoAcbBody" style="font-size:.8rem">—</div>
       </div>
     </div>
@@ -306,14 +304,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <canvas id="bancadaCanvas" tabindex="0" style="display:block;width:100%;height:100%;outline:none;cursor:crosshair"></canvas>
       <div id="bancadaLockHint" onclick="setBancadaMode('fps');this.style.display='none'" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.45);color:var(--fg);font-size:.9rem;cursor:pointer;z-index:3;text-align:center;padding:1rem">Clique para entrar em 1ª pessoa · WASD andar · rato olhar · E na porta do mundo</div>
       <div id="bancadaWorldLoad" style="display:none;position:absolute;inset:0;z-index:4;background:#0a0a0bf2;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:1.5rem">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Porta do mundo aberto</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Porta do mundo aberto</div>
         <div id="bancadaWorldName" style="margin-top:.75rem;font-size:1.4rem;color:var(--fg)">cmn-lab-world</div>
         <p style="margin-top:.5rem;color:var(--muted);max-width:28rem;font-size:.85rem">A bancada está endereçada a este mundo. O ponto de vista 1ª pessoa (NFT Avatar) segue pela porta.</p>
         <button type="button" onclick="document.getElementById('bancadaWorldLoad').style.display='none'" style="margin-top:1rem;padding:.45rem .9rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Voltar à bancada</button>
       </div>
       <div id="bancadaHud" style="position:absolute;left:12px;top:12px;right:12px;pointer-events:none;display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:flex-start">
         <div style="pointer-events:none;background:#fff6e4;border:1px solid #6b2e1c;border-radius:6px;padding:.65rem .85rem;max-width:min(100%,320px);color:#1a1008">
-          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#8a2a1a">Bancada · interior</div>
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#8a2a1a">Bancada · interior</div>
           <div id="bancadaHudTitle" style="margin-top:.35rem;font-size:.95rem;color:#1a1008">—</div>
           <div id="bancadaHudMeta" style="margin-top:.35rem;font-size:.72rem;color:#4a3018;line-height:1.45">A carregar o espaço…</div>
         </div>
@@ -351,7 +349,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
       <div id="bancadaDetailBody"></div>
       <div id="bancadaDetailActions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem"></div>
       <div id="bancadaEditBox" style="display:none;margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Editar objecto NFT</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Editar objecto NFT</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.65rem">
           <label style="font-size:.75rem;color:var(--muted)">Nome<input id="nftEditName" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"/></label>
           <label style="font-size:.75rem;color:var(--muted)">Modo
@@ -451,7 +449,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div id="kycUserStatus" style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.82rem;color:var(--muted)">A verificar estado…</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Documento</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">Documento</div>
         <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Fotografia (passaporte / ID)</label>
         <input type="file" id="kycImage" accept="image/*" capture="environment" style="width:100%;margin-bottom:.75rem;font-size:.8rem">
         <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Nº documento (identificador soberano)</label>
@@ -459,11 +457,11 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
         <button type="button" id="kycOcrBtn" onclick="runKycOcr()" style="width:100%;padding:.6rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">OCR da fotografia</button>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">MRZ (opcional)</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem">MRZ (opcional)</div>
         <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Linha 1</label>
-        <input id="kycMrz1" placeholder="P&lt;UTO..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:IBM Plex Mono,monospace;font-size:.75rem;box-sizing:border-box">
+        <input id="kycMrz1" placeholder="P&lt;UTO..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;box-sizing:border-box">
         <label style="display:block;font-size:.75rem;color:var(--muted);margin-bottom:.35rem">Linha 2</label>
-        <input id="kycMrz2" placeholder="..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:IBM Plex Mono,monospace;font-size:.75rem;box-sizing:border-box">
+        <input id="kycMrz2" placeholder="..." style="width:100%;padding:.6rem;margin-bottom:.75rem;background:var(--bg,#0a0a0a);border:1px solid var(--line2);color:var(--fg);border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;box-sizing:border-box">
         <button type="button" id="kycSubmitBtn" onclick="runKycSubmit()" style="width:100%;padding:.6rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-weight:500">Submeter verificação</button>
       </div>
     </div>
@@ -482,13 +480,13 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:200px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-          <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Pendentes</div>
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Pendentes</div>
           <button type="button" onclick="loadKycQueue()" style="padding:.3rem .55rem;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.68rem">Actualizar</button>
         </div>
         <div id="kycPending"><p style="color:var(--muted);font-size:.82rem">A carregar…</p></div>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:200px">
-        <div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.75rem">Verificados</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.75rem">Verificados</div>
         <div id="kycVerified"><p style="color:var(--muted);font-size:.82rem">A carregar…</p></div>
       </div>
     </div>
@@ -1209,7 +1207,7 @@ async function loadAgora(){
     function side(arr, empty){
       if(!arr||!arr.length) return '<span style="color:var(--muted)">'+empty+'</span>';
       return arr.slice(0,8).map(function(o){
-        return '<div style="font-family:IBM Plex Mono,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
+        return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
     if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
@@ -1248,7 +1246,7 @@ async function loadDAO(){
       var title=pr.title||pr.description||id;
       if(title.length>120) title=title.slice(0,117)+'…';
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
-        '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
+        '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
         '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
@@ -1297,7 +1295,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -1439,7 +1437,7 @@ async function loadDAO(){
       const st=p.status||'';
       const title=String(p.title||id).replace(/</g,'&lt;');
       const safe=id.replace(/"/g,'');
-      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px"><strong style="font-weight:500">'+title+'</strong><br><span style="font-family:IBM Plex Mono,monospace;font-size:.65rem;color:var(--muted)">'+safe+' · '+st+' · for='+(p.votes_for||0)+'</span><div style="margin-top:.5rem"><button type="button" data-vote="for" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">Vote for</button><button type="button" data-vote="against" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;cursor:pointer">Against</button></div></div>';
+      return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px"><strong style="font-weight:500">'+title+'</strong><br><span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.65rem;color:var(--muted)">'+safe+' · '+st+' · for='+(p.votes_for||0)+'</span><div style="margin-top:.5rem"><button type="button" data-vote="for" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">Vote for</button><button type="button" data-vote="against" data-id="'+safe+'" class="dao-vote" style="font-size:.7rem;padding:.35rem .6rem;cursor:pointer">Against</button></div></div>';
     }).join('');
     el.querySelectorAll('.dao-vote').forEach(function(btn){
       btn.onclick=function(){ voteProposal(btn.getAttribute('data-id'), btn.getAttribute('data-vote')); };
@@ -1829,7 +1827,7 @@ async function loadAgora(){
     function side(arr, empty){
       if(!arr||!arr.length) return '<span style="color:var(--muted)">'+empty+'</span>';
       return arr.slice(0,8).map(function(o){
-        return '<div style="font-family:IBM Plex Mono,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
+        return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
     if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
@@ -1868,7 +1866,7 @@ async function loadDAO(){
       var title=pr.title||pr.description||id;
       if(title.length>120) title=title.slice(0,117)+'…';
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
-        '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
+        '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
         '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
@@ -1917,7 +1915,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -2815,11 +2813,11 @@ window.showPanel = function(name, btn){
     ctx.lineWidth = 2;
     roundRect(ctx, 8, 24, 496, 80, 12);
     ctx.fill(); ctx.stroke();
-    ctx.font = '600 28px IBM Plex Sans, system-ui, sans-serif';
+    ctx.font = '600 28px system-ui, sans-serif';
     ctx.fillStyle = '#e4e4e7';
     ctx.textAlign = 'center';
     ctx.fillText(String(text).slice(0, 28), 256, 58);
-    ctx.font = '12px IBM Plex Mono, monospace';
+    ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
     ctx.fillStyle = mode === 'dynamic' ? '#34d399' : mode === 'suspended_static' ? '#f59e0b' : '#a1a1aa';
     ctx.fillText(String(mode || 'static').toUpperCase(), 256, 84);
     var tex = new THREE.CanvasTexture(c);
@@ -2887,7 +2885,7 @@ window.showPanel = function(name, btn){
     } else {
       modeNote = 'Dinâmico: burn_rate '+burn+' STRATA/h do colateral (= custo de recursos para manter dinamicidade). Se colateral &lt; '+minC+', regressa a estático até injecção de colateral.';
     }
-    var html = '<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Objecto NFT</div>';
+    var html = '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Objecto NFT</div>';
     html += '<div style="margin-top:.35rem;font-size:1.05rem;color:var(--fg)">' + esc2(nft.name||nft.id) + '</div>';
     html += '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem"><code>' + esc2(nft.id) + '</code></div>';
     if(nft.description || meta.description){
@@ -3654,7 +3652,7 @@ window.loadScaSelfPanel = async function(){
     var skills=(bp&&bp.skills)||[];
     var wallet=(bp&&bp.wallet_account)||id;
     if(box){
-      box.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Identidade do agente</div>'+
+      box.innerHTML='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Identidade do agente</div>'+
         '<div style="color:var(--fg);font-size:1.05rem"><strong>'+esc(name)+'</strong></div>'+
         '<div style="margin-top:.35rem">ID <code>'+esc(String(id))+'</code> · Conta <code>'+esc(String(wallet))+'</code></div>'+
         '<div style="margin-top:.25rem">Cargo no nó: <strong>'+esc(String(appt))+'</strong> · '+esc(String(st))+'</div>'+
@@ -3796,12 +3794,12 @@ window.loadACBPanel=async function(){
         var op=(status&&status.operator)||'—';
         var nid=(status&&status.node_id)||'FOG-NODE-PT-CM-001';
         if(orch){
-          roleBox.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
+          roleBox.innerHTML='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
             '<div style="color:var(--fg)"><strong>'+esc(orch.identity_name)+'</strong> · <code>'+esc(orch.sca_id)+'</code></div>'+
             '<div style="margin-top:.25rem">Cargo: <strong>'+esc(orch.appointment)+'</strong> · Conta: <code>'+esc(orch.wallet_account)+'</code></div>'+
             '<div style="margin-top:.25rem;color:var(--muted)">Nó <code>'+esc(nid)+'</code> · Operador humano: '+esc(op)+'</div>';
         } else {
-          roleBox.innerHTML='<div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
+          roleBox.innerHTML='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
             '<div style="color:var(--fg)">Nó <code>'+esc(nid)+'</code></div>'+
             '<div style="margin-top:.25rem;color:var(--muted)">Operador humano: '+esc(op)+' · SCAs com blueprint listados abaixo</div>';
         }
@@ -3828,7 +3826,7 @@ window.loadACBPanel=async function(){
             var bar='<div style="margin-top:.5rem;height:4px;background:var(--line);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+kpi.score+'%;background:var(--accent)"></div></div>';
             return '<div class="sca-card" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">'+
               '<div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start">'+
-                '<div><div style="font-family:IBM Plex Mono,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">'+esc(a.appointment||'SCA')+'</div>'+
+                '<div><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">'+esc(a.appointment||'SCA')+'</div>'+
                 '<div style="margin-top:.3rem;color:var(--fg);font-size:.95rem"><strong>'+esc(a.identity_name||a.sca_id)+'</strong></div>'+
                 '<div style="margin-top:.2rem;font-size:.72rem;color:var(--muted)"><code>'+esc(a.sca_id)+'</code> · conta <code>'+esc(a.wallet_account)+'</code>'+genes+'</div></div>'+
                 '<div style="text-align:right"><div style="font-size:1.1rem;color:var(--fg)">'+kpi.score+'</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">KPI</div></div>'+
@@ -3865,7 +3863,7 @@ window.loadACBPanel=async function(){
     var el=document.getElementById('holonStack');
     if(el) el.innerHTML=stack.map(function(s,i){
       return '<div style="padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;display:flex;gap:.75rem;align-items:flex-start">'+
-        '<span style="font-family:IBM Plex Mono,monospace;font-size:.7rem;color:var(--accent)">0'+i+'</span>'+
+        '<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.7rem;color:var(--accent)">0'+i+'</span>'+
         '<div><div style="color:var(--fg);font-size:.9rem">'+esc(s.n)+'</div><div style="color:var(--muted);font-size:.75rem;margin-top:.15rem">'+esc(s.d)+'</div></div></div>';
     }).join('');
   };
@@ -3908,7 +3906,7 @@ window.loadACBPanel=async function(){
       }catch(e){ ver=String(e.message||e).slice(0,40); }
       html+='<div style="padding:.75rem;border:1px solid var(--line);border-radius:8px;background:var(--card)">'+
         '<div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.82rem">'+esc(name)+'</strong>'+
-        '<span style="font-size:.68rem;font-family:IBM Plex Mono,monospace;color:'+(ok?'#34d399':'#f59e0b')+'">'+(ok?'OK':'ERR')+'</span></div>'+
+        '<span style="font-size:.68rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:'+(ok?'#34d399':'#f59e0b')+'">'+(ok?'OK':'ERR')+'</span></div>'+
         '<div style="font-size:.7rem;color:var(--muted);margin-top:.35rem">'+esc(ver)+'</div></div>';
     }
     el.innerHTML=html;
