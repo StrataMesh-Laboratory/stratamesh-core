@@ -1,11 +1,15 @@
 #!/bin/bash
-# Stop Mac Fog + workerd + tunnel LaunchAgents (v3)
+# Stop Mac Fog + workerd. Does NOT kill macbook-server cloudflared (public fog).
 set -euo pipefail
 LAUNCH="$HOME/Library/LaunchAgents"
-for l in pt.calhegasmorais.tunnel pt.calhegasmorais.workerd pt.calhegasmorais.fog; do
+UIDN="$(id -u)"
+for l in pt.calhegasmorais.fog pt.calhegasmorais.workerd; do
+  launchctl bootout "gui/${UIDN}/${l}" 2>/dev/null || true
   launchctl unload "$LAUNCH/${l}.plist" 2>/dev/null || true
   echo "unloaded $l"
 done
-# plugin-owned workerd may still be up after fog unload
-pkill -f '/workerd serve' 2>/dev/null || true
-echo "stopped. Token file left in ~/.config/stratamesh/tunnel.token"
+# fog-lab tunnel agent only — not macbook-server
+launchctl bootout "gui/${UIDN}/pt.calhegasmorais.tunnel" 2>/dev/null || true
+launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
+pkill -x workerd 2>/dev/null || true
+echo "fog stopped. macbook-server cloudflared left running."

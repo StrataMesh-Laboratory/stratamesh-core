@@ -1,8 +1,8 @@
 #!/bin/bash
-# StrataMesh Fog Mac installer v3 — THIS Mac’s workerd :8788, not the Grok session
+# StrataMesh Fog Mac installer v5 — THIS Mac’s workerd :8788 + runtime UI
 # Double-click in Finder. No secrets in this file.
 # Mac origin:  Mac 127.0.0.1:8788 → Mac 127.0.0.1:8787
-# Session origin (temp, other host): do not use from here. One public origin.
+# Do not load fog-lab tunnel plist; public fog rides existing macbook-server connector.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export COPYFILE_DISABLE=1
@@ -20,7 +20,7 @@ NODE_ID="FOG-NODE-PT-CM-001"
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }
 
-osascript -e 'display notification "StrataMesh Fog v3 — workerd layer" with title "Installer"' >/dev/null 2>&1 || true
+osascript -e 'display notification "StrataMesh Fog v5 — runtime UI" with title "Installer"' >/dev/null 2>&1 || true
 
 say "1/9 host"
 ARCH=$(uname -m)
@@ -181,20 +181,26 @@ launchctl unload "$LAUNCH/pt.calhegasmorais.fog.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.tunnel.plist" 2>/dev/null || true
 launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
+cp -f "$FOG/repo/deploy/mac-fog/fog-tui.py" "$FOG/bin/fog-tui.py"
+chmod 755 "$FOG/bin/fog-tui.py" "$FOG/repo/deploy/mac-fog/FogRuntime.command" 2>/dev/null || true
 echo
 echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
-echo "Does not use the Grok-session :8788."
-echo "HOLD tunnel. Flux: session.live until you cut over."
-echo "  1. Grok host:  python3 ops/bin/fog-persist.py --yield-public"
-echo "  2. This Mac:   $(dirname "$0")/origin-take.command"
-echo "Yield back:      $(dirname "$0")/origin-yield.command"
+echo "Public fog.calhegasmorais.pt rides macbook-server. HOLD fog-lab tunnel plist."
+echo "Runtime UI: $FOG/bin/fog-tui.py  (q quit · s stop fog · 15s refresh)"
 
 say "9/9 health"
 sleep 3
 curl -sf -m 5 http://127.0.0.1:8787/health && echo "  fog :8787 ok" || echo "  fog starting…"
 curl -sf -m 5 http://127.0.0.1:8788/workerd && echo "  workerd :8788 ok" || echo "  workerd starting (fog plugin)…"
 echo
-echo "Layer: tunnel → workerd :8788 → fog :8787"
-echo "Stop:  $(dirname "$0")/stop-fog.command"
-echo "LAB n=1  mesh_member=false  v3"
+echo "Layer: workerd :8788 → fog :8787  (public via macbook-server)"
+echo "Stop fog:  $(dirname "$0")/stop-fog.command   or  s  in the runtime UI"
+echo "LAB n=1  mesh_member=false  v5"
+export FOG_HOME="$FOG"
+osascript <<APP >/dev/null 2>&1 || true
+tell application "Terminal"
+  activate
+  do script "export FOG_HOME='$FOG'; exec python3 '$FOG/bin/fog-tui.py'"
+end tell
+APP
 open "$FOG/log" >/dev/null 2>&1 || true
