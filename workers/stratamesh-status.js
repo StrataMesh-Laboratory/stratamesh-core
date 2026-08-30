@@ -568,19 +568,20 @@ function page(s) {
   const upLine = Object.keys(up).map((k) => k + ':' + (up[k] ? 'ok' : '—')).join(' · ');
   return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estado · ${s.name_pt||s.name||'CMN'}</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#0b0f14;color:#e6edf3;padding:1.5rem;line-height:1.45;max-width:52rem;margin:0 auto}
-a{color:#93c5fd}h1{font-size:1.25rem;font-weight:600;margin:0 0 .5rem}
-.pill{display:inline-block;color:#86efac;font-family:ui-monospace,monospace;font-size:.75rem;margin:.25rem 0 1rem}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--card:#111113}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}main{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+h1{font-size:1.25rem;font-weight:600;margin:0 0 .5rem}p,li{color:var(--muted)}a{color:var(--acc)}code{color:var(--fg)}
+.badge{display:inline-block;border:1px solid var(--line);padding:.15rem .5rem;font-size:.75rem;letter-spacing:.04em;margin:.25rem 0 1rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.75rem;margin:1rem 0}
-.card{background:#141a22;border:1px solid #243044;border-radius:8px;padding:.75rem}
-.card .v{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}
-.card .l{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:#9aa4b2;margin-top:.25rem}
-pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.72rem;border:1px solid #243044}
-.muted{color:#9aa4b2;font-size:.85rem}
+.card{background:var(--card);border:1px solid var(--line);padding:.75rem}
+.card .v{font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--fg)}
+.card .l{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:.25rem}
+pre{background:var(--card);padding:1rem;overflow:auto;font-size:.72rem;border:1px solid var(--line);color:var(--fg)}
+.muted{color:var(--muted);font-size:.85rem}
 </style></head>
-<body>
+<body><main>
+<p class="badge">LAB · prerelease · not mainnet</p>
 <h1>${s.name_pt||s.name||'Calhegas Morais'} · ${s.node_id||''}</h1>
-<p class="pill">v${s.version||''} · fase ${s.phase||''} — ${s.phase_name||''} · ${s.status||''}</p>
+<p class="badge">v<code>${s.version||''}</code> · fase ${s.phase||''} — ${s.phase_name||''} · ${s.status||''}</p>
 <p class="muted">${s.timestamp||''} · fonte ${s.source||''}</p>
 <p class="muted">Upstream ${sum.upstream_ok||0}/${sum.upstream_total||11} · ${upLine}</p>
 <div class="grid">
@@ -592,9 +593,10 @@ pre{background:#141a22;padding:1rem;border-radius:8px;overflow:auto;font-size:.7
   <div class="card"><div class="v">${(s.auth&&s.auth.users!=null)?s.auth.users:'—'}</div><div class="l">Utilizadores</div></div>
 </div>
 <p class="muted">${(mon.flow||'')}</p>
+<p class="muted">Roster is JSON (<code>/status</code>), not this page. Fog Mac continuous · EDGE session expected.</p>
 <p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
 <details><summary class="muted">JSON completo</summary><pre>${JSON.stringify(s,null,2).replace(/</g,'&lt;')}</pre></details>
-</body></html>`;
+</main></body></html>`;
 }
 
 
@@ -623,7 +625,7 @@ async function svcJson(env, bindingName, path, timeoutMs = 2500) {
 async function fetchJsonPublic(url, timeoutMs = 2500) {
   try {
     const work = (async () => {
-      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.6' } });
+      const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'stratamesh-status/0.4.7' } });
       const json = await r.json().catch(() => null);
       return { ok: r.ok, status: r.status, json };
     })();
@@ -684,7 +686,7 @@ async function writePulseCache(env, live) {
   return;
 }
 
-const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-046';
+const EDGE_PULSE_URL = 'https://stratamesh-status.cache/pulse-047';
 const EDGE_PULSE_MS = 30000;
 
 async function readEdgeCache() {
@@ -769,7 +771,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.6-workerd-hop',
+    version: '0.4.7-destyle',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -993,7 +995,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.6-workerd-hop',
+        version: '0.4.7-destyle',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });

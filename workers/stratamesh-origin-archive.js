@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.5-aligned";
+var VERSION = "0.1.6-destyle";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -118,26 +118,24 @@ function pageShell(title, inner) {
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#07111c;--ink:#d7e4ef;--muted:#8aa0b3;--line:#1c3348;--surface:#0c1a28;--teal:#2f9e8a;--danger:#c45c4a;--ok:#6fbf73}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;min-height:100%}
-a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}
-.wrap{max-width:44rem;margin:0 auto;padding:2rem 1.25rem 4rem}
-.kicker{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-h1{font-size:1.75rem;font-weight:600;letter-spacing:-.02em;margin:.5rem 0 0.75rem}
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--ink:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--surface:#111113;--acc:#c4a574;--teal:#c4a574;--danger:#c45c4a;--ok:#6b8f71}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif;min-height:100%}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+.kicker{font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:1.25rem;font-weight:600;letter-spacing:-.02em;margin:.5rem 0 0.75rem}
 p,li{color:var(--muted);line-height:1.55;font-size:.95rem}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:.75rem;padding:1.15rem 1.2rem;margin:1rem 0}
-label{display:block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0.85rem 0 .35rem}
-input{width:100%;padding:.8rem .9rem;background:#07111c;border:1px solid var(--line);border-radius:.5rem;color:var(--ink);font-size:1rem}
-button{margin-top:1rem;width:100%;padding:.85rem 1rem;background:transparent;border:1px solid var(--teal);color:var(--teal);border-radius:.5rem;font-family:"IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;cursor:pointer;min-height:44px}
-button:hover{background:var(--teal);color:#07111c}
+.card{background:var(--surface);border:1px solid var(--line);padding:1.15rem 1.2rem;margin:1rem 0}
+label{display:block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0.85rem 0 .35rem}
+input{width:100%;padding:.8rem .9rem;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-size:1rem}
+button{margin-top:1rem;width:100%;padding:.85rem 1rem;background:transparent;border:1px solid var(--acc);color:var(--acc);font-family:ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;cursor:pointer;min-height:44px}
+button:hover{background:var(--acc);color:var(--bg)}
 .err{color:var(--danger);font-size:.88rem;min-height:1.2em}
 .row{display:flex;justify-content:space-between;gap:1rem;align-items:baseline;border-bottom:1px solid var(--line);padding:.65rem 0}
 .row:last-child{border-bottom:none}
-.mono{font-family:"IBM Plex Mono",monospace;font-size:.78rem}
-.pill{display:inline-block;border:1px solid var(--line);padding:.2rem .5rem;border-radius:999px;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:ui-monospace,monospace;font-size:.78rem}
+.badge,.pill{display:inline-block;border:1px solid var(--line);padding:.15rem .5rem;font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .ok{color:var(--ok);border-color:#2a3a2c}
 footer{margin-top:2rem;font-size:.75rem;color:var(--muted)}
 </style>
@@ -148,7 +146,8 @@ __name(pageShell, "pageShell");
 function publicLanding() {
   return pageShell(
     "Origin · Nó Calhegas Morais",
-    `<p class="kicker">origin.calhegasmorais.pt</p>
+    `<p class="badge">LAB · prerelease · not mainnet</p>
+     <p class="kicker">origin.calhegasmorais.pt · destyle</p>
      <h1>Origin archive</h1>
      <p>Staff-gated last-resort pile. Not the public Fog process. Not PHP SYSTEM LOGIN. Apex is Cloudflare Pages.</p>
      <div class="card">
