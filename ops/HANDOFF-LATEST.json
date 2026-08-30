@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-30T14:14:57Z",
-  "phase": "hourly_gitlive_14_fog_health_version_live",
-  "sha": "5a6ea7518619c4a4e8ea3e35ea7adebafeb0783b",
-  "ship": "Fog /health version=0.3.0 LIVE (Mac TUI); POST /spa/register total=1; GHA fail-watch+protocol-invariants success on a5ac9147; no Worker PUT (hour already had auth 2FA)",
+  "generated_at": "2026-08-30T15:20:05Z",
+  "phase": "hourly_gitlive_15_status_settlements_envelope_git",
+  "sha": "df6f9e42554c606fa4060c6dc58c975c90835a37",
+  "ship": "Fog /status agora.settlements envelope git (unavailable=f_max=0) matching spa_view; live still scalar until Mac g; POST /spa/register total=1; GHA fail-watch+protocol-invariants success; no Worker PUT",
   "live": [
-    "https://fog.calhegasmorais.pt/health",
     "https://fog.calhegasmorais.pt/spa",
-    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33316312320"
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/commit/df6f9e42554c606fa4060c6dc58c975c90835a37",
+    "https://github.com/StrataMesh-Laboratory/stratamesh-core/actions/runs/33319265929"
   ],
   "n": 2,
   "mesh_member": true,
