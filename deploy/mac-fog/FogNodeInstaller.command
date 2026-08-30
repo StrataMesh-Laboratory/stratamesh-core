@@ -50,8 +50,19 @@ else
   git clone --depth 1 "$REPO" "$FOG/repo"
 fi
 ln -sfn "$FOG/repo/src" "$SRC"
-ln -sfn "$FOG/repo/ops/workerd" "$FOG/workerd-config"
-[[ -f "$FOG/workerd-config/config.capnp" ]] || die "ops/workerd/config.capnp missing — pull stratamesh-core"
+mkdir -p "$FOG/workerd-config"
+cp -f "$FOG/repo/ops/workerd/worker.js" "$FOG/workerd-config/worker.js"
+python3 - "$FOG/repo/ops/workerd/config.capnp" "$FOG/workerd-config/config.capnp" <<'PY'
+import sys
+from pathlib import Path
+src, dest = Path(sys.argv[1]), Path(sys.argv[2])
+text = src.read_text()
+if 'text = "session"' not in text:
+    raise SystemExit("ORIGIN binding missing in config.capnp")
+dest.write_text(text.replace('text = "session"', 'text = "macbook"', 1))
+PY
+[[ -f "$FOG/workerd-config/config.capnp" ]] || die "workerd-config write failed"
+grep -q 'text = "macbook"' "$FOG/workerd-config/config.capnp" || die "ORIGIN not macbook"
 
 say "4/9 venv + psutil"
 "$PY" -m venv "$FOG/venv"
@@ -111,6 +122,7 @@ cat > "$LAUNCH/pt.calhegasmorais.fog.plist" <<EOF
     <key>FOG_SRC</key><string>$FOG/repo</string>
     <key>WORKERD_BIN</key><string>$WD</string>
     <key>WORKERD_PORT</key><string>8788</string>
+    <key>WORKERD_CONFIG</key><string>$FOG/workerd-config/config.capnp</string>
     <key>FOG_ORIGIN</key><string>macbook</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
   </dict>
@@ -172,9 +184,10 @@ launchctl load "$LAUNCH/pt.calhegasmorais.fog.plist"
 echo
 echo "This Mac’s loopback: workerd :8788 → fog :8787 (FOG_ORIGIN=macbook)."
 echo "Does not use the Grok-session :8788."
-echo "HOLD tunnel. Public origin is still the session until you cut over."
-echo "Stop the Grok-session persist, then:"
-echo "  launchctl load $LAUNCH/pt.calhegasmorais.tunnel.plist"
+echo "HOLD tunnel. Flux: session.live until you cut over."
+echo "  1. Grok host:  python3 ops/bin/fog-persist.py --yield-public"
+echo "  2. This Mac:   $(dirname "$0")/origin-take.command"
+echo "Yield back:      $(dirname "$0")/origin-yield.command"
 
 say "9/9 health"
 sleep 3

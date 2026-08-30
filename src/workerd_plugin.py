@@ -17,9 +17,10 @@ PORT = int(os.environ.get("WORKERD_PORT") or "8788")
 HEALTH = f"http://127.0.0.1:{PORT}/health"
 DATA = Path(os.environ.get("FOG_DATA") or "/workspace/data/fog")
 ROOT = Path(os.environ.get("FOG_SRC") or "/tmp/sm-core")
-CONFIG = ROOT / "ops" / "workerd" / "config.capnp"
+CONFIG = Path(os.environ.get("WORKERD_CONFIG") or str(ROOT / "ops" / "workerd" / "config.capnp"))
 PIDFILE = DATA / "workerd.pid"
 LOG = DATA / "workerd.log"
+LEASE = DATA / "origin.lease"
 POLL_SEC = 8
 
 
@@ -49,12 +50,21 @@ class WorkerdPlugin:
 
     def snapshot(self) -> dict:
         binp = _which_workerd()
+        role = os.environ.get("FOG_ORIGIN") or "session"
+        public = True
+        try:
+            import json
+            if LEASE.is_file():
+                public = bool(json.loads(LEASE.read_text()).get("public", True))
+        except Exception:
+            pass
         return {
             "ok": self.healthy(),
             "plugin": "fog-workerd",
             "port": PORT,
             "bind": "127.0.0.1",
-            "origin": os.environ.get("FOG_ORIGIN") or "session",
+            "origin": role,
+            "public": public,
             "health": HEALTH,
             "binary": binp,
             "config": str(CONFIG),

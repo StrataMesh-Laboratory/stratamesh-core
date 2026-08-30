@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Keep FOG :8787 + tunnel alive outside the Grok session process group.
+"""Keep FOG :8787 + workerd plugin + optional public tunnel.
 
-Double-fork + setsid so the agent bash PGID SIGTERM does not take fog with it.
-SQLite is snapshotted to /workspace/data/fog/fog.db. Token is read from a
-local file into TUNNEL_TOKEN (never argv / never git).
+Session origin is temporary. Public flux is a lease:
 
-This does not outlive the container. It outlives the chat session.
+  session.live → --yield-public (DARK) → Mac origin-take.command → macbook.live
+  macbook.live → origin-yield.command (DARK) → --resume-public → session.live
+
+Never two cloudflared connectors on the same named tunnel.
+This process does not outlive the container. It outlives the chat session.
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import signal
@@ -17,7 +20,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 ROOT = Path(os.environ.get("FOG_SRC") or "/tmp/sm-core")
 SRC = ROOT / "src"
@@ -30,9 +33,12 @@ BIN_CF_FALLBACK = Path("/tmp/fog-run/cloudflared")
 TOKEN_FILE = SECRETS / "tunnel_token"
 PIDFILE = DATA / "fog-persist.pid"
 LOG = DATA / "fog-persist.log"
+LEASE = DATA / "origin.lease"
 NODE_ID = os.environ.get("FOG_NODE_ID") or "FOG-NODE-PT-CM-001"
 PORT = int(os.environ.get("FOG_PORT") or "8787")
 HEALTH = f"http://127.0.0.1:{PORT}/health"
+PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+ROLE = os.environ.get("FOG_ORIGIN") or "session"
 
 
 def log(msg: str) -> None:
@@ -48,6 +54,32 @@ def log(msg: str) -> None:
         sys.stderr.flush()
     except Exception:
         pass
+
+
+def now_iso() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def read_lease() -> dict:
+    d = {"role": ROLE, "public": True, "updated": None, "yielded_at": None, "taken_at": None}
+    try:
+        if LEASE.is_file():
+            d.update(json.loads(LEASE.read_text(encoding="utf-8")))
+    except Exception:
+        pass
+    d["role"] = ROLE
+    return d
+
+
+def write_lease(**kw) -> dict:
+    d = read_lease()
+    d.update(kw)
+    d["role"] = ROLE
+    d["updated"] = now_iso()
+    DATA.mkdir(parents=True, exist_ok=True)
+    LEASE.write_text(json.dumps(d, indent=2) + "\n", encoding="utf-8")
+    LEASE.chmod(0o644)
+    return d
 
 
 def daemonize() -> None:
@@ -77,7 +109,7 @@ def healthy() -> bool:
         return False
 
 
-def pids_matching(needle: str) -> list[int]:
+def pids_comm(name: str) -> list[int]:
     out = []
     proc = Path("/proc")
     me = os.getpid()
@@ -88,10 +120,10 @@ def pids_matching(needle: str) -> list[int]:
         if pid == me:
             continue
         try:
-            cmd = (p / "cmdline").read_bytes().replace(b"\0", b" ").decode("utf-8", "replace")
+            comm = (p / "comm").read_text().strip()
         except Exception:
             continue
-        if needle in cmd:
+        if comm == name:
             out.append(pid)
     return out
 
@@ -127,6 +159,8 @@ def ensure_files() -> None:
             shutil.copy2(DATA / "fog.ok.db", DB_LIVE)
         elif DB_FALLBACK.is_file():
             shutil.copy2(DB_FALLBACK, DB_LIVE)
+    if not LEASE.is_file():
+        write_lease(public=True, taken_at=now_iso())
 
 
 def start_node() -> None:
@@ -135,8 +169,8 @@ def start_node() -> None:
     ensure_files()
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
-    env.setdefault("FOG_ORIGIN", "session")
-    log(f"start node :{PORT} db={DB_LIVE}")
+    env.setdefault("FOG_ORIGIN", ROLE)
+    log(f"start node :{PORT} db={DB_LIVE} origin={ROLE}")
     subprocess.Popen(
         [sys.executable, str(SRC / "node_persistent.py"), "--port", str(PORT), "--db", str(DB_LIVE), "--id", NODE_ID],
         cwd=str(SRC),
@@ -148,7 +182,7 @@ def start_node() -> None:
 
 
 def start_tunnel() -> None:
-    if pids_matching("cloudflared"):
+    if pids_comm("cloudflared"):
         return
     ensure_files()
     tok = TOKEN_FILE.read_text().strip() if TOKEN_FILE.is_file() else ""
@@ -168,15 +202,72 @@ def start_tunnel() -> None:
     )
 
 
+def stop_tunnel() -> None:
+    pids = pids_comm("cloudflared")
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except Exception:
+            pass
+    if pids:
+        log(f"stopped tunnel pids={pids}")
+        time.sleep(0.4)
+
+
+def public_probe() -> dict:
+    try:
+        req = Request(PUBLIC, headers={"User-Agent": "StrataMesh-origin-flux/1"})
+        with urlopen(req, timeout=8) as r:
+            body = r.read().decode("utf-8", "replace")
+            try:
+                data = json.loads(body)
+            except Exception:
+                data = {"raw": body[:200]}
+            return {"ok": r.status == 200, "status": r.status, **data}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def yield_public() -> dict:
+    d = write_lease(public=False, yielded_at=now_iso())
+    stop_tunnel()
+    log("yield-public: tunnel dropped, local fog+workerd stay")
+    return {"ok": True, "lease": d, "public": public_probe()}
+
+
+def resume_public() -> dict:
+    d = write_lease(public=True, taken_at=now_iso(), yielded_at=None)
+    start_tunnel()
+    log("resume-public: tunnel requested")
+    return {"ok": True, "lease": d}
+
+
+def flux_status() -> dict:
+    lease = read_lease()
+    return {
+        "ok": True,
+        "role": ROLE,
+        "lease": lease,
+        "local_fog": healthy(),
+        "tunnel_pids": pids_comm("cloudflared"),
+        "public": public_probe(),
+    }
+
+
 def loop() -> None:
     ensure_files()
-    log(f"watchdog up pid={os.getpid()} pgid={os.getpgid(0)} port={PORT}")
+    log(f"watchdog up pid={os.getpid()} pgid={os.getpgid(0)} port={PORT} origin={ROLE}")
     n = 0
     while True:
         if not healthy():
             start_node()
             time.sleep(1)
-        start_tunnel()
+        lease = read_lease()
+        if lease.get("public", True):
+            start_tunnel()
+        else:
+            if pids_comm("cloudflared"):
+                stop_tunnel()
         n += 1
         if n % 4 == 0:
             snapshot_db()
@@ -184,6 +275,15 @@ def loop() -> None:
 
 
 def main() -> int:
+    if "--status" in sys.argv:
+        print(json.dumps(flux_status(), indent=2))
+        return 0
+    if "--yield-public" in sys.argv:
+        print(json.dumps(yield_public(), indent=2))
+        return 0
+    if "--resume-public" in sys.argv:
+        print(json.dumps(resume_public(), indent=2))
+        return 0
     if "--stop" in sys.argv:
         if PIDFILE.is_file():
             try:

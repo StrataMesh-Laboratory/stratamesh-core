@@ -9,22 +9,31 @@ Replaces v2 zip mailed 2026-08-29.
 | **session** (temp) | MacBook unavailable | *this* Grok host `127.0.0.1:8788` → `127.0.0.1:8787` |
 | **macbook** | Mac is the node | *the Mac’s* `127.0.0.1:8788` → `127.0.0.1:8787` |
 
+Public `/health` on `fog.calhegasmorais.pt` is answered by **that host’s** workerd and includes `"origin":"session"|"macbook"`. That is the flux probe.
+
+## Flux (one named-tunnel connector)
+
 ```
-Internet → named tunnel → (this host’s) workerd :8788 → (this host’s) fog :8787
+session.live  --yield-public→  DARK  --origin-take→  macbook.live
+macbook.live  --origin-yield→  DARK  --resume-public→  session.live
 ```
 
-The Mac installer starts **Mac-local** workerd and fog. It does not proxy, SSH, or otherwise use the session :8788. Cutover = stop session persist+tunnel, then load the Mac tunnel LaunchAgent. Same named-tunnel token, **one connector**.
+1. Installer starts **Mac-local** fog + workerd. Tunnel stays HOLD (`macbook.standby`).
+2. Grok host: `python3 ops/bin/fog-persist.py --yield-public`  
+   Session fog+workerd stay on loopback. Tunnel dies. Public goes DARK (1033). Persist will **not** restart the tunnel.
+3. Mac: `origin-take.command`  
+   Refuses if public still says `origin=session`. Loads the Mac tunnel LaunchAgent only when DARK.
+4. Reverse: Mac `origin-yield.command`, then session `--resume-public`.
 
-Fog plugin (`GET /workerd`, `POST /workerd/reboot` local-only) owns workerd on that host. `FOG_ORIGIN=macbook` on the Mac; session persist sets `FOG_ORIGIN=session`.
+`FOG_ORIGIN` / workerd `ORIGIN` binding = this process’s role. `origin.lease` `public` = whether **this** host holds the connector.
 
 ## Install
 
-1. Unzip. Double-click `FogNodeInstaller.command`. Fog + workerd come up on **this Mac’s** loopback. Tunnel stays HOLD.
+1. Unzip. Double-click `FogNodeInstaller.command`.
 2. Hidden prompt for the tunnel token if `~/.config/stratamesh/tunnel.token` is missing.
-3. When the Mac takes public DNS: stop the Grok-session persist, then  
-   `launchctl load ~/Library/LaunchAgents/pt.calhegasmorais.tunnel.plist`
+3. Cut over with the flux above — not by loading the tunnel plist while session is live.
 
-Stop: `stop-fog.command`.
+Stop all: `stop-fog.command`.
 
 No secrets in the zip. Token never on argv.
 

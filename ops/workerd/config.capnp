@@ -17,5 +17,6 @@ const worker :Workerd.Worker = (
   compatibilityDate = "2024-12-01",
   bindings = [
     (name = "FOG", service = "fog"),
+    (name = "ORIGIN", text = "session"),
   ],
 );
