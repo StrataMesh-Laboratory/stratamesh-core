@@ -3,6 +3,52 @@
 Do not re-derive greens. Copy STILL RED + NEXT PICK forward.
 
 
+## 2026-08-30T08:30Z hour
+READ: origin HEAD dfed2c49 (08:21Z ledger already on main; destyle clp/roadmap/eni Pages 579c3e5b + D1 live). This invocation arrived ~3 min after 08:21 ship (pushed_at 08:22:41Z). Hour wall >25 min — **no second pile-up**. Automation prompt STEP 1 (1) remaining public HTML chrome (status/origin/apex/clp/roadmap/eni) — **curl wins** destyle. STEP 1 (2) GHA: fail-watch **success** dispatch 08:22 on dfed2c49; protocol-invariants last **success** on 5fdb000; origin-archive 05:30 Release **403** "Resource not accessible by integration" (GITHUB_TOKEN cannot UPDATE PAT-owned release archive-2026-08-30) already **idempotent success** 05:34 skip on HEAD — do not replay stale SHA 953e1a9c. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog Accept:text/html destyle 0.3.0. Fog /status **0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0. Fog /spa total=1 source=fog_process n=2 mesh_member=true oracle_live=false agora.settlements.unavailable=**n<2** (git spa_view still n<2). Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **429** CF 1015 this IP (was 530). Orch POST **62ms** 10.24.6-lab-nofog. status 0.4.7-destyle. origin 0.1.6-destyle. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, status 0.4.7, origin-archive 0.1.6, apex/clp destyle.
+
+SHIPPED (observe-only HOLD — NOT MCP, NOT paste, NOT workers.dev, NOT Worker PUT, NOT Pages, NOT 6th cron):
+- Re-probed live. Confirmed 08:21 destyle still live. Inspected origin-archive run 33294837474 logs (Release 403 on existing PAT release; skip already on main).
+- Did **not** re-ship destyle / gossip / orch / spa / fund / status / origin-archive.
+- Did **not** git-patch spa_view this hour (would not be live until Mac TUI v6 `g`; 08:21 already ledgered git still n<2).
+- No extra Discourse. No /actions. No ops-state KV PUT. Cannot restore EDGE from this sandbox.
+
+LIVE curl:
+- GET https://calhegasmorais.pt/clp → 200 destyle --accent:#c4a574 system-ui **no IBM Plex** (do not re-ship)
+- GET https://calhegasmorais.pt/roadmap → 200 destyle (do not re-ship)
+- GET https://calhegasmorais.pt/eni → 200 destyle (do not re-ship)
+- GET https://calhegasmorais.pt/ → 200 destyle v0.3.0 kit (do not re-ship)
+- GET https://origin.calhegasmorais.pt/ (HTML) → 200 destyle --acc:#c4a574 no IBM Plex (do not re-ship)
+- GET https://origin.calhegasmorais.pt/health → 200 0.1.6-destyle (do not re-ship)
+- GET https://calhegasmorais.pt/status → 200 version **0.4.7-destyle**
+- POST https://calhegasmorais.pt/api/orchestrator/chat → 200 **62ms** source=orch-chat-lab skipped=[tick,llm,fog] worker 10.24.6-lab-nofog (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/health → 200 version **2.3.11-destyle** n=2 (do not re-ship)
+- GET https://gossip.calhegasmorais.pt/peers → 200 count=**1** Fog live (EDGE omitted)
+- GET https://fog.calhegasmorais.pt/health → 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**
+- GET https://fog.calhegasmorais.pt/spa → 200 total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=n<2
+- GET https://fog.calhegasmorais.pt/status → 200 version=**0.3.0** agora.settlements=0 **scalar** consensus n=2 f_max=0
+- GET https://edge.calhegasmorais.pt/health → **429** CF 1015
+- GET https://calhegasmorais.pt/dashboard → 200 still IBM Plex + Google fonts (portal snapshot; not this pick — pile-up HOLD)
+- HEAD https://fog.calhegasmorais.pt/health → 200
+
+SHA: parent dfed2c4982d0fadc0c98215d71e2bdd10ddee784 (observe docs commit follows)
+
+STILL RED:
+- EDGE https://edge.calhegasmorais.pt/health **530**/429 — session hop down; gossip /peers count=1. Cannot start EDGE from this sandbox
+- Fog GET /health via workerd hop still lacks version/oracle_live/substrate (git ops/workerd/worker.js 0.3.0; not loaded until host reboot)
+- Fog GET /spa agora.settlements.unavailable=n<2 at live n=2 (git spa_view still n<2). #40 stays OPEN — /status settlements=0 scalar, not a quality number
+- Pages/SPA `/dashboard` still IBM Plex (portal snapshot)
+- fund.calhegasmorais.pt HTML still IBM Plex (429 CF 1015 this IP on later probe; not this pick)
+- Cannot hot-patch Fog process or local workerd :8788 from this sandbox
+- P0 OPEN 260826-001576 oracle_live=false
+- Fund challenges unfunded (accept surface live; funded=false eur=0 honest)
+- Google Recurso aprovado waits STRATAGROK host (not this sandbox)
+- core#52 #40 #39 open; skip #36 Renovate #46 grok90 grok.me /actions 6th cron extra Discourse; do not reopen #41 #42
+
+NEXT PICK: Fog process vs git node_persistent.py spa_view settlements unavailable=f_max=0 (still n<2 in git and live). Mac TUI v6 `g` pull+reboot; cannot from this sandbox. Restore EDGE session hop (530/429). Destyle `/dashboard` portal if still IBM Plex. Do not re-ship status 0.4.7, origin-archive 0.1.6, gossip 2.3.11, orch 10.24.6, apex destyle, clp/roadmap/eni destyle. Never workers.dev.
+
+LAB Fog n=2 mesh_member=true oracle_live=false; orch lab n=1 skipped fog. P0 OPEN 260826-001576. grok@ not SCA.
+
+
 ## 2026-08-30T08:21Z hour
 READ: origin HEAD 6190cc41 (v0.3.0 Fog Node kit lockstep on destyle landings; Pages canonical 2f86a0de at 07:14Z). Ledger 07:12 NEXT PICK was GHA fail-watch. Automation prompt STEP 1 (1) remaining public HTML chrome — **curl wins** status 0.4.7-destyle / origin 0.1.6-destyle / apex v0.3.0 destyle. Remaining chrome still IBM Plex on SPA D1 `/clp` `/roadmap` `/eni` (x-*-source=site_content_chunks) plus Pages copies. Re-probe: Fog /health 200 workerd-hop origin=macbook n=2 mesh_member=true mac_live=true **no version**. Fog /status **0.3.0** settlements=0 scalar n=2 f_max=0. Fog /spa total=1 source=fog_process n=2 mesh_member=true oracle_live=false settlements.unavailable=n<2. Gossip **2.3.11-destyle** n=2 /peers count=**1** Fog only. EDGE /health **530** then **429** CF 1015 this IP (edge_live=false). Orch POST **61ms** 10.24.6-lab-nofog. protocol-invariants last **success** on 5fdb000 (path filter skipped 6190cc). gha-fail-watch last success 05:20Z. origin-archive 05:30 failure already succeeded 05:34. No in_progress runs. Do not re-ship gossip 2.3.11, orch 10.24.6, fund 0.4.7, status 0.4.7, origin-archive 0.1.6, apex destyle.
 

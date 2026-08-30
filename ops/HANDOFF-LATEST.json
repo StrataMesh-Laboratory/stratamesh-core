@@ -1,38 +1,30 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-08-30T07:12:00Z",
-  "lisbon": "2026-08-30T08:12:00+0100",
+  "generated_at": "2026-08-30T08:30:00Z",
+  "lisbon": "2026-08-30T09:30:00+0100",
   "agent": "grok@calhegasmorais.pt",
   "node": "FOG-NODE-PT-CM-001",
-  "desk": "https://edge.calhegasmorais.pt/",
-  "phase": "hourly_gitlive_07",
+  "desk": "https://fog.calhegasmorais.pt/",
+  "phase": "hourly_gitlive_08_observe",
   "reserved_metabolic_peak": false,
   "stasis": {
     "armed": false,
     "stasis_until": null,
     "worker_http": "ok",
-    "reason": "07 UTC hour: Pages destyle live 3f616f8f. Apex no IBM Plex. EDGE 530. No ops-state PUT."
+    "reason": "08Z already shipped destyle 08:21; this invocation observe-only"
   },
   "metabolism": {
-    "schema": "stratamesh.metabolism.v1.2",
-    "grok_auto": "5 slots (hourly + 4 daily, armed)",
+    "schema": "stratamesh.metabolism.v1.3",
+    "grok_auto": "5 slots armed",
     "cf_cron": "5/5",
     "pages_apex": true,
     "STASIS_UNTIL": null,
     "no_sixth_cron": true,
     "no_plan_upgrade": true,
-    "never_workers_dev": true,
-    "never_actions": false,
-    "github_actions": "public Linux net $0 \u2014 CI is core. HOLD only wrangler deploy (CF 1027), not runners. This hour did not dispatch."
+    "never_workers_dev": true
   },
   "probes": {
     "apex": {
-      "ok": true,
-      "http": 200,
-      "destyle": true,
-      "ibm_plex": false
-    },
-    "apex_en": {
       "ok": true,
       "http": 200,
       "destyle": true
@@ -41,11 +33,6 @@
       "ok": true,
       "http": 200,
       "version": "0.4.7-destyle"
-    },
-    "origin_archive": {
-      "ok": true,
-      "http": 200,
-      "version": "0.1.6-destyle"
     },
     "fog_health": {
       "ok": true,
@@ -62,45 +49,39 @@
       "source": "fog_process",
       "n": 2,
       "mesh_member": true,
-      "oracle_live": false
-    },
-    "fog_status": {
-      "ok": true,
-      "http": 200,
-      "version": "0.3.0"
+      "oracle_live": false,
+      "settlements_unavailable": "n<2"
     },
     "gossip": {
       "ok": true,
-      "http": 200,
       "version": "2.3.11-destyle",
       "n": 2,
-      "peers_count": 1
+      "peers": 1
     },
     "edge": {
       "ok": false,
-      "http": 530,
-      "note": "CF 1033"
+      "http": 429,
+      "note": "CF 1015; sandbox no workerd"
     },
     "orch_post": {
       "ok": true,
       "http": 200,
-      "ms": 62,
       "source": "orch-chat-lab",
-      "version": "10.24.6-lab-nofog"
+      "ms": 62,
+      "n": 1
     }
   },
-  "shipped": {
-    "pages_deployment": "3f616f8f-75df-4fce-9a1a-ddf400579044",
-    "pages_project": "calhegasmorais-pt",
-    "onto": "68d7d273e4c400e0b244846ef0f8725d5ee36c49",
-    "sha": "512b5a90806a77b863ca1eaf0cda0c83de1b6d85"
-  },
-  "next_pick": "GHA fail-watch (protocol-invariants already green). Then Fog process vs git node_persistent.py. Restore EDGE 530. Cannot reboot Mac workerd from this sandbox.",
+  "shipped": {},
+  "next_pick": "Fog process vs git spa_view f_max=0 \u2014 Mac TUI v6 g; restore EDGE; destyle /dashboard IBM Plex",
   "p0": "260826-001576 oracle_live=false",
   "lab": {
     "n": 2,
     "mesh_member": true,
     "oracle_live": false,
     "f_max": 0
-  }
+  },
+  "disposition": "HOLD",
+  "ships": 0,
+  "efficacy_self_score": 0.4,
+  "parent": "dfed2c4982d0fadc0c98215d71e2bdd10ddee784"
 }
