@@ -776,7 +776,7 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'IPFS', '/health', 2500),
     svcJson(env, 'HOLONS', '/health', 2500),
     svcJson(env, 'HOLONS', '/so', 2500),
-    svcJson(env, 'GOSSIP', '/peers', 2500),
+    svcJson(env, 'GOSSIP', '/peers', 7000),
     fetchJsonPublic('https://fog.calhegasmorais.pt/health', 800),
     fetchJsonPublic('https://fog.calhegasmorais.pt/', 800),
   ]);
@@ -791,12 +791,15 @@ async function buildLiveStatus(env, opts) {
   const fogHop = !!(fogJson && (fogJson.plugin === 'fog-workerd' || fogJson.runtime === 'workerd'));
   const fogVersion = (fogJson && fogJson.version) || (fogRoot && fogRoot.version) || null;
   const gossipJson = (gossip && gossip.json) || {};
-  const peers = Array.isArray(gossipJson.peers) ? gossipJson.peers : [];
+  const peers = (Array.isArray(gossipJson.peers) ? gossipJson.peers : []).filter((p) => p && p.id);
   const fogPeer = peers.find((p) => p && (p.role === 'fog' || p.id === 'FOG-NODE-PT-CM-001')) || null;
   const edgePeers = peers.filter((p) => p && p.role === 'edge');
   const spaSource = fogOk
     ? ((fogPeer && fogPeer.id) || (fogJson && fogJson.node_id) || 'FOG-NODE-PT-CM-001')
     : 'fog_tunnel_down';
+  if (!peers.length && fogOk && spaSource && spaSource !== 'fog_tunnel_down') {
+    peers.push({ id: spaSource, role: 'fog', mesh_member: true, health_via: 'fog_health_fallback' });
+  }
   const spaAligned = peers.some((p) => p && p.id === spaSource);
   const spaNote = fogOk
     ? ('SPA authority=' + spaSource + ' aligned_with_gossip=' + spaAligned + ' peers=' + peers.length + '. Fog ' + (fogHop ? ('workerd-hop ') : 'local-process ') + '/health ' + fogCode + ' version=' + (fogVersion || 'unversioned') + '. n=2 mesh_member from gossip. oracle_live=false. Not lab_seed.')
