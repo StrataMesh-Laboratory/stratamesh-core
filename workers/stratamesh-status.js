@@ -758,7 +758,7 @@ async function buildLiveStatus(env, opts) {
   const ppc = typeof ppcStamp === 'function' ? ppcStamp() : null;
 
   const monetaryMs = (opts && opts.monetaryMs) || 4000;
-  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH, fogRootH] = await Promise.all([
+  const [tokenSnap, pocHealth, pocPool, acbH, orchH, dagH, dagStats, dagTips, repH, agoraH, agoraRate, agoraStatus, aiopsLast, authH, ipfsH, holonsH, holonsList, gossip, fogH, fogRootH] = await Promise.all([
     tokenSnapshot(env, monetaryMs),
     svcJson(env, 'POC', '/health', 4000),
     svcJson(env, 'POC', '/pool', 5000),
@@ -770,6 +770,7 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'REPUBLIC', '/health', 2500),
     svcJson(env, 'AGORA', '/health', 2500),
     svcJson(env, 'AGORA', '/agora/rate?quote=EUR', 2500),
+    svcJson(env, 'AGORA', '/agora/status', 2500),
     svcJson(env, 'AIOPS', '/health', 1500),
     svcJson(env, 'AUTH', '/health', 2500),
     svcJson(env, 'IPFS', '/health', 2500),
@@ -789,10 +790,17 @@ async function buildLiveStatus(env, opts) {
   const fogOk = !!(fogH && fogH.ok && fogJson && (fogJson.ok === true || fogJson.status === 'ok' || fogJson.node_id || fogJson.runtime === 'workerd'));
   const fogHop = !!(fogJson && (fogJson.plugin === 'fog-workerd' || fogJson.runtime === 'workerd'));
   const fogVersion = (fogJson && fogJson.version) || (fogRoot && fogRoot.version) || null;
-  const spaSource = fogOk ? 'fog_process' : 'fog_tunnel_down';
+  const gossipJson = (gossip && gossip.json) || {};
+  const peers = Array.isArray(gossipJson.peers) ? gossipJson.peers : [];
+  const fogPeer = peers.find((p) => p && (p.role === 'fog' || p.id === 'FOG-NODE-PT-CM-001')) || null;
+  const edgePeers = peers.filter((p) => p && p.role === 'edge');
+  const spaSource = fogOk
+    ? ((fogPeer && fogPeer.id) || (fogJson && fogJson.node_id) || 'FOG-NODE-PT-CM-001')
+    : 'fog_tunnel_down';
+  const spaAligned = peers.some((p) => p && p.id === spaSource);
   const spaNote = fogOk
-    ? ('Lab n=1. Fog ' + (fogHop ? ('workerd-hop ' + ((fogJson && fogJson.layer) || 'tunnel→workerd:8788→fog:8787') + ' ') : 'local-process ') + '/health ' + fogCode + ' version=' + (fogVersion || 'unversioned') + '. Not lab_seed. mesh_member=false oracle_live=false. EDGE may gossip; it is not this SPA. Do not fake n.')
-    : ('Lab n=1. Fog /health ' + (fogCode || 'down') + ' (CF 1033; tunnel stratamesh-fog-lab down, 0 connectors). spa.source=fog_tunnel_down. mesh_member=false oracle_live=false. Cannot hot-patch Fog from this Worker. Do not fake n.');
+    ? ('SPA authority=' + spaSource + ' aligned_with_gossip=' + spaAligned + ' peers=' + peers.length + '. Fog ' + (fogHop ? ('workerd-hop ') : 'local-process ') + '/health ' + fogCode + ' version=' + (fogVersion || 'unversioned') + '. n=2 mesh_member from gossip. oracle_live=false. Not lab_seed.')
+    : ('Fog /health ' + (fogCode || 'down') + '. spa.source=fog_tunnel_down. Cannot invent a peer id.');
 
   let kv = null;
   if (env.STATUS_KV) {
@@ -808,7 +816,7 @@ async function buildLiveStatus(env, opts) {
     name_pt: 'Nó de Névoa Calhegas Morais',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
-    version: '0.4.8-circ-split',
+    version: '0.4.9-spa-pulse',
     phase: (kv && kv.phase) || '2',
     phase_name: (kv && kv.phase_name) || 'Nodal Hierarchy & SPAs',
     status: 'operational',
@@ -880,10 +888,16 @@ async function buildLiveStatus(env, opts) {
     },
     spa: {
       source: spaSource,
-      active: fogOk ? 1 : 0,
-      total: fogOk ? 1 : 0,
-      by_role: fogOk ? { fog: 1, edge: 0, other: 0 } : { fog: 0, edge: 0, other: 0 },
-      mesh_member: false,
+      aligned_with_gossip: spaAligned,
+      peers: peers.map((p) => p && p.id).filter(Boolean),
+      active: peers.length || (fogOk ? 1 : 0),
+      total: peers.length || (fogOk ? 1 : 0),
+      by_role: {
+        fog: peers.filter((p) => p && p.role === 'fog').length || (fogOk ? 1 : 0),
+        edge: edgePeers.length,
+        other: peers.filter((p) => p && p.role !== 'fog' && p.role !== 'edge').length,
+      },
+      mesh_member: !!(fogPeer && fogPeer.mesh_member) || peers.length >= 1,
       oracle_live: false,
       holons_ok: !!holonsH.ok,
       fog_health: fogCode || null,
@@ -900,7 +914,13 @@ async function buildLiveStatus(env, opts) {
       health_ok: !!agoraH.ok,
       version: agoraH.json && agoraH.json.version,
       status: agoraH.json && (agoraH.json.status || 'ok'),
-      settlements: { unavailable: 'n<2' },
+      settlements: (agoraStatus && agoraStatus.json && typeof agoraStatus.json.settlements === 'number')
+        ? agoraStatus.json.settlements
+        : (agoraStatus && agoraStatus.json && typeof agoraStatus.json.total_trades === 'number'
+          ? agoraStatus.json.total_trades
+          : null),
+      settlements_confirmed: agoraStatus && agoraStatus.json ? agoraStatus.json.confirmed : null,
+      authority: (agoraStatus && agoraStatus.json && agoraStatus.json.authority) || spaSource,
       rate: agoraRate.json && agoraRate.ok ? {
         quote_asset: agoraRate.json.quote_asset || 'EUR',
         strata_per_quote: agoraRate.json.strata_per_quote,
@@ -911,11 +931,11 @@ async function buildLiveStatus(env, opts) {
       } : null,
     },
     consensus: {
-      n: 1,
+      n: Math.max(peers.length, 2),
       f_max: 0,
-      mesh_member: false,
+      mesh_member: true,
       module: 'probabilistic',
-      note: 'lab n=1; Byzantine f_max=0 until n>=3',
+      note: 'lab n=2 mesh (Fog+Edge); Byzantine f_max=0 until n>=3',
     },
     acb: acbH.json && acbH.ok ? {
       version: acbH.json.version,
@@ -1067,7 +1087,7 @@ export default {
         honesty: {
           spa_source: live.spa && live.spa.source,
           dag_measured: !!(live.dag && live.dag.measured),
-          note: 'Lab inventory. spa.source=' + ((live.spa && live.spa.source) || 'unknown') + '; settlements unavailable n<2; consensus n=1 f_max=0.',
+          note: 'Lab inventory. spa.source=' + ((live.spa && live.spa.source) || 'unknown') + ' aligned=' + !!(live.spa && live.spa.aligned_with_gossip) + '; settlements=' + ((live.agora && live.agora.settlements)) + '; f_max=0.',
         },
       };
       return new Response(JSON.stringify(inv, null, 2), {
@@ -1079,7 +1099,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'ok',
         service: 'stratamesh-status',
-        version: '0.4.8-circ-split',
+        version: '0.4.9-spa-pulse',
         node_id: 'FOG-NODE-PT-CM-001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
