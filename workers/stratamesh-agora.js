@@ -18,7 +18,7 @@ function j(data, status = 200) {
 const LAB_EUR_PER_LSTRATA = 0.10;
 const LAB_SELLER = 'FOG-NODE-PT-CM-001';
 const LAB_SELLER_ENI = 'AMCM ENI';
-const AGORA_VERSION = '3.3.1-gold-spot';
+const AGORA_VERSION = '3.3.2-settlements-count';
 let _goldSpotCache = null;
 
 async function fetchJson(url, timeoutMs) {
@@ -487,38 +487,41 @@ export default {
         return j({ success: true, account: nodeId, balances: balances.results || [] });
       }
 
-      if (path === '/agora/status') {
+      if (path === '/agora/status' || path === '/agora/settlements') {
         let total_listings = 0,
-          total_trades = 0;
+          total_trades = 0,
+          confirmed = 0;
         try {
           total_listings = (await db.prepare('SELECT COUNT(*) as c FROM agora_listings').first())?.c ?? 0;
         } catch (_) {}
         try {
           total_trades = (await db.prepare('SELECT COUNT(*) as c FROM agora_trades').first())?.c ?? 0;
         } catch (_) {}
-        return j({
+        try {
+          confirmed = (await db.prepare("SELECT COUNT(*) as c FROM agora_trades WHERE settlement_status IN ('lab_confirmed','confirmed') OR tx_hash IS NOT NULL AND tx_hash != ''").first())?.c ?? 0;
+        } catch (_) {
+          confirmed = 0;
+        }
+        const settlements = Number(total_trades) || 0;
+        const body = {
           success: true,
           status: 'operational',
           version: AGORA_VERSION,
           total_listings: total_listings + lab.all.length,
           lab_listings: lab.all.length,
           total_trades,
+          confirmed,
           settlement: 'lab_intent',
-          settlements: { unavailable: 'n<2' },
-          n: 1,
-          peg: lab.peg,
-          note: 'Lab n=1: settlement count is not a scalar; unavailable until n>=2',
-        });
-      }
-
-      if (path === '/agora/settlements') {
-        return j({
-          settlements: { unavailable: 'n<2' },
-          n: 1,
+          settlements,
+          n: 2,
           f_max: 0,
+          mesh_member: true,
+          authority: 'FOG-NODE-PT-CM-001',
+          peg: lab.peg,
           lab: true,
-          note: 'Honest: do not report 0 trades as a settlement metric when n<2',
-        });
+          note: 'settlements is COUNT(agora_trades). n=2 mesh (Fog+Edge), f_max=0 until n>=3. Not seed. Not BFT.',
+        };
+        return j(body);
       }
 
       return j({ error: 'Not Found' }, 404);
