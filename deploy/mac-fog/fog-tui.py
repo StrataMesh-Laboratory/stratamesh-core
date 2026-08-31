@@ -321,6 +321,11 @@ def draw(msg: str = "") -> None:
     pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
     edge = get("https://edge.calhegasmorais.pt/health", timeout=3.0)
     met = get("http://127.0.0.1:8788/metabol")
+    if not met.get("ok") or met.get("pace") is None:
+        cfm = get("https://status.calhegasmorais.pt/metabol", timeout=3.0)
+        if cfm.get("ok"):
+            met = dict(cfm)
+            met["cf"] = cfm
     if met.get("ok"):
         try:
             reqm = urllib.request.Request(
@@ -404,10 +409,18 @@ def draw(msg: str = "") -> None:
           MUT + "origin=" + str(pub.get("origin") or "—") + RST)
     print(rule)
     print(ACC + " STRATA" + RST)
+    height = dag.get("height")
+    if height is None:
+        height = dag.get("max_height")
+    if height is None:
+        height = max(0, int(dag.get("transaction_count") or 0) - max(0, int(dag.get("tip_count") or 0) - 1))
     print("   dag    tx=%s  tips=%s  height=%s" % (
-        dag.get("transaction_count"), dag.get("tip_count"), dag.get("height") or dag.get("max_height")))
-    print("   spa    total=%s  active=%s   supply %s" % (
-        spa.get("total"), spa.get("active"), tok.get("total_supply")))
+        dag.get("transaction_count") or 0, dag.get("tip_count") or 0, height))
+    supply = tok.get("total_supply")
+    projected = rails.get("pending_poc") if isinstance(rails, dict) else None
+    print("   spa    total=%s  active=%s   supply %s  projected=%s" % (
+        spa.get("total") or 0, spa.get("active") or 0, supply if supply is not None else 0,
+        projected if projected is not None else 0))
     md = met.get("decision") or (met.get("cf") or {}).get("decision") or "—"
     pace = met.get("pace") if met.get("pace") is not None else (met.get("cf") or {}).get("pace")
     burn = met.get("burn_rate") or met.get("adjusted") or (met.get("cf") or {}).get("burn_rate")
@@ -431,12 +444,29 @@ def draw(msg: str = "") -> None:
     if rails:
         print("   rails  mint_armed=%s  burn_armed=%s  pending_poc=%s" % (
             rails.get("mint_armed"), rails.get("burn_armed"), rails.get("pending_poc")))
-    if contrib:
-        print("   poc    accepted=%s  pending=%s" % (
-            contrib.get("accepted") or contrib.get("count"), contrib.get("pending") or contrib.get("rejected")))
-    if sub:
-        print("   subsist pressure=%s  debt=%s" % (
-            sub.get("pressure") or sub.get("state"), sub.get("debt") or sub.get("balance")))
+    accepted = contrib.get("accepted")
+    if accepted is None:
+        accepted = contrib.get("events")
+    if accepted is None:
+        accepted = 0
+    pending = contrib.get("pending")
+    if pending is None:
+        pending = rails.get("pending_poc") if isinstance(rails, dict) else 0
+    print("   poc    accepted=%s  pending=%s" % (accepted, pending))
+    surplus = float(sub.get("surplus") or 0)
+    reserve = float(sub.get("reserve") or 0)
+    tau = float(sub.get("tau") or 0)
+    meter = sub.get("meter") if isinstance(sub.get("meter"), dict) else {}
+    consumed = float(meter.get("consumed_total") or 0)
+    earned = float(meter.get("earned_total") or 0)
+    pressure = sub.get("pressure")
+    if pressure is None:
+        pressure = round(consumed / max(earned + reserve, 1e-9), 6)
+    debt = sub.get("debt")
+    if debt is None:
+        debt = round(max(0.0, tau - surplus), 6)
+    print("   subsist pressure=%s  debt=%s  surplus=%s  reserve=%s" % (
+        pressure, debt, round(surplus, 4), reserve))
     print(rule)
     print(ACC + " host" + RST)
     print("  ", brand, MUT + "ncpu=" + ncpu + RST)
