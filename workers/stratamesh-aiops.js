@@ -25,6 +25,19 @@ const ACB_ROSTER = {
   economics: "ACBs earn STRATA only when hired — no mint",
 };
 
+
+function kvWriteFrozenUtc(d = new Date()) {
+  const h = d.getUTCHours();
+  return h < 7 || h >= 23;
+}
+async function kvPut(env, key, value, opts) {
+  if (!env || !env.AIOPS_KV) return false;
+  if (kvWriteFrozenUtc()) return false;
+  if (opts) await env.AIOPS_KV.put(key, value, opts);
+  else await env.AIOPS_KV.put(key, value);
+  return true;
+}
+
 const AIOPS_VERSION = "1.10.5-destyle";
 const STRATAGROK = {
   name: "STRATAGROK",
@@ -695,8 +708,8 @@ async function runTeamCycleBudgeted(env) {
 
   if (env.AIOPS_KV) {
     try {
-      await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
-      await env.AIOPS_KV.put("next_actions", JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] }));
+      await kvPut(env, "last_cycle", JSON.stringify(cycle));
+      await kvPut(env, "next_actions", JSON.stringify({ at: cycle.at, actions: cycle.next_actions || [] }));
     } catch (_) {}
   }
   try {
@@ -851,10 +864,10 @@ async function runTeamCycle(env) {
   // Persist last cycle if KV available
   if (env.AIOPS_KV) {
     try {
-      await env.AIOPS_KV.put("last_cycle", JSON.stringify(cycle));
+      await kvPut(env, "last_cycle", JSON.stringify(cycle));
       const hist = JSON.parse((await env.AIOPS_KV.get("cycle_history")) || "[]");
       hist.unshift({ cycle_id: cycle.cycle_id, at: cycle.at, critical, warn });
-      await env.AIOPS_KV.put("cycle_history", JSON.stringify(hist.slice(0, 50)));
+      await kvPut(env, "cycle_history", JSON.stringify(hist.slice(0, 50)));
     } catch (_) {}
   }
 
@@ -1179,10 +1192,10 @@ async function executeAutonomousSlice(env, cycle) {
         verify: work.verify || null,
         escalation: work.escalation || null,
       };
-      await env.AIOPS_KV.put("worklog_latest", JSON.stringify(entry));
+      await kvPut(env, "worklog_latest", JSON.stringify(entry));
       const hist = JSON.parse((await env.AIOPS_KV.get("worklog_history")) || "[]");
       hist.unshift(entry);
-      await env.AIOPS_KV.put("worklog_history", JSON.stringify(hist.slice(0, 72)));
+      await kvPut(env, "worklog_history", JSON.stringify(hist.slice(0, 72)));
       work.results.push({ step: "kv_worklog", ok: true });
     }
   } catch (e) {
@@ -1250,7 +1263,7 @@ async function executeAutonomousSlice(env, cycle) {
         );
         const j = await r.json().catch(() => ({}));
         const ok = r.status === 201;
-        if (ok && env.AIOPS_KV) await env.AIOPS_KV.put(stampKey, String(j.number || "1"), { expirationTtl: 172800 });
+        if (ok && env.AIOPS_KV) await kvPut(env, stampKey, String(j.number || "1"), { expirationTtl: 172800 });
         work.results.push({ step: "github_issue", ok, status: r.status, number: j.number, url: j.html_url });
       }
     } catch (e) {
@@ -1283,7 +1296,7 @@ async function executeAutonomousSlice(env, cycle) {
       const prev = JSON.parse((await env.AIOPS_KV.get("worklog_latest")) || "{}");
       prev.verify = verified;
       prev.attempted = work.attempted;
-      await env.AIOPS_KV.put("worklog_latest", JSON.stringify(prev));
+      await kvPut(env, "worklog_latest", JSON.stringify(prev));
     }
   } catch (_) {}
   return work;
@@ -1365,8 +1378,8 @@ async function loadHandoff(env) {
 async function persistHandoff(env, handoff) {
   if (!env.AIOPS_KV || !handoff) return false;
   try {
-    await env.AIOPS_KV.put("handoff_latest", JSON.stringify(handoff));
-    await env.AIOPS_KV.put("handoff_at", new Date().toISOString());
+    await kvPut(env, "handoff_latest", JSON.stringify(handoff));
+    await kvPut(env, "handoff_at", new Date().toISOString());
     return true;
   } catch (_) {
     return false;
@@ -1611,8 +1624,8 @@ async function handleFetch(request, env, ctx) {
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
           continuous: {
-            workers_cron: "0 1 * * *",
-            workers_cron_note: "INC-1027 stop-probes; was hourly 0 * * * *; not re-enabled",
+            workers_cron: "0 8 * * * ",
+            workers_cron_note: "INC-KV-50: was 0 1 * * * (02:00 WEST) — that slot burned 50% KV writes; now 08:00 UTC / 09:00 WEST reserved peak. Night KV PUT frozen 23–07 UTC.",
             host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
             note: "Workers cannot while(true); host process is the real continuous loop",
           },
