@@ -776,7 +776,7 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'IPFS', '/health', 2500),
     svcJson(env, 'HOLONS', '/health', 2500),
     svcJson(env, 'HOLONS', '/so', 2500),
-    fetchJsonPublic('https://gossip.calhegasmorais.pt/peers', 2500),
+    svcJson(env, 'GOSSIP', '/peers', 2500),
     fetchJsonPublic('https://fog.calhegasmorais.pt/health', 800),
     fetchJsonPublic('https://fog.calhegasmorais.pt/', 800),
   ]);
