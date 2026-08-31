@@ -41,6 +41,8 @@ def build_status_payload(
         "dag": {
             "transaction_count": dag_stats.get("tx_count", 0),
             "tip_count": dag_stats.get("tip_count", 0),
+            "height": dag_stats.get("height", dag_stats.get("max_height", 0)),
+            "max_height": dag_stats.get("max_height", dag_stats.get("height", 0)),
             "tips_sample": dag_stats.get("tips", [])[:8],
         },
         "spa": spa_summary or {"total": 0, "active": 0},
@@ -65,6 +67,19 @@ def build_status_payload(
     }
     if extra:
         payload.update(extra)
+    sub = payload.get("subsistence")
+    if isinstance(sub, dict):
+        surplus = float(sub.get("surplus") or 0)
+        reserve = float(sub.get("reserve") or 0)
+        tau = float(sub.get("tau") or 0)
+        meter = sub.get("meter") if isinstance(sub.get("meter"), dict) else {}
+        consumed = float(meter.get("consumed_total") or 0)
+        earned = float(meter.get("earned_total") or 0)
+        denom = max(earned + reserve, 1e-9)
+        sub.setdefault("pressure", round(consumed / denom, 6))
+        sub.setdefault("debt", round(max(0.0, tau - surplus), 6))
+        payload["subsistence"] = sub
+
     # host_id is computed in-process; do not allow extra to drop it.
     if not payload.get("host_id"):
         payload["host_id"] = fp["host_id"]
