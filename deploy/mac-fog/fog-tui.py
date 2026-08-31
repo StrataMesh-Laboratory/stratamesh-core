@@ -320,6 +320,23 @@ def draw(msg: str = "") -> None:
     st = get("http://127.0.0.1:8787/status")
     pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
     edge = get("https://edge.calhegasmorais.pt/health", timeout=3.0)
+    met = get("http://127.0.0.1:8788/metabol")
+    if met.get("ok"):
+        try:
+            reqm = urllib.request.Request(
+                "http://127.0.0.1:8788/metabol/consume",
+                data=json.dumps({
+                    "cost": 0.05,
+                    "node_id": (st.get("node_id") or hop.get("node_id") or "FOG-NODE-PT-CM-001"),
+                    "persist": False,
+                }).encode(),
+                method="POST",
+                headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
+            )
+            with urllib.request.urlopen(reqm, timeout=2.0) as rm:
+                met = json.loads(rm.read().decode())
+        except Exception:
+            pass
     wr = st.get("workerd") if isinstance(st.get("workerd"), dict) else {}
     dag = st.get("dag") if isinstance(st.get("dag"), dict) else {}
     spa = st.get("spa") if isinstance(st.get("spa"), dict) else {}
@@ -391,6 +408,13 @@ def draw(msg: str = "") -> None:
         dag.get("transaction_count"), dag.get("tip_count"), dag.get("height") or dag.get("max_height")))
     print("   spa    total=%s  active=%s   supply %s" % (
         spa.get("total"), spa.get("active"), tok.get("total_supply")))
+    md = met.get("decision") or (met.get("cf") or {}).get("decision") or "—"
+    pace = met.get("pace") if met.get("pace") is not None else (met.get("cf") or {}).get("pace")
+    burn = met.get("burn_rate") or met.get("adjusted") or (met.get("cf") or {}).get("burn_rate")
+    rem = met.get("remaining") if met.get("remaining") is not None else (met.get("cf") or {}).get("remaining")
+    print("   metabol", md, " pace=%s" % (None if pace is None else round(float(pace), 3)),
+          " burn=%s" % (None if burn is None else round(float(burn), 3)),
+          " rem=%s" % rem, MUT + "via :8788→CF" + RST)
     print(MUT + "   PoC resources → #mint · use → #0 · not a public offer" + RST)
     last = (keep.get("last") or {}) if keep else {}
     print("   keep-up Q=%.3f  K=%.3f  S=%.3f  %s" % (
