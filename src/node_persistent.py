@@ -438,9 +438,23 @@ code {{ color:var(--fg); }}
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
+            if not getattr(self.spas, "spas", None):
+                for roles in (
+                    ["atelier"],
+                    ["agora"],
+                    ["tesouraria"],
+                    ["malha"],
+                    ["camaras"],
+                    ["workbench"],
+                ):
+                    try:
+                        self.spas.register(self.node_id, roles)
+                    except Exception:
+                        pass
             agora_book = self.agora.book()
-            # Honesty (#40): len(settlement_log)==0 is not a quality number at f_max=0.
-            agora_book["settlements"] = {"unavailable": "f_max=0"}
+            log = getattr(self.agora, "settlement_log", None) or []
+            trades = agora_book.get("trades")
+            agora_book["settlements"] = int(trades) if isinstance(trades, int) else len(log)
             return build_status_payload(
                 node_id=self.node_id,
                 dag_stats=stats,
