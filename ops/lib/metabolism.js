@@ -507,23 +507,39 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
 }
 
 
-/** INC-KV-50 — KV is a separate free-tier meter from Worker invocations.
- * Free plan: 1_000 writes / 100_000 reads per UTC day.
- * Circuit watched requests only, so 01:00 UTC AIOps could dump writes
- * while the request rail still said ALLOW.
+
+/** INC-KV-50 — KV writes are a separate free-tier meter (≈1000/UTC-day).
+ * Same v1.3 formula as Worker requests. Always-on burn_rate. No night freeze.
+ * hourly_cap = remaining / hours_until_renewal(00:00 UTC)
+ * pace_factor = clamp(time_frac / spent_frac, 0.5, 1.5) ; 1.0 if day_spent==0
+ * circuit trips on UNADJUSTED hourly_cap (inflator cannot bypass).
  */
 export const KV_WRITE_DAILY = 1000;
 export const KV_READ_DAILY = 100000;
 
-export function kvCircuit({ writesUsed = 0, readsUsed = 0, utcHour = new Date().getUTCHours() } = {}) {
-  const wFrac = writesUsed / KV_WRITE_DAILY;
-  const rFrac = readsUsed / KV_READ_DAILY;
-  if (utcHour < 7 || utcHour >= 23) {
-    if (wFrac >= 0.25) return { circuit: "STASIS", reason: "night KV write ≥25% daily", wFrac, rFrac };
-    return { circuit: "HOLD", reason: "night KV write freeze 23–07 UTC", wFrac, rFrac };
+export function kvWriteDecision({ daySpent = 0, hourSpent = 0, cost = 1, now = new Date() } = {}) {
+  const remaining = Math.max(0, KV_WRITE_DAILY - Number(daySpent || 0));
+  const hoursLeft = hoursUntilRenewal(now, "00:00", "UTC");
+  const hourlyCap = remaining / Math.max(hoursLeft, 1 / 60);
+  const elapsed = Math.max(24 - hoursLeft, 1 / 60);
+  const timeFrac = elapsed / 24;
+  const spentFrac = Number(daySpent || 0) <= 0 ? 0 : Number(daySpent) / KV_WRITE_DAILY;
+  const pace = spentFrac === 0 ? 1 : Math.min(1.5, Math.max(0.5, timeFrac / spentFrac));
+  const adjusted = hourlyCap * pace;
+  if (remaining < cost) return { decision: STASIS, reason: "kv writes remaining < cost", hourlyCap, adjusted, pace, remaining, hoursLeft };
+  if (hourSpent >= hourlyCap * 2) return { decision: STASIS, reason: "hour_spent ≥ 2× kv hourly_cap", hourlyCap, adjusted, pace, remaining, hoursLeft };
+  if (hourSpent >= hourlyCap * 1.25) return { decision: HOLD, reason: "hour_spent ≥ 1.25× kv hourly_cap", hourlyCap, adjusted, pace, remaining, hoursLeft };
+  if (hourSpent + cost > adjusted && hourSpent + cost > hourlyCap) {
+    return { decision: HOLD, reason: "this write would exceed paced kv cap", hourlyCap, adjusted, pace, remaining, hoursLeft };
   }
-  if (wFrac >= 0.5) return { circuit: "STASIS", reason: "KV writes ≥50% daily (CF alert grade)", wFrac, rFrac };
-  if (wFrac >= 0.35) return { circuit: "HOLD", reason: "KV writes ≥35% daily", wFrac, rFrac };
-  if (rFrac >= 0.5) return { circuit: "HOLD", reason: "KV reads ≥50% daily", wFrac, rFrac };
-  return { circuit: "ALLOW", reason: "kv under pace", wFrac, rFrac };
+  return { decision: ALLOW, reason: "kv burn within paced range", hourlyCap, adjusted, pace, remaining, hoursLeft };
+}
+
+/** @deprecated name kept so callers of the 12:14 freeze stub compile; delegates to v1.3. */
+export function kvCircuit(opts = {}) {
+  return kvWriteDecision({
+    daySpent: opts.writesUsed || opts.daySpent || 0,
+    hourSpent: opts.hourSpent || 0,
+    now: opts.now || new Date(),
+  });
 }
