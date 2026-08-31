@@ -12,7 +12,8 @@
  * This Worker is the always-on edge twin for chat, tick, and health.
  */
 
-const VERSION = "10.24.8-lab-debug";
+const VERSION = "10.24.9-chat-reply";
+const LOBE_STATE_KEY = "lobe_state_v1";
 
 /** EMBEDDED from shared/holonic-clp.js — edit shared/ only */
 /**
@@ -2999,14 +3000,33 @@ async function chat(message, env, request, body) {
 
   const cleared = await resolveAccountClearance(request, env, body || {});
   const level = cleared.level;
+  const intent = classifyIntent(text, body && (body.prior_intent || body.priorIntent));
+
+  // Grounded domain/social: answer immediately. Do NOT probe Fog/academy.
+  // labInstantChat identity pulse is never a user-facing reply.
+  const GROUNDED_FAST = new Set(["architecture", "pds", "pdc", "memory", "mind", "social", "identity", "clp", "mesh", "holon", "volition", "phase", "role", "standing", "strata"]);
+  if (GROUNDED_FAST.has(intent) && !isOperationalCommand(text)) {
+    try { await diaryAppend(env, "chat", "msg:" + intent, text.slice(0, 300), cleared.email || "anonymous"); } catch (_) {}
+    try { await chargePds(env, pdsCostForIntent(intent), "chat:" + intent); } catch (_) {}
+    return {
+      reply: chatSelfFallback(text, { tick: { metrics: {} } }, level, intent, body),
+      role: "orchestrator",
+      version: VERSION,
+      clearance: level,
+      account_clearance: cleared.account_clearance,
+      clearance_source: cleared.source,
+      permissions: CLEARANCE_PERMS[level],
+      source: "grounded-fast",
+      intent,
+    };
+  }
+
   let tickOut;
   try {
     tickOut = await withTimeout(tick(env), 400, "tick");
   } catch (e) {
     tickOut = { tick: { fitness: 0, metrics: {}, error: String(e.message || e) }, upstream: {} };
   }
-
-  const intent = classifyIntent(text, body && (body.prior_intent || body.priorIntent));
 
   let conversationId = null;
   let chatTurns = clientHistoryTurns(body);
@@ -3406,6 +3426,19 @@ button#go:disabled{opacity:.5}
 
 
 
+/** True when a reply is the academy identity package, not an answer. */
+function isIdentityPulse(out) {
+  const r = String((out && out.reply) || "");
+  const src = String((out && out.source) || "");
+  if (src === "academy-debug-chat" || src === "orch-chat-debug") return true;
+  if (/não é a resposta;\s*é o input/i.test(r)) return true;
+  if (/Orquestrador não ecoa/i.test(r)) return true;
+  if (/Packages: acb-debugger, cognition-lobes, stasis-metabolism/i.test(r) && /Pedido:/.test(r)) return true;
+  const msg = String((out && out.user_utterance) || "");
+  if (msg && r && r.replace(/\s+/g, " ").trim() === msg.replace(/\s+/g, " ").trim()) return true;
+  return false;
+}
+
 /** Lab chat: Fog /health + academy debugger. Never echo-only. Worker does not infer. */
 function labInstantPulseId() {
   return "pulse-" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
@@ -3577,7 +3610,7 @@ export default {
               status: "ok",
               service: "stratamesh-orchestrator",
               origin: "calhegasmorais.pt",
-              version: "origin-orch-chat-1.1.0",
+              version: "origin-orch-chat-1.1.1",
               worker_version: VERSION,
               node_id: "FOG-NODE-PT-CM-001",
               sca_id: "SCA-ORCH-CMN-001",
@@ -3628,8 +3661,35 @@ export default {
         if (!body.lang) body.lang = "pt";
       }
       const msgText = body.message || body.text || body.prompt || "";
-      // Lab-debug: Fog /health + academy debugger (not echo). SPA 1500ms Fog race still avoided (1.5s cap).
-      const out = await labInstantChat(msgText, body, env);
+      // Debug identity pulse is NOT user chat. Previous trials left labInstantChat
+      // as the only POST handler — that is the echo bug.
+      const wantDebug =
+        body.debug === true ||
+        String(body.mode || "").toLowerCase() === "debug" ||
+        path.endsWith("/debug") ||
+        path.endsWith("/debug/chat");
+      if (wantDebug) {
+        const dbg = await labInstantChat(msgText, body, env);
+        return json(dbg);
+      }
+      const out = await chat(msgText, env, request, body);
+      if (isIdentityPulse(out)) {
+        const intent = (out && out.intent) || classifyIntent(msgText, body && (body.prior_intent || body.priorIntent));
+        out.reply = chatSelfFallback(msgText, { tick: { metrics: {} } }, (out && out.clearance) || "public", intent, body);
+        out.source = "self-model-anti-echo";
+        out.medium_rejected = "academy_debug_identity_pulse";
+      }
+      try {
+        const cleared = await resolveAccountClearance(request, env, body || {});
+        await finalizeChatReply(
+          env,
+          cleared,
+          msgText,
+          out,
+          (out && out.intent) || null,
+          (body && body.__conversation_id) || (out && out.conversation_id) || null
+        );
+      } catch (_) {}
       return json(out);
     }
 

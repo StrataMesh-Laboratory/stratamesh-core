@@ -1,3 +1,9 @@
+## 2026-08-31 — Orchestrator /chat replies (10.24.9-chat-reply)
+- RCA: POST `/api/orchestrator/chat` never called `chat()`. It always ran `labInstantChat` → academy `POST /v1/debug/chat`, which returns the identity package (“Orquestrador não ecoa… Pedido: «…» — não é a resposta”). That is echo, not a reply. Previous “não ecoa” trials left this as the only handler.
+- Structural fix: user-facing `/chat` calls `chat()`. Grounded intents (Olá, identity, PdS, lobes, …) answer immediately (`grounded-fast`). Academy debugger only on `?debug` / `body.debug`.
+- Guard `isIdentityPulse` rejects the identity package if it reappears. `LOBE_STATE_KEY` defined. origin-orch-chat **1.1.1**.
+- Academy `/v1/debug/chat` stays a debugger. HOLD spa. Never Fog origin. Never workers.dev. No 6th cron.
+
 ## 2026-08-30 — Origin archive aligned to HEAD
 - origin.calhegasmorais.pt Worker **0.1.7-align** + git `workers/stratamesh-origin-archive.js` + R2 pile `2026-08-30` + GitHub `archive-2026-08-30` all report git `aa1a27e00ed7`.
 - Live mesh on the origin card: token 3.5.5-fog-honest · agora 3.3.1-gold-spot · status 0.4.8-circ-split. Hourly #52 paused.
