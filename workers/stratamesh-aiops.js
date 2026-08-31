@@ -26,15 +26,48 @@ const ACB_ROSTER = {
 };
 
 
-function kvWriteFrozenUtc(d = new Date()) {
-  const h = d.getUTCHours();
-  return h < 7 || h >= 23;
+
+/** v1.3 applied to KV writes (CF Free ~1000 writes/UTC-day).
+ * hourly_cap = remaining / hours_until_renewal(00:00 UTC)
+ * pace_factor = clamp(time_frac / spent_frac, 0.5, 1.5)  // 1.0 if day_spent==0
+ * adjusted = hourly_cap * pace_factor
+ * HOLD if hour_spent >= 1.25 * hourly_cap (unadjusted)
+ * STASIS if hour_spent >= 2 * hourly_cap (unadjusted)
+ * Always-on burn — never a night freeze.
+ */
+const KV_WRITE_DAILY = 1000;
+function hoursLeftUtcMidnight(now = new Date()) {
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  return Math.max((next - now.getTime()) / 3600000, 1 / 60);
 }
+function kvWriteDecision({ daySpent = 0, hourSpent = 0, cost = 1, now = new Date() } = {}) {
+  const remaining = Math.max(0, KV_WRITE_DAILY - daySpent);
+  const hoursLeft = hoursLeftUtcMidnight(now);
+  const hourlyCap = remaining / hoursLeft;
+  const elapsed = Math.max(24 - hoursLeft, 1 / 60);
+  const timeFrac = elapsed / 24;
+  const spentFrac = daySpent <= 0 ? 0 : daySpent / KV_WRITE_DAILY;
+  const pace = spentFrac === 0 ? 1 : Math.min(1.5, Math.max(0.5, timeFrac / spentFrac));
+  const adjusted = hourlyCap * pace;
+  if (remaining < cost) return { decision: "STASIS", hourlyCap, adjusted, pace, remaining };
+  if (hourSpent >= hourlyCap * 2) return { decision: "STASIS", hourlyCap, adjusted, pace, remaining };
+  if (hourSpent >= hourlyCap * 1.25) return { decision: "HOLD", hourlyCap, adjusted, pace, remaining };
+  if (hourSpent + cost > adjusted && hourSpent + cost > hourlyCap) return { decision: "HOLD", hourlyCap, adjusted, pace, remaining };
+  return { decision: "ALLOW", hourlyCap, adjusted, pace, remaining };
+}
+
+const __kvMeter = { day: 0, hour: 0, hourKey: "" };
 async function kvPut(env, key, value, opts) {
   if (!env || !env.AIOPS_KV) return false;
-  if (kvWriteFrozenUtc()) return false;
+  const hk = new Date().toISOString().slice(0, 13);
+  if (__kvMeter.hourKey !== hk) { __kvMeter.hourKey = hk; __kvMeter.hour = 0; }
+  const v = kvWriteDecision({ daySpent: __kvMeter.day, hourSpent: __kvMeter.hour, cost: 1 });
+  if (v.decision === "STASIS") return false;
+  if (v.decision === "HOLD" && key !== "last_cycle" && key !== "cycle_bundle") return false;
   if (opts) await env.AIOPS_KV.put(key, value, opts);
   else await env.AIOPS_KV.put(key, value);
+  __kvMeter.day += 1;
+  __kvMeter.hour += 1;
   return true;
 }
 
@@ -1624,8 +1657,8 @@ async function handleFetch(request, env, ctx) {
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
           continuous: {
-            workers_cron: "0 8 * * * ",
-            workers_cron_note: "INC-KV-50: was 0 1 * * * (02:00 WEST) — that slot burned 50% KV writes; now 08:00 UTC / 09:00 WEST reserved peak. Night KV PUT frozen 23–07 UTC.",
+            workers_cron: "0 1 * * *",
+            workers_cron_note: "INC-KV-50: 0 1 * * * kept. Writes paced by v1.3 hourly_cap×pace_factor; coalesce extras on HOLD; STASIS at 2× unadjusted cap. No night freeze.",
             host_loop: "scripts/aiops_continuous_loop.sh (true continuous)",
             note: "Workers cannot while(true); host process is the real continuous loop",
           },
