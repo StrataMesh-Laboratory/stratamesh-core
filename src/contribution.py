@@ -55,6 +55,8 @@ class ContributionLedger:
             "events": len(self.events),
             "agents": len(self.balances),
             "total_minted": sum(self.balances.values()),
+            "accepted": len(self.events),
+            "pending": 0,
             "balances": dict(self.balances),
         }
 
