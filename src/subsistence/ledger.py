@@ -100,6 +100,10 @@ class SubsistenceLedger:
     def report(self, agent_id: str) -> dict:
         acc = self.ensure(agent_id)
         s = acc.surplus(self.weights)
+        snap = acc.meter.snapshot(self.weights)
+        consumed = float(snap.get("consumed_total") or 0)
+        earned = float(snap.get("earned_total") or 0)
+        denom = max(earned + float(acc.reserve or 0), 1e-9)
         return {
             "agent_id": agent_id,
             "reserve": acc.reserve,
@@ -107,5 +111,7 @@ class SubsistenceLedger:
             "tau": acc.tau,
             "solvent": s >= acc.tau,
             "status": acc.status,
-            "meter": acc.meter.snapshot(self.weights),
+            "pressure": round(consumed / denom, 6),
+            "debt": round(max(0.0, float(acc.tau or 0) - s), 6),
+            "meter": snap,
         }
