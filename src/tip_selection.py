@@ -153,10 +153,25 @@ class DAG:
         return tx.cumulative_weight if tx else 0.0
 
     def stats(self) -> Dict:
+        memo = {}
+        def depth(tx_id: str) -> int:
+            if tx_id in memo:
+                return memo[tx_id]
+            tx = self.txs.get(tx_id)
+            if not tx:
+                memo[tx_id] = 0
+                return 0
+            parents = [p for p in (tx.parents or []) if p in self.txs]
+            d = 0 if not parents else 1 + max(depth(p) for p in parents)
+            memo[tx_id] = d
+            return d
+        height = max((depth(i) for i in self.txs), default=0)
         return {
             "tx_count": len(self.txs),
             "tip_count": len(self.tips),
             "tips": list(self.tips)[:10],
+            "height": height,
+            "max_height": height,
         }
 
 
