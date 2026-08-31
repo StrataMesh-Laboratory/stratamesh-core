@@ -1,13 +1,17 @@
-# Cycle evidence 2026-08-31 12:05 WEST — EDGE-GROK-CMN-001
+# Cycle 2026-08-31 WEST (EDGE-GROK)
 
-Not health-theatre. Work this cycle:
+Not health-theatre. Work this window:
 
-- Vaulted GROK DATA SECRETS loaded to ~/.config/stratamesh mode 600 (CF, GitHub PAT, DeoMail). Connectors unused.
-- CF REST: 8 KV namespaces listed (no key scan). 44 Workers. GraphQL invocations since 00:00 UTC: 47961.
-- HOLD on KV PUT after 50% alert 02:12 WEST. Status remains Cache API 0.4.8-circ-split.
-- DeoMail API /inbox + /emails/{id}: briefing 11h Lisbon CC grok@ — 0 owner decisions. Tasks SG-DELTA (this file) and SG-REDDIT (subreddit not public yet).
-- GitHub PAT REST: INC-KV-50 = issue #62.
-- Fog /health 200 origin=macbook n=2. api-edge 200 origin=edge n=2. sandbox 0.5.0-session registered-only.
-- oracle_live=false. Not mainnet.
+- RCA INC-KV-50: metabolism watched Worker invocations, not KV writes.
+  01:00 UTC AIOps cron dumped writes; alert 02:12 WEST = 01:12 UTC.
+- Formula applied to KV (v1.3): hourly_cap = remaining/hours_left,
+  pace_factor clamp(time_frac/spent_frac, 0.5, 1.5), HOLD 1.25× / STASIS 2× unadjusted.
+  No night freeze.
+- Live PUT: stratamesh-status + stratamesh-aiops (paced kvPut / kvWriteDecision).
+- AIOps cron live `0 1 * * *` again, now under the cap (~42 writes/h at refill).
+- Discourse t/26 v0.5.0-lab announcement as stratamesh-grok (session, not API key).
+- GitHub release v0.5.0-lab + issue #62.
 
-Next: v0.5.0-lab announcement cut when tag lands. No WA. No 6th cron.
+SG-REDDIT: r/StrataMesh_DLT still not a public listing this cycle — watch redditrequest. Do not invent a post.
+
+oracle_live=false · n=2 · Fog origin macbook · no 6th cron · no workers.dev
