@@ -713,17 +713,9 @@ async function tokenSnapshot(env, monetaryMs = 4000) {
 }
 
 async function readPulseCache(env) {
-  if (!env.STATUS_KV) return null;
-  try {
-    const raw = await env.STATUS_KV.get('pulse_cache');
-    if (!raw) return null;
-    const j = JSON.parse(raw);
-    if (!j || !j._cached_at) return null;
-    const age = Date.now() - Date.parse(j._cached_at);
-    return { age, live: j };
-  } catch (_) {
-    return null;
-  }
+  // INC-KV-50: KV GET on the hot /status path is how 00:00–01:12 UTC
+  // burned half the free KV day. Pulse lives in Cache API only.
+  return null;
 }
 
 async function writePulseCache(env, live) {
@@ -986,6 +978,11 @@ async function buildLiveStatus(env, opts) {
 }
 
 
+function kvWriteFrozenUtc(d = new Date()) {
+  const h = d.getUTCHours();
+  return h < 7 || h >= 23; // night STASIS for KV writes (INC-KV-50)
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -995,7 +992,7 @@ export default {
       if (!env.STATUS_TOKEN || token !== env.STATUS_TOKEN)
         return new Response(JSON.stringify({error:'unauthorized'}), {status:401, headers:{'Content-Type':'application/json'}});
       const body = await request.json();
-      if (env.STATUS_KV) await env.STATUS_KV.put('live', JSON.stringify(body));
+      if (env.STATUS_KV && !kvWriteFrozenUtc()) await env.STATUS_KV.put('live', JSON.stringify(body));
       return new Response(JSON.stringify({ok:true}), {headers:{'Content-Type':'application/json'}});
     }
     if (url.pathname === '/live' || url.pathname === '/widget') {
