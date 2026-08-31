@@ -1035,6 +1035,63 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=30' };
+    if (url.pathname === '/metabol' || url.pathname === '/metabol/') {
+      const meter = globalThis.__kvMeter || (globalThis.__kvMeter = { day: 0, hour: 0, hourKey: '' });
+      const hk = new Date().toISOString().slice(0, 13);
+      if (meter.hourKey !== hk) { meter.hourKey = hk; meter.hour = 0; }
+      const v = kvWriteDecision({ daySpent: meter.day, hourSpent: meter.hour, cost: 0 });
+      return new Response(JSON.stringify({
+        ok: true,
+        service: 'stratamesh-status',
+        circuit: 'metabol-v1.3',
+        night_freeze: false,
+        source: request.headers.get('x-fog-origin') || 'cf',
+        decision: v.decision,
+        reason: v.reason || 'snapshot',
+        hourlyCap: v.hourlyCap,
+        adjusted: v.adjusted,
+        pace: v.pace,
+        burn_rate: v.adjusted,
+        remaining: v.remaining,
+        daySpent: meter.day,
+        hourSpent: meter.hour,
+      }), { headers: cors });
+    }
+    if ((url.pathname === '/metabol/consume' || url.pathname === '/metabol/consume/') && request.method === 'POST') {
+      let body = {};
+      try { body = await request.json(); } catch (_) {}
+      const cost = Math.max(0, Number(body.cost || 1));
+      const meter = globalThis.__kvMeter || (globalThis.__kvMeter = { day: 0, hour: 0, hourKey: '' });
+      const hk = new Date().toISOString().slice(0, 13);
+      if (meter.hourKey !== hk) { meter.hourKey = hk; meter.hour = 0; }
+      const v = kvWriteDecision({ daySpent: meter.day, hourSpent: meter.hour, cost });
+      if (v.decision === 'ALLOW') { meter.day += cost; meter.hour += cost; }
+      // persist to KV only when asked and circuit allows — default memory (TUI 15s ticks must not burn the daily 1000)
+      if (body.persist && v.decision === 'ALLOW' && env.STATUS_KV) {
+        await env.STATUS_KV.put('metabol:fog', JSON.stringify({
+          ts: new Date().toISOString(),
+          origin: request.headers.get('x-fog-origin') || body.origin || null,
+          node_id: request.headers.get('x-fog-node') || body.node_id || null,
+          decision: v.decision,
+          pace: v.pace,
+          burn_rate: v.adjusted,
+          daySpent: meter.day,
+        }));
+      }
+      return new Response(JSON.stringify({
+        ok: true,
+        accepted: v.decision === 'ALLOW',
+        decision: v.decision,
+        reason: v.reason,
+        hourlyCap: v.hourlyCap,
+        adjusted: v.adjusted,
+        pace: v.pace,
+        burn_rate: v.adjusted,
+        remaining: v.remaining,
+        daySpent: meter.day,
+        hourSpent: meter.hour,
+      }), { headers: cors });
+    }
     if (url.pathname === '/ingest' && request.method === 'POST') {
       const token = request.headers.get('X-Status-Token') || '';
       if (!env.STATUS_TOKEN || token !== env.STATUS_TOKEN)
