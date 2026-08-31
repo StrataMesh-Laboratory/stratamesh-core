@@ -505,3 +505,25 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
     hourly_cap_after_refill: (railsOut["cf-worker-req"] || {}).hourly_cap,
   };
 }
+
+
+/** INC-KV-50 — KV is a separate free-tier meter from Worker invocations.
+ * Free plan: 1_000 writes / 100_000 reads per UTC day.
+ * Circuit watched requests only, so 01:00 UTC AIOps could dump writes
+ * while the request rail still said ALLOW.
+ */
+export const KV_WRITE_DAILY = 1000;
+export const KV_READ_DAILY = 100000;
+
+export function kvCircuit({ writesUsed = 0, readsUsed = 0, utcHour = new Date().getUTCHours() } = {}) {
+  const wFrac = writesUsed / KV_WRITE_DAILY;
+  const rFrac = readsUsed / KV_READ_DAILY;
+  if (utcHour < 7 || utcHour >= 23) {
+    if (wFrac >= 0.25) return { circuit: "STASIS", reason: "night KV write ≥25% daily", wFrac, rFrac };
+    return { circuit: "HOLD", reason: "night KV write freeze 23–07 UTC", wFrac, rFrac };
+  }
+  if (wFrac >= 0.5) return { circuit: "STASIS", reason: "KV writes ≥50% daily (CF alert grade)", wFrac, rFrac };
+  if (wFrac >= 0.35) return { circuit: "HOLD", reason: "KV writes ≥35% daily", wFrac, rFrac };
+  if (rFrac >= 0.5) return { circuit: "HOLD", reason: "KV reads ≥50% daily", wFrac, rFrac };
+  return { circuit: "ALLOW", reason: "kv under pace", wFrac, rFrac };
+}
