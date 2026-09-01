@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import json, os, sys, urllib.request
-HEAD_MARK = os.environ.get("HEAD_MARK", "v0.5.0-lab")
+HEAD_MARK = os.environ.get("HEAD_MARK", "v0.5.1-lab")
 DEBUG = os.environ.get("DEBUG") == "1"
 ALIASES = [
     {"url": "https://calhegasmorais.pt/", "marks": [HEAD_MARK]},
     {"url": "https://www.calhegasmorais.pt/", "marks": [HEAD_MARK]},
     {"url": "https://calhegasmorais-pt.pages.dev/", "marks": [HEAD_MARK]},
     {"url": "https://calhegasmorais.pt/dashboard", "marks": [HEAD_MARK]},
-    {"url": "https://sandbox.calhegasmorais.pt/", "marks": ["v0.5.0-session", "Atelier GNU"]},
+    {"url": "https://sandbox.calhegasmorais.pt/", "marks": ["v0.5.1-session", "Atelier GNU"]},
 ]
 def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "cmn-alias-check", "Cache-Control": "no-cache"})
