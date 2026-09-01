@@ -13,7 +13,7 @@ const EDGE_PUBLIC = "https://edge.calhegasmorais.pt";
 const GOSSIP = "https://gossip.calhegasmorais.pt";
 const AUTH_APEX = "https://calhegasmorais.pt/api/auth";
 const REPO = "https://github.com/StrataMesh-Laboratory/stratamesh-core";
-const TAG = "v0.3.0";
+const TAG = "v0.5.1-lab";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +97,7 @@ function installManifest() {
   return {
     schema: "stratamesh.fog_installer.v1",
     title: "MacOS Fog Node bootstrap",
-    version: "0.3.0",
+    version: "0.5.1-lab",
     lab: true,
     not_mainnet: true,
     node_role: "fog",
