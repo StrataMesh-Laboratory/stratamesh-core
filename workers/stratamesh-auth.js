@@ -156,15 +156,31 @@ export default {
           kind TEXT DEFAULT 'user'
         )`).run().catch(() => {});
       }
-      async function isLoginTrusted(email) {
-        return false;
+      async async function isLoginTrusted(email, deviceId) {
+        try {
+          await ensureLoginTrustTable();
+          const key = String(email || '').toLowerCase() + (deviceId ? ('#' + String(deviceId)) : '');
+          const row = await env.AUTH_DB.prepare(
+            "SELECT trusted_until FROM login_trust WHERE email = ? AND trusted_until > datetime('now')"
+          ).bind(key).first();
+          if (row) return true;
+          if (deviceId) {
+            const row2 = await env.AUTH_DB.prepare(
+              "SELECT trusted_until FROM login_trust WHERE email = ? AND trusted_until > datetime('now')"
+            ).bind(String(email || '').toLowerCase()).first();
+            return !!row2;
+          }
+          return false;
+        } catch (_) {
+          return false;
+        }
       }
       async function markLoginTrusted(email, userId, kind) {
         try {
           await ensureLoginTrustTable();
           await env.AUTH_DB.prepare(
             "INSERT INTO login_trust (email, trusted_until, last_2fa_at, user_id, kind) VALUES (?, datetime('now', '+1 hour'), datetime('now'), ?, ?) ON CONFLICT(email) DO UPDATE SET trusted_until = datetime('now', '+1 hour'), last_2fa_at = datetime('now'), user_id = excluded.user_id, kind = excluded.kind"
-          ).bind(String(email).toLowerCase(), userId != null ? userId : null, kind || 'user').run();
+          ).bind(String(email).toLowerCase() + (arguments[3] ? ('#' + String(arguments[3])) : ''), userId != null ? userId : null, kind || 'user').run();
         } catch (_) {}
       }
 
@@ -366,7 +382,7 @@ export default {
               return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), { headers: corsHeaders, status: 401 });
             }
             // 2FA trust window: successful 2FA within last hour skips new OTP
-            if (await isLoginTrusted(user.email)) {
+            if (await isLoginTrusted(user.email, loginBody.device_id || loginBody.deviceId)) {
               const token = crypto.randomUUID() + crypto.randomUUID();
               const th = token; // token_hash same lab style if used
               await env.AUTH_DB.prepare(
@@ -425,7 +441,7 @@ export default {
               return new Response(JSON.stringify({ success: false, error: lang === 'en' ? 'Invalid password' : 'Palavra-passe inválida' }), { headers: corsHeaders, status: 401 });
             }
             await ensureStaffTotpColumn();
-            if (await isLoginTrusted(staff.email)) {
+            if (await isLoginTrusted(staff.email, loginBody.device_id || loginBody.deviceId)) {
               const token = crypto.randomUUID() + crypto.randomUUID();
               await env.AUTH_DB.prepare(
                 "INSERT INTO sessions (user_id, token, token_hash, expires_at) VALUES (?, ?, ?, datetime('now', '+30 days'))"
