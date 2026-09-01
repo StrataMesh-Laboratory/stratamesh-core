@@ -1,0 +1,88 @@
+# End-to-end hop: contract → Python Fog → Node compose.
+# Does not flip DNS. No workers.dev. No GOD_API in this workflow.
+name: hop-e2e
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "ops/middleware/**"
+      - "ops/workerd/**"
+      - "ops/bin/hop-contract.py"
+      - ".github/workflows/hop-e2e.yml"
+      - ".github/workflows/runtime-mesh.yml"
+      - ".github/workflows/process-gossip.yml"
+      - ".github/workflows/live-from-git.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "ops/middleware/**"
+      - "ops/workerd/**"
+      - "ops/bin/hop-contract.py"
+      - ".github/workflows/hop-e2e.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: hop-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Hop contract
+        run: python3 ops/bin/hop-contract.py
+
+  python-fog:
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Compile
+        run: python3 -m py_compile ops/middleware/fog_mw.py src/fog_plugins/*.py src/testnet_launcher.py
+      - name: Gossip
+        working-directory: src
+        env:
+          FOG_TESTNET: "1"
+          STRATAMESH_TEST_BASE_PORT: "18790"
+        run: python3 test_process_gossip.py
+
+  node-compose:
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: ESM
+        run: node --check ops/middleware/fog_mw.js
+      - name: Listen assemble
+        run: |
+          FOG_MW_NODE_PORT=18791 node ops/middleware/fog_mw.js &
+          echo $! > /tmp/n.pid
+          ok=0
+          for i in 1 2 3 4 5 6 7 8; do
+            if curl -sf -m 1 http://127.0.0.1:18791/health; then ok=1; break; fi
+            sleep 0.25
+          done
+          kill $(cat /tmp/n.pid) 2>/dev/null || true
+          test "$ok" = "1"
+
+  note-live:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [python-fog, node-compose]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Chain
+        run: |
+          echo "contract + python-fog + node-compose green"
+          echo "live HTML remains live-from-git (D1) when frontend changes"
+          echo "Mac hop: persist starts workerd + runtime_mesh 8790/8791"
