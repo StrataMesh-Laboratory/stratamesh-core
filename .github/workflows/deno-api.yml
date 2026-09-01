@@ -24,7 +24,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: check
-        run: deno check ops/deno/main.ts
+        run: deno task check:api
       - name: deploy
         if: env.DENO_DEPLOY_TOKEN != ''
         run: |
