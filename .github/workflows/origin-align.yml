@@ -1,0 +1,42 @@
+# Align origin.calhegasmorais.pt with git. No wrangler. No workers.dev.
+name: origin-align
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/stratamesh-origin-archive.js"
+      - "ops/bin/cf-put-origin.py"
+      - ".github/workflows/origin-align.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: origin-align
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  put:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      CF_ACCOUNT: f3645fcb56675cf7250d8ba7358eb252
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: PUT origin-archive
+        run: python3 ops/bin/cf-put-origin.py
+      - name: Probe live health
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen, Request
+          import json
+          r = urlopen(Request("https://origin.calhegasmorais.pt/health", headers={"User-Agent":"origin-align-ci"}), timeout=15)
+          d = json.loads(r.read().decode())
+          print("version", d.get("version"), "core", d.get("core_prerelease"))
+          assert d.get("ok") is True
+          assert "0.5.0" in str(d.get("version") or "") or "0.5.0" in str(d.get("core_prerelease") or "")
+          PY
