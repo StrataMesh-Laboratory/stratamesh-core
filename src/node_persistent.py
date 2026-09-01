@@ -379,7 +379,7 @@ code {{ color:var(--fg); }}
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.0-lab">tag v0.5.0-lab</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 <p><code>spa.total={spa.get("total")}</code> · <code>source={spa.get("source")}</code></p>
 </main>
