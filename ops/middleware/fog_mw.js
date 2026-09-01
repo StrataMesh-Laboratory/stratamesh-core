@@ -38,7 +38,7 @@ async function desk(kind) {
     ok: true,
     runtime: "node",
     role: kind,
-    release: "v0.5.0-lab",
+    release: "v0.5.1-lab",
     locus: "mw-node:8791",
     hop: snap.hop,
     cmn: snap.cmn,
@@ -60,7 +60,7 @@ async function assemble() {
     ok: !!(workerd.ok || py.ok || fog.ok),
     runtime: "node",
     role: "compose",
-    release: "v0.5.0-lab",
+    release: "v0.5.1-lab",
     hop: {
       workerd: { port: 8788, isolate: true, metabol: metabol.decision || metabol.cf?.decision || null, origin: workerd.origin || null, ok: !!workerd.ok },
       python: { port: 8790, cap: py.plugins?.host_cap || null, plugins: py.plugins ? Object.keys(py.plugins) : [], ok: !!py.ok },
@@ -78,7 +78,7 @@ const server = http.createServer(async (req, res) => {
   if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
       ok: true, runtime: "node", role: "compose", port: PORT,
-      listening: true, release: "v0.5.0-lab",
+      listening: true, release: "v0.5.1-lab",
     });
   }
   if (["/assemble", "/cmn", "/mw/cmn", "/mw/assemble"].includes(url)) {
