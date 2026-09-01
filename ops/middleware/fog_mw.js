@@ -29,6 +29,26 @@ async function pull(url) {
   }
 }
 
+
+const ROOMS = ["atelier","wallet","agora","economy","dao","spa","acb","sca-self","iot","diagnostics","orch","clp","profile","va","kyc","holons"];
+
+async function desk(kind) {
+  const snap = await assemble();
+  return {
+    ok: true,
+    runtime: "node",
+    role: kind,
+    release: "v0.5.0-lab",
+    locus: "mw-node:8791",
+    hop: snap.hop,
+    cmn: snap.cmn,
+    rooms: kind === "atelier"
+      ? ["workbench","open-world","acb-office"]
+      : ROOMS,
+    note: "session-bound JSON; HTML stays D1/spa; mint still oracle_live",
+  };
+}
+
 async function assemble() {
   const [workerd, py, fog, metabol] = await Promise.all([
     pull(WORKERD + "/health"),
@@ -63,6 +83,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (["/assemble", "/cmn", "/mw/cmn", "/mw/assemble"].includes(url)) {
     return send(res, 200, await assemble());
+  }
+  if (["/atelier", "/atelier/health", "/mw/atelier"].includes(url)) {
+    return send(res, 200, await desk("atelier"));
+  }
+  if (["/dashboard", "/dashboard/health", "/desk", "/mw/dashboard"].includes(url)) {
+    return send(res, 200, await desk("dashboard"));
   }
   if (["/metabol", "/mw/metabol"].includes(url)) {
     return send(res, 200, { ok: true, runtime: "node", snap: await pull(WORKERD + "/metabol") });
