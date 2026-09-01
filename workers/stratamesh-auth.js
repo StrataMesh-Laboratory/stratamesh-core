@@ -157,13 +157,7 @@ export default {
         )`).run().catch(() => {});
       }
       async function isLoginTrusted(email) {
-        try {
-          await ensureLoginTrustTable();
-          const row = await env.AUTH_DB.prepare(
-            "SELECT trusted_until FROM login_trust WHERE lower(email) = lower(?) AND trusted_until > datetime('now')"
-          ).bind(String(email).toLowerCase()).first();
-          return !!row;
-        } catch (_) { return false; }
+        return false;
       }
       async function markLoginTrusted(email, userId, kind) {
         try {
