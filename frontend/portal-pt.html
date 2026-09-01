@@ -29,6 +29,9 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header .logout{cursor:pointer;color:var(--muted)}.header .logout:hover{color:var(--danger)}
 body.in-session .user-info{display:flex!important}
 #mainNav button.champion{border-color:var(--accent,#c4a574);letter-spacing:.12em}
+.mud-spaces{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 12px}
+.mud-spaces button{background:transparent;border:1px solid var(--line,#3a4a3a);color:var(--fg,#d7c4a3);padding:.4rem .7rem;font:600 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;cursor:pointer}
+.mud-spaces button.active,.mud-spaces button:hover{border-color:var(--accent,#c4a574);color:var(--accent,#c4a574)}
 #mainNav button.nav-sec{opacity:.82;font-size:.78em}
 .login-page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:2rem 1.25rem 4rem}
 .login-box{width:100%;max-width:400px;padding:2rem 0 0}
@@ -346,11 +349,11 @@ body.in-session .user-info{display:flex!important}
   <div class="panel" id="panel-sandbox">
     <h3 id="bancadaPanelTitle">Atelier GNU · v0.5.0-lab</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Graphical-MUD: a bancada é a tua oficina; o mundo é partilhado; os quartos são instâncias. O Atelier é o espaço. O resto da dashboard são painéis.</p>
-    <div id="mudSpaces" style="display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 12px">
-      <button type="button" class="champion" onclick="setMudSpace('bancada')">Bancada</button>
-      <button type="button" onclick="setMudSpace('mundo')">Mundo</button>
-      <button type="button" onclick="setMudSpace('quartos')">Quartos</button>
-      <button type="button" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://sandbox.calhegasmorais.pt/';})()">Ecrã inteiro</button>
+    <div id="mudSpaces" class="mud-spaces">
+      <button type="button" data-panel="mud-bancada" class="active" onclick="setMudSpace('bancada',this)">Bancada</button>
+      <button type="button" data-panel="mud-mundo" onclick="setMudSpace('mundo',this)">Mundo</button>
+      <button type="button" data-panel="mud-quartos" onclick="setMudSpace('quartos',this)">Quartos</button>
+      <button type="button" data-panel="mud-full" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://sandbox.calhegasmorais.pt/';})()">Ecrã inteiro</button>
     </div>
     <div id="bancadaModeBar" style="display:none">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
@@ -884,7 +887,9 @@ window.addEventListener('message',function(e){
     if(e.data&&e.data.type==='cmn-session-ready') pushAtelierSession();
   }catch(_){}
 });
-function setMudSpace(space){
+function setMudSpace(space,btn){
+  try{ document.querySelectorAll('#mudSpaces button').forEach(function(b){b.classList.remove('active')}); if(btn) btn.classList.add('active'); }catch(_){}
+
   var f=document.getElementById('atelierFrame');
   if(!f) return;
   var u='https://sandbox.calhegasmorais.pt/?space='+encodeURIComponent(space||'bancada');
