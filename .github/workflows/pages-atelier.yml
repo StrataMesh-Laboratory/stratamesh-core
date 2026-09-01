@@ -1,0 +1,26 @@
+name: pages-atelier
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/sandbox.html"
+      - ".github/workflows/pages-atelier.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.GOD_API }}
+      CLOUDFLARE_ACCOUNT_ID: f3645fcb56675cf7250d8ba7358eb252
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Stage atelier as Pages index
+        run: mkdir -p dist && cp frontend/sandbox.html dist/index.html
+      - name: Deploy gnu-atelier
+        run: npx --yes wrangler@3.80.0 pages deploy dist --project-name=gnu-atelier --commit-dirty=true
