@@ -39,7 +39,7 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/health":
-            return self._json(200, {"ok": True, "runtime": "python", "role": "auth-fallback-standard", "port": PORT, "sessions": len(SESS)})
+            return self._json(200, {"ok": True, "runtime": "python", "role": "auth-fallback-standard", "port": PORT, "sessions": len(SESS), "peers": ["deno:8792", "node:8791"]})
         if path.startswith("/api/auth"):
             return self._auth()
         rel = {"/": "sandbox.html", "/dashboard": "portal-pt.html"}.get(path, path.lstrip("/"))
