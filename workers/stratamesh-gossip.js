@@ -171,7 +171,7 @@ code { color:var(--fg); }
 <li><a href="/have">/have</a> IHAVE digest</li>
 <li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
 <li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a></li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>
 </body></html>`;
