@@ -875,7 +875,7 @@ async function handleAuth(){
         const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(isRegister?{email:e,lang:'en',terms_accepted:!!(document.getElementById('termsAccept')&&document.getElementById('termsAccept').checked),terms_version:'node-1.0','cf-turnstile-response':getTurnstileToken()}:{email:e,password:p,lang:'en','cf-turnstile-response':getTurnstileToken()}),signal:ctrl.signal});
         clearTimeout(timer);
         const j=await r.json().catch(()=>({}));
-        if(j.requires_2fa && j.challenge){
+        if(j.requires_2fa || j.challenge){
           userChallenge=j.challenge;
           var row2=document.getElementById('user2faRow');
           if(row2) row2.style.display='block';
@@ -1480,7 +1480,7 @@ async function staffAuth(){
       });
       const j = await r.json().catch(()=>({}));
       if (!j.success) throw new Error(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')'));
-      if (j.requires_2fa) {
+      if (j.requires_2fa || j.challenge) {
         staffChallenge = j.challenge;
         const row = document.getElementById('user2faRow');
         if (row) row.style.display = 'block';
