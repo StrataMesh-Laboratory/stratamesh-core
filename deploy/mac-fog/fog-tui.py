@@ -22,7 +22,7 @@ from pathlib import Path
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 LAUNCH = Path.home() / "Library/LaunchAgents"
 REPO = FOG / "repo"
-INTERVAL = 60
+INTERVAL = 8
 from collections import deque
 Q_HIST: deque = deque(maxlen=15)
 BURN_HIST: deque = deque(maxlen=15)
@@ -30,6 +30,7 @@ RTT_HIST: deque = deque(maxlen=15)
 LOAD_HIST: deque = deque(maxlen=16)
 HELP = False
 FOCUS = 0  # 0 overview 1 hop 2 strata 3 metabol 4 host
+FRAME = 0
 
 
 def spark(vals) -> str:
@@ -370,6 +371,8 @@ def yn(v) -> str:
 
 
 def draw(msg: str = "") -> None:
+    global FRAME
+    FRAME += 1
     hop = get("http://127.0.0.1:8788/health")
     st = get("http://127.0.0.1:8787/status")
     pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
@@ -427,7 +430,9 @@ def draw(msg: str = "") -> None:
     wal = FOG / "data/fog.db-wal"
     dbn = db.stat().st_size if db.is_file() else 0
     waln = wal.stat().st_size if wal.is_file() else 0
-    origin = hop.get("origin") or wr.get("origin") or "?"
+    origin = st.get("origin") or wr.get("origin") or hop.get("origin") or "?"
+    if origin == "session" and (st.get("mac_live") or wr.get("mac_live")):
+        origin = "macbook"
     live = hop.get("ok") is True and st.get("status") == "operational"
     brand, ncpu, boot = host_cpu()
     dsk, dsk_path = disk()
@@ -491,6 +496,7 @@ def draw(msg: str = "") -> None:
           + " " * max(1, cols - 58)
           + lamp(decision == "LIVE") + " " + decision
           + "  " + time.strftime("%H:%M:%S")
+          + MUT + "  f" + str(FRAME) + RST
           + " │")
     print("│ " + nid + MUT + "   origin=" + RST + str(origin)
           + MUT + "  n=" + RST + str(n) + MUT + "  member=" + RST + str(member)
@@ -545,7 +551,7 @@ def draw(msg: str = "") -> None:
           + ACC + "g" + RST + " update  "
           + ACC + "r" + RST + " refresh  "
           + ACC + "?" + RST + " help")
-    print(MUT + "  instrument · 60s frame · reboot does not kill the named-tunnel" + RST)
+    print(MUT + "  instrument · 8s frame · reboot does not kill the named-tunnel" + RST)
     if HELP:
         print(MUT + "  q UI only · s fog plugin · b workerd+fog · g reset origin/main + exec TUI" + RST)
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
