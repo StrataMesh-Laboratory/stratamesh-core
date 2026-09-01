@@ -122,9 +122,9 @@ body.in-session .user-info{display:flex!important}
       <input type="checkbox" id="asStaff" />
       <span>Acesso de pessoal (staff) — mesmas caixas</span>
     </label>
-    <div id="user2faRow" style="display:none;margin:.5rem 0">
-      <input id="userOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos)" autocomplete="one-time-code">
-      <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem"></p>
+    <div id="user2faRow" style="margin:.5rem 0">
+      <input id="userOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos) — depois de Continuar" autocomplete="one-time-code">
+      <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem">O código chega por e-mail (pessoal sem app) ou pela app autenticadora.</p>
     </div>
 
     <div class="error" id="loginError"></div>
