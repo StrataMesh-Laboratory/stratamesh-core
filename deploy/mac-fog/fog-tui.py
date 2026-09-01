@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog instrument v0.5.0-lab.
+"""StrataMesh LAB Fog instrument v0.5.1-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
@@ -546,7 +546,7 @@ def draw(msg: str = "") -> None:
         print(boxline(L(a) + "│" + R(b), w))
 
     print(top)
-    print(boxline(" " + ACC + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.0-lab" + RST
+    print(boxline(" " + ACC + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.1-lab" + RST
                   + "  " + lamp(decision == "LIVE") + " " + decision, w))
     print(boxline(" " + str(nid) + MUT + "  " + RST + str(origin)
                   + MUT + "  n=" + RST + str(n)
