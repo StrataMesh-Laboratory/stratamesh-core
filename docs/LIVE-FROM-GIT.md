@@ -8,3 +8,5 @@ Apex `calhegasmorais.pt/*` is `stratamesh-spa`. Home HTML is **D1** `site_conten
 2. Fallback — `PATH_MAP` in `ops/bin/d1-put-html.py` writes every key that file aliases (`landing-pt.html` → `home-pt` + `home` + `landing-pt`). `workflow_dispatch` with force_all rewrites the full map.
 
 No wrangler deploy. No 6th cron. Token: `secrets.GOD_API`.
+
+`GOD_API` is a GitHub Actions secret, bound only to the D1 step. It is not in git. Logs must not echo it.
