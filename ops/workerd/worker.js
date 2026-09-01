@@ -233,12 +233,23 @@ export default {
       }, { headers: cors });
     }
     if (url.pathname === "/assemble" || url.pathname === "/mw/assemble") {
+      let node = null;
       try {
-        if (env.MW_NODE) return env.MW_NODE.fetch("http://mw/assemble");
-        return fetch("http://127.0.0.1:8791/assemble");
+        if (env.MW_NODE) {
+          const r = await env.MW_NODE.fetch("http://mw/assemble");
+          node = await r.json();
+        }
       } catch (e) {
-        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+        node = { ok: false, error: String(e && e.message || e) };
       }
+      return Response.json({
+        ok: true,
+        via: "workerd:8788",
+        release: "v0.5.0-lab",
+        origin: env.ORIGIN || "session",
+        node,
+        note: "compose body is Node :8791; this hop only forwards via MW_NODE binding",
+      }, { headers: cors });
     }
     return env.FOG.fetch(request);
   },
