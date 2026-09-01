@@ -41,6 +41,7 @@ from pq_keys import PQKeyRegistry
 from resource_meter import sample as resource_sample
 from host_fingerprint import fingerprint as host_fingerprint
 from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
+from fog_plugins.runtime_mesh import RuntimeMeshPlugin
 from fog_plugins import host_cap
 from mesh_provision import flags as mesh_flags
 from origin_lease import public_view as origin_public_view, verify_reclaim, write as origin_lease_write
@@ -77,6 +78,8 @@ class PersistentFogNode:
         self.db_path = db_path
         self.workerd = WorkerdPlugin()
         self.workerd.attach()
+        self.runtime_mesh = RuntimeMeshPlugin()
+        self.runtime_mesh.attach()
         self.ping = PingPlugin()
         self.rails = RailsPlug(poc=self.poc, token=self.token, subsistence=self.subsistence)
         self.keepup = KeepUpPlugin(
@@ -487,6 +490,7 @@ code {{ color:var(--fg); }}
                     "acbs": self.acbs.summary(),
                     "pq_keys": self.pq.summary(),
                     "workerd": wrd,
+                    "runtime_mesh": self.runtime_mesh.snapshot() if getattr(self, "runtime_mesh", None) else None,
                     "host_cap": host_cap.snapshot(),
                     "ping": self.ping.snapshot() if getattr(self, "ping", None) else None,
                     "keepup": self.keepup.snapshot() if getattr(self, "keepup", None) else None,
@@ -663,6 +667,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, NODE.acbs.summary())
         elif path in ("/workerd", "/workerd/health"):
             self._json(200, NODE.workerd.snapshot() if NODE and NODE.workerd else {"ok": False})
+        elif path in ("/mw", "/mw/health"):
+            self._json(200, NODE.runtime_mesh.snapshot() if NODE and getattr(NODE, "runtime_mesh", None) else {"ok": False})
         elif path in ("/origin/lease", "/origin"):
             self._json(200, origin_public_view())
         elif path == "/pq":
