@@ -101,5 +101,65 @@
       "outdated-aliases.yml",
       "hop-weight.yml"
     ]
-  }
+  },
+  "complements": [
+    {
+      "current": "cf-pages",
+      "complement": "caddy-static",
+      "also": [
+        "github-pages",
+        "codeberg-pages"
+      ],
+      "shed": "HTML bytes leave CF; Caddy on Fog/VPS serves frontend/ from HEAD",
+      "weight": 0,
+      "status": "lab-ready"
+    },
+    {
+      "current": "cf-workers",
+      "complement": "workerd-self",
+      "also": [
+        "python:8790",
+        "node:8791"
+      ],
+      "shed": "isolates that blow the 100k cap run on workerd+Py+Node; CF only ALLOW slice",
+      "weight": 2,
+      "status": "live"
+    },
+    {
+      "current": "cf-r2-kv-d1",
+      "complement": "minio-or-garage",
+      "also": [
+        "postgres-local"
+      ],
+      "shed": "blobs/objects off R2; sessions off KV during STASIS",
+      "weight": 1,
+      "status": "planned"
+    },
+    {
+      "current": "fog-mac",
+      "complement": "hetzner-or-fly-vm",
+      "also": [
+        "tailscale"
+      ],
+      "shed": "when mac_live=false >30min the VM is the same workerd+Caddy image from HEAD",
+      "weight": 2,
+      "status": "planned"
+    },
+    {
+      "current": "atelier-sessions",
+      "complement": "rivet-actors",
+      "also": [],
+      "shed": "long-lived workbench memory not a Worker isolate",
+      "weight": 3,
+      "status": "explore"
+    },
+    {
+      "current": "faas-lab",
+      "complement": "fn0-or-spin",
+      "also": [],
+      "shed": "Wasm experiments; not auth, not apex",
+      "weight": 4,
+      "status": "explore"
+    }
+  ]
 }
