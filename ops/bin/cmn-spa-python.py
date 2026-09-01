@@ -50,12 +50,18 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        hold = ROOT / "maintenance-1xxx.html"
+        if hold.is_file():
+            self._cors(503, "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(hold.read_bytes()); return
         self._json(404, {"error": "not found", "hop": "python:8790"})
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
         if path.startswith("/api/auth"):
             return self._auth()
+        hold = ROOT / "maintenance-1xxx.html"
+        if hold.is_file():
+            self._cors(503, "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(hold.read_bytes()); return
         self._json(404, {"error": "not found", "hop": "python:8790"})
 
     def _body(self):
