@@ -94,6 +94,16 @@ def payload(kind: str):
         return {"ok": True, "runtime": "python", "port": PORT, "plugins": live}
     if kind == "metabol":
         return {"ok": True, "via": WORKERD + "/metabol", "snap": _j(WORKERD + "/metabol")}
+    if kind == "strata":
+        fog = _j(FOG + "/status") or _j(FOG + "/health")
+        return {
+            "ok": True,
+            "runtime": "python",
+            "role": "strata-observe",
+            "release": "v0.5.0-lab",
+            "fog": fog,
+            "note": "observe only; mint stays rails+oracle_live",
+        }
     if kind == "fallback":
         try:
             from fog_plugins.mac_fallback import tick
@@ -132,6 +142,8 @@ class H(BaseHTTPRequestHandler):
             "/mw/metabol": "metabol",
             "/fallback": "fallback",
             "/mw/fallback": "fallback",
+            "/strata": "strata",
+            "/mw/strata": "strata",
         }
         kind = table.get(path)
         if not kind:
