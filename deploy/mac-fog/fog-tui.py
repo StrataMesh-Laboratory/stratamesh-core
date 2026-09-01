@@ -529,7 +529,7 @@ def draw(msg: str = "") -> None:
         pass
     print("   load  %.2f  %.2f  %.2f" % load
 ,
-          MUT + ("  cap %.0f%% %s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok")) + RST,
+          MUT + ("  cap %.0f%% %s%s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok", (" "+str(cap.get("reason") or "")) if cap.get("over") else "")) + RST,
           MUT + spark(LOAD_HIST) + RST)
     print("   mem   free", gb(free), "  active", gb(active), "  wired", gb(wired))
     print("   rss   workerd", kb(wd_rss), "  python3", kb(py_rss), "  cloudflared", kb(cf_rss))
