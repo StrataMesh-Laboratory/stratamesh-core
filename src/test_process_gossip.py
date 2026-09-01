@@ -29,7 +29,7 @@ def main() -> None:
         "--rounds",
         "3",
         "--sync-rounds",
-        "4",
+        "8",
         "--post-kill-rounds",
         "2",
         "--kill-node",
@@ -39,7 +39,7 @@ def main() -> None:
         "0",
     ]
     if not any(a == "--base-port" or a.startswith("--base-port=") for a in extra):
-        cmd.extend(["--base-port", os.environ.get("STRATAMESH_TEST_BASE_PORT", "8790")])
+        cmd.extend(["--base-port", os.environ.get("STRATAMESH_TEST_BASE_PORT", "18790")])
     cmd.extend(extra)
     print("test_process_gossip:", " ".join(cmd), flush=True)
     raise SystemExit(subprocess.call(cmd))
