@@ -35,10 +35,12 @@ class H(BaseHTTPRequestHandler):
             except Exception:
                 snap = {}
             self._send(200, {
-                "ok": not over,
+                "ok": True,
                 "runtime": "python",
                 "port": PORT,
                 "role": "middleware",
+                "listening": True,
+                "over": over,
                 "cap": snap,
             })
             return
