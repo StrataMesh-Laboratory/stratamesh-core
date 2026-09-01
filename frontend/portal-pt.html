@@ -864,11 +864,9 @@ function showPortal(user){
       if(user.token){ token = user.token; try{ localStorage.setItem('token', token); localStorage.setItem('sm_token', token);}catch(e){} }
       try{ applyVaPrefs(); }catch(_){}
     }
-    // Always stay on dashboard path when entering portal
     try{
       if(!/\/dashboard/i.test(location.pathname)){
-        location.href = '/dashboard';
-        return;
+        history.replaceState({}, '', '/dashboard');
       }
     }catch(e){}
     var login=document.getElementById('loginPage');
