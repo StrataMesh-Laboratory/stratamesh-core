@@ -1,8 +1,8 @@
 {
   "name": "@stratamesh/deno-api",
   "tasks": {
-    "start": "deno run --allow-net=0.0.0.0:8792 ops/deno/main.ts",
-    "check": "deno check ops/deno/main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read ops/deno/main.ts",
+    "check": "deno check ops/deno/main.ts ops/deno/object.ts ops/deno/fallback.ts",
     "fmt": "deno fmt ops/deno"
   },
   "exports": "./main.ts",
