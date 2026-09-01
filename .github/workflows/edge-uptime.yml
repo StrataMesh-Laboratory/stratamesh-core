@@ -52,3 +52,23 @@ jobs:
               exit 0
               ;;
           esac
+
+
+  ping-tailnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+    steps:
+      - name: maybe tailnet
+        run: |
+          if [ -z "$TS_AUTHKEY" ]; then echo "no TS_AUTHKEY"; exit 0; fi
+      - uses: tailscale/github-action@v3
+        if: env.TS_AUTHKEY != ''
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          args: --hostname gha-edge-uptime --accept-routes=false
+      - name: edge hop via tailnet Fog workerd
+        if: env.TS_AUTHKEY != ''
+        run: |
+          curl -sS -m 8 -A EDGE-GROK-CMN-001-gha http://100.108.35.26:8788/health | head -c 200
