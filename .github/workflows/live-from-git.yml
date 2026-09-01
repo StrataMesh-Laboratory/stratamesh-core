@@ -28,6 +28,15 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
+  issues: read
+  checks: read
+  deployments: read
+  packages: read
+  pages: read
+  statuses: read
+  id-token: none
 
 concurrency:
   group: live-from-git
@@ -38,8 +47,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      GOD_API: ${{ secrets.GOD_API }}
-      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
       CF_ACCOUNT: f3645fcb56675cf7250d8ba7358eb252
       D1_LEDGER_ID: f78ff995-03d2-4b97-88b6-56e61416fce7
     steps:
@@ -80,6 +87,9 @@ jobs:
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
           echo "changed: $LIST"
       - name: D1 put (path map)
+        env:
+          GOD_API: ${{ secrets.GOD_API }}
+          CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
         run: |
           set -euo pipefail
           if [ "${{ steps.files.outputs.mode }}" = "all" ] || [ -z "${{ steps.files.outputs.list }}" ]; then
