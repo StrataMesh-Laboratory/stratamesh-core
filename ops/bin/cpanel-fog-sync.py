@@ -1,111 +1,77 @@
 #!/usr/bin/env python3
-"""Fog-side cPanel UAPI. Reads Fog vault files — never prints secrets."""
+"""Fog cPanel UAPI/json-api probe. Never prints secrets."""
 from __future__ import annotations
-import json, os, ssl, sys, urllib.request
+import json, os, ssl, sys, urllib.parse, urllib.request
 from pathlib import Path
 
 HOST = os.environ.get("CPANEL_HOST", "94.126.169.39")
 PORT = os.environ.get("CPANEL_PORT", "2083")
 USER = os.environ.get("CPANEL_USER", "calhegas")
-
-VAULTS = [
-    Path.home() / ".config" / "stratamesh",
-    Path.home() / ".config" / "stratagrok",
-    Path("/home/box/.config/stratamesh"),
-    Path("/home/box/.config/stratagrok"),
-]
-
-TOKEN_FILES = (
-    "cpanel.token",
-    "cpanel_token",
-    "CPANEL_TOKEN",
-    "hosting.token",
-    "eni.cpanel",
-)
-
-ENV_KEYS = ("CPANEL_TOKEN", "CPANEL_API_TOKEN", "CPANEL_API")
-
-
-def _parse_env(p: Path) -> dict:
-    out = {}
-    if not p.is_file():
-        return out
-    for line in p.read_text(errors="replace").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, _, v = line.partition("=")
-        out[k.strip()] = v.strip().strip('"').strip("'")
-    return out
-
+VAULT = Path.home() / ".config" / "stratamesh"
 
 def token():
     if os.environ.get("CPANEL_TOKEN"):
-        return os.environ["CPANEL_TOKEN"], "env:CPANEL_TOKEN"
-    for vault in VAULTS:
-        if not vault.is_dir():
-            continue
-        for name in TOKEN_FILES:
-            p = vault / name
-            if p.is_file() and p.stat().st_size > 8:
-                return p.read_text().strip(), str(p)
-        for envname in ("secrets.env", ".env"):
-            env = _parse_env(vault / envname)
-            for k in ENV_KEYS:
-                if env.get(k):
-                    return env[k], f"{vault/envname}:{k}"
-        # any file whose name contains cpanel
-        for p in vault.iterdir():
-            if p.is_file() and "cpanel" in p.name.lower() and p.stat().st_size > 8:
-                return p.read_text().strip(), str(p)
+        return os.environ["CPANEL_TOKEN"].strip(), "env"
+    p = VAULT / "cpanel.token"
+    if p.is_file():
+        return p.read_text().strip(), str(p)
     return None, None
 
+def user():
+    p = VAULT / "cpanel.user"
+    if p.is_file():
+        return p.read_text().strip() or USER
+    return USER
 
-def uapi(mod, fn, params=None):
-    tok, src = token()
-    if not tok:
-        return {"ok": False, "error": "no cPanel token", "looked": [str(v) for v in VAULTS], "want": list(TOKEN_FILES)}
-    q = "&".join(f"{k}={v}" for k, v in (params or {}).items())
-    url = f"https://{HOST}:{PORT}/execute/{mod}/{fn}" + (("?" + q) if q else "")
+def call(url, headers):
     ctx = ssl._create_unverified_context()
-    last = None
-    user = USER or os.environ.get("CPANEL_USER") or ""
-    headers_try = [
-        {"Authorization": "Bearer " + tok, "User-Agent": "cmn-fog-cpanel"},
-        {"Authorization": "cpanel " + ((user + ":" + tok) if user else tok), "User-Agent": "cmn-fog-cpanel"},
-    ]
-    traces = []
-    for hdr in headers_try:
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, context=ctx, timeout=20) as r:
+        raw = r.read()
+        text = raw.decode("utf-8", "replace")
+        out = {"status": r.status, "ctype": r.headers.get("content-type"), "len": len(raw)}
         try:
-            req = urllib.request.Request(url, headers=hdr)
-            with urllib.request.urlopen(req, context=ctx, timeout=20) as r:
-                raw = r.read()
-                text = raw.decode("utf-8", "replace")
-                try:
-                    return {"ok": True, "status": r.status, "auth": hdr["Authorization"].split()[0], "data": json.loads(text)}
-                except Exception:
-                    traces.append({"status": r.status, "ctype": r.headers.get("content-type"), "len": len(raw), "head": text[:160].replace("\n"," ")})
-        except Exception as e:
-            traces.append({"error": str(e)[:180]})
-    return {"ok": False, "error": "uapi-not-json", "url": url.replace(tok, "***") if tok else url, "trace": traces}
-
+            out["data"] = json.loads(text)
+            out["ok"] = True
+        except Exception:
+            out["ok"] = False
+            out["head"] = text[:120].replace("\n", " ")
+        return out
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "health"
     tok, src = token()
+    usr = user()
     if cmd == "health":
-        print(json.dumps({
-            "hop": "cpanel-uapi",
-            "host": HOST,
-            "has_token": bool(tok),
-            "token_locus": src,
-            "vaults_exist": [str(v) for v in VAULTS if v.is_dir()],
-        }))
+        print(json.dumps({"hop": "cpanel", "host": HOST, "user": usr, "has_token": bool(tok), "token_locus": src}))
         return
-    if cmd == "list-db":
-        print(json.dumps(uapi("Mysql", "list_databases"), indent=2)[:2500])
-        return
-    print("usage: cpanel-fog-sync.py health|list-db")
+    if not tok:
+        print(json.dumps({"ok": False, "error": "no token"})); return
+    urls = [
+        f"https://{HOST}:{PORT}/execute/Mysql/list_databases",
+        f"https://{HOST}:{PORT}/json-api/cpanel?cpanel_jsonapi_user={urllib.parse.quote(usr)}&cpanel_jsonapi_apiversion=3&cpanel_jsonapi_module=Mysql&cpanel_jsonapi_func=list_databases",
+    ]
+    auths = [
+        ("cpanel-pair", {"Authorization": f"cpanel {usr}:{tok}", "Accept": "application/json"}),
+        ("bearer", {"Authorization": "Bearer " + tok, "Accept": "application/json"}),
+    ]
+    traces = []
+    for url in urls:
+        for name, hdr in auths:
+            hdr = dict(hdr)
+            hdr["User-Agent"] = "cmn-fog-cpanel"
+            try:
+                r = call(url, hdr)
+            except Exception as e:
+                traces.append({"auth": name, "error": str(e)[:160], "path": url.split(HOST)[-1][:80]})
+                continue
+            r["auth"] = name
+            r["path"] = url.split(str(PORT))[-1][:90]
+            if r.get("ok"):
+                print(json.dumps(r, indent=2)[:2500])
+                return
+            traces.append({k: r[k] for k in r if k != "data"})
+    print(json.dumps({"ok": False, "error": "html-login-not-uapi", "user": usr, "trace": traces}, indent=2)[:2500])
 
 if __name__ == "__main__":
     main()
