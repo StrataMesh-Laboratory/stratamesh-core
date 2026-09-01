@@ -483,7 +483,16 @@ def draw(msg: str = "") -> None:
     if not pub_ok:
         decision = "PUBLIC?"
 
-    sys.stdout.write("\033[?2026h\033[H\033[J")
+    try:
+        _paint()
+    except Exception as e:
+        sys.stdout.write("\033[?2026l\033[H\033[J")
+        print("draw-guard", type(e).__name__, str(e)[:180])
+        sys.stdout.flush()
+        return
+
+    def _paint() -> None:
+        pass
     top = "╭" + "─" * (cols - 2) + "╮"
     bot = "╰" + "─" * (cols - 2) + "╯"
     mid = "├" + "─" * (cols - 2) + "┤"
@@ -508,9 +517,12 @@ def draw(msg: str = "") -> None:
     print("│ " + lamp(bool(pyh.get("ok"))) + " python  :8790"
           + " " * 8 + "│  spa  total=" + str(spa.get("total") or 0)
           + " active=" + str(spa.get("active") or 0))
+    dec = met.get("decision")
+    if not dec and isinstance(met.get("cf"), dict):
+        dec = met.get("cf").get("decision")
+    dec = dec or "—"
     print("│ " + lamp(bool(ndh.get("ok"))) + " node    :8791"
-          + " " * 8 + "│  metabol " + str((met.get("decision") or met.get("cf", {}) or {}).get("decision") if isinstance(met.get("cf"), dict) else met.get("decision") or "—")
-          + "  pace=" + str(met.get("pace") or "—"))
+          + " " * 8 + "│  metabol " + str(dec) + "  pace=" + str(met.get("pace") or "—"))
     print("│ " + lamp(pub_ok) + " public  " + str(pub.get("origin") or "—")
           + " " * max(1, 12 - len(str(pub.get("origin") or "—")))
           + "│  surplus " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
@@ -580,13 +592,17 @@ def confirm(prompt: str) -> bool:
 
 
 def main() -> int:
-    global HELP
+    global HELP, FOCUS
     quiet_mac_malloc()
     print("\033[?25l", end="")
     msg = ""
     try:
         while True:
-            draw(msg)
+            try:
+                draw(msg)
+            except Exception as e:
+                print("\nTUI draw", type(e).__name__, e)
+                sys.stdout.flush()
             msg = ""
             ch = wait_key(INTERVAL)
             if not ch:
@@ -597,6 +613,9 @@ def main() -> int:
                 continue
             if ch == "?":
                 HELP = not HELP
+                continue
+            if ch in ("1", "2", "3", "4"):
+                FOCUS = int(ch)
                 continue
             if ch in ("s", "S"):
                 msg = stop_fog() if confirm("stop fog?") else "stop cancelled"
