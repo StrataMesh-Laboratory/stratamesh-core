@@ -415,6 +415,9 @@ def draw(msg: str = "") -> None:
         n = st.get("n") if st.get("n") is not None else cons.get("n")
     if n is None:
         n = prov.get("n")
+    if (n in (None, 1)) and (st.get("mesh_member") or hop.get("mac_live")):
+        n = 2
+        member = True
     fmax = cons.get("f_max")
     if fmax is None:
         fmax = prov.get("f_max")
@@ -557,7 +560,7 @@ def draw(msg: str = "") -> None:
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
     if msg:
         print("  " + ACC + msg + RST)
-    sys.stdout.write("\033[?2026l")
+    sys.stdout.write("")
     sys.stdout.flush()
 
 
