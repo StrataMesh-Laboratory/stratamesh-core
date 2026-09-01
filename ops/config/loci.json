@@ -1,0 +1,38 @@
+{
+  "schema": "stratamesh.loci.v1",
+  "pages_root": "https://stratamesh.pages.dev",
+  "pages_aliases": [
+    "https://calhegasmorais-pt.pages.dev",
+    "https://stratamesh-lab-hold.pages.dev",
+    "https://stratamesh-gateway.pages.dev"
+  ],
+  "workers_dev_root": "https://*.stratamesh.workers.dev",
+  "workers_dev_account": "stratamesh",
+  "never_on_apex": [
+    "*.workers.dev"
+  ],
+  "runtimes": {
+    "workerd": {
+      "port": 8788,
+      "role": "edge hop HTML+API local"
+    },
+    "python": {
+      "port": 8790,
+      "role": "middleware / metabol / fallback HTTP"
+    },
+    "node": {
+      "port": 8791,
+      "script": "ops/bin/cmn-spa-node.mjs",
+      "role": "intensive SPA, zero KV"
+    }
+  },
+  "chain": [
+    "pages",
+    "node:8791",
+    "python:8790",
+    "workerd:8788",
+    "r2",
+    "hold"
+  ],
+  "renewal": "00:00 UTC"
+}
