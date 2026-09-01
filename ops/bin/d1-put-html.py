@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -58,8 +59,9 @@ def cf(method: str, path: str, data=None, content_type="application/json"):
         with urllib.request.urlopen(req, timeout=120) as r:
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")[:800]
-        raise SystemExit(f"CF {method} {path} {e.code} {body}") from e
+        body = e.read().decode("utf-8", "replace")[:400]
+        body = re.sub(r"(ghp_|ghu_|github_pat_|cfat_|cfut_|Bearer\s+)[A-Za-z0-9_\-.]{8,}", r"\1[redacted]", body)
+        raise SystemExit(f"CF {method} {path} {e.code}") from e
 
 
 def d1(sql: str, params=None):
