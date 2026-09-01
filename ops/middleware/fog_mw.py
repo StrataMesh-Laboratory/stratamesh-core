@@ -69,18 +69,28 @@ def payload(kind: str):
             "plugins": ["host_cap", "keepup", "ping", "rails", "tmp_sweep", "runtime_mesh"],
         }
     if kind == "plugins":
-        return {
-            "ok": True,
-            "plugins": {
-                "host_cap": "60% load/mem/df-disk; HOLD stops extra PoC",
-                "keepup": "Q/K/S sample → pending_poc",
-                "ping": "workerd RTT",
-                "rails": "mint/burn armed only if oracle_live",
-                "tmp_sweep": "scratch on reboot",
-                "runtime_mesh": "supervise :8790 :8791 beside workerd",
-                "metabol": "workerd :8788/metabol → CF paced burn",
-            },
-        }
+        live = {}
+        try:
+            import sys
+            src = os.environ.get("FOG_SRC") or ""
+            path = src if src.endswith("src") else (src + "/src" if src else "")
+            if path and path not in sys.path:
+                sys.path.insert(0, path)
+            from fog_plugins import host_cap
+            snap = host_cap.snapshot()
+            live["host_cap"] = {"ok": True, "over": bool(snap.get("over")), "reason": snap.get("reason")}
+        except Exception as e:
+            live["host_cap"] = {"ok": False, "error": str(e)[:80]}
+        for name in ("keepup", "ping", "rails", "tmp_sweep", "runtime_mesh"):
+            try:
+                __import__("fog_plugins." + name)
+                live[name] = {"ok": True, "import": True}
+            except Exception as e:
+                live[name] = {"ok": False, "error": str(e)[:80]}
+        live["metabol"] = {"ok": True, "via": WORKERD + "/metabol", "snap": _j(WORKERD + "/metabol")}
+        live["workerd"] = _j(WORKERD + "/health")
+        live["fog"] = _j(FOG + "/health")
+        return {"ok": True, "runtime": "python", "port": PORT, "plugins": live}
     if kind == "metabol":
         return {"ok": True, "via": WORKERD + "/metabol", "snap": _j(WORKERD + "/metabol")}
     return base
