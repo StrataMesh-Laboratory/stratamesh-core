@@ -14,3 +14,5 @@ Nothing here replaces Pages as the public HTML origin until Caddy is proven.
 
 HEAD still `main` via `live-from-git` + `loci-pages` + `hop-weight`.
 `Deno Deploy` is not a complement — same 100k-class cap.
+
+Deno Deploy is **additive** with CF only if the *work* is split (status/health/HTML mirror on Deno; auth on Python; apex HTML on Pages). Same 100k-class cap twice is ~200k **distinct** requests, not 200k on `/api/auth`.
