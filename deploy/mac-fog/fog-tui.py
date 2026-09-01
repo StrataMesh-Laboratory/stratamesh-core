@@ -483,16 +483,6 @@ def draw(msg: str = "") -> None:
     if not pub_ok:
         decision = "PUBLIC?"
 
-    try:
-        _paint()
-    except Exception as e:
-        sys.stdout.write("\033[?2026l\033[H\033[J")
-        print("draw-guard", type(e).__name__, str(e)[:180])
-        sys.stdout.flush()
-        return
-
-    def _paint() -> None:
-        pass
     top = "╭" + "─" * (cols - 2) + "╮"
     bot = "╰" + "─" * (cols - 2) + "╯"
     mid = "├" + "─" * (cols - 2) + "┤"
