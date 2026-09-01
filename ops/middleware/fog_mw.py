@@ -93,6 +93,12 @@ def payload(kind: str):
         return {"ok": True, "runtime": "python", "port": PORT, "plugins": live}
     if kind == "metabol":
         return {"ok": True, "via": WORKERD + "/metabol", "snap": _j(WORKERD + "/metabol")}
+    if kind == "fallback":
+        try:
+            from fog_plugins.mac_fallback import tick
+            return {"ok": True, "runtime": "python", **tick()}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:120]}
     return base
 
 
@@ -123,6 +129,8 @@ class H(BaseHTTPRequestHandler):
             "/mw/plugins": "plugins",
             "/metabol": "metabol",
             "/mw/metabol": "metabol",
+            "/fallback": "fallback",
+            "/mw/fallback": "fallback",
         }
         kind = table.get(path)
         if not kind:
