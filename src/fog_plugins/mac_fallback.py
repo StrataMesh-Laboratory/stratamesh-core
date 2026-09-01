@@ -80,7 +80,7 @@ def plan(st: dict) -> dict:
         "keep_edge_local": True,
         "keep_mw_8790_8791": True,
         "metabol": "STANDBY" if standby else "ALLOW",
-        "flip_fog_dns": False,  # session fog-persist only
+        "flip_fog_dns": bool(os.environ.get("FOG_MAY_FLIP_DNS") == "1" and (os.environ.get("FOG_ORIGIN") or "") == "session"),
         "reason": "mac dark >= 30min" if standby else "mac primary or grace",
         "after_sec": FALLBACK_AFTER,
         "dark_for": st.get("dark_for") or 0,
