@@ -31,4 +31,4 @@ JSONL: `$FOG_DATA/keepup.jsonl` schema `stratamesh.fog.keepup.v1`.
 
 `FOG_MINT_ARMED=1` and `oracle_live` would copy keep-up score into `ContributionLedger` then `mint_from_poc` (`#mint`). `FOG_BURN_ARMED=1` would burn quality-collapse to `#0`. Hire remains transfer, never mint. Lab default: measure only.
 
-TUI shows `keep-up Q K S` and `rails mint_armed=false`.
+TUI redraws every 60s. `pending_poc` persists in `$FOG_DATA/rails.json` across plugin reboots. Keep-up still samples every 15s. TUI shows `keep-up Q K S` and `rails mint_armed=false` until oracle_live.
