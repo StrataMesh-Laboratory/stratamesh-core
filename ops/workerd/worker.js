@@ -212,6 +212,20 @@ export default {
       }
     }
 
+
+    if (url.pathname === "/fallback" || url.pathname === "/mw/fallback") {
+      let fog = {};
+      try { fog = await env.FOG.fetch("http://fog/mw"); fog = await fog.json(); } catch (_) {}
+      return Response.json({
+        ok: true,
+        after_sec: 1800,
+        primary: "macbook",
+        standby: "edge+session",
+        flip_fog_dns: false,
+        note: "EDGE keeps :8788/:8789/mw; Fog DNS only if session persist sees mac dark >= 30min",
+        fog_mw: fog,
+      }, { headers: cors });
+    }
     return env.FOG.fetch(request);
   },
 };
