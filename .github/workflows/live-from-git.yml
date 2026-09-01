@@ -1,0 +1,89 @@
+# Live-from-git — D1 HTML ship on main. No wrangler deploy. No 6th cron.
+# Route 1: push main (path filter) writes only changed files.
+# Route 2 fallback: PATH_MAP fans each file to every key spa reads;
+#   workflow_dispatch / --all rewrites the full map.
+name: live-from-git
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/landing-pt.html"
+      - "frontend/landing-en.html"
+      - "frontend/portal-pt.html"
+      - "frontend/portal-en.html"
+      - "frontend/roadmap-pt.html"
+      - "frontend/roadmap-en.html"
+      - "frontend/eni.html"
+      - "workers/stratamesh-fog-standby.js"
+      - "ops/bin/d1-put-html.py"
+      - ".github/workflows/live-from-git.yml"
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: Rewrite every mapped D1 key (route 2 fallback)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-from-git
+  cancel-in-progress: false
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      CF_ACCOUNT: f3645fcb56675cf7250d8ba7358eb252
+      D1_LEDGER_ID: f78ff995-03d2-4b97-88b6-56e61416fce7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+      - name: Changed files or full map
+        id: files
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force_all }}" = "true" ]; then
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            echo "list=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            echo "list=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            echo "list=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mapfile -t CHANGED < <(git diff --name-only "$BEFORE" HEAD || true)
+          LIST=""
+          for f in "${CHANGED[@]}"; do
+            case "$f" in
+              frontend/landing-pt.html|frontend/landing-en.html|frontend/portal-pt.html|frontend/portal-en.html|frontend/roadmap-pt.html|frontend/roadmap-en.html|frontend/eni.html|workers/stratamesh-fog-standby.js)
+                LIST="$LIST $f"
+                ;;
+            esac
+          done
+          LIST="${LIST# }"
+          echo "mode=diff" >> "$GITHUB_OUTPUT"
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
+          echo "changed: $LIST"
+      - name: D1 put (path map)
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.files.outputs.mode }}" = "all" ] || [ -z "${{ steps.files.outputs.list }}" ]; then
+            python3 ops/bin/d1-put-html.py --all
+          else
+            python3 ops/bin/d1-put-html.py ${{ steps.files.outputs.list }}
+          fi
