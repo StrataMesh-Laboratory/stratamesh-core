@@ -1,5 +1,5 @@
 /** Deno Deploy — TS APIs only. Not apex HTML. Not /api/auth. */
-const HEAD = "v0.5.0-lab";
+const HEAD = "v0.5.1-lab";
 
 function cors(extra: Record<string, string> = {}) {
   return {
