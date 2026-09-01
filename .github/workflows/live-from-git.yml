@@ -15,6 +15,7 @@ on:
       - "frontend/roadmap-pt.html"
       - "frontend/roadmap-en.html"
       - "frontend/eni.html"
+      - "frontend/sandbox.html"
       - "workers/stratamesh-fog-standby.js"
       - "ops/bin/d1-put-html.py"
       - ".github/workflows/live-from-git.yml"
