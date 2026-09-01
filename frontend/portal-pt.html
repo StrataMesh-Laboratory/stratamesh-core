@@ -133,7 +133,7 @@ body.in-session .user-info{display:flex!important}
         <input type="checkbox" id="termsAccept" />
         <span id="termsLabel"></span>
       </label>
-      <p class="terms-more"><a href="https://stratamesh-auth.stratamesh.workers.dev/terms?lang=pt" target="_blank" rel="noopener" id="termsLink">Ler termos completos</a></p>
+      <p class="terms-more"><a href="/api/auth/terms?lang=pt" target="_blank" rel="noopener" id="termsLink">Ler termos completos</a></p>
     </div>
 <div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
     <button type="button" onclick="handleAuth()" id="authBtn">Continuar</button>
@@ -572,7 +572,7 @@ const SVC = {
   orch: '/api/v1/orchestrator',
   holons: '/api/v1/holons',
   va: 'https://api-edge.calhegasmorais.pt',
-  auth: 'https://stratamesh-auth.stratamesh.workers.dev',
+  auth: '/api/auth',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
   gate: 'https://stratamesh-gate.stratamesh.workers.dev',
@@ -619,7 +619,7 @@ function toggleMode(){
     ? 'I accept the Calhegas Morais Node terms and conditions (version node-1.0).'
     : 'Aceito os termos e condições do Nó Calhegas Morais (versão node-1.0).';
   var link=document.getElementById('termsLink');
-  if(link){ link.href='https://stratamesh-auth.stratamesh.workers.dev/terms?lang='+(LANG==='en'?'en':'pt'); link.textContent=LANG==='en'?'Read full terms':'Ler termos completos'; }
+  if(link){ link.href='/api/auth/terms?lang='+(LANG==='en'?'en':'pt'); link.textContent=LANG==='en'?'Read full terms':'Ler termos completos'; }
   var reset=document.getElementById('resetPwToggle');
   if(reset) reset.style.display=isRegister?'none':'block';
   var staffLab=document.querySelector('label.tick[for="asStaff"]');
@@ -910,10 +910,14 @@ async function handleAuth(){
   // Complete 2FA if challenge pending
   if(userChallenge && !isRegister){
     const code=(document.getElementById('userOtp')&&document.getElementById('userOtp').value||'').trim();
+    if(code.length<6){
+      setErr(LANG==='en'?'Enter the 6-digit code':'Introduza o código de 6 dígitos');
+      return;
+    }
     if(code.length>=6){
       if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Verifying…':'A verificar…';}
       try{
-        const AUTH=(window.SVC&&SVC.auth)||'https://stratamesh-auth.stratamesh.workers.dev';
+        const AUTH=(window.SVC&&SVC.auth)||'/api/auth';
         const r=await fetch(AUTH+'/auth/email/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:userChallenge,code:code,lang:LANG==='en'?'en':'pt'})});
         const j=await r.json().catch(function(){return {};});
         if(j.success && (j.token||j.session_token)){
@@ -942,7 +946,7 @@ async function handleAuth(){
   const path=isRegister?'/register':'/login';
   const urls=[
     '/api/auth'+path,
-    'https://stratamesh-auth.stratamesh.workers.dev'+path
+    '/api/auth'+path
   ];
   let lastErr='Authentication failed';
   try{
@@ -991,7 +995,7 @@ async function handleAuth(){
 async function loadUser(){
   if(!token) return;
   try{
-    const urls=['https://stratamesh-auth.stratamesh.workers.dev/me','/api/auth/me'];
+    const urls=['/api/auth/me','/api/auth/me'];
     for(const url of urls){
       try{
         const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
@@ -1529,7 +1533,7 @@ async function verify(id,status){var sa=document.getElementById('sa'+id);var bod
 const WORKERS = [
   {name:'stratamesh-status',path:'https://stratamesh-status.stratamesh.workers.dev/health',desc:'Estado (health)',open:'https://stratamesh-status.stratamesh.workers.dev/'},
   {name:'stratamesh-status-pulse',path:'https://stratamesh-status.stratamesh.workers.dev/summary',desc:'Pulse resumido do nó',open:'https://stratamesh-status.stratamesh.workers.dev/summary'},
-  {name:'stratamesh-auth',path:'https://stratamesh-auth.stratamesh.workers.dev/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'https://stratamesh-auth.stratamesh.workers.dev/health'},
+  {name:'stratamesh-auth',path:'/api/auth/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'/api/auth/health'},
   {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/monetary',desc:'STRATA / monetary poles',open:'https://stratamesh-token.stratamesh.workers.dev/monetary'},
   {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/pool',desc:'PdC · pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
   {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora taxa EUR',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
@@ -1620,7 +1624,7 @@ window.sendOrchChat=sendOrchChat;
 </script>
 <script>
 
-const AUTH_BASE = (window.AUTH_URL || 'https://stratamesh-auth.stratamesh.workers.dev').replace(/\/$/, '');
+const AUTH_BASE = (window.AUTH_URL || '/api/auth').replace(/\/$/, '');
 let staffChallenge = null;
 function showStaffLogin(){
   const u = document.getElementById('authForm') || document.querySelector('#authPage .form, #authPage form, #loginForm');
@@ -1717,7 +1721,7 @@ async function loadEconomy(){ /* superseded — see definitive loadEconomy below
 <script>
 
 (function(){
-  const AUTH_BASE = 'https://stratamesh-auth.stratamesh.workers.dev';
+  const AUTH_BASE = '/api/auth';
   window.startOAuth = function(provider){
     location.href = AUTH_BASE + '/auth/' + provider + '/start';
   };
@@ -3219,7 +3223,7 @@ window.__bancadaOnShow = function(){
       try{
         var tokS=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');
         if(tokS){
-          var meUrls=[authBase()+'/me','https://stratamesh-auth.stratamesh.workers.dev/me'];
+          var meUrls=[authBase()+'/me','/api/auth/me'];
           for(var ui=0;ui<meUrls.length && !account;ui++){
             try{
               var rMe=await fetch(meUrls[ui],{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
@@ -4436,7 +4440,7 @@ async function forgotPassword(){
       }
       var me = null, sub = null;
       try { me = await getJSON('/api/auth/me'); } catch (_) {
-        try { me = await getJSON('https://stratamesh-auth.stratamesh.workers.dev/me'); } catch (__) {}
+        try { me = await getJSON('/api/auth/me'); } catch (__) {}
       }
       try { sub = await getJSON('/api/auth/subsistence'); } catch (_) {}
       if (me && (me.success || me.email)) {
