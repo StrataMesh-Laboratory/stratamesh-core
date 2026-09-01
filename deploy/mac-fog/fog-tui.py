@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog runtime UI v0.5.0-lab. Destyle. 60s.
-q quit · s stop · b reboot · g git pull+reboot · r refresh
+"""StrataMesh LAB Fog instrument v0.5.0-lab.
+Cell-grid panels. q quit · s stop · b reboot · g update · r refresh
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -441,146 +441,117 @@ def draw(msg: str = "") -> None:
     rule = MUT + "─" * cols + RST
     nid = st.get("node_id") or os.environ.get("FOG_NODE_ID") or "—"
 
-    sys.stdout.write("\033[H\033[J")
-    print(ACC + " STRATAMESH" + RST + FG + " LAB" + RST,
-          MUT + "v0.5.0-lab" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
-    print(FG + " Fog Node" + RST, ACC + str(nid) + RST)
-    print(MUT + " Intelligentia · Vigilantia · Veritas" + RST)
-    print(MUT + " shared web3 metaverse OS · lab · not mainnet" + RST)
-    print(rule)
-    print(ACC + " identity" + RST)
-    print("   origin ", ACC + str(origin) + RST, MUT + str(hop.get("layer") or "") + RST,
-          "  mac_live", yn(hop.get("mac_live") or st.get("mac_live")),
-          "  trusted", yn(st.get("trusted") if "trusted" in st else hop.get("trusted")))
-    print("   mesh   ", "n=%s" % n, "  f_max=%s" % fmax, "  member=%s" % member, "  oracle=%s" % st.get("oracle_live"))
-    print("   ver    ", MUT + str(st.get("version") or "0.5.0-lab") + RST, "  up", ago(st.get("uptime_seconds")))
-    print(rule)
-    print(ACC + " origin hop" + RST)
-    print("   workerd :8788", mark(hop.get("ok") is True),
-          "   fog :8787", mark(st.get("status") == "operational"),
-          "   plugin", wr.get("reboots", 0), "reboots")
-    mw = st.get("runtime_mesh") or hop.get("runtime_mesh") or {}
-    pyok = ((mw.get("python") or {}).get("ok"))
-    ndok = ((mw.get("node") or {}).get("ok"))
-    print("   python :8790", mark(bool(pyok)),
-          "   node :8791", mark(bool(ndok)),
-          MUT + " middleware" + RST)
-    print("   public   ", mark(bool(pub.get("ok"))),
-          MUT + "origin=" + str(pub.get("origin") or "—") + RST)
-    print(rule)
-    print(ACC + " STRATA" + RST)
-    height = dag.get("height")
-    if height is None:
-        height = dag.get("max_height")
-    if height is None:
-        height = max(0, int(dag.get("transaction_count") or 0) - max(0, int(dag.get("tip_count") or 0) - 1))
-    print("   dag    tx=%s  tips=%s  height=%s" % (
-        dag.get("transaction_count") or 0, dag.get("tip_count") or 0, height))
-    supply = tok.get("total_supply")
-    projected = rails.get("pending_poc") if isinstance(rails, dict) else None
-    print("   spa    total=%s  active=%s   supply %s  projected=%s" % (
-        spa.get("total") or 0, spa.get("active") or 0, supply if supply is not None else 0,
-        projected if projected is not None else 0))
-    md = met.get("decision") or (met.get("cf") or {}).get("decision") or "—"
-    pace = met.get("pace") if met.get("pace") is not None else (met.get("cf") or {}).get("pace")
-    burn = met.get("burn_rate") or met.get("adjusted") or (met.get("cf") or {}).get("burn_rate")
-    rem = met.get("remaining") if met.get("remaining") is not None else (met.get("cf") or {}).get("remaining")
-    try:
-        if pace is not None:
-            pass
-        if burn is not None:
-            BURN_HIST.append(float(burn))
-    except Exception:
-        pass
-    print("   metabol", md, " pace=%s" % ("—" if pace is None else round(float(pace), 3)),
-          " burn=%s" % ("—" if burn is None else round(float(burn), 3)),
-          " rem=%s" % ("—" if rem is None else rem),
-          MUT + spark(BURN_HIST) + RST, MUT + "via :8788→CF" + RST)
-    print(MUT + "   PoC resources → #mint · use → #0 · not a public offer" + RST)
-    last = (keep.get("last") or {}) if keep else {}
-    qv = float(last.get("quantity") or keep.get("quantity_sum") or 0)
-    kv = float(last.get("quality") or keep.get("quality_mean") or 0)
-    sv = float(last.get("score") or keep.get("score_ema") or 0)
-    try:
-        Q_HIST.append(sv)
-    except Exception:
-        pass
-    print("   keep-up Q=%.3f  K=%.3f  S=%.3f  %s  %s" % (
-        qv, kv, sv,
-        (OK + "admissible" + RST) if last.get("admissible") else (MUT + "measuring" + RST),
-        MUT + spark(Q_HIST) + RST,
-    ))
-    ping = (keep.get("ping") or st.get("ping") or {})
-    lastp = ping.get("last") if isinstance(ping, dict) else {}
-    wrp = lastp.get("workerd") if isinstance(lastp, dict) else None
-    print("   ping   workerd", mark(bool(wrp and wrp.get("ok"))) if wrp else MUT + "—" + RST,
-          "  rtt", MUT + str((wrp or {}).get("rtt_ms") or ping.get("rtt_ema_ms") or "—") + "ms" + RST)
-    lab_on = bool(rails.get("lab_waived"))
-    print("   rails  mint_armed=%s  burn_armed=%s  lab_waived=%s  pending_poc=%s" % (
-        rails.get("mint_armed"), rails.get("burn_armed"),
-        (OK + "true" + RST) if lab_on else (MUT + "false" + RST),
-        rails.get("pending_poc")))
-    print(MUT + "           mint/burn stay false until oracle_live · lab path is lab_waived" + RST)
-    accepted = contrib.get("accepted")
-    if accepted is None:
-        accepted = contrib.get("events")
-    if accepted is None:
-        accepted = 0
-    pending = rails.get("pending_poc")
-    if pending is None:
-        pending = contrib.get("pending")
-    if pending is None:
-        pending = 0
-    print("   poc    accepted=%s  pending=%s" % (accepted, pending))
-    surplus = float(sub.get("surplus") or 0)
-    reserve = float(sub.get("reserve") or 0)
-    tau = float(sub.get("tau") or 0)
-    meter = sub.get("meter") if isinstance(sub.get("meter"), dict) else {}
-    consumed = float(meter.get("consumed_total") or 0)
-    earned = float(meter.get("earned_total") or 0)
-    pressure = sub.get("pressure")
-    if pressure is None:
-        pressure = round(consumed / max(earned + reserve, 1e-9), 6)
-    debt = sub.get("debt")
-    if debt is None:
-        debt = round(max(0.0, tau - surplus), 6)
-    print("   subsist pressure=%s  debt=%s  surplus=%s  reserve=%s" % (
-        pressure, debt, round(surplus, 4), reserve))
-    print(rule)
-    print(ACC + " host" + RST)
-    print("  ", brand, MUT + "ncpu=" + ncpu + RST)
     cap = st.get("host_cap") if isinstance(st.get("host_cap"), dict) else {}
     try:
         LOAD_HIST.append(float(load[0]))
     except Exception:
         pass
-    print("   load  %.2f  %.2f  %.2f" % load
-,
-          MUT + ("  cap %.0f%% %s%s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok", (" "+str(cap.get("reason") or "")) if cap.get("over") else "")) + RST,
-          MUT + spark(LOAD_HIST) + RST)
-    print("   mem   free", gb(free), "  active", gb(active), "  wired", gb(wired))
-    print("   rss   workerd", kb(wd_rss), "  python3", kb(py_rss), "  cloudflared", kb(cf_rss))
-    print("   disk ", dsk, MUT + dsk_path + RST)
-    print("   net  ", net())
-    print("   git  ", git_sha(), "  awake", awake_line())
-    print(rule)
-    print("  " + ACC + "q" + RST + " quit   "
-          + ACC + "s" + RST + " stop   "
-          + ACC + "b" + RST + " reboot   "
-          + ACC + "g" + RST + " pull+reboot   "
-          + ACC + "r" + RST + " refresh   "
+    pyh = get("http://127.0.0.1:8790/health", timeout=0.8)
+    ndh = get("http://127.0.0.1:8791/health", timeout=0.8)
+    cols, rows = shutil.get_terminal_size((88, 28))
+    cols = max(72, min(int(cols), 120))
+
+    def lamp(ok: bool) -> str:
+        return (OK + "●" + RST) if ok else (MUT + "○" + RST)
+
+    def bar(frac, width: int = 14) -> str:
+        try:
+            f = max(0.0, min(1.0, float(frac)))
+        except Exception:
+            f = 0.0
+        n = int(round(f * width))
+        return ("█" * n) + ("░" * (width - n))
+
+    def row(*parts: str) -> None:
+        print("".join(parts))
+
+    height = dag.get("height") or dag.get("max_height") or 0
+    txs = dag.get("tx") or dag.get("count") or 0
+    tips = dag.get("tips") or dag.get("tip_count") or 0
+    pending = rails.get("pending_poc") or keep.get("pending_poc") or 0
+    mint = bool(rails.get("mint_armed"))
+    burn = bool(rails.get("burn_armed"))
+    waiver = bool(rails.get("lab_waived"))
+    oracle = bool(st.get("oracle_live") or hop.get("oracle_live"))
+    over = bool(cap.get("over"))
+    pub_ok = bool(pub.get("ok"))
+    hop_ok = hop.get("ok") is True
+    fog_ok = st.get("status") == "operational"
+    decision = "HOLD" if over else "LIVE"
+    if not hop_ok or not fog_ok:
+        decision = "DEGRADED"
+    if not pub_ok:
+        decision = "PUBLIC?"
+
+    sys.stdout.write("\033[?2026h\033[H\033[J")
+    top = "╭" + "─" * (cols - 2) + "╮"
+    bot = "╰" + "─" * (cols - 2) + "╯"
+    mid = "├" + "─" * (cols - 2) + "┤"
+    print(top)
+    print("│ " + ACC + "STRATAMESH" + RST + MUT + "  LAB · v0.5.0-lab · not mainnet" + RST
+          + " " * max(1, cols - 58)
+          + lamp(decision == "LIVE") + " " + decision
+          + "  " + time.strftime("%H:%M:%S")
+          + " │")
+    print("│ " + nid + MUT + "   origin=" + RST + str(origin)
+          + MUT + "  n=" + RST + str(n) + MUT + "  member=" + RST + str(member)
+          + MUT + "  ver=" + RST + str(st.get("version") or "0.5.0-lab")
+          + " │")
+    print(mid)
+    # NODE + STRATA two columns
+    left_w = 34
+    print("│ " + ACC + "HOP" + RST + " " * (left_w - 5) + "│ " + ACC + "STRATA" + RST)
+    print("│ " + lamp(hop_ok) + " workerd :8788"
+          + " " * 8 + "│  dag  tx=" + str(txs) + "  tip=" + str(tips) + "  h=" + str(height))
+    print("│ " + lamp(fog_ok) + " fog     :8787"
+          + " " * 8 + "│  PoC  " + bar(min(float(pending or 0) / 40.0, 1.0), 16) + "  " + str(pending)[:10])
+    print("│ " + lamp(bool(pyh.get("ok"))) + " python  :8790"
+          + " " * 8 + "│  spa  total=" + str(spa.get("total") or 0)
+          + " active=" + str(spa.get("active") or 0))
+    print("│ " + lamp(bool(ndh.get("ok"))) + " node    :8791"
+          + " " * 8 + "│  metabol " + str((met.get("decision") or met.get("cf", {}) or {}).get("decision") if isinstance(met.get("cf"), dict) else met.get("decision") or "—")
+          + "  pace=" + str(met.get("pace") or "—"))
+    print("│ " + lamp(pub_ok) + " public  " + str(pub.get("origin") or "—")
+          + " " * max(1, 12 - len(str(pub.get("origin") or "—")))
+          + "│  surplus " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
+    print(mid)
+    print("│ " + ACC + "PROTOCOL" + RST + "   "
+          + lamp(oracle) + " oracle   "
+          + lamp(mint) + " mint   "
+          + lamp(burn) + " burn   "
+          + lamp(waiver) + MUT + " lab_waived" + RST)
+    print("│ " + MUT + "mint/burn stay locked while oracle_live=false · n=2 f_max=0" + RST)
+    print(mid)
+    load_frac = 0.0
+    try:
+        load_frac = float(load[0]) / max(float(ncpu or 1), 1.0)
+    except Exception:
+        pass
+    print("│ " + ACC + "HOST" + RST + MUT + "  cap 60%  " + RST
+          + ("HOLD " + str(cap.get("reason") or "") if over else "ok")
+          + "   " + spark(LOAD_HIST))
+    print("│  CPU " + bar(min(load_frac, 1.0)) + "  load %.2f %.2f %.2f" % load)
+    print("│  MEM free %s  active %s  wired %s" % (gb(free), gb(active), gb(wired)))
+    print("│  RSS workerd %s  python %s  cloudflared %s" % (kb(wd_rss), kb(py_rss), kb(cf_rss)))
+    print("│  DSK " + dsk + MUT + "  " + dsk_path + RST)
+    print("│  NET " + net())
+    print("│  GIT " + git_sha() + "   " + awake_line())
+    print(bot)
+    print(" " + ACC + "q" + RST + " quit  "
+          + ACC + "s" + RST + " stop  "
+          + ACC + "b" + RST + " reboot  "
+          + ACC + "g" + RST + " update  "
+          + ACC + "r" + RST + " refresh  "
           + ACC + "?" + RST + " help")
-    print(MUT + "  60s · reboot does not kill the public named-tunnel" + RST)
+    print(MUT + "  instrument · 60s frame · reboot does not kill the named-tunnel" + RST)
     if HELP:
-        print(rule)
-        print(ACC + " help" + RST)
-        print(MUT + "  q quit UI only · s stop fog plugin · b reboot workerd+fog" + RST)
-        print(MUT + "  g git pull main + reboot · r redraw · never pkill cloudflared" + RST)
-        print(MUT + "  mint_armed/burn_armed false while oracle_live is false (n=2 f_max=0)" + RST)
-        print(MUT + "  lab_waived true = lab path ON · STRATA mint waits for oracle" + RST)
+        print(MUT + "  q UI only · s fog plugin · b workerd+fog · g reset origin/main + exec TUI" + RST)
+        print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
     if msg:
         print("  " + ACC + msg + RST)
+    sys.stdout.write("\033[?2026l")
     sys.stdout.flush()
+
 
 
 def wait_key(seconds: float) -> str:
