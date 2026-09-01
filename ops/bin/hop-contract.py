@@ -38,7 +38,7 @@ def main() -> int:
         "/plugins",
         "/fallback",
         "host_cap",
-        "v0.5.0-lab",
+        "v0.5.1-lab",
     )
     must(
         "ops/middleware/fog_mw.js",
@@ -47,7 +47,7 @@ def main() -> int:
         "Promise.all",
         "/atelier",
         "/dashboard",
-        "v0.5.0-lab",
+        "v0.5.1-lab",
     )
     must(
         "src/fog_plugins/runtime_mesh.py",
