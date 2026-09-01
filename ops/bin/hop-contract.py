@@ -23,7 +23,7 @@ def main() -> int:
         "/metabol",
         "/assemble",
         "MW_NODE",
-        "0.5.0-lab",
+        "0.5.1-lab",
     )
     must(
         "ops/workerd/config.capnp",
