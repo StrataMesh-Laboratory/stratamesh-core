@@ -8,7 +8,7 @@ rails = json.loads((ROOT / "ops/config/rails.json").read_text())
 cont = json.loads((ROOT / "ops/config/contingency.json").read_text())
 circuit = os.environ.get("CIRCUIT", "ALLOW")
 weights = cont.get("weight") or {}
-order = ["pages", "python", "node", "workerd", "fog", "tailscale", "cf-worker", "maintenance"]
+order = ["pages", "python", "deno", "node", "workerd", "fog", "tailscale", "cf-worker", "maintenance"]
 if circuit in ("STASIS", "HOLD"):
     order = [x for x in order if x != "cf-worker"] + ["cf-worker"]
 picked = order[0]
