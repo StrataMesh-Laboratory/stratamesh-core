@@ -45,6 +45,8 @@ def main() -> int:
         "role: \"compose\"",
         "/assemble",
         "Promise.all",
+        "/atelier",
+        "/dashboard",
         "v0.5.0-lab",
     )
     must(
