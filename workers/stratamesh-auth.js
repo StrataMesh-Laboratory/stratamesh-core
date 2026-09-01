@@ -1164,7 +1164,7 @@ export default {
           }
           const token = await issueSession(env, -staff.id);
           await env.AUTH_DB.prepare("UPDATE staff SET last_login = datetime('now') WHERE id = ?").bind(staff.id).run();
-          try { await markLoginTrusted(staff.email, -Math.abs(staff.id), 'staff'); } catch (_) {}
+          try { await markLoginTrusted(staff.email, -Math.abs(staff.id), 'staff', staffBody && staffBody.device_id); } catch (_) {}
           return new Response(JSON.stringify({
             success: true,
             type: 'staff',
@@ -1204,7 +1204,7 @@ export default {
             return new Response(JSON.stringify({ success: false, error: 'User not found' }), { headers: corsHeaders, status: 404 });
           }
           const token = await issueSession(env, user.id);
-          try { await markLoginTrusted(email || (row && row.email), row && row.user_id, 'user'); } catch (_) {}
+          try { await markLoginTrusted(email || (row && row.email), row && row.user_id, 'user', body && body.device_id); } catch (_) {}
 
           return new Response(JSON.stringify({
             success: true,
