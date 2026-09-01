@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog runtime UI v0.3.0. Destyle. 15s.
+"""StrataMesh LAB Fog runtime UI v0.3.0. Destyle. 60s.
 q quit · s stop · b reboot · g git pull+reboot · r refresh
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
@@ -22,7 +22,7 @@ from pathlib import Path
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 LAUNCH = Path.home() / "Library/LaunchAgents"
 REPO = FOG / "repo"
-INTERVAL = 15
+INTERVAL = 60
 from collections import deque
 Q_HIST: deque = deque(maxlen=15)
 BURN_HIST: deque = deque(maxlen=15)
@@ -519,7 +519,7 @@ def draw(msg: str = "") -> None:
           + ACC + "g" + RST + " pull+reboot   "
           + ACC + "r" + RST + " refresh   "
           + ACC + "?" + RST + " help")
-    print(MUT + "  15s · reboot does not kill the public named-tunnel" + RST)
+    print(MUT + "  60s · reboot does not kill the public named-tunnel" + RST)
     if HELP:
         print(rule)
         print(ACC + " help" + RST)
