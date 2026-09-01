@@ -113,11 +113,15 @@ def assert_spread(label: str, counts: list[int], max_spread: float) -> float:
 
 
 def start_node(script: str, src_dir: str, port: int, db: str, node_id: str) -> subprocess.Popen:
+    env = os.environ.copy()
+    env["FOG_TESTNET"] = "1"
+    env["FOG_HOST_CAP"] = "1"
     return subprocess.Popen(
         [sys.executable, script, "--port", str(port), "--db", db, "--id", node_id],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         cwd=src_dir,
+        env=env,
     )
 
 
