@@ -1,0 +1,53 @@
+# Fog ports over Tailscale when TS_AUTHKEY is set.
+# Better than CF Workers /health when 1027/stasis: talk to mbpv :8788/:8791 on 100.x.
+# Public Pages/edge.calhegasmorais.pt stay the internet hop. No workers.dev. No Fog DNS flip.
+name: fog-tailnet-health
+
+on:
+  schedule:
+    - cron: "27 */3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fog-tailnet-health
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ping-fog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+      FOG_TS: "100.108.35.26"
+    steps:
+      - name: skip if no tailnet key
+        id: gate
+        run: |
+          if [ -z "$TS_AUTHKEY" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "no TS_AUTHKEY secret — public hops only"
+            exit 0
+          fi
+          echo "present=true" >> "$GITHUB_OUTPUT"
+      - uses: tailscale/github-action@v3
+        if: steps.gate.outputs.present == 'true'
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          args: --hostname gha-fog-probe --accept-routes=false --ssh=false
+      - name: fog ports on tailnet
+        if: steps.gate.outputs.present == 'true'
+        run: |
+          set +e
+          fail=0
+          for spec in 8788:/health 8787:/health 8791:/health 8790:/health; do
+            port=${spec%%:*}
+            path=${spec#*:}
+            code=$(curl -sS -m 8 -o /tmp/b -w "%{http_code}" "http://$FOG_TS:$port$path" || echo 000)
+            echo "mbpv:$port$path -> $code"
+            head -c 160 /tmp/b; echo
+            case "$code" in 200|204) ;; *) fail=1 ;; esac
+          done
+          exit $fail
