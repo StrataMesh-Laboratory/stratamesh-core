@@ -227,14 +227,17 @@ def host_cpu() -> tuple[str, str, str]:
 
 
 def disk() -> tuple[str, str]:
+    """Capacity from /bin/df -kP /, same number as the Terminal."""
     try:
-        u = shutil.disk_usage("/")
-        # Match df -h / : consumed = total - available (not APFS used-with-purgeable)
-        consumed = max(0, u.total - u.free)
-        pct = int(100 * consumed / u.total) if u.total else 0
-        return "%s / %s (%d%%)" % (gb(consumed), gb(u.total), pct), "/"
+        out = sh(["/bin/df", "-kP", "/"])
+        line = [ln for ln in out.splitlines() if ln.strip()][-1]
+        parts = line.split()
+        used_k, avail_k, cap = int(parts[2]), int(parts[3]), parts[4]
+        total = (used_k + avail_k) * 1024
+        used = used_k * 1024
+        return "%s / %s (%s)" % (gb(used), gb(total), cap), "/"
     except Exception:
-        return "—", str(FOG)
+        return "—", "/"
 
 
 def net() -> str:
