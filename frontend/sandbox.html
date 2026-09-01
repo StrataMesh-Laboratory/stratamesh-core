@@ -92,7 +92,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
       <button class="ghost" id="btnMenu" type="button" aria-label="Menu">Menu</button>
       <div class="nav desk-nav">
         <a class="here" href="/">Atelier</a>
-        <a href="https://calhegasmorais.pt/dashboard">Portal</a>
+        <button type="button" class="ghost" id="btnBench">Bancada</button>
         <a href="https://calhegasmorais.pt">Lab</a>
       </div>
       <div class="chip" id="walletChip" style="margin-top:.35rem;text-align:right">
@@ -961,5 +961,48 @@ seed(); buildZone(); rebuild(); layoutHud(); applyCam();
 requestAnimationFrame(tick);
 log("boot", "GNU Atelier " + CORE + " · inhabit / orbit");
 </script>
+
+<div id="benchGate" hidden style="position:fixed;inset:0;background:rgba(4,8,12,.82);z-index:80;display:none;align-items:center;justify-content:center">
+  <form id="benchForm" style="width:min(360px,92vw);background:#0d141c;border:1px solid #3a4a3a;padding:1.2rem;color:#d7c4a3">
+    <h2 style="margin:0 0 .6rem;font-size:1.1rem">Bancada pessoal</h2>
+    <p style="margin:0 0 .8rem;font-size:.8rem;opacity:.75">Sessão da conta neste workbench. Não abre o dashboard.</p>
+    <input id="benchEmail" type="email" placeholder="Email" style="width:100%;margin:.25rem 0;padding:.55rem;background:#111;color:#eee;border:1px solid #445">
+    <input id="benchPass" type="password" placeholder="Palavra-passe" style="width:100%;margin:.25rem 0;padding:.55rem;background:#111;color:#eee;border:1px solid #445">
+    <input id="benchOtp" type="text" inputmode="numeric" placeholder="2FA se pedido" style="width:100%;margin:.25rem 0;padding:.55rem;background:#111;color:#eee;border:1px solid #445;display:none">
+    <p id="benchErr" style="min-height:1em;color:#e8c4a8;font-size:.8rem"></p>
+    <button type="submit" id="benchGo" style="width:100%;padding:.7rem;background:transparent;border:1px solid #c4a574;color:#c4a574">Entrar na bancada</button>
+    <button type="button" id="benchCancel" style="width:100%;margin-top:.4rem;padding:.5rem;background:transparent;border:0;color:#888">Fechar</button>
+  </form>
+</div>
+<script>
+(function(){
+  var gate=document.getElementById('benchGate');
+  var btn=document.getElementById('btnBench');
+  var ch=null;
+  function show(){ gate.hidden=false; gate.style.display='flex'; }
+  function hide(){ gate.hidden=true; gate.style.display='none'; }
+  if(btn) btn.onclick=function(){ if(localStorage.getItem('sm_token')){ document.body.dataset.bench='in'; hide(); return; } show(); };
+  document.getElementById('benchCancel').onclick=hide;
+  document.getElementById('benchForm').addEventListener('submit', async function(ev){
+    ev.preventDefault();
+    var email=document.getElementById('benchEmail').value.trim();
+    var pass=document.getElementById('benchPass').value;
+    var otp=document.getElementById('benchOtp').value.trim();
+    var err=document.getElementById('benchErr');
+    var did=localStorage.getItem('cmn_device_id')||('d'+Math.random().toString(36).slice(2));
+    localStorage.setItem('cmn_device_id', did);
+    var url=ch&&otp?'https://calhegasmorais.pt/api/auth/email/verify':'https://calhegasmorais.pt/api/auth/login';
+    var body=ch&&otp?{email:email,code:otp,challenge:ch,lang:'pt'}:{email:email,password:pass,lang:'pt',channel:'email',device_id:did,trust_device:true};
+    try{
+      var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      var j=await r.json();
+      if(j.requires_2fa||j.challenge){ ch=j.challenge; document.getElementById('benchOtp').style.display='block'; err.textContent=j.message||'2FA'; return; }
+      if(j.token||j.session_token){ localStorage.setItem('sm_token', j.token||j.session_token); document.body.dataset.bench='in'; hide(); return; }
+      err.textContent=j.error||('HTTP '+r.status);
+    }catch(e){ err.textContent=String(e.message||e); }
+  });
+})();
+</script>
+
 </body>
 </html>
