@@ -48,6 +48,7 @@ def payload(kind: str):
         "port": PORT,
         "role": "middleware",
         "listening": True,
+        "release": "v0.5.0-lab",
         "over": over,
         "node_id": "FOG-NODE-PT-CM-001",
         "edge_id": "EDGE-GROK-CMN-001",
