@@ -390,7 +390,7 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
         var d=null; try{ d=await r.json(); }catch(_){}
         var ok=r.ok;
         html+='<span class="pill '+(ok?'ok':'err')+'">'+p.k+' '+(ok?'ok':'—')+'</span>';
-        if(d && d.version) parts.push(p.k+' '+d.version);
+        /* hop ok/err only — do not mix stale worker VERSION into HEAD chip */
       }catch(_){
         html+='<span class="pill err">'+p.k+' —</span>';
       }
