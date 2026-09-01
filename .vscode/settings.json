@@ -1,6 +1,9 @@
 {
   "deno.enable": true,
-  "deno.enablePaths": ["ops/deno"],
+  "deno.enablePaths": [
+    "ops/deno",
+    "ops/bin/cmn-spa-node.mjs"
+  ],
   "deno.lint": true,
   "deno.unstable": false
 }
