@@ -14,7 +14,8 @@
       "local-monitor",
       "lockstep-probe",
       "origin-archive",
-      "tailscale-api"
+      "tailscale-api",
+      "cursor-api"
     ],
     "zone_suffix": "calhegasmorais.pt",
     "never_workers_dev": true,
@@ -408,6 +409,19 @@
       "min_interval_ms": 15000,
       "debt_persists_across_renewal": false,
       "note": "Tailscale admin API api.tailscale.com. 429 + Retry-After is STASIS. Auth keys live only in ~/.config/stratamesh/tailscale.authkey and tailscale.api \u2014 never git."
+    },
+    "cursor-api": {
+      "layer": "desk",
+      "kind": "requests",
+      "billing": "plan",
+      "unit": "calls",
+      "daily_limit": 0,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "min_interval_ms": 3600000,
+      "debt_persists_across_renewal": false,
+      "note": "Cursor @amcmorais Free + STRATAGROK desk. Cloud Agent API is Pro+ (plan_required). daily_limit 0 = HOLD. Vault cursor.api never git. Dashboard https://cursor.com/dashboard/api"
     }
   }
 }
