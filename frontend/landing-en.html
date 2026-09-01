@@ -46,6 +46,16 @@ h1{font-family:system-ui,sans-serif;font-weight:400;font-size:clamp(2.2rem,6vw,3
 .btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px;transition:background .15s,color .15s}
 .btn:hover{background:var(--accent);color:#111}
 .btn.ghost{border-color:var(--line2);color:var(--muted)}.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+
+.nav-dd{position:relative;display:inline-block}
+.nav-dd>summary{list-style:none;cursor:pointer;display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--line2);color:var(--muted);border-radius:3px}
+.nav-dd>summary::-webkit-details-marker{display:none}
+.nav-dd>summary::after{content:" ▾";font-size:.7em}
+.nav-dd[open]>summary{border-color:var(--accent);color:var(--accent)}
+.nav-dd .nav-dd-list{position:absolute;left:0;top:calc(100% + .35rem);z-index:5;min-width:14rem;background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem}
+.nav-dd .nav-dd-list a{display:block;padding:.55rem .75rem;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:0}
+.nav-dd .nav-dd-list a:hover{color:var(--accent)}
+
 .map-grid{display:grid;gap:.65rem;margin:1.35rem 0 0}
 @media(min-width:520px){.map-grid{grid-template-columns:1fr 1fr}}
 @media(min-width:720px){.map-grid{grid-template-columns:1fr 1fr 1fr}}
@@ -179,15 +189,21 @@ details.faq p{margin:.55rem 0 0}
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Sign in</a>
-      <a class="btn ghost" href="#kit">Fog Node kit</a>
-      <a class="btn ghost" href="https://academy.calhegasmorais.pt/">ACB Academy</a>
-      <a class="btn ghost" href="/en/dashboard">Identity</a>
-      <a class="btn ghost" href="/en/roadmap">Master roadmap</a>
-      <a class="btn ghost" href="/chat">Orchestrator chat</a>
-      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Code (GitHub)</a>
-      <a class="btn ghost" href="https://fog.calhegasmorais.pt/">Fog</a>
-      <a class="btn ghost" href="https://gossip.calhegasmorais.pt/">Gossip</a>
-      <a class="btn ghost" href="https://edge.calhegasmorais.pt/">EDGE</a>
+      <details class="nav-dd"><summary>Account</summary><div class="nav-dd-list">
+        <a href="/en/dashboard">Identity</a>
+      </div></details>
+      <details class="nav-dd"><summary>Docs</summary><div class="nav-dd-list">
+        <a href="#kit">Fog Node kit</a>
+        <a href="https://academy.calhegasmorais.pt/">Academy</a>
+        <a href="/en/roadmap">Project map</a>
+        <a href="/chat">Talk</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Code</a>
+      </div></details>
+      <details class="nav-dd"><summary>Network</summary><div class="nav-dd-list">
+        <a href="https://fog.calhegasmorais.pt/">Fog</a>
+        <a href="https://gossip.calhegasmorais.pt/">Neighbors</a>
+        <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+      </div></details>
     </div>
   </header>
 
@@ -323,17 +339,23 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Sign in</a>
-      <a class="btn ghost" href="/en/dashboard">Identity</a>
-      <a class="btn ghost" href="/en/roadmap">Master roadmap</a>
-      <a class="btn ghost" href="/chat">Orchestrator chat</a>
-      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Code (GitHub)</a>
-      <a class="btn ghost" href="/status">Service status</a>
-      <a class="btn ghost" href="https://fog.calhegasmorais.pt/">Fog</a>
-      <a class="btn ghost" href="https://gossip.calhegasmorais.pt/">Gossip</a>
-      <a class="btn ghost" href="https://edge.calhegasmorais.pt/">EDGE</a>
-      <a class="btn ghost" href="https://stratamesh.discourse.group/t/20">Forum t/20</a>
-      <a class="btn ghost" href="https://academy.calhegasmorais.pt/">Academy</a>
-      <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.4.0-lab">v0.4.0-lab</a>
+      <details class="nav-dd"><summary>Account</summary><div class="nav-dd-list">
+        <a href="/en/dashboard">Identity</a>
+      </div></details>
+      <details class="nav-dd"><summary>Docs</summary><div class="nav-dd-list">
+        <a href="/en/roadmap">Project map</a>
+        <a href="/chat">Talk</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Code</a>
+        <a href="https://academy.calhegasmorais.pt/">Academy</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.4.0-lab">Version 0.4.0</a>
+      </div></details>
+      <details class="nav-dd"><summary>Network</summary><div class="nav-dd-list">
+        <a href="/status">Status</a>
+        <a href="https://fog.calhegasmorais.pt/">Fog</a>
+        <a href="https://gossip.calhegasmorais.pt/">Neighbors</a>
+        <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+        <a href="https://stratamesh.discourse.group/t/20">Forum</a>
+      </div></details>
     </div>
   </section>
 
