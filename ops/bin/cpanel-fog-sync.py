@@ -51,7 +51,9 @@ def main():
         f"https://{HOST}:{PORT}/execute/Mysql/list_databases",
         f"https://{HOST}:{PORT}/json-api/cpanel?cpanel_jsonapi_user={urllib.parse.quote(usr)}&cpanel_jsonapi_apiversion=3&cpanel_jsonapi_module=Mysql&cpanel_jsonapi_func=list_databases",
     ]
+    basic = "Basic " + __import__("base64").b64encode((usr + ":" + tok).encode()).decode()
     auths = [
+        ("basic", {"Authorization": basic, "Accept": "application/json"}),
         ("cpanel-pair", {"Authorization": f"cpanel {usr}:{tok}", "Accept": "application/json"}),
         ("bearer", {"Authorization": "Bearer " + tok, "Accept": "application/json"}),
     ]
