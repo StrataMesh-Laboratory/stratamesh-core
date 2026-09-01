@@ -1,0 +1,71 @@
+# Python Fog tests + Node ESM middleware checks.
+# Python: compile + gossip mesh (OS processes).
+# Node: ESM parse + loopback listen on ephemeral ports.
+# No secrets. No workers.dev. No Fog DNS.
+name: runtime-mesh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "ops/middleware/**"
+      - "ops/workerd/**"
+      - "src/fog_plugins/**"
+      - ".github/workflows/runtime-mesh.yml"
+      - ".github/workflows/process-gossip.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "ops/middleware/**"
+      - "ops/workerd/**"
+      - ".github/workflows/runtime-mesh.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: runtime-mesh-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python-fog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Compile Fog + mw + plugins
+        run: |
+          python3 -m py_compile ops/middleware/fog_mw.py src/fog_plugins/*.py src/node_persistent.py src/testnet_launcher.py
+      - name: Process gossip (FOG_TESTNET)
+        working-directory: src
+        env:
+          FOG_TESTNET: "1"
+          STRATAMESH_TEST_BASE_PORT: "18790"
+        run: python3 test_process_gossip.py
+
+  node-mw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: ESM syntax
+        run: |
+          node --check ops/middleware/fog_mw.js
+          node --check ops/workerd/worker.js || node --input-type=module --check ops/workerd/worker.js
+      - name: Listen :18791
+        run: |
+          FOG_MW_NODE_PORT=18791 node ops/middleware/fog_mw.js &
+          echo $! > /tmp/mw-node.pid
+          for i in 1 2 3 4 5 6; do
+            if curl -sf -m 1 http://127.0.0.1:18791/health; then echo; exit 0; fi
+            sleep 0.3
+          done
+          echo "node mw did not listen"
+          kill $(cat /tmp/mw-node.pid) 2>/dev/null || true
+          exit 1
+      - name: Stop
+        if: always()
+        run: kill $(cat /tmp/mw-node.pid) 2>/dev/null || true
