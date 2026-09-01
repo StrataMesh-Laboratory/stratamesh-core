@@ -251,6 +251,19 @@ export default {
         note: "compose body is Node :8791; this hop only forwards via MW_NODE binding",
       }, { headers: cors });
     }
+
+    if (url.pathname === "/atelier" || url.pathname.startsWith("/atelier/")
+        || url.pathname === "/dashboard" || url.pathname.startsWith("/dashboard/")
+        || url.pathname === "/desk") {
+      try {
+        if (env.MW_NODE) {
+          const rest = url.pathname.startsWith("/dashboard") ? "/dashboard" : (url.pathname.startsWith("/desk") ? "/dashboard" : "/atelier");
+          return env.MW_NODE.fetch("http://mw" + rest);
+        }
+      } catch (e) {
+        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+      }
+    }
     return env.FOG.fetch(request);
   },
 };
