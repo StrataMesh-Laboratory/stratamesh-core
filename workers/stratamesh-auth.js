@@ -340,7 +340,14 @@ export default {
       
       if (path === '/login' && request.method === 'POST') {
         try {
-          const loginBody = await request.json();
+          let loginBody = {};
+          const ct = (request.headers.get('content-type') || '');
+          if (ct.includes('application/json')) {
+            loginBody = await request.json();
+          } else {
+            const fd = await request.formData();
+            loginBody = { email: fd.get('email'), password: fd.get('password'), lang: 'pt', channel: 'email' };
+          }
           const email = String(loginBody.email || '').trim();
           const password = loginBody.password;
           const lang = resolveLang(loginBody, request);
