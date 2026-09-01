@@ -17,6 +17,7 @@ on:
       - "frontend/eni.html"
       - "frontend/sandbox.html"
       - "workers/stratamesh-fog-standby.js"
+      - "workers/stratamesh-origin-archive.js"
       - "ops/bin/d1-put-html.py"
       - ".github/workflows/live-from-git.yml"
   workflow_dispatch:
