@@ -1,7 +1,7 @@
 {
   "nodeModulesDir": "auto",
   "tasks": {
-    "api": "deno run --allow-net=0.0.0.0:8792 ops/deno/main.ts",
+    "api": "deno run --allow-net --allow-read --allow-env ops/deno/main.ts",
     "mw": "deno run --allow-net --allow-env --allow-read ops/bin/cmn-spa-node.mjs",
     "check:api": "deno check ops/deno/main.ts",
     "fmt:api": "deno fmt ops/deno"
