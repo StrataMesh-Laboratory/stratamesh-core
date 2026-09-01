@@ -1,0 +1,88 @@
+name: outdated-aliases
+
+on:
+  schedule:
+    - cron: "7 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/landing-pt.html"
+      - "frontend/portal-pt.html"
+      - "frontend/sandbox.html"
+      - "ops/bin/outdated_aliases_check.py"
+      - ".github/workflows/outdated-aliases.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: outdated-aliases
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      outdated: ${{ steps.chk.outcome }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: chk
+        name: outdated_aliases_check vs HEAD mark
+        run: python3 ops/bin/outdated_aliases_check.py
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alias-report
+          path: alias-report.json
+          if-no-files-found: ignore
+
+  align-pages:
+    needs: check
+    if: needs.check.outputs.outdated == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.GOD_API }}
+      CLOUDFLARE_ACCOUNT_ID: f3645fcb56675cf7250d8ba7358eb252
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Stage Pages tree from HEAD
+        run: |
+          set -euo pipefail
+          mkdir -p dist/video
+          cp frontend/landing-pt.html dist/index.html
+          cp frontend/landing-en.html dist/en.html
+          cp frontend/portal-pt.html dist/portal-pt.html
+          cp frontend/sandbox.html dist/sandbox.html
+          cp frontend/maintenance-1xxx.html dist/maintenance-1xxx.html
+          printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' > dist/_redirects
+          curl -fsSL -o dist/video/stratamesh-lab.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.mp4 || true
+          curl -fsSL -o dist/video/stratamesh-lab-portrait.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab-portrait.mp4 || true
+          curl -fsSL -o dist/video/stratamesh-lab.jpg https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.jpg || true
+          curl -fsSL -o dist/video/stratamesh-lab-portrait.jpg https://calhegasmorais-pt.pages.dev/video/stratamesh-lab-portrait.jpg || true
+      - name: wrangler pages deploy calhegasmorais-pt
+        run: npx --yes wrangler@3.80.0 pages deploy dist --project-name=calhegasmorais-pt --commit-dirty=true
+      - name: wrangler pages deploy stratamesh hub
+        run: npx --yes wrangler@3.80.0 pages deploy loci/pages --project-name=stratamesh --commit-dirty=true
+        continue-on-error: true
+
+  d1-fallback:
+    needs: check
+    if: needs.check.outputs.outdated == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger live-from-git (D1/spa keys)
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'live-from-git.yml',
+              ref: 'main',
+              inputs: { force_all: 'true' }
+            });
