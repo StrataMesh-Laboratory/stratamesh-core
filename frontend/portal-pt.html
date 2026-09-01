@@ -173,9 +173,14 @@ body.in-session .user-info{display:flex!important}
         }
         if((j.success||j.token) && (j.token||j.session_token)){
           var tok=j.token||j.session_token;
-          try{ localStorage.setItem('token',tok); localStorage.setItem('sm_token',tok); }catch(_){}
-          if(typeof showPortal==='function') showPortal(Object.assign({email:email},j));
-          else location.href='/dashboard';
+          try{ localStorage.setItem('token',tok); localStorage.setItem('sm_token',tok); localStorage.setItem('sm_email', email); }catch(_){}
+          document.body.classList.add('in-session');
+          var login=document.getElementById('loginPage');
+          var portal=document.getElementById('portalPage');
+          if(login){ login.style.display='none'; login.classList.add('hidden'); }
+          if(portal){ portal.style.display='block'; portal.style.visibility='visible'; portal.classList.add('portal-visible'); }
+          var go=window.__showPortalImpl || (window.showPortal && window.showPortal.name!=='smShowPortalProxy' ? window.showPortal : null);
+          if(typeof go==='function') go(Object.assign({email:email,token:tok},j));
           return false;
         }
         err(j.error||j.message||('HTTP '+r.status));
