@@ -1,0 +1,5 @@
+{
+  "name": "stratamesh-deno-api",
+  "tasks": { "start": "deno run --allow-net ops/deno/main.ts" },
+  "exports": "./ops/deno/main.ts"
+}
