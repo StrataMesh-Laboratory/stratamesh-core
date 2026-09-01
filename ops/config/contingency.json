@@ -91,7 +91,8 @@
     "tailscale": 1,
     "cf-worker": 10,
     "maintenance": 0,
-    "rule": "serve cheapest ALLOW hop; STASIS sheds cf-worker to python then node then pages then maintenance"
+    "rule": "serve cheapest ALLOW hop; STASIS sheds cf-worker to python then node then pages then maintenance",
+    "deno": 1
   },
   "head": {
     "ref": "main",
@@ -214,5 +215,23 @@
       ],
       "why": "compat, not extra SaaS cap"
     }
+  },
+  "cf_deno_fallback": {
+    "ts_api": [
+      "http://127.0.0.1:8792",
+      "http://100.108.35.26:8792",
+      "http://mbpv.taild31dc1.ts.net:8792",
+      "${DENO_DEPLOY_URL}",
+      "http://127.0.0.1:8791"
+    ],
+    "html": [
+      "https://calhegasmorais.pt",
+      "https://calhegasmorais-pt.pages.dev"
+    ],
+    "auth": [
+      "https://mw.calhegasmorais.pt",
+      "http://127.0.0.1:8790"
+    ],
+    "rule": "TS APIs prefer Deno; HTML stays Pages; auth stays Python. CF Workers only while ALLOW."
   }
 }
