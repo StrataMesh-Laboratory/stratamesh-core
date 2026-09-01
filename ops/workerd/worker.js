@@ -102,6 +102,7 @@ export default {
         oracle_live: false,
         substrate: "workerd-hop",
         metabol: "/metabol",
+        mw: "/mw/health",
         fallback: {
           after_sec: 1800,
           primary: "macbook",
@@ -164,6 +165,51 @@ export default {
         cf = { ok: false, error: String(e && e.message || e) };
       }
       return Response.json({ ...after, cf }, { headers: cors });
+    }
+
+
+    if (url.pathname === "/mw" || url.pathname === "/mw/health") {
+      async function probe(svc, fallback) {
+        try {
+          if (svc && typeof svc.fetch === "function") {
+            const r = await svc.fetch("http://mw/health");
+            return await r.json();
+          }
+        } catch (_) {}
+        try {
+          const r = await fetch(fallback, { signal: AbortSignal.timeout(800) });
+          return await r.json();
+        } catch (e) {
+          return { ok: false, error: String(e && e.message || e) };
+        }
+      }
+      const py = await probe(env.MW_PY, "http://127.0.0.1:8790/health");
+      const node = await probe(env.MW_NODE, "http://127.0.0.1:8791/health");
+      return Response.json({
+        ok: !!(py && py.ok) || !!(node && node.ok),
+        role: "middleware-mesh",
+        python: py,
+        node,
+        cmn: { n: 2, fog: "FOG-NODE-PT-CM-001", edge: "EDGE-GROK-CMN-001" },
+      }, { headers: cors });
+    }
+    if (url.pathname.startsWith("/mw/py")) {
+      const rest = url.pathname.slice("/mw/py".length) || "/health";
+      try {
+        if (env.MW_PY) return env.MW_PY.fetch(new URL(rest, "http://mw/").toString());
+        return fetch("http://127.0.0.1:8790" + (rest === "/" ? "/health" : rest));
+      } catch (e) {
+        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+      }
+    }
+    if (url.pathname.startsWith("/mw/node")) {
+      const rest = url.pathname.slice("/mw/node".length) || "/health";
+      try {
+        if (env.MW_NODE) return env.MW_NODE.fetch(new URL(rest, "http://mw/").toString());
+        return fetch("http://127.0.0.1:8791" + (rest === "/" ? "/health" : rest));
+      } catch (e) {
+        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+      }
     }
 
     return env.FOG.fetch(request);
