@@ -1,4 +1,10 @@
 /**
+ * workerd :8788 — isolate hop + metabol burn.
+ * Python :8790 — cap, plugins, fallback, STRATA observe.
+ * Node :8791 — parallel compose (/assemble).
+ * Public origin stays Fog :8787 via this hop. Never workers.dev.
+ */
+/**
  * Structural hop: tunnel → this host’s workerd :8788 → this host’s fog :8787
  * /health /workerd /metabol are local (never call fog — avoids single-thread deadlock).
  * ORIGIN binding is this process’s role (session | macbook | edge), not the other host.
@@ -225,6 +231,14 @@ export default {
         note: "EDGE keeps :8788/:8789/mw; Fog DNS only if session persist sees mac dark >= 30min",
         fog_mw: fog,
       }, { headers: cors });
+    }
+    if (url.pathname === "/assemble" || url.pathname === "/mw/assemble") {
+      try {
+        if (env.MW_NODE) return env.MW_NODE.fetch("http://mw/assemble");
+        return fetch("http://127.0.0.1:8791/assemble");
+      } catch (e) {
+        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+      }
     }
     return env.FOG.fetch(request);
   },
