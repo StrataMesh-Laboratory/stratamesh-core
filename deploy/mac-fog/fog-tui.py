@@ -504,11 +504,12 @@ def draw(msg: str = "") -> None:
     bot = "╰" + "─" * (cols - 2) + "╯"
     mid = "├" + "─" * (cols - 2) + "┤"
     print(top)
-    print("│ " + ACC + "STRATAMESH" + RST + MUT + "  LAB · v0.5.0-lab · not mainnet" + RST
-          + " " * max(1, cols - 58)
+    clock = time.strftime("%H:%M:%S")
+    print("│ " + ACC + "STRATAMESH" + RST + "  " + clock
+          + MUT + "  LAB · v0.5.0-lab" + RST
+          + " " * max(1, cols - 52)
           + lamp(decision == "LIVE") + " " + decision
-          + "  " + time.strftime("%H:%M:%S")
-          + MUT + "  f" + str(FRAME) + RST
+          + MUT + " f" + str(FRAME) + RST
           + " │")
     print("│ " + nid + MUT + "   origin=" + RST + str(origin)
           + MUT + "  n=" + RST + str(n) + MUT + "  member=" + RST + str(member)
