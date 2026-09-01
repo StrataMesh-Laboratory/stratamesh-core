@@ -74,14 +74,20 @@ def uapi(mod, fn, params=None):
         {"Authorization": "Bearer " + tok, "User-Agent": "cmn-fog-cpanel"},
         {"Authorization": "cpanel " + ((user + ":" + tok) if user else tok), "User-Agent": "cmn-fog-cpanel"},
     ]
+    traces = []
     for hdr in headers_try:
         try:
             req = urllib.request.Request(url, headers=hdr)
             with urllib.request.urlopen(req, context=ctx, timeout=20) as r:
-                return {"ok": True, "status": r.status, "data": json.loads(r.read().decode())}
+                raw = r.read()
+                text = raw.decode("utf-8", "replace")
+                try:
+                    return {"ok": True, "status": r.status, "auth": hdr["Authorization"].split()[0], "data": json.loads(text)}
+                except Exception:
+                    traces.append({"status": r.status, "ctype": r.headers.get("content-type"), "len": len(raw), "head": text[:160].replace("\n"," ")})
         except Exception as e:
-            last = str(e)
-    return {"ok": False, "error": last}
+            traces.append({"error": str(e)[:180]})
+    return {"ok": False, "error": "uapi-not-json", "url": url.replace(tok, "***") if tok else url, "trace": traces}
 
 
 def main():
