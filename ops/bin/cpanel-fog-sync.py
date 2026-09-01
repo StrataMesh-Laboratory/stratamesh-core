@@ -47,9 +47,12 @@ def main():
         return
     if not tok:
         print(json.dumps({"ok": False, "error": "no token"})); return
+    mod, fn = "Mysql", "list_databases"
+    if cmd in ("list-mail", "mail"):
+        mod, fn = "Email", "list_pops"
     urls = [
-        f"https://{HOST}:{PORT}/execute/Mysql/list_databases",
-        f"https://{HOST}:{PORT}/json-api/cpanel?cpanel_jsonapi_user={urllib.parse.quote(usr)}&cpanel_jsonapi_apiversion=3&cpanel_jsonapi_module=Mysql&cpanel_jsonapi_func=list_databases",
+        f"https://{HOST}:{PORT}/execute/{mod}/{fn}",
+        f"https://{HOST}:{PORT}/json-api/cpanel?cpanel_jsonapi_user={urllib.parse.quote(usr)}&cpanel_jsonapi_apiversion=3&cpanel_jsonapi_module={mod}&cpanel_jsonapi_func={fn}",
     ]
     basic = "Basic " + __import__("base64").b64encode((usr + ":" + tok).encode()).decode()
     auths = [
