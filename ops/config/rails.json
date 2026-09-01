@@ -13,7 +13,8 @@
       "cf-worker-req",
       "local-monitor",
       "lockstep-probe",
-      "origin-archive"
+      "origin-archive",
+      "tailscale-api"
     ],
     "zone_suffix": "calhegasmorais.pt",
     "never_workers_dev": true,
@@ -189,7 +190,7 @@
       "public_repo_net_usd": 0,
       "never_paid": true,
       "unknown_remaining": "allow",
-      "note": "Public GitHub-hosted Linux is net $0 (Aug 2026: 655 min, gross $3.93, discount $3.93, net $0). Org Actions already enabled for all repos. Core CI (protocol-invariants, metabolism tests, origin-archive 00:20Z). HOLD is only wrangler *deploy* (CF 100k / Error 1027) — not the runner. Probe /health not /status. Private repos would consume the 2000 min Free pack; this org has 0 private repos."
+      "note": "Public GitHub-hosted Linux is net $0 (Aug 2026: 655 min, gross $3.93, discount $3.93, net $0). Org Actions already enabled for all repos. Core CI (protocol-invariants, metabolism tests, origin-archive 00:20Z). HOLD is only wrangler *deploy* (CF 100k / Error 1027) \u2014 not the runner. Probe /health not /status. Private repos would consume the 2000 min Free pack; this org has 0 private repos."
     },
     "cf-cron": {
       "layer": "stratamesh",
@@ -394,6 +395,19 @@
       "never_paid": true,
       "stasis_when_remaining_0": true,
       "note": "Free only, $200/6mo, STASIS remaining=0, never Paid/Support/Auto-renew, not a Fog host, billing alarm $1"
+    },
+    "tailscale-api": {
+      "layer": "ops",
+      "kind": "requests",
+      "billing": "quota",
+      "unit": "calls",
+      "daily_limit": 2000,
+      "phase": "hour",
+      "renewal_hhmm": "00:00",
+      "renewal_tz": "UTC",
+      "min_interval_ms": 15000,
+      "debt_persists_across_renewal": false,
+      "note": "Tailscale admin API api.tailscale.com. 429 + Retry-After is STASIS. Auth keys live only in ~/.config/stratamesh/tailscale.authkey and tailscale.api \u2014 never git."
     }
   }
 }
