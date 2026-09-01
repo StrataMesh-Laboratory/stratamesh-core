@@ -351,7 +351,7 @@ class PersistentFogNode:
     def public_html(self) -> str:
         """GET / for browsers. Destylised like EDGE: node id + facts, mesh roster stays JSON."""
         spa = self.spa_view()
-        ver = "0.3.0"
+        ver = "0.5.0-lab"
         mf = mesh_flags()
         return f"""<!DOCTYPE html>
 <html lang="pt-PT">
@@ -379,7 +379,7 @@ code {{ color:var(--fg); }}
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.0-lab">tag v0.5.0-lab</a></li>
 </ul>
 <p><code>spa.total={spa.get("total")}</code> · <code>source={spa.get("source")}</code></p>
 </main>
@@ -469,7 +469,7 @@ code {{ color:var(--fg); }}
                 phase="2",
                 phase_name="Nodal Hierarchy & SPAs",
                 extra={
-                    "version": "0.3.0",
+                    "version": "0.5.0-lab",
                     "host_id": fp["host_id"],
                     "host_id_source": fp["source"],
                     **mesh_flags(),
@@ -558,7 +558,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
-            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.3.0", **mesh_flags()})
+            self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.5.0-lab", **mesh_flags()})
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":
