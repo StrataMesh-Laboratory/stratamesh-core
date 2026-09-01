@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=document.documentElement.clientWidth||innerWidth;var h=document.documentElement.clientHeight||innerHeight;if(window.renderer&&w>32&&h>32){window.renderer.setSize(w,h,false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
+<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}if(!(window.SESSION&&SESSION.ready)){if(typeof showGate==="function")showGate("Registered session required");var g=document.getElementById("gate");if(g)g.style.display="flex";return;}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=document.documentElement.clientWidth||innerWidth;var h=document.documentElement.clientHeight||innerHeight;if(window.renderer&&w>32&&h>32){window.renderer.setSize(w,h,false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
 <script>
 (function(){try{
   var c=matchMedia("(pointer: coarse)").matches;
@@ -87,7 +87,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .stick{display:none!important;pointer-events:none}
 html[data-screen-touch="yes"] .stick{display:block!important;pointer-events:auto}
 #prompt{position:absolute;top:max(4.7rem,calc(env(safe-area-inset-top) + 3.55rem));bottom:auto;left:50%;transform:translateX(-50%);padding:.35rem .85rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.88);font:11px ui-monospace,Menlo,monospace;white-space:nowrap;max-width:min(34rem,calc(100% - 2rem));overflow:hidden;text-overflow:ellipsis;z-index:6;pointer-events:none;text-align:center}
-#gate{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:14;pointer-events:auto;background:rgba(7,17,28,.72)}
+#gate{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:14;pointer-events:auto;background:rgba(7,17,28,.72)}
 #gate .card{max-width:calc(100% - 2rem);width:auto;box-sizing:border-box;margin:0 1rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.96);text-align:center}
 #gate h2{margin:.4rem 0 .3rem;font-size:1.25rem}
 #gate a.btn,#avatarSheet button.primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1rem;margin-top:.8rem;border:1px solid var(--teal);background:var(--surface);color:var(--teal);border-radius:8px;text-decoration:none;font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
@@ -1404,6 +1404,7 @@ window.addEventListener("message", (e) => {
   if (d.token) bootSession();
   else if (d.user) applySession(normalizeMe(d.user) || d.user);
 });
+bootSession();
 const AVATAR_PALETTE = [0xe8c4a0, 0x1a4a52, 0x2a1c14, 0xd4a017, 0xc45c4a, 0x2f9e8a, 0x8a7cff, 0x6fbf73];
 let avatarDraft = { head: 0xe8c4a0, torso: 0x1a4a52, legs: 0x2a1c14 };
 function paintAvatarParts() {
