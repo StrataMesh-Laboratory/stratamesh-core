@@ -64,10 +64,13 @@ def _disk_frac() -> float:
     roots.append("/")
     for root in roots:
         try:
-            u = shutil.disk_usage(root)
-            if u.total > 0:
-                # df(1) Capacity: 1 - available/total (APFS purgeable is not "full")
-                return min(1.0, max(0.0, 1.0 - float(u.free) / float(u.total)))
+            out = subprocess.check_output(["/bin/df", "-kP", root], text=True, timeout=3)
+            line = [ln for ln in out.splitlines() if ln.strip()][-1]
+            parts = line.split()
+            used_k, avail_k = int(parts[2]), int(parts[3])
+            total_k = used_k + avail_k
+            if total_k > 0:
+                return min(1.0, max(0.0, float(used_k) / float(total_k)))
         except Exception:
             continue
     return 0.0
