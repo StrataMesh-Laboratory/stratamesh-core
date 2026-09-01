@@ -29,8 +29,14 @@ BURN_HIST: deque = deque(maxlen=15)
 RTT_HIST: deque = deque(maxlen=15)
 LOAD_HIST: deque = deque(maxlen=16)
 HELP = False
-FOCUS = 0  # 0 overview 1 hop 2 strata 3 metabol 4 host
+FOCUS = 0
 FRAME = 0
+_PRINT = print
+try:
+    DEV_TTY = open("/dev/tty", "w", encoding="utf-8", errors="replace")
+except Exception:
+    DEV_TTY = sys.stdout
+
 
 
 def spark(vals) -> str:
@@ -373,6 +379,9 @@ def yn(v) -> str:
 def draw(msg: str = "") -> None:
     global FRAME
     FRAME += 1
+    def print(*a, **k):  # noqa: shadow — instrument goes to /dev/tty
+        k.setdefault("file", DEV_TTY)
+        return _PRINT(*a, **k)
     hop = get("http://127.0.0.1:8788/health")
     st = get("http://127.0.0.1:8787/status")
     pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
@@ -593,7 +602,8 @@ def confirm(prompt: str) -> bool:
 def main() -> int:
     global HELP, FOCUS
     quiet_mac_malloc()
-    print("\033[?25l", end="")
+    DEV_TTY.write("\033[?1049h\033[2J\033[H\033[?25l")
+    DEV_TTY.flush()
     msg = ""
     try:
         while True:
@@ -625,7 +635,8 @@ def main() -> int:
     except KeyboardInterrupt:
         return 0
     finally:
-        print("\033[?25h")
+        DEV_TTY.write("\033[?25h\033[?1049l")
+        DEV_TTY.flush()
     return 0
 
 
