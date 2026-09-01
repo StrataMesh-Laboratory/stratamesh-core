@@ -26,3 +26,5 @@ lab.kdbx
 **/.config/stratamesh/tailscale.*
 **/tailscale.authkey
 **/tailscale.api
+
+.cursor/mcp.local.json
