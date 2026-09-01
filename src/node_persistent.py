@@ -41,6 +41,7 @@ from pq_keys import PQKeyRegistry
 from resource_meter import sample as resource_sample
 from host_fingerprint import fingerprint as host_fingerprint
 from workerd_plugin import WorkerdPlugin, is_loopback_not_tunnel
+from fog_plugins import host_cap
 from mesh_provision import flags as mesh_flags
 from origin_lease import public_view as origin_public_view, verify_reclaim, write as origin_lease_write
 from fog_plugins.ping import PingPlugin
@@ -486,6 +487,7 @@ code {{ color:var(--fg); }}
                     "acbs": self.acbs.summary(),
                     "pq_keys": self.pq.summary(),
                     "workerd": wrd,
+                    "host_cap": host_cap.snapshot(),
                     "ping": self.ping.snapshot() if getattr(self, "ping", None) else None,
                     "keepup": self.keepup.snapshot() if getattr(self, "keepup", None) else None,
                     "rails": self.rails.snapshot() if getattr(self, "rails", None) else None,
