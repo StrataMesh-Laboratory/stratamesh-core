@@ -104,7 +104,7 @@ export default {
         mesh_member: n >= 2,
         mesh_provision: mac_live || edge_live,
         layer,
-        version: "0.5.0-lab",
+        version: "0.5.1-lab",
         oracle_live: false,
         substrate: "workerd-hop",
         metabol: "/metabol",
@@ -245,7 +245,7 @@ export default {
       return Response.json({
         ok: true,
         via: "workerd:8788",
-        release: "v0.5.0-lab",
+        release: "v0.5.1-lab",
         origin: env.ORIGIN || "session",
         node,
         note: "compose body is Node :8791; this hop only forwards via MW_NODE binding",
