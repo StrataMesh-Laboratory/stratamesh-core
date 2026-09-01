@@ -1,0 +1,17 @@
+{
+  "schema": "stratamesh.hop.v1",
+  "html_origin": "pages:calhegasmorais-pt",
+  "pages_dev": "https://calhegasmorais-pt.pages.dev/",
+  "forbid_catch_all_workers": [
+    "calhegasmorais.pt/*",
+    "www.calhegasmorais.pt/*"
+  ],
+  "api_workers_only": true,
+  "node_fallback": {
+    "script": "ops/bin/cmn-spa-node.mjs",
+    "port": 8791
+  },
+  "renewal": "00:00 UTC",
+  "stasis_source": "ops/config/rails.json",
+  "retired_issue": 52
+}
