@@ -187,7 +187,7 @@ body.in-session .user-info{display:flex!important}
           var portal=document.getElementById('portalPage');
           if(login){ login.style.display='none'; login.classList.add('hidden'); }
           if(portal){ portal.style.display='block'; portal.style.visibility='visible'; portal.classList.add('portal-visible'); }
-    try{ showPanel('sandbox', document.querySelector('[data-panel="sandbox"]')); }catch(_){}
+    try{ showPanel('sandbox', document.querySelector('[data-panel="sandbox"]')); pushAtelierSession(); }catch(_){}
           var go=window.__showPortalImpl || (window.showPortal && window.showPortal.name!=='smShowPortalProxy' ? window.showPortal : null);
           if(typeof go==='function') go(Object.assign({email:email,token:tok},j));
           return false;
@@ -362,7 +362,7 @@ body.in-session .user-info{display:flex!important}
       <span id="bancadaModeLabel" style="font-size:.72rem;color:var(--muted);margin-left:.25rem">Modo: órbita</span>
     </div>
         <div id="bancadaStage" style="position:relative;width:100%;height:min(78vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#07111c;margin-bottom:1rem">
-      <iframe id="atelierFrame" title="Atelier GNU" src="https://sandbox.calhegasmorais.pt/" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
+      <iframe id="atelierFrame" title="Atelier GNU" src="https://sandbox.calhegasmorais.pt/" onload="pushAtelierSession()" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
     </div>
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Bancadas</div></div>
@@ -863,6 +863,14 @@ async function applyVaPrefs(){
 }
 
 
+function pushAtelierSession(){
+  try{
+    var f=document.getElementById('atelierFrame');
+    var tok=localStorage.getItem('sm_token')||localStorage.getItem('token');
+    if(!f||!f.contentWindow||!tok) return;
+    f.contentWindow.postMessage({type:'cmn-session',token:tok,email:localStorage.getItem('sm_email')||''},'https://sandbox.calhegasmorais.pt');
+  }catch(_){}
+}
 function setMudSpace(space){
   var f=document.getElementById('atelierFrame');
   if(!f) return;
