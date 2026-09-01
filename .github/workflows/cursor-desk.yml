@@ -1,0 +1,22 @@
+# Cursor Free + STRATAGROK desk. Does not call Cloud Agent.
+name: cursor-desk
+
+on:
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: probe
+        run: python3 ops/bin/cursor-probe.py
+        continue-on-error: true
