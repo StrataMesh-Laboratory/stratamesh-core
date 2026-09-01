@@ -331,8 +331,8 @@ def git_pull_reboot() -> str:
     repo = REPO if (REPO / ".git").exists() else Path.home() / "StrataMesh/fog/repo"
     if not (repo / ".git").exists():
         return "no git repo at %s" % repo
-    fetch = sh(["git", "-C", str(repo), "fetch", "origin"], timeout=30)
-    pull = sh(["git", "-C", str(repo), "pull", "--ff-only", "origin", "main"], timeout=30)
+    fetch = sh(["git", "-C", str(repo), "fetch", "origin", "main"], timeout=30)
+    pull = sh(["git", "-C", str(repo), "reset", "--hard", "origin/main"], timeout=30)
     copied = []
     tui_src = repo / "deploy/mac-fog/fog-tui.py"
     tui_dst = FOG / "bin/fog-tui.py"
@@ -350,7 +350,12 @@ def git_pull_reboot() -> str:
             pass
         copied.append("runtime.command copied")
     extra = (" " + " · ".join(copied)) if copied else ""
-    return ("pull %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", reboot_fog())) + extra
+    fog_rc = reboot_fog()
+    # this process still holds the old draw(); replace it with the copied TUI
+    dst = FOG / "bin/fog-tui.py"
+    if dst.is_file():
+        os.execv(sys.executable, [sys.executable, str(dst)])
+    return ("pull %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", fog_rc)) + extra
 
 
 def mark(ok: bool) -> str:
