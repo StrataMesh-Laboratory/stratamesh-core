@@ -14,6 +14,7 @@ GET /resources is resource_meter.sample() on this process — not a device farm.
 
 from __future__ import annotations
 import argparse
+import os
 import json
 import time
 import threading
@@ -77,9 +78,10 @@ class PersistentFogNode:
         self.lock = threading.Lock()
         self.db_path = db_path
         self.workerd = WorkerdPlugin()
-        self.workerd.attach()
         self.runtime_mesh = RuntimeMeshPlugin()
-        self.runtime_mesh.attach()
+        if os.environ.get("FOG_TESTNET") != "1":
+            self.workerd.attach()
+            self.runtime_mesh.attach()
         self.ping = PingPlugin()
         self.rails = RailsPlug(poc=self.poc, token=self.token, subsistence=self.subsistence)
         self.keepup = KeepUpPlugin(
