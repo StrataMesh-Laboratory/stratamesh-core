@@ -1,7 +1,7 @@
 // stratamesh-node-public.js
 // Exact `/` overlay for fog.calhegasmorais.pt and edge.calhegasmorais.pt.
 // No subrequests (avoids route loops). JSON lives on tunnel /health /status.
-var VERSION = "0.3.0";
+var VERSION = "0.5.1-lab";
 var CSS = ":root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}main{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}h1{font-size:1.25rem;font-weight:600}p,li{color:var(--muted)}a{color:var(--acc)}code{color:var(--fg)}.badge{display:inline-block;border:1px solid var(--line);padding:.15rem .5rem;font-size:.75rem;letter-spacing:.04em}";
 
 function html(title, body) {
@@ -23,7 +23,7 @@ function fogPage() {
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
 <li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>`
   );
@@ -40,7 +40,7 @@ function edgePage() {
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a> JSON</li>
-<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0">tag v0.3.0</a></li>
+<li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>`
   );
