@@ -52,7 +52,8 @@ h1{font-family:system-ui,sans-serif;font-weight:400;font-size:clamp(2.2rem,6vw,3
 .nav-dd>summary::-webkit-details-marker{display:none}
 .nav-dd>summary::after{content:" ▾";font-size:.7em}
 .nav-dd[open]>summary{border-color:var(--accent);color:var(--accent)}
-.nav-dd .nav-dd-list{position:absolute;left:0;top:calc(100% + .35rem);z-index:5;min-width:14rem;background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem}
+.nav-dd .nav-dd-list{position:absolute;left:0;right:auto;top:calc(100% + .35rem);z-index:5;min-width:11rem;max-width:min(16rem,calc(100vw - 1.5rem));background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem;box-sizing:border-box}
+.cta-row .nav-dd:last-of-type .nav-dd-list{left:auto;right:0}
 .nav-dd .nav-dd-list a{display:block;padding:.55rem .75rem;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:0}
 .nav-dd .nav-dd-list a:hover{color:var(--accent)}
 
@@ -185,7 +186,7 @@ details.faq p{margin:.55rem 0 0}
     <p class="lead">Public entry to the <strong>Calhegas Morais Fog Node</strong> — a reference node of <strong>StrataMesh</strong>, a <a class="g" href="#glossario-trd">distributed ledger</a> network built around real contribution, an open market, and a Web3 metaverse operating system.</p>
     <div class="plain">
       <p class="pk">In plain language</p>
-      <ol><li>StrataMesh is a DLT in the <strong>lab</strong>. Two hosts: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, continuous) and EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, session): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>This site is the public door of that pair — not a populated mesh and not Byzantine. Gossip lists Fog + EDGE on custom domains; P0 stays open until n≥3.</li><li>v0.3.0 shipped a <strong>Fog Node kit</strong>. v0.4.0-lab ships the <strong>ACB Academy</strong>: always-on corrective and exploratory training for the Orchestrator and AIOps (Ollama ← Hugging Face on Fog). Secrets stay on the machine.</li><li>You can read the project, see whether Fog / gossip / EDGE are up, and open the portal if you wish. You do not need to pay to start.</li></ol>
+      <ol><li>StrataMesh is a DLT in the <strong>lab</strong>. Two hosts: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, continuous) and EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, session): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>This site is the public door of that pair — not a populated mesh and not Byzantine. Gossip lists Fog + EDGE on custom domains; P0 stays open until n≥3.</li><li>You can read the project, see whether Fog / gossip / EDGE are up, and open the portal if you wish. You do not need to pay to start. Fog kit and Academy live under Docs.</li></ol>
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Sign in</a>
