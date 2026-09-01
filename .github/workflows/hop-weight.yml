@@ -1,17 +1,13 @@
-# HEAD → origin hops. STASIS sheds CF workers; Pages + middleware still ship.
+# HEAD hop-weight. Does not call non-reusable workflows.
 name: hop-weight
 
 on:
   workflow_dispatch:
-  workflow_call:
   push:
     branches: [main]
     paths:
       - "ops/config/contingency.json"
-      - "ops/config/rails.json"
       - "ops/bin/hop-weight.py"
-      - "ops/bin/cmn-spa-python.py"
-      - "ops/bin/cmn-spa-node.mjs"
       - ".github/workflows/hop-weight.yml"
 
 permissions:
@@ -26,27 +22,18 @@ jobs:
   pick:
     runs-on: ubuntu-latest
     timeout-minutes: 4
-    outputs:
-      picked: ${{ steps.w.outputs.picked }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - id: w
-        run: |
-          python3 ops/bin/hop-weight.py | tee /tmp/w.json
-          echo "picked=$(python3 -c 'import json;print(json.load(open("/tmp/w.json"))["picked"])')" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - run: python3 ops/bin/hop-weight.py
+      - name: dispatch live origins
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
-          name: hop-weight
-          path: ops/config/contingency.json
-
-  pages:
-    needs: pick
-    uses: ./.github/workflows/loci-pages.yml
-    secrets: inherit
-    if: always()
-
-  live:
-    needs: pick
-    uses: ./.github/workflows/live-from-git.yml
-    secrets: inherit
-    if: always()
+          script: |
+            for (const id of ["live-from-git.yml", "loci-pages.yml"]) {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: id,
+                ref: "main",
+              }).catch((e) => console.log(id, e.message));
+            }
