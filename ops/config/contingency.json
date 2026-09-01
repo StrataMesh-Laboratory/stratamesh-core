@@ -233,5 +233,35 @@
       "http://127.0.0.1:8790"
     ],
     "rule": "TS APIs prefer Deno; HTML stays Pages; auth stays Python. CF Workers only while ALLOW."
+  },
+  "mutual": {
+    "rule": "Whoever is primary for a job, the other is secondary. STASIS demotes cf-worker off every job.",
+    "jobs": {
+      "html": {
+        "primary": "cf-pages",
+        "secondary": "deno-static",
+        "stasis": "cf-pages"
+      },
+      "ts-api": {
+        "primary": "deno",
+        "secondary": "cf-worker",
+        "stasis": "deno"
+      },
+      "edge-isolate": {
+        "primary": "cf-worker",
+        "secondary": "deno",
+        "stasis": "deno"
+      },
+      "waf-dns-tls": {
+        "primary": "cloudflare",
+        "secondary": null,
+        "stasis": "cloudflare"
+      },
+      "auth": {
+        "primary": "python",
+        "secondary": "node",
+        "stasis": "python"
+      }
+    }
   }
 }
