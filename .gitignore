@@ -21,3 +21,8 @@ persistent/
 *.kdbx
 *.kdbx.master
 lab.kdbx
+
+# tailnet keys — local vault only
+**/.config/stratamesh/tailscale.*
+**/tailscale.authkey
+**/tailscale.api
