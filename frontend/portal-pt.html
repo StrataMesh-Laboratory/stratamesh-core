@@ -142,12 +142,57 @@ body.in-session .user-info{display:flex!important}
       var b=document.getElementById('authBtn');
       if(!b || b.getAttribute('data-bound')) return;
       b.setAttribute('data-bound','1');
+      function err(msg){
+        var el=document.getElementById('loginError');
+        if(el){ el.style.display='block'; el.textContent=msg||''; }
+      }
+      function ts(){
+        try{
+          var el=document.querySelector('[name="cf-turnstile-response"]');
+          if(el && el.value) return el.value;
+          if(window.turnstile && turnstile.getResponse) return turnstile.getResponse()||'';
+        }catch(_){}
+        return '';
+      }
       b.addEventListener('click', function(ev){
         ev.preventDefault();
         ev.stopPropagation();
-        try{
-          if(typeof handleAuth==='function'){ handleAuth(); return; }
-        }catch(e){ var el=document.getElementById('loginError'); if(el){el.style.display='block';el.textContent=String(e&&e.message||e);} }
+        var email=((document.getElementById('email')||{}).value||'').trim();
+        var pass=(document.getElementById('password')||{}).value||'';
+        var otp=((document.getElementById('userOtp')||{}).value||'').trim();
+        var staff=!!((document.getElementById('asStaff')||{}).checked);
+        if(!email||!pass){ err('Email e palavra-passe obrigatórios'); return; }
+        b.disabled=true;
+        var prev=b.textContent;
+        b.textContent='A autenticar…';
+        var url=staff?'/api/auth/staff/login':'/api/auth/login';
+        if(otp && window.__cmnChallenge){
+          url=staff?'/api/auth/staff/2fa':'/api/auth/auth/email/verify';
+        }
+        var body=otp && window.__cmnChallenge
+          ? {email:email, code:otp, challenge:window.__cmnChallenge, lang:'pt'}
+          : {email:email, password:pass, lang:'pt', channel:'email', 'cf-turnstile-response':ts()};
+        fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)})
+          .then(function(r){ return r.json().then(function(j){ j._http=r.status; return j; }).catch(function(){ return {_http:r.status, error:'Resposta inválida'}; }); })
+          .then(function(j){
+            if(j.requires_2fa || j.challenge){
+              window.__cmnChallenge=j.challenge;
+              var row=document.getElementById('user2faRow'); if(row) row.style.display='block';
+              err(j.message||'Introduza o código de 6 dígitos do e-mail');
+              b.textContent='Verificar 2FA';
+              return;
+            }
+            if(j.success && (j.token||j.session_token)){
+              try{ localStorage.setItem('token', j.token||j.session_token); localStorage.setItem('sm_token', j.token||j.session_token); localStorage.setItem('auth_type', staff?'staff':'user'); }catch(_){}
+              if(typeof showPortal==='function'){ showPortal(Object.assign({email:email}, j)); return; }
+              location.href='/dashboard';
+              return;
+            }
+            err(j.error||j.message||('Falha HTTP '+j._http));
+            b.textContent=prev;
+          })
+          .catch(function(e){ err(String(e&&e.message||e)); b.textContent=prev; })
+          .then(function(){ b.disabled=false; });
       });
     })();
     </script>
