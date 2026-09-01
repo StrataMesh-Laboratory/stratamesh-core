@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog runtime UI v0.3.0. Destyle. 60s.
+"""StrataMesh LAB Fog runtime UI v0.3.2. Destyle. 60s.
 q quit · s stop · b reboot · g git pull+reboot · r refresh
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
@@ -27,18 +27,34 @@ from collections import deque
 Q_HIST: deque = deque(maxlen=15)
 BURN_HIST: deque = deque(maxlen=15)
 RTT_HIST: deque = deque(maxlen=15)
+LOAD_HIST: deque = deque(maxlen=16)
 HELP = False
 FOCUS = 0  # 0 overview 1 hop 2 strata 3 metabol 4 host
 
 
 def spark(vals) -> str:
-    bars = "▁▂▃▄▅▆▇█"
+    """Braille 2x4 sparkline — Apple Terminal.app safe. No Kitty/Sixel."""
     xs = [float(v) for v in vals if v is not None]
-    if not xs:
-        return "·" * 8
+    if len(xs) < 2:
+        bars = "▁▂▃▄▅▆▇█"
+        if not xs:
+            return "·" * 8
+        return bars[min(7, int(xs[-1] * 7))] * 8
     lo, hi = min(xs), max(xs)
     span = (hi - lo) or 1.0
-    return "".join(bars[min(7, int((x - lo) / span * 7))] for x in xs)
+    # left/right columns of a Braille cell, height 0..4 (bottom-up)
+    left = (0x00, 0x40, 0x44, 0x46, 0x47)
+    right = (0x00, 0x80, 0xA0, 0xB0, 0xB8)
+    if len(xs) % 2:
+        xs = xs[-16:] if len(xs) > 16 else xs
+        if len(xs) % 2:
+            xs = [xs[0]] + xs
+    out = []
+    for i in range(0, len(xs), 2):
+        h0 = min(4, int(round((xs[i] - lo) / span * 4)))
+        h1 = min(4, int(round((xs[i + 1] - lo) / span * 4)))
+        out.append(chr(0x2800 + left[h0] + right[h1]))
+    return "".join(out[-12:])
 
 ACC = "\033[38;2;196;165;116m"
 FG = "\033[38;2;232;230;227m"
@@ -406,7 +422,7 @@ def draw(msg: str = "") -> None:
 
     sys.stdout.write("\033[H\033[J")
     print(ACC + " STRATAMESH" + RST + FG + " LAB" + RST,
-          MUT + "v0.3.1" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
+          MUT + "v0.3.2" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
     print(FG + " Fog Node" + RST, ACC + str(nid) + RST)
     print(MUT + " Intelligentia · Vigilantia · Veritas" + RST)
     print(MUT + " shared web3 metaverse OS · lab · not mainnet" + RST)
@@ -507,8 +523,14 @@ def draw(msg: str = "") -> None:
     print(ACC + " host" + RST)
     print("  ", brand, MUT + "ncpu=" + ncpu + RST)
     cap = st.get("host_cap") if isinstance(st.get("host_cap"), dict) else {}
-    print("   load  %.2f  %.2f  %.2f" % load,
-          MUT + ("  cap %.0f%% %s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok")) + RST)
+    try:
+        LOAD_HIST.append(float(load[0]))
+    except Exception:
+        pass
+    print("   load  %.2f  %.2f  %.2f" % load
+,
+          MUT + ("  cap %.0f%% %s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok")) + RST,
+          MUT + spark(LOAD_HIST) + RST)
     print("   mem   free", gb(free), "  active", gb(active), "  wired", gb(wired))
     print("   rss   workerd", kb(wd_rss), "  python3", kb(py_rss), "  cloudflared", kb(cf_rss))
     print("   disk ", dsk, MUT + dsk_path + RST)
