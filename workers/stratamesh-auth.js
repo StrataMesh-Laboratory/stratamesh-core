@@ -1064,8 +1064,8 @@ export default {
               message: lang === 'en' ? 'Staff signed in (2FA trust window).' : 'Pessoal: sessão iniciada (janela 2FA).',
             }), { headers: corsHeaders });
           }
-          // Prefer app TOTP when enrolled
-          if (staff.totp_secret) {
+          // App TOTP only when enrolled AND client did not ask for email.
+          if (staff.totp_secret && staffBody.channel !== 'email') {
             return new Response(JSON.stringify({
               success: true,
               requires_2fa: true,
