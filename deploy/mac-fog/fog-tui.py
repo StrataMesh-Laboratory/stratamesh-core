@@ -506,7 +506,9 @@ def draw(msg: str = "") -> None:
     print(rule)
     print(ACC + " host" + RST)
     print("  ", brand, MUT + "ncpu=" + ncpu + RST)
-    print("   load  %.2f  %.2f  %.2f" % load)
+    cap = st.get("host_cap") if isinstance(st.get("host_cap"), dict) else {}
+    print("   load  %.2f  %.2f  %.2f" % load,
+          MUT + ("  cap %.0f%% %s" % (100*float(cap.get("cap") or 0.6), "HOLD" if cap.get("over") else "ok")) + RST)
     print("   mem   free", gb(free), "  active", gb(active), "  wired", gb(wired))
     print("   rss   workerd", kb(wd_rss), "  python3", kb(py_rss), "  cloudflared", kb(cf_rss))
     print("   disk ", dsk, MUT + dsk_path + RST)
