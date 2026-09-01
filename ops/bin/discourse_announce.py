@@ -6,14 +6,14 @@ Else prints the post to stdout (no session in this kit).
 import json, os, sys, urllib.request
 
 FORUM = "https://stratamesh.discourse.group"
-TITLE = sys.argv[1] if len(sys.argv) > 1 else "v0.5.0-lab · Kit Fog Node (macOS) e Kit Edge Node (iOS)"
-BODY_PATH = sys.argv[2] if len(sys.argv) > 2 else "docs/DISCOURSE-v0.5.0-kits.md"
+TITLE = sys.argv[1] if len(sys.argv) > 1 else "v0.5.1-lab · Kit Fog Node (macOS) e Kit Edge Node (iOS)"
+BODY_PATH = sys.argv[2] if len(sys.argv) > 2 else "docs/DISCOURSE-v0.5.1-lab-kits.md"
 CAT = int(sys.argv[3]) if len(sys.argv) > 3 else 5
 
 def read_body():
     if os.path.isfile(BODY_PATH):
         return open(BODY_PATH, encoding="utf-8").read()
-    url = "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/docs/DISCOURSE-v0.5.0-kits.md"
+    url = "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/docs/DISCOURSE-v0.5.1-lab-kits.md"
     return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "cmn"})).read().decode()
 
 body = read_body()
