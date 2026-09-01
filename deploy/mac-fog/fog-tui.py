@@ -449,6 +449,12 @@ def draw(msg: str = "") -> None:
     print("   workerd :8788", mark(hop.get("ok") is True),
           "   fog :8787", mark(st.get("status") == "operational"),
           "   plugin", wr.get("reboots", 0), "reboots")
+    mw = st.get("runtime_mesh") or hop.get("runtime_mesh") or {}
+    pyok = ((mw.get("python") or {}).get("ok"))
+    ndok = ((mw.get("node") or {}).get("ok"))
+    print("   python :8790", mark(bool(pyok)),
+          "   node :8791", mark(bool(ndok)),
+          MUT + " middleware" + RST)
     print("   public   ", mark(bool(pub.get("ok"))),
           MUT + "origin=" + str(pub.get("origin") or "—") + RST)
     print(rule)
