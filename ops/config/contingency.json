@@ -134,7 +134,8 @@
       ],
       "shed": "blobs/objects off R2; sessions off KV during STASIS",
       "weight": 1,
-      "status": "planned"
+      "status": "lab-ready",
+      "bind": "127.0.0.1:9000"
     },
     {
       "current": "fog-mac",
