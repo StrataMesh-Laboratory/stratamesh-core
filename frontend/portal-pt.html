@@ -28,6 +28,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header .role-badge{padding:.15rem .5rem;border:1px solid var(--line2);border-radius:2px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .header .logout{cursor:pointer;color:var(--muted)}.header .logout:hover{color:var(--danger)}
 body.in-session .user-info{display:flex!important}
+#mainNav button.champion{border-color:var(--accent,#c4a574);letter-spacing:.12em}
+#mainNav button.nav-sec{opacity:.82;font-size:.78em}
 .login-page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:2rem 1.25rem 4rem}
 .login-box{width:100%;max-width:400px;padding:2rem 0 0}
 .login-kicker{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
@@ -185,6 +187,7 @@ body.in-session .user-info{display:flex!important}
           var portal=document.getElementById('portalPage');
           if(login){ login.style.display='none'; login.classList.add('hidden'); }
           if(portal){ portal.style.display='block'; portal.style.visibility='visible'; portal.classList.add('portal-visible'); }
+    try{ showPanel('sandbox', document.querySelector('[data-panel="sandbox"]')); }catch(_){}
           var go=window.__showPortalImpl || (window.showPortal && window.showPortal.name!=='smShowPortalProxy' ? window.showPortal : null);
           if(typeof go==='function') go(Object.assign({email:email,token:tok},j));
           return false;
@@ -215,10 +218,10 @@ body.in-session .user-info{display:flex!important}
 <div class="portal" id="portalPage">
   <!-- Painel comum = base; Pessoal = comum + extras desbloqueados por clearance -->
   <div class="nav" id="mainNav">
-    <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)">Tesouraria</button>
-    <button type="button" data-panel="agora" onclick="showPanel('agora',this)">Ágora</button>
-    <button type="button" data-panel="economy" onclick="showPanel('economy',this)">Malha</button>
-    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)">Atelier</button>
+    <button type="button" class="active champion" data-panel="sandbox" onclick="showPanel('sandbox',this)">Atelier</button>
+    <button type="button" class="nav-sec" data-panel="wallet" onclick="showPanel('wallet',this)">Tesouraria</button>
+    <button type="button" class="nav-sec" data-panel="agora" onclick="showPanel('agora',this)">Ágora</button>
+    <button type="button" class="nav-sec" data-panel="economy" onclick="showPanel('economy',this)">Malha</button>
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)">Câmaras</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)">Pactos</button>
     <button type="button" data-panel="acb" data-user="1" onclick="showPanel('acb',this)">Agentes</button>
@@ -342,7 +345,13 @@ body.in-session .user-info{display:flex!important}
 
   <div class="panel" id="panel-sandbox">
     <h3 id="bancadaPanelTitle">Atelier GNU · v0.5.0-lab</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">Graphical-MUD: a bancada é a tua oficina; o mundo é partilhado; os quartos são instâncias. O Atelier é o espaço. O resto da dashboard são painéis.</p>
+    <div id="mudSpaces" style="display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 12px">
+      <button type="button" class="champion" onclick="setMudSpace('bancada')">Bancada</button>
+      <button type="button" onclick="setMudSpace('mundo')">Mundo</button>
+      <button type="button" onclick="setMudSpace('quartos')">Quartos</button>
+      <button type="button" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://sandbox.calhegasmorais.pt/';})()">Ecrã inteiro</button>
+    </div>
     <div id="bancadaModeBar" style="display:none">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
       <button type="button" id="btnBancadaFps" onclick="setBancadaMode('fps')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">1ª pessoa · WASD</button>
@@ -853,6 +862,13 @@ async function applyVaPrefs(){
   }catch(_){}
 }
 
+
+function setMudSpace(space){
+  var f=document.getElementById('atelierFrame');
+  if(!f) return;
+  var u='https://sandbox.calhegasmorais.pt/?space='+encodeURIComponent(space||'bancada');
+  f.src=u;
+}
 function showPortal(user){
   try{ document.body.classList.add('in-session'); }catch(_){}
 
