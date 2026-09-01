@@ -863,14 +863,27 @@ async function applyVaPrefs(){
 }
 
 
+function atelierToken(){ return localStorage.getItem('sm_token')||localStorage.getItem('token')||''; }
 function pushAtelierSession(){
   try{
     var f=document.getElementById('atelierFrame');
-    var tok=localStorage.getItem('sm_token')||localStorage.getItem('token');
-    if(!f||!f.contentWindow||!tok) return;
-    f.contentWindow.postMessage({type:'cmn-session',token:tok,email:localStorage.getItem('sm_email')||''},'https://sandbox.calhegasmorais.pt');
+    var tok=atelierToken();
+    if(!f) return;
+    if(tok && f.src.indexOf('#cmn=')<0){
+      f.src='https://sandbox.calhegasmorais.pt/?space=bancada#cmn='+encodeURIComponent(tok);
+    }
+    if(f.contentWindow&&tok){
+      f.contentWindow.postMessage({type:'cmn-session',token:tok,email:localStorage.getItem('sm_email')||''},'https://sandbox.calhegasmorais.pt');
+    }
   }catch(_){}
 }
+window.addEventListener('message',function(e){
+  try{
+    var h=e.origin&&new URL(e.origin).hostname;
+    if(h!=='sandbox.calhegasmorais.pt') return;
+    if(e.data&&e.data.type==='cmn-session-ready') pushAtelierSession();
+  }catch(_){}
+});
 function setMudSpace(space){
   var f=document.getElementById('atelierFrame');
   if(!f) return;
