@@ -66,7 +66,8 @@ def _disk_frac() -> float:
         try:
             u = shutil.disk_usage(root)
             if u.total > 0:
-                return min(1.0, float(u.used) / float(u.total))
+                # df(1) Capacity: 1 - available/total (APFS purgeable is not "full")
+                return min(1.0, max(0.0, 1.0 - float(u.free) / float(u.total)))
         except Exception:
             continue
     return 0.0
