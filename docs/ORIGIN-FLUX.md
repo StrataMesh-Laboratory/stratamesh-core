@@ -37,3 +37,21 @@ python3 ops/bin/fog-persist.py --yield-public    # force DNS back to Mac
 `FOG_FALLBACK_AFTER` (seconds, min 60) overrides the 30-minute clock. Default 1800.
 
 Lab n=1 / n=2 honesty unchanged. Session fallback is **not** a second mesh host_id while Mac is up; it is the same Fog node id on a different connector.
+
+
+## CF last resort (never-dark)
+
+If Mac is dark **and** Edge-GROK is not up for **1800s**, Worker `stratamesh-fog-standby` answers
+
+- `fog.calhegasmorais.pt/health`
+- `fog.calhegasmorais.pt/metabol`
+
+`origin=cf-standby`. Named tunnels `macbook-server` and `stratamesh-fog-lab` are **not** moved. No `origin-take`.
+
+| State | Origin | pace_factor |
+|-------|--------|-------------|
+| Mac live | `macbook` | 1.0 (formula) |
+| Mac dark ≥30 min, Edge live | `edge-standby` | min(pace, 0.85) |
+| Mac dark ≥30 min, Edge down | `cf-standby` | min(pace, 0.5) |
+
+Lease: KV `stratamesh-ops-state` key `fog:origin:lease`. Metabol `state_change` is written only on origin flip. `/status` stays on the Mac hop so the DAG payload is never replaced by a stub.
