@@ -1,0 +1,43 @@
+name: metabolic-stasis
+
+on:
+  schedule:
+    - cron: "12 */3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: metabolic-stasis
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOD_API: ${{ secrets.GOD_API }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      CF_WORKER_DAY_CAP: "100000"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: GraphQL spend vs rails cap
+        id: stasis
+        run: python3 ops/bin/metabolic-stasis-enforce.py
+        continue-on-error: true
+      - name: Record circuit
+        if: steps.stasis.outcome == 'failure'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const fs = require('fs');
+            const state = fs.existsSync('stasis-state.json') ? fs.readFileSync('stasis-state.json','utf8') : 'no state';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'STASIS · Workers spend ≥ cap (do not use #52)',
+              body: 'Circuit STASIS. HTML hop stays on Pages. No spa catch-all.\n\n```json\n' + state + '\n```\n',
+              labels: ['lab-ops']
+            }).catch(() => {});
