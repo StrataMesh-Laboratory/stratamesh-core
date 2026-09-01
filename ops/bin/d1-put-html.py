@@ -28,6 +28,7 @@ PATH_MAP = {
     "frontend/roadmap-pt.html": ("roadmap-pt", "roadmap"),
     "frontend/roadmap-en.html": ("roadmap-en",),
     "frontend/eni.html": ("eni", "eni-pt"),
+    "frontend/sandbox.html": ("sandbox", "atelier"),
 }
 
 WORKER_MAP = {
