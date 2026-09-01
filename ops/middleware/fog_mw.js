@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const http = require("http");
+import http from "node:http";
 const PORT = parseInt(process.env.FOG_MW_NODE_PORT || "8791", 10);
 const server = http.createServer((req, res) => {
   const url = String(req.url || "/").split("?")[0];
