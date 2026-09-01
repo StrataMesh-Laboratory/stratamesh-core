@@ -376,6 +376,27 @@ def yn(v) -> str:
     return (OK + "true" + RST) if v else (BAD + "false" + RST)
 
 
+def vislen(s: str) -> int:
+    n = 0
+    i = 0
+    while i < len(s):
+        if s.startswith("\033", i):
+            j = s.find("m", i)
+            i = j + 1 if j >= 0 else i + 1
+            continue
+        n += 1
+        i += 1
+    return n
+
+
+def boxline(inner: str, width: int) -> str:
+    pad = width - vislen(inner)
+    if pad < 0:
+        inner = inner[:width]
+        pad = max(0, width - vislen(inner))
+    return "│" + inner + (" " * pad) + "│"
+
+
 def draw(msg: str = "") -> None:
     global FRAME
     FRAME += 1
@@ -505,66 +526,70 @@ def draw(msg: str = "") -> None:
     mid = "├" + "─" * (cols - 2) + "┤"
     print(top)
     clock = time.strftime("%H:%M:%S")
-    print("│ " + ACC + "STRATAMESH" + RST + "  " + clock
-          + MUT + "  LAB · v0.5.0-lab" + RST
-          + " " * max(1, cols - 52)
-          + lamp(decision == "LIVE") + " " + decision
-          + MUT + " f" + str(FRAME) + RST
-          + " │")
-    print("│ " + nid + MUT + "   origin=" + RST + str(origin)
-          + MUT + "  n=" + RST + str(n) + MUT + "  member=" + RST + str(member)
-          + MUT + "  ver=" + RST + str(st.get("version") or "0.5.0-lab")
-          + " │")
-    print(mid)
-    # NODE + STRATA two columns
-    left_w = 34
-    print("│ " + ACC + "HOP" + RST + " " * (left_w - 5) + "│ " + ACC + "STRATA" + RST)
-    print("│ " + lamp(hop_ok) + " workerd :8788"
-          + " " * 8 + "│  dag  tx=" + str(txs) + "  tip=" + str(tips) + "  h=" + str(height))
-    print("│ " + lamp(fog_ok) + " fog     :8787"
-          + " " * 8 + "│  PoC  " + bar(min(float(pending or 0) / 40.0, 1.0), 16) + "  " + str(pending)[:10])
-    print("│ " + lamp(bool(pyh.get("ok"))) + " python  :8790"
-          + " " * 8 + "│  spa  total=" + str(spa.get("total") or 0)
-          + " active=" + str(spa.get("active") or 0))
     dec = met.get("decision")
     if not dec and isinstance(met.get("cf"), dict):
         dec = met.get("cf").get("decision")
     dec = dec or "—"
-    print("│ " + lamp(bool(ndh.get("ok"))) + " node    :8791"
-          + " " * 8 + "│  metabol " + str(dec) + "  pace=" + str(met.get("pace") or "—"))
-    print("│ " + lamp(pub_ok) + " public  " + str(pub.get("origin") or "—")
-          + " " * max(1, 12 - len(str(pub.get("origin") or "—")))
-          + "│  surplus " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
+    w = max(40, cols - 2)
+    lw = 30
+    rw = max(16, w - lw - 1)
+
+    def L(s: str) -> str:
+        pad = lw - vislen(s)
+        return s + (" " * max(0, pad))
+
+    def R(s: str) -> str:
+        pad = rw - vislen(s)
+        return s + (" " * max(0, pad))
+
+    def pair(a: str, b: str) -> None:
+        print(boxline(L(a) + "│" + R(b), w))
+
+    print(top)
+    print(boxline(" " + ACC + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.0-lab" + RST
+                  + "  " + lamp(decision == "LIVE") + " " + decision, w))
+    print(boxline(" " + str(nid) + MUT + "  " + RST + str(origin)
+                  + MUT + "  n=" + RST + str(n)
+                  + MUT + "  member=" + RST + str(bool(member)), w))
     print(mid)
-    print("│ " + ACC + "PROTOCOL" + RST + "   "
-          + lamp(oracle) + " oracle   "
-          + lamp(mint) + " mint   "
-          + lamp(burn) + " burn   "
-          + lamp(waiver) + MUT + " lab_waived" + RST)
-    print("│ " + MUT + "mint/burn stay locked while oracle_live=false · n=2 f_max=0" + RST)
+    pair(" " + ACC + "HOP" + RST, " " + ACC + "STRATA" + RST)
+    pair(" " + lamp(hop_ok) + " workerd  :8788", " dag   tx=%s  tip=%s  h=%s" % (txs, tips, height))
+    pair(" " + lamp(fog_ok) + " fog      :8787", " PoC   " + bar(min(float(pending or 0) / 40.0, 1.0), 12) + " " + str(pending)[:8])
+    pair(" " + lamp(bool(pyh.get("ok"))) + " python   :8790", " spa   %s / %s" % (spa.get("active") or 0, spa.get("total") or 0))
+    pair(" " + lamp(bool(ndh.get("ok"))) + " node     :8791", " meta  %s  pace=%s" % (dec, met.get("pace") or "—"))
+    pair(" " + lamp(pub_ok) + " public   " + str(pub.get("origin") or "—"),
+         " plus  " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
+    print(mid)
+    print(boxline(" " + ACC + "PROTOCOL" + RST + "  "
+                  + lamp(oracle) + " oracle  "
+                  + lamp(mint) + " mint  "
+                  + lamp(burn) + " burn  "
+                  + lamp(waiver) + " lab_waived", w))
+    print(boxline(" " + MUT + "mint/burn locked until oracle_live · n=2 f_max=0" + RST, w))
     print(mid)
     load_frac = 0.0
     try:
         load_frac = float(load[0]) / max(float(ncpu or 1), 1.0)
     except Exception:
         pass
-    print("│ " + ACC + "HOST" + RST + MUT + "  cap 60%  " + RST
-          + ("HOLD " + str(cap.get("reason") or "") if over else "ok")
-          + "   " + spark(LOAD_HIST))
-    print("│  CPU " + bar(min(load_frac, 1.0)) + "  load %.2f %.2f %.2f" % load)
-    print("│  MEM free %s  active %s  wired %s" % (gb(free), gb(active), gb(wired)))
-    print("│  RSS workerd %s  python %s  cloudflared %s" % (kb(wd_rss), kb(py_rss), kb(cf_rss)))
-    print("│  DSK " + dsk + MUT + "  " + dsk_path + RST)
-    print("│  NET " + net())
-    print("│  GIT " + git_sha() + "   " + awake_line())
+    print(boxline(" " + ACC + "HOST" + RST + "  cap 60%  "
+                  + ("HOLD " + str(cap.get("reason") or "") if over else "ok")
+                  + "  " + spark(LOAD_HIST), w))
+    print(boxline("  CPU " + bar(min(load_frac, 1.0), 14) + "  %.2f  %.2f  %.2f" % load, w))
+    print(boxline("  MEM free %s   act %s   wired %s" % (gb(free), gb(active), gb(wired)), w))
+    print(boxline("  RSS wrk %s   py %s   cf %s" % (kb(wd_rss), kb(py_rss), kb(cf_rss)), w))
+    print(boxline("  DSK " + dsk + "  " + dsk_path, w))
+    print(boxline("  NET " + net(), w))
+    print(boxline("  GIT " + git_sha() + "  " + awake_line(), w))
     print(bot)
-    print(" " + ACC + "q" + RST + " quit  "
-          + ACC + "s" + RST + " stop  "
-          + ACC + "b" + RST + " reboot  "
-          + ACC + "g" + RST + " update  "
-          + ACC + "r" + RST + " refresh  "
+    print("  " + ACC + "q" + RST + " quit   "
+          + ACC + "s" + RST + " stop   "
+          + ACC + "b" + RST + " reboot   "
+          + ACC + "g" + RST + " update   "
+          + ACC + "r" + RST + " refresh   "
           + ACC + "?" + RST + " help")
-    print(MUT + "  instrument · 60s frame · reboot does not kill the named-tunnel" + RST)
+    print(MUT + "  instrument · 60s · named-tunnel stays up" + RST)
+
     if HELP:
         print(MUT + "  q UI only · s fog plugin · b workerd+fog · g reset origin/main + exec TUI" + RST)
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
