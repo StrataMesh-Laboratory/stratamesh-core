@@ -1,0 +1,69 @@
+{
+  "schema": "cmn.contingency.v1",
+  "public_origin": "pages",
+  "never": [
+    "workers.dev",
+    "fog-as-apex",
+    "pkill-cloudflared"
+  ],
+  "layers": [
+    {
+      "id": "pages",
+      "role": "public HTML",
+      "hosts": [
+        "calhegasmorais.pt",
+        "sandbox.calhegasmorais.pt"
+      ],
+      "when": "always"
+    },
+    {
+      "id": "python",
+      "role": "auth/API fallback standard",
+      "bind": "127.0.0.1:8790",
+      "public": "mw.calhegasmorais.pt",
+      "when": "worker 1027/405/429"
+    },
+    {
+      "id": "node",
+      "role": "auth/API peer",
+      "bind": "127.0.0.1:8791",
+      "public": "auth.calhegasmorais.pt",
+      "when": "python miss"
+    },
+    {
+      "id": "workerd",
+      "role": "local worker runtime",
+      "bind": "127.0.0.1:8788",
+      "origin": "edge|fog",
+      "when": "edge hop / fog hop \u2014 not apex"
+    },
+    {
+      "id": "fog",
+      "role": "reference node",
+      "bind": "127.0.0.1:8787",
+      "host": "mbpv",
+      "when": "Mac live; never public origin"
+    },
+    {
+      "id": "tailscale",
+      "role": "ops mesh",
+      "hosts": [
+        "mbpv.taild31dc1.ts.net",
+        "edge-grok-cmn-001.taild31dc1.ts.net"
+      ],
+      "when": "CF public hop dead; GHA TS_AUTHKEY"
+    },
+    {
+      "id": "workers",
+      "role": "CF /api only",
+      "when": "under rails cap; not HTML"
+    }
+  ],
+  "auth_order": [
+    "https://mw.calhegasmorais.pt/api/auth",
+    "http://127.0.0.1:8790/api/auth",
+    "https://auth.calhegasmorais.pt/api/auth",
+    "http://127.0.0.1:8791/api/auth",
+    "http://100.108.35.26:8790/api/auth"
+  ]
+}
