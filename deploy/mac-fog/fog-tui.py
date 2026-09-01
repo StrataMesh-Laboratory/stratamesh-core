@@ -300,6 +300,17 @@ def stop_fog() -> str:
 
 def reboot_fog() -> str:
     notes = []
+    try:
+        import sys
+        repo = REPO if (REPO / "src").exists() else Path.home() / "StrataMesh/fog/repo"
+        src = repo / "src"
+        if str(src) not in sys.path:
+            sys.path.insert(0, str(src))
+        from fog_plugins.tmp_sweep import sweep
+        sw = sweep(FOG)
+        notes.append("sweep %s files %sB" % (sw.get("removed"), sw.get("bytes")))
+    except Exception as e:
+        notes.append("sweep skip")
     for label in FOG_LABELS:
         plist = LAUNCH / (label + ".plist")
         if not plist.is_file() and label.endswith("workerd"):
