@@ -22,7 +22,7 @@ from pathlib import Path
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 LAUNCH = Path.home() / "Library/LaunchAgents"
 REPO = FOG / "repo"
-INTERVAL = 8
+INTERVAL = 60
 from collections import deque
 Q_HIST: deque = deque(maxlen=15)
 BURN_HIST: deque = deque(maxlen=15)
@@ -563,7 +563,7 @@ def draw(msg: str = "") -> None:
           + ACC + "g" + RST + " update  "
           + ACC + "r" + RST + " refresh  "
           + ACC + "?" + RST + " help")
-    print(MUT + "  instrument · 8s frame · reboot does not kill the named-tunnel" + RST)
+    print(MUT + "  instrument · 60s frame · reboot does not kill the named-tunnel" + RST)
     if HELP:
         print(MUT + "  q UI only · s fog plugin · b workerd+fog · g reset origin/main + exec TUI" + RST)
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
