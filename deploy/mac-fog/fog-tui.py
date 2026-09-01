@@ -23,6 +23,23 @@ FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 LAUNCH = Path.home() / "Library/LaunchAgents"
 REPO = FOG / "repo"
 INTERVAL = 15
+from collections import deque
+Q_HIST: deque = deque(maxlen=15)
+BURN_HIST: deque = deque(maxlen=15)
+RTT_HIST: deque = deque(maxlen=15)
+HELP = False
+FOCUS = 0  # 0 overview 1 hop 2 strata 3 metabol 4 host
+
+
+def spark(vals) -> str:
+    bars = "▁▂▃▄▅▆▇█"
+    xs = [float(v) for v in vals if v is not None]
+    if not xs:
+        return "·" * 8
+    lo, hi = min(xs), max(xs)
+    span = (hi - lo) or 1.0
+    return "".join(bars[min(7, int((x - lo) / span * 7))] for x in xs)
+
 ACC = "\033[38;2;196;165;116m"
 FG = "\033[38;2;232;230;227m"
 MUT = "\033[38;2;138;135;128m"
@@ -389,7 +406,7 @@ def draw(msg: str = "") -> None:
 
     sys.stdout.write("\033[H\033[J")
     print(ACC + " STRATAMESH" + RST + FG + " LAB" + RST,
-          MUT + "v0.3.0" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
+          MUT + "v0.3.1" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
     print(FG + " Fog Node" + RST, ACC + str(nid) + RST)
     print(MUT + " Intelligentia · Vigilantia · Veritas" + RST)
     print(MUT + " shared web3 metaverse OS · lab · not mainnet" + RST)
@@ -425,33 +442,52 @@ def draw(msg: str = "") -> None:
     pace = met.get("pace") if met.get("pace") is not None else (met.get("cf") or {}).get("pace")
     burn = met.get("burn_rate") or met.get("adjusted") or (met.get("cf") or {}).get("burn_rate")
     rem = met.get("remaining") if met.get("remaining") is not None else (met.get("cf") or {}).get("remaining")
-    print("   metabol", md, " pace=%s" % (None if pace is None else round(float(pace), 3)),
-          " burn=%s" % (None if burn is None else round(float(burn), 3)),
-          " rem=%s" % rem, MUT + "via :8788→CF" + RST)
+    try:
+        if pace is not None:
+            pass
+        if burn is not None:
+            BURN_HIST.append(float(burn))
+    except Exception:
+        pass
+    print("   metabol", md, " pace=%s" % ("—" if pace is None else round(float(pace), 3)),
+          " burn=%s" % ("—" if burn is None else round(float(burn), 3)),
+          " rem=%s" % ("—" if rem is None else rem),
+          MUT + spark(BURN_HIST) + RST, MUT + "via :8788→CF" + RST)
     print(MUT + "   PoC resources → #mint · use → #0 · not a public offer" + RST)
     last = (keep.get("last") or {}) if keep else {}
-    print("   keep-up Q=%.3f  K=%.3f  S=%.3f  %s" % (
-        float(last.get("quantity") or keep.get("quantity_sum") or 0),
-        float(last.get("quality") or keep.get("quality_mean") or 0),
-        float(last.get("score") or keep.get("score_ema") or 0),
+    qv = float(last.get("quantity") or keep.get("quantity_sum") or 0)
+    kv = float(last.get("quality") or keep.get("quality_mean") or 0)
+    sv = float(last.get("score") or keep.get("score_ema") or 0)
+    try:
+        Q_HIST.append(sv)
+    except Exception:
+        pass
+    print("   keep-up Q=%.3f  K=%.3f  S=%.3f  %s  %s" % (
+        qv, kv, sv,
         (OK + "admissible" + RST) if last.get("admissible") else (MUT + "measuring" + RST),
+        MUT + spark(Q_HIST) + RST,
     ))
     ping = (keep.get("ping") or st.get("ping") or {})
     lastp = ping.get("last") if isinstance(ping, dict) else {}
     wrp = lastp.get("workerd") if isinstance(lastp, dict) else None
     print("   ping   workerd", mark(bool(wrp and wrp.get("ok"))) if wrp else MUT + "—" + RST,
           "  rtt", MUT + str((wrp or {}).get("rtt_ms") or ping.get("rtt_ema_ms") or "—") + "ms" + RST)
-    if rails:
-        print("   rails  mint_armed=%s  burn_armed=%s  pending_poc=%s" % (
-            rails.get("mint_armed"), rails.get("burn_armed"), rails.get("pending_poc")))
+    lab_on = bool(rails.get("lab_waived"))
+    print("   rails  mint_armed=%s  burn_armed=%s  lab_waived=%s  pending_poc=%s" % (
+        rails.get("mint_armed"), rails.get("burn_armed"),
+        (OK + "true" + RST) if lab_on else (MUT + "false" + RST),
+        rails.get("pending_poc")))
+    print(MUT + "           mint/burn stay false until oracle_live · lab path is lab_waived" + RST)
     accepted = contrib.get("accepted")
     if accepted is None:
         accepted = contrib.get("events")
     if accepted is None:
         accepted = 0
-    pending = contrib.get("pending")
+    pending = rails.get("pending_poc")
     if pending is None:
-        pending = rails.get("pending_poc") if isinstance(rails, dict) else 0
+        pending = contrib.get("pending")
+    if pending is None:
+        pending = 0
     print("   poc    accepted=%s  pending=%s" % (accepted, pending))
     surplus = float(sub.get("surplus") or 0)
     reserve = float(sub.get("reserve") or 0)
@@ -481,8 +517,16 @@ def draw(msg: str = "") -> None:
           + ACC + "s" + RST + " stop   "
           + ACC + "b" + RST + " reboot   "
           + ACC + "g" + RST + " pull+reboot   "
-          + ACC + "r" + RST + " refresh")
+          + ACC + "r" + RST + " refresh   "
+          + ACC + "?" + RST + " help")
     print(MUT + "  15s · reboot does not kill the public named-tunnel" + RST)
+    if HELP:
+        print(rule)
+        print(ACC + " help" + RST)
+        print(MUT + "  q quit UI only · s stop fog plugin · b reboot workerd+fog" + RST)
+        print(MUT + "  g git pull main + reboot · r redraw · never pkill cloudflared" + RST)
+        print(MUT + "  mint_armed/burn_armed false while oracle_live is false (n=2 f_max=0)" + RST)
+        print(MUT + "  lab_waived true = lab path ON · STRATA mint waits for oracle" + RST)
     if msg:
         print("  " + ACC + msg + RST)
     sys.stdout.flush()
@@ -514,6 +558,7 @@ def confirm(prompt: str) -> bool:
 
 
 def main() -> int:
+    global HELP
     quiet_mac_malloc()
     print("\033[?25l", end="")
     msg = ""
@@ -527,6 +572,9 @@ def main() -> int:
             if ch in ("q", "Q", "\x1b"):
                 return 0
             if ch in ("r", "R"):
+                continue
+            if ch == "?":
+                HELP = not HELP
                 continue
             if ch in ("s", "S"):
                 msg = stop_fog() if confirm("stop fog?") else "stop cancelled"
