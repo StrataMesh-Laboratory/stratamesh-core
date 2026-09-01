@@ -24,3 +24,5 @@ Internet
 Never: `workers.dev` as public host · `pkill cloudflared` · Fog as apex.
 
 Rails: `ops/config/rails.json`. Auth order: `ops/config/contingency.json`.
+
+Last layer: static `frontend/maintenance-1xxx.html` (Pages 404/500 + `/manutencao`). If every hop is dead, this page is what remains.
