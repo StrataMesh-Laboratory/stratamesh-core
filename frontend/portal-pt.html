@@ -116,85 +116,74 @@ body.in-session .user-info{display:flex!important}
     <div class="login-kicker">Calhegas Morais Node</div>
     <h2 id="formTitle">Sign in</h2>
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
-    <input type="email" id="email" placeholder="Email" autocomplete="email">
-    <input type="password" id="password" placeholder="Palavra-passe" autocomplete="current-password">
+    <form id="cmnAuthForm" action="/api/auth/login" method="post" novalidate>
+    <input type="email" id="email" name="email" placeholder="Email" autocomplete="email" required>
+    <input type="password" id="password" name="password" placeholder="Palavra-passe" autocomplete="current-password" required>
     <label class="tick" for="asStaff">
-      <input type="checkbox" id="asStaff" />
+      <input type="checkbox" id="asStaff" name="asStaff" />
       <span>Acesso de pessoal (staff) — mesmas caixas</span>
     </label>
     <div id="user2faRow" style="margin:.5rem 0">
-      <input id="userOtp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos) — depois de Continuar" autocomplete="one-time-code">
-      <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem">O código chega por e-mail (pessoal sem app) ou pela app autenticadora.</p>
+      <input id="userOtp" name="otp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos) — depois de Continuar" autocomplete="one-time-code">
+      <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem">O código chega por e-mail.</p>
     </div>
-
     <div class="error" id="loginError" style="color:#e8c4a8;min-height:1.2em;margin:.5rem 0"></div>
-            <div id="termsRow" class="terms-box">
+    <div id="termsRow" class="terms-box">
       <label class="terms-lab" for="termsAccept">
         <input type="checkbox" id="termsAccept" />
         <span id="termsLabel"></span>
       </label>
       <p class="terms-more"><a href="/api/auth/terms?lang=pt" target="_blank" rel="noopener" id="termsLink">Ler termos completos</a></p>
     </div>
-<div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
-    <button type="button" id="authBtn">Continuar</button>
+    <div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
+    <button type="submit" id="authBtn">Continuar</button>
+    </form>
     <script>
-    (function(){
-      var b=document.getElementById('authBtn');
-      if(!b || b.getAttribute('data-bound')) return;
-      b.setAttribute('data-bound','1');
-      function err(msg){
-        var el=document.getElementById('loginError');
-        if(el){ el.style.display='block'; el.textContent=msg||''; }
-      }
-      function ts(){
-        try{
-          var el=document.querySelector('[name="cf-turnstile-response"]');
-          if(el && el.value) return el.value;
-          if(window.turnstile && turnstile.getResponse) return turnstile.getResponse()||'';
-        }catch(_){}
-        return '';
-      }
-      b.addEventListener('click', function(ev){
-        ev.preventDefault();
-        ev.stopPropagation();
-        var email=((document.getElementById('email')||{}).value||'').trim();
-        var pass=(document.getElementById('password')||{}).value||'';
-        var otp=((document.getElementById('userOtp')||{}).value||'').trim();
-        var staff=!!((document.getElementById('asStaff')||{}).checked);
-        if(!email||!pass){ err('Email e palavra-passe obrigatórios'); return; }
-        b.disabled=true;
-        var prev=b.textContent;
-        b.textContent='A autenticar…';
-        var url=staff?'/api/auth/staff/login':'/api/auth/login';
+    window.__cmnSubmit=async function(ev){
+      if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+      var errEl=document.getElementById('loginError');
+      var btn=document.getElementById('authBtn');
+      function err(m){ if(errEl){ errEl.style.display='block'; errEl.textContent=m||''; } }
+      var email=((document.getElementById('email')||{}).value||'').trim();
+      var pass=(document.getElementById('password')||{}).value||'';
+      var otp=((document.getElementById('userOtp')||{}).value||'').trim();
+      if(!email||!pass){ err('Email e palavra-passe obrigatórios'); return false; }
+      var ts='';
+      try{
+        var hid=document.querySelector('[name="cf-turnstile-response"]');
+        if(hid&&hid.value) ts=hid.value;
+        else if(window.turnstile&&turnstile.getResponse) ts=turnstile.getResponse()||'';
+      }catch(_){}
+      if(btn){ btn.disabled=true; btn.textContent='A autenticar…'; }
+      try{
+        var url='/api/auth/login';
+        var payload={email:email,password:pass,lang:'pt',channel:'email','cf-turnstile-response':ts};
         if(otp && window.__cmnChallenge){
-          url=staff?'/api/auth/staff/2fa':'/api/auth/auth/email/verify';
+          url='/api/auth/email/verify';
+          payload={email:email,code:otp,challenge:window.__cmnChallenge,lang:'pt'};
         }
-        var body=otp && window.__cmnChallenge
-          ? {email:email, code:otp, challenge:window.__cmnChallenge, lang:'pt'}
-          : {email:email, password:pass, lang:'pt', channel:'email', 'cf-turnstile-response':ts()};
-        fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)})
-          .then(function(r){ return r.json().then(function(j){ j._http=r.status; return j; }).catch(function(){ return {_http:r.status, error:'Resposta inválida'}; }); })
-          .then(function(j){
-            if(j.requires_2fa || j.challenge){
-              window.__cmnChallenge=j.challenge;
-              var row=document.getElementById('user2faRow'); if(row) row.style.display='block';
-              err(j.message||'Introduza o código de 6 dígitos do e-mail');
-              b.textContent='Verificar 2FA';
-              return;
-            }
-            if(j.success && (j.token||j.session_token)){
-              try{ localStorage.setItem('token', j.token||j.session_token); localStorage.setItem('sm_token', j.token||j.session_token); localStorage.setItem('auth_type', staff?'staff':'user'); }catch(_){}
-              if(typeof showPortal==='function'){ showPortal(Object.assign({email:email}, j)); return; }
-              location.href='/dashboard';
-              return;
-            }
-            err(j.error||j.message||('Falha HTTP '+j._http));
-            b.textContent=prev;
-          })
-          .catch(function(e){ err(String(e&&e.message||e)); b.textContent=prev; })
-          .then(function(){ b.disabled=false; });
-      });
-    })();
+        var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+        var j=await r.json().catch(function(){return {};});
+        if(j.requires_2fa || j.challenge){
+          window.__cmnChallenge=j.challenge;
+          var row=document.getElementById('user2faRow'); if(row) row.style.display='block';
+          err(j.email_sent ? (j.message||'Código enviado para o e-mail.') : (j.message||'2FA necessário'));
+          if(btn) btn.textContent='Verificar 2FA';
+          return false;
+        }
+        if((j.success||j.token) && (j.token||j.session_token)){
+          var tok=j.token||j.session_token;
+          try{ localStorage.setItem('token',tok); localStorage.setItem('sm_token',tok); }catch(_){}
+          if(typeof showPortal==='function') showPortal(Object.assign({email:email},j));
+          else location.href='/dashboard';
+          return false;
+        }
+        err(j.error||j.message||('HTTP '+r.status));
+      }catch(e){ err(String(e&&e.message||e)); }
+      finally{ if(btn){ btn.disabled=false; if(!window.__cmnChallenge) btn.textContent='Continuar'; } }
+      return false;
+    };
+    document.getElementById('cmnAuthForm').addEventListener('submit', window.__cmnSubmit);
     </script>
     <div class="toggle" onclick="toggleMode()" id="toggleText">Precisa de conta? Registar</div>
     <div class="toggle" onclick="forgotPassword()" id="resetPwToggle">Repor palavra-passe</div>
