@@ -31,6 +31,7 @@ const server = http.createServer(async (req, res) => {
     port: PORT,
     role: "middleware",
     listening: true,
+    release: "v0.5.0-lab",
     node_id: "FOG-NODE-PT-CM-001",
     edge_id: "EDGE-GROK-CMN-001",
     n: 2,
