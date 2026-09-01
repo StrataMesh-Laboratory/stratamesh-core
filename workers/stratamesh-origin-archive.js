@@ -2,7 +2,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // stratamesh-origin-archive.js
-var VERSION = "0.1.7-align";
+var VERSION = "0.5.0-lab";
 var COOKIE = "cmn_origin_session";
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -159,7 +159,7 @@ function publicLanding() {
        <div class="row"><span class="mono">Roles</span><span class="mono">macbook (primary) · session (standby)</span></div>
        <div class="row"><span class="mono">Rule</span><span class="mono">one DNS target · macbook-server stays Mac-only</span></div>
        <div class="row"><span class="mono">Git</span><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">stratamesh-core</a></div>
-       <div class="row"><span class="mono">HEAD</span><span class="mono">aa1a27e00ed7 · 0.1.7-align</span></div>
+       <div class="row"><span class="mono">HEAD</span><span class="mono">aa1a27e00ed7 · 0.5.0-lab</span></div>
        <div class="row"><span class="mono">Token / Ágora / Status</span><span class="mono">3.5.5-fog-honest · 3.3.1-gold-spot · 0.4.8-circ-split</span></div>
      </div>
      <div class="card">
@@ -261,7 +261,7 @@ var stratamesh_origin_archive_default = {
         ok: true,
         service: "stratamesh-origin-archive",
         version: VERSION,
-        core_prerelease: "v0.4.2-lab",
+        core_prerelease: "v0.5.0-lab",
         staff_gated: true,
         public_landing: true,
         sixth_cron: false,
