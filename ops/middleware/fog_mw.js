@@ -1,8 +1,14 @@
 #!/usr/bin/env node
+/**
+ * Node mw :8791 — compose hop JSON in parallel.
+ * Not cap (Python). Not metabol math (workerd). Not public origin.
+ */
 import http from "node:http";
 
 const PORT = parseInt(process.env.FOG_MW_NODE_PORT || "8791", 10);
 const WORKERD = process.env.WORKERD_HEALTH || "http://127.0.0.1:8788";
+const PY = process.env.FOG_MW_PY || "http://127.0.0.1:8790";
+const FOG = process.env.FOG_HEALTH || "http://127.0.0.1:8787";
 
 function send(res, code, obj) {
   const body = JSON.stringify(obj);
@@ -14,44 +20,52 @@ function send(res, code, obj) {
   res.end(body);
 }
 
-async function metabol() {
+async function pull(url) {
   try {
-    const r = await fetch(WORKERD + "/metabol", { signal: AbortSignal.timeout(1200) });
+    const r = await fetch(url, { signal: AbortSignal.timeout(1200) });
     return await r.json();
   } catch (e) {
-    return { ok: false, error: String(e && e.message || e) };
+    return { ok: false, error: String(e && e.message || e), url };
   }
+}
+
+async function assemble() {
+  const [workerd, py, fog, metabol] = await Promise.all([
+    pull(WORKERD + "/health"),
+    pull(PY + "/plugins"),
+    pull(FOG + "/health"),
+    pull(WORKERD + "/metabol"),
+  ]);
+  return {
+    ok: !!(workerd.ok || py.ok || fog.ok),
+    runtime: "node",
+    role: "compose",
+    release: "v0.5.0-lab",
+    hop: {
+      workerd: { port: 8788, isolate: true, metabol: metabol.decision || metabol.cf?.decision || null, origin: workerd.origin || null, ok: !!workerd.ok },
+      python: { port: 8790, cap: py.plugins?.host_cap || null, plugins: py.plugins ? Object.keys(py.plugins) : [], ok: !!py.ok },
+      fog: { port: 8787, node_id: fog.node_id || "FOG-NODE-PT-CM-001", version: fog.version || null, ok: !!fog.ok },
+      node: { port: PORT, ok: true },
+    },
+    cmn: { n: 2, mesh_member: true, edge_id: "EDGE-GROK-CMN-001", oracle_live: false },
+    public: { fog: "https://fog.calhegasmorais.pt", edge: "https://edge.calhegasmorais.pt" },
+  };
 }
 
 const server = http.createServer(async (req, res) => {
   const url = String(req.url || "/").split("?")[0];
-  const base = {
-    ok: true,
-    runtime: "node",
-    port: PORT,
-    role: "middleware",
-    listening: true,
-    release: "v0.5.0-lab",
-    node_id: "FOG-NODE-PT-CM-001",
-    edge_id: "EDGE-GROK-CMN-001",
-    n: 2,
-    mesh_member: true,
-    oracle_live: false,
-    hop: "workerd:8788 + fog:8787 + mw py:8790 node:8791",
-  };
-  if (req.method === "GET" && ["/","/health","/mw/health"].includes(url)) return send(res, 200, base);
-  if (req.method === "GET" && ["/cmn","/mw/cmn"].includes(url)) {
+  if (req.method !== "GET") return send(res, 405, { ok: false });
+  if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
-      ...base,
-      public: { fog: "https://fog.calhegasmorais.pt", edge: "https://edge.calhegasmorais.pt" },
-      plugins: ["host_cap","keepup","ping","rails","tmp_sweep","runtime_mesh","metabol"],
+      ok: true, runtime: "node", role: "compose", port: PORT,
+      listening: true, release: "v0.5.0-lab",
     });
   }
-  if (req.method === "GET" && ["/metabol","/mw/metabol"].includes(url)) {
-    return send(res, 200, { ok: true, runtime: "node", snap: await metabol() });
+  if (["/assemble", "/cmn", "/mw/cmn", "/mw/assemble"].includes(url)) {
+    return send(res, 200, await assemble());
   }
-  if (req.method === "GET" && ["/plugins","/mw/plugins"].includes(url)) {
-    return send(res, 200, { ok: true, runtime: "node", plugins: ["host_cap","keepup","ping","rails","tmp_sweep","runtime_mesh"] });
+  if (["/metabol", "/mw/metabol"].includes(url)) {
+    return send(res, 200, { ok: true, runtime: "node", snap: await pull(WORKERD + "/metabol") });
   }
   send(res, 404, { ok: false });
 });
@@ -60,5 +74,5 @@ server.on("error", (err) => {
   process.exit(1);
 });
 server.listen(PORT, "127.0.0.1", () => {
-  process.stderr.write("fog-mw node listening 127.0.0.1:" + PORT + "\n");
+  process.stderr.write("fog-mw node compose 127.0.0.1:" + PORT + "\n");
 });
