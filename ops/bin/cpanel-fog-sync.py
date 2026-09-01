@@ -6,7 +6,7 @@ from pathlib import Path
 
 HOST = os.environ.get("CPANEL_HOST", "94.126.169.39")
 PORT = os.environ.get("CPANEL_PORT", "2083")
-USER = os.environ.get("CPANEL_USER", "")
+USER = os.environ.get("CPANEL_USER", "calhegas")
 
 VAULTS = [
     Path.home() / ".config" / "stratamesh",
