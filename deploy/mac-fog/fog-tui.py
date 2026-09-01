@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog runtime UI v0.3.2. Destyle. 60s.
+"""StrataMesh LAB Fog runtime UI v0.5.0-lab. Destyle. 60s.
 q quit · s stop · b reboot · g git pull+reboot · r refresh
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
@@ -435,7 +435,7 @@ def draw(msg: str = "") -> None:
 
     sys.stdout.write("\033[H\033[J")
     print(ACC + " STRATAMESH" + RST + FG + " LAB" + RST,
-          MUT + "v0.3.2" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
+          MUT + "v0.5.0-lab" + RST, DIM + time.strftime("%H:%M:%S") + RST, mark(live))
     print(FG + " Fog Node" + RST, ACC + str(nid) + RST)
     print(MUT + " Intelligentia · Vigilantia · Veritas" + RST)
     print(MUT + " shared web3 metaverse OS · lab · not mainnet" + RST)
@@ -445,7 +445,7 @@ def draw(msg: str = "") -> None:
           "  mac_live", yn(hop.get("mac_live") or st.get("mac_live")),
           "  trusted", yn(st.get("trusted") if "trusted" in st else hop.get("trusted")))
     print("   mesh   ", "n=%s" % n, "  f_max=%s" % fmax, "  member=%s" % member, "  oracle=%s" % st.get("oracle_live"))
-    print("   ver    ", MUT + str(st.get("version") or "0.3.0") + RST, "  up", ago(st.get("uptime_seconds")))
+    print("   ver    ", MUT + str(st.get("version") or "0.5.0-lab") + RST, "  up", ago(st.get("uptime_seconds")))
     print(rule)
     print(ACC + " origin hop" + RST)
     print("   workerd :8788", mark(hop.get("ok") is True),
