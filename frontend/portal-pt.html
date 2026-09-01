@@ -127,7 +127,7 @@ body.in-session .user-info{display:flex!important}
       <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem">O código chega por e-mail (pessoal sem app) ou pela app autenticadora.</p>
     </div>
 
-    <div class="error" id="loginError"></div>
+    <div class="error" id="loginError" style="color:#e8c4a8;min-height:1.2em;margin:.5rem 0"></div>
             <div id="termsRow" class="terms-box">
       <label class="terms-lab" for="termsAccept">
         <input type="checkbox" id="termsAccept" />
@@ -136,7 +136,21 @@ body.in-session .user-info{display:flex!important}
       <p class="terms-more"><a href="/api/auth/terms?lang=pt" target="_blank" rel="noopener" id="termsLink">Ler termos completos</a></p>
     </div>
 <div id="turnstile-slot" class="cf-turnstile" data-sitekey="0x4AAAAAADF2vDlGNQpLYloe" data-theme="dark" data-size="flexible" style="margin:0.75rem 0"></div>
-    <button type="button" onclick="handleAuth()" id="authBtn">Continuar</button>
+    <button type="button" id="authBtn">Continuar</button>
+    <script>
+    (function(){
+      var b=document.getElementById('authBtn');
+      if(!b || b.getAttribute('data-bound')) return;
+      b.setAttribute('data-bound','1');
+      b.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        try{
+          if(typeof handleAuth==='function'){ handleAuth(); return; }
+        }catch(e){ var el=document.getElementById('loginError'); if(el){el.style.display='block';el.textContent=String(e&&e.message||e);} }
+      });
+    })();
+    </script>
     <div class="toggle" onclick="toggleMode()" id="toggleText">Precisa de conta? Registar</div>
     <div class="toggle" onclick="forgotPassword()" id="resetPwToggle">Repor palavra-passe</div>
 
@@ -1661,7 +1675,7 @@ async function staffAuth(){
     if (!staffChallenge) {
       const r = await fetch(AUTH + '/staff/login', {
         method: 'POST', headers: {'Content-Type':'application/json','Accept':'application/json'},
-        body: JSON.stringify({email, password: pass, lang: LANG==='en'?'en':'pt'})
+        body: JSON.stringify({email, password: pass, lang: LANG==='en'?'en':'pt', 'cf-turnstile-response': (typeof getTurnstileToken==='function'?getTurnstileToken():'')})
       });
       const j = await r.json().catch(()=>({}));
       if (!j.success) throw new Error(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')'));
