@@ -1,0 +1,52 @@
+# HEAD → origin hops. STASIS sheds CF workers; Pages + middleware still ship.
+name: hop-weight
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches: [main]
+    paths:
+      - "ops/config/contingency.json"
+      - "ops/config/rails.json"
+      - "ops/bin/hop-weight.py"
+      - "ops/bin/cmn-spa-python.py"
+      - "ops/bin/cmn-spa-node.mjs"
+      - ".github/workflows/hop-weight.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: hop-weight
+  cancel-in-progress: true
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    outputs:
+      picked: ${{ steps.w.outputs.picked }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: w
+        run: |
+          python3 ops/bin/hop-weight.py | tee /tmp/w.json
+          echo "picked=$(python3 -c 'import json;print(json.load(open("/tmp/w.json"))["picked"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hop-weight
+          path: ops/config/contingency.json
+
+  pages:
+    needs: pick
+    uses: ./.github/workflows/loci-pages.yml
+    secrets: inherit
+    if: always()
+
+  live:
+    needs: pick
+    uses: ./.github/workflows/live-from-git.yml
+    secrets: inherit
+    if: always()
