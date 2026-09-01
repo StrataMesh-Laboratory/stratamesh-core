@@ -11,6 +11,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from fog_plugins import host_cap
 from urllib.request import urlopen
 
 PORT = int(os.environ.get("WORKERD_PORT") or "8788")
@@ -174,6 +175,14 @@ class WorkerdPlugin:
     def _loop(self) -> None:
         self.start()
         while not self._stop.wait(POLL_SEC):
+            try:
+                snap = host_cap.snapshot()
+            except Exception:
+                snap = {"over": False}
+            if snap.get("over"):
+                self._stop.wait(max(0, int(snap.get("backoff_sec") or 60) - POLL_SEC))
+                if self.healthy():
+                    continue
             if not self.healthy():
                 self.reboot()
 
