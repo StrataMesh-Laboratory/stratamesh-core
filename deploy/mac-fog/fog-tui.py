@@ -228,9 +228,11 @@ def host_cpu() -> tuple[str, str, str]:
 
 def disk() -> tuple[str, str]:
     try:
-        u = shutil.disk_usage(str(FOG if FOG.exists() else Path.home()))
-        pct = int(100 * u.used / u.total) if u.total else 0
-        return "%s / %s (%d%%)" % (gb(u.used), gb(u.total), pct), str(FOG)
+        u = shutil.disk_usage("/")
+        # Match df -h / : consumed = total - available (not APFS used-with-purgeable)
+        consumed = max(0, u.total - u.free)
+        pct = int(100 * consumed / u.total) if u.total else 0
+        return "%s / %s (%d%%)" % (gb(consumed), gb(u.total), pct), "/"
     except Exception:
         return "—", str(FOG)
 
