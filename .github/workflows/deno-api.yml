@@ -1,0 +1,36 @@
+# Deno Deploy — TS APIs from HEAD. Skips if DENO_DEPLOY_TOKEN missing.
+name: deno-api
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "ops/deno/**"
+      - ".github/workflows/deno-api.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: check
+        run: deno check ops/deno/main.ts
+      - name: deploy
+        if: env.DENO_DEPLOY_TOKEN != ''
+        run: |
+          deno install -A jsr:@deno/deployctl
+          deployctl deploy --project=stratamesh-api --entrypoint=ops/deno/main.ts --prod
+        continue-on-error: true
+      - name: skip
+        if: env.DENO_DEPLOY_TOKEN == ''
+        run: echo "no DENO_DEPLOY_TOKEN — structure only"
