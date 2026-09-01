@@ -24,7 +24,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 .header{max-width:960px;margin:0 auto;padding:1.1rem 1.5rem;display:flex;align-items:baseline;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line)}
 .header h1{font-family:Georgia,ui-serif,serif;font-weight:400;font-size:1.35rem;letter-spacing:-.01em}
 .header h1 span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:.6rem}
-.header .user-info{display:flex;align-items:center;gap:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)}
+.header .user-info{display:none;align-items:center;gap:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)}
 .header .role-badge{padding:.15rem .5rem;border:1px solid var(--line2);border-radius:2px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .header .logout{cursor:pointer;color:var(--muted)}.header .logout:hover{color:var(--danger)}
 body.in-session .user-info{display:flex!important}
@@ -795,6 +795,8 @@ async function applyVaPrefs(){
 }
 
 function showPortal(user){
+  try{ document.body.classList.add('in-session'); }catch(_){}
+
   if(user){
     currentUser=Object.assign({}, currentUser||{}, user);
     var cl=mapCl(user.clearance_level||user.clearance||user.role||'');
@@ -854,6 +856,8 @@ function showPortal(user){
 }
 
 function logout(){
+  try{ document.body.classList.remove('in-session'); }catch(_){}
+
   token=null; currentUser=null;
   try{
     localStorage.removeItem('sm_token');
