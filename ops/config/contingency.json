@@ -174,16 +174,45 @@
   ],
   "additive": [
     {
-      "a": "cf-pages",
-      "b": "deno-deploy-static",
-      "mode": "split-html",
-      "note": "same class cap, additive if paths/hosts differ; HEAD from main"
-    },
-    {
-      "a": "cf-workers",
-      "b": "deno-deploy-fn",
-      "mode": "split-api",
-      "note": "auth stays python; Deno takes read-only /status /health mirrors so CF auth is not 737k"
+      "a": "cloudflare",
+      "b": "deno-deploy",
+      "mode": "strength-split",
+      "note": "not a mirror. CF edge+HTML+WAF; Deno TS APIs; Python auth on cap."
     }
-  ]
+  ],
+  "strength_split": {
+    "cloudflare": {
+      "keeps": [
+        "apex DNS",
+        "WAF",
+        "Pages HTML",
+        "Turnstile",
+        "zone calhegasmorais.pt",
+        "fail-open to origin"
+      ],
+      "why": "PoPs, TLS, custom hostnames already live"
+    },
+    "deno_deploy": {
+      "takes": [
+        "TypeScript APIs",
+        "Node-shaped middleware",
+        "status/mesh/read paths",
+        "Hono/Fresh handlers from ops/bin/cmn-spa-node.mjs"
+      ],
+      "why": "native TS, longer CPU than CF free 10ms, npm/Deno 2 closer to :8791, deploys measured in seconds"
+    },
+    "python_fog": {
+      "takes": [
+        "auth fallback",
+        "STASIS login"
+      ],
+      "why": "already standard anti-405"
+    },
+    "workerd_local": {
+      "takes": [
+        "same Worker source when CF ALLOW"
+      ],
+      "why": "compat, not extra SaaS cap"
+    }
+  }
 }
