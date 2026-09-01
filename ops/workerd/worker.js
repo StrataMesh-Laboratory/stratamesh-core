@@ -98,7 +98,7 @@ export default {
         mesh_member: n >= 2,
         mesh_provision: mac_live || edge_live,
         layer,
-        version: "0.3.0",
+        version: "0.5.0-lab",
         oracle_live: false,
         substrate: "workerd-hop",
         metabol: "/metabol",
