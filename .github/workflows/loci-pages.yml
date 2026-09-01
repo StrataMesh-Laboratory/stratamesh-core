@@ -1,0 +1,22 @@
+name: loci-pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "loci/pages/**"
+      - ".github/workflows/loci-pages.yml"
+
+permissions:
+  contents: read
+
+# Publish tree is committed; Wrangler deploy needs CF token in GOD_API.
+# Manual until Pages Git connector is attached to project `stratamesh`.
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Loci tree present
+        run: ls -la loci/pages && python3 -m py_compile ops/bin/cmn-spa-python.py && test -f ops/bin/cmn-spa-node.mjs
