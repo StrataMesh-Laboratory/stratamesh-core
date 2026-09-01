@@ -52,7 +52,8 @@ h1{font-family:system-ui,sans-serif;font-weight:400;font-size:clamp(2.2rem,6vw,3
 .nav-dd>summary::-webkit-details-marker{display:none}
 .nav-dd>summary::after{content:" ▾";font-size:.7em}
 .nav-dd[open]>summary{border-color:var(--accent);color:var(--accent)}
-.nav-dd .nav-dd-list{position:absolute;left:0;top:calc(100% + .35rem);z-index:5;min-width:14rem;background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem}
+.nav-dd .nav-dd-list{position:absolute;left:0;right:auto;top:calc(100% + .35rem);z-index:5;min-width:11rem;max-width:min(16rem,calc(100vw - 1.5rem));background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem;box-sizing:border-box}
+.cta-row .nav-dd:last-of-type .nav-dd-list{left:auto;right:0}
 .nav-dd .nav-dd-list a{display:block;padding:.55rem .75rem;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:0}
 .nav-dd .nav-dd-list a:hover{color:var(--accent)}
 
@@ -185,7 +186,7 @@ details.faq p{margin:.55rem 0 0}
     <p class="lead">Porta de entrada pública do <strong>Nó de Névoa Calhegas Morais</strong> — nó de referência da <strong>StrataMesh</strong>, uma rede de <a class="g" href="#glossario-trd">registo distribuído</a> orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.</p>
     <div class="plain">
       <p class="pk">Em linguagem simples</p>
-      <ol><li>A StrataMesh é uma TRD em <strong>laboratório</strong>. Dois anfitriões: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, contínuo) e EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, sessão): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>Este sítio é a porta pública desse par — não uma malha povoada nem Bizantina. Gossip lista Fog + EDGE em domínios próprios; o P0 continua aberto até n≥3.</li><li>v0.3.0 publicou o <strong>kit Fog Node</strong>. v0.4.0-lab publica a <strong>Academia ACB</strong>: formação correctiva e exploratória sempre disponível para o Orquestrador e a AIOps (Ollama ← Hugging Face no Fog). Segredos ficam na máquina.</li><li>Pode ler o projecto, ver se Fog / gossip / EDGE estão no ar e, se quiser, abrir o portal. Não é preciso pagar para começar.</li></ol>
+      <ol><li>A StrataMesh é uma TRD em <strong>laboratório</strong>. Dois anfitriões: Fog Mac (<span class="mono">FOG-NODE-PT-CM-001</span>, contínuo) e EDGE-GROK (<span class="mono">EDGE-GROK-CMN-001</span>, sessão): <span class="mono">n=2</span>, <span class="mono">mesh_member=true</span>, <span class="mono">f_max=0</span>.</li><li>Este sítio é a porta pública desse par — não uma malha povoada nem Bizantina. Gossip lista Fog + EDGE em domínios próprios; o P0 continua aberto até n≥3.</li><li>Pode ler o projecto, ver se Fog / gossip / EDGE estão no ar e, se quiser, abrir o portal. Não é preciso pagar para começar. O kit Fog e a Academia estão em Documentação.</li></ol>
     </div>
     <div class="cta-row">
       <a class="btn" href="/dashboard">Entrar</a>
