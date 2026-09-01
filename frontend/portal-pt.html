@@ -123,7 +123,11 @@ body.in-session .user-info{display:flex!important}
       <input type="checkbox" id="asStaff" name="asStaff" />
       <span>Acesso de pessoal (staff) — mesmas caixas</span>
     </label>
-    <div id="user2faRow" style="margin:.5rem 0">
+    <label class="tick" for="trustDevice">
+      <input type="checkbox" id="trustDevice" name="trustDevice" />
+      <span>Confiar neste dispositivo (1 hora sem 2FA nesta conta)</span>
+    </label>
+    <div id="user2faRow" style="margin:.5rem 0;display:none">
       <input id="userOtp" name="otp" type="text" inputmode="numeric" placeholder="Código 2FA (6 dígitos) — depois de Continuar" autocomplete="one-time-code">
       <p id="userOtpHint" style="font-size:.75rem;color:var(--muted);margin-top:.35rem">O código chega por e-mail.</p>
     </div>
@@ -157,7 +161,9 @@ body.in-session .user-info{display:flex!important}
       if(btn){ btn.disabled=true; btn.textContent='A autenticar…'; }
       try{
         var url='/api/auth/login';
-        var payload={email:email,password:pass,lang:'pt',channel:'email','cf-turnstile-response':ts};
+        var did=localStorage.getItem('cmn_device_id'); if(!did){ did='d'+Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('cmn_device_id',did); }
+        var trust=!!((document.getElementById('trustDevice')||{}).checked);
+        var payload={email:email,password:pass,lang:'pt',channel:'email',device_id:did,trust_device:trust,'cf-turnstile-response':ts};
         if(otp && window.__cmnChallenge){
           url='/api/auth/email/verify';
           payload={email:email,code:otp,challenge:window.__cmnChallenge,lang:'pt'};
