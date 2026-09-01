@@ -177,6 +177,19 @@ def loop() -> None:
     while True:
         start_edge()
         start_workerd()
+        try:
+            from fog_plugins.mac_fallback import tick as mac_tick
+            st = mac_tick()
+            if st.get("standby"):
+                log("mac standby dark_for=%ss plan=%s" % (st.get("dark_for"), (st.get("plan") or {}).get("metabol")))
+                # keep hop + mw; do not flip Fog DNS from EDGE
+                try:
+                    from fog_plugins.runtime_mesh import RuntimeMeshPlugin
+                    RuntimeMeshPlugin().attach()
+                except Exception as e:
+                    log("mw attach " + str(e))
+        except Exception as e:
+            log("mac_fallback " + str(e))
         if os.environ.get("EDGE_TUNNEL") == "1":
             start_tunnel()
         hop = get_json(LOCAL, 3)
