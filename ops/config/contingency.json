@@ -160,6 +160,30 @@
       "shed": "Wasm experiments; not auth, not apex",
       "weight": 4,
       "status": "explore"
+    },
+    {
+      "current": "cf-pages+workers",
+      "complement": "deno-deploy",
+      "also": [
+        "github-pages"
+      ],
+      "shed": "additive 100k-class: split hosts/paths; do not double the same /api/auth",
+      "weight": 5,
+      "status": "planned"
+    }
+  ],
+  "additive": [
+    {
+      "a": "cf-pages",
+      "b": "deno-deploy-static",
+      "mode": "split-html",
+      "note": "same class cap, additive if paths/hosts differ; HEAD from main"
+    },
+    {
+      "a": "cf-workers",
+      "b": "deno-deploy-fn",
+      "mode": "split-api",
+      "note": "auth stays python; Deno takes read-only /status /health mirrors so CF auth is not 737k"
     }
   ]
 }
