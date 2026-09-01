@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .ping import PingPlugin, PingResult
+from . import host_cap
 
 SCHEMA = "stratamesh.fog.keepup.v1"
 DATA = Path(os.environ.get("FOG_DATA") or "/workspace/data/fog")
@@ -121,6 +122,7 @@ class KeepUpPlugin:
         return _clamp(0.35 * ok_ratio + 0.25 * uptime + 0.20 * residual + 0.20 * rtt_score)
 
     def measure(self) -> KeepUpSample:
+        cap = host_cap.snapshot()
         results = list(self.ping.tick())
         # In-process Fog is the measurer — always ready if this thread runs.
         fog = PingResult("fog", "in-process", True, 200, 0.0, False, None)
@@ -129,6 +131,10 @@ class KeepUpPlugin:
         flags = self._flags()
         residual = self._residual()
         quality, factors, unready = self._quality(results, flags)
+        if cap.get("over"):
+            unready = True
+            factors = dict(factors or {})
+            factors["host_cap"] = cap
         if unready:
             self.missed += 1
         else:
@@ -199,6 +205,11 @@ class KeepUpPlugin:
         self.measure()
         while not self._stop.wait(POLL_SEC):
             try:
+                snap = host_cap.snapshot()
+                if snap.get("over"):
+                    self._stop.wait(max(0, int(snap.get("backoff_sec") or 60) - POLL_SEC))
+                    self.measure()
+                    continue
                 self.measure()
             except Exception:
                 self.missed += 1
