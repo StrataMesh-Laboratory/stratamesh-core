@@ -81,5 +81,25 @@
       "/500"
     ],
     "when": "all hops failed"
+  },
+  "weight": {
+    "pages": 0,
+    "python": 1,
+    "node": 1,
+    "workerd": 2,
+    "fog": 2,
+    "tailscale": 1,
+    "cf-worker": 10,
+    "maintenance": 0,
+    "rule": "serve cheapest ALLOW hop; STASIS sheds cf-worker to python then node then pages then maintenance"
+  },
+  "head": {
+    "ref": "main",
+    "via": [
+      "live-from-git.yml",
+      "loci-pages.yml",
+      "outdated-aliases.yml",
+      "hop-weight.yml"
+    ]
   }
 }
