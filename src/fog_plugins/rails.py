@@ -7,10 +7,15 @@ I1 #mint does not receive. I3 #0 does not spend.
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 from .keepup import KeepUpSample
+
+_DATA = Path(os.environ.get("FOG_DATA") or str(Path.home() / "StrataMesh/fog/data"))
+_STORE = _DATA / "rails.json"
 
 
 def _flag(name: str) -> bool:
@@ -27,6 +32,36 @@ class RailsPlug:
         self.pending_burn = 0.0
         self.settled_poc = 0.0
         self.settled_burn = 0.0
+        self._load()
+
+    def _load(self) -> None:
+        try:
+            raw = json.loads(_STORE.read_text())
+        except Exception:
+            return
+        if not isinstance(raw, dict):
+            return
+        for k in ("pending_poc", "pending_burn", "settled_poc", "settled_burn"):
+            try:
+                setattr(self, k, max(0.0, float(raw.get(k) or 0)))
+            except (TypeError, ValueError):
+                pass
+
+    def _save(self) -> None:
+        try:
+            _DATA.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "schema": "stratamesh.fog.rails.v1",
+                "pending_poc": round(self.pending_poc, 6),
+                "pending_burn": round(self.pending_burn, 6),
+                "settled_poc": round(self.settled_poc, 6),
+                "settled_burn": round(self.settled_burn, 6),
+            }
+            tmp = _STORE.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(payload, indent=2))
+            tmp.replace(_STORE)
+        except Exception:
+            pass
 
     def armed(self) -> dict:
         oracle = False  # lab lock; mesh_flags.oracle_live stays false
@@ -54,6 +89,7 @@ class RailsPlug:
                     self.subsistence.consume(node_id, compute=0.01)
                 except Exception:
                     pass
+            self._save()
             return out
 
         self.pending_poc += sample.score
@@ -99,6 +135,7 @@ class RailsPlug:
                     out["burn"] = {"amount": amt, "pole": "#0"}
             except Exception as e:
                 out["burn_error"] = type(e).__name__
+        self._save()
         return out
 
     def snapshot(self) -> dict:
