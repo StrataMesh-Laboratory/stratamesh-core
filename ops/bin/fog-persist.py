@@ -466,6 +466,12 @@ def loop() -> None:
 
 
 def main() -> int:
+    try:
+        sys.path.insert(0, str(Path(os.environ.get("FOG_SRC") or Path.home() / "StrataMesh/fog/repo") / "src"))
+        from fog_plugins.tmp_sweep import sweep
+        sweep(Path(os.environ.get("FOG_HOME") or Path.home() / "StrataMesh/fog"))
+    except Exception:
+        pass
     if "--status" in sys.argv:
         print(json.dumps(flux_status(), indent=2))
         return 0
