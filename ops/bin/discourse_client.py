@@ -58,24 +58,32 @@ def login(o):
     if not pw:
         sys.stderr.write("no DISCOURSE_PASSWORD in env or ~/.config/stratamesh/secrets.env\n")
         sys.exit(2)
-    html, hdr = get(o, IDP + "/session/email")
-    token = csrf_from(html, hdr)
-    data = urllib.parse.urlencode({"login": EMAIL, "password": pw, "authenticity_token": token}).encode()
+    html, hdr = get(o, FORUM + "/session/csrf")
+    try:
+        token = json.loads(html).get("csrf")
+    except Exception:
+        token = csrf_from(html, hdr)
+    data = urllib.parse.urlencode({"login": USER, "password": pw}).encode()
     req = urllib.request.Request(
-        IDP + "/session",
+        FORUM + "/session",
         data=data,
-        headers={"User-Agent": "cmn-discourse", "Content-Type": "application/x-www-form-urlencoded"},
+        headers={
+            "User-Agent": "cmn-discourse",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRF-Token": token or "",
+            "X-Requested-With": "XMLHttpRequest",
+        },
     )
     try:
         o.open(req, timeout=30)
     except Exception as e:
-        sys.stderr.write("idp session " + str(e) + "\n")
-    get(o, FORUM + "/auth/discourse_id")
+        sys.stderr.write("forum /session " + str(e) + "\n")
+        sys.exit(1)
     html, hdr = get(o, FORUM + "/session/csrf")
     try:
-        return json.loads(html).get("csrf") or csrf_from(html, hdr)
+        return json.loads(html).get("csrf") or token
     except Exception:
-        return csrf_from(html, hdr)
+        return token
 
 def announce(title, body, cat=5):
     o, _ = op()
