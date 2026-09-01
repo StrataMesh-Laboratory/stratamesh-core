@@ -1,0 +1,50 @@
+# Hop + metabolic stasis — 2026-09-01 RCA
+
+## What went DOWN
+Cloudflare **error 1027** on `calhegasmorais.pt/*` (Workers daily request quota).
+GraphQL 2026-09-01 00:00Z→12:30Z:
+
+| script | requests |
+|---|---|
+| stratamesh-sandbox-host | 1.20M |
+| stratamesh-auth | 0.74M |
+| all other scripts | ~10k |
+| **account** | **~1.95M** |
+
+## Root causes
+1. **HTML hop = Worker.** Catch-all `calhegasmorais.pt/* → stratamesh-spa` billed every home/dashboard/iframe GET.
+2. **sandbox-host `Cache-Control: no-store`.** Every atelier refresh + bot + iframe = a Worker invocation.
+3. **bootSession → `/api/auth/me`** on every atelier load (auth 736k).
+4. **`metabolism.yml` only unit-tests the formula.** It never read live GraphQL spend. Stasis existed on paper (`ops/config/rails.json` v1.3) and was not a circuit on the hop.
+5. **origin-fallback / inventory still posted to #52** (retired intensive rail).
+
+## Hop law (structural)
+| layer | what | bill |
+|---|---|---|
+| L0 Pages | HTML: `/`, `/dashboard`, `/login`, assets | Pages (not Workers 1027) |
+| L1 Worker API | `/api/*` only, `Cache-Control` public where safe | Workers |
+| L2 Node | `ops/bin/cmn-spa-node.mjs` `:8791` intensive loops | local CPU |
+| L3 R2 | `cmn-origin-archive` | storage |
+| L4 hold page | static 503 card on Pages if L0 missing | Pages |
+
+**Never** put `calhegasmorais.pt/*` back on `stratamesh-spa`.
+
+## Contingency sequence (DOWN)
+1. Detect 1027 / GraphQL hour_spent ≥ 2× hourly_cap → **STASIS**.
+2. Serve apex from **Pages** `calhegasmorais-pt` (already bound to the zone).
+3. Atelier: `sandbox.calhegasmorais.pt` only if under cap; else dashboard iframe → Pages copy / Node.
+4. Auth `/me`: cache 60s in the browser; no poll.
+5. Intensive probes → Node `:8791`, never KV `RATE_LIMIT`.
+6. Human channel: daily Actions (`metabolic-stasis.yml`), not #52.
+
+## Reestablishment (quota renews 00:00 UTC)
+1. GraphQL day_spent reset → circuit ALLOW.
+2. Do **not** restore spa catch-all.
+3. Keep sandbox-host `public, max-age=120`.
+4. Re-enable only API routes that 429'd.
+5. One probe per host, then stop.
+
+## Formula (unchanged v1.3)
+`hourly_cap = remaining / hours_until_renewal(UTC 00:00)`
+`STASIS` if `hour_spent ≥ 2 × cap`.
+Static Pages assets do not consume the Workers 100k/plan bucket.
