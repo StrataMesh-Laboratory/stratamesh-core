@@ -81,9 +81,11 @@ def d1(sql: str, params=None):
 def put_html(key: str, html: str) -> int:
     parts = [html[i : i + CHUNK] for i in range(0, len(html), CHUNK)] or [""]
     d1("DELETE FROM site_content_chunks WHERE key = ?", [key])
+    import time as _t
+    _t.sleep(0.15)
     for i, part in enumerate(parts):
         d1(
-            "INSERT INTO site_content_chunks (key, idx, value) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO site_content_chunks (key, idx, value) VALUES (?, ?, ?)",
             [key, i, part],
         )
     return len(parts)
