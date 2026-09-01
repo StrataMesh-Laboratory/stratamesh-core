@@ -18,7 +18,7 @@ function json(data: unknown, status = 200) {
   });
 }
 
-Deno.serve((req) => {
+Deno.serve({ hostname: "0.0.0.0", port: 8792 }, (req) => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
