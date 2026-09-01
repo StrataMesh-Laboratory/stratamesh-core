@@ -57,6 +57,12 @@
       "id": "workers",
       "role": "CF /api only",
       "when": "under rails cap; not HTML"
+    },
+    {
+      "id": "maintenance",
+      "role": "static last page",
+      "file": "frontend/maintenance-1xxx.html",
+      "when": "all layers failed"
     }
   ],
   "auth_order": [
@@ -65,5 +71,15 @@
     "https://auth.calhegasmorais.pt/api/auth",
     "http://127.0.0.1:8791/api/auth",
     "http://100.108.35.26:8790/api/auth"
-  ]
+  ],
+  "last_layer": {
+    "id": "maintenance",
+    "file": "frontend/maintenance-1xxx.html",
+    "routes": [
+      "/manutencao",
+      "/404",
+      "/500"
+    ],
+    "when": "all hops failed"
+  }
 }
