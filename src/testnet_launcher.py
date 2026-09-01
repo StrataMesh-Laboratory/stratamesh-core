@@ -112,6 +112,20 @@ def assert_spread(label: str, counts: list[int], max_spread: float) -> float:
     return s
 
 
+def sync_until(bases, ports, max_spread: float, rounds_cap: int = 12, label: str = "sync"):
+    """Pull INV/TX until spread is inside budget or rounds_cap is exhausted."""
+    from mesh_sync import sync_mesh
+    last = []
+    for i in range(max(1, rounds_cap)):
+        sync_mesh(bases, rounds=1)
+        last = collect_counts(ports)
+        s = spread_of(last)
+        print(f"  {label} round {i+1}/{rounds_cap} spread={s:.2%} counts={last}")
+        if s <= max_spread + 1e-12:
+            return last
+    return last
+
+
 def start_node(script: str, src_dir: str, port: int, db: str, node_id: str) -> subprocess.Popen:
     env = os.environ.copy()
     env["FOG_TESTNET"] = "1"
@@ -243,7 +257,7 @@ def main() -> None:
         from mesh_sync import mesh_report, sync_mesh
 
         bases = [f"http://127.0.0.1:{p}" for p in ports]
-        sync_mesh(bases, rounds=args.sync_rounds)
+        sync_until(bases, ports, max_spread, args.sync_rounds, "pre-kill")
         time.sleep(0.2)
 
         counts = collect_counts(ports)
@@ -293,7 +307,7 @@ def main() -> None:
             n_ok = submit_rounds(remain_ports, args.post_kill_rounds, tag="postkill")
             if gate and n_ok < len(remain_ports):
                 raise SystemExit("ASSERT FAIL: remaining peers could not submit after kill")
-            sync_mesh(remain_bases, rounds=args.sync_rounds)
+            sync_until(remain_bases, remain_ports, max_spread, args.sync_rounds, "post-kill")
             time.sleep(0.2)
             remain_counts = collect_counts(remain_ports)
             print_status("Remaining peers after kill", remain_ports, remain_counts, remain_idx)
@@ -331,7 +345,7 @@ def main() -> None:
                     f"(loaded={loaded} < remain_max={max(remain_counts)})"
                 )
                 all_bases = [f"http://127.0.0.1:{p}" for p in ports]
-                sync_mesh(all_bases, rounds=args.sync_rounds)
+                sync_until(all_bases, ports, max_spread, args.sync_rounds, "post-restart")
                 time.sleep(0.2)
                 after = collect_counts(ports)
                 print_status("Post-restart catch-up", ports, after)
