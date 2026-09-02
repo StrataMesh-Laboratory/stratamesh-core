@@ -91,7 +91,7 @@ html[data-screen-touch="yes"] .stick{display:block!important;pointer-events:auto
 #gate .card{max-width:calc(100% - 2rem);width:auto;box-sizing:border-box;margin:0 1rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.96);text-align:center}
 #gate h2{margin:.4rem 0 .3rem;font-size:1.25rem}
 #gate a.btn,#avatarSheet button.primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1rem;margin-top:.8rem;border:1px solid var(--teal);background:var(--surface);color:var(--teal);border-radius:8px;text-decoration:none;font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
-#avatarSheet{display:none;position:absolute;inset:0;z-index:13;background:rgba(7,17,28,.55);pointer-events:auto}
+#btnAvatar,#btnAvatarSheet,#avatarSheet{display:none!important;}#avatarSheet{display:none;position:absolute;inset:0;z-index:13;background:rgba(7,17,28,.55);pointer-events:auto}
 #avatarSheet.on{display:flex;align-items:flex-end}
 #avatarSheet .panel{width:100%;max-height:70dvh;overflow:auto;border-top:1px solid var(--line);background:var(--surface);border-radius:14px 14px 0 0;padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
 .swatch{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);cursor:pointer}
@@ -151,7 +151,7 @@ h1{font-size:13px}
     <button type="button" data-t="rotate">5 Rotate</button>
     <button type="button" id="btnGnu">GNU</button>
     <button type="button" id="btnAtlas">Atlas MUD</button>
-    <button type="button" id="btnAvatar">Avatar</button>
+    
   </div>
   <div id="phoneDock">
     <button type="button" id="btnUse">Use</button>
@@ -179,7 +179,7 @@ h1{font-size:13px}
         <button type="button" data-t="rotate">5 Rotate</button>
       </div>
       <div class="row">
-        <button type="button" class="ghost" id="btnAvatarSheet">Avatar</button>
+        
         <button type="button" class="ghost" id="btnAtlasSheet">Atlas MUD</button>
         <button type="button" class="ghost" id="sheetClose">Close</button>
       </div>
@@ -204,7 +204,7 @@ h1{font-size:13px}
   <div id="enter"><div class="card" id="enterBtn" role="button" onclick="window.__gnuPlay&&window.__gnuPlay(event)" ontouchend="window.__gnuPlay&&window.__gnuPlay(event)">
     <div class="mono">v0.5.1-session · inhabit / orbit</div>
     <h2 id="enterTitle">Entrar no Ateliê GNU</h2>
-    <p class="muted">Session-bound workbench. WASD walk · drag look · tap floor / object. Touch devices get joysticks.</p>
+    <p class="muted">Renderer for this account. WASD walk · drag look. No visitor catalog, no avatar.</p>
   </div></div>
   <aside id="atlas">
     <div class="mono">Absorb models, not ontology · v0.5.1-session</div>
@@ -595,7 +595,7 @@ function buildZone() {
   }
   document.getElementById("ztitle").textContent = z.title;
   document.getElementById("zpath").textContent = `/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/${zone}/${ADDR.id}`;
-  const host = location.host || "gnu-atelier.pages.dev";
+  const host = location.hostname || "sandbox.calhegasmorais.pt";
   const mono = document.getElementById("idMeta");
   if (mono) mono.textContent = host + " · " + CORE + " · holon 5 UGC · " + ADDR.owner + "/" + ADDR.id;
   const sp = document.getElementById("sheetPath");
@@ -604,22 +604,8 @@ function buildZone() {
 
 function seed() {
   nfts.length = 0;
-  nfts.push({ id: "nft-bench", name: "Holon 5 · Workbench UGC", role: "creation", zone: "bancada", owner: ADDR.owner });
-  nfts.push({ id: "nft-exit", name: "Exit · Open world", role: "exit", zone: "bancada" });
-  nfts.push({ id: "nft-verb", name: "Verb stone", role: "verb", zone: "bancada", owner: ADDR.owner });
-  nfts.push({ id: "nft-crt", name: "GNU CRT", role: "verb", zone: "bancada" });
-  nfts.push({ id: "cmn-node", name: NODE_ID, role: "node", zone: "rua", owner: NODE_ID, kind: "node" });
-  ROOM_LOTS.forEach(([id, name]) => {
-    nfts.push({ id: "lot-"+id, name: "Lot · "+name, role: "building", zone: "rua", dest: id });
-  });
-  nfts.push({ id: "stall-eur", name: "Stall · EUR book", role: "stall", zone: "agora" });
-  ROOM_OBJECTS.forEach(([id, name]) => {
-    nfts.push({ id: "obj-"+id, name: name, role: "creation", zone: id, owner: NODE_ID });
-  });
-  ACB_ROSTER.forEach((a) => {
-    nfts.push({ id: a.id, name: a.name+" · "+a.cargo, role: "avatar", zone: "acb", owner: a.sca, cargo: a.cargo, color: a.color, subject: true });
-  });
-  loadAccountNfts();
+  equippedAvatar = null;
+  if (ADDR.owner && ADDR.owner !== "pending") loadAccountNfts();
 }
 function rebuild() {
   clear(nftRoot); groups.length = 0;
@@ -799,7 +785,7 @@ function runCmd(raw) {
     saveAccountNfts(); rebuild(); log("mint", "isolated −0.2 L-STRATA · " + ADDR.owner); return;
   }
   if (cmd === "who") { log("who", (SESSION.ready ? ADDR.owner + " · " + SESSION.kind : "no-session") + " · " + zone); return; }
-  if (cmd === "avatar") { toggleAvatarSheet(true); return; }
+  if (cmd === "avatar") { log("avatar", "account-bound · no public avatar"); return; }
   log(cmd || "?", arg || "ok");
 }
 
@@ -866,7 +852,7 @@ function setPresence(p) {
   const btn = document.getElementById("btnMode");
   btn.textContent = presence === "observe" ? "Inhabit" : "Orbit";
   btn.classList.toggle("on", presence === "observe");
-  avatar.visible = presence === "observe";
+  avatar.visible = false;
   restPads();
   if (presence === "observe") {
     try { document.exitPointerLock(); } catch {}
