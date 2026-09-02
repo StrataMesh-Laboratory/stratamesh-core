@@ -1,7 +1,14 @@
-# Pages fail-open (1027). API orchestrator is a Function — never rewrite to HTML.
-# /api/orchestrator*  → functions/api/orchestrator/*
-# /api/v1/orchestrator* → functions/api/v1/orchestrator/*
-# apex /sandbox must not 308 to itself; HTML atelier lives on sandbox.calhegasmorais.pt (Pages), not a Worker catch-all.
+# Pages fail-open (1027). Never SPA-rewrite hop-owned paths to index HTML.
+# Live 2026-09-02 PT: /atelier and /api/health were 200 same HTML as /;
+# /sandbox was 308 Location /sandbox (self-loop). Apex Pages must 404 those.
+# Do NOT add /* /index.html 200. Hops/tunnels may still own the hostnames.
+# Functions under functions/api remain in-tree; _routes.json excludes /api/*
+# so Pages does not serve landing HTML (or fake JSON) on /api/health.
 /manutencao /maintenance-1xxx.html 200
-/sandbox https://sandbox.calhegasmorais.pt/ 302
-/sandbox/ https://sandbox.calhegasmorais.pt/ 302
+/atelier /404.html 404
+/atelier/* /404.html 404
+/api/* /404.html 404
+/sandbox /404.html 404
+/sandbox/* /404.html 404
+/chat /404.html 404
+/chat/* /404.html 404
