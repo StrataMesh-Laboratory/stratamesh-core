@@ -6,6 +6,8 @@ Product entry: [`../fog-node/README.md`](../fog-node/README.md).
 
 Wizard `fog-bootstrap.py` · installer `FogNodeInstaller.command` · TUI `fog-tui.py` · Finder apps in `apps/`.
 
+TUI: `?` opens an in-window Ollama troubleshooting pane (local `:11434`, observe-only if down). `C` clears that chat (not `r`, not the 60s redraw). First paint / `r` is local hops only (`127.0.0.1`, 0.3s); public fog/edge lamps use a background cache.
+
 No secrets in this tree. Node id + 2FA + optional tokens live in `~/.config/stratamesh`.
 
 ```bash

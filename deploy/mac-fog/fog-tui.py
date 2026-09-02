@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
-Cell-grid panels. q quit · s stop · b reboot · g update · r refresh
+Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
+C clears wizard chat only (not r / 60s redraw). Local Ollama :11434, observe-only if down.
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import select
 import shutil
 import subprocess
@@ -31,6 +33,20 @@ LOAD_HIST: deque = deque(maxlen=16)
 HELP = False
 FOCUS = 0
 FRAME = 0
+WIZARD_LOG: list[dict] = []
+WIZARD_INPUT = ""
+WIZARD_BUSY = False
+WIZARD_SNAP: dict = {}
+_WIZARD_LOCK = threading.Lock()
+WIZARD_VIEW = 8
+WIZARD_MAX = 80
+WIZARD_RESERVED = frozenset(("q", "Q", "\x1b", "s", "S", "b", "B", "g", "G", "r", "R", "?"))
+LOCAL_HTTP_TIMEOUT = 0.3
+PUB_CACHE: dict = {"ok": False}
+EDGE_CACHE: dict = {"ok": False}
+MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no status.calhegasmorais.pt)
+_PUB_LOCK = threading.Lock()
+_PUB_BUSY = False
 _PRINT = print
 try:
     DEV_TTY = open("/dev/tty", "w", encoding="utf-8", errors="replace")
@@ -169,22 +185,62 @@ def get(url: str, timeout: float = 2.0) -> dict:
         return {"ok": False, "error": str(e)}
 
 
-def pids_rss(name: str) -> list[tuple[int, int]]:
-    """(pid, rss_kb) for exact comm match."""
+def is_local_instrument_url(url: str) -> bool:
+    u = (url or "").lower()
+    return u.startswith("http://127.0.0.1:") or u.startswith("http://localhost:")
+
+
+def kick_public_refresh() -> None:
+    """Fog/edge /health in a daemon thread. Never blocks draw(). Never hits CF status."""
+    global _PUB_BUSY
+    if _PUB_BUSY:
+        return
+
+    def _run() -> None:
+        global _PUB_BUSY
+        try:
+            pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
+            edge = get("https://edge.calhegasmorais.pt/health", timeout=3.0)
+            if not isinstance(pub, dict):
+                pub = {"ok": False}
+            if not isinstance(edge, dict):
+                edge = {"ok": False}
+            with _PUB_LOCK:
+                PUB_CACHE.clear()
+                PUB_CACHE.update(pub)
+                EDGE_CACHE.clear()
+                EDGE_CACHE.update(edge)
+        except Exception:
+            pass
+        finally:
+            _PUB_BUSY = False
+
+    _PUB_BUSY = True
+    threading.Thread(target=_run, name="fog-tui-pub", daemon=True).start()
+
+
+def pids_rss_table(names: tuple[str, ...] = ("workerd", "python3", "cloudflared")) -> dict[str, list[tuple[int, int]]]:
+    """One `ps` for all RSS rows."""
     out = sh(["ps", "-axo", "pid=,rss=,comm="])
-    rows = []
+    want = set(names)
+    rows: dict[str, list[tuple[int, int]]] = {n: [] for n in names}
     for line in out.splitlines():
         parts = line.split(None, 2)
         if len(parts) < 3:
             continue
         comm = Path(parts[2].strip()).name
-        if comm != name:
+        if comm not in want:
             continue
         try:
-            rows.append((int(parts[0]), int(parts[1])))
+            rows[comm].append((int(parts[0]), int(parts[1])))
         except ValueError:
             continue
     return rows
+
+
+def pids_rss(name: str) -> list[tuple[int, int]]:
+    """(pid, rss_kb) for exact comm match. Prefer pids_rss_table in draw()."""
+    return pids_rss_table((name,)).get(name, [])
 
 
 def mem() -> tuple[int, int, int, int]:
@@ -448,6 +504,346 @@ def boxline(inner: str, width: int) -> str:
     return "│" + inner + (" " * pad) + "│"
 
 
+
+def wizard_json_path() -> Path:
+    return FOG / "data" / "tui-wizard.json"
+
+
+def load_wizard_log() -> None:
+    """Restore WIZARD_LOG from FOG/data/tui-wizard.json. Missing file = empty."""
+    global WIZARD_LOG
+    pth = wizard_json_path()
+    try:
+        raw = json.loads(pth.read_text(encoding="utf-8"))
+        rows = raw if isinstance(raw, list) else raw.get("log") or []
+        clean = []
+        for rec in rows:
+            if not isinstance(rec, dict):
+                continue
+            clean.append({
+                "ts": str(rec.get("ts") or ""),
+                "role": str(rec.get("role") or "sys"),
+                "text": str(rec.get("text") or ""),
+            })
+        with _WIZARD_LOCK:
+            WIZARD_LOG = clean[-WIZARD_MAX:]
+    except Exception:
+        with _WIZARD_LOCK:
+            WIZARD_LOG = []
+
+
+def save_wizard_log() -> None:
+    pth = wizard_json_path()
+    try:
+        pth.parent.mkdir(parents=True, exist_ok=True)
+        with _WIZARD_LOCK:
+            payload = list(WIZARD_LOG[-WIZARD_MAX:])
+        pth.write_text(json.dumps(payload, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
+
+def wizard_append(role: str, text: str) -> None:
+    rec = {
+        "ts": time.strftime("%H:%M:%S"),
+        "role": str(role or "sys"),
+        "text": str(text or ""),
+    }
+    with _WIZARD_LOCK:
+        WIZARD_LOG.append(rec)
+        del WIZARD_LOG[:-WIZARD_MAX]
+    save_wizard_log()
+
+
+def wizard_clear() -> None:
+    """C only. Does not quit. Does not recycle hops. Does not reboot."""
+    global WIZARD_LOG, WIZARD_INPUT
+    with _WIZARD_LOCK:
+        WIZARD_LOG = []
+        WIZARD_INPUT = ""
+    pth = wizard_json_path()
+    try:
+        pth.unlink()
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+
+
+def ollama_base() -> str:
+    h = (os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434").strip().rstrip("/")
+    if not h:
+        h = "http://127.0.0.1:11434"
+    if "://" not in h:
+        h = "http://" + h
+    return h
+
+
+WIZARD_SYSTEM = (
+    "You are the Fog LAB instrument troubleshooting wizard on the operator Mac TUI. "
+    "Lab phase is Adversarial P1 at n=2 (f_max=0). Public hop ORIGIN=session with n=1 is a "
+    "public-origin flag, not the lab phase. TUI HOLD is metabolic host_cap, not a CPU RCA. "
+    "Never pkill cloudflared. Never origin-take. Never workers.dev. Never a 6th Cloudflare cron. "
+    "Never secrets. Never PATCH STASIS=1. "
+    "You may emit lines ACTION:probe hops / ACTION:tail fog log / ACTION:suggest g / "
+    "ACTION:suggest s / ACTION:suggest b. Ask the operator before they press g/s/b; do not "
+    "claim you executed them. Triage, diagnose, and log problems. Suggest fixes only within "
+    "those parameters."
+)
+
+_ACTION_DENY = (
+    "pkill",
+    "cloudflared",
+    "workers.dev",
+    "origin-take",
+    "origin_take",
+    "secret",
+    "stasis",
+    "kill -",
+    "launchctl",
+    "curl ",
+    "wget ",
+    "ssh ",
+)
+
+
+def wizard_action_allowed(spec: str) -> bool:
+    s = (spec or "").strip().lower()
+    if any(d in s for d in _ACTION_DENY):
+        return False
+    if s == "probe hops":
+        return True
+    if s == "tail fog log":
+        return True
+    if s in ("suggest g", "suggest s", "suggest b"):
+        return True
+    return False
+
+
+def parse_wizard_actions(text: str) -> list[str]:
+    out = []
+    for raw in (text or "").splitlines():
+        m = re.match(r"^\s*ACTION:\s*(.+?)\s*$", raw, re.I)
+        if m:
+            out.append(m.group(1).strip())
+    return out
+
+
+def _safe_under_fog(path: Path) -> bool:
+    try:
+        fog = FOG.resolve()
+        target = path.resolve()
+        return target == fog or fog in target.parents
+    except Exception:
+        return False
+
+
+def wizard_run_action(spec: str) -> tuple[str, str]:
+    """Allowlist only. Never git_pull_reboot / stop_fog / reboot_fog."""
+    s = (spec or "").strip()
+    low = s.lower()
+    if not wizard_action_allowed(s):
+        note = "ACTION rejected: %s" % (s[:80] or "(empty)")
+        wizard_append("sys", note)
+        return "rejected", note
+    if low == "probe hops":
+        lines = []
+        for port in (8788, 8787, 8790, 8791, 8792):
+            h = get("http://127.0.0.1:%d/health" % port, timeout=1.5)
+            ok = h.get("ok") is True or h.get("status") == "operational"
+            err = str(h.get("error") or "")[:40]
+            lines.append(":%d %s%s" % (port, "LIVE" if ok else "DOWN", (" " + err) if err and not ok else ""))
+        note = "probe hops\n" + "\n".join(lines)
+        wizard_append("sys", note)
+        return "ok", note
+    if low == "tail fog log":
+        candidates = [
+            FOG / "logs" / "fog.log",
+            FOG / "log" / "fog.log",
+            FOG / "fog.log",
+            FOG / "data" / "fog.log",
+        ]
+        chosen = None
+        for c in candidates:
+            if c.is_file() and _safe_under_fog(c):
+                chosen = c
+                break
+        if chosen is None:
+            note = "tail fog log: no log under FOG_HOME"
+            wizard_append("sys", note)
+            return "ok", note
+        try:
+            data = chosen.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]
+            note = "tail %s\n%s" % (chosen.name, "\n".join(data) or "(empty)")
+        except Exception as e:
+            note = "tail fog log skip: %s" % type(e).__name__
+        wizard_append("sys", note)
+        return "ok", note
+    if low.startswith("suggest "):
+        k = low.split()[-1]
+        names = {
+            "g": "g (git pull + reboot) — wizard will not run it",
+            "s": "s (stop fog) — wizard will not run it",
+            "b": "b (reboot fog+workerd) — wizard will not run it",
+        }
+        note = "operator: press %s" % names.get(k, k)
+        wizard_append("sys", note)
+        return "ok", note
+    note = "ACTION rejected: %s" % s[:80]
+    wizard_append("sys", note)
+    return "rejected", note
+
+
+def compact_wizard_context(snap: dict | None = None) -> str:
+    d = snap if isinstance(snap, dict) else dict(WIZARD_SNAP)
+    hops = d.get("hops") if isinstance(d.get("hops"), dict) else {}
+    lamps = " ".join(
+        "%s:%s" % (p, "●" if hops.get(p) else "○")
+        for p in ("8788", "8787", "8790", "8791", "8792")
+    )
+    return (
+        "git=%s hops=%s origin=%s mac_live=%s host_cap.over=%s last_msg=%s n=%s"
+        % (
+            d.get("git") or "—",
+            lamps,
+            d.get("origin") or "—",
+            d.get("mac_live"),
+            d.get("host_cap_over"),
+            str(d.get("msg") or "")[:80],
+            d.get("n"),
+        )
+    )
+
+
+def ollama_first_tag(timeout: float = 2.0) -> str:
+    try:
+        data = get(ollama_base() + "/api/tags", timeout=timeout)
+        models = data.get("models") if isinstance(data, dict) else None
+        if not models:
+            return ""
+        first = models[0] if isinstance(models[0], dict) else {}
+        return str(first.get("name") or first.get("model") or "")
+    except Exception:
+        return ""
+
+
+def _wizard_history_text() -> str:
+    with _WIZARD_LOCK:
+        rows = list(WIZARD_LOG[-12:])
+    lines = []
+    for rec in rows:
+        lines.append("%s: %s" % (rec.get("role"), (rec.get("text") or "")[:500]))
+    return "\n".join(lines)
+
+
+def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
+    """POST /api/generate stream:false on a daemon thread. Never blocks draw()."""
+    global WIZARD_BUSY
+
+    def _run() -> None:
+        global WIZARD_BUSY
+        try:
+            model = ollama_first_tag()
+            if not model:
+                wizard_append("sys", "ollama down — wizard observe-only")
+                return
+            body = json.dumps({
+                "model": model,
+                "prompt": "CONTEXT:\n%s\n\nCHAT:\n%s\n\nUSER:\n%s\n" % (
+                    compact_wizard_context(snap),
+                    _wizard_history_text(),
+                    prompt,
+                ),
+                "system": WIZARD_SYSTEM,
+                "stream": False,
+            }).encode()
+            req = urllib.request.Request(
+                ollama_base() + "/api/generate",
+                data=body,
+                method="POST",
+                headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
+            )
+            with urllib.request.urlopen(req, timeout=12.0) as r:
+                resp = json.loads(r.read().decode())
+            out = str((resp or {}).get("response") or "").strip()
+            if not out:
+                wizard_append("sys", "ollama empty — wizard observe-only")
+                return
+            wizard_append("ollama", out)
+            for act in parse_wizard_actions(out):
+                wizard_run_action(act)
+        except Exception:
+            wizard_append("sys", "ollama down — wizard observe-only")
+        finally:
+            WIZARD_BUSY = False
+
+    WIZARD_BUSY = True
+    threading.Thread(target=_run, name="fog-tui-ollama", daemon=True).start()
+
+
+def wizard_send(text: str | None = None) -> None:
+    global WIZARD_INPUT
+    msg = (text if text is not None else WIZARD_INPUT).strip()
+    WIZARD_INPUT = ""
+    if not msg:
+        return
+    wizard_append("user", msg)
+    if WIZARD_BUSY:
+        wizard_append("sys", "ollama busy — wait")
+        return
+    wizard_ollama_generate(msg, dict(WIZARD_SNAP))
+
+
+def wizard_consume_key(ch: str) -> bool:
+    """While HELP: composer. Reserved keys (q s b g r ? C) stay global.
+    Return True if the key was consumed by the wizard (do not run other handlers).
+    C is reserved globally and always clears chat even when HELP is False.
+    """
+    global WIZARD_INPUT
+    if ch == "C":
+        wizard_clear()
+        return True
+    if not HELP:
+        return False
+    if ch in WIZARD_RESERVED:
+        return False
+    if ch in ("\r", "\n"):
+        wizard_send()
+        return True
+    if ch in ("\x7f", "\x08"):
+        WIZARD_INPUT = WIZARD_INPUT[:-1]
+        return True
+    if ch in ("\x03",):
+        return False
+    if len(ch) == 1 and ch.isprintable():
+        WIZARD_INPUT += ch
+        return True
+    return True
+
+
+def draw_wizard_pane(cols: int, w: int) -> None:
+    """Re-paint last N log lines every frame (CSI H J wipes pixels)."""
+    print = lambda *a, **k: _PRINT(*a, file=k.pop("file", DEV_TTY), **k)  # noqa
+    print(MUT + "  ─ wizard (local ollama) ─" + RST)
+    with _WIZARD_LOCK:
+        view = list(WIZARD_LOG[-WIZARD_VIEW:])
+        inp = WIZARD_INPUT
+        busy = WIZARD_BUSY
+    if not view:
+        print(MUT + "  (empty · Enter send · C clear · survives r / 60s)" + RST)
+    for rec in view:
+        role = rec.get("role") or "sys"
+        ts = rec.get("ts") or ""
+        text = (rec.get("text") or "").replace("\n", " / ")
+        line = "  %s %s %s" % (ts, role, text)
+        if vislen(line) > cols - 1:
+            line = line[: cols - 2] + "…"
+        print(MUT + line + RST)
+    cursor = "…" if busy else ""
+    print("  " + ACC + ">" + RST + " " + inp + cursor)
+    print(MUT + "  ? wizard on · C clear chat · Enter send · ollama :11434" + RST)
+
+
 def draw(msg: str = "") -> None:
     global FRAME
     FRAME += 1
@@ -462,32 +858,14 @@ def draw(msg: str = "") -> None:
         DEV_TTY.flush()
     except Exception:
         pass
-    hop = get("http://127.0.0.1:8788/health")
-    st = get("http://127.0.0.1:8787/status")
-    pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
-    edge = get("https://edge.calhegasmorais.pt/health", timeout=3.0)
-    met = get("http://127.0.0.1:8788/metabol")
-    if not met.get("ok") or met.get("pace") is None:
-        cfm = get("https://status.calhegasmorais.pt/metabol", timeout=3.0)
-        if cfm.get("ok"):
-            met = dict(cfm)
-            met["cf"] = cfm
-    if met.get("ok"):
-        try:
-            reqm = urllib.request.Request(
-                "http://127.0.0.1:8788/metabol/consume",
-                data=json.dumps({
-                    "cost": 0.05,
-                    "node_id": (st.get("node_id") or hop.get("node_id") or "FOG-NODE-PT-CM-001"),
-                    "persist": False,
-                }).encode(),
-                method="POST",
-                headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
-            )
-            with urllib.request.urlopen(reqm, timeout=2.0) as rm:
-                met = json.loads(rm.read().decode())
-        except Exception:
-            pass
+    kick_public_refresh()
+    tloc = LOCAL_HTTP_TIMEOUT
+    hop = get("http://127.0.0.1:8788/health", timeout=tloc)
+    st = get("http://127.0.0.1:8787/status", timeout=tloc)
+    met = get("http://127.0.0.1:8788/metabol", timeout=tloc)
+    with _PUB_LOCK:
+        pub = dict(PUB_CACHE)
+        edge = dict(EDGE_CACHE)
     wr = st.get("workerd") if isinstance(st.get("workerd"), dict) else {}
     dag = st.get("dag") if isinstance(st.get("dag"), dict) else {}
     spa = st.get("spa") if isinstance(st.get("spa"), dict) else {}
@@ -532,9 +910,10 @@ def draw(msg: str = "") -> None:
     live = hop.get("ok") is True and st.get("status") == "operational"
     brand, ncpu, boot = host_cpu()
     dsk, dsk_path = disk()
-    wd = pids_rss("workerd")
-    py = pids_rss("python3")
-    cf = pids_rss("cloudflared")
+    rss_map = pids_rss_table(("workerd", "python3", "cloudflared"))
+    wd = rss_map.get("workerd") or []
+    py = rss_map.get("python3") or []
+    cf = rss_map.get("cloudflared") or []
     wd_rss = sum(r for _, r in wd)
     py_rss = sum(r for _, r in py)
     cf_rss = sum(r for _, r in cf)
@@ -547,9 +926,9 @@ def draw(msg: str = "") -> None:
         LOAD_HIST.append(float(load[0]))
     except Exception:
         pass
-    pyh = get("http://127.0.0.1:8790/health", timeout=0.8)
-    ndh = get("http://127.0.0.1:8791/health", timeout=0.8)
-    dnh = get("http://127.0.0.1:8792/health", timeout=0.8)
+    pyh = get("http://127.0.0.1:8790/health", timeout=tloc)
+    ndh = get("http://127.0.0.1:8791/health", timeout=tloc)
+    dnh = get("http://127.0.0.1:8792/health", timeout=tloc)
     cols, rows = shutil.get_terminal_size((88, 28))
     cols = max(72, min(int(cols), 120))
 
@@ -650,7 +1029,8 @@ def draw(msg: str = "") -> None:
     print(boxline("  RSS wrk %s   py %s   cf %s" % (kb(wd_rss), kb(py_rss), kb(cf_rss)), w))
     print(boxline("  DSK " + dsk + "  " + dsk_path, w))
     print(boxline("  NET " + net(), w))
-    print(boxline("  GIT " + git_sha() + "  " + awake_line(), w))
+    sha_now = git_sha()
+    print(boxline("  GIT " + sha_now + "  " + awake_line(), w))
     print(bot)
     print("  " + ACC + "q" + RST + " quit   "
           + ACC + "s" + RST + " stop   "
@@ -660,9 +1040,28 @@ def draw(msg: str = "") -> None:
           + ACC + "?" + RST + " help")
     print(MUT + "  instrument · 60s · named-tunnel stays up" + RST)
 
+    WIZARD_SNAP.clear()
+    WIZARD_SNAP.update({
+        "git": sha_now,
+        "hops": {
+            "8788": hop_ok,
+            "8787": fog_ok,
+            "8790": bool(pyh.get("ok")),
+            "8791": bool(ndh.get("ok")),
+            "8792": bool(dnh.get("ok")),
+        },
+        "origin": origin,
+        "mac_live": bool(st.get("mac_live") or hop.get("mac_live") or wr.get("mac_live")),
+        "host_cap_over": over,
+        "msg": msg,
+        "n": n,
+        "member": bool(member),
+        "decision": decision,
+    })
     if HELP:
         print(MUT + "  q UI only · s fog plugin · b workerd+fog · g reset origin/main + exec TUI" + RST)
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
+        draw_wizard_pane(cols, w)
     if msg:
         print("  " + ACC + msg + RST)
     try:
@@ -700,6 +1099,7 @@ def confirm(prompt: str) -> bool:
 def main() -> int:
     global HELP, FOCUS
     quiet_mac_malloc()
+    load_wizard_log()
     DEV_TTY.write("\033[?1049h\033[2J\033[H\033[?25l")
     DEV_TTY.flush()
     msg = ""
@@ -713,6 +1113,8 @@ def main() -> int:
             msg = ""
             ch = wait_key(INTERVAL)
             if not ch:
+                continue
+            if wizard_consume_key(ch):
                 continue
             if ch in ("q", "Q", "\x1b"):
                 return 0
