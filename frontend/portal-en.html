@@ -747,7 +747,7 @@ function atelierToken(){ return localStorage.getItem('sm_token')||localStorage.g
 function isAtelierRendererOrigin(o){
   try{
     var h=o&&new URL(o).hostname;
-    return h==='gnu-atelier.pages.dev'||h==='atelier.calhegasmorais.pt';
+    return h==='gnu-atelier.pages.dev';
   }catch(_){ return false; }
 }
 function atelierRendererOrigin(){ return 'https://gnu-atelier.pages.dev'; }
