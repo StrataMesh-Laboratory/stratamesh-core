@@ -4,10 +4,12 @@ Honor host_cap for keep-up/PoC pacing, not mw listen. Never bind public. Never t
 """
 from __future__ import annotations
 
+import json
 import os
 import signal
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -162,6 +164,82 @@ def _mw_stale(port: int, script: Path) -> bool:
     return False
 
 
+
+def _write_object_layers_last(payload, data_dir=None):
+    target = Path(data_dir or DATA)
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "object-layers-last.json").write_text(
+            json.dumps(payload, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _run_object_layers_probe(plugin, data_dir, root, healthy, port):
+    """One-shot four-layer catalog probe. Never raises into Fog."""
+    payload = {"ok": False, "ts": time.time(), "verdict": "fail"}
+    try:
+        deadline = time.time() + 8
+        ready = False
+        while time.time() < deadline:
+            if plugin is not None and getattr(plugin, "_stop", None) and plugin._stop.is_set():
+                payload["verdict"] = "stopped"
+                _write_object_layers_last(payload, data_dir)
+                return
+            try:
+                ready = bool(healthy(port))
+            except Exception:
+                ready = False
+            if ready:
+                break
+            time.sleep(0.35)
+        if not ready:
+            payload["verdict"] = "unready"
+            payload["error"] = "object-layers: :%d unready" % int(port)
+            if plugin is not None:
+                plugin.last_error = payload["error"]
+            _write_object_layers_last(payload, data_dir)
+            return
+        script = Path(root) / "ops" / "object-layers-test.py"
+        if script.is_file():
+            env = os.environ.copy()
+            env.setdefault("FOG_SRC", str(root))
+            env.setdefault("FOG_DATA", str(data_dir))
+            env.setdefault("FOG_MW_PY_PORT", str(int(port)))
+            p = subprocess.run(
+                [sys.executable, str(script)],
+                cwd=str(root),
+                env=env,
+                capture_output=True,
+                timeout=25,
+                text=True,
+            )
+            payload["ok"] = p.returncode == 0
+            payload["verdict"] = "pass" if p.returncode == 0 else "fail"
+            if p.returncode != 0:
+                err = ((p.stderr or p.stdout or "probe fail").strip() or "probe fail")[:120]
+                payload["error"] = err
+                if plugin is not None:
+                    plugin.last_error = err
+        else:
+            from urllib.request import Request, urlopen as _urlopen
+            url = "http://127.0.0.1:%d/health" % int(port)
+            with _urlopen(url, timeout=1.5) as r:
+                payload["ok"] = r.status == 200
+            payload["verdict"] = "pass" if payload["ok"] else "fail"
+        payload["ts"] = time.time()
+    except Exception as e:
+        payload["ok"] = False
+        payload["verdict"] = "error"
+        payload["error"] = str(e)[:120]
+        payload["ts"] = time.time()
+        if plugin is not None:
+            plugin.last_error = payload["error"]
+    _write_object_layers_last(payload, data_dir)
+
+
 class RuntimeMeshPlugin:
     def __init__(self):
         self.reboots = 0
@@ -195,6 +273,34 @@ class RuntimeMeshPlugin:
             "reboots": self.reboots,
             "last_error": self.last_error,
         }
+
+    def _kick_object_layers_probe(self):
+        """Daemon probe after :8790 is up. Fail-open; last_error only."""
+        if getattr(self, "_layers_probe_lock", None) is None:
+            self._layers_probe_lock = threading.Lock()
+        if not self._layers_probe_lock.acquire(blocking=False):
+            return
+        data_dir = DATA
+        root = ROOT
+        healthy = _healthy
+        port = PY_PORT
+
+        def run():
+            try:
+                _run_object_layers_probe(self, data_dir, root, healthy, port)
+            except Exception as e:
+                self.last_error = str(e)[:120]
+                _write_object_layers_last(
+                    {"ok": False, "ts": time.time(), "verdict": "error", "error": str(e)[:120]},
+                    data_dir,
+                )
+            finally:
+                try:
+                    self._layers_probe_lock.release()
+                except Exception:
+                    pass
+
+        threading.Thread(target=run, name="object-layers-probe", daemon=True).start()
 
     def _spawn(self):
         # host_cap.over() is metabolic burn-rate (keep-up/PoC), not OS load-shed.
@@ -230,6 +336,7 @@ class RuntimeMeshPlugin:
             self.py_pid = p.pid
             if not cap_over:
                 _write_sha()
+            self._kick_object_layers_probe()
         node = shutil.which("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             log = open(DATA / "mw-node.log", "ab")
@@ -270,6 +377,8 @@ class RuntimeMeshPlugin:
             return
         recycle_mw()
         self._spawn()
+        if _healthy(PY_PORT):
+            self._kick_object_layers_probe()
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, name="runtime-mesh", daemon=True)
         self._thread.start()

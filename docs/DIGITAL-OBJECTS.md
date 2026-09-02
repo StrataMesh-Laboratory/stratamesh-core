@@ -25,3 +25,5 @@ Renderer is optional: `atelier | xui | none`. Objects exist with `renderer=none`
 Same sqlite as Fog (`FOG_SQLITE_PATH`, default `/tmp/stratamesh-fog.db`): tables `objects`, `ipfs_pins` (stub pin records; not a Kubo cluster), plus existing `transactions`.
 
 Restart: a new `ObjectRegistry()` on the same db lists previous objects.
+
+Catalog cases (lab): CID is content identity of the bytes (manifest + parts), DAG is the history vertex (`dag_tx`) on Fog sqlite, NFT is the network object (`object_id` / `nft.id`, never the CID), and STRATA is economic collateral reserved at 0 until `oracle_live`. C3 composes a multipart dragon that carries cid, dag_tx, object_id, `nft.id == object_id != cid`, and strata 0; C5 composes a building with four part roles into one NFT; C6 shows new bytes mint a new cid and a new object_id; C1 lookup of an unknown cid is empty/not found (not an NFT); C4 refuses `strata_units=1`; illegal compose/register without parts or cid fails. GNU Atelier remains a renderer only.

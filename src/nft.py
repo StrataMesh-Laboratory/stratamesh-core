@@ -318,6 +318,8 @@ class ObjectRegistry:
                 if k not in ("collateral_strata", "strata_units"):
                     meta.setdefault(k, v)
         cid = (manifest_cid or "").strip()
+        if not cid and not parts:
+            raise ValueError("compose requires parts or cid")
         if not cid:
             cid = content_cid({"parts": parts, "kind": kind, "title": title, "owner": owner})
         oid = object_id_for(cid, owner)
