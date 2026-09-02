@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sandbox · Calhegas Morais · v0.5.1-lab</title>
-  <meta name="description" content="StrataMesh sandbox — account session.">
+  <meta name="description" content="StrataMesh sandbox — account session on sandbox.calhegasmorais.pt.">
   <link rel="canonical" href="https://sandbox.calhegasmorais.pt/en/sandbox">
   <meta name="theme-color" content="#07111c">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
-    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--card:#0c1a28}
+    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--still:#8aa0b3;--live:#6b8f71}
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
     body{display:flex;flex-direction:column;min-height:100dvh;overflow:hidden}
-    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94)}
+    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94);z-index:3}
     header.chrome h1{font:400 1rem/1.2 Georgia,ui-serif,serif}
     .nav{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
     .nav a,.nav button{color:var(--acc);text-decoration:none;font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);background:transparent;padding:.4rem .65rem;border-radius:2px;cursor:pointer}
@@ -21,14 +21,35 @@
     #sessionChip{font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--muted);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     main.stage{flex:1 1 auto;position:relative;min-height:0}
     #atelierFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c}
+    .on-stage{position:absolute;z-index:2;left:.7rem;bottom:.7rem;width:min(22.5rem,calc(100% - 1.4rem));background:var(--cream);color:var(--ink);border:1px solid #d8d0c2;border-radius:4px;padding:.7rem .8rem .75rem;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+    .object-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
+    .on-stage h2{font:500 .92rem/1.2 Georgia,ui-serif,serif}
+    .chip{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;border:1px solid #cfc6b6;padding:.22rem .4rem;border-radius:2px;color:var(--ink2)}
+    .contains{margin:.15rem 0 .55rem;padding:.4rem .5rem;border:1px dashed #cfc6b6;border-radius:3px}
+    .contains h3,.aspect h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
+    .contains p{font:400 .75rem/1.35 Georgia,ui-serif,serif;color:var(--ink2)}
+    .aspect{padding-top:.45rem;border-top:1px solid #d8d0c2}
+    .mood{display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .45rem;font:500 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+    .lamp{width:.7rem;height:.7rem;border-radius:50%;background:var(--still);box-shadow:0 0 0 3px rgba(138,160,179,.22);flex:0 0 auto}
+    .lamp.live{background:var(--live);box-shadow:0 0 0 3px rgba(107,143,113,.28)}
+    .lamp.ended{background:#8a6a5a;box-shadow:0 0 0 3px rgba(138,106,90,.28)}
+    .tank-label{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
+    .tank{height:.42rem;background:#e4dccf;border:1px solid #cfc6b6;border-radius:2px;overflow:hidden}
+    .tank > i{display:block;height:100%;width:0;background:var(--acc)}
+    .tank-read{margin-top:.28rem;font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink)}
+    .hint{margin:.45rem 0 .5rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
+    .acts{display:flex;gap:.4rem}
+    .acts button{flex:1 1 auto;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;border-radius:2px;cursor:pointer}
+    .acts button.ghost{background:transparent;color:var(--ink)}
+    .acts button[disabled]{opacity:.38;cursor:not-allowed}
   </style>
 </head>
 <body>
   <header class="chrome">
     <h1>Sandbox</h1>
     <div class="nav">
-      <span id="sessionChip">session · —</span>
-      <a class="here" href="/en/sandbox">Sandbox</a>
+      <span id="sessionChip">session · sandbox.calhegasmorais.pt</span>
+      <a class="here" href="https://sandbox.calhegasmorais.pt/en/sandbox">Sandbox</a>
       <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a>
       <a href="https://calhegasmorais.pt/en/">Lab</a>
       <button type="button" id="btnFs">Fullscreen</button>
@@ -36,10 +57,38 @@
   </header>
   <main class="stage">
     <iframe id="atelierFrame" title="GNU Atelier" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
+    <aside class="on-stage" id="objectPanel">
+      <div class="object-top">
+        <h2 id="pieceName">Object on stage</h2>
+        <span class="chip" id="nameChip">draft</span>
+      </div>
+      <div class="contains">
+        <h3>Contains</h3>
+        <p id="containsList">No objects inside. An NFT may contain others; depth is this object's own rules.</p>
+      </div>
+      <section class="aspect" id="contractAspect" data-oracle-live="false" data-strata-units="0" data-mood="still">
+        <h3>Contract aspect · lab</h3>
+        <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Still</span></div>
+        <div class="tank-label">Interior tank · contract collateral</div>
+        <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
+        <div class="tank-read" id="tankRead">0 STRATA · lab</div>
+        <p class="hint">When rules exist, the contract runs on its own tank. The pocket lives on the workbench.</p>
+        <div class="acts">
+          <button type="button" id="btnRun">Run</button>
+          <button type="button" id="btnRest" class="ghost">Rest</button>
+        </div>
+      </section>
+    </aside>
   </main>
   <script>
     (function () {
+
       var ORIGIN = "https://gnu-atelier.pages.dev";
+      var mood = "still";
+      var ended = false;
+      var strataUnits = 0;
+      var oracleLive = false;
+      var contains = [];
       function token() {
         try { return localStorage.getItem("sm_token") || localStorage.getItem("token") || sessionStorage.getItem("sm_token") || ""; }
         catch (e) { return ""; }
@@ -48,12 +97,41 @@
         try { return localStorage.getItem("sm_email") || ""; }
         catch (e) { return ""; }
       }
+
+      var labels = { still: 'Still', live: 'Live', ended: 'Ended', containsEmpty: "No objects inside. An NFT may contain others; depth is this object's own rules.", sessionEmpty: 'session · sandbox.calhegasmorais.pt' };
       function paintSession() {
         var el = document.getElementById("sessionChip");
         if (!el) return;
         var t = token();
         var em = email();
-        el.textContent = t ? ("session · " + (em || "account")) : "session · —";
+        el.textContent = t ? ("session · " + (em || 'account') + " · sandbox") : labels.sessionEmpty;
+      }
+      function paintChrome() {
+        var lamp = document.getElementById("moodLamp");
+        var label = document.getElementById("moodLabel");
+        var fill = document.getElementById("tankFill");
+        var read = document.getElementById("tankRead");
+        var runBtn = document.getElementById("btnRun");
+        var restBtn = document.getElementById("btnRest");
+        var aspect = document.getElementById("contractAspect");
+        var list = document.getElementById("containsList");
+        if (!lamp || !label) return;
+        lamp.className = "lamp" + (ended ? " ended" : mood === "live" ? " live" : "");
+        label.textContent = ended ? labels.ended : (mood === "live" ? labels.live : labels.still);
+        fill.style.width = "0";
+        read.textContent = strataUnits + " STRATA · " + (oracleLive ? 'live' : "lab");
+        aspect.setAttribute("data-strata-units", String(strataUnits));
+        aspect.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
+        aspect.setAttribute("data-mood", ended ? "ended" : mood);
+        runBtn.disabled = ended || mood === "live";
+        restBtn.disabled = ended || mood === "still";
+        list.textContent = contains.length ? contains.map(function (o) { return o.name; }).join(" · ") : labels.containsEmpty;
+      }
+      function setMood(next) {
+        if (ended) return;
+        if (next !== "still" && next !== "live") return;
+        mood = next;
+        paintChrome();
       }
       function pushAtelierSession() {
         try {
@@ -74,8 +152,11 @@
         var f = document.getElementById("atelierFrame");
         if (f && f.requestFullscreen) f.requestFullscreen();
       });
+      document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
+      document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
       document.getElementById("atelierFrame").addEventListener("load", pushAtelierSession);
       paintSession();
+      paintChrome();
       pushAtelierSession();
     })();
   </script>
