@@ -445,17 +445,21 @@ def draw(msg: str = "") -> None:
         n = st.get("n") if st.get("n") is not None else cons.get("n")
     if n is None:
         n = prov.get("n")
-    if (n in (None, 1)) and (st.get("mesh_member") or hop.get("mac_live")):
-        n = 2
-        member = True
     fmax = cons.get("f_max")
     if fmax is None:
         fmax = prov.get("f_max")
-    member = hop.get("mesh_member")
-    if member is None:
-        member = st.get("mesh_member")
-    if member is None:
-        member = prov.get("mesh_member")
+    # hop :8788 ORIGIN=session is a public-origin flag (n=1 member=false), not P1.
+    member = bool(
+        st.get("mesh_member") is True
+        or prov.get("mesh_member") is True
+        or (isinstance(n, (int, float)) and int(n) >= 2)
+        or hop.get("mac_live") is True
+        or st.get("mac_live") is True
+    )
+    if member and (n in (None, 1)):
+        n = 2
+    if (not member) and hop.get("mesh_member") is True:
+        member = True
 
     load = os.getloadavg()
     free, wired, active, compressed = mem()
@@ -507,7 +511,13 @@ def draw(msg: str = "") -> None:
     height = dag.get("height") or dag.get("max_height") or 0
     txs = dag.get("tx") or dag.get("count") or 0
     tips = dag.get("tips") or dag.get("tip_count") or 0
-    pending = rails.get("pending_poc") if rails.get("pending_poc") is not None else (keep.get("pending_poc") if keep.get("pending_poc") is not None else 0)
+    lastk = keep.get("last") if isinstance(keep.get("last"), dict) else {}
+    if not rails.get("mint_armed"):
+        pending = lastk.get("score")
+        if pending is None:
+            pending = keep.get("score_ema") if keep.get("score_ema") is not None else 0
+    else:
+        pending = rails.get("pending_poc") if rails.get("pending_poc") is not None else 0
     mint = bool(rails.get("mint_armed"))
     burn = bool(rails.get("burn_armed"))
     waiver = bool(rails.get("lab_waived"))

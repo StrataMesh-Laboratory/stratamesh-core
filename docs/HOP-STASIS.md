@@ -55,3 +55,8 @@ Static Pages assets do not consume the Workers 100k/plan bucket.
 ## Mutual mw channels (2026-09-02)
 
 Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and of CF (Workers 100k/day reset 00:00 UTC / 01:00 PT, KV 1000 writes/day, Pages HTML). Prefer first healthy: Deno (object/mail/resolve) · python (auth/wb) · node (compose) · CF paced API. Freeze last. Never workers.dev, never spa catch-all, never a 6th cron. workerd `:8788` metabol is local meter (`HOPMESH`); do not poll `status.calhegasmorais.pt` on the TUI tick. Inbound MX stays CF Email Routing.
+
+
+## Hold HTML vs live hops (2026-09-02)
+
+`frontend/maintenance-1xxx.html` is the L4 1027 card. Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `sandbox.calhegasmorais.pt` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
