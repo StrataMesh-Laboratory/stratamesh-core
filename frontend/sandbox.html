@@ -253,8 +253,33 @@ const CORE = "v0.5.1-session";
 const NODE_ID = "FOG-NODE-PT-CM-001";
 const PORTAL = "https://calhegasmorais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
+const MW_BASE = "https://mw.calhegasmorais.pt";
+const AUTH_HOPS = [AUTH_BASE, MW_BASE];
 function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/^stasis$/i.test(s))return "serviço de autenticação indisponível";return String(m==null?"":m);}
-const AUTH_ME = [AUTH_BASE+"/api/auth/me","https://mw.calhegasmorais.pt/api/auth/me"];
+const AUTH_ME = AUTH_HOPS.map(function(b){ return b+"/api/auth/me"; });
+const HOP_DOWN = "Python auth hop down (auth + mw). Workbench session stays on this rail; Workers/KV are paced — not a freeze until 00:00 UTC.";
+async function hopFetch(path, opts) {
+  let last = null;
+  for (const base of AUTH_HOPS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    try {
+      const r = await fetch(base + path, Object.assign({ credentials: "omit", signal: ctrl.signal }, opts || {}));
+      const ct = (r.headers.get("content-type") || "");
+      if (!ct.includes("json") || r.status === 429 || r.status === 405 || r.status === 1027 || r.status >= 500) {
+        last = r;
+        continue;
+      }
+      if (!r.ok && r.status !== 400) { last = r; continue; }
+      return r;
+    } catch (e) {
+      last = e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return last;
+}
 const ADDR = { owner: "pending", id: "workbench" };
 const SESSION = { token: "", user: null, kind: "none", wallet: "", email: "", ready: false };
 window.SESSION = SESSION;
@@ -345,17 +370,37 @@ function hideGate() {
 function storeKey() { return "cmn-sandbox:" + ADDR.owner; }
 function saveAccountNfts() {
   const mine = nfts.filter((n) => n.owner === ADDR.owner);
-  try { localStorage.setItem(storeKey(), JSON.stringify({ nfts: mine, avatarId: equippedAvatar, at: Date.now() })); } catch {}
+  const snap = { nfts: mine, avatarId: equippedAvatar, at: Date.now() };
+  try { localStorage.setItem(storeKey(), JSON.stringify(snap)); } catch {}
+  const tok = SESSION.token || "";
+  if (!tok) return;
+  hopFetch("/api/wb/state", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(snap),
+  }).catch(() => {});
+}
+function applyWbSnap(snap) {
+  if (!snap || typeof snap !== "object") return;
+  if (Array.isArray(snap.nfts)) {
+    snap.nfts.forEach((n) => { if (n && n.id && !nfts.find((x) => x.id === n.id)) nfts.push(n); });
+  }
+  if (snap.avatarId) equippedAvatar = snap.avatarId;
 }
 function loadAccountNfts() {
   try {
     const raw = localStorage.getItem(storeKey());
-    if (!raw) return;
-    const snap = JSON.parse(raw);
-    if (Array.isArray(snap.nfts)) {
-      snap.nfts.forEach((n) => { if (!nfts.find((x) => x.id === n.id)) nfts.push(n); });
-    }
-    if (snap.avatarId) equippedAvatar = snap.avatarId;
+    if (raw) applyWbSnap(JSON.parse(raw));
+  } catch {}
+}
+async function pullWbState(token) {
+  if (!token) return;
+  try {
+    const r = await hopFetch("/api/wb/state", {
+      headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+    });
+    if (!r || !r.ok || typeof r.json !== "function") return;
+    applyWbSnap(await r.json());
   } catch {}
 }
 
@@ -1335,6 +1380,7 @@ async function applySession(me) {
   if (ao) ao.textContent = "account · " + ADDR.owner + " · " + SESSION.kind;
   const login = document.getElementById("gateLogin");
   if (login && location.hostname !== "sandbox.calhegasmorais.pt") login.href = "/login";
+  await pullWbState(SESSION.token);
   seed(); buildZone(); rebuild();
   const ent = document.getElementById("enter");
   if (ent && !playing) ent.style.display = "flex";
@@ -1345,27 +1391,29 @@ async function loginGnu(email, password) {
   const otp = (document.getElementById("gateOtp") && document.getElementById("gateOtp").value || "").trim();
   const did = localStorage.getItem("cmn_device_id") || ("d" + Math.random().toString(36).slice(2));
   try { localStorage.setItem("cmn_device_id", did); } catch {}
-  const url = (window.__gateCh && otp) ? AUTH_BASE+"/api/auth/email/verify" : AUTH_BASE+"/api/auth/login";
+  const path = (window.__gateCh && otp) ? "/api/auth/email/verify" : "/api/auth/login";
   const payload = (window.__gateCh && otp) ? { email, code: otp, challenge: window.__gateCh, lang: "pt", device_id: did } : { email, password, lang: "pt", channel: "email", device_id: did, trust_device: true };
   let r;
   try {
-    r = await fetch(url, {
+    r = await hopFetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      credentials: "omit",
       body: JSON.stringify(Object.assign({sandbox:true,skip_2fa:true}, payload)),
     });
   } catch (e) {
     const m = String((e && e.message) || e || "");
     if (e instanceof TypeError || /failed to fetch/i.test(m)) {
-      throw new Error("Auth hop em stasis (CF 1027) até 00:00 UTC. O workbench não emite sessão enquanto /api/auth servir HTML/429.");
+      throw new Error(HOP_DOWN);
     }
     throw e;
+  }
+  if (!r || typeof r.ok !== "boolean") {
+    throw new Error(HOP_DOWN);
   }
   const ct = (r.headers.get("content-type") || "");
   const j = ct.includes("json") ? await r.json().catch(() => ({})) : {};
   if (!ct.includes("json") || r.status === 429 || r.status === 405 || r.status === 1027) {
-    throw new Error("Auth hop em stasis (CF 1027) até 00:00 UTC. O workbench não emite sessão enquanto /api/auth servir HTML/429.");
+    throw new Error(HOP_DOWN);
   }
   if (j.requires_2fa || j.challenge) { window.__gateCh = j.challenge; const o = document.getElementById("gateOtp"); if (o) o.style.display = "block"; throw new Error(j.message || "2FA email"); }
   const token = j.token || j.session_token || "";
@@ -1407,8 +1455,7 @@ document.getElementById("gateForm")?.addEventListener("submit", async (ev) => {
     await loginGnu(email, password);
   } catch (err) {
     const m = String(err && err.message ? err.message : err);
-    const hop = "Auth hop em stasis (CF 1027) até 00:00 UTC. O workbench não emite sessão enquanto /api/auth servir HTML/429.";
-    showGate((err instanceof TypeError || /failed to fetch/i.test(m)) ? hop : mapAuthErr(m));
+    showGate((err instanceof TypeError || /failed to fetch/i.test(m)) ? HOP_DOWN : mapAuthErr(m));
     if (btn) btn.disabled = false;
   }
 });
@@ -1483,7 +1530,5 @@ bootSession().then((ok) => {
 });
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a33e3c2e1d2711b6',t:'MTc4ODIwMjM3NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"d072b1bb92d24250897c8467ea4664c2","r":1}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"d072b1bb92d24250897c8467ea4664c2","r":1}' crossorigin="anonymous"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a33f53600decf26e',t:'MTc4ODIxMzgxMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
