@@ -2,3 +2,7 @@ name = "stratamesh-edge-api"
 main = "stratamesh-edge-api.js"
 compatibility_date = "2024-09-01"
 workers_dev = false
+
+# DESK_TOKEN: set only via `wrangler secret put DESK_TOKEN` or the Cloudflare dashboard.
+# Never commit the token. GET+POST /desk compares Authorization: Bearer against this secret.
+# API_KV is bound in the dashboard (not git). /desk prefers that binding; isolate memory is fallback.
