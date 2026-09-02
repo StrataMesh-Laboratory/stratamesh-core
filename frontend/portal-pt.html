@@ -149,7 +149,7 @@ body.in-session .user-info{display:flex!important}
     </form>
     <script>
     var AUTH_BASE = "https://auth.calhegasmorais.pt";
-    function mapAuthErr(m){var s=String(m==null?'':m).trim();if(/^stasis$/i.test(s))return 'serviço de autenticação indisponível';return String(m==null?'':m);}
+    function mapAuthErr(m){var s=String(m==null?'':m).trim();if(/failed to fetch/i.test(s)||/^load failed$/i.test(s)||/networkerror/i.test(s))return 'Não foi possível contactar o nó de autenticação. A sessão da bancada permanece neste carril; Workers/KV estão em ritmo — não é congelamento até às 00:00 UTC.';if(/^stasis$/i.test(s)||/^cf_stasis$/i.test(s)||/"error"\s*:\s*"stasis"/i.test(s))return 'O serviço de autenticação está em ritmo mínimo (não é congelamento). Tente novamente após o rearme das 00:00 UTC.';return s;}
     window.__cmnSubmit=async function(ev){
       if(ev){ ev.preventDefault(); ev.stopPropagation(); }
       var errEl=document.getElementById('loginError');
@@ -198,7 +198,7 @@ body.in-session .user-info{display:flex!important}
           return false;
         }
         err(mapAuthErr(j.error||j.message||('HTTP '+r.status)));
-      }catch(e){ err(String(e&&e.message||e)); }
+      }catch(e){ err(mapAuthErr(e&&e.message||e)); }
       finally{ if(btn){ btn.disabled=false; if(!window.__cmnChallenge) btn.textContent='Continuar'; } }
       return false;
     };
@@ -1032,7 +1032,7 @@ async function handleAuth(){
           showPortal(currentUser); return;
         }
         setErr(mapAuthErr(j.error||j.message||'2FA failed'));
-      }catch(ex){ setErr(String(ex.message||ex)); }
+      }catch(ex){ setErr(mapAuthErr(ex.message||ex)); }
       finally{ if(btn){btn.disabled=false;btn.textContent=LANG==='en'?'Verify 2FA':'Verificar 2FA';} }
       return;
     }
@@ -1088,7 +1088,7 @@ async function handleAuth(){
         lastErr=mapAuthErr(j.error||j.message||('HTTP '+r.status+(r.status===401?' — invalid credentials':'')));
         if(r.status===401||r.status===400||r.status===409) break;
       }catch(ex){
-        lastErr=(ex&&ex.name==='AbortError')?'Timeout — try again':String(ex.message||ex);
+        lastErr=(ex&&ex.name==='AbortError')?'Pedido expirou — tente novamente':mapAuthErr(String(ex.message||ex));
       }
     }
     setErr(lastErr);
