@@ -154,6 +154,32 @@ body.in-session .user-info{display:flex!important}
   </div>
 </div>
 <div class="portal" id="portalPage">
+
+<script>
+/* Session restore: do not wait for the SPA. Token in localStorage = portal. /me failure is not logout. */
+(function(){
+  function restore(){
+    try{
+      var get = (function(){
+        try { return Storage.prototype.getItem.bind(localStorage); } catch(_){ return function(k){ return localStorage.getItem(k); }; }
+      })();
+      var t = get('sm_token') || get('token') || '';
+      if(!t) return false;
+      try { document.body.classList.add('in-session'); } catch(_){}
+      var login=document.getElementById('loginPage');
+      var portal=document.getElementById('portalPage');
+      if(login){ login.style.display='none'; login.classList.add('hidden'); }
+      if(portal){ portal.style.display='block'; portal.style.visibility='visible'; portal.classList.add('portal-visible'); }
+      return true;
+    }catch(e){ return false; }
+  }
+  window.__cmnRestoreSession = restore;
+  restore();
+  document.addEventListener('DOMContentLoaded', restore);
+  window.addEventListener('load', restore);
+})();
+</script>
+
   <!-- Painel comum = base; Pessoal = comum + extras desbloqueados por clearance -->
   <div class="nav" id="mainNav">
     <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)" title="L-STRATA treasury">Treasury</button>
@@ -1443,10 +1469,10 @@ try{
 }catch(_){}
 let html=pulse+'<div class="diag-wizard"><h4>Service Health Check</h4>';let issues=[];for(const r of results){const cls=r.ok?'ok':(r.status>=500?'err':'warn');const statusText=r.ok?'OK':(r.status?'HTTP '+r.status:'CONN ERR');html+='<div class="diag-step '+cls+'"><span class="status">'+statusText+'</span><span class="detail"><b>'+r.worker.name+'</b> — '+r.worker.desc+(r.worker.open?(' · <a href="'+r.worker.open+'" target="_blank" rel="noopener" style="color:var(--accent)">abrir</a>'):'')+'</span></div>';if(!r.ok)issues.push(r.worker.name+': '+(r.error||'HTTP '+r.status))}html+='</div>';if(issues.length>0){html+='<div class="diag-summary"><h4>Root Cause Analysis (RCA)</h4><div class="diag-rca">';html+='<p><b>'+issues.length+' issue(s) detected:</b></p><ul>';for(const i of issues)html+='<li>'+i+'</li>';html+='</ul>';html+='<p><b>Recommended actions:</b></p>';html+='<ol>';for(const r of results){if(!r.ok){if(r.worker.name==='stratamesh-auth')html+='<li>Check <code>AUTH_DB</code> D1 binding and sessions table integrity</li>';else if(r.worker.name==='stratamesh-orchestrator')html+='<li>Verify orchestrator_tasks table exists and cron trigger is active</li>';else if(r.worker.name==='stratamesh-dag-gateway'||r.worker.name==='stratamesh-dag')html+='<li>Check DAG worker health at /health and gateway /api/v1/status</li>';else html+='<li>Review '+r.worker.name+' worker logs in Cloudflare dashboard</li>'}}html+='</ol>';html+='<p style="margin-top:12px;color:#888">This diagnostic was run at '+new Date().toLocaleString()+' by user <code>'+(currentUser?.email||'anonymous')+'</code></p>';html+='</div></div>'}else{html+='<div class="diag-summary" style="border-left:3px solid #22c55e"><h4>All systems operational</h4><p style="color:#888">No issues detected across '+results.length+' services.</p></div>'}out.innerHTML=html}
 
-if(token){loadUser()}
-
 window.showPortal = showPortal;
 window.__showPortalImpl = showPortal;
+
+if(token){loadUser()}
 window.handleAuth = handleAuth;
 window.staffAuth = staffAuth;
 window.logout = logout;
@@ -1552,7 +1578,7 @@ async function staffAuth(){
       }
       if (j.token) {
         token = j.token;
-        try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
+        try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); try{ if(email) localStorage.setItem('sm_email', email); }catch(_e){} localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
         currentUser = Object.assign({ type:'staff', email: email }, j);
         try{ showToast('Staff access concedido'); }catch(_){}
         (window.showPortal||function(){})(currentUser);
@@ -1568,7 +1594,7 @@ async function staffAuth(){
       const j = await r.json().catch(()=>({}));
       if (!j.success || !j.token) throw new Error(j.error||'2FA failed');
       token = j.token;
-      try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
+      try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); try{ if(email) localStorage.setItem('sm_email', email); }catch(_e){} localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
       currentUser = Object.assign({ type:'staff', email: email }, j);
       staffChallenge = null;
       try{ showToast('Staff access concedido'); }catch(_){}
@@ -4733,7 +4759,7 @@ async function forgotPassword(){
         var hasTok = false;
         try { hasTok = !!(localStorage.getItem('sm_token') || localStorage.getItem('token')); } catch (_) {}
         if (hasTok) {
-          /* spa may still be on the gate; wallet will fill once showPortal runs */
+          try { if (window.__cmnRestoreSession) window.__cmnRestoreSession(); } catch(_){}
           setTimeout(activateWallet, 600);
         }
       }
