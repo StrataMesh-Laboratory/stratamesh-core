@@ -1,8 +1,7 @@
 # Contrato de ontologia — STRATA NFT (1.0.0-object-economy)
 
-Live: `GET https://stratamesh-token.stratamesh.workers.dev/ontology/nft`  
-Worker: `stratamesh-token` **3.5.0-object-economy**  
-D1: `site_content` keys `ontology-strata-nft`, `ontology-strata-nft-pt`, `ontology-strata-nft-en`
+Live (lab): Fog ledger `GET /object/:id` and `GET /object/list` on the python hop (`:8790`) and custom domains (`fog.calhegasmorais.pt`, `mw.calhegasmorais.pt`).  
+Not on workers.dev subdomains — custom domain and Fog hop only. STRATA economic mint stays reserved until `oracle_live`.
 
 ## Equação
 

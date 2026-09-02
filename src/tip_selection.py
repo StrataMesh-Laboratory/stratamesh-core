@@ -29,6 +29,8 @@ class TxType(Enum):
     TRADE = "trade"
     ACCOUNT = "account"  # registered wallet open — not a mint
     BURN = "burn"        # wallet → #0
+    OBJECT_COMPOSE = "object_compose"  # digital object register (not STRATA mint)
+    OBJECT_TRANSFER = "object_transfer"
 
 
 @dataclass

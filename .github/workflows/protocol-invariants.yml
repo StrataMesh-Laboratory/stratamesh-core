@@ -51,6 +51,9 @@ jobs:
       - name: Resource-proof MVP (compute hash work-token)
         working-directory: src
         run: python3 test_resource_proof.py
+      - name: Digital object registry (sqlite, no STRATA mint)
+        working-directory: src
+        run: python3 test_object_registry.py
       - name: Hypothesis StrataTokenLedger (lab-only, not multi-host)
         working-directory: src
         run: |
