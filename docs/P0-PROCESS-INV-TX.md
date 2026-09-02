@@ -1,6 +1,7 @@
 # P0 process-gossip ingest guard (0.2.3-lab-wip)
 
-**Status:** landed as n=1 kernel evidence. **Does NOT close multi-host P0.**  
+**Status (this page):** historical **n=1 kernel** ingest-guard evidence (0.2.3-lab-wip). **Does NOT describe current lab topology.**  
+**Current lab (2026-09-02):** **v0.5.1-lab** · **Adversarial P1** · mesh **n=2**. grok90 two-host INV/TX pack is a later bar ([P0-INV-TX-MULTIHOST.md](./P0-INV-TX-MULTIHOST.md)).  
 **Lab only.** Not mainnet · not aBFT · not an investment product · not workers.dev.
 
 This page is the honesty note for the **ingest guard** on `POST /tx/ingest`,
@@ -8,7 +9,7 @@ plus five named asserts on top of Track A1. The still-open multi-host gate is
 [P0-INV-TX-MULTIHOST.md](./P0-INV-TX-MULTIHOST.md). A1 itself is
 [A1-PRIVATE-MESH.md](./A1-PRIVATE-MESH.md) (one runner, three OS processes).
 
-Fog kernel: `FOG-NODE-PT-CM-001` · n=1 · `oracle_live=false` · `mesh_member=false`.
+Fog kernel **at ingest-guard landing:** `FOG-NODE-PT-CM-001` · n=1 · `oracle_live=false` · `mesh_member=false`. **Do not copy those n=1 flags as today’s live lab.** Today: n=2 pair; public `/health` n=1 is session-origin software flag.
 
 Design source: Fog Assistant chat `c765a597` (reviewed). Bot lands because the
 Assistant PAT is `contents:write` 403.

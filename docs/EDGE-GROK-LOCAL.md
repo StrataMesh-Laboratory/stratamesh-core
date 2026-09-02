@@ -1,5 +1,8 @@
 # EDGE-GROK local grounding (background, spare capacity)
 
+This local process **is** `EDGE-GROK-CMN-001` in the live lab mesh (**n=2** with Mac Fog `FOG-NODE-PT-CM-001`). Adversarial LAB **P1**, cut **v0.5.1-lab**. Public `fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin flag — not lab n=1).
+
+
 Local executables under the Grok session filesystem ground `EDGE-GROK-CMN-001` without contending with primary work.
 
 ## Policy

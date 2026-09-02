@@ -1,6 +1,6 @@
 # StrataMesh Core
 
-**Release:** [v0.4.0-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.4.0-lab) — ACB Academy (Ollama ← Hugging Face). Fog Node kit remains [v0.3.0](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0). **Not mainnet.**
+**Release:** [v0.5.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab) — **Adversarial LAB phase P1**. Live/lab version is **v0.5.1-lab**, not 0.4.1. Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
 
 **STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
 Motto: *Intelligentia · Vigilantia · Veritas*
@@ -37,17 +37,17 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 | Stage | Focus |
 |-------|--------|
-| **LAB** | Reference node · wire + threat drafts · single-process benchmark |
-| **Adversarial lab** | Multi-host gossip + chaos · I1–I6 CI · resource-proof MVP |
+| **LAB** | Reference node · wire + threat drafts · single-process benchmark — *exited for the CMN pair* |
+| **Adversarial lab (current · P1)** | Two-host mesh (Fog Mac + EDGE-GROK local) · I1–I6 CI · resource-proof MVP. grok90 two-host INV/TX evidence pack is a **later bar**, not the current phase name |
 | **Public testnet** | Frozen wire · external join · still not mainnet |
 | **Mainnet** | Explicit decision after evidence — unscheduled |
 
 Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
 
-Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.2.3-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
+Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.5.1-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
-Lab freeze **v0.2.3-dev** exercises whitepaper pillars with two distinct hosts (Fog Mac continuous + EDGE session). Production splits into:
+**v0.5.1-lab** Adversarial P1: two distinct hosts (Mac Fog `FOG-NODE-PT-CM-001` continuous + EDGE-GROK local `EDGE-GROK-CMN-001`). Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 

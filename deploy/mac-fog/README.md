@@ -1,6 +1,6 @@
 # StrataMesh LAB — Fog Node (macOS)
 
-**v0.3.0** · destyle · lab · not mainnet
+**v0.5.1-lab** · destyle · lab · not mainnet · CMN **n=2** (new ids start n=1 until they peer)
 
 Product entry: [`../fog-node/README.md`](../fog-node/README.md).
 

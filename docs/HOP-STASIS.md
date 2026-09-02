@@ -29,6 +29,8 @@ GraphQL 2026-09-01 00:00Z→12:30Z:
 
 **Never** put `calhegasmorais.pt/*` back on `stratamesh-spa`.
 
+**STASIS is pace, not freeze.** Freeze is temporary holding until contingency routes (auth python hop, Pages, sandbox host).
+
 ## Contingency sequence (DOWN)
 1. Detect 1027 / GraphQL hour_spent ≥ 2× hourly_cap → **STASIS**.
 2. Serve apex from **Pages** `calhegasmorais-pt` (already bound to the zone).

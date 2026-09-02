@@ -1,7 +1,8 @@
 # P0 — Multi-host INV/TX (Stage 1 adversarial lab)
 
-**Status:** OPEN. Lab only.  
-**Roadmap:** [ROADMAP-PUBLIC-v0.3.md](./ROADMAP-PUBLIC-v0.3.md) Stage 1 — Adversarial lab.  
+**Status:** grok90 two-host INV/TX **evidence pack** — **later bar**, not the current phase name. Lab only.  
+**Current lab:** Adversarial **P1** · **v0.5.1-lab** · **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`).  
+**Roadmap:** [ROADMAP-PUBLIC-v0.3.md](./ROADMAP-PUBLIC-v0.3.md) Stage 1 — Adversarial lab (current).  
 **Desk:** [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-DESK-CONTRACT.md) (locked 2026-08-28).  
 **Not:** mainnet · aBFT · investment product · public testnet exit.
 
@@ -10,7 +11,9 @@ This page is the honesty gate for **≥2 real hosts** exchanging INV/TX.
 
 ---
 
-## 0. Honest lab state (2026-08-28)
+## 0. Honest lab state (snapshot 2026-08-28 — historical; see banner)
+
+**2026-09-02:** live lab is n=2 Adversarial P1. The table below is the 2026-08-28 snapshot (n=1 / same-host EDGE). Public `/health` may still JSON n=1 origin=session mac_live=false (session-origin flag). Do not treat this snapshot as current topology.
 
 | Fact | Value |
 |------|--------|

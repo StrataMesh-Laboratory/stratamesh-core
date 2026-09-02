@@ -1,6 +1,6 @@
 {
   "schema": "stratamesh.academy.v1",
-  "version": "0.4.1-lab",
+  "version": "0.5.1-lab",
   "host": "https://academy.calhegasmorais.pt",
   "lab": true,
   "not_mainnet": true,

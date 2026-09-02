@@ -12,7 +12,7 @@ Desk split and renewal dates: [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-
 ## Org
 
 - Hub org: [huggingface.co/stratamesh](https://huggingface.co/stratamesh) (admin: `calhegasmorais`)
-- Operator: AMCM ENI · Fog `FOG-NODE-PT-CM-001` · Edge `EDGE-GROK-CMN-001` · n=1
+- Operator: AMCM ENI · Fog `FOG-NODE-PT-CM-001` · Edge `EDGE-GROK-CMN-001` · **n=2** (Mac Fog + EDGE-GROK local; public `/health` n=1 is session-origin flag)
 
 ## Map (GitHub ↔ Hub)
 

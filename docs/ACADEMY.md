@@ -1,4 +1,4 @@
-# ACB Academy — always-on training (v0.4.1-lab)
+# ACB Academy — always-on training (v0.5.1-lab)
 
 **Host:** https://academy.calhegasmorais.pt/  
 **Students:** Orchestrator `ACB-ORCH-CMN-001` (Vespera) and the AIOps five (Kael, Nyx, Solace, Reed, Mira).  
