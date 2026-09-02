@@ -100,6 +100,7 @@ def handle_object(method, path, body):
         if not isinstance(parts, dict):
             parts = {}
         manifest_cid = str(body.get("manifest_cid") or body.get("cid") or "").strip() or None
+        strata_units = body.get("strata_units", body.get("collateral_strata", 0))
         try:
             obj = reg.compose(
                 owner=owner,
@@ -109,6 +110,7 @@ def handle_object(method, path, body):
                 title=title,
                 renderer=renderer,
                 meta={"creator": creator, "world_id": body.get("world_id")},
+                strata_units=strata_units if strata_units is not None else 0,
             )
         except ValueError as e:
             return 400, {"ok": False, "error": str(e), "hop": HOP, "oracle_live": False}
