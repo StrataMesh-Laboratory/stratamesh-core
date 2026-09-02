@@ -46,9 +46,9 @@
     <div class="top-inner">
       <a class="brand" href="/"><strong>Calhegas Morais</strong> · <span data-i18n="brand">orquestrador</span></a>
       <div class="lang" role="group" aria-label="Language">
-        <button type="button" id="langPt" class="active">PT</button>
+        <button type="button" id="langPt" class="active" data-cmn-lang="pt-PT">PT</button>
         <span class="sep">·</span>
-        <button type="button" id="langEn">EN</button>
+        <button type="button" id="langEn" data-cmn-lang="en-GB">EN</button>
       </div>
     </div>
   </div>
@@ -190,8 +190,16 @@
       if (btn) { btn.disabled = false; btn.textContent = t('send'); }
     }
   };
-  document.getElementById('langPt').addEventListener('click', function () { LANG = 'pt'; applyLang(); });
-  document.getElementById('langEn').addEventListener('click', function () { LANG = 'en'; applyLang(); });
+  document.getElementById('langPt').addEventListener('click', function () {
+    try { document.cookie='cmn_lang=pt-PT; Path=/; Max-Age=31536000; SameSite=Lax'; } catch (_) {}
+    if (location.pathname.indexOf('/en') === 0) { location.href='/chat'; return; }
+    LANG = 'pt'; applyLang();
+  });
+  document.getElementById('langEn').addEventListener('click', function () {
+    try { document.cookie='cmn_lang=en-GB; Path=/; Max-Age=31536000; SameSite=Lax'; } catch (_) {}
+    if (location.pathname.indexOf('/en') !== 0) { location.href='/en/chat'; return; }
+    LANG = 'en'; applyLang();
+  });
   document.getElementById('orchInput').addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter') { ev.preventDefault(); sendOrchChat(); }
   });
@@ -201,6 +209,19 @@
     if (location.pathname.indexOf('/en') === 0) LANG = 'en';
   } catch (_) {}
   applyLang();
+})();
+</script>
+<script>
+(function(){
+  function cmnSet(lang){
+    document.cookie='cmn_lang='+lang+'; Path=/; Max-Age=31536000; SameSite=Lax';
+  }
+  window.cmnSetLang=cmnSet;
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('[data-cmn-lang]');
+    if(!el) return;
+    cmnSet(el.getAttribute('data-cmn-lang'));
+  },true);
 })();
 </script>
 </body>
