@@ -160,7 +160,7 @@
   };
   window.loadAgora = window.loadAgoraPanel;
 
-  /* ——— Unix atelier is the 3D NFT workbench (not a homepage iframe) ——— */
+  /* GNU Atelier is a renderer only (gnu-atelier.pages.dev). Sandbox/dashboard is the full surface. */
   function ensureAtelier() {
     var panel = el('panel-sandbox');
     if (!panel) return;
@@ -179,24 +179,20 @@
       if (!ifr) {
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
-        ifr.title = 'Atelier GNU';
-        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.title = 'Atelier GNU (renderer)';
+        ifr.src = 'https://gnu-atelier.pages.dev/';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
+        ifr.setAttribute('onload', 'typeof pushAtelierSession===\'function\'&&pushAtelierSession()');
         stage.appendChild(ifr);
+      } else if (ifr.src && ifr.src.indexOf('sandbox.calhegasmorais.pt') >= 0) {
+        ifr.src = 'https://gnu-atelier.pages.dev/';
       }
     }
     var title = el('bancadaPanelTitle');
     if (title) {
       title.style.display = '';
-      title.textContent = t('Atelier GNU · Holon 5', 'GNU Atelier · Holon 5');
-    }
-    var intro = title && title.nextElementSibling;
-    if (intro && intro.tagName === 'P') {
-      intro.textContent = t(
-        'Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.',
-        'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.'
-      );
+      title.textContent = t('Atelier GNU · renderer', 'GNU Atelier · renderer');
     }
     window._atelierMode = 'gnu';
   }
@@ -425,6 +421,14 @@
     }
   };
 
+  window.loadSettingsPanel = function () {
+    var u = window.currentUser || {};
+    var em = u.email || '';
+    try { if (!em) em = localStorage.getItem('sm_email') || localStorage.getItem('email') || ''; } catch (_) {}
+    var se = el('settingsEmail');
+    if (se) se.textContent = em || '—';
+  };
+
   /* ——— showPanel last hook ——— */
   var _sp = window.showPanel;
   window.showPanel = function (name, btn) {
@@ -446,6 +450,8 @@
       if (n === 'wallet') window.loadWallet();
       else if (n === 'agora') window.loadAgoraPanel();
       else if (n === 'sandbox' || n === 'spa' && name === 'sandbox') window.loadSandbox();
+      else if (n === 'objects') { if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench(); }
+      else if (n === 'settings') { if (typeof window.loadSettingsPanel === 'function') window.loadSettingsPanel(); }
       else if (n === 'dao') window.loadDAOPanel();
       else if (n === 'spa') window.loadSPAPanel();
       else if (n === 'iot') window.loadIotPanel();
