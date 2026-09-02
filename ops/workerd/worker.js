@@ -90,19 +90,30 @@ export default {
     if (HOPMESH) {
       const pth = url.pathname;
       const chain = [];
+      const dead = globalThis.__hopDead || (globalThis.__hopDead = Object.create(null));
+      const now = Date.now();
       if (pth.startsWith("/api") || pth.startsWith("/auth") || pth === "/login" || pth === "/me") {
-        chain.push(env.MW_PY, "http://127.0.0.1:8790", "http://127.0.0.1:8791", "http://127.0.0.1:8792");
+        chain.push(env.MW_PY, env.MW_DENO, "http://127.0.0.1:8790", "http://127.0.0.1:8791", "http://127.0.0.1:8792");
       } else if (pth.startsWith("/mw") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/dashboard") || pth.startsWith("/desk") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/resolve")) {
-        chain.push(env.MW_NODE, "http://127.0.0.1:8791", "http://127.0.0.1:8790", "http://127.0.0.1:8792");
+        chain.push(env.MW_NODE, env.MW_PY, env.MW_DENO, "http://127.0.0.1:8791", "http://127.0.0.1:8790", "http://127.0.0.1:8792");
       }
+      const hopKey = (hop) => (typeof hop === "string" ? hop : (hop && hop.name) || "svc");
       for (const hop of chain) {
+        if (!hop) continue;
+        const k = hopKey(hop);
+        if (dead[k] && now < dead[k]) continue;
         try {
-          if (hop && typeof hop.fetch === "function") return await hop.fetch(request);
-          if (typeof hop === "string") {
-            const r = await fetch(hop.replace(/\/$/, "") + pth + url.search, { method: request.method, headers: request.headers, redirect: "manual" });
-            if (r.status < 500 && r.status !== 0) return r;
-          }
-        } catch (_) {}
+          const ac = new AbortController();
+          const to = setTimeout(() => ac.abort(), 400);
+          let r;
+          if (typeof hop.fetch === "function") r = await hop.fetch(request);
+          else r = await fetch(String(hop).replace(/\/$/, "") + pth + url.search, { method: request.method, headers: request.headers, redirect: "manual", signal: ac.signal });
+          clearTimeout(to);
+          if (r && r.status < 500 && r.status !== 0) return r;
+          dead[k] = now + 8000;
+        } catch (_) {
+          dead[k] = now + 8000;
+        }
       }
     }
 
@@ -156,7 +167,7 @@ export default {
           remaining: cf.remaining || null,
           error: cf.error || null,
         },
-        talk: "tui → :8788/metabol → status.calhegasmorais.pt/metabol",
+        talk: "tui → :8788/metabol local (HOPMESH; STASIS paces, freeze last)",
       }, { headers: cors });
     }
 
@@ -215,13 +226,17 @@ export default {
           return { ok: false, error: String(e && e.message || e) };
         }
       }
-      const py = await probe(env.MW_PY, "http://127.0.0.1:8790/health");
-      const node = await probe(env.MW_NODE, "http://127.0.0.1:8791/health");
+      const [py, node, deno] = await Promise.all([
+        probe(env.MW_PY, "http://127.0.0.1:8790/health"),
+        probe(env.MW_NODE, "http://127.0.0.1:8791/health"),
+        probe(env.MW_DENO, "http://127.0.0.1:8792/health"),
+      ]);
       return Response.json({
-        ok: !!(py && py.ok) || !!(node && node.ok),
+        ok: !!(py && py.ok) || !!(node && node.ok) || !!(deno && deno.ok),
         role: "middleware-mesh",
         python: py,
         node,
+        deno,
         cmn: { n: 2, fog: "FOG-NODE-PT-CM-001", edge: "EDGE-GROK-CMN-001" },
       }, { headers: cors });
     }

@@ -31,12 +31,12 @@ fi
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }
 
-printf "\n  STRATAMESH LAB  ·  Fog Node v0.5.0-lab\n"
+printf "\n  STRATAMESH LAB  ·  Fog Node v0.5.1-lab\n"
 printf "  Intelligentia · Vigilantia · Veritas\n"
 printf "  node=%s  origin=%s  agent=%s\n" "$NODE_ID" "$ORIGIN" "$AGENT"
 printf "  lab · not mainnet · secrets never in git\n\n"
 
-osascript -e 'display notification "StrataMesh LAB Fog Node v0.5.0-lab" with title "Installer"' >/dev/null 2>&1 || true
+osascript -e 'display notification "StrataMesh LAB Fog Node v0.5.1-lab" with title "Installer"' >/dev/null 2>&1 || true
 
 say "1/9 host"
 ARCH=$(uname -m)
@@ -69,11 +69,7 @@ ln -sfn "$FOG/repo/src" "$SRC"
 mkdir -p "$FOG/workerd-config"
 SRCW="$FOG/repo/ops/workerd/worker.js"
 DSTW="$FOG/workerd-config/worker.js"
-if [[ -e "$DSTW" && "$SRCW" -ef "$DSTW" ]]; then
-  echo "worker.js already in place"
-else
-  cp -f "$SRCW" "$DSTW"
-fi
+cp -f "$SRCW" "$DSTW"
 python3 - "$FOG/repo/ops/workerd/config.capnp" "$FOG/workerd-config/config.capnp" "$ORIGIN" <<'PY'
 import sys
 from pathlib import Path
@@ -207,6 +203,37 @@ cat > "$LAUNCH/pt.calhegasmorais.tunnel.plist" <<EOF
   <key>StandardErrorPath</key><string>$FOG/log/tunnel.err</string>
 </dict></plist>
 EOF
+
+# Auto-update every 1800s. RunAtLoad false. Never tunnel/cloudflared. Never brew upgrade.
+cp -f "$FOG/repo/deploy/mac-fog/fog-auto-update.sh" "$FOG/bin/fog-auto-update.sh"
+chmod 755 "$FOG/bin/fog-auto-update.sh"
+AU="pt.calhegasmorais.fog-auto-update"
+cat > "$LAUNCH/${AU}.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$AU</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$FOG/bin/fog-auto-update.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FOG_HOME</key><string>$FOG</string>
+    <key>FOG_ORIGIN</key><string>$ORIGIN</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartInterval</key><integer>1800</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>$FOG/log/auto-update.log</string>
+  <key>StandardErrorPath</key><string>$FOG/log/auto-update.log</string>
+</dict></plist>
+EOF
+launchctl bootout "gui/$(id -u)/${AU}" 2>/dev/null || true
+launchctl unload "$LAUNCH/${AU}.plist" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$LAUNCH/${AU}.plist" 2>/dev/null \
+  || launchctl load "$LAUNCH/${AU}.plist"
 
 launchctl unload "$LAUNCH/${AGENT}.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH/pt.calhegasmorais.workerd.plist" 2>/dev/null || true

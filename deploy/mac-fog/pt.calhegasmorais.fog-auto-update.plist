@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>pt.calhegasmorais.fog-auto-update</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/REPLACE/StrataMesh/fog/bin/fog-auto-update.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FOG_HOME</key><string>/Users/REPLACE/StrataMesh/fog</string>
+    <key>FOG_ORIGIN</key><string>macbook</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartInterval</key><integer>1800</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/REPLACE/StrataMesh/fog/log/auto-update.log</string>
+  <key>StandardErrorPath</key><string>/Users/REPLACE/StrataMesh/fog/log/auto-update.log</string>
+</dict></plist>
