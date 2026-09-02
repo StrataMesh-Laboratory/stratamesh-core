@@ -11,6 +11,8 @@
  * Metabolic stasis v1.3: hourly_cap × pace_factor. Always-on burn_rate. No night freeze.
  */
 const CF_METABOL = "https://status.calhegasmorais.pt/metabol";
+const HOPMESH = true; // py/node/deno mutual; do not poll CF metabol on TUI tick
+
 const KV_WRITE_DAILY = 1000;
 
 function hoursLeftUtcMidnight(now = new Date()) {
@@ -61,6 +63,7 @@ function localSnap(extra = {}) {
 }
 
 async function pullCf(origin) {
+  if (HOPMESH) return { ok: true, skipped: "local-mw", origin: origin || "" };
   try {
     const r = await fetch(CF_METABOL + "?source=workerd&origin=" + encodeURIComponent(origin || ""), {
       headers: { "user-agent": "stratamesh-workerd-metabol/1", "x-fog-origin": origin || "" },
@@ -84,6 +87,25 @@ export default {
       "content-type": "application/json",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    if (HOPMESH) {
+      const pth = url.pathname;
+      const chain = [];
+      if (pth.startsWith("/api") || pth.startsWith("/auth") || pth === "/login" || pth === "/me") {
+        chain.push(env.MW_PY, "http://127.0.0.1:8790", "http://127.0.0.1:8791", "http://127.0.0.1:8792");
+      } else if (pth.startsWith("/mw") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/dashboard") || pth.startsWith("/desk") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/resolve")) {
+        chain.push(env.MW_NODE, "http://127.0.0.1:8791", "http://127.0.0.1:8790", "http://127.0.0.1:8792");
+      }
+      for (const hop of chain) {
+        try {
+          if (hop && typeof hop.fetch === "function") return await hop.fetch(request);
+          if (typeof hop === "string") {
+            const r = await fetch(hop.replace(/\/$/, "") + pth + url.search, { method: request.method, headers: request.headers, redirect: "manual" });
+            if (r.status < 500 && r.status !== 0) return r;
+          }
+        } catch (_) {}
+      }
+    }
+
 
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const mac_live = origin === "macbook";
@@ -147,7 +169,8 @@ export default {
         m.ticks += 1;
       }
       const after = localSnap({ origin, cost, accepted: before.decision === "ALLOW" });
-      let cf = { ok: false };
+      let cf = { ok: true, skipped: "local-mw" };
+      if (HOPMESH) { return Response.json({ ...after, cf }, { headers: cors }); }
       try {
         const r = await fetch(CF_METABOL + "/consume", {
           method: "POST",
