@@ -1344,12 +1344,21 @@ async function loginGnu(email, password) {
   try { localStorage.setItem("cmn_device_id", did); } catch {}
   const url = (window.__gateCh && otp) ? "https://mw.calhegasmorais.pt/api/auth/email/verify" : "https://mw.calhegasmorais.pt/api/auth/login";
   const payload = (window.__gateCh && otp) ? { email, code: otp, challenge: window.__gateCh, lang: "pt", device_id: did } : { email, password, lang: "pt", channel: "email", device_id: did, trust_device: true };
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    credentials: "omit",
-    body: JSON.stringify(Object.assign({sandbox:true,skip_2fa:true}, payload)),
-  });
+  let r;
+  try {
+    r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      credentials: "omit",
+      body: JSON.stringify(Object.assign({sandbox:true,skip_2fa:true}, payload)),
+    });
+  } catch (e) {
+    const m = String((e && e.message) || e || "");
+    if (e instanceof TypeError || /failed to fetch/i.test(m)) {
+      throw new Error("Auth hop em stasis (CF 1027) até 00:00 UTC. O workbench não emite sessão enquanto /api/auth servir HTML/429.");
+    }
+    throw e;
+  }
   const ct = (r.headers.get("content-type") || "");
   const j = ct.includes("json") ? await r.json().catch(() => ({})) : {};
   if (!ct.includes("json") || r.status === 429 || r.status === 405 || r.status === 1027) {
@@ -1392,7 +1401,9 @@ document.getElementById("gateForm")?.addEventListener("submit", async (ev) => {
     showGate("Signing in…");
     await loginGnu(email, password);
   } catch (err) {
-    showGate(String(err && err.message ? err.message : err));
+    const m = String(err && err.message ? err.message : err);
+    const hop = "Auth hop em stasis (CF 1027) até 00:00 UTC. O workbench não emite sessão enquanto /api/auth servir HTML/429.";
+    showGate((err instanceof TypeError || /failed to fetch/i.test(m)) ? hop : m);
     if (btn) btn.disabled = false;
   }
 });
