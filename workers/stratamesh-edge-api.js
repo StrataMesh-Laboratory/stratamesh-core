@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.4.0-mesh-n2";
+const VERSION = "1.4.1-desk";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -301,12 +301,58 @@ function openApiDoc(ORIGIN) {
           responses: { "200": { description: "HTML" } },
         },
       },
+      "/desk": {
+        get: {
+          summary: "Last sanitized automation-desk mail digest (headers only)",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "200": { description: "{mailbox, ts, n, latest:[{date,from,subject}]}" },
+            "401": { description: "missing/invalid Bearer" },
+          },
+        },
+        post: {
+          summary: "Store sanitized mail digest (no bodies)",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    mailbox: { type: "string" },
+                    ts: { type: "string" },
+                    n: { type: "integer" },
+                    latest: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          date: { type: "string" },
+                          from: { type: "string" },
+                          subject: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "stored sanitized digest" },
+            "401": { description: "missing/invalid Bearer" },
+          },
+        },
+      },
     },
     security: [],
-    "x-auth": "none_for_GET_and_POST_register", "x-write-token": "none",
+    components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", description: "env DESK_TOKEN via wrangler secret put / dashboard only" } } },
+    "x-auth": "none_for_GET_and_POST_register_except_/desk", "x-write-token": "none",
     "x-dangerous-operations": [
       "POST /v1/integrations (lab catalog write only; rejects secret fields)",
       "DELETE /v1/integrations/{id} (non-seed only)",
+      "GET+POST /desk (Bearer DESK_TOKEN; sanitized headers only)",
     ],
     "x-not-present": ["OAuth", "API keys required for read", "payment", "mainnet settlement"],
     "x-managed-by": EDGE_ID,
@@ -327,8 +373,9 @@ Fog: ${FOG_ID}
 Fog installer API: ${FOG_API}
 Lab / pre-testnet: true · not mainnet
 Mesh honesty: n=2 · mesh_member=true (this Edge + Mac Fog) · f_max=0 · oracle_live=false
-Authentication for all GET endpoints: NONE
+Authentication for GET endpoints: NONE except GET /desk (Bearer DESK_TOKEN)
 Authentication for POST /v1/integrations: NONE (public lab registration)
+Authentication for GET+POST /desk: Bearer DESK_TOKEN (wrangler secret / dashboard; never git)
 Write token: DOES NOT EXIST — never ask operator for Bearer/API keys for this registry
 Secrets stored on this API: NONE (VA key hashes only)
 workers.dev: DO NOT CALL
@@ -376,6 +423,8 @@ GET  /v1/va/instructions.txt   Personal VA setup (AI-readable). Does NOT replace
 GET  /v1/va/me                  Account VA identity (Bearer smva_)
 POST /v1/va/act                 Allow-listed dashboard remote control (Bearer smva_)
 GET  /v1/mesh                   Live Fog / Edge / Gossip / api-fog probes
+GET  /desk                      Last sanitized mail digest {mailbox,ts,n,latest[]} — Bearer DESK_TOKEN
+POST /desk                      Store same shape from box grok-mail-sync/digest — Bearer DESK_TOKEN
 
 Fog installer (different host): ${FOG_API}/SPEC.txt
 
@@ -386,6 +435,10 @@ Fog installer (different host): ${FOG_API}/SPEC.txt
 - Do not send passwords, private keys, api_key, or bearer secrets to the *registry*
 - Personal VA is a *separate* surface: /v1/va/* (except instructions) uses Authorization: Bearer smva_…
 - VA keys are hashed at rest. Raw token shown once at mint. Zero-auth registry is unchanged.
+- GET+POST /desk: Authorization: Bearer matching env DESK_TOKEN (timing-safe). 401 otherwise. Cache-Control: no-store.
+- DESK_TOKEN is never in git. Set only with wrangler secret put DESK_TOKEN or the Cloudflare dashboard.
+- /desk stores last sanitized digest in existing API_KV (dashboard binding; do not add kv_namespaces in git). Worker isolate memory is a fallback only.
+- /desk JSON is headers-only: {mailbox, ts, n, latest:[{date,from,subject}]} — no bodies, no IMAP secrets.
 
 5. POST /v1/integrations — BODY SCHEMA
 --------------------------------------
@@ -491,6 +544,7 @@ function catalog(ORIGIN) {
       va_instructions: ORIGIN + "/v1/va/instructions.txt",
       va_me: ORIGIN + "/v1/va/me",
       mesh: ORIGIN + "/v1/mesh",
+      desk_mail: ORIGIN + "/desk",
       fog_installer: FOG_API + "/v1/install",
     },
     desk: { home: DESK, health: DESK + "/health" },
@@ -1103,6 +1157,71 @@ async function probeMesh() {
   return out;
 }
 
+
+const DESK_DIGEST_KEY = "desk:mail:digest";
+let lastDeskDigest = null;
+
+function timingSafeEqualStr(a, b) {
+  const enc = new TextEncoder();
+  const aa = enc.encode(String(a ?? ""));
+  const bb = enc.encode(String(b ?? ""));
+  const n = Math.max(aa.byteLength, bb.byteLength);
+  let diff = aa.byteLength ^ bb.byteLength;
+  for (let i = 0; i < n; i++) {
+    diff |= (i < aa.byteLength ? aa[i] : 0) ^ (i < bb.byteLength ? bb[i] : 0);
+  }
+  return aa.byteLength > 0 && bb.byteLength > 0 && diff === 0;
+}
+
+function deskAuthOk(request, env) {
+  return timingSafeEqualStr(bearerOf(request), env && env.DESK_TOKEN);
+}
+
+function sanitizeDeskDigest(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const rows = Array.isArray(src.latest) ? src.latest : [];
+  const latest = rows.slice(0, 50).map((row) => {
+    const r = row && typeof row === "object" ? row : {};
+    return {
+      date: String(r.date != null ? r.date : "").slice(0, 80),
+      from: String(r.from != null ? r.from : "").slice(0, 120),
+      subject: String(r.subject != null ? r.subject : "").slice(0, 160),
+    };
+  });
+  const nNum = Number(src.n);
+  return {
+    mailbox: String(src.mailbox != null ? src.mailbox : "").slice(0, 120),
+    ts: String(src.ts != null ? src.ts : "").slice(0, 40),
+    n: Number.isFinite(nNum) ? nNum : latest.length,
+    latest,
+  };
+}
+
+async function handleDesk(env, request) {
+  if (!deskAuthOk(request, env)) {
+    return json({ ok: false, error: "unauthorized" }, 401, "no-store");
+  }
+  if (request.method === "GET") {
+    let payload = lastDeskDigest;
+    if (env.API_KV) {
+      const fromKv = await kvGet(env, DESK_DIGEST_KEY);
+      if (fromKv) payload = fromKv;
+    }
+    return json(sanitizeDeskDigest(payload || { mailbox: "", ts: "", n: 0, latest: [] }), 200, "no-store");
+  }
+  if (request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return json({ ok: false, error: "invalid_json" }, 400, "no-store");
+    }
+    const sanitized = sanitizeDeskDigest(body);
+    lastDeskDigest = sanitized;
+    if (env.API_KV) await kvPut(env, DESK_DIGEST_KEY, sanitized);
+    return json(sanitized, 200, "no-store");
+  }
+  return json({ error: "method_not_allowed" }, 405, "no-store");
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -1133,6 +1252,10 @@ export default {
           `\n</urlset>\n`,
         { headers: headers("application/xml; charset=utf-8") }
       );
+    }
+
+    if (path === "/desk") {
+      return handleDesk(env, request);
     }
 
     if (path === "/app" || path === "/app/" || path === "/edge-app") {
