@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}if(!(window.SESSION&&SESSION.ready)){if(typeof showGate==="function")showGate("Registered session required");var g=document.getElementById("gate");if(g)g.style.display="flex";return;}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=document.documentElement.clientWidth||innerWidth;var h=document.documentElement.clientHeight||innerHeight;if(window.renderer&&w>32&&h>32){window.renderer.setSize(w,h,false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
+<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=document.documentElement.clientWidth||innerWidth;var h=document.documentElement.clientHeight||innerHeight;if(window.renderer&&w>32&&h>32){window.renderer.setSize(w,h,false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
 <script>
 (function(){try{
   var c=matchMedia("(pointer: coarse)").matches;
@@ -16,9 +16,9 @@
 <meta name="theme-color" content="#07111c"/>
 <title>Atelier GNU · v0.5.1-session · gnu-atelier.pages.dev</title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
-<link rel="canonical" href="https://gnu-atelier.pages.dev/"/>
+<link rel="canonical" href="https://sandbox.calhegasmorais.pt/gnu-atelier.html"/>
 <meta property="og:title" content="Atelier GNU · v0.5.1-session"/>
-<meta property="og:url" content="https://gnu-atelier.pages.dev/"/>
+<meta property="og:url" content="https://sandbox.calhegasmorais.pt/gnu-atelier.html"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
 <style>
@@ -87,7 +87,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .stick{display:none!important;pointer-events:none}
 html[data-screen-touch="yes"] .stick{display:block!important;pointer-events:auto}
 #prompt{position:absolute;top:max(4.7rem,calc(env(safe-area-inset-top) + 3.55rem));bottom:auto;left:50%;transform:translateX(-50%);padding:.35rem .85rem;border-radius:999px;border:1px solid rgba(196,165,116,.4);background:rgba(7,17,28,.88);font:11px ui-monospace,Menlo,monospace;white-space:nowrap;max-width:min(34rem,calc(100% - 2rem));overflow:hidden;text-overflow:ellipsis;z-index:6;pointer-events:none;text-align:center}
-#gate{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:14;pointer-events:auto;background:rgba(7,17,28,.72)}
+#gate{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:14;pointer-events:none;background:rgba(7,17,28,.72)}
 #gate .card{max-width:calc(100% - 2rem);width:auto;box-sizing:border-box;margin:0 1rem;padding:1.4rem 1.5rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,17,28,.96);text-align:center}
 #gate h2{margin:.4rem 0 .3rem;font-size:1.25rem}
 #gate a.btn,#avatarSheet button.primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1rem;margin-top:.8rem;border:1px solid var(--teal);background:var(--surface);color:var(--teal);border-radius:8px;text-decoration:none;font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
@@ -189,7 +189,7 @@ h1{font-size:13px}
   
   <div id="gate" aria-live="polite">
     <div class="card">
-      <div class="mono">gnu-atelier.pages.dev · account lock</div>
+      <div class="mono">sandbox.calhegasmorais.pt</div>
       <h2>Registered session required</h2>
       <p class="muted" id="gateMsg">There is no public sandbox. Sign in here — the workbench binds to your account (user or SCA).</p>
       <form id="gateForm" style="display:flex;flex-direction:column;gap:.55rem;margin:.85rem 0 0;text-align:left">
@@ -351,7 +351,7 @@ async function fetchMe(token) {
 function showGate(msg) {
   const el = document.getElementById("gate");
   if (!el) return;
-  el.style.display = "flex";
+  el.style.display = "none"; el.style.pointerEvents = "none"; return;
   const p = document.getElementById("gateMsg");
   if (p && msg) p.textContent = msg;
   const ent = document.getElementById("enter");
@@ -1016,7 +1016,7 @@ function pick(cx, cy) {
   return null;
 }
 function onTap(cx, cy) {
-  if (!SESSION.ready) { showGate(); return; }
+  if (!SESSION.ready) { playing = true; }
   playing = true;
   document.getElementById("enter").style.display = "none";
   const hit = pick(cx, cy);
@@ -1256,7 +1256,7 @@ function play(ev) {
   const ent = document.getElementById("enter");
   if (ent) ent.style.display = "none";
   if (typeof applyCam === "function") applyCam();
-  if (!SESSION.ready && typeof readToken === "function" && !readToken()) showGate();
+  hideGate();
 }
 (function bindEnter(){
   const card = document.getElementById("enterBtn");
@@ -1432,16 +1432,29 @@ async function loginGnu(email, password) {
 
 async function bootSession() {
   if (SESSION.ready) return true;
-  showGate("Resolving registered session…");
-  try { if (window.parent !== window) window.parent.postMessage({ type: "cmn-session-ready" }, "*"); } catch {}
+  if (bootSession._lock) return false;
+  bootSession._lock = true;
+  hideGate();
   SESSION.token = readToken();
+  if (!SESSION.token) {
+    ADDR.owner = "draft";
+    ADDR.id = "sandbox";
+    try { seed(); buildZone(); rebuild(); } catch (e) {}
+    bootSession._lock = false;
+    return false;
+  }
   const me = await fetchMe(SESSION.token);
-  if (SESSION.ready) return true;
+  if (SESSION.ready) { bootSession._lock = false; return true; }
   if (!me) {
-    showGate("There is no public sandbox. Entre na bancada aqui. Nao abre o dashboard.");
+    hideGate();
+    ADDR.owner = "draft";
+    ADDR.id = "sandbox";
+    try { seed(); buildZone(); rebuild(); } catch (e) {}
+    bootSession._lock = false;
     return false;
   }
   await applySession(me);
+  bootSession._lock = false;
   return true;
 }
 document.getElementById("gateForm")?.addEventListener("submit", async (ev) => {
@@ -1463,13 +1476,8 @@ window.addEventListener("message", (e) => {
   if (!allowedOrigin(e.origin)) return;
   const d = e.data || {};
   if (d.type !== "cmn-session") return;
-  if (d.token) {
-    try { sessionStorage.setItem("sm_token", d.token); } catch {}
-    SESSION.token = d.token;
-  }
-  if (SESSION.ready) return;
-  if (d.token) bootSession();
-  else if (d.user) applySession(normalizeMe(d.user) || d.user);
+  /* no session to pass: ignore parent tokens; renderer is not a workbench login */
+  return;
 });
 bootSession();
 const AVATAR_PALETTE = [0xe8c4a0, 0x1a4a52, 0x2a1c14, 0xd4a017, 0xc45c4a, 0x2f9e8a, 0x8a7cff, 0x6fbf73];
