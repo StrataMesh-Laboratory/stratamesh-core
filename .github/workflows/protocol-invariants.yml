@@ -57,6 +57,9 @@ jobs:
       - name: Four-layer object catalog (CID/DAG/NFT/STRATA)
         working-directory: src
         run: python3 test_object_layers.py
+      - name: CID-only store (no NFT mint)
+        working-directory: src
+        run: python3 test_cid_store.py
       - name: Hypothesis StrataTokenLedger (lab-only, not multi-host)
         working-directory: src
         run: |

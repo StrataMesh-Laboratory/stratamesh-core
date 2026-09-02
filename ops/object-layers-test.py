@@ -143,19 +143,33 @@ def main():
     )
     _ok("C6", c6, "a=%s b=%s" % (a.get("object_id"), b.get("object_id")))
 
-    # C1 get unknown cid is empty/not found not an NFT
-    st, body = _req("GET", "/object/cid/bafyunknownc1notfound000000000000000000000000000000")
+    # C1 CID-only persist without NFT: PUT 200, GET 200, nft.id=null, STRATA 0; miss 404
+    c1_cid = "bafyc1persistwithoutnft00000000000000000000000000"
+    st_put, putb = _req("PUT", "/object/cid/" + c1_cid, {"payload": {"bytes": "c1-lab"}})
+    st_comp, comb = _req(
+        "POST",
+        "/object/compose",
+        {
+            "owner": "FOG-NODE-PT-CM-001",
+            "kind": "ugc",
+            "title": "c1-cid-only",
+            "cid": c1_cid,
+            "cid_only": True,
+            "mint": False,
+        },
+    )
+    st_get, getb = _req("GET", "/object/cid/" + c1_cid)
+    st_miss, missb = _req("GET", "/object/cid/bafyunknownc1notfound000000000000000000000000000000")
     nft_id = None
-    if isinstance(body, dict):
-        nft_id = (body.get("layers") or {}).get("nft", {}).get("id")
+    strata = None
+    if isinstance(getb, dict):
+        nft_id = (getb.get("layers") or {}).get("nft", {}).get("id")
         if not nft_id:
-            nft_id = (body.get("object") or {}).get("object_id")
-    empty = (isinstance(body, dict) and body.get("objects") == []) or st in (404, 400)
-    not_nft = not nft_id and (not body.get("ok") if isinstance(body, dict) else True)
-    c1 = empty and not_nft and st != 200
-    if st == 200 and isinstance(body, dict) and not body.get("objects"):
-        c1 = True
-    _ok("C1", c1, "status=%s" % st)
+            nft_id = getb.get("object_id") or (getb.get("object") or {}).get("object_id")
+        strata = (getb.get("layers") or {}).get("strata", {}).get("strata_units", getb.get("strata_units"))
+    put_ok = st_put == 200 or st_comp == 200
+    c1 = put_ok and st_get == 200 and st_miss == 404 and not nft_id and (strata in (0, 0.0, None))
+    _ok("C1", c1, "put=%s get=%s miss=%s nft=%s" % (st_put, st_get, st_miss, nft_id))
 
     # C4 strata_units=1 raises/refuses
     st, body = _req(

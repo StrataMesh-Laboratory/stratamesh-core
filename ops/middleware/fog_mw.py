@@ -58,12 +58,39 @@ def _registry():
     return _REG
 
 
+def _cid_only_json(cid, extra=None, payload=None):
+    body = {
+        "ok": True,
+        "hop": HOP,
+        "object_id": None,
+        "manifest_cid": cid,
+        "cid": cid,
+        "dag_tx": None,
+        "mode": "cid_only",
+        "objects": [],
+        "layers": {
+            "cid": {"manifest_cid": cid, "parts": payload if payload is not None else {}},
+            "dag": {"vertex": None, "tx_type": None},
+            "nft": {"id": None, "note": "cid_only; no object_id mint"},
+            "strata": {
+                "collateral_strata": 0,
+                "strata_units": 0,
+                "reserved": True,
+                "oracle_live": False,
+            },
+        },
+    }
+    if extra:
+        body.update(extra)
+    return body
+
+
 def _object_json(obj, extra=None, parts_listed=None):
     from nft import layers_payload
     body = {
         "ok": True,
         "hop": HOP,
-        "object_id": obj.object_id,
+        "object_id": obj.object_id or None,
         "manifest_cid": obj.manifest_cid,
         "dag_tx": obj.dag_tx,
         "owner": obj.owner,
@@ -79,12 +106,32 @@ def _object_json(obj, extra=None, parts_listed=None):
 
 
 def handle_object(method, path, body):
-    """POST /object/compose|/register  GET /object/list|/cid/:cid|/:id"""
+    """POST /object/compose|/register  PUT/POST /object/cid  GET /object/list|/cid/:cid|/:id"""
     segs = [s for s in path.split("/") if s]
     try:
         reg = _registry()
     except Exception as e:
         return 503, {"ok": False, "error": "registry", "detail": str(e)[:160], "hop": HOP}
+
+    if method in ("PUT", "POST") and (
+        path.rstrip("/") == "/object/cid" or path.startswith("/object/cid/")
+    ):
+        cid = ""
+        if path.startswith("/object/cid/"):
+            cid = path.split("/object/cid/", 1)[-1].strip("/")
+        cid = cid or str(body.get("cid") or body.get("manifest_cid") or "").strip()
+        payload = body.get("payload") if isinstance(body, dict) and "payload" in body else body
+        if not cid:
+            try:
+                from nft import content_cid
+                cid = content_cid(payload if payload is not None else {})
+            except Exception as e:
+                return 400, {"ok": False, "error": str(e)[:160], "hop": HOP}
+        try:
+            rec = reg.put_cid(cid, payload if isinstance(payload, dict) else {"raw": payload})
+        except ValueError as e:
+            return 400, {"ok": False, "error": str(e), "hop": HOP, "oracle_live": False}
+        return 200, _cid_only_json(cid, extra={"put": True, "created_at": rec.get("created_at")}, payload=rec.get("payload"))
 
     if method == "POST" and path.rstrip("/") in ("/object/compose", "/object/register"):
         owner = str(body.get("owner") or body.get("creator") or DEFAULT_OWNER).strip() or DEFAULT_OWNER
@@ -101,6 +148,11 @@ def handle_object(method, path, body):
             parts = {}
         manifest_cid = str(body.get("manifest_cid") or body.get("cid") or "").strip() or None
         strata_units = body.get("strata_units", body.get("collateral_strata", 0))
+        cid_only = bool(body.get("cid_only"))
+        mint = body.get("mint", True)
+        if mint in (False, "false", "0", 0, "no"):
+            mint = False
+            cid_only = True
         try:
             obj = reg.compose(
                 owner=owner,
@@ -111,9 +163,13 @@ def handle_object(method, path, body):
                 renderer=renderer,
                 meta={"creator": creator, "world_id": body.get("world_id")},
                 strata_units=strata_units if strata_units is not None else 0,
+                cid_only=cid_only,
+                mint=mint,
             )
         except ValueError as e:
             return 400, {"ok": False, "error": str(e), "hop": HOP, "oracle_live": False}
+        if cid_only or not obj.object_id:
+            return 200, _object_json(obj, extra={"mode": "cid_only", "creator": creator})
         return 200, _object_json(obj, extra={"mode": "four_layer_register", "creator": creator})
 
     if method == "GET" and path.rstrip("/") == "/object/list":
@@ -123,9 +179,12 @@ def handle_object(method, path, body):
     if method == "GET" and path.startswith("/object/cid/"):
         cid = path.split("/object/cid/", 1)[-1].strip("/")
         items = [o.to_dict() for o in reg.by_cid(cid)]
-        if not items:
-            return 404, {"ok": False, "error": "not found", "cid": cid, "hop": HOP}
-        return 200, {"ok": True, "hop": HOP, "cid": cid, "objects": items, "object": items[0]}
+        if items:
+            return 200, {"ok": True, "hop": HOP, "cid": cid, "objects": items, "object": items[0]}
+        stored = reg.get_cid(cid)
+        if stored:
+            return 200, _cid_only_json(cid, extra={"created_at": stored.get("created_at")}, payload=stored.get("payload"))
+        return 404, {"ok": False, "error": "not found", "cid": cid, "hop": HOP}
 
     if method == "GET" and len(segs) == 2 and segs[0] == "object":
         oid = segs[1]
@@ -379,6 +438,9 @@ class H(BaseHTTPRequestHandler):
             return self._auth()
         if path.startswith("/api/wb"):
             return self._wb()
+        if path.startswith("/object"):
+            code, obj = handle_object("PUT", path, self._body())
+            return self._send(code, obj)
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_DELETE(self):
