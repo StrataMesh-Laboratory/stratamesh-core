@@ -4,7 +4,8 @@
  * pace_factor inflates when under-spent vs elapsed time, deflates when over-spent
  * (neutral 1.0 if day_spent==0). adjusted = hourly_cap * pace_factor
  * density = signal / cost; effective_cap = adjusted * density
- * circuit STASIS if hour_spent ≥ 2× unadjusted cap. Never workers.dev. No 6th cron.
+ * circuit STASIS if hour_spent ≥ 2× unadjusted cap (pace). Freeze only after paceFailed
+ * and no contingency hop. Never workers.dev. No 6th cron. Never env STASIS=1 503.
  */
 export const ALLOW = "ALLOW";
 export const HOLD = "HOLD";
@@ -231,19 +232,42 @@ export function decide(rail, opts = {}) {
   const billing = spec.billing || "";
   const ledger = opts.ledger || null;
 
-  const pack = (decision, remaining, hoursLeft, hourlyCap, spendable, reserved, reason, extra = {}) => ({
-    decision, rail, remaining, hours_left: hoursLeft, hourly_cap: hourlyCap,
-    spendable, reserved, cost, reason, layer, is_peak: isPeak, is_p0: isP0, billing,
-    carry: extra.carry || 0, daily_debt: extra.daily_debt || 0, daily_credit: extra.daily_credit || 0,
-    next_phase_grant: extra.next_phase_grant != null ? extra.next_phase_grant : hourlyCap,
-    density: extra.density != null ? extra.density : densityOf(opts.signal == null ? 1 : opts.signal, cost),
-    signal: opts.signal == null ? 1 : opts.signal,
-    circuit: extra.circuit || "",
-    pace_factor: extra.pace_factor != null ? extra.pace_factor : 1,
-    inflator: extra.inflator != null ? extra.inflator : 1,
-    deflator: extra.deflator != null ? extra.deflator : 1,
-    effective_cap: extra.effective_cap || 0,
-  });
+  const pack = (decision, remaining, hoursLeft, hourlyCap, spendable, reserved, reason, extra = {}) => {
+    const circuit = extra.circuit || "";
+    const contingency_url = opts.contingencyUrl || extra.contingency_url || "";
+    const contingency_ok = !!(opts.contingencyOk != null ? opts.contingencyOk : extra.contingency_ok);
+    const failed = paceFailed({
+      prevCircuit: opts.prevCircuit,
+      circuit: circuit || (decision === STASIS || decision === HOLD ? decision : ""),
+      hourSpent: opts.hourSpent,
+      hourlyCap,
+    });
+    // freeze is NOT the STASIS label. First STASIS from ALLOW is pace.
+    // Freeze only after paceFailed with no healthy contingency, or hard-forbidden rails.
+    let freeze = false;
+    if (isWorkersDev(opts.url)) freeze = true;
+    else if (spec.hard_cap === 0) freeze = true;
+    else if (remaining <= 0 && !isP0 && !(contingency_ok && contingency_url)) freeze = decision === STASIS;
+    else if (failed && !isP0 && !(contingency_ok && contingency_url)) freeze = true;
+    if (decision === ALLOW || decision === P0_BORROW) freeze = false;
+    return {
+      decision, rail, remaining, hours_left: hoursLeft, hourly_cap: hourlyCap,
+      spendable, reserved, cost, reason, layer, is_peak: isPeak, is_p0: isP0, billing,
+      carry: extra.carry || 0, daily_debt: extra.daily_debt || 0, daily_credit: extra.daily_credit || 0,
+      next_phase_grant: extra.next_phase_grant != null ? extra.next_phase_grant : hourlyCap,
+      density: extra.density != null ? extra.density : densityOf(opts.signal == null ? 1 : opts.signal, cost),
+      signal: opts.signal == null ? 1 : opts.signal,
+      circuit,
+      pace_factor: extra.pace_factor != null ? extra.pace_factor : 1,
+      inflator: extra.inflator != null ? extra.inflator : 1,
+      deflator: extra.deflator != null ? extra.deflator : 1,
+      effective_cap: extra.effective_cap || 0,
+      freeze,
+      pace_failed: failed,
+      contingency_url,
+      contingency_ok,
+    };
+  };
 
   if (isWorkersDev(opts.url)) return pack(STASIS, 0, 0, 0, 0, 0, "workers.dev forbidden — zone WAF does not cover it (INC-1027)");
   if (spec.stasis_until && !isP0) {
@@ -371,6 +395,102 @@ export function circuitTrip(hourSpent, hourlyCap, cfg = {}) {
   if (hourSpent >= cap * (d.circuit_stasis_mult || 2)) return STASIS;
   if (hourSpent >= cap * (d.circuit_hold_mult || 1.25)) return HOLD;
   return "";
+}
+
+/**
+ * Pacing is already on only if the previous circuit was HOLD or STASIS.
+ * Freeze is valid only AFTER that pacing already failed (still STASIS, hour ≥ 2× unadjusted cap).
+ * First STASIS trip from ALLOW is pace, not freeze.
+ */
+export function paceFailed({ prevCircuit, circuit, hourSpent, hourlyCap } = {}) {
+  const circ = String(circuit || "");
+  if (circ !== STASIS) return false;
+  const prev = String(prevCircuit || "");
+  const pacingOn = prev === HOLD || prev === STASIS;
+  if (!pacingOn) return false;
+  if (hourSpent == null || hourlyCap == null) return true;
+  return Number(hourSpent) >= 2 * Math.max(Number(hourlyCap), 1e-9);
+}
+
+/** Named fail-open hops. Freeze is a temporary holding pattern until these exist. */
+export const DEFAULT_CONTINGENCY = {
+  auth: { url: "https://auth.calhegasmorais.pt", note: "python :8790 JSON hop" },
+  "cf-worker-req": { url: "https://calhegasmorais.pt/", note: "Pages apex, not Worker SPA" },
+  sandbox: { url: "https://sandbox.calhegasmorais.pt/", note: "gnu-atelier Pages" },
+};
+
+function retryAfterSec(pack) {
+  const cap = Math.max(Number(pack && pack.hourly_cap) || 0, 1);
+  return Math.max(30, Math.round(3600 / cap));
+}
+
+function contingencyOf(pack) {
+  const url = pack && pack.contingency_url ? String(pack.contingency_url) : "";
+  const ok = !!(pack && pack.contingency_ok && url);
+  return { url, ok };
+}
+
+/**
+ * Request-path effector. STASIS/HOLD labels stay; this module never maps STASIS → HTTP 503.
+ * Order: (1) pace on primary (2) fail-open to contingency if paceFailed (3) freeze only if
+ * paceFailed AND no healthy contingency (or hard-forbidden workers.dev).
+ */
+export function admit(decisionPack, opts = {}) {
+  const pack = decisionPack || {};
+  const isP0 = opts.isP0 != null ? !!opts.isP0 : !!pack.is_p0;
+  const rand = opts.rand != null ? Number(opts.rand) : Math.random();
+  const deflator = pack.deflator != null ? Number(pack.deflator) : 1;
+  const circuit = pack.circuit || "";
+  const decision = pack.decision || "";
+  const prev = opts.prevCircuit != null ? opts.prevCircuit : pack.prev_circuit;
+  const hourSpent = opts.hourSpent != null ? opts.hourSpent : pack.hour_spent;
+  const hourlyCap = pack.hourly_cap;
+  const failed = paceFailed({ prevCircuit: prev, circuit: circuit || (decision === STASIS ? STASIS : circuit), hourSpent, hourlyCap });
+  const c = contingencyOf(pack);
+  const reason = String(pack.reason || "");
+  const hardForbidden = isWorkersDev(pack.url) || reason.includes("workers.dev forbidden");
+  const rem = pack.remaining;
+  const quotaGone = pack.hard_cap === 0 || rem === 0;
+
+  const result = (admitV, freeze, reasonV, extra = {}) => ({
+    admit: !!admitV,
+    freeze: !!freeze,
+    retry_after_sec: extra.retry_after_sec != null ? extra.retry_after_sec : 0,
+    reason: reasonV,
+    via: extra.via || (admitV && extra.contingency_url ? "contingency" : "primary"),
+    contingency_url: extra.contingency_url || c.url || "",
+  });
+
+  if (hardForbidden) {
+    return result(false, true, "workers.dev forbidden rail");
+  }
+
+  if (quotaGone && !isP0) {
+    if (c.ok) return result(true, false, "fail-open contingency (quota gone)", { via: "contingency", contingency_url: c.url });
+    return result(false, true, "quota gone; pacing cannot recover today");
+  }
+
+  if (failed) {
+    if (c.ok) return result(true, false, "fail-open contingency after pace_failed", { via: "contingency", contingency_url: c.url });
+    if (isP0) return result(true, false, P0_BORROW);
+    return result(false, true, "pace_failed and no contingency");
+  }
+
+  const onHold = circuit === HOLD || decision === HOLD;
+  const onStasisPace = (circuit === STASIS || decision === STASIS) && !failed;
+  if (onHold || onStasisPace) {
+    let p = Math.max(0, Math.min(1, deflator));
+    if (onStasisPace) p = Math.min(p, 0.5);
+    const yes = rand < p;
+    return result(
+      yes,
+      false,
+      onStasisPace ? "pace STASIS min (not freeze)" : "pace HOLD (deflator)",
+      { retry_after_sec: yes ? 0 : retryAfterSec(pack) },
+    );
+  }
+
+  return result(true, false, reason || ALLOW);
 }
 
 export function coalesceIntents(intents, cfg = {}) {

@@ -12,6 +12,7 @@ Never workers.dev.
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -230,6 +231,102 @@ def circuit_trip(hour_spent: Optional[float], hourly_cap: float, cfg: Optional[d
     if spent >= cap * hold_x:
         return HOLD
     return ""
+
+
+def pace_failed(
+    prev_circuit: Optional[str] = None,
+    circuit: Optional[str] = None,
+    hour_spent: Optional[float] = None,
+    hourly_cap: Optional[float] = None,
+) -> bool:
+    """True only when pacing was already on (prev HOLD/STASIS) and circuit is still STASIS."""
+    if str(circuit or "") != STASIS:
+        return False
+    prev = str(prev_circuit or "")
+    if prev not in (HOLD, STASIS):
+        return False
+    if hour_spent is None or hourly_cap is None:
+        return True
+    return float(hour_spent) >= 2.0 * max(float(hourly_cap), 1e-9)
+
+
+DEFAULT_CONTINGENCY = {
+    "auth": {"url": "https://auth.calhegasmorais.pt", "note": "python :8790 JSON hop"},
+    "cf-worker-req": {"url": "https://calhegasmorais.pt/", "note": "Pages apex, not Worker SPA"},
+    "sandbox": {"url": "https://sandbox.calhegasmorais.pt/", "note": "gnu-atelier Pages"},
+}
+
+
+def _retry_after_sec(hourly_cap: float) -> int:
+    return max(30, int(round(3600.0 / max(float(hourly_cap or 0), 1.0))))
+
+
+def admit(decision_pack, opts: Optional[dict] = None) -> dict:
+    """Request-path effector. Never maps STASIS → HTTP 503.
+
+    1. Pace (HOLD/STASIS deflator) on the primary rail.
+    2. If pace_failed: fail-open to contingency_url when contingency_ok.
+    3. Freeze only if pace_failed AND no healthy contingency (or workers.dev forbidden).
+    Freeze is a temporary holding pattern until contingency routes recover.
+    """
+    opts = opts or {}
+    pack = decision_pack if isinstance(decision_pack, dict) else asdict(decision_pack)
+    is_p0 = opts["is_p0"] if "is_p0" in opts else bool(pack.get("is_p0"))
+    rand = float(opts["rand"]) if "rand" in opts else random.random()
+    deflator = float(pack["deflator"]) if pack.get("deflator") is not None else 1.0
+    circuit = pack.get("circuit") or ""
+    decision = pack.get("decision") or ""
+    prev = opts.get("prev_circuit", pack.get("prev_circuit"))
+    hour_spent = opts.get("hour_spent", pack.get("hour_spent"))
+    hourly_cap = pack.get("hourly_cap")
+    failed = pace_failed(
+        prev_circuit=prev,
+        circuit=circuit or (STASIS if decision == STASIS else circuit),
+        hour_spent=hour_spent,
+        hourly_cap=hourly_cap,
+    )
+    c_url = str(pack.get("contingency_url") or "")
+    c_ok = bool(pack.get("contingency_ok") and c_url)
+    reason = str(pack.get("reason") or "")
+    hard_forbidden = is_workers_dev(pack.get("url")) or "workers.dev forbidden" in reason
+    rem = pack.get("remaining")
+    quota_gone = pack.get("hard_cap") == 0 or rem == 0
+
+    def result(adm, freeze, why, retry=0, via="primary"):
+        return {
+            "admit": bool(adm),
+            "freeze": bool(freeze),
+            "retry_after_sec": int(retry),
+            "reason": why,
+            "via": "contingency" if (adm and c_ok and failed) or via == "contingency" else via,
+            "contingency_url": c_url,
+        }
+
+    if hard_forbidden:
+        return result(False, True, "workers.dev forbidden rail")
+    if quota_gone and not is_p0:
+        if c_ok:
+            return result(True, False, "fail-open contingency (quota gone)", via="contingency")
+        return result(False, True, "quota gone; pacing cannot recover today")
+    if failed:
+        if c_ok:
+            return result(True, False, "fail-open contingency after pace_failed", via="contingency")
+        if is_p0:
+            return result(True, False, P0_BORROW)
+        return result(False, True, "pace_failed and no contingency")
+    on_hold = circuit == HOLD or decision == HOLD
+    on_stasis_pace = (circuit == STASIS or decision == STASIS) and not failed
+    if on_hold or on_stasis_pace:
+        p = max(0.0, min(1.0, deflator))
+        if on_stasis_pace:
+            p = min(p, 0.5)
+        yes = rand < p
+        return result(
+            yes, False,
+            "pace STASIS min (not freeze)" if on_stasis_pace else "pace HOLD (deflator)",
+            retry=0 if yes else _retry_after_sec(hourly_cap or 0),
+        )
+    return result(True, False, reason or ALLOW)
 
 
 def coalesce_intents(intents: list[dict], cfg: Optional[dict] = None) -> list[dict]:
@@ -499,6 +596,10 @@ class Verdict:
     pace_factor: float = 1.0
     inflator: float = 1.0
     deflator: float = 1.0
+    freeze: bool = False
+    pace_failed: bool = False
+    contingency_url: str = ""
+    contingency_ok: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -528,6 +629,9 @@ def decide(
     last_same_ms: Optional[float] = None,
     remaining_frac: Optional[float] = None,
     reset_iso: Optional[str] = None,
+    prev_circuit: Optional[str] = None,
+    contingency_url: Optional[str] = None,
+    contingency_ok: bool = False,
 ) -> Verdict:
     cfg = cfg or load_rails()
     spec = (cfg.get("rails") or {}).get(rail) or {}
@@ -546,10 +650,45 @@ def decide(
     extra = dict(
         layer=layer, is_peak=is_peak, is_p0=is_p0, billing=billing,
         density=dens, signal=float(signal),
+        freeze=False, pace_failed=False,
+        contingency_url=str(contingency_url or ""),
+        contingency_ok=bool(contingency_ok),
     )
 
+    def V(*args, **kwargs):
+        """Stamp freeze without mapping STASIS → 503. First STASIS from ALLOW is pace."""
+        merged = dict(extra)
+        merged.update(kwargs)
+        decision = args[0] if args else merged.get("decision")
+        remaining = args[2] if len(args) > 2 else merged.get("remaining")
+        reason = args[8] if len(args) > 8 else merged.get("reason") or ""
+        hourly_cap = args[4] if len(args) > 4 else merged.get("hourly_cap") or 0
+        circ = merged.get("circuit") or ""
+        failed = pace_failed(
+            prev_circuit=prev_circuit,
+            circuit=circ or (decision if decision in (HOLD, STASIS) else ""),
+            hour_spent=hour_spent,
+            hourly_cap=hourly_cap,
+        )
+        c_url = merged.get("contingency_url") or ""
+        c_ok = bool(merged.get("contingency_ok") and c_url)
+        freeze = False
+        if is_workers_dev(url) or "workers.dev forbidden" in str(reason):
+            freeze = True
+        elif spec.get("hard_cap") == 0:
+            freeze = True
+        elif remaining is not None and float(remaining) <= 0 and not is_p0 and not c_ok:
+            freeze = decision == STASIS
+        elif failed and not is_p0 and not c_ok:
+            freeze = True
+        if decision in (ALLOW, P0_BORROW):
+            freeze = False
+        merged["freeze"] = freeze
+        merged["pace_failed"] = failed
+        return Verdict(*args, **merged)
+
     if is_workers_dev(url):
-        return Verdict(
+        return V(
             STASIS, rail, 0, 0, 0, 0, 0, cost,
             "workers.dev forbidden — zone WAF does not cover it (INC-1027)",
             **extra,
@@ -565,7 +704,7 @@ def decide(
             if n.tzinfo is None:
                 n = n.replace(tzinfo=timezone.utc)
             if n.astimezone(timezone.utc) < until.astimezone(timezone.utc):
-                return Verdict(
+                return V(
                     STASIS, rail, 0, 0, 0, 0, 0, cost,
                     f"stasis until {until_s}",
                     **extra,
@@ -574,7 +713,7 @@ def decide(
             pass
 
     if spec.get("hard_cap") == 0:
-        return Verdict(
+        return V(
             STASIS, rail, 0, 0, 0, 0, 0, cost,
             spec.get("note") or "rail forbidden", **extra,
         )
@@ -583,20 +722,20 @@ def decide(
         cap = float(spec.get("hard_cap") or spec.get("limit") or 0)
         rem = cap - float(spec.get("used") or 0) if remaining is None else float(remaining)
         if rem <= 0:
-            return Verdict(STASIS, rail, rem, 0, 0, 0, 0, cost, f"hard cap {cap} reached", **extra)
-        return Verdict(ALLOW, rail, rem, 0, 0, rem, 0, cost, f"hard cap {cap}, remaining {rem}", **extra)
+            return V(STASIS, rail, rem, 0, 0, 0, 0, cost, f"hard cap {cap} reached", **extra)
+        return V(ALLOW, rail, rem, 0, 0, rem, 0, cost, f"hard cap {cap}, remaining {rem}", **extra)
 
     # Fail closed: expired reset without a live window must HOLD, never a 1-minute dump cap.
     if not is_p0 and reset_unix is not None and reset_is_expired(reset_unix, now):
         rem = float(remaining) if remaining is not None else 0.0
-        return Verdict(
+        return V(
             HOLD, rail, rem, 0, 0, 0, 0, cost,
             "expired reset_unix — fail closed (no live refresh)",
             **extra,
         )
     if not is_p0 and reset_iso and reset_iso_expired(reset_iso, now):
         rem = float(remaining) if remaining is not None else 0.0
-        return Verdict(
+        return V(
             HOLD, rail, rem, 0, 0, 0, 0, cost,
             "expired reset_iso — fail closed (no live refresh)",
             **extra,
@@ -611,7 +750,7 @@ def decide(
         remaining = float(remaining_frac)
     if remaining is None:
         if spec.get("unknown_remaining") == "hold" and not is_p0:
-            return Verdict(
+            return V(
                 HOLD, rail, 0, hours_left, 0, 0, 0, cost,
                 "no live remaining sample — do not invent a cap",
                 **extra,
@@ -665,58 +804,58 @@ def decide(
     trip = circuit_trip(hour_spent, hourly_cap, cfg)
     extra["circuit"] = trip
     if trip == STASIS and not is_p0:
-        return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        f"circuit STASIS — hour spent {hour_spent} ≥ 2× hourly cap {hourly_cap:.1f} (INC-1027)",
                        **extra)
     if trip == HOLD and not is_p0 and not is_peak:
-        return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        f"circuit HOLD — hour spent {hour_spent} ≥ 1.25× cap; wait for next phase",
                        **extra)
     if min_interval_hold(last_same_ms, cfg) and not is_p0:
-        return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "anti-3Hz: same URL too soon (min 10s)", **extra)
     if dens + 1e-9 < floor and not is_p0 and not is_peak:
-        return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        f"density {dens:.2f} < floor {floor:.2f} — coalesce or cache; do not spend a thin token",
                        **extra)
 
     if remaining <= 0 and not is_p0:
-        return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "quota exhausted until renewal", **extra)
     if remaining <= 0 and is_p0:
         extra["is_peak"] = True
         extra["is_p0"] = True
-        return Verdict(P0_BORROW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(P0_BORROW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "P0 borrows — subsequent phases compensate; no retry-loop", **extra)
 
     if kind == "slots":
         if is_p0:
             extra["is_p0"] = True
-            return Verdict(ALLOW if remaining >= cost else P0_BORROW, rail, remaining, hours_left,
+            return V(ALLOW if remaining >= cost else P0_BORROW, rail, remaining, hours_left,
                            hourly_cap, spendable, reserved, cost,
                            "P0 spends; overdraft credited to later phases", **extra)
         if is_peak or slot_id:
             extra["is_peak"] = True
             if remaining >= cost:
-                return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+                return V(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                                "budgeted slot / reserved peak (may overdraft the hour)", **extra)
-            return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+            return V(STASIS, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            "peak has no remaining", **extra)
         if spendable < cost:
-            return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+            return V(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"protect {reserved} reserved slot(s) still ahead", **extra)
         # unscheduled: also respect hourly carry if ledger present (don't dump contingency in one hour)
         if st is not None and carry * pf + 1e-9 < cost and not is_p0:
-            return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+            return V(HOLD, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                            f"hourly carry {carry:.2f} < cost — wait; subsequent phase will be credited", **extra)
-        return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
+        return V(ALLOW, rail, remaining, hours_left, hourly_cap, spendable, reserved, cost,
                        "unscheduled spend within contingency", **extra)
 
     # remaining_frac rails: prompt cost is unknown compute, not pool units.
     # Gate on remaining_frac > 0 + circuit. A fire is grok-auto (cost=1 fire).
     # Snapshot uses cost=0 ("is the pool alive"). Never treat cost=1 as 100% of the weekly pool.
     if frac_meter:
-        return Verdict(
+        return V(
             ALLOW, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
             "pool remaining_frac > 0 — unknown prompt cost; fire is grok-auto",
             **extra,
@@ -727,12 +866,12 @@ def decide(
     if st is not None:
         allowance = max(0.0, carry * pf)
     if remaining < cost:
-        return Verdict(STASIS, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
+        return V(STASIS, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
                        "remaining < cost", **extra)
     if cost > allowance + 1e-9:
-        return Verdict(HOLD, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
+        return V(HOLD, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
                        f"cost {cost} > phase allowance {allowance:.4f} (pace; overdraft would debit next phase)", **extra)
-    return Verdict(ALLOW, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
+    return V(ALLOW, rail, remaining, hours_left, hourly_cap, remaining, 0, cost,
                    "within hourly average + carry", **extra)
 
 

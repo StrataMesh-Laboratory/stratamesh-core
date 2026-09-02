@@ -6,7 +6,12 @@ on:
       - "ops-monitor/lib/**"
       - "ops-monitor/config/rails.json"
       - "ops/config/rails.json"
+      - "ops/lib/**"
+      - "ops/bin/metabolic-stasis-enforce.py"
+      - "ops/METABOLISM.md"
       - "workers/_metabolism.js"
+      - "workers/metabol-admit.js"
+      - "workers/test_metabol_admit.mjs"
       - ".github/workflows/metabolism.yml"
   push:
     branches: [main]
@@ -14,7 +19,12 @@ on:
       - "ops-monitor/lib/**"
       - "ops-monitor/config/rails.json"
       - "ops/config/rails.json"
+      - "ops/lib/**"
+      - "ops/bin/metabolic-stasis-enforce.py"
+      - "ops/METABOLISM.md"
       - "workers/_metabolism.js"
+      - "workers/metabol-admit.js"
+      - "workers/test_metabol_admit.mjs"
       - ".github/workflows/metabolism.yml"
 
 jobs:
@@ -27,3 +37,5 @@ jobs:
         run: python3 ops-monitor/lib/test_metabolism.py
       - name: metabolism tests (ops)
         run: python3 ops/lib/test_metabolism.py
+      - name: metabolism admit (js)
+        run: node workers/test_metabol_admit.mjs
