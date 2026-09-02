@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Orquestrador · Calhegas Morais</title>
+  <meta name="description" content="Chat do Orquestrador — Nó Calhegas Morais. POST /api/orchestrator/chat."/>
+  <link rel="canonical" href="https://calhegasmorais.pt/chat"/>
+  <link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/chat"/>
+  <link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/chat?lang=en"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
+  <meta name="theme-color" content="#0a0a0b"/>
+  <style>
+    :root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113;--ok:#6b8f71;--err:#c45c4a}
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.65;min-height:100vh;max-width:100%;overflow-x:hidden}
+    a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+    .top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+    .brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    .brand strong{color:var(--fg);font-weight:500}
+    .lang{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.12em;display:flex;align-items:center;gap:.35rem;color:var(--muted)}
+    .lang button{background:transparent;border:0;color:var(--muted);font:inherit;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:.2rem .35rem}
+    .lang button:hover{color:var(--fg)}
+    .lang button.active{color:var(--fg);border-bottom:1px solid var(--accent)}
+    .wrap{max-width:44rem;margin:0 auto;padding:1.5rem 1.5rem 4rem;display:flex;flex-direction:column;min-height:calc(100vh - 3.2rem)}
+    .kicker{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+    h1{font-weight:400;font-size:clamp(1.6rem,4vw,2.2rem);letter-spacing:-.02em;line-height:1.15;margin-bottom:.45rem}
+    .lead{color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+    .banner{border:1px solid var(--line2);background:var(--card);border-radius:4px;padding:.75rem 1rem;color:var(--muted);font-size:.88rem;margin-bottom:1rem}
+    .banner.ok{border-color:#2a3a2c;color:var(--ok)}
+    #orchChat{flex:1;min-height:22rem;overflow-y:auto;overflow-x:hidden;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;margin-bottom:.75rem;font-size:.88rem;line-height:1.55}
+    .composer{display:flex;gap:.5rem}
+    #orchInput{flex:1;min-width:0;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line2);border-radius:4px;color:var(--fg);font-size:.9rem}
+    #orchInput:focus{outline:none;border-color:var(--accent)}
+    #orchSend{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.7rem 1.1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;cursor:pointer}
+    #orchSend:hover{background:var(--accent);color:#111}
+    #orchSend:disabled{opacity:.5;cursor:wait}
+    .hints{font-size:.72rem;color:var(--muted);margin-top:.65rem}
+    footer{margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--line);font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.08em;color:var(--muted);display:flex;flex-wrap:wrap;gap:.8rem;justify-content:space-between}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="top-inner">
+      <a class="brand" href="/"><strong>Calhegas Morais</strong> · <span data-i18n="brand">orquestrador</span></a>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" id="langPt" class="active">PT</button>
+        <span class="sep">·</span>
+        <button type="button" id="langEn">EN</button>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="kicker">FOG-NODE-PT-CM-001 · POST /api/orchestrator/chat</p>
+    <h1 data-i18n="title">Chat do Orquestrador</h1>
+    <p class="lead" data-i18n="lead">Sessão de pessoal opcional. Sem sessão, o chat continua em fail-open (clearance público) — o início de sessão é no portal, não nesta página.</p>
+    <p class="hints">Clearance: <span id="orchClearance">—</span></p>
+    <div id="authBanner" class="banner" hidden></div>
+    <div id="orchChat" role="log" aria-live="polite"></div>
+    <div class="composer">
+      <input id="orchInput" type="text" autocomplete="off" data-i18n-ph="ph" placeholder="Mensagem ao Orquestrador…"/>
+      <button type="button" id="orchSend" onclick="sendOrchChat()" data-i18n="send">Enviar</button>
+    </div>
+    <p class="hints" data-i18n="hints">Experimente: status · clp · pool · mundo · volição · identidade · ontology</p>
+    <footer>
+      <span>CMN · n=1</span>
+      <span><a href="/">Nó</a> · <a href="/portal-pt" data-i18n="portal">Portal</a></span>
+    </footer>
+  </div>
+<script>
+(function () {
+  var I18N = {
+    pt: {
+      brand: 'orquestrador',
+      title: 'Chat do Orquestrador',
+      lead: 'Sessão de pessoal opcional. Sem sessão, o chat continua em fail-open (clearance público) — o início de sessão é no portal, não nesta página.',
+      send: 'Enviar',
+      sending: '…',
+      ph: 'Mensagem ao Orquestrador…',
+      hints: 'Experimente: status · clp · pool · mundo · volição · identidade · ontology',
+      portal: 'Portal',
+      you: 'Você',
+      orch: 'Orquestrador',
+      sys: 'Sistema',
+      timeout: 'Tempo esgotado — o Orquestrador não respondeu a tempo.',
+      signin: 'Sem sessão de pessoal. Continuar em fail-open, ou ',
+      signinLink: 'entrar no portal',
+      signed: 'Sessão presente (token local). Clearance segue o portal.'
+    },
+    en: {
+      brand: 'orchestrator',
+      title: 'Orchestrator chat',
+      lead: 'Staff session optional. If none, chat stays fail-open (public clearance) — sign-in is the portal, not a fake landing here.',
+      send: 'Send',
+      sending: '…',
+      ph: 'Message the Orchestrator…',
+      hints: 'Try: status · clp · pool · world · volition · identity · ontology',
+      portal: 'Portal',
+      you: 'You',
+      orch: 'Orchestrator',
+      sys: 'System',
+      timeout: 'Timeout — Orchestrator did not answer in time.',
+      signin: 'No staff session. Continue fail-open, or ',
+      signinLink: 'sign in at the portal',
+      signed: 'Session present (local token). Clearance follows the portal.'
+    }
+  };
+  var LANG = 'pt';
+  var currentUser = null;
+  function t(k) { return (I18N[LANG] && I18N[LANG][k]) || I18N.pt[k] || k; }
+  function applyLang() {
+    document.documentElement.lang = LANG === 'en' ? 'en-GB' : 'pt-PT';
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    var ph = document.getElementById('orchInput');
+    if (ph) ph.placeholder = t('ph');
+    var btn = document.getElementById('orchSend');
+    if (btn && !btn.disabled) btn.textContent = t('send');
+    document.getElementById('langPt').classList.toggle('active', LANG === 'pt');
+    document.getElementById('langEn').classList.toggle('active', LANG === 'en');
+    paintAuthBanner();
+  }
+  function token() {
+    try { return localStorage.getItem('sm_token') || localStorage.getItem('token') || ''; } catch (_) { return ''; }
+  }
+  function paintAuthBanner() {
+    var el = document.getElementById('authBanner');
+    if (!el) return;
+    var tok = token();
+    el.hidden = false;
+    if (!tok) {
+      el.className = 'banner';
+      el.innerHTML = t('signin') + '<a href="/portal-pt">' + t('signinLink') + '</a>.';
+    } else {
+      el.className = 'banner ok';
+      el.textContent = t('signed');
+    }
+  }
+  window.sendOrchChat = async function sendOrchChat() {
+    var input = document.getElementById('orchInput');
+    var box = document.getElementById('orchChat');
+    var btn = document.getElementById('orchSend');
+    if (!input || !box) return;
+    var msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    var add = function (who, text) {
+      var d = document.createElement('div');
+      d.style.marginBottom = '10px';
+      d.innerHTML = '<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8780;margin-bottom:4px">' + who + '</div><div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-width:100%">' + String(text).replace(/</g, '&lt;') + '</div>';
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+    };
+    add(t('you'), msg);
+    if (btn) { btn.disabled = true; btn.textContent = t('sending'); }
+    try {
+      var tok = token();
+      var prior = window.__orchPriorIntent || undefined;
+      var payload = {
+        message: msg,
+        token: tok,
+        prior_intent: prior,
+        lang: LANG === 'en' ? 'en-GB' : 'pt-PT',
+        clearance: (currentUser && (currentUser.clearance_level || currentUser.clearance)) || (function () { try { return localStorage.getItem('clearance') || undefined; } catch (_) { return undefined; } })()
+      };
+      var ctrl = new AbortController();
+      var timer = setTimeout(function () { ctrl.abort(); }, 25000);
+      var r = await fetch('/api/orchestrator/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer ' + tok },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      var j = await r.json().catch(function () { return {}; });
+      if (j.intent) window.__orchPriorIntent = j.intent;
+      if (!r.ok && !j.reply) add(t('sys'), j.error || ('HTTP ' + r.status));
+      else {
+        var meta = (j.account_clearance || j.clearance) ? (' [' + (j.account_clearance || j.clearance) + ']') : '';
+        add(t('orch') + meta, j.reply || j.error || JSON.stringify(j));
+        var clEl = document.getElementById('orchClearance');
+        if (clEl) clEl.textContent = (j.account_clearance || j.clearance || '—') + (j.clearance_source ? (' · ' + j.clearance_source) : '');
+      }
+    } catch (e) {
+      add(t('sys'), (e && e.name === 'AbortError') ? t('timeout') : String(e.message || e));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = t('send'); }
+    }
+  };
+  document.getElementById('langPt').addEventListener('click', function () { LANG = 'pt'; applyLang(); });
+  document.getElementById('langEn').addEventListener('click', function () { LANG = 'en'; applyLang(); });
+  document.getElementById('orchInput').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); sendOrchChat(); }
+  });
+  try {
+    var q = new URLSearchParams(location.search);
+    if ((q.get('lang') || '').toLowerCase().indexOf('en') === 0) LANG = 'en';
+  } catch (_) {}
+  applyLang();
+})();
+</script>
+</body>
+</html>
