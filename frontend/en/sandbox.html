@@ -53,7 +53,7 @@
   <header class="chrome">
     <h1>Sandbox</h1>
     <div class="nav">
-      <span id="sessionChip">session · sandbox.calhegasmorais.pt</span>
+      <span id="sessionChip" data-acct="account" data-empty="no account · workbench">no account · workbench</span>
       <a class="here" href="https://sandbox.calhegasmorais.pt/en/sandbox">Sandbox</a>
       <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a>
       <a href="https://calhegasmorais.pt/en/">Lab</a>
@@ -162,26 +162,66 @@
       });
       document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
       document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
+
+      function takeHandoff() {
+        try {
+          var h = location.hash || '';
+          if (h.indexOf('#cmn=') !== 0) return;
+          var rest = h.slice(5);
+          var bits = rest.split('&');
+          var tok = decodeURIComponent(bits[0] || '');
+          var acct = '';
+          for (var i = 1; i < bits.length; i++) {
+            if (bits[i].indexOf('acct=') === 0) acct = decodeURIComponent(bits[i].slice(5));
+          }
+          if (tok) { localStorage.setItem('sm_token', tok); localStorage.setItem('token', tok); }
+          if (acct) { localStorage.setItem('sm_email', acct); }
+          history.replaceState({}, '', location.pathname + location.search);
+        } catch (e) {}
+      }
+      function accountWho() {
+        try {
+          var e = email();
+          if (e) return e;
+          var t = token();
+          if (!t || t.indexOf('.') < 0) return '';
+          var pad = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+          while (pad.length % 4) pad += '=';
+          var p = JSON.parse(atob(pad));
+          return (p && (p.email || p.preferred_username || p.sub)) ? String(p.email || p.preferred_username || p.sub) : '';
+        } catch (e) { return ''; }
+      }
+      function paintAccount(who) {
+        var el = document.getElementById('sessionChip');
+        if (!el) return;
+        el.textContent = who ? ((el.getAttribute('data-acct') || 'conta') + ' · ' + who) : (el.getAttribute('data-empty') || '');
+      }
       function requireAccount() {
-        var next = encodeURIComponent(location.href);
-        var bancada = 'https://dashboard.calhegasmorais.pt/dashboard?next=' + next;
+        takeHandoff();
+        var bancada = 'https://dashboard.calhegasmorais.pt/dashboard';
         var t = token();
+        var who = accountWho();
         var f = document.getElementById('atelierFrame');
-        function bounce() { location.replace(bancada); }
-        if (!t) { bounce(); return; }
+        if (!t || !who) {
+          location.replace(bancada + '?next=' + encodeURIComponent(location.origin + location.pathname));
+          return;
+        }
+        paintAccount(who);
+        if (f) f.src = f.getAttribute('data-atelier') || '/gnu-atelier.html';
+        paintChrome();
         fetch('https://auth.calhegasmorais.pt/api/auth/me', {
           headers: { Authorization: 'Bearer ' + t, Accept: 'application/json' },
           credentials: 'include'
         }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
           var u = (j && (j.user || j)) || {};
-          var who = u.email || u.username || '';
-          if (!who) { bounce(); return; }
-          var el = document.getElementById('sessionChip');
-          if (el) el.textContent = (el.getAttribute('data-sess') || 'sessão') + ' · ' + who;
-          if (f) f.src = f.getAttribute('data-atelier') || '/gnu-atelier.html';
-          paintChrome();
-        }).catch(function () { bounce(); });
+          var got = u.email || u.username || '';
+          if (got) {
+            try { localStorage.setItem('sm_email', got); } catch (e) {}
+            paintAccount(got);
+          }
+        }).catch(function () {});
       }
+
       paintChrome();
       requireAccount();
     })();
