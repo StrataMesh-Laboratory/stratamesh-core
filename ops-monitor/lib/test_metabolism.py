@@ -14,7 +14,7 @@ from metabolism import (  # noqa: E402
     decide, hours_until_renewal, monitor_interval_sec, snapshot, load_rails,
     record_spend, empty_rail_state, phase_delta,
     density_of, effective_capacity, coalesce_intents, circuit_trip,
-    pace_factor, live_decide_kwargs,
+    pace_factor, live_decide_kwargs, pace_failed, admit,
 )
 
 CFG = load_rails()
@@ -455,6 +455,105 @@ class CircuitWiredCallers(unittest.TestCase):
             CFG,
         )
         self.assertNotIn("remaining", kw)
+
+
+
+class PaceVsFreeze(unittest.TestCase):
+    """STASIS is min pace. Freeze only after pace_failed with no contingency."""
+
+    def test_allow_never_freeze(self):
+        v = decide("cf-worker-req", remaining=100000, now=T(1, 0), cost=1, signal=8, cfg=CFG)
+        self.assertEqual(v.decision, ALLOW)
+        self.assertFalse(v.freeze)
+        a = admit(v, {"rand": 0.0})
+        self.assertTrue(a["admit"])
+        self.assertFalse(a["freeze"])
+
+    def test_first_stasis_trip_freeze_false(self):
+        v = decide(
+            "cf-worker-req", remaining=100000, now=T(1, 0),
+            hour_spent=9000, cfg=CFG, prev_circuit=ALLOW,
+        )
+        self.assertEqual(v.decision, STASIS)
+        self.assertEqual(v.circuit, STASIS)
+        self.assertFalse(v.freeze)
+        self.assertFalse(v.pace_failed)
+        self.assertFalse(pace_failed(prev_circuit=ALLOW, circuit=STASIS, hour_spent=9000, hourly_cap=v.hourly_cap))
+        a = admit(v, {"rand": 0.99, "prev_circuit": ALLOW, "hour_spent": 9000})
+        self.assertFalse(a["freeze"])
+        self.assertEqual(a["reason"], "pace STASIS min (not freeze)")
+
+    def test_second_stasis_after_prev_stasis_freezes_non_p0(self):
+        v = decide(
+            "cf-worker-req", remaining=100000, now=T(1, 0),
+            hour_spent=9000, cfg=CFG, prev_circuit=STASIS,
+        )
+        self.assertEqual(v.decision, STASIS)
+        self.assertTrue(v.pace_failed)
+        self.assertTrue(v.freeze)
+        a = admit(v, {"rand": 0.0, "prev_circuit": STASIS, "hour_spent": 9000, "is_p0": False})
+        self.assertFalse(a["admit"])
+        self.assertTrue(a["freeze"])
+
+    def test_p0_still_admits_on_freeze(self):
+        v = decide(
+            "cf-worker-req", remaining=100000, now=T(1, 0),
+            hour_spent=9000, cfg=CFG, prev_circuit=STASIS, is_p0=True,
+        )
+        a = admit(v, {"rand": 0.0, "prev_circuit": STASIS, "hour_spent": 9000, "is_p0": True})
+        self.assertTrue(a["admit"])
+        self.assertFalse(a["freeze"])
+        self.assertEqual(a["reason"], P0_BORROW)
+
+    def test_hold_never_freeze(self):
+        v = decide("cf-worker-req", remaining=100000, now=T(1, 0),
+                   hour_spent=5300, cfg=CFG)
+        self.assertEqual(v.decision, HOLD)
+        self.assertFalse(v.freeze)
+        a_yes = admit(v, {"rand": 0.0})  # deflator <= 1, rand 0 admits
+        a_no = admit({**v.as_dict(), "deflator": 0.5, "circuit": HOLD, "decision": HOLD}, {"rand": 0.9})
+        self.assertFalse(a_yes["freeze"])
+        self.assertFalse(a_no["freeze"])
+        self.assertTrue(a_yes["admit"])
+        self.assertFalse(a_no["admit"])
+        self.assertGreaterEqual(a_no["retry_after_sec"], 30)
+
+    def test_pace_failed_plus_contingency_fail_open(self):
+        pack = {
+            "decision": STASIS, "circuit": STASIS, "deflator": 0.5,
+            "hourly_cap": 1000, "remaining": 50000, "hour_spent": 9000,
+            "prev_circuit": STASIS,
+            "contingency_url": "https://auth.calhegasmorais.pt",
+            "contingency_ok": True,
+        }
+        self.assertTrue(pace_failed(prev_circuit=STASIS, circuit=STASIS, hour_spent=9000, hourly_cap=1000))
+        a = admit(pack, {"rand": 0.99, "prev_circuit": STASIS, "hour_spent": 9000})
+        self.assertTrue(a["admit"])
+        self.assertFalse(a["freeze"])
+        self.assertEqual(a["via"], "contingency")
+        self.assertEqual(a["contingency_url"], "https://auth.calhegasmorais.pt")
+
+    def test_pace_failed_no_contingency_freezes_non_p0(self):
+        pack = {
+            "decision": STASIS, "circuit": STASIS, "deflator": 0.5,
+            "hourly_cap": 1000, "remaining": 50000, "hour_spent": 9000,
+            "contingency_url": "", "contingency_ok": False,
+        }
+        a = admit(pack, {"rand": 0.0, "prev_circuit": HOLD, "hour_spent": 9000, "is_p0": False})
+        self.assertFalse(a["admit"])
+        self.assertTrue(a["freeze"])
+
+    def test_workers_dev_still_hard_forbidden(self):
+        v = decide(
+            "cf-worker-req", remaining=100000, now=T(1, 0),
+            url="https://x.workers.dev/health", cfg=CFG,
+        )
+        self.assertEqual(v.decision, STASIS)
+        self.assertTrue(v.freeze)
+        a = admit({**v.as_dict(), "url": "https://x.workers.dev/health",
+                   "contingency_url": "https://auth.calhegasmorais.pt", "contingency_ok": True})
+        self.assertTrue(a["freeze"])
+        self.assertFalse(a["admit"])
 
 
 try:

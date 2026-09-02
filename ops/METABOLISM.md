@@ -20,6 +20,18 @@ circuit STASIS  if hour_spent ≥ 2 × hourly_cap      # unadjusted
 - **grok-assistant**: SuperGrok Plus weekly **pool fraction**. `remaining = remaining_frac` (1.0 = full weekly compute pool). `daily_limit` is **1.0** (the pool), **not** a prompt/token count — grok.com Usage has no public token number. Live 2026-08-29 ~01:05 Lisbon: 4% used → remaining_frac **0.96**. Reset text "Resets August 31, 2026 at 2:55 PM" has **no timezone**; treated as **Europe/Lisbon** (session TZ) → `reset_iso=2026-08-31T14:55:00+01:00`. Prompt cost is unknown compute; snapshot `cost=0` (is the pool alive); a fire is `grok-auto`. Gate on `remaining_frac>0` + circuit. Missing sample + `unknown_remaining: hold` → HOLD. `remaining_frac==0` → STASIS.
 - **CF Workers Free** after **2026-08-29T00:00:00Z** is Q-gated ALLOW (`R = remaining/hours_left * pace_factor`), not STASIS. Live remaining = 100000 minus GraphQL workersInvocationsAdaptive since 00:00 UTC. **cf-pages** is an alias (`shares_pool: cf-worker-req`, `skip_meter`); static Pages are free; Functions share the one 100k. Never workers.dev. Never a 6th cron.
 
+## Pace vs freeze (2026-09-02)
+
+**STASIS is min pace** (deflator, inflate/deflate burn), **not a freeze**.
+`decide()` may still label HOLD/STASIS. The request-path effector is `admit()`:
+
+1. Pace on the primary rail (HOLD: P(admit)=deflator; first STASIS: P=min(deflator, 0.5)). Retry-After, not HTTP 503.
+2. If `paceFailed` (previous circuit already HOLD/STASIS **and** still STASIS at ≥2× unadjusted cap): fail-open to a named contingency hop when `contingency_url` + `contingency_ok` — CF Workers auth → `https://auth.calhegasmorais.pt` (python :8790 JSON); apex HTML → Pages (`calhegasmorais-pt`), not Worker SPA; `/sandbox` → `https://sandbox.calhegasmorais.pt/`.
+3. **Freeze** (hard reject) only if pace already failed **and** no contingency is configured/healthy. Freeze is a **temporary holding pattern** until those routes recover.
+
+`env STASIS=1` → Worker 503 is a **bug**. Do not PATCH that binding from `metabolic-stasis-enforce.py`. Live `stratamesh-auth` 2.10.5-turnstile-lab is a different freeze; do not overwrite it blindly.
+
+
 ---
 
 # Metabolic stasis v1.2 — token density

@@ -23,11 +23,18 @@ jobs:
       CF_WORKER_DAY_CAP: "100000"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Restore previous circuit (optional artifact)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39883 # v4
+        with:
+          path: stasis-state.json
+          key: stasis-state-${{ github.run_id }}
+          restore-keys: |
+            stasis-state-
       - name: GraphQL spend vs rails cap
         id: stasis
         run: python3 ops/bin/metabolic-stasis-enforce.py
         continue-on-error: true
-      - name: Record circuit
+      - name: Record freeze (pace already failed, no contingency)
         if: steps.stasis.outcome == 'failure'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
@@ -37,7 +44,7 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'STASIS · Workers spend ≥ cap (do not use #52)',
-              body: 'Circuit STASIS. HTML hop stays on Pages. No spa catch-all.\n\n```json\n' + state + '\n```\n',
+              title: 'metabol freeze · pace already failed, no contingency (do not use #52)',
+              body: 'Freeze after pace_failed with no healthy contingency. HTML hop stays on Pages. Never env STASIS=1.\n\n```json\n' + state + '\n```\n',
               labels: ['lab-ops']
             }).catch(() => {});
