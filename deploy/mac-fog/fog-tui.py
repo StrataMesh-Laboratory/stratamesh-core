@@ -403,6 +403,14 @@ def draw(msg: str = "") -> None:
     def print(*a, **k):  # noqa: shadow — instrument goes to /dev/tty
         k.setdefault("file", DEV_TTY)
         return _PRINT(*a, **k)
+    # Home + erase-below every frame. Without this, Terminal.app appends a
+    # second dashboard (double header / stacked ╭──╮). Alt-screen on enter
+    # is not enough: draw() used to print without CSI H.
+    try:
+        DEV_TTY.write("[H[J[?25l")
+        DEV_TTY.flush()
+    except Exception:
+        pass
     hop = get("http://127.0.0.1:8788/health")
     st = get("http://127.0.0.1:8787/status")
     pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
@@ -535,7 +543,6 @@ def draw(msg: str = "") -> None:
     top = "╭" + "─" * (cols - 2) + "╮"
     bot = "╰" + "─" * (cols - 2) + "╯"
     mid = "├" + "─" * (cols - 2) + "┤"
-    print(top)
     clock = time.strftime("%H:%M:%S")
     dec = met.get("decision")
     if not dec and isinstance(met.get("cf"), dict):
@@ -607,8 +614,10 @@ def draw(msg: str = "") -> None:
         print(MUT + "  never pkill cloudflared · STRATA mint waits for oracle_live" + RST)
     if msg:
         print("  " + ACC + msg + RST)
-    sys.stdout.write("")
-    sys.stdout.flush()
+    try:
+        DEV_TTY.flush()
+    except Exception:
+        pass
 
 
 
