@@ -45,8 +45,17 @@ WIZARD_RESERVED = frozenset()
 COMPOSER_ROW = 0  # 1-based row of "> " prompt; paint_composer only
 DRAW_ROW = 1
 LOCAL_HTTP_TIMEOUT = 0.3
-PUB_CACHE: dict = {"ok": False}
-EDGE_CACHE: dict = {"ok": False}
+PUB_CACHE: dict = {}
+EDGE_CACHE: dict = {}
+PUB_LAST_GOOD: dict = {}
+EDGE_LAST_GOOD: dict = {}
+PUB_FAILS = 0
+EDGE_FAILS = 0
+PUB_HOLD_SEC = 300.0
+PUB_DARK_STREAK = 3
+PUB_PROBE_PERIOD = 15.0
+PUB_HTTP_TIMEOUT = 1.2
+_PUB_LAST_KICK = 0.0
 MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no status.calhegasmorais.pt)
 _PUB_LOCK = threading.Lock()
 _PUB_BUSY = False
@@ -193,33 +202,118 @@ def is_local_instrument_url(url: str) -> bool:
     return u.startswith("http://127.0.0.1:") or u.startswith("http://localhost:")
 
 
+def public_http_ok(d) -> bool:
+    """True when the public/edge probe got HTTP 200 JSON (transport, not app flags).
+
+    origin=session + n=1 + mac_live=false is a session flag, not a dark lamp.
+    Timeout / URLError shapes from get() are False.
+    """
+    if not isinstance(d, dict) or not d:
+        return False
+    if d.get("origin") is not None:
+        return True
+    if d.get("ok") is True:
+        return True
+    if d.get("ok") is False and d.get("error"):
+        return False
+    return "error" not in d
+
+
+def apply_public_result(raw: dict, which: str = "pub") -> dict:
+    """Hysteresis: 1 success -> live; 3 consecutive failures -> dark.
+    Last-good JSON (origin, ok, n, mac_live) held >=5 min. One timeout never paints public --.
+    """
+    global PUB_FAILS, EDGE_FAILS
+    now = time.monotonic()
+    raw = raw if isinstance(raw, dict) else {"ok": False, "error": "bad"}
+    ok = public_http_ok(raw)
+    with _PUB_LOCK:
+        if which == "edge":
+            cache, last_good = EDGE_CACHE, EDGE_LAST_GOOD
+        else:
+            cache, last_good = PUB_CACHE, PUB_LAST_GOOD
+        if ok:
+            if which == "edge":
+                EDGE_FAILS = 0
+            else:
+                PUB_FAILS = 0
+            snap = {k: raw[k] for k in raw if not str(k).startswith("_")}
+            snap["_good_at"] = now
+            last_good.clear()
+            last_good.update(snap)
+            cache.clear()
+            cache.update(snap)
+            cache["_lamp"] = True
+            return dict(cache)
+        if which == "edge":
+            EDGE_FAILS += 1
+            fails = EDGE_FAILS
+        else:
+            PUB_FAILS += 1
+            fails = PUB_FAILS
+        lamp = bool(last_good) and fails < PUB_DARK_STREAK
+        paint = dict(last_good) if last_good else dict(raw)
+        cache.clear()
+        cache.update(paint)
+        cache["_lamp"] = lamp
+        if last_good and last_good.get("origin") is not None:
+            cache["origin"] = last_good.get("origin")
+            if "n" in last_good:
+                cache["n"] = last_good["n"]
+            if "mac_live" in last_good:
+                cache["mac_live"] = last_good["mac_live"]
+        return dict(cache)
+
+
+def local_decision(hop_ok: bool, fog_ok: bool, over: bool) -> str:
+    """Header LIVE/HOLD/DEGRADED from local hops only. Public HTTPS never sets PUBLIC?."""
+    if not hop_ok or not fog_ok:
+        return "DEGRADED"
+    if over:
+        return "HOLD"
+    return "LIVE"
+
+
+def pub_origin_label(pub: dict) -> str:
+    o = (pub or {}).get("origin")
+    if o:
+        return str(o)
+    with _PUB_LOCK:
+        o = PUB_LAST_GOOD.get("origin")
+    return str(o) if o else "—"
+
+
 def kick_public_refresh() -> None:
-    """Fog/edge /health in a daemon thread. Never blocks draw(). Never hits CF status."""
-    global _PUB_BUSY
+    """Fog/edge /health in a daemon thread. Never blocks draw(). Never hits CF status.
+    Timeout 1.2s, period >=15s. Never inline in draw().
+    """
+    global _PUB_BUSY, _PUB_LAST_KICK
     if _PUB_BUSY:
+        return
+    now = time.monotonic()
+    if _PUB_LAST_KICK and (now - _PUB_LAST_KICK) < PUB_PROBE_PERIOD:
         return
 
     def _run() -> None:
         global _PUB_BUSY
         try:
-            pub = get("https://fog.calhegasmorais.pt/health", timeout=3.0)
-            edge = get("https://edge.calhegasmorais.pt/health", timeout=3.0)
+            pub = get("https://fog.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
+            edge = get("https://edge.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
             if not isinstance(pub, dict):
-                pub = {"ok": False}
+                pub = {"ok": False, "error": "bad"}
             if not isinstance(edge, dict):
-                edge = {"ok": False}
-            with _PUB_LOCK:
-                PUB_CACHE.clear()
-                PUB_CACHE.update(pub)
-                EDGE_CACHE.clear()
-                EDGE_CACHE.update(edge)
+                edge = {"ok": False, "error": "bad"}
+            apply_public_result(pub, "pub")
+            apply_public_result(edge, "edge")
         except Exception:
             pass
         finally:
             _PUB_BUSY = False
 
+    _PUB_LAST_KICK = now
     _PUB_BUSY = True
     threading.Thread(target=_run, name="fog-tui-pub", daemon=True).start()
+
 
 
 def pids_rss_table(names: tuple[str, ...] = ("workerd", "python3", "cloudflared")) -> dict[str, list[tuple[int, int]]]:
@@ -1017,14 +1111,10 @@ def draw(msg: str = "") -> None:
     waiver = bool(rails.get("lab_waived"))
     oracle = bool(st.get("oracle_live") or hop.get("oracle_live"))
     over = bool(cap.get("over"))
-    pub_ok = bool(pub.get("ok"))
+    pub_ok = bool(pub.get("_lamp"))
     hop_ok = hop.get("ok") is True
     fog_ok = st.get("status") == "operational"
-    decision = "HOLD" if over else "LIVE"
-    if not hop_ok or not fog_ok:
-        decision = "DEGRADED"
-    if not pub_ok:
-        decision = "PUBLIC?"
+    decision = local_decision(hop_ok, fog_ok, over)
 
     top = "╭" + "─" * (cols - 2) + "╮"
     bot = "╰" + "─" * (cols - 2) + "╯"
@@ -1062,7 +1152,7 @@ def draw(msg: str = "") -> None:
     pair(" " + lamp(bool(pyh.get("ok"))) + " python   :8790", " spa   %s / %s" % (spa.get("active") or 0, spa.get("total") or 0))
     pair(" " + lamp(bool(ndh.get("ok"))) + " node     :8791", " meta  %s  pace=%s" % (dec, met.get("pace") or "—"))
     pair(" " + lamp(bool(dnh.get("ok"))) + " deno     :8792", " resolve / object / mail")
-    pair(" " + lamp(pub_ok) + " public   " + str(pub.get("origin") or "—"),
+    pair(" " + lamp(pub_ok) + " public   " + pub_origin_label(pub),
          " plus  " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
     print(mid)
     print(boxline(" " + ACC + "PROTOCOL" + RST + "  "
