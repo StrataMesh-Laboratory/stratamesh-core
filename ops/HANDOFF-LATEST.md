@@ -1,60 +1,49 @@
-# HANDOFF-LATEST — hourly git+live 2026-08-30T22:13Z spa /chat destyle + GHA green
+# HANDOFF-LATEST — 2026-09-02T01:13Z (curl wins)
 
-**generated_at:** 2026-08-30T22:14:00Z  
-**lisbon:** 2026-08-30T23:14:00+0100  
-**agent:** grok@calhegasmorais.pt  
+**generated_at:** 2026-09-02T01:13:00Z  
+**lisbon:** 2026-09-02T02:13:00+0100  
+**agent:** STRATAGROK / grok@calhegasmorais.pt  
 **node:** FOG-NODE-PT-CM-001  
-**phase:** hourly_gitlive_22_spa_chat_destyle
+**host_id:** c3c5b24ece30a133  
+**phase:** v0.5.1-lab_git_ahead_live_hop_0.5.0
+
+Replaces the 2026-08-30T22:14Z note (n=2 / 0.3.0 / EDGE 530 / mac_live). That file was stale. Lab only. grok@ is not an SCA.
 
 ## Metabolism
 
 | Item | Value |
 |------|-------|
-| grok-auto | 5 slots (hourly + 4 daily, armed) |
-| cf-cron | 5/5 |
-| Pages apex | yes (destyle live + D1 clp/roadmap/eni + dashboard portal) |
-| STASIS | **cleared** |
+| Hourly git+live #52 | **PAUSED** (SuperGrok). Daily 04 observe · 09 ship · 18 t/20 · 23 handoff |
+| CF Workers | STASIS ledger [#80](https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/80) (sandbox-host + auth blew 100k). No Worker PUT from this desk |
+| Fog metabol | metabol-v1.3 remaining=1000 ALLOW (different meter from CF spend) |
 | 6th cron | **never** |
-| workers.dev | **never** (spa subdomain disabled this hour; 404 CF 1042) |
-| wrangler deploy from GHA | **HOLD** (public Actions net $0 is fine) |
-| KV ops-state | no PUT this hour |
+| workers.dev | **never** |
+| grok.me | **HOLD** |
+| wrangler deploy | **HOLD** while #80 |
 
-## Probes (this hour, curl)
+## Live curl (2026-09-02 ~01:13Z / 02:02 PT re-probe)
 
-- gha-fail-watch GHA → **success** 33338564134 on 913090ea67c6
-- protocol-invariants GHA dispatch → **success** 33338565081 on 913090ea67c6
-- apex `/chat` HTML destyle **--acc:#c4a574** **no #8b9cf7** **LIVE**
-- spa workers.dev **404** CF 1042
-- status **0.4.8-circ-split** + sandbox **0.4.6-destyle** + fund **0.4.8-destyle** + origin **0.1.6-destyle** + academy HTML **0.4.3-lab** + eni-pay **1.0.1-destyle** + deomail **1.4.6-destyle** — **already live; do not re-ship**
-- Fog `/health` → 200 workerd-hop n=2 mesh_member=true **version=0.3.0 oracle_live=false substrate=workerd-hop**
-- Fog `/spa` → 200 total=3 source=fog_process n=2 mesh_member=true agora.settlements.unavailable=**f_max=0**
-- Fog `/status` → 200 version=**0.3.0** agora.settlements={"unavailable":"f_max=0"} **LIVE envelope**
-- Gossip host `/health` → **2.3.11-destyle** n=2; `/peers` count=1 (Fog; EDGE omitted)
-- EDGE `/health` → **530** CF 1033 session-expected
+- Fog `/health` → 200 workerd-hop **0.5.0-lab** origin=session n=1 mesh_member=false mac_live=false edge_live=false oracle_live=false substrate=workerd-hop layer=tunnel→workerd:8788→fog:8787
+- Fog `/status` → 200 version 0.5.0-lab dag.transaction_count=403 spa.total=6
+- Git HEAD `b621fdc` (Deno four-layer + CF fallback). Tag **v0.5.1-lab** prerelease. Live hop **one mark behind** the tag.
+- Public `edge.calhegasmorais.pt/health` → 200 **maintenance HTML**, not hop JSON. Gossip may count that HTML 200 as a peer. That is not a hop.
+- POST `/api/orchestrator/chat` still hangs. GET chat 1.1.1. Fail-open abort is NOT live.
+- MacBook was **updating** as of 2026-09-02 02:23 PT. Do not pkill cloudflared. Do not origin-take / yield Fog from STRATAGROK session. Do not use tunnels macbook-server or stratamesh-fog-lab from this desk.
 
-## Mesh / Fund
+## P0 / P1
 
-- Fog n=2 · spa_source=fog_process · mesh_member=true · oracle_live=false
-- EDGE session hop **down** this hour (530)
-- Challenge 0 **unfunded** · accept surface live (not a payout)
-- Identity ≠ cargo · WhatsApp is not briefing
+- **P0 OPEN:** two-host / grok90 incident `260826-001576`. Fog live n=1. oracle_live=false.
+- **P0:** CF Workers spend ≥ cap (#80) until operator lifts STASIS.
+- **P1:** load git v0.5.1-lab into Fog process on the Mac after update (TUI `g`). Keep n=1 honest until a second distinct host_id answers hop JSON.
+- **P1:** EDGE hop DNS HOLD until `:8788` origin=edge and `:8789` node_id=EDGE-GROK-CMN-001 with host_id ≠ c3c5b24ece30a133.
+- AIOps SG-SPA/SG-DAG duplicates: Fog `/status` already exposes DAG count and spa=6. Do not close as "done" from this desk.
 
-## This hour
+## NEXT PICK
 
-| Slot | Disposition |
-|------|-------------|
-| STEP 1 remaining HTML chrome | **apex /chat destyle LIVE** (was indigo #8b9cf7) |
-| GHA fail-watch | **success** 22:13 on 913090ea67c6 |
-| protocol-invariants | **success** 22:13 on 913090ea67c6 |
-| academy / destyle / gossip / orch / sandbox / eni / token / status circ-split | **already live** — do not re-ship |
-| Fog /status settlements envelope | **LIVE** |
-| spa_view f_max=0 | **LIVE**; /spa total=3 |
-| EDGE hop | **530** CF 1033 (session expected non-continuous) |
-| Discourse | HOLD extra |
-| Worker PUT | stratamesh-spa only (destyle /chat) |
+1. Do not boot Fog from STRATAGROK computer. Do not touch Mac tunnels.
+2. No Worker PUT while #80 STASIS.
+3. After MacBook is up: load 0.5.1-lab into Fog process so `/health` matches the tag.
+4. EDGE hop proof on the hop host only, then DNS.
+5. After contents:write + STASIS lift: POST-chat fail-open (AbortSignal) on custom-domain Worker, not a preview clone.
 
-## Efficacy
-
-**EFFICACY_SELF_SCORE:** 0.90 (spa /chat destyle live + workers.dev 404 + GHA green + /status envelope LIVE; one Worker PUT)
-
-LAB Fog n=2 mesh_member=true oracle_live=false. P0 OPEN 260826-001576. grok@ not SCA.
+LAB. Curl Fog wins over git chips. P0 two-host stays OPEN.
