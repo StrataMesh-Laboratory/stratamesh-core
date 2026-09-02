@@ -108,6 +108,22 @@ def test_stream_omits_secrets():
     assert "://stratamesh" not in blob and ".workers.dev/" not in blob
 
 
+def test_recycle_mw_exists_and_ports():
+    from fog_plugins.runtime_mesh import MW_PORTS, recycle_mw
+    assert callable(recycle_mw)
+    assert MW_PORTS == (8790, 8791, 8792)
+    assert recycle_mw() == 0
+
+
+def test_tui_reboot_recycles_mw_before_kickstart():
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    text = tui.read_text(encoding="utf-8")
+    start = text.index("def reboot_fog")
+    end = text.index("\ndef ", start + 1)
+    body = text[start:end]
+    assert "recycle_mw" in body
+    assert body.index("recycle_mw") < body.index("kickstart")
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):
