@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
-C clears wizard chat only (not r / 60s redraw). Local Ollama :11434, observe-only if down.
+TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434, observe-only if down.
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -40,7 +40,10 @@ WIZARD_SNAP: dict = {}
 _WIZARD_LOCK = threading.Lock()
 WIZARD_VIEW = 8
 WIZARD_MAX = 80
-WIZARD_RESERVED = frozenset(("q", "Q", "\x1b", "s", "S", "b", "B", "g", "G", "r", "R", "?"))
+# Empty: while HELP, dashboard keys (g s b q r 1-4) type into the composer.
+WIZARD_RESERVED = frozenset()
+COMPOSER_ROW = 0  # 1-based row of "> " prompt; paint_composer only
+DRAW_ROW = 1
 LOCAL_HTTP_TIMEOUT = 0.3
 PUB_CACHE: dict = {"ok": False}
 EDGE_CACHE: dict = {"ok": False}
@@ -556,7 +559,7 @@ def wizard_append(role: str, text: str) -> None:
 
 
 def wizard_clear() -> None:
-    """C only. Does not quit. Does not recycle hops. Does not reboot."""
+    """TAB only. Does not quit. Does not recycle hops. Does not reboot."""
     global WIZARD_LOG, WIZARD_INPUT
     with _WIZARD_LOCK:
         WIZARD_LOG = []
@@ -794,43 +797,88 @@ def wizard_send(text: str | None = None) -> None:
     wizard_ollama_generate(msg, dict(WIZARD_SNAP))
 
 
-def wizard_consume_key(ch: str) -> bool:
-    """While HELP: composer. Reserved keys (q s b g r ? C) stay global.
-    Return True if the key was consumed by the wizard (do not run other handlers).
-    C is reserved globally and always clears chat even when HELP is False.
+def wizard_consume_key(ch: str):
+    """Composer + TAB-clear. While HELP, dashboard keys type into the prompt.
+
+    Returns "type" | "clear" | "send" | "leave" | False (not consumed).
+    TAB clears even if HELP is False. ? and Esc leave HELP (do not quit).
+    C/c are ordinary letters while HELP. WIZARD_RESERVED is empty while HELP.
     """
     global WIZARD_INPUT
-    if ch == "C":
+    if ch == "\t":
         wizard_clear()
-        return True
+        return "clear"
     if not HELP:
         return False
-    if ch in WIZARD_RESERVED:
-        return False
+    if ch == "?" or ch == "\x1b":
+        return "leave"
     if ch in ("\r", "\n"):
         wizard_send()
-        return True
+        return "send"
     if ch in ("\x7f", "\x08"):
         WIZARD_INPUT = WIZARD_INPUT[:-1]
-        return True
+        return "type"
     if ch in ("\x03",):
+        return False
+    if WIZARD_RESERVED and ch in WIZARD_RESERVED:
         return False
     if len(ch) == 1 and ch.isprintable():
         WIZARD_INPUT += ch
-        return True
-    return True
+        return "type"
+    # Swallow other keys so dashboard handlers do not fire while HELP.
+    return "type"
+
+
+def _advance_draw_row(**k) -> None:
+    global DRAW_ROW
+    if k.get("end", "\n") == "\n":
+        DRAW_ROW += 1
+
+
+def composer_line(inp: str | None = None, busy: bool | None = None) -> str:
+    if inp is None:
+        inp = WIZARD_INPUT
+    if busy is None:
+        busy = WIZARD_BUSY
+    cursor = "…" if busy else ""
+    return "  " + ACC + ">" + RST + " " + inp + cursor
+
+
+def paint_composer() -> None:
+    """Rewrite the composer row only. No CSI H J, no hop probes, no dashboard."""
+    global COMPOSER_ROW
+    row = COMPOSER_ROW
+    if not row:
+        try:
+            rows = shutil.get_terminal_size().lines
+        except Exception:
+            rows = 24
+        row = max(1, rows - 2)
+    try:
+        DEV_TTY.write("\033[%d;1H\033[2K" % int(row))
+        DEV_TTY.write(composer_line())
+        DEV_TTY.flush()
+    except Exception:
+        pass
 
 
 def draw_wizard_pane(cols: int, w: int) -> None:
-    """Re-paint last N log lines every frame (CSI H J wipes pixels)."""
-    print = lambda *a, **k: _PRINT(*a, file=k.pop("file", DEV_TTY), **k)  # noqa
+    """Re-paint last N log lines every full frame (CSI H J wipes pixels)."""
+    global COMPOSER_ROW, DRAW_ROW
+
+    def print(*a, **k):  # noqa
+        k.setdefault("file", DEV_TTY)
+        r = _PRINT(*a, **k)
+        _advance_draw_row(**k)
+        return r
+
     print(MUT + "  ─ wizard (local ollama) ─" + RST)
     with _WIZARD_LOCK:
         view = list(WIZARD_LOG[-WIZARD_VIEW:])
         inp = WIZARD_INPUT
         busy = WIZARD_BUSY
     if not view:
-        print(MUT + "  (empty · Enter send · C clear · survives r / 60s)" + RST)
+        print(MUT + "  (empty · Enter send · TAB clear chat · survives r / 60s)" + RST)
     for rec in view:
         role = rec.get("role") or "sys"
         ts = rec.get("ts") or ""
@@ -839,17 +887,25 @@ def draw_wizard_pane(cols: int, w: int) -> None:
         if vislen(line) > cols - 1:
             line = line[: cols - 2] + "…"
         print(MUT + line + RST)
-    cursor = "…" if busy else ""
-    print("  " + ACC + ">" + RST + " " + inp + cursor)
-    print(MUT + "  ? wizard on · C clear chat · Enter send · ollama :11434" + RST)
+    COMPOSER_ROW = DRAW_ROW if DRAW_ROW else 0
+    if not COMPOSER_ROW:
+        try:
+            COMPOSER_ROW = max(1, shutil.get_terminal_size().lines - 2)
+        except Exception:
+            COMPOSER_ROW = 0
+    print(composer_line(inp, busy))
+    print(MUT + "  ? leave wizard · TAB clear chat · Enter send · ollama :11434" + RST)
 
 
 def draw(msg: str = "") -> None:
-    global FRAME
+    global FRAME, DRAW_ROW
     FRAME += 1
+    DRAW_ROW = 1
     def print(*a, **k):  # noqa: shadow — instrument goes to /dev/tty
         k.setdefault("file", DEV_TTY)
-        return _PRINT(*a, **k)
+        r = _PRINT(*a, **k)
+        _advance_draw_row(**k)
+        return r
     # Home + erase-below every frame. Without this, Terminal.app appends a
     # second dashboard (double header / stacked ╭──╮). Alt-screen on enter
     # is not enough: draw() used to print without CSI H.
@@ -1103,18 +1159,35 @@ def main() -> int:
     DEV_TTY.write("\033[?1049h\033[2J\033[H\033[?25l")
     DEV_TTY.flush()
     msg = ""
+    full = True
     try:
         while True:
-            try:
-                draw(msg)
-            except Exception as e:
-                print("\nTUI draw", type(e).__name__, e)
-                sys.stdout.flush()
-            msg = ""
+            if full:
+                try:
+                    draw(msg)
+                except Exception as e:
+                    print("\nTUI draw", type(e).__name__, e)
+                    sys.stdout.flush()
+                msg = ""
+            full = True
             ch = wait_key(INTERVAL)
             if not ch:
+                full = True
                 continue
-            if wizard_consume_key(ch):
+            tok = wizard_consume_key(ch)
+            if tok == "type":
+                full = False
+                paint_composer()
+                continue
+            if tok == "clear" or tok == "send":
+                full = True
+                continue
+            if tok == "leave":
+                HELP = False
+                full = True
+                continue
+            if tok:
+                full = True
                 continue
             if ch in ("q", "Q", "\x1b"):
                 return 0

@@ -55,7 +55,7 @@ class WizardPersist(unittest.TestCase):
         self.assertTrue(path.is_file())
         painted = _MOD.DEV_TTY.getvalue()
         self.assertIn("keep-me", painted)
-        self.assertIn("wizard on", painted)
+        self.assertIn("TAB clear chat", painted)
 
     def test_r_does_not_clear(self):
         _MOD.wizard_append("sys", "stay")
@@ -63,35 +63,95 @@ class WizardPersist(unittest.TestCase):
         self.assertFalse(_MOD.wizard_consume_key("r"))
         self.assertEqual(_MOD.WIZARD_LOG[0]["text"], "stay")
 
-    def test_C_clears_log_and_json(self):
+    def test_TAB_clears_log_and_json(self):
         _MOD.wizard_append("user", "bye")
         self.assertTrue(_MOD.wizard_json_path().is_file())
-        self.assertTrue(_MOD.wizard_consume_key("C"))
+        self.assertEqual(_MOD.wizard_consume_key("\t"), "clear")
         self.assertEqual(_MOD.WIZARD_LOG, [])
         self.assertFalse(_MOD.wizard_json_path().exists())
         self.assertEqual(_MOD.WIZARD_INPUT, "")
 
+    def test_TAB_clears_when_help_false(self):
+        _MOD.HELP = False
+        _MOD.wizard_append("user", "gone")
+        _MOD.WIZARD_INPUT = "partial"
+        self.assertEqual(_MOD.wizard_consume_key("\t"), "clear")
+        self.assertEqual(_MOD.WIZARD_LOG, [])
+        self.assertEqual(_MOD.WIZARD_INPUT, "")
+
+    def test_C_does_not_clear(self):
+        _MOD.wizard_append("user", "keep")
+        with unittest.mock.patch.object(_MOD, "wizard_clear") as clr:
+            tok = _MOD.wizard_consume_key("C")
+        clr.assert_not_called()
+        self.assertEqual(tok, "type")
+        self.assertEqual(_MOD.WIZARD_INPUT, "C")
+        self.assertEqual(_MOD.WIZARD_LOG[0]["text"], "keep")
+
     def test_lowercase_c_is_composer_not_clear(self):
-        self.assertTrue(_MOD.wizard_consume_key("c"))
+        with unittest.mock.patch.object(_MOD, "wizard_clear") as clr:
+            self.assertEqual(_MOD.wizard_consume_key("c"), "type")
+        clr.assert_not_called()
         self.assertEqual(_MOD.WIZARD_INPUT, "c")
         self.assertEqual(_MOD.WIZARD_LOG, [])
 
     def test_composer_backspace(self):
-        self.assertTrue(_MOD.wizard_consume_key("x"))
-        self.assertTrue(_MOD.wizard_consume_key("z"))
+        self.assertEqual(_MOD.wizard_consume_key("x"), "type")
+        self.assertEqual(_MOD.wizard_consume_key("z"), "type")
         self.assertEqual(_MOD.WIZARD_INPUT, "xz")
-        self.assertTrue(_MOD.wizard_consume_key("\x7f"))
+        self.assertEqual(_MOD.wizard_consume_key("\x7f"), "type")
         self.assertEqual(_MOD.WIZARD_INPUT, "x")
-        self.assertTrue(_MOD.wizard_consume_key("\x08"))
+        self.assertEqual(_MOD.wizard_consume_key("\x08"), "type")
         self.assertEqual(_MOD.WIZARD_INPUT, "")
 
-    def test_g_not_stolen_into_composer(self):
-        self.assertFalse(_MOD.wizard_consume_key("g"))
+    def test_g_types_while_help_does_not_imply_git(self):
+        self.assertEqual(_MOD.wizard_consume_key("g"), "type")
+        self.assertEqual(_MOD.WIZARD_INPUT, "g")
+        self.assertEqual(_MOD.wizard_consume_key("s"), "type")
+        self.assertEqual(_MOD.wizard_consume_key("b"), "type")
+        self.assertEqual(_MOD.wizard_consume_key("q"), "type")
+        self.assertEqual(_MOD.wizard_consume_key("r"), "type")
+        self.assertEqual(_MOD.wizard_consume_key("1"), "type")
+        self.assertEqual(_MOD.WIZARD_INPUT, "gsbqr1")
+
+    def test_question_and_esc_leave_help(self):
+        self.assertEqual(_MOD.wizard_consume_key("?"), "leave")
         self.assertEqual(_MOD.WIZARD_INPUT, "")
+        self.assertEqual(_MOD.wizard_consume_key("\x1b"), "leave")
+
+    def test_dashboard_keys_when_help_false(self):
+        _MOD.HELP = False
+        self.assertFalse(_MOD.wizard_consume_key("g"))
         self.assertFalse(_MOD.wizard_consume_key("s"))
         self.assertFalse(_MOD.wizard_consume_key("b"))
-        self.assertFalse(_MOD.wizard_consume_key("?"))
         self.assertFalse(_MOD.wizard_consume_key("q"))
+        self.assertFalse(_MOD.wizard_consume_key("r"))
+        self.assertFalse(_MOD.wizard_consume_key("?"))
+        self.assertFalse(_MOD.wizard_consume_key("C"))
+
+
+class ComposerPaint(unittest.TestCase):
+    def setUp(self):
+        _MOD.HELP = True
+        _MOD.WIZARD_INPUT = "hi"
+        _MOD.WIZARD_BUSY = False
+        _MOD.COMPOSER_ROW = 12
+        _MOD.DEV_TTY = io.StringIO()
+
+    def test_paint_composer_no_full_refresh(self):
+        _MOD.paint_composer()
+        out = _MOD.DEV_TTY.getvalue()
+        self.assertIn("\033[12;1H", out)
+        self.assertIn("\033[2K", out)
+        self.assertIn(">", out)
+        self.assertIn("hi", out)
+        self.assertNotIn("\033[H", out.replace("\033[12;1H", ""))
+        self.assertNotIn("\033[J", out)
+
+    def test_enter_send_token(self):
+        with unittest.mock.patch.object(_MOD, "wizard_send") as send:
+            self.assertEqual(_MOD.wizard_consume_key("\r"), "send")
+        send.assert_called_once()
 
 
 class WizardActions(unittest.TestCase):
