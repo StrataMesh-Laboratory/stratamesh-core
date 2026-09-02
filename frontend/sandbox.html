@@ -21,10 +21,14 @@
     #sessionChip{font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--muted);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     main.stage{flex:1 1 auto;position:relative;min-height:0}
     #atelierFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c}
-    .contract{position:absolute;z-index:2;left:.7rem;bottom:.7rem;width:min(22.5rem,calc(100% - 1.4rem));background:var(--cream);color:var(--ink);border:1px solid #d8d0c2;border-radius:4px;padding:.7rem .8rem .75rem;box-shadow:0 10px 28px rgba(0,0,0,.35)}
-    .contract-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
-    .contract h2{font:500 .92rem/1.2 Georgia,ui-serif,serif}
+    .on-stage{position:absolute;z-index:2;left:.7rem;bottom:.7rem;width:min(22.5rem,calc(100% - 1.4rem));background:var(--cream);color:var(--ink);border:1px solid #d8d0c2;border-radius:4px;padding:.7rem .8rem .75rem;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+    .object-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
+    .on-stage h2{font:500 .92rem/1.2 Georgia,ui-serif,serif}
     .chip{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;border:1px solid #cfc6b6;padding:.22rem .4rem;border-radius:2px;color:var(--ink2)}
+    .contains{margin:.15rem 0 .55rem;padding:.4rem .5rem;border:1px dashed #cfc6b6;border-radius:3px}
+    .contains h3,.aspect h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
+    .contains p{font:400 .75rem/1.35 Georgia,ui-serif,serif;color:var(--ink2)}
+    .aspect{padding-top:.45rem;border-top:1px solid #d8d0c2}
     .mood{display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .45rem;font:500 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
     .lamp{width:.7rem;height:.7rem;border-radius:50%;background:var(--still);box-shadow:0 0 0 3px rgba(138,160,179,.22);flex:0 0 auto}
     .lamp.live{background:var(--live);box-shadow:0 0 0 3px rgba(107,143,113,.28)}
@@ -33,10 +37,7 @@
     .tank{height:.42rem;background:#e4dccf;border:1px solid #cfc6b6;border-radius:2px;overflow:hidden}
     .tank > i{display:block;height:100%;width:0;background:var(--acc)}
     .tank-read{margin-top:.28rem;font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink)}
-    .hint{margin:.55rem 0 .5rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
-    .contains{margin:0 0 .55rem;padding:.4rem .5rem;border:1px dashed #cfc6b6;border-radius:3px}
-    .contains h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
-    .contains p{font:400 .75rem/1.35 Georgia,ui-serif,serif;color:var(--ink2)}
+    .hint{margin:.45rem 0 .5rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
     .acts{display:flex;gap:.4rem}
     .acts button{flex:1 1 auto;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;border-radius:2px;cursor:pointer}
     .acts button.ghost{background:transparent;color:var(--ink)}
@@ -56,28 +57,32 @@
   </header>
   <main class="stage">
     <iframe id="atelierFrame" title="Atelier GNU" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
-    <aside class="contract" id="contractPanel" data-oracle-live="false" data-strata-units="0" data-mood="still">
-      <div class="contract-top">
+    <aside class="on-stage" id="objectPanel">
+      <div class="object-top">
         <h2 id="pieceName">Objecto no palco</h2>
         <span class="chip" id="nameChip">rascunho</span>
       </div>
-      <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Repouso</span></div>
-      <div class="tank-label">Tanque interior · colateral do objecto</div>
-      <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
-      <div class="tank-read" id="tankRead">0 STRATA · lab</div>
-      <p class="hint">O objecto corre no próprio tanque. A carteira fica na bancada.</p>
       <div class="contains">
         <h3>Contém</h3>
-        <p id="containsList">Nenhum objecto dentro. Um NFT pode conter outros; as regras são do próprio contrato.</p>
+        <p id="containsList">Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.</p>
       </div>
-      <div class="acts">
-        <button type="button" id="btnRun">Correr</button>
-        <button type="button" id="btnRest" class="ghost">Repousar</button>
-      </div>
+      <section class="aspect" id="contractAspect" data-oracle-live="false" data-strata-units="0" data-mood="still">
+        <h3>Aspecto contrato · lab</h3>
+        <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Repouso</span></div>
+        <div class="tank-label">Tanque interior · colateral do contrato</div>
+        <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
+        <div class="tank-read" id="tankRead">0 STRATA · lab</div>
+        <p class="hint">Se houver regras, o contrato corre no próprio tanque. A carteira fica na bancada.</p>
+        <div class="acts">
+          <button type="button" id="btnRun">Correr</button>
+          <button type="button" id="btnRest" class="ghost">Repousar</button>
+        </div>
+      </section>
     </aside>
   </main>
   <script>
     (function () {
+
       var ORIGIN = "https://gnu-atelier.pages.dev";
       var mood = "still";
       var ended = false;
@@ -92,43 +97,41 @@
         try { return localStorage.getItem("sm_email") || ""; }
         catch (e) { return ""; }
       }
+
+      var labels = { still: 'Repouso', live: 'A correr', ended: 'Terminado', containsEmpty: 'Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.', sessionEmpty: 'sessão · sandbox.calhegasmorais.pt' };
       function paintSession() {
         var el = document.getElementById("sessionChip");
         if (!el) return;
         var t = token();
         var em = email();
-        el.textContent = t ? ("sessão · " + (em || "conta") + " · sandbox") : "sessão · sandbox.calhegasmorais.pt";
+        el.textContent = t ? ("sessão · " + (em || 'conta') + " · sandbox") : labels.sessionEmpty;
       }
-      function paintContract() {
+      function paintChrome() {
         var lamp = document.getElementById("moodLamp");
         var label = document.getElementById("moodLabel");
         var fill = document.getElementById("tankFill");
         var read = document.getElementById("tankRead");
-        var run = document.getElementById("btnRun");
-        var rest = document.getElementById("btnRest");
-        var panel = document.getElementById("contractPanel");
+        var runBtn = document.getElementById("btnRun");
+        var restBtn = document.getElementById("btnRest");
+        var aspect = document.getElementById("contractAspect");
         var list = document.getElementById("containsList");
         if (!lamp || !label) return;
         lamp.className = "lamp" + (ended ? " ended" : mood === "live" ? " live" : "");
-        label.textContent = ended ? "Terminado" : (mood === "live" ? "A correr" : "Repouso");
+        label.textContent = ended ? labels.ended : (mood === "live" ? labels.live : labels.still);
         fill.style.width = "0";
-        read.textContent = strataUnits + " STRATA · " + (oracleLive ? "vivo" : "lab");
-        panel.setAttribute("data-strata-units", String(strataUnits));
-        panel.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
-        panel.setAttribute("data-mood", ended ? "ended" : mood);
-        run.disabled = ended || mood === "live";
-        rest.disabled = ended || mood === "still";
-        if (!contains.length) {
-          list.textContent = "Nenhum objecto dentro. Um NFT pode conter outros; as regras são do próprio contrato.";
-        } else {
-          list.textContent = contains.map(function (o) { return o.name; }).join(" · ");
-        }
+        read.textContent = strataUnits + " STRATA · " + (oracleLive ? 'vivo' : "lab");
+        aspect.setAttribute("data-strata-units", String(strataUnits));
+        aspect.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
+        aspect.setAttribute("data-mood", ended ? "ended" : mood);
+        runBtn.disabled = ended || mood === "live";
+        restBtn.disabled = ended || mood === "still";
+        list.textContent = contains.length ? contains.map(function (o) { return o.name; }).join(" · ") : labels.containsEmpty;
       }
       function setMood(next) {
         if (ended) return;
         if (next !== "still" && next !== "live") return;
         mood = next;
-        paintContract();
+        paintChrome();
       }
       function pushAtelierSession() {
         try {
@@ -153,7 +156,7 @@
       document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
       document.getElementById("atelierFrame").addEventListener("load", pushAtelierSession);
       paintSession();
-      paintContract();
+      paintChrome();
       pushAtelierSession();
     })();
   </script>
