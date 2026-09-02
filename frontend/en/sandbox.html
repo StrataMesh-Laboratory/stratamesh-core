@@ -9,11 +9,11 @@
   <meta name="theme-color" content="#07111c">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
-    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--card:#0c1a28}
+    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--card:#0c1a28;--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--still:#8aa0b3;--live:#6b8f71}
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
     body{display:flex;flex-direction:column;min-height:100dvh;overflow:hidden}
-    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94)}
+    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94);z-index:3}
     header.chrome h1{font:400 1rem/1.2 Georgia,ui-serif,serif}
     .nav{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
     .nav a,.nav button{color:var(--acc);text-decoration:none;font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);background:transparent;padding:.4rem .65rem;border-radius:2px;cursor:pointer}
@@ -21,6 +21,23 @@
     #sessionChip{font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--muted);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     main.stage{flex:1 1 auto;position:relative;min-height:0}
     #atelierFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c}
+    .contract{position:absolute;z-index:2;left:.7rem;bottom:.7rem;width:min(22.5rem,calc(100% - 1.4rem));background:var(--cream);color:var(--ink);border:1px solid #d8d0c2;border-radius:4px;padding:.7rem .8rem .75rem;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+    .contract-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
+    .contract h2{font:500 .92rem/1.2 Georgia,ui-serif,serif}
+    .chip{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;border:1px solid #cfc6b6;padding:.22rem .4rem;border-radius:2px;color:var(--ink2)}
+    .mood{display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .45rem;font:500 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+    .lamp{width:.7rem;height:.7rem;border-radius:50%;background:var(--still);box-shadow:0 0 0 3px rgba(138,160,179,.22);flex:0 0 auto}
+    .lamp.live{background:var(--live);box-shadow:0 0 0 3px rgba(107,143,113,.28)}
+    .lamp.ended{background:#8a6a5a;box-shadow:0 0 0 3px rgba(138,106,90,.28)}
+    .tank-label{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
+    .tank{height:.42rem;background:#e4dccf;border:1px solid #cfc6b6;border-radius:2px;overflow:hidden}
+    .tank > i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s ease}
+    .tank-read{margin-top:.28rem;font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink)}
+    .hint{margin:.55rem 0 .6rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
+    .acts{display:flex;gap:.4rem}
+    .acts button{flex:1 1 auto;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;border-radius:2px;cursor:pointer}
+    .acts button.ghost{background:transparent;color:var(--ink)}
+    .acts button[disabled]{opacity:.38;cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -36,10 +53,30 @@
   </header>
   <main class="stage">
     <iframe id="atelierFrame" title="GNU Atelier" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
+    <aside class="contract" id="contractCard" data-oracle-live="false" data-strata-units="0">
+      <div class="contract-top">
+        <h2 id="pieceName">Piece on stage</h2>
+        <span class="chip" id="nameChip">draft</span>
+      </div>
+      <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Still</span></div>
+      <div class="tank-label">Interior tank · this object's stake</div>
+      <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
+      <div class="tank-read" id="tankRead">0 STRATA · lab</div>
+      <p class="hint">The piece runs on its own tank. The pocket lives on the workbench.</p>
+      <div class="acts">
+        <button type="button" id="btnRun">Run</button>
+        <button type="button" id="btnRest" class="ghost">Rest</button>
+      </div>
+    </aside>
   </main>
   <script>
     (function () {
       var ORIGIN = "https://gnu-atelier.pages.dev";
+      var mood = "still";
+      var ended = false;
+      var strataUnits = 0;
+      var oracleLive = false;
+
       function token() {
         try { return localStorage.getItem("sm_token") || localStorage.getItem("token") || sessionStorage.getItem("sm_token") || ""; }
         catch (e) { return ""; }
@@ -54,6 +91,31 @@
         var t = token();
         var em = email();
         el.textContent = t ? ("session · " + (em || "account")) : "session · —";
+      }
+      function paintContract() {
+        var lamp = document.getElementById("moodLamp");
+        var label = document.getElementById("moodLabel");
+        var fill = document.getElementById("tankFill");
+        var read = document.getElementById("tankRead");
+        var run = document.getElementById("btnRun");
+        var rest = document.getElementById("btnRest");
+        var card = document.getElementById("contractCard");
+        if (!lamp || !label) return;
+        lamp.className = "lamp" + (ended ? " ended" : mood === "live" ? " live" : "");
+        label.textContent = ended ? "Ended" : (mood === "live" ? "Live" : "Still");
+        fill.style.width = (ended ? 0 : strataUnits) + "%";
+        read.textContent = strataUnits + " STRATA · " + (oracleLive ? "live" : "lab");
+        card.setAttribute("data-strata-units", String(strataUnits));
+        card.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
+        card.setAttribute("data-mood", ended ? "ended" : mood);
+        run.disabled = ended || mood === "live";
+        rest.disabled = ended || mood === "still";
+      }
+      function setMood(next) {
+        if (ended) return;
+        if (next !== "still" && next !== "live") return;
+        mood = next;
+        paintContract();
       }
       function pushAtelierSession() {
         try {
@@ -74,8 +136,11 @@
         var f = document.getElementById("atelierFrame");
         if (f && f.requestFullscreen) f.requestFullscreen();
       });
+      document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
+      document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
       document.getElementById("atelierFrame").addEventListener("load", pushAtelierSession);
       paintSession();
+      paintContract();
       pushAtelierSession();
     })();
   </script>
