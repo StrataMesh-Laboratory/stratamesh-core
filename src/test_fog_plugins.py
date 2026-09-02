@@ -124,6 +124,127 @@ def test_tui_reboot_recycles_mw_before_kickstart():
     assert "recycle_mw" in body
     assert body.index("recycle_mw") < body.index("kickstart")
 
+
+def test_spawn_still_listens_when_host_cap_over():
+    """host_cap.over is HOLD pacing, not a skip of mw Popen / :8790 listen."""
+    import tempfile
+    from unittest.mock import MagicMock, patch
+    from fog_plugins import runtime_mesh
+
+    plugin = runtime_mesh.RuntimeMeshPlugin()
+    popen_cmds = []
+
+    def fake_popen(cmd, *args, **kwargs):
+        popen_cmds.append(list(cmd))
+        m = MagicMock()
+        m.pid = 4242
+        return m
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data = root / "data"
+        py = root / "ops" / "middleware" / "fog_mw.py"
+        js = root / "ops" / "middleware" / "fog_mw.js"
+        py.parent.mkdir(parents=True)
+        py.write_text("# stub\n", encoding="utf-8")
+        js.write_text("// stub\n", encoding="utf-8")
+        with patch.object(runtime_mesh, "ROOT", root), \
+             patch.object(runtime_mesh, "DATA", data), \
+             patch.object(runtime_mesh.host_cap, "over", return_value=True), \
+             patch.object(runtime_mesh, "_healthy", return_value=False), \
+             patch.object(runtime_mesh, "_write_sha"), \
+             patch.object(runtime_mesh.subprocess, "Popen", fake_popen), \
+             patch.object(runtime_mesh.shutil, "which", return_value=None), \
+             patch("builtins.open", MagicMock()):
+            plugin._spawn()
+    assert plugin.last_error == "host_cap"
+    assert popen_cmds, "host_cap.over() must not return before Popen"
+    assert popen_cmds[0][0] == "python3"
+
+
+def test_attach_spawns_immediately_after_recycle():
+    from unittest.mock import patch
+    from fog_plugins.runtime_mesh import RuntimeMeshPlugin
+
+    plugin = RuntimeMeshPlugin()
+    order = []
+
+    def rec(*_a, **_k):
+        order.append("recycle")
+        return 0
+
+    def sp(*_a, **_k):
+        order.append("spawn")
+
+    def loop(self):
+        self._stop.wait(0.05)
+
+    with patch("fog_plugins.runtime_mesh.recycle_mw", rec), \
+         patch.object(RuntimeMeshPlugin, "_spawn", sp), \
+         patch.object(RuntimeMeshPlugin, "_loop", loop):
+        plugin.attach()
+        plugin.stop()
+        if plugin._thread:
+            plugin._thread.join(timeout=2)
+    assert order[:2] == ["recycle", "spawn"]
+
+
+def test_loop_does_not_continue_skip_on_host_cap():
+    import inspect
+    from fog_plugins.runtime_mesh import RuntimeMeshPlugin
+    src = inspect.getsource(RuntimeMeshPlugin._spawn)
+    assert "return" not in src.split("last_error")[1].split("DATA.mkdir")[0]
+    loop = inspect.getsource(RuntimeMeshPlugin._loop)
+    assert "continue" not in loop
+
+
+def test_spawn_deno_8792_when_host_cap_over():
+    """recycle_mw SIGTERMs :8792; host_cap HOLD must not leave deno dark."""
+    import tempfile
+    from unittest.mock import MagicMock, patch
+    from fog_plugins import runtime_mesh
+
+    plugin = runtime_mesh.RuntimeMeshPlugin()
+    popen_cmds = []
+
+    def fake_popen(cmd, *args, **kwargs):
+        popen_cmds.append(list(cmd))
+        m = MagicMock()
+        m.pid = 8792
+        return m
+
+    def fake_which(name):
+        if name == "deno":
+            return "/usr/local/bin/deno"
+        return None
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data = root / "data"
+        ts = root / "ops" / "deno" / "main.ts"
+        ts.parent.mkdir(parents=True)
+        ts.write_text("// stub\n", encoding="utf-8")
+        (root / "ops" / "middleware").mkdir(parents=True, exist_ok=True)
+        (root / "ops" / "middleware" / "fog_mw.py").write_text("# stub\n", encoding="utf-8")
+        with patch.object(runtime_mesh, "ROOT", root), \
+             patch.object(runtime_mesh, "DATA", data), \
+             patch.object(runtime_mesh.host_cap, "over", return_value=True), \
+             patch.object(runtime_mesh, "_healthy", return_value=False), \
+             patch.object(runtime_mesh, "_write_sha"), \
+             patch.object(runtime_mesh.subprocess, "Popen", fake_popen), \
+             patch.object(runtime_mesh.shutil, "which", fake_which), \
+             patch("builtins.open", MagicMock()):
+            plugin._spawn()
+    assert plugin.last_error == "host_cap"
+    deno_cmds = [c for c in popen_cmds if c and "deno" in str(c[0])]
+    assert deno_cmds, "host_cap.over must not skip deno Popen"
+    cmd = deno_cmds[0]
+    assert "run" in cmd
+    assert "--allow-net" in cmd and "--allow-env" in cmd and "--allow-read" in cmd
+    assert any(str(x).endswith("ops/deno/main.ts") or str(x).endswith("main.ts") for x in cmd)
+    py_cmds = [c for c in popen_cmds if c and c[0] == "python3"]
+    assert py_cmds, "python :8790 must still spawn under host_cap.over"
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

@@ -1,6 +1,6 @@
-"""Supervise loopback Python + Node middleware beside workerd.
+"""Supervise loopback Python + Node + Deno middleware beside workerd.
 
-Honor host_cap. Never bind public. Never touch cloudflared.
+Honor host_cap for keep-up/PoC pacing, not mw listen. Never bind public. Never touch cloudflared.
 """
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ DATA = Path(os.environ.get("FOG_DATA") or Path.home() / "StrataMesh/fog/data")
 ROOT = Path(os.environ.get("FOG_SRC") or Path.home() / "StrataMesh/fog/repo")
 PY_PORT = int(os.environ.get("FOG_MW_PY_PORT") or "8790")
 NODE_PORT = int(os.environ.get("FOG_MW_NODE_PORT") or "8791")
-# 8792 is the leftover deno hop the TUI still lamps; we do not spawn it.
-MW_PORTS = (8790, 8791, 8792)
+DENO_PORT = int(os.environ.get("FOG_MW_DENO_PORT") or "8792")
+MW_PORTS = (PY_PORT, NODE_PORT, DENO_PORT)
 _SHA_STAMP = "mw-git-sha"
 
 
@@ -169,10 +169,12 @@ class RuntimeMeshPlugin:
         self._thread = None
         self.py_pid = None
         self.node_pid = None
+        self.deno_pid = None
         self.last_error = None
 
     def snapshot(self) -> dict:
         node_bin = shutil.which("node")
+        deno_bin = shutil.which("deno")
         return {
             "ok": _healthy(PY_PORT),
             "plugin": "runtime-mesh",
@@ -183,20 +185,31 @@ class RuntimeMeshPlugin:
                 "pid": self.node_pid,
                 "binary": node_bin,
             },
+            "deno": {
+                "port": DENO_PORT,
+                "ok": _healthy(DENO_PORT) if deno_bin else False,
+                "pid": self.deno_pid,
+                "binary": deno_bin,
+            },
             "workerd_alongside": True,
             "reboots": self.reboots,
             "last_error": self.last_error,
         }
 
     def _spawn(self):
-        if host_cap.over():
+        # host_cap.over() is metabolic burn-rate (keep-up/PoC), not OS load-shed.
+        # Record it, skip extra sha stamps, but still bind :8790/:8791/:8792 if unhealthy.
+        cap_over = host_cap.over()
+        if cap_over:
             self.last_error = "host_cap"
-            return
         DATA.mkdir(parents=True, exist_ok=True)
         py = ROOT / "ops" / "middleware" / "fog_mw.py"
         js = ROOT / "ops" / "middleware" / "fog_mw.js"
-        stale = (py.is_file() and _mw_stale(PY_PORT, py)) or (
-            js.is_file() and _mw_stale(NODE_PORT, js)
+        ts = ROOT / "ops" / "deno" / "main.ts"
+        stale = (
+            (py.is_file() and _mw_stale(PY_PORT, py))
+            or (js.is_file() and _mw_stale(NODE_PORT, js))
+            or (ts.is_file() and _mw_stale(DENO_PORT, ts))
         )
         if stale:
             recycle_mw()
@@ -215,7 +228,8 @@ class RuntimeMeshPlugin:
                 env=env,
             )
             self.py_pid = p.pid
-            _write_sha()
+            if not cap_over:
+                _write_sha()
         node = shutil.which("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             log = open(DATA / "mw-node.log", "ab")
@@ -231,12 +245,31 @@ class RuntimeMeshPlugin:
                 env=env,
             )
             self.node_pid = p.pid
-            _write_sha()
+            if not cap_over:
+                _write_sha()
+        deno = shutil.which("deno")
+        if deno and ts.is_file() and not _healthy(DENO_PORT):
+            log = open(DATA / "mw-deno.log", "ab")
+            env = os.environ.copy()
+            env.setdefault("FOG_SRC", str(ROOT))
+            env.setdefault("FOG_DATA", str(DATA))
+            p = subprocess.Popen(
+                [deno, "run", "--allow-net", "--allow-env", "--allow-read", str(ts)],
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+                cwd=str(ROOT),
+                env=env,
+            )
+            self.deno_pid = p.pid
+            if not cap_over:
+                _write_sha()
 
     def attach(self):
         if self._thread and self._thread.is_alive():
             return
         recycle_mw()
+        self._spawn()
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, name="runtime-mesh", daemon=True)
         self._thread.start()
@@ -245,15 +278,17 @@ class RuntimeMeshPlugin:
         while not self._stop.is_set():
             try:
                 if host_cap.over():
-                    time.sleep(20)
-                    continue
+                    self.last_error = "host_cap"
                 py = ROOT / "ops" / "middleware" / "fog_mw.py"
                 js = ROOT / "ops" / "middleware" / "fog_mw.js"
+                ts = ROOT / "ops" / "deno" / "main.ts"
                 need = (
                     not _healthy(PY_PORT)
                     or (shutil.which("node") and not _healthy(NODE_PORT))
+                    or (shutil.which("deno") and not _healthy(DENO_PORT))
                     or (py.is_file() and _mw_stale(PY_PORT, py))
                     or (js.is_file() and _mw_stale(NODE_PORT, js))
+                    or (ts.is_file() and shutil.which("deno") and _mw_stale(DENO_PORT, ts))
                 )
                 if need:
                     self._spawn()
