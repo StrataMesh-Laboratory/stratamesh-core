@@ -2,7 +2,15 @@
 """Fog Python middleware — loopback CMN hop helper.
 
 Ports: 8790. Talks cap / metabol / plugin roster. Not public origin.
+Public aliases (macbook-server tunnel): auth.calhegasmorais.pt, mw.calhegasmorais.pt.
+
+This hop is the contingency/no-cap rail for Workbench dynamic session/state.
+Workers/KV stay paced (KV 50% cap; Workers 100k/day; sandbox-host burned 1.2M,
+auth 736k on 1 Sep). Freeze only after pace fails AND this hop is down.
+Do not PUT Workers or add a 6th cron to "fix" KV.
+
 /api/auth/* is a JSON session fallback (never 405/501/HTML, never error=stasis).
+/api/wb/* is cheap in-memory Workbench state (not KV).
 """
 from __future__ import annotations
 
@@ -19,6 +27,7 @@ FOG = os.environ.get("FOG_HEALTH") or "http://127.0.0.1:8787"
 EDGE = "https://edge.calhegasmorais.pt"
 FOG_PUB = "https://fog.calhegasmorais.pt"
 SESS = {}  # token -> {email, exp, kind}
+WB = {}  # token -> {nfts, avatarId, at}  in-memory Workbench; not KV
 HOP = "python:8790"
 
 
@@ -206,6 +215,42 @@ class H(BaseHTTPRequestHandler):
             "role": "auth-fallback+middleware",
         })
 
+    def _wb(self):
+        path = self.path.split("?", 1)[0]
+        method = self.command
+        if path.rstrip("/").endswith("/health"):
+            return self._send(200, {
+                "ok": True,
+                "success": True,
+                "hop": HOP,
+                "role": "wb-memory",
+                "n": 2,
+                "kv": False,
+            })
+        hdr = self.headers.get("Authorization") or self.headers.get("authorization") or ""
+        token = hdr.split(" ", 1)[-1] if hdr else ""
+        rec = SESS.get(token)
+        if not rec or rec["exp"] <= time.time():
+            return self._send(401, {"ok": False, "error": "no_session", "hop": HOP})
+        if method in ("POST", "PUT"):
+            body = self._body()
+            nfts = body.get("nfts") if isinstance(body.get("nfts"), list) else []
+            WB[token] = {
+                "nfts": nfts,
+                "avatarId": body.get("avatarId"),
+                "at": time.time(),
+                "email": rec["email"],
+            }
+            return self._send(200, {
+                "ok": True,
+                "success": True,
+                "hop": HOP,
+                "saved": True,
+                "count": len(nfts),
+            })
+        snap = WB.get(token) or {"nfts": [], "avatarId": None}
+        return self._send(200, {"ok": True, "success": True, "hop": HOP, **snap})
+
     def do_OPTIONS(self):
         self._cors(204)
         self.end_headers()
@@ -214,24 +259,32 @@ class H(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path.startswith("/api/auth"):
             return self._auth()
+        if path.startswith("/api/wb"):
+            return self._wb()
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_PUT(self):
         path = self.path.split("?", 1)[0]
         if path.startswith("/api/auth"):
             return self._auth()
+        if path.startswith("/api/wb"):
+            return self._wb()
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_DELETE(self):
         path = self.path.split("?", 1)[0]
         if path.startswith("/api/auth"):
             return self._auth()
+        if path.startswith("/api/wb"):
+            return self._wb()
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path.startswith("/api/auth"):
             return self._auth()
+        if path.startswith("/api/wb"):
+            return self._wb()
         table = {
             "/": "health",
             "/health": "health",
