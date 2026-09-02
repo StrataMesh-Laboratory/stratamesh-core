@@ -40,6 +40,7 @@ class IPFSClient:
         api_url: Optional[str] = None,
         gateway: Optional[str] = None,
         timeout: float = 15.0,
+        db_path: Optional[str] = None,
     ):
         self.api_url = (api_url or os.environ.get("IPFS_API_URL") or "").rstrip("/")
         self.gateway = (gateway or os.environ.get("IPFS_GATEWAY") or "https://ipfs.io").rstrip("/")
@@ -51,6 +52,52 @@ class IPFSClient:
         else:
             self.mode = "stub"
         self.pins: Dict[str, PinRecord] = {}
+        self.db_path = db_path or os.environ.get("FOG_SQLITE_PATH") or None
+        self._conn = None
+        if self.db_path:
+            self._init_pin_db()
+
+
+    def _init_pin_db(self) -> None:
+        import sqlite3
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute(
+            """CREATE TABLE IF NOT EXISTS ipfs_pins (
+                cid TEXT PRIMARY KEY,
+                status TEXT,
+                mode TEXT,
+                requested_at REAL,
+                last_error TEXT
+            )"""
+        )
+        self._conn.commit()
+        self._load_pins()
+
+    def _load_pins(self) -> None:
+        if not self._conn:
+            return
+        rows = self._conn.execute("SELECT * FROM ipfs_pins").fetchall()
+        for r in rows:
+            self.pins[r["cid"]] = PinRecord(
+                cid=r["cid"],
+                requested_at=float(r["requested_at"] or 0),
+                status=r["status"] or "queued",
+                last_error=r["last_error"],
+                mode=r["mode"] or self.mode,
+            )
+
+    def _persist_pin(self, rec: PinRecord) -> None:
+        """Lab stub: persist pin records. Does not pretend a Kubo cluster."""
+        if not self._conn:
+            return
+        self._conn.execute(
+            """INSERT OR REPLACE INTO ipfs_pins
+               (cid, status, mode, requested_at, last_error)
+               VALUES (?, ?, ?, ?, ?)""",
+            (rec.cid, rec.status, rec.mode, rec.requested_at, rec.last_error),
+        )
+        self._conn.commit()
 
     def request_pin(self, cid: str) -> PinRecord:
         if not cid:
@@ -63,16 +110,22 @@ class IPFSClient:
 
         if self.mode == "stub":
             rec.status = "pinned"
+            self._persist_pin(rec)
             return rec
 
         if self.mode == "api":
-            return self._pin_via_api(rec)
+            rec = self._pin_via_api(rec)
+            self._persist_pin(rec)
+            return rec
 
         if self.mode == "gateway":
-            return self._check_gateway(rec)
+            rec = self._check_gateway(rec)
+            self._persist_pin(rec)
+            return rec
 
         rec.status = "failed"
         rec.last_error = f"unknown mode {self.mode}"
+        self._persist_pin(rec)
         return rec
 
     def _pin_via_api(self, rec: PinRecord) -> PinRecord:

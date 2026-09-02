@@ -52,9 +52,13 @@ class PersistentDAG(DAG):
         self.txs.clear()
         self.tips.clear()
         for r in rows:
+            try:
+                tx_type = TxType(r["tx_type"])
+            except ValueError:
+                tx_type = TxType.STANDARD
             tx = Transaction(
                 tx_id=r["tx_id"],
-                tx_type=TxType(r["tx_type"]),
+                tx_type=tx_type,
                 parents=json.loads(r["parents"]),
                 weight=r["weight"],
                 cumulative_weight=r["cumulative_weight"],

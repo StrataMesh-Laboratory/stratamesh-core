@@ -4,7 +4,7 @@
 import { composeManifest, OBJECT_KINDS, contentCid } from "./object.ts";
 import { resolveHop } from "./fallback.ts";
 
-const HEAD = "v0.5.2-lab-four-layer";
+const HEAD = "v0.5.2-lab-object-ledger";
 
 async function deomailKey(): Promise<string> {
   const env = Deno.env.get("DEOMAIL_API_KEY");
@@ -61,6 +61,79 @@ function json(data: unknown, status = 200) {
   });
 }
 
+
+const FOG_MW = (Deno.env.get("FOG_MW") || "http://127.0.0.1:8790").replace(/\/+$/, "");
+const OBJECT_STORE = (Deno.env.get("HOME") || "") + "/.config/stratamesh/objects.jsonl";
+const DEFAULT_CREATOR = "FOG-NODE-PT-CM-001";
+
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function localObjectId(manifestCid: string, owner: string): Promise<string> {
+  const hex = await sha256Hex(manifestCid + "|" + owner);
+  return "obj_" + hex.slice(0, 16);
+}
+
+async function appendObjectStore(rec: Record<string, unknown>): Promise<void> {
+  try {
+    const dir = OBJECT_STORE.replace(/\/[^/]+$/, "");
+    await Deno.mkdir(dir, { recursive: true });
+    await Deno.writeTextFile(OBJECT_STORE, JSON.stringify(rec) + "\n", { append: true });
+  } catch {
+    /* fail-open */
+  }
+}
+
+async function loadObjectStore(): Promise<Record<string, unknown>[]> {
+  try {
+    const text = await Deno.readTextFile(OBJECT_STORE);
+    const rows: Record<string, unknown>[] = [];
+    const seen = new Set<string>();
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const rec = JSON.parse(line) as Record<string, unknown>;
+        const id = String(rec.object_id || "");
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        rows.push(rec);
+      } catch { /* skip */ }
+    }
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+async function registerFog(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  try {
+    const r = await fetch(FOG_MW + "/object/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(1500),
+    });
+    const data = await r.json() as Record<string, unknown>;
+    if (data && data.ok) return data;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFog(path: string): Promise<Record<string, unknown> | null> {
+  try {
+    const r = await fetch(FOG_MW + path, { signal: AbortSignal.timeout(1200) });
+    const data = await r.json() as Record<string, unknown>;
+    if (data && data.ok) return data;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -97,26 +170,73 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
     if (!parts || typeof parts !== "object" || !Object.keys(parts).length) {
       return json({ ok: false, error: "parts required" }, 400);
     }
+    const owner = String(body.owner || body.creator || DEFAULT_CREATOR);
+    let creator = String(body.creator || body.owner || DEFAULT_CREATOR);
+    if (creator.toLowerCase() === "atelier") creator = owner || DEFAULT_CREATOR;
     const composed = await composeManifest(parts, {
       name: String(body.name || body.kind || "ugc"),
       kind: String(body.kind || "ugc"),
-      creator: String(body.creator || body.owner || "atelier"),
+      creator,
       world_id: body.world_id ? String(body.world_id) : null,
     });
+    const fog = await registerFog({
+      owner,
+      creator,
+      name: body.name || body.kind || "ugc",
+      kind: body.kind || "ugc",
+      renderer: body.renderer ?? null,
+      parts,
+      manifest_cid: composed.manifest_cid,
+      manifest: composed.manifest,
+    });
+    const objectId = fog && fog.object_id
+      ? String(fog.object_id)
+      : await localObjectId(composed.manifest_cid, owner);
+    const dagTx = fog && fog.dag_tx ? fog.dag_tx : null;
+    const rec = {
+      object_id: objectId,
+      manifest_cid: composed.manifest_cid,
+      owner,
+      creator,
+      kind: String(body.kind || "ugc"),
+      renderer: body.renderer ?? null,
+      dag_tx: dagTx,
+      parts: composed.parts,
+      at: Date.now(),
+    };
+    await appendObjectStore(rec);
     return json({
       ok: true,
       hop: "deno:8792",
-      mode: "four_layer_compose_local",
+      mode: fog ? "four_layer_compose_fog" : "four_layer_compose_local",
+      fog: fog ? "python:8790" : "down",
+      object_id: objectId,
+      manifest_cid: composed.manifest_cid,
+      dag_tx: dagTx,
       object: {
         layers: {
           cid: { manifest_cid: composed.manifest_cid, parts: composed.parts },
-          dag: { vertex: null, note: "DAG submit stays on token worker / Fog when quota allows" },
-          nft: { id: null, note: "CID is not the NFT; mint on stratamesh-token" },
-          strata: { collateral_strata: 0 },
+          dag: { vertex: dagTx, note: "Fog ledger DAG vertex when python:8790 is up" },
+          nft: { id: objectId, note: "object_id is network identity; never the CID" },
+          strata: { collateral_strata: 0, reserved: true, oracle_live: false },
         },
         manifest: composed.manifest,
       },
     });
+  }
+  if (path === "/object/list" && req.method === "GET") {
+    const fog = await fetchFog("/object/list");
+    const local = await loadObjectStore();
+    const objects = (fog && Array.isArray(fog.objects) ? fog.objects : local) as unknown[];
+    return json({ ok: true, hop: "deno:8792", fog: fog ? "python:8790" : "down", n: objects.length, objects });
+  }
+  if (path.startsWith("/object/") && req.method === "GET" && path !== "/object/kinds" && path !== "/object/cid" && path !== "/object/hash" && path !== "/object/list") {
+    const id = path.slice("/object/".length);
+    const fog = await fetchFog("/object/" + encodeURIComponent(id));
+    if (fog) return json({ ...fog, hop: fog.hop || "python:8790" });
+    const local = (await loadObjectStore()).find((r) => String(r.object_id) === id);
+    if (!local) return json({ ok: false, error: "not found", object_id: id, hop: "deno:8792" }, 404);
+    return json({ ok: true, hop: "deno:8792", fog: "down", ...local });
   }
   if (path === "/object/hash") {
     const q = url.searchParams.get("q") || "";

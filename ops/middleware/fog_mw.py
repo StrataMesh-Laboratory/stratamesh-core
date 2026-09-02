@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request, urlopen
@@ -29,6 +30,110 @@ FOG_PUB = "https://fog.calhegasmorais.pt"
 SESS = {}  # token -> {email, exp, kind}
 WB = {}  # token -> {nfts, avatarId, at}  in-memory Workbench; not KV
 HOP = "python:8790"
+
+DEFAULT_OWNER = "FOG-NODE-PT-CM-001"
+_REG = None
+
+
+def _src_path():
+    src = os.environ.get("FOG_SRC") or ""
+    if src.endswith("src"):
+        return src
+    if src:
+        return src + "/src"
+    here = os.path.abspath(os.path.dirname(__file__))
+    # ops/middleware -> repo root /src
+    return os.path.abspath(os.path.join(here, "..", "..", "src"))
+
+
+def _registry():
+    global _REG
+    if _REG is not None:
+        return _REG
+    path = _src_path()
+    if path and path not in sys.path:
+        sys.path.insert(0, path)
+    from nft import ObjectRegistry
+    _REG = ObjectRegistry()
+    return _REG
+
+
+def _object_json(obj, extra=None, parts_listed=None):
+    from nft import layers_payload
+    body = {
+        "ok": True,
+        "hop": HOP,
+        "object_id": obj.object_id,
+        "manifest_cid": obj.manifest_cid,
+        "dag_tx": obj.dag_tx,
+        "owner": obj.owner,
+        "kind": obj.kind,
+        "title": obj.title,
+        "renderer": obj.renderer,
+        "layers": layers_payload(obj, parts_listed=parts_listed),
+        "object": obj.to_dict(),
+    }
+    if extra:
+        body.update(extra)
+    return body
+
+
+def handle_object(method, path, body):
+    """POST /object/compose|/register  GET /object/list|/cid/:cid|/:id"""
+    segs = [s for s in path.split("/") if s]
+    try:
+        reg = _registry()
+    except Exception as e:
+        return 503, {"ok": False, "error": "registry", "detail": str(e)[:160], "hop": HOP}
+
+    if method == "POST" and path.rstrip("/") in ("/object/compose", "/object/register"):
+        owner = str(body.get("owner") or body.get("creator") or DEFAULT_OWNER).strip() or DEFAULT_OWNER
+        creator = str(body.get("creator") or owner or DEFAULT_OWNER)
+        if creator.lower() == "atelier":
+            creator = owner or DEFAULT_OWNER
+        title = str(body.get("name") or body.get("title") or "")
+        kind = str(body.get("kind") or "ugc")
+        renderer = body.get("renderer")
+        if renderer is not None:
+            renderer = str(renderer) or None
+        parts = body.get("parts") or body.get("components") or {}
+        if not isinstance(parts, dict):
+            parts = {}
+        manifest_cid = str(body.get("manifest_cid") or body.get("cid") or "").strip() or None
+        try:
+            obj = reg.compose(
+                owner=owner,
+                manifest_cid=manifest_cid,
+                parts=parts,
+                kind=kind,
+                title=title,
+                renderer=renderer,
+                meta={"creator": creator, "world_id": body.get("world_id")},
+            )
+        except ValueError as e:
+            return 400, {"ok": False, "error": str(e), "hop": HOP, "oracle_live": False}
+        return 200, _object_json(obj, extra={"mode": "four_layer_register", "creator": creator})
+
+    if method == "GET" and path.rstrip("/") == "/object/list":
+        items = [o.to_dict() for o in reg.list(limit=100)]
+        return 200, {"ok": True, "hop": HOP, "n": len(items), "objects": items}
+
+    if method == "GET" and path.startswith("/object/cid/"):
+        cid = path.split("/object/cid/", 1)[-1].strip("/")
+        items = [o.to_dict() for o in reg.by_cid(cid)]
+        if not items:
+            return 404, {"ok": False, "error": "not found", "cid": cid, "hop": HOP}
+        return 200, {"ok": True, "hop": HOP, "cid": cid, "objects": items, "object": items[0]}
+
+    if method == "GET" and len(segs) == 2 and segs[0] == "object":
+        oid = segs[1]
+        obj = reg.get(oid)
+        if not obj:
+            return 404, {"ok": False, "error": "not found", "object_id": oid, "hop": HOP}
+        return 200, _object_json(obj)
+
+    return 404, {"ok": False, "error": "not found", "path": path, "hop": HOP}
+
 
 
 def _j(url, timeout=1.2):
@@ -261,6 +366,9 @@ class H(BaseHTTPRequestHandler):
             return self._auth()
         if path.startswith("/api/wb"):
             return self._wb()
+        if path.startswith("/object"):
+            code, obj = handle_object("POST", path, self._body())
+            return self._send(code, obj)
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_PUT(self):
@@ -304,6 +412,10 @@ class H(BaseHTTPRequestHandler):
         }
         kind = table.get(path)
         if not kind:
+            if path.startswith("/object"):
+                code, obj = handle_object("GET", path, {})
+                self._send(code, obj)
+                return
             self._send(404, {"ok": False, "error": "not found", "path": path})
             return
         self._send(200, payload(kind))
