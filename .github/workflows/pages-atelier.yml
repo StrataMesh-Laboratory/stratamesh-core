@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "frontend/sandbox.html"
+      - "frontend/gnu-atelier.html"
       - ".github/workflows/pages-atelier.yml"
 
 permissions:
@@ -21,6 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Stage atelier as Pages index
-        run: mkdir -p dist && cp frontend/sandbox.html dist/index.html
+        run: mkdir -p dist && cp frontend/gnu-atelier.html dist/index.html
       - name: Deploy gnu-atelier
         run: npx --yes wrangler@3.80.0 pages deploy dist --project-name=gnu-atelier --commit-dirty=true

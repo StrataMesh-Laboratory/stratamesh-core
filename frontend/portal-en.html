@@ -170,6 +170,8 @@ body.in-session .user-info{display:flex!important}
     <button type="button" data-panel="orch" onclick="showPanel('orch',this)" title="Hybrid orchestrator">Orchestrator</button>
     <button type="button" data-panel="clp" onclick="showPanel('clp',this)" title="CLP · Planetary Lunisolar Calendar">Time</button>
     <button type="button" data-panel="profile" onclick="showPanel('profile',this)" title="Account identity">Identity</button>
+    <button type="button" data-panel="objects" onclick="showPanel('objects',this)">Objects owned</button>
+    <button type="button" data-panel="settings" onclick="showPanel('settings',this)">Settings</button>
     <!-- Pessoal only -->
     <button type="button" data-panel="kyc-user" onclick="showPanel('kyc-user',this)">KYC</button>
     <button type="button" data-panel="kyc" data-staff="1" onclick="showPanel('kyc',this)" style="display:none">KYC queue</button>
@@ -281,12 +283,21 @@ body.in-session .user-info{display:flex!important}
   </div>
 
   <div class="panel" id="panel-sandbox">
-    <h3>Unix Atelier · UGC NFT</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">First person is a workbench modality: the viewpoint is an Avatar NFT (figural identity of a user or SCA — Synthetic Computational Agent). Cel-shaded urban lot. WASD walk; right stick or drag to look, as in orbit. Door to the open world. Mint NFT chooses Avatar or creation.</p>
+    <h3 id="bancadaPanelTitle">GNU Atelier · renderer</h3>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">GNU Atelier is the 3D renderer only. The full sandbox/dashboard (session, settings, objects owned) is sandbox.calhegasmorais.pt, /sandbox and /dashboard.</p>
+    <p style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:center">
+      <a id="goSandbox" href="https://sandbox.calhegasmorais.pt/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Go to sandbox</a>
+      <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
+    </p>
         <div id="bancadaStage" style="position:relative;width:100%;height:min(78vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#07111c;margin-bottom:1rem">
-      <iframe id="atelierFrame" title="Atelier GNU" src="https://sandbox.calhegasmorais.pt/" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
+      <iframe id="atelierFrame" title="Atelier GNU (renderer)" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
     </div>
-    <div class="stat-grid" style="margin-bottom:1rem">
+      </div>
+
+  <div class="panel" id="panel-objects">
+    <h3>Objects owned</h3>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">NFTs and CIDs of this account (loadSandboxBench).</p>
+<div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Ateliers</div></div>
       <div class="stat-card"><div class="value" id="nftCount">—</div><div class="label">NFT STRATA</div></div>
     </div>
@@ -312,7 +323,18 @@ body.in-session .user-info{display:flex!important}
     <div id="sandboxBench" style="display:none"></div>
   </div>
 
-  <div class="panel" id="panel-dao">
+  <div class="panel" id="panel-settings">
+    <h3>Settings</h3>
+    <div class="stat-grid" style="margin-bottom:1rem">
+      <div class="stat-card"><div class="value" id="settingsEmail">—</div><div class="label">Session</div></div>
+    </div>
+    <p style="margin:0 0 1rem;font-size:.85rem"><a href="portal-pt.html" style="color:var(--accent)">PT</a> · <a href="portal-en.html" style="color:var(--accent)">EN</a></p>
+    <button type="button" onclick="typeof logout==='function'&&logout()" style="padding:.45rem .8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.78rem">Sign out</button>
+
+
+    </div>
+
+<div class="panel" id="panel-dao">
     <h3>Chambers · DAO</h3>
     <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Associative: equal dues, one member one vote, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs.</p>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1rem">
@@ -718,6 +740,42 @@ async function loadHolonsPanel(){
   }catch(e){
     var el=document.getElementById('holonPath'); if(el) el.textContent=String(e.message||e);
   }
+}
+
+
+function atelierToken(){ return localStorage.getItem('sm_token')||localStorage.getItem('token')||''; }
+function isAtelierRendererOrigin(o){
+  try{
+    var h=o&&new URL(o).hostname;
+    return h==='gnu-atelier.pages.dev'||h==='atelier.calhegasmorais.pt';
+  }catch(_){ return false; }
+}
+function atelierRendererOrigin(){ return 'https://gnu-atelier.pages.dev'; }
+function pushAtelierSession(){
+  try{
+    var f=document.getElementById('atelierFrame');
+    var tok=atelierToken();
+    if(!f) return;
+    var origin=atelierRendererOrigin();
+    if(tok && f.src.indexOf('#cmn=')<0){
+      f.src=origin+'/?space=bancada#cmn='+encodeURIComponent(tok);
+    }
+    if(f.contentWindow&&tok){
+      f.contentWindow.postMessage({type:'cmn-session',token:tok,email:localStorage.getItem('sm_email')||''},origin);
+    }
+  }catch(_){}
+}
+window.addEventListener('message',function(e){
+  try{
+    if(!isAtelierRendererOrigin(e.origin)) return;
+    if(e.data&&e.data.type==='cmn-session-ready') pushAtelierSession();
+  }catch(_){}
+});
+function setMudSpace(space,btn){
+  try{ document.querySelectorAll('#mudSpaces button').forEach(function(b){b.classList.remove('active')}); if(btn) btn.classList.add('active'); }catch(_){}
+  var f=document.getElementById('atelierFrame');
+  if(!f) return;
+  f.src=atelierRendererOrigin()+'/?space='+encodeURIComponent(space||'bancada');
 }
 
 function showPortal(user){
@@ -2897,7 +2955,8 @@ window.showPanel = function(name, btn){
       if (sc) sc.textContent = String(sandboxes.length);
       var title = document.getElementById('bancadaHudTitle');
       if(title) title.textContent = (typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) ? 'Bancada SCA' : 'Bancada da conta';
-      if (!initBancada3D()) {
+      var forceList = !!document.getElementById('atelierFrame');
+      if (forceList || !initBancada3D()) {
         var el = document.getElementById('sandboxBench');
         if (el) {
           el.style.display = 'block';
@@ -3781,7 +3840,9 @@ window.loadACBPanel=async function(){
     wallet:function(){ if(typeof loadWallet==='function') loadWallet(); },
     kyc:function(){ if(typeof loadKycQueue==='function') loadKycQueue(); },
     'kyc-user':function(){ if(typeof loadKycUserStatus==='function') loadKycUserStatus(); },
-    sandbox:function(){ if(typeof loadSandboxBench==='function') loadSandboxBench(); }
+    sandbox:function(){ if(typeof loadSandbox==='function') loadSandbox(); },
+    objects:function(){ if(typeof loadSandboxBench==='function') loadSandboxBench(); },
+    settings:function(){ if(typeof loadSettingsPanel==='function') loadSettingsPanel(); }
   };
   var _sp=window.showPanel;
   if(typeof _sp==='function'){
@@ -4363,8 +4424,8 @@ async function forgotPassword(){
       if (!ifr) {
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
-        ifr.title = 'Atelier GNU';
-        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.title = 'Atelier GNU (renderer)';
+        ifr.src = 'https://gnu-atelier.pages.dev/';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
         stage.appendChild(ifr);
@@ -4609,6 +4670,14 @@ async function forgotPassword(){
     }
   };
 
+  window.loadSettingsPanel = function () {
+    var u = window.currentUser || {};
+    var em = u.email || '';
+    try { if (!em) em = localStorage.getItem('sm_email') || localStorage.getItem('email') || ''; } catch (_) {}
+    var se = el('settingsEmail');
+    if (se) se.textContent = em || '—';
+  };
+
   /* ——— showPanel last hook ——— */
   var _sp = window.showPanel;
   window.showPanel = function (name, btn) {
@@ -4630,6 +4699,8 @@ async function forgotPassword(){
       if (n === 'wallet') window.loadWallet();
       else if (n === 'agora') window.loadAgoraPanel();
       else if (n === 'sandbox' || n === 'spa' && name === 'sandbox') window.loadSandbox();
+      else if (n === 'objects') { if (typeof window.loadSandboxBench === 'function') window.loadSandboxBench(); }
+      else if (n === 'settings') { if (typeof window.loadSettingsPanel === 'function') window.loadSettingsPanel(); }
       else if (n === 'dao') window.loadDAOPanel();
       else if (n === 'spa') window.loadSPAPanel();
       else if (n === 'iot') window.loadIotPanel();
@@ -5162,10 +5233,7 @@ async function forgotPassword(){
   };
   var _bench = window.loadSandboxBench;
   window.loadSandboxBench = function () {
-    if (document.getElementById('atelierFrame') || window._atelierMode === 'gnu') {
-      if (typeof ensureAtelier === 'function') try { ensureAtelier(); } catch (_) {}
-      return;
-    }
+    if (typeof ensureAtelier === 'function') try { ensureAtelier(); } catch (_) {}
     var r;
     if (typeof _bench === 'function') {
       try { r = _bench.apply(this, arguments); } catch (_) {}

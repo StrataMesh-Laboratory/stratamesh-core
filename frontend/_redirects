@@ -1,7 +1,8 @@
 # Pages fail-open (1027). Never SPA-rewrite hop-owned paths to index HTML.
 # Live 2026-09-02 PT: /atelier and /api/health were 200 same HTML as /;
-# /sandbox was 308 Location /sandbox (self-loop). Apex Pages must 404 those.
-# Do NOT add /* /index.html 200. Hops/tunnels may still own the hostnames.
+# Do NOT add /* /index.html 200. Do not SPA-rewrite /chat.
+# /sandbox and /dashboard are static dashboard documents (sandbox.html / dashboard.html).
+# /atelier remains 404 on apex Pages (renderer lives on gnu-atelier.pages.dev).
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
 # /chat is a real static page (chat.html) — rewrite 200, not 404, not SPA.
@@ -9,7 +10,5 @@
 /atelier /404.html 404
 /atelier/* /404.html 404
 /api/* /404.html 404
-/sandbox /404.html 404
-/sandbox/* /404.html 404
 /chat /chat.html 200
 /chat/* /chat.html 200
