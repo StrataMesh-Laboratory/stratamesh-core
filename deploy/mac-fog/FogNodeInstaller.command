@@ -204,7 +204,7 @@ cat > "$LAUNCH/pt.calhegasmorais.tunnel.plist" <<EOF
 </dict></plist>
 EOF
 
-# Auto-update every 1800s. RunAtLoad false. Never tunnel/cloudflared. Never brew upgrade.
+# Auto-update every 1800s. RunAtLoad true (first fire then every 1800s). Never tunnel/cloudflared.
 cp -f "$FOG/repo/deploy/mac-fog/fog-auto-update.sh" "$FOG/bin/fog-auto-update.sh"
 chmod 755 "$FOG/bin/fog-auto-update.sh"
 AU="pt.calhegasmorais.fog-auto-update"
@@ -225,7 +225,7 @@ cat > "$LAUNCH/${AU}.plist" <<EOF
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
   <key>StartInterval</key><integer>1800</integer>
-  <key>RunAtLoad</key><false/>
+  <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key><string>$FOG/log/auto-update.log</string>
   <key>StandardErrorPath</key><string>$FOG/log/auto-update.log</string>
 </dict></plist>

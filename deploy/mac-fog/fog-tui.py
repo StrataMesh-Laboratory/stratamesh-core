@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+import unicodedata
 import urllib.request
 from pathlib import Path
 
@@ -30,6 +31,13 @@ Q_HIST: deque = deque(maxlen=15)
 BURN_HIST: deque = deque(maxlen=15)
 RTT_HIST: deque = deque(maxlen=15)
 LOAD_HIST: deque = deque(maxlen=16)
+HOP_LIVE_HIST: dict = {
+    8787: deque(maxlen=16),
+    8788: deque(maxlen=16),
+    8790: deque(maxlen=16),
+    8791: deque(maxlen=16),
+    8792: deque(maxlen=16),
+}
 HELP = False
 FOCUS = 0
 FRAME = 0
@@ -91,14 +99,34 @@ def spark(vals) -> str:
         out.append(chr(0x2800 + left[h0] + right[h1]))
     return "".join(out[-12:])
 
-ACC = "\033[38;2;196;165;116m"
-FG = "\033[38;2;232;230;227m"
-MUT = "\033[38;2;138;135;128m"
-OK = "\033[38;2;122;168;116m"
-BAD = "\033[38;2;196;92;84m"
-RST = "\033[0m"
-TEAL = ACC
-DIM = MUT
+def use_color() -> bool:
+    """Fail-open: no color when TERM=dumb or NO_COLOR. No extra deps."""
+    if os.environ.get("NO_COLOR"):
+        return False
+    return (os.environ.get("TERM") or "").strip().lower() != "dumb"
+
+
+def _palette() -> None:
+    global ACC, FG, MUT, OK, BAD, RST, TEAL, DIM, BOLD, AMBER, REV, BRIGHT_OK
+    if use_color():
+        ACC = "\033[38;2;196;165;116m"
+        FG = "\033[38;2;232;230;227m"
+        MUT = "\033[38;2;138;135;128m"
+        OK = "\033[92m"
+        BAD = "\033[91m"
+        RST = "\033[0m"
+        BOLD = "\033[1m"
+        AMBER = "\033[38;2;218;165;32m"
+        REV = "\033[7m"
+        BRIGHT_OK = OK
+    else:
+        ACC = FG = MUT = OK = BAD = RST = BOLD = AMBER = REV = BRIGHT_OK = ""
+    TEAL = ACC
+    DIM = MUT
+
+
+ACC = FG = MUT = OK = BAD = RST = TEAL = DIM = BOLD = AMBER = REV = BRIGHT_OK = ""
+_palette()
 UID = os.getuid()
 FOG_LABELS = ("pt.calhegasmorais.fog", "pt.calhegasmorais.workerd")
 
@@ -484,7 +512,7 @@ def reboot_fog() -> str:
         if str(src) not in sys.path:
             sys.path.insert(0, str(src))
         from fog_plugins.runtime_mesh import recycle_mw
-        notes.append("mw recycle %s" % recycle_mw())
+        notes.append("mw recycle %s" % recycle_mw((8787, 8788, 8790, 8791, 8792)))
     except Exception:
         notes.append("mw recycle skip")
     for label in FOG_LABELS:
@@ -538,8 +566,29 @@ def sync_workerd_config() -> str:
     return "sync " + " · ".join(notes) if notes else "sync skip"
 
 
+def brew_update_upgrade() -> str:
+    """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall."""
+    brew = shutil.which("brew")
+    if not brew:
+        return "brew missing"
+    notes = []
+    for verb in ("update", "upgrade"):
+        try:
+            rc = subprocess.call(
+                [brew, verb],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=300,
+            )
+            notes.append("%s rc=%s" % (verb, rc))
+        except Exception:
+            notes.append("%s skip" % verb)
+    return "brew " + " · ".join(notes)
+
+
 def git_pull_reboot() -> str:
     stamp_manual_g()
+    brew_note = brew_update_upgrade()
     repo = REPO if (REPO / ".git").exists() else Path.home() / "StrataMesh/fog/repo"
     if not (repo / ".git").exists():
         return "no git repo at %s" % repo
@@ -569,18 +618,21 @@ def git_pull_reboot() -> str:
     dst = FOG / "bin/fog-tui.py"
     if dst.is_file():
         os.execv(sys.executable, [sys.executable, str(dst)])
-    return ("pull %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", fog_rc)) + extra
+    return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 
 
 def mark(ok: bool) -> str:
-    return OK + "LIVE" + RST if ok else BAD + "DOWN" + RST
+    if ok:
+        return OK + "●" + RST + " " + BOLD + "LIVE" + RST
+    return MUT + "○" + RST + " " + BAD + "DOWN" + RST
 
 
 def yn(v) -> str:
-    return (OK + "true" + RST) if v else (BAD + "false" + RST)
+    return (OK + "●" + RST) if v else (MUT + "○" + RST)
 
 
 def vislen(s: str) -> int:
+    """Visible columns: skip ANSI CSI and combining marks. Fullwidth = 2."""
     n = 0
     i = 0
     while i < len(s):
@@ -588,7 +640,11 @@ def vislen(s: str) -> int:
             j = s.find("m", i)
             i = j + 1 if j >= 0 else i + 1
             continue
-        n += 1
+        ch = s[i]
+        if unicodedata.combining(ch):
+            i += 1
+            continue
+        n += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         i += 1
     return n
 
@@ -596,10 +652,30 @@ def vislen(s: str) -> int:
 def boxline(inner: str, width: int) -> str:
     pad = width - vislen(inner)
     if pad < 0:
-        inner = inner[:width]
+        out = []
+        used = 0
+        i = 0
+        while i < len(inner) and used < width:
+            if inner.startswith("\033", i):
+                j = inner.find("m", i)
+                j = j + 1 if j >= 0 else i + 1
+                out.append(inner[i:j])
+                i = j
+                continue
+            ch = inner[i]
+            if unicodedata.combining(ch):
+                out.append(ch)
+                i += 1
+                continue
+            wch = 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+            if used + wch > width:
+                break
+            out.append(ch)
+            used += wch
+            i += 1
+        inner = "".join(out)
         pad = max(0, width - vislen(inner))
-    return "│" + inner + (" " * pad) + "│"
-
+    return DIM + "│" + RST + inner + (" " * pad) + DIM + "│" + RST
 
 
 def wizard_json_path() -> Path:
@@ -935,7 +1011,8 @@ def composer_line(inp: str | None = None, busy: bool | None = None) -> str:
     if busy is None:
         busy = WIZARD_BUSY
     cursor = "…" if busy else ""
-    return "  " + ACC + ">" + RST + " " + inp + cursor
+    body = "> " + inp + cursor
+    return "  " + REV + ACC + body + RST
 
 
 def paint_composer() -> None:
@@ -966,35 +1043,40 @@ def draw_wizard_pane(cols: int, w: int) -> None:
         _advance_draw_row(**k)
         return r
 
-    print(MUT + "  ─ wizard (local ollama) ─" + RST)
+    iw = max(36, min(w, cols - 4))
+    title = " wizard · ollama :11434 "
+    dash = max(1, iw - 2 - vislen(title))
+    print("  " + DIM + "╭" + title + ("─" * dash) + "╮" + RST)
     with _WIZARD_LOCK:
         view = list(WIZARD_LOG[-WIZARD_VIEW:])
         inp = WIZARD_INPUT
         busy = WIZARD_BUSY
+    inner = iw - 2
     if not view:
-        print(MUT + "  (empty · Enter send · TAB clear chat · survives r / 60s)" + RST)
+        empty = MUT + "(empty · Enter send · TAB clear chat · survives r / 60s)" + RST
+        print("  " + boxline(" " + empty, inner))
     for rec in view:
         role = rec.get("role") or "sys"
         ts = rec.get("ts") or ""
         text = (rec.get("text") or "").replace("\n", " / ")
-        line = "  %s %s %s" % (ts, role, text)
-        if vislen(line) > cols - 1:
-            line = line[: cols - 2] + "…"
-        print(MUT + line + RST)
+        line = "%s %s %s" % (ts, role, text)
+        print("  " + boxline(" " + MUT + line + RST, inner))
     COMPOSER_ROW = DRAW_ROW if DRAW_ROW else 0
     if not COMPOSER_ROW:
         try:
             COMPOSER_ROW = max(1, shutil.get_terminal_size().lines - 2)
         except Exception:
             COMPOSER_ROW = 0
-    print(composer_line(inp, busy))
-    print(MUT + "  ? leave wizard · TAB clear chat · Enter send · ollama :11434" + RST)
+    print("  " + boxline(composer_line(inp, busy).rstrip(), inner))
+    print("  " + boxline(" " + MUT + "? leave · TAB clear chat · Enter send" + RST, inner))
+    print("  " + DIM + "╰" + ("─" * (iw - 2)) + "╯" + RST)
 
 
 def draw(msg: str = "") -> None:
     global FRAME, DRAW_ROW
     FRAME += 1
     DRAW_ROW = 1
+    _palette()
     def print(*a, **k):  # noqa: shadow — instrument goes to /dev/tty
         k.setdefault("file", DEV_TTY)
         r = _PRINT(*a, **k)
@@ -1139,21 +1221,47 @@ def draw(msg: str = "") -> None:
     def pair(a: str, b: str) -> None:
         print(boxline(L(a) + "│" + R(b), w))
 
+    if decision == "LIVE":
+        dec_paint = lamp(True) + " " + BOLD + OK + "LIVE" + RST
+    elif decision == "HOLD":
+        dec_paint = AMBER + "◉" + RST + " " + BOLD + AMBER + "HOLD" + RST
+    else:
+        dec_paint = lamp(False) + " " + BAD + decision + RST
+
     print(top)
-    print(boxline(" " + ACC + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.1-lab" + RST
-                  + "  " + lamp(decision == "LIVE") + " " + decision, w))
-    print(boxline(" " + str(nid) + MUT + "  " + RST + str(origin)
-                  + MUT + "  n=" + RST + str(n)
+    print(boxline(" " + ACC + BOLD + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.1-lab" + RST
+                  + "  " + dec_paint, w))
+    print(boxline(" " + MUT + str(nid) + RST + "  " + BOLD + str(origin) + RST
+                  + MUT + "  n=" + RST + BOLD + str(n) + RST
                   + MUT + "  member=" + RST + str(bool(member)), w))
     print(mid)
-    pair(" " + ACC + "HOP" + RST, " " + ACC + "STRATA" + RST)
-    pair(" " + lamp(hop_ok) + " workerd  :8788", " dag   tx=%s  tip=%s  h=%s" % (txs, tips, height))
-    pair(" " + lamp(fog_ok) + " fog      :8787", " PoC   " + bar(min(float(pending or 0) / 40.0, 1.0), 12) + " " + str(pending)[:8])
-    pair(" " + lamp(bool(pyh.get("ok"))) + " python   :8790", " spa   %s / %s" % (spa.get("active") or 0, spa.get("total") or 0))
-    pair(" " + lamp(bool(ndh.get("ok"))) + " node     :8791", " meta  %s  pace=%s" % (dec, met.get("pace") or "—"))
-    pair(" " + lamp(bool(dnh.get("ok"))) + " deno     :8792", " resolve / object / mail")
-    pair(" " + lamp(pub_ok) + " public   " + pub_origin_label(pub),
-         " plus  " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
+    print(boxline(" " + ACC + "MESH" + RST + MUT + "  loopback hops (cover each other)" + RST, w))
+    mesh = (
+        (8787, "fog", fog_ok),
+        (8788, "workerd", hop_ok),
+        (8790, "python", bool(pyh.get("ok"))),
+        (8791, "node", bool(ndh.get("ok"))),
+        (8792, "deno", bool(dnh.get("ok"))),
+    )
+    for port, name, okh in mesh:
+        hist = HOP_LIVE_HIST.get(port)
+        if hist is not None:
+            hist.append(1.0 if okh else 0.0)
+            sp = spark(hist)
+        else:
+            sp = ""
+        nm = (BOLD + name.ljust(8) + RST) if okh else (MUT + name.ljust(8) + RST)
+        print(boxline(" " + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp, w))
+    pub_nm = pub_origin_label(pub)
+    print(boxline(" " + lamp(pub_ok) + " " + (BOLD if pub_ok else MUT) + "public".ljust(8) + RST
+                  + MUT + " " + pub_nm + RST, w))
+    print(mid)
+    print(boxline(" " + ACC + "STRATA" + RST, w))
+    print(boxline("  dag  tx=%s  tip=%s  h=%s" % (txs, tips, height), w))
+    print(boxline("  PoC  " + bar(min(float(pending or 0) / 40.0, 1.0), 12) + " " + str(pending)[:8], w))
+    print(boxline("  spa  %s / %s" % (spa.get("active") or 0, spa.get("total") or 0), w))
+    print(boxline("  meta %s  pace=%s" % (dec, met.get("pace") or "—"), w))
+    print(boxline("  plus " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"), w))
     print(mid)
     print(boxline(" " + ACC + "PROTOCOL" + RST + "  "
                   + lamp(oracle) + " oracle  "
@@ -1167,9 +1275,8 @@ def draw(msg: str = "") -> None:
         load_frac = float(load[0]) / max(float(ncpu or 1), 1.0)
     except Exception:
         pass
-    print(boxline(" " + ACC + "HOST" + RST + "  cap 60%  "
-                  + ("HOLD " + str(cap.get("reason") or "") if over else "ok")
-                  + "  " + spark(LOAD_HIST), w))
+    host_state = (AMBER + BOLD + "HOLD " + str(cap.get("reason") or "") + RST) if over else (OK + "ok" + RST)
+    print(boxline(" " + ACC + "HOST" + RST + "  cap 60%  " + host_state + "  " + spark(LOAD_HIST), w))
     print(boxline("  CPU " + bar(min(load_frac, 1.0), 14) + "  %.2f  %.2f  %.2f" % load, w))
     print(boxline("  MEM free %s   act %s   wired %s" % (gb(free), gb(active), gb(wired)), w))
     print(boxline("  RSS wrk %s   py %s   cf %s" % (kb(wd_rss), kb(py_rss), kb(cf_rss)), w))
@@ -1178,12 +1285,7 @@ def draw(msg: str = "") -> None:
     sha_now = git_sha()
     print(boxline("  GIT " + sha_now + "  " + awake_line(), w))
     print(bot)
-    print("  " + ACC + "q" + RST + " quit   "
-          + ACC + "s" + RST + " stop   "
-          + ACC + "b" + RST + " reboot   "
-          + ACC + "g" + RST + " update   "
-          + ACC + "r" + RST + " refresh   "
-          + ACC + "?" + RST + " help")
+    print(MUT + "  g update   b reboot   s stop   r refresh   ? wizard   q quit" + RST)
     print(MUT + "  instrument · 60s · named-tunnel stays up" + RST)
 
     WIZARD_SNAP.clear()

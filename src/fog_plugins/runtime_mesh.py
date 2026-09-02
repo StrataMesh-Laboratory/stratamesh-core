@@ -23,6 +23,7 @@ PY_PORT = int(os.environ.get("FOG_MW_PY_PORT") or "8790")
 NODE_PORT = int(os.environ.get("FOG_MW_NODE_PORT") or "8791")
 DENO_PORT = int(os.environ.get("FOG_MW_DENO_PORT") or "8792")
 MW_PORTS = (PY_PORT, NODE_PORT, DENO_PORT)
+RECYCLE_PORTS = (8787, 8788, PY_PORT, NODE_PORT, DENO_PORT)
 _SHA_STAMP = "mw-git-sha"
 
 
@@ -120,12 +121,14 @@ def _write_sha() -> None:
 
 
 def recycle_mw(ports=None) -> int:
-    """SIGTERM listeners on loopback mw ports so the next spawn uses current files.
+    """SIGTERM listeners on loopback hop ports so the next spawn uses current files.
 
+    Default: fog :8787, workerd :8788, python :8790, node :8791, deno :8792.
+    Supervise paths pass MW_PORTS so Fog/workerd are not SIGTERM'd by attach.
     Never pkill cloudflared. Never PUT Workers.
     """
     killed = 0
-    for port in tuple(ports or MW_PORTS):
+    for port in tuple(RECYCLE_PORTS if ports is None else ports):
         for pid in _pids_listening(int(port)):
             if "cloudflared" in _comm(pid).lower():
                 continue
@@ -318,7 +321,7 @@ class RuntimeMeshPlugin:
             or (ts.is_file() and _mw_stale(DENO_PORT, ts))
         )
         if stale:
-            recycle_mw()
+            recycle_mw(MW_PORTS)
             time.sleep(0.25)
         if py.is_file() and not _healthy(PY_PORT):
             log = open(DATA / "mw-py.log", "ab")
@@ -375,7 +378,7 @@ class RuntimeMeshPlugin:
     def attach(self):
         if self._thread and self._thread.is_alive():
             return
-        recycle_mw()
+        recycle_mw(MW_PORTS)
         self._spawn()
         if _healthy(PY_PORT):
             self._kick_object_layers_probe()
