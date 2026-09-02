@@ -20,7 +20,7 @@ v0.5.1-lab metabol: STASIS/HOLD = burn-rate pace (never freeze Workers, never `e
 | `metabolic-stasis.yml` | GraphQL remaining sample + pace only (never Worker freeze) |
 | `edge-uptime.yml` | public edge `/health`; **hold HTML is FAIL** |
 | `fog-tailnet-health.yml` | observe-only; Tailscale down ≠ lab fail |
-| `gha-fail-watch.yml` | failed-run log + #52 notify (no re-run) |
+| `gha-fail-watch.yml` | failed-run log + #123 notify (no re-run) |
 | `apply-and-merge-pr.yml` | inspect / optional squash; **refuses protocol/consensus/crypto/auth** |
 | `auto-create-pr.yml` | **removed from git** — disable leftover Actions workflow; never force-merge protocol |
 

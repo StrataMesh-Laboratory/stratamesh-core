@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Observe GitHub Actions failures. Notify #52. Never re-run, never PUT, never git.
+"""Observe GitHub Actions failures. Notify #123. Never re-run, never PUT, never git.
 
-Labor-only. Grok reads the log on #52 / the artifact and fixes.
+Labor-only. Grok reads the log on #123 / the artifact and fixes.
+#52 is locked/closed (lab-stress). Do not unlock or comment there.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 OWNER = os.environ.get("GITHUB_REPOSITORY_OWNER") or "StrataMesh-Laboratory"
 REPO = (os.environ.get("GITHUB_REPOSITORY") or "StrataMesh-Laboratory/stratamesh-core").split("/")[-1]
-ISSUE = int(os.environ.get("DESK_ISSUE") or "52")
+ISSUE = int(os.environ.get("DESK_ISSUE") or "123")
 API = f"https://api.github.com/repos/{OWNER}/{REPO}"
 MARKER = "<!-- stratamesh-gha-fail-watch -->"
 SELF = "gha-fail-watch"
@@ -41,7 +42,7 @@ def token() -> str:
     return ""
 
 
-def api(path: str, method: str = "GET", body: dict | None = None) -> dict | list:
+def api(path: str, method: str = "GET", body: dict | None = None, fatal: bool = True) -> dict | list:
     tok = token()
     if not tok:
         raise SystemExit("no GITHUB_TOKEN")
@@ -63,7 +64,10 @@ def api(path: str, method: str = "GET", body: dict | None = None) -> dict | list
             return json.loads(raw)
     except urllib.error.HTTPError as e:
         err = e.read()[:400].decode("utf-8", "replace")
-        raise SystemExit(f"GitHub {e.code} {path}: {err}")
+        if fatal:
+            raise SystemExit(f"GitHub {e.code} {path}: {err}")
+        e._body = err  # type: ignore[attr-defined]
+        raise
 
 
 def list_failures() -> list[dict]:
@@ -115,28 +119,37 @@ def list_failures() -> list[dict]:
 
 def mentioned_ids() -> set[int]:
     ids: set[int] = set()
-    # listComments is oldest-first. #52 has 90+ comments — page through.
-    for page in range(1, 6):
-        comments = api(f"/issues/{ISSUE}/comments?per_page=100&page={page}")
-        if not isinstance(comments, list) or not comments:
-            break
-        for c in comments:
-            body = c.get("body") or ""
-            if MARKER not in body and "actions/runs/" not in body:
-                continue
-            for part in body.replace(")", " ").replace("]", " ").split():
-                if "actions/runs/" in part:
-                    try:
-                        ids.add(int(part.rstrip("/").split("actions/runs/")[-1].split("/")[0]))
-                    except Exception:
-                        pass
-                if part.startswith("run_id:"):
-                    try:
-                        ids.add(int(part.split(":", 1)[1]))
-                    except Exception:
-                        pass
-        if len(comments) < 100:
-            break
+    # listComments is oldest-first. Page through so a long ledger still sees markers.
+    try:
+        for page in range(1, 6):
+            comments = api(
+                f"/issues/{ISSUE}/comments?per_page=100&page={page}", fatal=False
+            )
+            if not isinstance(comments, list) or not comments:
+                break
+            for c in comments:
+                body = c.get("body") or ""
+                if MARKER not in body and "actions/runs/" not in body:
+                    continue
+                for part in body.replace(")", " ").replace("]", " ").split():
+                    if "actions/runs/" in part:
+                        try:
+                            ids.add(int(part.rstrip("/").split("actions/runs/")[-1].split("/")[0]))
+                        except Exception:
+                            pass
+                    if part.startswith("run_id:"):
+                        try:
+                            ids.add(int(part.split(":", 1)[1]))
+                        except Exception:
+                            pass
+            if len(comments) < 100:
+                break
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 404):
+            print(f"skip-locked: GET comments #{ISSUE} HTTP {e.code}; known=empty")
+            return set()
+        err = getattr(e, "_body", "")
+        raise SystemExit(f"GitHub {e.code} GET comments: {err}")
     return ids
 
 
@@ -198,8 +211,22 @@ def main() -> int:
             fh.write(f"new_count={len(new)}\n")
     sys.stdout.write(md)
     if new and os.environ.get("FAIL_WATCH_COMMENT", "1") not in ("0", "false"):
-        api(f"/issues/{ISSUE}/comments", method="POST", body={"body": comment_body(new, md)})
-        print(f"commented #{ISSUE} new={len(new)}")
+        try:
+            api(
+                f"/issues/{ISSUE}/comments",
+                method="POST",
+                body={"body": comment_body(new, md)},
+                fatal=False,
+            )
+            print(f"commented #{ISSUE} new={len(new)}")
+        except urllib.error.HTTPError as e:
+            err = getattr(e, "_body", "") or ""
+            locked = e.code in (403, 404) or "locked" in err.lower()
+            if locked:
+                (out / "FAIL-LOG.md").write_text(md)
+                print(f"skip-locked: POST comment #{ISSUE} HTTP {e.code}")
+                return 0
+            raise SystemExit(f"GitHub {e.code} POST comment: {err}")
     else:
         print("no new failures to comment")
     return 0

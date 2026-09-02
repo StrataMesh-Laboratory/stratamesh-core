@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      DESK_ISSUE: "52"
+      DESK_ISSUE: "123"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -28,23 +28,34 @@ jobs:
       - name: Probe fog origin
         id: probe
         run: python3 ops/bin/origin-fallback-watch.py
-      - name: Ledger #52 when DARK
+      - name: Ledger #123 when DARK
         if: steps.probe.outputs.dark == 'true'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
+            const ISSUE = 123;
             const fs = require('fs');
             const marker = '<!-- stratamesh-origin-fallback -->';
             const body = fs.readFileSync('origin-fallback.md', 'utf8');
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 30,
-            });
-            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
-            if (last && (Date.now() - new Date(last.created_at).getTime()) < 50 * 60 * 1000) {
-              core.info('skip duplicate origin-fallback comment');
-              return;
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: ISSUE, per_page: 30,
+              });
+              const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+              if (last && (Date.now() - new Date(last.created_at).getTime()) < 50 * 60 * 1000) {
+                core.info('skip duplicate origin-fallback comment');
+                return;
+              }
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: ISSUE,
+                body: marker + '\n' + body,
+              });
+            } catch (e) {
+              const status = e.status || (e.response && e.response.status);
+              const msg = String((e.message || e));
+              if (status === 403 || status === 404 || /locked/i.test(msg)) {
+                core.info('skip-locked: ' + status + ' ' + msg);
+                return;
+              }
+              throw e;
             }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52,
-              body: marker + '\n' + body,
-            });
