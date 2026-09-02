@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="en-GB">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Orquestrador · Calhegas Morais</title>
   <meta name="description" content="Chat do Orquestrador — Nó Calhegas Morais. POST /api/orchestrator/chat."/>
-  <link rel="canonical" href="https://calhegasmorais.pt/chat"/>
+  <link rel="canonical" href="https://calhegasmorais.pt/en/chat"/>
   <link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/chat"/>
   <link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en/chat"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
@@ -46,9 +46,9 @@
     <div class="top-inner">
       <a class="brand" href="/"><strong>Calhegas Morais</strong> · <span data-i18n="brand">orquestrador</span></a>
       <div class="lang" role="group" aria-label="Language">
-        <button type="button" id="langPt" class="active">PT</button>
+        <button type="button" id="langPt">PT</button>
         <span class="sep">·</span>
-        <button type="button" id="langEn">EN</button>
+        <button type="button" id="langEn" class="active">EN</button>
       </div>
     </div>
   </div>
@@ -107,7 +107,7 @@
       signed: 'Session present (local token). Clearance follows the portal.'
     }
   };
-  var LANG = 'pt';
+  var LANG = 'en';
   var currentUser = null;
   function t(k) { return (I18N[LANG] && I18N[LANG][k]) || I18N.pt[k] || k; }
   function applyLang() {
