@@ -164,6 +164,7 @@ class H(BaseHTTPRequestHandler):
             SESS[token] = {"email": email, "exp": time.time() + 3600, "kind": "fallback"}
             return self._send(200, {
                 "ok": True,
+                "success": True,
                 "hop": HOP,
                 "mode": "fallback",
                 "token": token,
@@ -177,6 +178,7 @@ class H(BaseHTTPRequestHandler):
             SESS[token] = {"email": email or "session", "exp": time.time() + 3600, "kind": "fallback"}
             return self._send(200, {
                 "ok": True,
+                "success": True,
                 "hop": HOP,
                 "mode": "fallback",
                 "token": token,
@@ -189,6 +191,7 @@ class H(BaseHTTPRequestHandler):
             if rec and rec["exp"] > time.time():
                 return self._send(200, {
                     "ok": True,
+                    "success": True,
                     "hop": HOP,
                     "email": rec["email"],
                     "kind": rec["kind"],

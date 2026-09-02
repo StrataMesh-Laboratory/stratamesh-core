@@ -257,6 +257,7 @@ function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/^stasis$/i.test(s))
 const AUTH_ME = [AUTH_BASE+"/api/auth/me","https://mw.calhegasmorais.pt/api/auth/me"];
 const ADDR = { owner: "pending", id: "workbench" };
 const SESSION = { token: "", user: null, kind: "none", wallet: "", email: "", ready: false };
+window.SESSION = SESSION;
 let equippedAvatar = null;
 
 function screenTouch() {
@@ -292,7 +293,7 @@ function normalizeMe(j) {
   const email = u.email || u.primaryEmail || "";
   const id = u.user_id || u.id || u.sub || "";
   const wallet = u.wallet || u.strata_address || "";
-  if (!(j.success || email || wallet || id || u.username || u.name)) return null;
+  if (!(j.success || j.ok || email || wallet || id || u.username || u.name)) return null;
   return {
     success: true,
     email,
@@ -1382,10 +1383,12 @@ async function loginGnu(email, password) {
 }
 
 async function bootSession() {
+  if (SESSION.ready) return true;
   showGate("Resolving registered session…");
   try { if (window.parent !== window) window.parent.postMessage({ type: "cmn-session-ready" }, "*"); } catch {}
   SESSION.token = readToken();
   const me = await fetchMe(SESSION.token);
+  if (SESSION.ready) return true;
   if (!me) {
     showGate("There is no public sandbox. Entre na bancada aqui. Nao abre o dashboard.");
     return false;
