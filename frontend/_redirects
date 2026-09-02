@@ -4,11 +4,12 @@
 # Do NOT add /* /index.html 200. Hops/tunnels may still own the hostnames.
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
+# /chat is a real static page (chat.html) — rewrite 200, not 404, not SPA.
 /manutencao /maintenance-1xxx.html 200
 /atelier /404.html 404
 /atelier/* /404.html 404
 /api/* /404.html 404
 /sandbox /404.html 404
 /sandbox/* /404.html 404
-/chat /404.html 404
-/chat/* /404.html 404
+/chat /chat.html 200
+/chat/* /chat.html 200
