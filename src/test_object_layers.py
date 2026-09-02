@@ -99,6 +99,28 @@ class TestObjectLayers(unittest.TestCase):
         self.assertEqual(hits, [])
         missing = r.get("obj_deadbeefdeadbeef")
         self.assertIsNone(missing)
+        self.assertIsNone(r.get_cid("bafyunknownc1notfound000000000000000000000000000000"))
+        r.close()
+
+    def test_c1_cid_only_persist_without_nft(self):
+        r = ObjectRegistry(db_path=self.db)
+        rec = r.put_cid("bafyc1persist01", {"bytes": "c1-lab"})
+        self.assertEqual(rec["cid"], "bafyc1persist01")
+        self.assertIsNotNone(r.get_cid("bafyc1persist01"))
+        o = r.compose(
+            owner="FOG-NODE-PT-CM-001",
+            parts={"mesh": "c1-bytes"},
+            cid_only=True,
+            mint=False,
+            title="c1-cid-only",
+        )
+        self.assertTrue(o.manifest_cid)
+        self.assertFalse(o.object_id)
+        layers = layers_payload(o)
+        self.assertIsNone(layers["nft"]["id"])
+        self.assertEqual(o.strata_units, 0)
+        self.assertEqual(layers["strata"]["strata_units"], 0)
+        self.assertEqual(len(r.list()), 0)
         r.close()
 
     def test_c4_strata_units_one_refused(self):

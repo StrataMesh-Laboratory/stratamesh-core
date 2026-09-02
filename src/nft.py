@@ -286,6 +286,16 @@ class ObjectRegistry:
         except Exception:
             pass
 
+    def put_cid(self, cid: str, payload: Optional[Dict] = None) -> Dict:
+        from cid_store import put_cid as _put
+
+        return _put(cid, payload if payload is not None else {}, db_path=self.db_path)
+
+    def get_cid(self, cid: str) -> Optional[Dict]:
+        from cid_store import get_cid as _get
+
+        return _get(cid, db_path=self.db_path)
+
     def compose(
         self,
         owner: str,
@@ -297,9 +307,14 @@ class ObjectRegistry:
         meta: Optional[Dict] = None,
         strata_units: float = 0,
         lab_waived: bool = True,
+        cid_only: bool = False,
+        mint: bool = True,
         **extra,
     ) -> DigitalObject:
-        """Register (or fetch) a network object_id. STRATA value stays 0."""
+        """Register (or fetch) a network object_id. STRATA value stays 0.
+
+        cid_only=True or mint=False persists the CID without minting nft.id.
+        """
         if strata_units and float(strata_units) != 0:
             raise StrataReservedError(
                 "oracle_live false: STRATA economic reserved; lab_waived allows object_id only"
@@ -313,6 +328,11 @@ class ObjectRegistry:
         owner = (owner or DEFAULT_OWNER).strip() or DEFAULT_OWNER
         parts = parts if isinstance(parts, dict) else {}
         meta = dict(meta or {})
+        if extra.pop("cid_only", False):
+            cid_only = True
+        mint_flag = extra.pop("mint", mint)
+        if mint is False or mint_flag in (False, "false", "0", 0, "no"):
+            cid_only = True
         if extra:
             for k, v in extra.items():
                 if k not in ("collateral_strata", "strata_units"):
@@ -322,6 +342,28 @@ class ObjectRegistry:
             raise ValueError("compose requires parts or cid")
         if not cid:
             cid = content_cid({"parts": parts, "kind": kind, "title": title, "owner": owner})
+        if cid_only:
+            meta["cid_only"] = True
+            now = time.time()
+            self.put_cid(cid, {"parts": parts, "kind": kind, "title": title, "owner": owner})
+            self._pin(cid)
+            rend = renderer
+            if rend in ("", "null"):
+                rend = None
+            return DigitalObject(
+                object_id="",
+                manifest_cid=cid,
+                owner=owner,
+                title=title or cid[:16],
+                kind=kind or "ugc",
+                renderer=rend,
+                parts=parts,
+                meta=meta,
+                dag_tx=None,
+                strata_units=0.0,
+                created_at=now,
+                updated_at=now,
+            )
         oid = object_id_for(cid, owner)
         existing = self.get(oid)
         if existing:
@@ -446,7 +488,14 @@ def layers_payload(obj: DigitalObject, parts_listed=None) -> dict:
             "parts": parts_listed if parts_listed is not None else obj.parts,
         },
         "dag": {"vertex": obj.dag_tx, "tx_type": "object_compose"},
-        "nft": {"id": obj.object_id, "note": "object_id is network identity; not the CID"},
+        "nft": {
+            "id": obj.object_id or None,
+            "note": (
+                "object_id is network identity; not the CID"
+                if obj.object_id
+                else "cid_only; no object_id mint"
+            ),
+        },
         "strata": {
             "collateral_strata": 0,
             "strata_units": 0,
