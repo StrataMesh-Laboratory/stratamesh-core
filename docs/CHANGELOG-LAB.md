@@ -1,3 +1,11 @@
+## 2026-09-02 — Honesty: v0.5.1-lab Adversarial P1 n=2
+- Current live/lab cut is **v0.5.1-lab**. README and other *current* surfaces that still said 0.4.1 / 0.4.0 were stale. Historical changelog rows for v0.4.0-lab / v0.4.1-lab below are unchanged (those tags happened).
+- Mesh is **n=2** (Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`). Do not narrate n=1 kernel as today’s lab.
+- Phase name is **Adversarial LAB P1**. grok90 two-host INV/TX evidence pack remains a later bar.
+- Public `fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — session-origin software flag, not lab n=1. Do not claim `mac_live=true` on that JSON.
+- STASIS is **pace**, not freeze. Freeze = temporary holding until contingency (auth python hop, Pages, sandbox host).
+- LAB only. No mainnet / aBFT / investment. No workers.dev, no 6th cron, no Worker PUT, no grok.me Publish.
+
 ## 2026-08-31 — Orchestrator /chat replies (10.24.9-chat-reply)
 - RCA: POST `/api/orchestrator/chat` never called `chat()`. It always ran `labInstantChat` → academy `POST /v1/debug/chat`, which returns the identity package (“Orquestrador não ecoa… Pedido: «…» — não é a resposta”). That is echo, not a reply. Previous “não ecoa” trials left this as the only handler.
 - Structural fix: user-facing `/chat` calls `chat()`. Grounded intents (Olá, identity, PdS, lobes, …) answer immediately (`grounded-fast`). Academy debugger only on `?debug` / `body.debug`.

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-VERSION = "0.4.2-lab"
+VERSION = "0.5.1-lab"
 HOST = "https://academy.calhegasmorais.pt"
 HF_ORG = "https://huggingface.co/stratamesh"
 OLLAMA_HF = "https://huggingface.co/docs/hub/en/ollama"

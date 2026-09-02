@@ -6,7 +6,7 @@
 **Core:** [StrataMesh-Laboratory/stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)  
 **Laboratory:** [StrataMesh-Laboratory/stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory)  
 **Node registry:** [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node)  
-**Lab release baseline:** [v0.2.3-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.3-lab)  
+**Lab release baseline:** [v0.5.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab) · **Adversarial LAB phase P1** · mesh **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
 
 **Supersedes:** Public roadmap v0.2 parallel Track A ∥ Track B as the *promotion* control law.  
@@ -19,11 +19,13 @@ Track A/B remain useful as *workstream labels inside a stage*.
 **Evidence before promotion. Protocol centre before application surface. In-process “done” is not multi-host done.**
 
 ```
-LAB (current)
-  → ADVERSARIAL LAB
+LAB (exited for CMN reference pair)
+  → ADVERSARIAL LAB (current · P1)
     → PUBLIC TESTNET
       → MAINNET (explicit decision — not scheduled here)
 ```
+
+Current: **Adversarial LAB phase P1**, git **v0.5.1-lab**, mesh **n=2**. grok90 two-host INV/TX evidence pack is a later bar, not the phase name. Public Fog `/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin software flag — not lab n=1; do not claim `mac_live=true` on that JSON).
 
 No stage is entered by marketing, portal polish, or whitepaper completeness.
 
@@ -63,8 +65,10 @@ SPA/APS = one **smart-contract STRATA NFT kind**, not a separate protocol layer.
 
 | Area | Lab reality | Not yet |
 |------|-------------|---------|
-| Reference node | `FOG-NODE-PT-CM-001` live (CF workers, status pulse) | Multi-operator production mesh |
-| DAG / tips / gossip | Runnable in-process + workers | Sustained multi-host under chaos |
+| Release / phase | **v0.5.1-lab** · **Adversarial P1** | Public testnet / mainnet |
+| Mesh | **n=2** Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001` | grok90 two-host INV/TX evidence pack (later bar) |
+| Reference node | `FOG-NODE-PT-CM-001` live (lab hop + status pulse) | Multi-operator production mesh |
+| DAG / tips / gossip | Runnable in-process + two-host lab pair | Sustained multi-host under chaos; grok90 INV/TX pack |
 | Wire + threat drafts | Published v1 | Frozen external join subset + published adversarial report |
 | Benchmark | `src/protocol_benchmark.py` (single-process) | Multi-host harness + CI invariants |
 | PoC / STRATA / Agora | Lab monetary paths, lab Agora | Proof≠claim mint path; production custody |
@@ -78,7 +82,7 @@ Legacy tables that marked A1–A3 / B0–B3 “done” mean **in-process / draft
 
 ## 3. Stages and gates
 
-### Stage 0 — LAB (current)
+### Stage 0 — LAB (exited for the CMN pair)
 
 **Purpose:** Single reference Fog node; normative docs; honest non-claims; single-process regression.
 
@@ -91,7 +95,7 @@ Legacy tables that marked A1–A3 / B0–B3 “done” mean **in-process / draft
 | Benchmark runnable | `cd src && python3 protocol_benchmark.py` |
 | Public posture honest | No mainnet / aBFT / investment claims |
 
-### Stage 1 — ADVERSARIAL LAB (next)
+### Stage 1 — ADVERSARIAL LAB (current · P1)
 
 **Purpose:** Make the protocol wrong-hard under hostility before inviting strangers.
 
@@ -218,3 +222,4 @@ Portal/Bancada/OS copy may improve in parallel only if they do not invent readin
 | v0.1 | 2026-08 | Initial public roadmap |
 | v0.2 | 2026-08-10 | Track A/B parallel after lab freeze |
 | **v0.3** | **2026-08-23** | Evidence-gated ladder; five centres; in-process ≠ multi-host; SPA as NFT kind; mainnet unscheduled |
+| v0.3 honesty | 2026-09-02 | Current stage = Adversarial P1 · v0.5.1-lab · n=2; public /health n=1 is session-origin flag |

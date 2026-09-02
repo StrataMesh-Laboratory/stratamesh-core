@@ -1,8 +1,9 @@
 # EDGE-GROK-CMN-001 — lab edge node on Cloudflare
 
-**Status:** Live (not a stub) · **Linked fog:** `FOG-NODE-PT-CM-001`  
-**Substrate:** Cloudflare Worker (`stratamesh-edge-grok`)  
-**IDs:** edge node on available cloud capacity used by lab automation — not a physical FOG host, not mainnet.
+**Status:** Lab edge of the **n=2** CMN pair · **Linked fog:** `FOG-NODE-PT-CM-001`  
+**Local:** EDGE-GROK process `EDGE-GROK-CMN-001` (counts as the second host).  
+**Public CF Worker** (`stratamesh-edge-grok`) is an observer/relay, not a third Fog and not a 6th host. Custom domain only — not workers.dev as origin.  
+**IDs:** not a physical FOG host, not mainnet. Current lab cut **v0.5.1-lab**, Adversarial P1.
 
 ## Endpoints
 
