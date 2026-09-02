@@ -148,7 +148,7 @@ body.in-session .user-info{display:flex!important}
     <button type="submit" id="authBtn">Continuar</button>
     </form>
     <script>
-    const AUTH_BASE = "https://auth.calhegasmorais.pt";
+    var AUTH_BASE = "https://auth.calhegasmorais.pt";
     function mapAuthErr(m){var s=String(m==null?'':m).trim();if(/^stasis$/i.test(s))return 'serviço de autenticação indisponível';return String(m==null?'':m);}
     window.__cmnSubmit=async function(ev){
       if(ev){ ev.preventDefault(); ev.stopPropagation(); }

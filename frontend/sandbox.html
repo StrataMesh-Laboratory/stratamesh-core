@@ -254,7 +254,7 @@ const NODE_ID = "FOG-NODE-PT-CM-001";
 const PORTAL = "https://calhegasmorais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
 function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/^stasis$/i.test(s))return "serviço de autenticação indisponível";return String(m==null?"":m);}
-const AUTH_ME = [AUTH_BASE+"/api/auth/me","https://mw.calhegasmorais.pt/api/auth/me","https://calhegasmorais.pt/api/auth/me"];
+const AUTH_ME = [AUTH_BASE+"/api/auth/me","https://mw.calhegasmorais.pt/api/auth/me"];
 const ADDR = { owner: "pending", id: "workbench" };
 const SESSION = { token: "", user: null, kind: "none", wallet: "", email: "", ready: false };
 let equippedAvatar = null;
