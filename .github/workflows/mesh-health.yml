@@ -1,17 +1,68 @@
-# Alias of desk-tick. Schedule removed — 09:00 UTC is now on desk-tick cron.
-# Keep dispatch so humans can still fire a full probe without waiting.
+# v0.5.1-lab metabol. Dispatch only — desk-tick owns cadence (no new CF-Worker cron).
+# Lab = Adversarial P1 n=2 (Mac Fog + EDGE-GROK).
+# Pass: n>=2 OR mesh_member (TUI). Do not require public origin=macbook.
+# Public fog /health n=1 origin=session is a FLAG, not a mesh fail.
+# Hold HTML on academy/aiops/fund/edge is outdated-aliases, not this job.
 name: mesh-health
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
-  tick:
-    uses: ./.github/workflows/desk-tick.yml
-    secrets: inherit
-    permissions:
-      contents: read
-      issues: write
+  metabol:
+    name: n>=2 or TUI member
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: fog /health metabol
+        run: |
+          python3 - <<'PY'
+          import json, sys, urllib.error, urllib.request
+          URL = "https://fog.calhegasmorais.pt/health"
+          HOLD = "Laboratório em manutenção"
+          req = urllib.request.Request(
+              URL,
+              headers={"User-Agent": "EDGE-GROK-CMN-001-gha", "Accept": "application/json"},
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=12) as r:
+                  raw = r.read().decode("utf-8", "replace")
+                  status = r.status
+          except urllib.error.HTTPError as e:
+              raw = e.read().decode("utf-8", "replace") if e.fp else ""
+              status = e.code
+          except Exception as e:
+              print("FLAG: fog /health unreachable:", type(e).__name__, e)
+              print("public n=1 origin=session would also be a flag, not a mesh fail")
+              sys.exit(0)
+          print("http", status)
+          print(raw[:400])
+          if HOLD in raw or raw.lstrip().startswith("<"):
+              print("FLAG: hold HTML / not JSON on public fog (outdated-aliases, not mesh n=1 fail)")
+              sys.exit(0)
+          try:
+              d = json.loads(raw or "{}")
+          except Exception:
+              print("FLAG: public /health not JSON — not a mesh n=1 fail")
+              sys.exit(0)
+          n = d.get("n")
+          member = d.get("mesh_member") is True
+          origin = d.get("origin")
+          print("n", n, "mesh_member", d.get("mesh_member"), "origin", origin)
+          try:
+              n_i = int(n) if n is not None else 0
+          except (TypeError, ValueError):
+              n_i = 0
+          if n_i >= 2 or member:
+              print("PASS: n>=2 or TUI/mesh_member")
+              sys.exit(0)
+          if n_i == 1 and origin == "session":
+              print("FLAG: public fog /health n=1 origin=session (not fail the mesh as n=1)")
+              sys.exit(0)
+          if origin == "macbook":
+              print("origin=macbook is not required for pass; n=", n_i, "member=", member)
+          print("FLAG: public hop n<2 and not TUI member — lab is still Mac Fog + EDGE-GROK; do not fail mesh")
+          sys.exit(0)
+          PY

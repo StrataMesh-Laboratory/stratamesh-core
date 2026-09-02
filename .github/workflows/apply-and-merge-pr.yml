@@ -1,5 +1,10 @@
 name: Maintainer Auto-Apply and Merge PR
 
+# v0.5.1-lab: inspect-only unless confirm_merge=true.
+# MUST NOT force-merge protocol / consensus / crypto / auth semantics.
+# auto-create-pr.yml is removed from git; disable leftover Actions workflow if still listed.
+# Dispatch only. No schedule. No Worker PUT.
+
 on:
   workflow_dispatch:
     inputs:
@@ -45,14 +50,40 @@ jobs:
               repo: context.repo.repo,
               pull_number: prNum
             });
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNum,
+              per_page: 100
+            });
+            const protocol = (files.data || []).filter(f => {
+              const p = (f.filename || '').toLowerCase();
+              return (
+                p.startsWith('src/') ||
+                p.startsWith('docs/wire-protocol') ||
+                p.startsWith('docs/threat-model') ||
+                p.includes('stratamesh-auth') ||
+                p.includes('consensus') ||
+                p.includes('crypto')
+              );
+            }).map(f => f.filename);
             core.setOutput('number', String(prNum));
             core.setOutput('title', pr.data.title);
             core.setOutput('mergeable', String(pr.data.mergeable));
             core.setOutput('state', pr.data.state);
-            core.notice('PR #' + prNum + ' ' + pr.data.title + ' state=' + pr.data.state + ' mergeable=' + pr.data.mergeable);
+            core.setOutput('protocol', protocol.length ? 'true' : 'false');
+            core.setOutput('protocol_files', protocol.slice(0, 20).join(', '));
+            core.notice('PR #' + prNum + ' ' + pr.data.title + ' state=' + pr.data.state + ' mergeable=' + pr.data.mergeable + ' protocol=' + (protocol.length ? protocol.join(',') : 'no'));
+
+      - name: Refuse protocol merge
+        if: ${{ steps.pr_info.outputs.protocol == 'true' }}
+        run: |
+          echo "REFUSE: this workflow must not force-merge protocol/consensus/crypto/auth"
+          echo "files: ${{ steps.pr_info.outputs.protocol_files }}"
+          echo "Inspect only. Human / Grok execute owns protocol merge."
 
       - name: Merge PR
-        if: ${{ github.event.inputs.confirm_merge == 'true' && steps.pr_info.outputs.number }}
+        if: ${{ github.event.inputs.confirm_merge == 'true' && steps.pr_info.outputs.number && steps.pr_info.outputs.protocol != 'true' }}
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           PR_NUMBER: ${{ steps.pr_info.outputs.number }}
@@ -77,5 +108,5 @@ jobs:
             core.notice('PR #' + prNum + ' squash-merged ' + result.data.sha);
 
       - name: Skip merge (inspect only)
-        if: ${{ github.event.inputs.confirm_merge != 'true' }}
-        run: echo "confirm_merge is false — no merge, no doc overwrite."
+        if: ${{ github.event.inputs.confirm_merge != 'true' || steps.pr_info.outputs.protocol == 'true' }}
+        run: echo "no merge (confirm_merge false or protocol files). auto-create-pr is disabled."

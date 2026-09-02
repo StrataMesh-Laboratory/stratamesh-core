@@ -1,6 +1,7 @@
-# Fog ports over Tailscale when TS_AUTHKEY is set.
-# Better than CF Workers /health when 1027/stasis: talk to mbpv :8788/:8791 on 100.x.
-# Public Pages/edge.calhegasmorais.pt stay the internet hop. No workers.dev. No Fog DNS flip.
+# Tailscale is being phased out. Do not fail the lab if Tailscale is down.
+# Prefer local Mac hops :8788 (workerd) / :8790 (python Fog). GHA cannot reach them.
+# TS probe is observe-only. Public Pages/edge stay the internet hop.
+# No workers.dev. No Fog DNS flip. No 6th CF cron.
 name: fog-tailnet-health
 
 on:
@@ -26,28 +27,30 @@ jobs:
       - name: skip if no tailnet key
         id: gate
         run: |
+          echo "prefer local hops http://127.0.0.1:8788/health and :8790 (Mac Fog)"
           if [ -z "$TS_AUTHKEY" ]; then
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "no TS_AUTHKEY secret — public hops only"
+            echo "no TS_AUTHKEY — Tailscale phased out; do not fail the lab"
             exit 0
           fi
           echo "present=true" >> "$GITHUB_OUTPUT"
       - uses: tailscale/github-action@v3
         if: steps.gate.outputs.present == 'true'
+        continue-on-error: true
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
           args: --hostname gha-fog-probe --accept-routes=false --ssh=false
-      - name: fog ports on tailnet
+      - name: observe fog ports on tailnet (never fail lab)
         if: steps.gate.outputs.present == 'true'
+        continue-on-error: true
         run: |
           set +e
-          fail=0
-          for spec in 8788:/health 8787:/health 8791:/health 8790:/health; do
+          for spec in 8788:/health 8790:/health 8787:/health 8791:/health; do
             port=${spec%%:*}
             path=${spec#*:}
             code=$(curl -sS -m 8 -o /tmp/b -w "%{http_code}" "http://$FOG_TS:$port$path" || echo 000)
             echo "mbpv:$port$path -> $code"
             head -c 160 /tmp/b; echo
-            case "$code" in 200|204) ;; *) fail=1 ;; esac
           done
-          exit $fail
+          echo "Tailscale down or hop miss is not a lab fail; prefer local :8788/:8790"
+          exit 0

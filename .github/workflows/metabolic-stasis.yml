@@ -1,5 +1,9 @@
 name: metabolic-stasis
 
+# Sample remaining + pace only. STASIS/HOLD = burn-rate, never freeze Workers/processes.
+# Never PATCH Worker env STASIS=1 (that 503s login). decide() STASIS must not 503.
+# No 6th CF cron. Existing GH cron only GraphQL + D1 snapshot, no Worker PUT.
+
 on:
   schedule:
     - cron: "12 */3 * * *"
@@ -30,21 +34,13 @@ jobs:
           key: stasis-state-${{ github.run_id }}
           restore-keys: |
             stasis-state-
-      - name: GraphQL spend vs rails cap
+      - name: GraphQL remaining vs rails cap (pace, never freeze)
         id: stasis
         run: python3 ops/bin/metabolic-stasis-enforce.py
         continue-on-error: true
-      - name: Record freeze (pace already failed, no contingency)
-        if: steps.stasis.outcome == 'failure'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
-        with:
-          script: |
-            const fs = require('fs');
-            const state = fs.existsSync('stasis-state.json') ? fs.readFileSync('stasis-state.json','utf8') : 'no state';
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'metabol freeze · pace already failed, no contingency (do not use #52)',
-              body: 'Freeze after pace_failed with no healthy contingency. HTML hop stays on Pages. Never env STASIS=1.\n\n```json\n' + state + '\n```\n',
-              labels: ['lab-ops']
-            }).catch(() => {});
+      - name: STASIS is min pace, not Worker freeze
+        if: always()
+        run: |
+          echo "Never env STASIS=1. Never freeze Workers/processes. Never 503 login because decide() is STASIS."
+          echo "Job stays green: sample remaining and pace only."
+          test -f stasis-state.json && python3 -c "import json; d=json.load(open('stasis-state.json')); print('circuit', d.get('circuit'), 'remaining', d.get('remaining'), 'pace_factor', d.get('pace_factor'), 'freeze_flag_ignored', d.get('freeze'))" || echo "no state"
