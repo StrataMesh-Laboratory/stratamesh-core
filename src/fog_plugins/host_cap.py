@@ -107,7 +107,7 @@ def snapshot() -> dict[str, Any]:
         "reason": ",".join(reason) or "ok",
         "backoff_sec": 60 if over else 0,
         "ts": time.time(),
-        "note": "over → keep-up unready, no pending_poc, workerd poll stretched, no extra disk writes",
+        "note": "over → keep-up unready, no pending_poc, workerd poll stretched, no extra disk writes; over paces keep-up/PoC, does not unbind :8790/:8791/:8792",
     }
 
 
