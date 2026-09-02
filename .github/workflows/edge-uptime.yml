@@ -1,5 +1,6 @@
 # $0 Actions ping. Does not start localhost. EDGE assistant persist is the boot.
-# WAF/hop/HTML are session-expected (non-continuous). Not a Fog P0. Not FAIL.
+# Hold HTML on edge.calhegasmorais.pt is FAIL (outdated alias), not healthy 200.
+# WAF/timeout/530 remain session-expected (non-continuous hop). Not a Fog P0.
 # Was */15 (96/day). Twice hourly, offset from origin-fallback :03/:33 and desk-tick :00.
 name: edge-uptime
 on:
@@ -34,18 +35,33 @@ jobs:
               python3 - <<'PY'
           import json, sys
           raw = open("/tmp/e.body", "rb").read()
+          text = raw.decode("utf-8", "replace")
+          HOLD = "Laboratório em manutenção"
+          if HOLD in text or text.lstrip().startswith("<"):
+              print("EDGE FAIL: hold HTML on edge.calhegasmorais.pt is not healthy 200")
+              sys.exit(1)
           try:
-              d = json.loads(raw.decode() or "{}")
+              d = json.loads(text or "{}")
           except Exception as e:
-              print("EDGE HOLD: 200 but not JSON (challenge/HTML):", e)
-              sys.exit(0)
+              print("EDGE FAIL: 200 but not JSON (hold/challenge HTML):", e)
+              sys.exit(1)
           print("node", d.get("node_id"), "n", d.get("n"), "member", d.get("mesh_member"),
                 "origin", d.get("origin"), "runtime", d.get("runtime") or d.get("substrate"))
           PY
               ;;
             000|403|408|429|502|503|530)
               echo "EDGE session-expected http=$code (non-continuous hop / WAF; not Fog P0)"
-              exit 0
+              # still fail if the body is hold HTML
+              python3 - <<'PY'
+          import sys
+          try:
+              text = open("/tmp/e.body", "rb").read().decode("utf-8", "replace")
+          except Exception:
+              sys.exit(0)
+          if "Laboratório em manutenção" in text or text.lstrip().startswith("<!DOCTYPE") or text.lstrip().startswith("<html"):
+              print("EDGE FAIL: hold HTML on edge (outdated alias)")
+              sys.exit(1)
+          PY
               ;;
             *)
               echo "EDGE unexpected http=$code — HOLD observe (do not fail the check)"
@@ -53,22 +69,26 @@ jobs:
               ;;
           esac
 
-
   ping-tailnet:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
     steps:
-      - name: maybe tailnet
+      - name: maybe tailnet (phased out; never fail lab)
         run: |
+          echo "prefer local hops :8788/:8790"
           if [ -z "$TS_AUTHKEY" ]; then echo "no TS_AUTHKEY"; exit 0; fi
       - uses: tailscale/github-action@v3
         if: env.TS_AUTHKEY != ''
+        continue-on-error: true
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
           args: --hostname gha-edge-uptime --accept-routes=false
       - name: edge hop via tailnet Fog workerd
         if: env.TS_AUTHKEY != ''
+        continue-on-error: true
         run: |
-          curl -sS -m 8 -A EDGE-GROK-CMN-001-gha http://100.108.35.26:8788/health | head -c 200
+          curl -sS -m 8 -A EDGE-GROK-CMN-001-gha http://100.108.35.26:8788/health | head -c 200 || true
+          echo
+          echo "Tailscale miss is not a lab fail"

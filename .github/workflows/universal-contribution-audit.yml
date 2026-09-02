@@ -273,6 +273,17 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNum = parseInt(process.env.PR_NUMBER, 10);
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: prNum, per_page: 100
+            });
+            const protocol = (files.data || []).filter(f => {
+              const p = (f.filename || '').toLowerCase();
+              return p.startsWith('src/') || p.startsWith('docs/wire-protocol') || p.startsWith('docs/threat-model') || p.includes('stratamesh-auth') || p.includes('consensus') || p.includes('crypto');
+            });
+            if (protocol.length) {
+              core.notice('REFUSE force-merge protocol/consensus/crypto/auth: ' + protocol.map(f => f.filename).join(', '));
+              return;
+            }
             
             try {
               await github.rest.issues.createComment({
