@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sandbox · Calhegas Morais · v0.5.1-lab</title>
-  <meta name="description" content="StrataMesh sandbox — account session.">
+  <meta name="description" content="StrataMesh sandbox — account session on sandbox.calhegasmorais.pt.">
   <link rel="canonical" href="https://sandbox.calhegasmorais.pt/en/sandbox">
   <meta name="theme-color" content="#07111c">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
-    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--card:#0c1a28;--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--still:#8aa0b3;--live:#6b8f71}
+    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--still:#8aa0b3;--live:#6b8f71}
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
     body{display:flex;flex-direction:column;min-height:100dvh;overflow:hidden}
@@ -31,9 +31,12 @@
     .lamp.ended{background:#8a6a5a;box-shadow:0 0 0 3px rgba(138,106,90,.28)}
     .tank-label{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
     .tank{height:.42rem;background:#e4dccf;border:1px solid #cfc6b6;border-radius:2px;overflow:hidden}
-    .tank > i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s ease}
+    .tank > i{display:block;height:100%;width:0;background:var(--acc)}
     .tank-read{margin-top:.28rem;font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink)}
-    .hint{margin:.55rem 0 .6rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
+    .hint{margin:.55rem 0 .5rem;font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
+    .contains{margin:0 0 .55rem;padding:.4rem .5rem;border:1px dashed #cfc6b6;border-radius:3px}
+    .contains h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
+    .contains p{font:400 .75rem/1.35 Georgia,ui-serif,serif;color:var(--ink2)}
     .acts{display:flex;gap:.4rem}
     .acts button{flex:1 1 auto;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;border-radius:2px;cursor:pointer}
     .acts button.ghost{background:transparent;color:var(--ink)}
@@ -44,8 +47,8 @@
   <header class="chrome">
     <h1>Sandbox</h1>
     <div class="nav">
-      <span id="sessionChip">session · —</span>
-      <a class="here" href="/en/sandbox">Sandbox</a>
+      <span id="sessionChip">session · sandbox.calhegasmorais.pt</span>
+      <a class="here" href="https://sandbox.calhegasmorais.pt/en/sandbox">Sandbox</a>
       <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a>
       <a href="https://calhegasmorais.pt/en/">Lab</a>
       <button type="button" id="btnFs">Fullscreen</button>
@@ -53,16 +56,20 @@
   </header>
   <main class="stage">
     <iframe id="atelierFrame" title="GNU Atelier" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
-    <aside class="contract" id="contractCard" data-oracle-live="false" data-strata-units="0">
+    <aside class="contract" id="contractPanel" data-oracle-live="false" data-strata-units="0" data-mood="still">
       <div class="contract-top">
-        <h2 id="pieceName">Piece on stage</h2>
+        <h2 id="pieceName">Object on stage</h2>
         <span class="chip" id="nameChip">draft</span>
       </div>
       <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Still</span></div>
-      <div class="tank-label">Interior tank · this object's stake</div>
+      <div class="tank-label">Interior tank · the object's collateral</div>
       <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
       <div class="tank-read" id="tankRead">0 STRATA · lab</div>
-      <p class="hint">The piece runs on its own tank. The pocket lives on the workbench.</p>
+      <p class="hint">The object runs on its own tank. The pocket lives on the workbench.</p>
+      <div class="contains">
+        <h3>Contains</h3>
+        <p id="containsList">No objects inside. An NFT may contain others; depth is this contract's own rules.</p>
+      </div>
       <div class="acts">
         <button type="button" id="btnRun">Run</button>
         <button type="button" id="btnRest" class="ghost">Rest</button>
@@ -76,7 +83,7 @@
       var ended = false;
       var strataUnits = 0;
       var oracleLive = false;
-
+      var contains = [];
       function token() {
         try { return localStorage.getItem("sm_token") || localStorage.getItem("token") || sessionStorage.getItem("sm_token") || ""; }
         catch (e) { return ""; }
@@ -90,7 +97,7 @@
         if (!el) return;
         var t = token();
         var em = email();
-        el.textContent = t ? ("session · " + (em || "account")) : "session · —";
+        el.textContent = t ? ("session · " + (em || "account") + " · sandbox") : "session · sandbox.calhegasmorais.pt";
       }
       function paintContract() {
         var lamp = document.getElementById("moodLamp");
@@ -99,17 +106,23 @@
         var read = document.getElementById("tankRead");
         var run = document.getElementById("btnRun");
         var rest = document.getElementById("btnRest");
-        var card = document.getElementById("contractCard");
+        var panel = document.getElementById("contractPanel");
+        var list = document.getElementById("containsList");
         if (!lamp || !label) return;
         lamp.className = "lamp" + (ended ? " ended" : mood === "live" ? " live" : "");
         label.textContent = ended ? "Ended" : (mood === "live" ? "Live" : "Still");
-        fill.style.width = (ended ? 0 : strataUnits) + "%";
+        fill.style.width = "0";
         read.textContent = strataUnits + " STRATA · " + (oracleLive ? "live" : "lab");
-        card.setAttribute("data-strata-units", String(strataUnits));
-        card.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
-        card.setAttribute("data-mood", ended ? "ended" : mood);
+        panel.setAttribute("data-strata-units", String(strataUnits));
+        panel.setAttribute("data-oracle-live", oracleLive ? "true" : "false");
+        panel.setAttribute("data-mood", ended ? "ended" : mood);
         run.disabled = ended || mood === "live";
         rest.disabled = ended || mood === "still";
+        if (!contains.length) {
+          list.textContent = "No objects inside. An NFT may contain others; depth is this contract's own rules.";
+        } else {
+          list.textContent = contains.map(function (o) { return o.name; }).join(" · ");
+        }
       }
       function setMood(next) {
         if (ended) return;
