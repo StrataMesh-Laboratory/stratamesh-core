@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sandbox · Calhegas Morais · v0.5.1-lab</title>
-  <meta name="description" content="StrataMesh sandbox — account session and GNU Atelier renderer.">
+  <meta name="description" content="StrataMesh sandbox — account session.">
   <link rel="canonical" href="https://sandbox.calhegasmorais.pt/en/sandbox">
   <meta name="theme-color" content="#07111c">
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -15,7 +15,6 @@
     body{display:flex;flex-direction:column;min-height:100dvh;overflow:hidden}
     header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94)}
     header.chrome h1{font:400 1rem/1.2 Georgia,ui-serif,serif}
-    header.chrome h1 span{font:500 .62rem/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:.55rem}
     .nav{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
     .nav a,.nav button{color:var(--acc);text-decoration:none;font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);background:transparent;padding:.4rem .65rem;border-radius:2px;cursor:pointer}
     .nav a.here{border-color:var(--acc)}
@@ -26,7 +25,7 @@
 </head>
 <body>
   <header class="chrome">
-    <h1>Sandbox <span>not the renderer · contains GNU Atelier</span></h1>
+    <h1>Sandbox</h1>
     <div class="nav">
       <span id="sessionChip">session · —</span>
       <a class="here" href="/en/sandbox">Sandbox</a>
@@ -36,7 +35,7 @@
     </div>
   </header>
   <main class="stage">
-    <iframe id="atelierFrame" title="GNU Atelier (renderer)" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
+    <iframe id="atelierFrame" title="GNU Atelier" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
   </main>
   <script>
     (function () {
@@ -54,19 +53,14 @@
         if (!el) return;
         var t = token();
         var em = email();
-        el.textContent = t ? ("session · " + (em || "account")) : "session · no local token (Atelier will ask to sign in)";
+        el.textContent = t ? ("session · " + (em || "account")) : "session · —";
       }
       function pushAtelierSession() {
         try {
           var f = document.getElementById("atelierFrame");
           var tok = token();
-          if (!f) return;
-          if (tok && f.src.indexOf("#cmn=") < 0) {
-            f.src = ORIGIN + "/?space=bancada#cmn=" + encodeURIComponent(tok);
-          }
-          if (f.contentWindow && tok) {
-            f.contentWindow.postMessage({ type: "cmn-session", token: tok, email: email() }, ORIGIN);
-          }
+          if (!f || !f.contentWindow || !tok) return;
+          f.contentWindow.postMessage({ type: "cmn-session", token: tok, email: email() }, ORIGIN);
         } catch (e) {}
       }
       window.pushAtelierSession = pushAtelierSession;
