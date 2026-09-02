@@ -22,5 +22,6 @@ const worker :Workerd.Worker = (
     (name = "MW_PY", service = "mwpy"),
     (name = "MW_NODE", service = "mwnode"),
     (name = "ORIGIN", text = "session"),
+    (name = "FOG_MESH_N", text = "2"),
   ],
 );

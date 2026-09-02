@@ -110,7 +110,9 @@ export default {
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const mac_live = origin === "macbook";
       const edge_live = origin === "edge";
-      const n = (mac_live || edge_live) ? 2 : 1;
+      // Lab mesh n is FOG_MESH_N (P1 n=2), not ORIGIN. session is a public-origin
+      // flag; coupling n/member to origin made /health an outdated alias of P0.
+      const n = Math.max(1, Number(env.FOG_MESH_N || 2) || 2);
       const layer = edge_live
         ? "tunnel→workerd:8788→edge:8789"
         : "tunnel→workerd:8788→fog:8787";
@@ -124,9 +126,10 @@ export default {
         trusted: mac_live || edge_live,
         n,
         mesh_member: n >= 2,
-        mesh_provision: mac_live || edge_live,
+        mesh_provision: n >= 2,
         layer,
-        version: "0.5.1-lab",
+        version: "v0.5.1-lab",
+        release: "v0.5.1-lab",
         oracle_live: false,
         substrate: "workerd-hop",
         metabol: "/metabol",

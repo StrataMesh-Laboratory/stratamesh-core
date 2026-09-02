@@ -60,3 +60,10 @@ Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and o
 ## Hold HTML vs live hops (2026-09-02)
 
 `frontend/maintenance-1xxx.html` is the L4 1027 card. Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `sandbox.calhegasmorais.pt` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
+
+
+## /health outdated alias (2026-09-02)
+
+RCA: workerd `/health` set `n` and `mesh_member` from `ORIGIN===macbook` only. Named-tunnel session hop therefore published n=1 member=false while `version` was already 0.5.1-lab and metabol origin=macbook primary. `ops/bin/outdated_aliases_check.py` only marked HTML Pages, so that JSON alias never scrubbed.
+
+Fix: `FOG_MESH_N=2` (lab P1). `/health` n/member follow mesh n, not ORIGIN. ORIGIN stays honest (session|macbook|edge). Version/release `v0.5.1-lab`. Scrubber fails on n=1, member=false, hold HTML on /health, or missing v0.5.1-lab.
