@@ -73,9 +73,10 @@ def main():
                 # origin may stay session; n/member must not.
                 row = {"url": url, "kind": "health", "status": status, "version": ver, "n": n, "mesh_member": member, "origin": data.get("origin"), "ok_ver": ok_ver, "ok_n": ok_n, "ok_m": ok_m}
                 if status >= 400 or not (ok_ver and ok_n and ok_m):
-                    outdated = True
                     row["outdated"] = True
                     row["reason"] = "p0_session_alias" if (n == 1 or member is False) else "mark_mismatch"
+                    if not optional:
+                        outdated = True
         except Exception as e:
             row = {"url": url, "kind": "health", "error": str(e)[:160]}
             if not optional:
