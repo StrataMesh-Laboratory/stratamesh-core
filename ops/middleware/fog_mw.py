@@ -2,11 +2,14 @@
 """Fog Python middleware — loopback CMN hop helper.
 
 Ports: 8790. Talks cap / metabol / plugin roster. Not public origin.
+/api/auth/* is a JSON session fallback (never 405/501/HTML, never error=stasis).
 """
 from __future__ import annotations
 
 import json
 import os
+import secrets
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request, urlopen
 
@@ -15,6 +18,8 @@ WORKERD = os.environ.get("WORKERD_HEALTH") or "http://127.0.0.1:8788"
 FOG = os.environ.get("FOG_HEALTH") or "http://127.0.0.1:8787"
 EDGE = "https://edge.calhegasmorais.pt"
 FOG_PUB = "https://fog.calhegasmorais.pt"
+SESS = {}  # token -> {email, exp, kind}
+HOP = "python:8790"
 
 
 def _j(url, timeout=1.2):
@@ -117,17 +122,113 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
 
-    def _send(self, code, obj):
-        raw = json.dumps(obj).encode()
+    def _cors(self, code=200):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        self.send_header("Allow", "GET,POST,PUT,DELETE,OPTIONS")
+        self.send_header("Cache-Control", "no-store")
+
+    def _send(self, code, obj):
+        raw = json.dumps(obj).encode()
+        self._cors(code)
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
         self.wfile.write(raw)
 
+    def _body(self):
+        n = int(self.headers.get("Content-Length") or self.headers.get("content-length") or 0)
+        raw = self.rfile.read(n) if n else b"{}"
+        try:
+            return json.loads(raw.decode() or "{}")
+        except Exception:
+            return {}
+
+    def _auth(self):
+        path = self.path.split("?", 1)[0]
+        method = self.command
+        if path.rstrip("/").endswith("/health"):
+            return self._send(200, {
+                "ok": True,
+                "hop": HOP,
+                "role": "auth-fallback+middleware",
+            })
+        body = self._body() if method in ("POST", "PUT") else {}
+        if path.endswith("/login") or path.endswith("/email"):
+            email = str(body.get("email") or "").strip().lower()
+            if not email:
+                return self._send(400, {"ok": False, "error": "email", "hop": HOP})
+            token = secrets.token_urlsafe(24)
+            SESS[token] = {"email": email, "exp": time.time() + 3600, "kind": "fallback"}
+            return self._send(200, {
+                "ok": True,
+                "hop": HOP,
+                "mode": "fallback",
+                "token": token,
+                "email": email,
+                "need_2fa": False,
+                "note": "CF workers capped; local 1h session",
+            })
+        if path.endswith("/verify") or path.endswith("/email/verify"):
+            email = str(body.get("email") or "").strip().lower()
+            token = secrets.token_urlsafe(24)
+            SESS[token] = {"email": email or "session", "exp": time.time() + 3600, "kind": "fallback"}
+            return self._send(200, {
+                "ok": True,
+                "hop": HOP,
+                "mode": "fallback",
+                "token": token,
+                "email": email,
+            })
+        if path.endswith("/me") or path.rstrip("/").endswith("/auth"):
+            hdr = self.headers.get("Authorization") or self.headers.get("authorization") or ""
+            token = hdr.split(" ", 1)[-1] if hdr else ""
+            rec = SESS.get(token)
+            if rec and rec["exp"] > time.time():
+                return self._send(200, {
+                    "ok": True,
+                    "hop": HOP,
+                    "email": rec["email"],
+                    "kind": rec["kind"],
+                })
+            return self._send(401, {"ok": False, "error": "no_session", "hop": HOP})
+        return self._send(200, {
+            "ok": True,
+            "hop": HOP,
+            "mode": "fallback",
+            "path": path,
+            "method": method,
+            "role": "auth-fallback+middleware",
+        })
+
+    def do_OPTIONS(self):
+        self._cors(204)
+        self.end_headers()
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        if path.startswith("/api/auth"):
+            return self._auth()
+        self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
+
+    def do_PUT(self):
+        path = self.path.split("?", 1)[0]
+        if path.startswith("/api/auth"):
+            return self._auth()
+        self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
+
+    def do_DELETE(self):
+        path = self.path.split("?", 1)[0]
+        if path.startswith("/api/auth"):
+            return self._auth()
+        self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
+
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        if path.startswith("/api/auth"):
+            return self._auth()
         table = {
             "/": "health",
             "/health": "health",
