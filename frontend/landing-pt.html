@@ -7,7 +7,7 @@
   <meta name="description" content="Nó de Névoa Calhegas Morais — StrataMesh, Lisboa."/>
   <link rel="canonical" href="https://calhegasmorais.pt/"/>
   <link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/"/>
-  <link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en"/>
+  <link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en/"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"/>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
@@ -173,8 +173,8 @@ details.faq p{margin:.55rem 0 0}
   <div class="top-inner">
     <div class="brand"><strong>Calhegas Morais</strong> · Nó CMN</div>
     <div class="lang">
-      <a href="/" class="active" hreflang="pt-PT">PT</a><span class="sep">/</span>
-      <a href="/en" class="" hreflang="en-GB">EN</a>
+      <a href="/" class="active" hreflang="pt-PT" data-cmn-lang="pt-PT">PT</a><span class="sep">/</span>
+      <a href="/en/" class="" hreflang="en-GB" data-cmn-lang="en-GB">EN</a>
     </div>
   </div>
 </div>
@@ -400,6 +400,19 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
   }catch(e){
     box.innerHTML='<span class="pill err">UNAVAILABLE</span>';
   }
+})();
+</script>
+<script>
+(function(){
+  function cmnSet(lang){
+    document.cookie='cmn_lang='+lang+'; Path=/; Max-Age=31536000; SameSite=Lax';
+  }
+  window.cmnSetLang=cmnSet;
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('[data-cmn-lang]');
+    if(!el) return;
+    cmnSet(el.getAttribute('data-cmn-lang'));
+  },true);
 })();
 </script>
 </body>
