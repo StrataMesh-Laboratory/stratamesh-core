@@ -56,18 +56,18 @@
     </div>
   </header>
   <main class="stage">
-    <iframe id="atelierFrame" title="Atelier GNU" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock"></iframe>
+    <iframe id="atelierFrame" title="Atelier GNU" src="/gnu-atelier.html" allow="fullscreen; pointer-lock"></iframe>
     <aside class="on-stage" id="objectPanel">
       <div class="object-top">
         <h2 id="pieceName">Objecto no palco</h2>
         <span class="chip" id="nameChip">rascunho</span>
       </div>
       <div class="contains">
-        <h3>Contém</h3>
+        <h3>Aspectos</h3>
         <p id="containsList">Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.</p>
       </div>
       <section class="aspect" id="contractAspect" data-oracle-live="false" data-strata-units="0" data-mood="still">
-        <h3>Aspecto contrato · lab</h3>
+        <h3>Contrato · lab</h3>
         <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Repouso</span></div>
         <div class="tank-label">Tanque interior · colateral do contrato</div>
         <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
@@ -83,7 +83,7 @@
   <script>
     (function () {
 
-      var ORIGIN = "https://gnu-atelier.pages.dev";
+      var ORIGIN = location.origin;
       var mood = "still";
       var ended = false;
       var strataUnits = 0;
@@ -133,31 +133,16 @@
         mood = next;
         paintChrome();
       }
-      function pushAtelierSession() {
-        try {
-          var f = document.getElementById("atelierFrame");
-          var tok = token();
-          if (!f || !f.contentWindow || !tok) return;
-          f.contentWindow.postMessage({ type: "cmn-session", token: tok, email: email() }, ORIGIN);
-        } catch (e) {}
-      }
+      function pushAtelierSession() { /* no session to pass */ }
       window.pushAtelierSession = pushAtelierSession;
-      window.addEventListener("message", function (e) {
-        try {
-          if (!e.origin || new URL(e.origin).hostname !== "gnu-atelier.pages.dev") return;
-          if (e.data && e.data.type === "cmn-session-ready") pushAtelierSession();
-        } catch (err) {}
-      });
       document.getElementById("btnFs").addEventListener("click", function () {
         var f = document.getElementById("atelierFrame");
         if (f && f.requestFullscreen) f.requestFullscreen();
       });
       document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
       document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
-      document.getElementById("atelierFrame").addEventListener("load", pushAtelierSession);
       paintSession();
       paintChrome();
-      pushAtelierSession();
     })();
   </script>
 </body>
