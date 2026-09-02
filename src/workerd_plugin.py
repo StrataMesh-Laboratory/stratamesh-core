@@ -17,7 +17,7 @@ from urllib.request import urlopen
 PORT = int(os.environ.get("WORKERD_PORT") or "8788")
 HEALTH = f"http://127.0.0.1:{PORT}/health"
 DATA = Path(os.environ.get("FOG_DATA") or "/workspace/data/fog")
-ROOT = Path(os.environ.get("FOG_SRC") or "/tmp/sm-core")
+ROOT = Path(os.environ.get("FOG_SRC") or (Path(os.environ.get("FOG_HOME") or str(Path.home() / "StrataMesh/fog")) / "repo"))
 CONFIG = Path(os.environ.get("WORKERD_CONFIG") or str(ROOT / "ops" / "workerd" / "config.capnp"))
 PIDFILE = DATA / "workerd.pid"
 LOG = DATA / "workerd.log"
@@ -95,7 +95,7 @@ class WorkerdPlugin:
             "public": public,
             "mac_live": role == "macbook",
             "trusted": role == "macbook",
-            "mesh_member": False,
+            "mesh_member": int(os.environ.get("FOG_MESH_N") or "2") >= 2,
             "health": HEALTH,
             "binary": binp,
             "config": str(CONFIG),
@@ -127,6 +127,13 @@ class WorkerdPlugin:
         if not CONFIG.is_file():
             self.last_error = "config_missing"
             return {"ok": False, "error": self.last_error}
+        try:
+            src_js = ROOT / "ops" / "workerd" / "worker.js"
+            dst_js = CONFIG.parent / "worker.js"
+            if src_js.is_file() and src_js.resolve() != dst_js.resolve():
+                dst_js.write_bytes(src_js.read_bytes())
+        except Exception:
+            pass
         logf = LOG.open("a")
         proc = subprocess.Popen(
             [binp, "serve", str(CONFIG)],

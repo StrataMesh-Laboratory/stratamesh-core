@@ -337,7 +337,45 @@ def reboot_fog() -> str:
     return "reboot " + " · ".join(notes)
 
 
+def stamp_manual_g() -> None:
+    p = Path.home() / ".config/stratamesh/last-manual-g"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("%.3f\n" % time.time())
+
+
+def sync_workerd_config() -> str:
+    """Copy worker.js + config.capnp into FOG/workerd-config; rewrite ORIGIN."""
+    repo = REPO if (REPO / "ops/workerd").exists() else Path.home() / "StrataMesh/fog/repo"
+    src_js = repo / "ops/workerd/worker.js"
+    src_cap = repo / "ops/workerd/config.capnp"
+    dest = FOG / "workerd-config"
+    dest.mkdir(parents=True, exist_ok=True)
+    origin = (os.environ.get("FOG_ORIGIN") or "macbook").strip() or "macbook"
+    notes = []
+    if src_js.is_file():
+        (dest / "worker.js").write_bytes(src_js.read_bytes())
+        notes.append("worker.js")
+    if src_cap.is_file():
+        text = src_cap.read_text()
+        for old in ("session", "macbook", "local", "edge"):
+            needle = 'text = "%s"' % old
+            if needle in text:
+                text = text.replace(needle, 'text = "%s"' % origin, 1)
+                break
+        (dest / "config.capnp").write_text(text)
+        notes.append("capnp origin=%s" % origin)
+    tmp = Path("/tmp/sm-core/ops/workerd")
+    if tmp.is_dir():
+        if (dest / "worker.js").is_file():
+            (tmp / "worker.js").write_bytes((dest / "worker.js").read_bytes())
+        if (dest / "config.capnp").is_file():
+            (tmp / "config.capnp").write_text((dest / "config.capnp").read_text())
+        notes.append("tmp/sm-core")
+    return "sync " + " · ".join(notes) if notes else "sync skip"
+
+
 def git_pull_reboot() -> str:
+    stamp_manual_g()
     repo = REPO if (REPO / ".git").exists() else Path.home() / "StrataMesh/fog/repo"
     if not (repo / ".git").exists():
         return "no git repo at %s" % repo
@@ -359,6 +397,8 @@ def git_pull_reboot() -> str:
         except OSError:
             pass
         copied.append("runtime.command copied")
+    sync = sync_workerd_config()
+    copied.append(sync)
     extra = (" " + " · ".join(copied)) if copied else ""
     fog_rc = reboot_fog()
     # this process still holds the old draw(); replace it with the copied TUI
