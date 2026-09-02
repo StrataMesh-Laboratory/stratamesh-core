@@ -255,9 +255,9 @@ const PORTAL = "https://calhegasmorais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
 const MW_BASE = "https://mw.calhegasmorais.pt";
 const AUTH_HOPS = [AUTH_BASE, MW_BASE];
-function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/^stasis$/i.test(s))return "serviço de autenticação indisponível";return String(m==null?"":m);}
+const HOP_DOWN = "Não foi possível contactar o nó de autenticação. A sessão da bancada permanece neste carril; Workers/KV estão em ritmo — não é congelamento até às 00:00 UTC.";
+function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/failed to fetch/i.test(s)||/^load failed$/i.test(s)||/networkerror/i.test(s))return HOP_DOWN;if(/^stasis$/i.test(s)||/^cf_stasis$/i.test(s)||/"error"\s*:\s*"stasis"/i.test(s))return "O serviço de autenticação está em ritmo mínimo (não é congelamento). Tente novamente após o rearme das 00:00 UTC.";return s;}
 const AUTH_ME = AUTH_HOPS.map(function(b){ return b+"/api/auth/me"; });
-const HOP_DOWN = "Python auth hop down (auth + mw). Workbench session stays on this rail; Workers/KV are paced — not a freeze until 00:00 UTC.";
 async function hopFetch(path, opts) {
   let last = null;
   for (const base of AUTH_HOPS) {
