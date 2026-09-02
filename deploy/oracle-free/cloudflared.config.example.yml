@@ -1,9 +1,22 @@
-# Copy to /etc/cloudflared/config.yml after: cloudflared tunnel create stratamesh-fog
-# Structural origin is workerd :8788 (fog stays on :8787, not public).
+# Copy to the Mac named-tunnel config after: cloudflared tunnel create stratamesh-fog
+# Structural origin is workerd :8788 (fog plugin stays on :8787, not public).
+# Reload: SIGHUP the cloudflared pid only. Never pkill / kill -9 cloudflared.
+# Never origin-take. Never Worker PUT. Never KV.
+#
+# fog. origin. gossip. → http://127.0.0.1:8788
+# auth. mw.            → http://127.0.0.1:8790
 tunnel: REPLACE_TUNNEL_ID
 credentials-file: /etc/cloudflared/REPLACE_TUNNEL_ID.json
 
 ingress:
   - hostname: fog.calhegasmorais.pt
     service: http://127.0.0.1:8788
+  - hostname: origin.calhegasmorais.pt
+    service: http://127.0.0.1:8788
+  - hostname: gossip.calhegasmorais.pt
+    service: http://127.0.0.1:8788
+  - hostname: auth.calhegasmorais.pt
+    service: http://127.0.0.1:8790
+  - hostname: mw.calhegasmorais.pt
+    service: http://127.0.0.1:8790
   - service: http_status:404

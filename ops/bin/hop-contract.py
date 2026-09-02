@@ -61,6 +61,17 @@ def main() -> int:
         "1800",
         "standby",
     )
+    must(
+        "deploy/mac-fog/hop-map.yml",
+        "fog.calhegasmorais.pt",
+        "origin.calhegasmorais.pt",
+        "gossip.calhegasmorais.pt",
+        "http://127.0.0.1:8788",
+        "auth.calhegasmorais.pt",
+        "mw.calhegasmorais.pt",
+        "http://127.0.0.1:8790",
+        "SIGHUP",
+    )
     print("hop-contract ok")
     print("  tunnel → workerd:8788 (isolate, metabol)")
     print("  workerd → fog:8787 (origin)")

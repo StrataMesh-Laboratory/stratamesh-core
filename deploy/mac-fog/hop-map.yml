@@ -1,0 +1,24 @@
+# Named-tunnel hop-map (Mac Fog). SIGHUP-only reload — never kill/pkill cloudflared.
+# STRATAGROK may `kill -HUP <cloudflared pid>` on the Mac after this file is copied
+# into the live config. Do not origin-take. Do not Worker PUT. Do not KV.
+#
+# fog. origin. gossip.  → workerd isolate  http://127.0.0.1:8788
+# auth. mw.             → python mw        http://127.0.0.1:8790
+#
+ingress:
+  - hostname: fog.calhegasmorais.pt
+    service: http://127.0.0.1:8788
+  - hostname: origin.calhegasmorais.pt
+    service: http://127.0.0.1:8788
+  - hostname: gossip.calhegasmorais.pt
+    service: http://127.0.0.1:8788
+  - hostname: auth.calhegasmorais.pt
+    service: http://127.0.0.1:8790
+  - hostname: mw.calhegasmorais.pt
+    service: http://127.0.0.1:8790
+reload: SIGHUP
+forbid:
+  - pkill cloudflared
+  - origin-take
+  - Worker PUT
+  - KV
