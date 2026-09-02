@@ -148,6 +148,8 @@ body.in-session .user-info{display:flex!important}
     <button type="submit" id="authBtn">Continuar</button>
     </form>
     <script>
+    const AUTH_BASE = "https://auth.calhegasmorais.pt";
+    function mapAuthErr(m){var s=String(m==null?'':m).trim();if(/^stasis$/i.test(s))return 'serviço de autenticação indisponível';return String(m==null?'':m);}
     window.__cmnSubmit=async function(ev){
       if(ev){ ev.preventDefault(); ev.stopPropagation(); }
       var errEl=document.getElementById('loginError');
@@ -165,12 +167,12 @@ body.in-session .user-info{display:flex!important}
       }catch(_){}
       if(btn){ btn.disabled=true; btn.textContent='A autenticar…'; }
       try{
-        var url='/api/auth/login';
+        var url=AUTH_BASE+'/api/auth/login';
         var did=localStorage.getItem('cmn_device_id'); if(!did){ did='d'+Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('cmn_device_id',did); }
         var trust=!!((document.getElementById('trustDevice')||{}).checked);
         var payload={email:email,password:pass,lang:'pt',channel:'email',device_id:did,trust_device:trust,'cf-turnstile-response':ts};
         if(otp && window.__cmnChallenge){
-          url='/api/auth/email/verify';
+          url=AUTH_BASE+'/api/auth/email/verify';
           payload={email:email,code:otp,challenge:window.__cmnChallenge,lang:'pt'};
         }
         var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
@@ -195,7 +197,7 @@ body.in-session .user-info{display:flex!important}
           if(typeof go==='function') go(Object.assign({email:email,token:tok},j));
           return false;
         }
-        err(j.error||j.message||('HTTP '+r.status));
+        err(mapAuthErr(j.error||j.message||('HTTP '+r.status)));
       }catch(e){ err(String(e&&e.message||e)); }
       finally{ if(btn){ btn.disabled=false; if(!window.__cmnChallenge) btn.textContent='Continuar'; } }
       return false;
@@ -632,7 +634,7 @@ body.in-session .user-info{display:flex!important}
 <div class="toast" id="toast"></div>
 <script>
 
-const API=(location.pathname.startsWith('/dashboard')?'/api/auth':'/api/auth');
+const API=AUTH_BASE+'/api/auth';
 const SVC = {
   agora: '/api/v1/agora',
   acb: '/api/v1/acb',
@@ -643,7 +645,7 @@ const SVC = {
   orch: '/api/v1/orchestrator',
   holons: '/api/v1/holons',
   va: 'https://api-edge.calhegasmorais.pt',
-  auth: '/api/auth',
+  auth: AUTH_BASE+'/api/auth',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
   gate: 'https://stratamesh-gate.stratamesh.workers.dev',
@@ -1020,7 +1022,7 @@ async function handleAuth(){
     if(code.length>=6){
       if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Verifying…':'A verificar…';}
       try{
-        const AUTH=(window.SVC&&SVC.auth)||'/api/auth';
+        const AUTH=(window.SVC&&SVC.auth)||(AUTH_BASE+'/api/auth');
         const r=await fetch(AUTH+'/auth/email/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:userChallenge,code:code,lang:LANG==='en'?'en':'pt'})});
         const j=await r.json().catch(function(){return {};});
         if(j.success && (j.token||j.session_token)){
@@ -1029,7 +1031,7 @@ async function handleAuth(){
           currentUser=Object.assign({type:'user',email:e}, j);
           showPortal(currentUser); return;
         }
-        setErr(j.error||j.message||'2FA failed');
+        setErr(mapAuthErr(j.error||j.message||'2FA failed'));
       }catch(ex){ setErr(String(ex.message||ex)); }
       finally{ if(btn){btn.disabled=false;btn.textContent=LANG==='en'?'Verify 2FA':'Verificar 2FA';} }
       return;
@@ -1048,8 +1050,8 @@ async function handleAuth(){
   if(btn){btn.disabled=true;btn.textContent=LANG==='en'?'Signing in…':'A autenticar…';}
   const path=isRegister?'/register':'/login';
   const urls=[
-    '/api/auth'+path,
-    '/api/auth'+path
+    AUTH_BASE+'/api/auth'+path,
+    AUTH_BASE+'/api/auth'+path
   ];
   let lastErr='Authentication failed';
   try{
@@ -1083,7 +1085,7 @@ async function handleAuth(){
           showPortal(currentUser);
           return;
         }
-        lastErr=j.error||j.message||('HTTP '+r.status+(r.status===401?' — invalid credentials':''));
+        lastErr=mapAuthErr(j.error||j.message||('HTTP '+r.status+(r.status===401?' — invalid credentials':'')));
         if(r.status===401||r.status===400||r.status===409) break;
       }catch(ex){
         lastErr=(ex&&ex.name==='AbortError')?'Timeout — try again':String(ex.message||ex);
@@ -1098,7 +1100,7 @@ async function handleAuth(){
 async function loadUser(){
   if(!token) return;
   try{
-    const urls=['/api/auth/me','/api/auth/me'];
+    const urls=[AUTH_BASE+'/api/auth/me',AUTH_BASE+'/api/auth/me'];
     for(const url of urls){
       try{
         const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
@@ -1636,7 +1638,7 @@ async function verify(id,status){var sa=document.getElementById('sa'+id);var bod
 const WORKERS = [
   {name:'stratamesh-status',path:'https://stratamesh-status.stratamesh.workers.dev/health',desc:'Estado (health)',open:'https://stratamesh-status.stratamesh.workers.dev/'},
   {name:'stratamesh-status-pulse',path:'https://stratamesh-status.stratamesh.workers.dev/summary',desc:'Pulse resumido do nó',open:'https://stratamesh-status.stratamesh.workers.dev/summary'},
-  {name:'stratamesh-auth',path:'/api/auth/health',fallback:'/api/auth/health',desc:'Serviço de autenticação',open:'/api/auth/health'},
+  {name:'stratamesh-auth',path:AUTH_BASE+'/api/auth/health',fallback:AUTH_BASE+'/api/auth/health',desc:'Serviço de autenticação',open:AUTH_BASE+'/api/auth/health'},
   {name:'stratamesh-token',path:'https://stratamesh-token.stratamesh.workers.dev/monetary',desc:'STRATA / monetary poles',open:'https://stratamesh-token.stratamesh.workers.dev/monetary'},
   {name:'stratamesh-poc',path:'https://stratamesh-poc.stratamesh.workers.dev/pool',desc:'PdC · pool de malha',open:'https://stratamesh-poc.stratamesh.workers.dev/pool'},
   {name:'stratamesh-agora',path:'https://stratamesh-agora.stratamesh.workers.dev/agora/rate?quote=EUR',desc:'Ágora taxa EUR',open:'https://stratamesh-agora.stratamesh.workers.dev/health'},
@@ -1727,7 +1729,7 @@ window.sendOrchChat=sendOrchChat;
 </script>
 <script>
 
-const AUTH_BASE = (window.AUTH_URL || '/api/auth').replace(/\/$/, '');
+/* AUTH_BASE from earlier script: https://auth.calhegasmorais.pt */
 let staffChallenge = null;
 function showStaffLogin(){
   const u = document.getElementById('authForm') || document.querySelector('#authPage .form, #authPage form, #loginForm');
@@ -1756,14 +1758,14 @@ async function staffAuth(){
   if(btn) btn.disabled = true;
   setErr('');
   try {
-    const AUTH = '/api/auth';
+    const AUTH = AUTH_BASE + '/api/auth';
     if (!staffChallenge) {
       const r = await fetch(AUTH + '/staff/login', {
         method: 'POST', headers: {'Content-Type':'application/json','Accept':'application/json'},
         body: JSON.stringify({email, password: pass, lang: LANG==='en'?'en':'pt', channel:'email', 'cf-turnstile-response': (typeof getTurnstileToken==='function'?getTurnstileToken():'')})
       });
       const j = await r.json().catch(()=>({}));
-      if (!j.success) throw new Error(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')'));
+      if (!j.success) throw new Error(mapAuthErr(j.error||('Falha no acesso de pessoal (HTTP '+r.status+')')));
       if (j.requires_2fa || j.challenge) {
         staffChallenge = j.challenge;
         const row = document.getElementById('user2faRow');
@@ -1792,7 +1794,7 @@ async function staffAuth(){
         body: JSON.stringify({challenge: staffChallenge, code: otp, email})
       });
       const j = await r.json().catch(()=>({}));
-      if (!j.success || !j.token) throw new Error(j.error||'2FA failed');
+      if (!j.success || !j.token) throw new Error(mapAuthErr(j.error||'2FA failed'));
       token = j.token;
       try { localStorage.setItem('token', j.token); localStorage.setItem('sm_token', j.token); localStorage.setItem('auth_type','staff'); localStorage.setItem('clearance', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); localStorage.setItem('clearance_level', mapCl(j.clearance_level||j.clearance||j.role||'TOP_SECRET')); } catch(e){}
       currentUser = Object.assign({ type:'staff', email: email }, j);
@@ -1824,16 +1826,15 @@ async function loadEconomy(){ /* superseded — see definitive loadEconomy below
 <script>
 
 (function(){
-  const AUTH_BASE = '/api/auth';
   window.startOAuth = function(provider){
-    location.href = AUTH_BASE + '/auth/' + provider + '/start';
+    location.href = AUTH_BASE + '/api/auth/auth/' + provider + '/start';
   };
   function enableBtn(id, on, label){
     const b = document.getElementById(id);
     if(!b) return;
     if(on){ b.disabled = false; b.textContent = label; }
   }
-  fetch(AUTH_BASE + '/auth/methods').then(r=>r.json()).then(j=>{
+  fetch(AUTH_BASE + '/api/auth/auth/methods').then(r=>r.json()).then(j=>{
     (j.methods||[]).forEach(m=>{
       if(m.id==='google') enableBtn('btnGoogle', m.enabled, 'Continue with Google');
       if(m.id==='microsoft') enableBtn('btnMicrosoft', m.enabled, 'Continue with Microsoft');
@@ -3310,7 +3311,7 @@ window.__bancadaOnShow = function(){
   }
   function authBase(){
     if(window.SVC&&SVC.auth) return SVC.auth;
-    return '/api/auth';
+    return AUTH_BASE+'/api/auth';
   }
   function tokenBase(){
     if(window.SVC&&SVC.token) return SVC.token;
@@ -3326,7 +3327,7 @@ window.__bancadaOnShow = function(){
       try{
         var tokS=window.token||localStorage.getItem('sm_token')||localStorage.getItem('token');
         if(tokS){
-          var meUrls=[authBase()+'/me','/api/auth/me'];
+          var meUrls=[authBase()+'/me',AUTH_BASE+'/api/auth/me'];
           for(var ui=0;ui<meUrls.length && !account;ui++){
             try{
               var rMe=await fetch(meUrls[ui],{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
@@ -3971,7 +3972,7 @@ window.loadACBPanel=async function(){
 
   window.loadUsersPanel=async function(){
     try{
-      var s=await get('/api/auth/users/stats');
+      var s=await get(AUTH_BASE+'/api/auth/users/stats');
       var st=s.stats||s;
       set('totalUsers', st.total!=null?st.total:'—');
       set('pendingUsers', st.pending!=null?st.pending:'—');
@@ -4402,7 +4403,7 @@ window.loadACBPanel=async function(){
   var tok = params.get('setpw');
   if (!tok) return;
   var lang = params.get('lang') || 'pt';
-  var AUTH = '/api/auth';
+  var AUTH = AUTH_BASE + '/api/auth';
   var title = lang === 'en' ? 'Set password' : 'Definir palavra-passe';
   var hint = lang === 'en' ? 'Choose a password (min. 8 characters). Link expires in 1 hour.' : 'Escolha uma palavra-passe (mín. 8 caracteres). O link expira em 1 hora.';
   var box = document.createElement('div');
@@ -4426,7 +4427,7 @@ window.loadACBPanel=async function(){
       try {
         var r = await fetch(AUTH + '/set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: tok, password: p1, lang: lang })});
         var j = await r.json();
-        if (!j.success) { err.textContent = j.error || 'Error'; return; }
+        if (!j.success) { err.textContent = mapAuthErr(j.error || 'Error'); return; }
         box.innerHTML = '<div style="background:#111;padding:24px;color:#eee"><p>'+(j.message||'OK')+'</p></div>';
         history.replaceState({}, '', location.pathname);
       } catch (e) { err.textContent = String(e.message||e); }
@@ -4446,7 +4447,7 @@ async function forgotPassword(){
     if(err){ err.style.display='block'; err.textContent = lang==='en' ? 'Enter your email above, then tap Reset password.' : 'Indique o e-mail acima e depois toque em Repor palavra-passe.'; }
     return;
   }
-  var AUTH = '/api/auth';
+  var AUTH = AUTH_BASE + '/api/auth';
   if(err){ err.style.display='block'; err.style.color='var(--muted)'; err.textContent = lang==='en' ? 'Sending reset link…' : 'A enviar link de reposição…'; }
   try{
     var r = await fetch(AUTH + '/forgot-password', {
@@ -4458,7 +4459,7 @@ async function forgotPassword(){
     if(err){
       err.style.display='block';
       err.style.color = j.success ? 'var(--muted)' : 'var(--danger)';
-      err.textContent = j.message || j.error || (lang==='en' ? 'If the email is registered, a one-hour link was sent.' : 'Se o e-mail estiver registado, foi enviado um link (1 hora).');
+      err.textContent = j.message || mapAuthErr(j.error) || (lang==='en' ? 'If the email is registered, a one-hour link was sent.' : 'Se o e-mail estiver registado, foi enviado um link (1 hora).');
     }
   }catch(e){
     if(err){ err.style.display='block'; err.style.color='var(--danger)'; err.textContent = String(e.message||e); }
@@ -4542,10 +4543,10 @@ async function forgotPassword(){
         try { await _loadWalletPrev(); } catch (_) {}
       }
       var me = null, sub = null;
-      try { me = await getJSON('/api/auth/me'); } catch (_) {
-        try { me = await getJSON('/api/auth/me'); } catch (__) {}
+      try { me = await getJSON(AUTH_BASE+'/api/auth/me'); } catch (_) {
+        try { me = await getJSON(AUTH_BASE+'/api/auth/me'); } catch (__) {}
       }
-      try { sub = await getJSON('/api/auth/subsistence'); } catch (_) {}
+      try { sub = await getJSON(AUTH_BASE+'/api/auth/subsistence'); } catch (_) {}
       if (me && (me.success || me.email)) {
         window.currentUser = Object.assign({}, window.currentUser || {}, me);
         try {
@@ -4861,7 +4862,7 @@ async function forgotPassword(){
     var pc = el('profileClearance');
     var u = window.currentUser || {};
     try {
-      var me = await getJSON('/api/auth/me');
+      var me = await getJSON(AUTH_BASE+'/api/auth/me');
       if (me && (me.success || me.email)) {
         window.currentUser = Object.assign(u, me);
         u = window.currentUser;
