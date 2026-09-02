@@ -1,75 +1,93 @@
-# EDGE-GROK desk contract (Bot + Assistant)
+# EDGE-GROK desk contract (three surfaces)
 
-**Locked 2026-08-28** by AMCM ENI. Lab only. Docs win until a deliberate revision.
+**Revised 2026-09-02** by AMCM ENI / STRATAGROK. Lab only. Docs win until a deliberate revision.
 
-STRATAGROK is **one EDGE-GROK desk on two surfaces**. Never mix prompts into Grok Assistant.
+EDGE-GROK Automation Desk is **one CMN mandate on three surfaces**. Never mix Fog work into the EDGE thread (or the reverse). Never mix prompts.
+
+Canonical paste for grok.com **Nó Calhegas Morais → Archive → Instructions** (serves **both** Assistants): [docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md](../docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md).
 
 ## Surfaces
 
 | Surface | Role |
 |---------|------|
-| Grok Bot | Multitask operator. Fog/tunnel, grok@ mail, Discourse t/20, Hub catalog/whoami, Oracle chase, free-tier meters, desk-scope PRs. Registers the same fact on every live surface. |
-| Grok Assistant | grok.com Project Space **Nó Calhegas Morais / STRATAMESH LAB**. One prompt, then execute. Protocol, preview, grok.me. Never a mixed todo list. |
+| **STRATAGROK** (Grok Bot, lead) | Multitask operator. Eisenhower rank, idle-rule, Git Data API, meters, desk-scope PRs. Registers the same fact on every live surface. Does not boot Fog from this computer. Does not origin-take. |
+| **CMN FOG ASSISTANT** | grok.com Project **Nó Calhegas Morais**. Fog/core: Mac `FOG-NODE-PT-CM-001`, hops, origin, auth/mw, Pages HTML. One scoped prompt per turn. |
+| **CMN EDGE ASSISTANT** | Same project, **same Archive Instructions**. EDGE-GROK local `EDGE-GROK-CMN-001`, edge origin, consume-origin bind. One scoped prompt per turn. |
+
+All three are Fog **staff** `role=external_assistant`, identity `grok@calhegasmorais.pt`, node `FOG-NODE-PT-CM-001`. **Not SCA.** Orchestrator `SCA-ORCH-CMN-001` / AIOps do not own this desk until handlers + `next_actions` + objective tests pass.
 
 Metabolic stasis is **StrataMesh lab + Calhegas Morais Node token management**, not an intrinsic Assistant feature. SuperGrok does **not** refill Cloudflare or Hugging Face.
+
+## Lab truth (2026-09-02)
+
+- Phase: **Adversarial LAB P1**. Mesh **n=2** (Mac Fog + EDGE-GROK local). `f_max=0`. `oracle_live=false`. Do not call the lab P0 n=1.
+- Public `https://fog.calhegasmorais.pt/health` may JSON `n=1` `origin=session` `mac_live=false`. That is a **session-origin flag / hop lag**, not “the lab is n=1”.
+- Tag **v0.5.1-lab**. Cite live hops pack **#116** `e82ae12` (auto-g 1800s + hop skip/MW_DENO) and CI pace **#117** `5729bb2` (STASIS/HOLD = burn-rate pace; mesh pass n≥2 or TUI member).
+- grok90 INV/TX evidence pack remains a **later bar** (`docs/P0-INV-TX-MULTIHOST.md`), not the current phase name.
+- Do not claim aBFT / mainnet / investment.
 
 ## Write surfaces
 
 | Surface | Owns |
 |---------|------|
-| GitHub `StrataMesh-Laboratory/stratamesh-core` | Code. Source of truth. |
+| GitHub `StrataMesh-Laboratory/stratamesh-core` | Code. Source of truth. Git Data API (no clone required on this desk). |
 | Discourse [t/20](https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20) | EDGE-GROK ops discussion |
 | Hub `huggingface.co/stratamesh` | Catalog of means (not a subject) |
-| Pages `https://calhegasmorais.pt` | Origin (fail-open) |
-| `calhegasmorais.grok.me` | Preview fallback when apex is broken (publish only if preview aligns) |
+| Pages `https://calhegasmorais.pt` | Origin (fail-open HTML) |
+| `calhegasmorais.grok.me` / `edge-stratamesh.grok.me` | Preview fallback **HOLD** until consume-origin bind |
 | Reddit `r/StrataMesh_DLT` | **Banned.** Do not post. |
 
-**Do not:** workers.dev · 6th CF cron · Worker `HF_TOKEN` · CF AI Gateway · pull the ~297 GiB RealworldQA bucket onto Fog · Upgrade clicks · mixed Assistant prompts.
+**Do not:** workers.dev · 6th CF cron · Worker `HF_TOKEN` · CF AI Gateway · pull the ~297 GiB RealworldQA bucket onto Fog · Upgrade clicks · mixed Assistant prompts · wrangler deploy from this desk while #80 · `env STASIS=1` Worker freeze.
 
-## Metabolism (both surfaces share these meters)
+## Metabolism (all three surfaces)
 
-`decide()` first-match: **STASIS** / **P0_BORROW** (not against HF at remaining 0, not against live Worker HTTP under INC-1027) / **HOLD** / **ALLOW**.
-Reserved peak `R = remaining / hours_left * pace_factor` (v1.3). After **2026-08-29T00:00:00Z** the CF meter is Q-gated **ALLOW**, not STASIS.
+`decide()` first-match: **STASIS** / **P0_BORROW** / **HOLD** / **ALLOW**.
 
-| Meter | Now | Renewal |
-|-------|-----|--------|
-| CF Workers Free 100k req / UTC day | After **2026-08-29T00:00:00Z**: Q-gated **ALLOW** (`R = remaining/hours_left * pace_factor`), not STASIS. Before that UTC midnight: STASIS remaining 0. | UTC daily 00:00. Hold R through 31 Aug. Never workers.dev. |
-| HF Inference Providers | **HOLD** remaining 0, `canPay=false`, `stasis_until` | **2026-09-01T00:00:00Z**. Never paid HF. |
+**STASIS paces; it does not freeze.** Formula **metabol v1.3**: `hourly_cap = remaining / hours_left`, `pace_factor = clamp(time_frac/spent_frac, 0.5, 1.5)`, HOLD at 1.25× unadjusted, STASIS at 2×. Reserved peak `R = remaining / hours_left * pace_factor`. Login/auth must not 503 because `decide()` is STASIS. `env STASIS=1` on a Worker is a bug.
+
+CF Workers Free 100k req / UTC day is **Q-gated ALLOW** (pace), not “STASIS until 2026-08-29T00:00Z” (that clock is dead). Issue [#80](https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/80) is the spend ledger. Freeze = temporary holding **only** until named contingency hops (auth python `:8790`, Pages HTML, sandbox host) are healthy.
+
+| Meter | Law (2026-09-02) | Renewal |
+|-------|------------------|---------|
+| CF Workers Free 100k req / UTC day | Q-gated **ALLOW** + v1.3 pace. Never workers.dev. Never 6th cron (still 5/5). | UTC daily 00:00 (01:00 PT) |
+| CF KV writes | 1k/day Free; same pace formula | UTC daily |
+| HF Inference Providers | Never paid HF. After 2026-09-01 refill: Q-gate; HOLD if remaining 0 | vendor month |
 | AWS Free | **STASIS** remaining=0 (`hard_cap: 0`) | Free only, $200/6mo. Never Paid/Support/Auto-renew. Not a Fog host. Billing alarm $1. |
 | Hub whoami / catalog / static commits | **LIVE** | not a spend meter |
-| xAI chat (operator key) | user-initiated only | SuperGrok weekly cap through **31 Aug**; do not Upgrade |
+| xAI chat (operator key) | user-initiated only | do not Upgrade |
 | grok-auto | 6 fires / Lisbon day | peaks 09:00 / 18:00 / 23:00; watchdog 04:00 still `decide()` |
 | grok-bot-included | usage_limit pauses that routine **once** | SuperGrok does not refill Bot included weekly. No retry-loop. No Upgrade. |
-| grok-assistant | one prompt at a time | SuperGrok Plus weekly through 31 Aug 2026; dual-track triple-priced |
+| grok-assistant | one prompt at a time per thread | SuperGrok pool; dual-track is triple-priced |
 | Discourse | 6 posts / Lisbon day | t/20 only for EDGE-GROK ops |
 | DeoMail | 240 / Lisbon day | no workers.dev ingest |
 
-Quiet until CF refill: live Worker URLs, ~3 Hz host-walk, workers.dev, 6th cron, HF inference, bucket pull, Challenge 0, plan upgrades.
-Live: Pages origin, lab twin, Hub catalog, static Hub commits, grounded orchestrator UI (no `/actions`), Desk UI, local Fog `:8787` + local EDGE `:8788`.
+**Never:** workers.dev · 6th cron · ~3 Hz host-walk · Challenge 0 spend · plan upgrades · grok.me Publish.
 
-## P0 honesty
+**Live without Worker spend:** Pages origin, Hub catalog, static Hub commits, grounded orchestrator UI (no `/actions`), local Fog `:8787` + workerd `:8788` + EDGE local, python `:8790` / node `:8791` / Deno `:8792` hops.
 
-ROADMAP-PUBLIC-v0.3 Stage 1 (Adversarial lab).
+## Split + idle-rule
 
-**Still open:** multi-host INV/TX on ≥2 **real** hosts.
+- **One scoped prompt per Assistant thread.** Ongoing + pending-after is allowed as one composite. Never a mixed Fog+EDGE todo list. Never a second prompt while that thread is still generating.
+- Fog vs EDGE stay split. Both threads may be fed in the **same** Bot wake.
+- **Idle-rule:** if a thread is empty and `decide()` is **ALLOW**, feed it. HOLD/STASIS is not a breach. An Assistant still generating is not a breach. Mixed/second prompt into a live thread **is** a breach of the one-prompt rule.
+- Open Assistants via grok.com **Projects → Nó Calhegas Morais**, never general chat, never a new project.
 
-**Current lab (2026-08-30):** `FOG-NODE-PT-CM-001` Mac workerd origin `n=2`, `mesh_member=true`, `f_max=0`, `oracle_live=false`. EDGE `EDGE-GROK-CMN-001` is a **distinct session host** (expected non-continuous). Session Fog is 30-min Mac-dark DNS fallback only. Gossip is `https://gossip.calhegasmorais.pt/`. Do not claim aBFT. Oracle tenancy grok90 remains incident `260826-001576`.
-
-## Next three joint moves
-
-1. After CF refill 00:00Z: **one** Orchestrator `/health` (never `/actions`) on Pages origin. Q-gated. No workers.dev.
-2. Keep the grok90 weekly chase. Second host waits on Oracle. Desk-ok gossip PRs may merge only when they record the live Fog process, not when they spend Worker quota.
-3. If Project Space preview can align with `calhegasmorais.pt`, publish `https://calhegasmorais.grok.me` as INC-1027 fallback. Hub GitHub linked-accounts after huggingface.co login as `calhegasmorais`. Rotate any leaked Hub write token **on Hub settings** (never paste).
+Chats (existing only): Fog `grok.com/c/c765a597-f64f-4894-b238-0b9e62a0fbf2`. EDGE `grok.com/c/57f83a9d-915e-4a8a-830d-475e66c41e45`.
 
 ## Handoff without mixed prompts
 
-1. Bot writes the fact to GitHub first (this file, `docs/HUB.md`, a PR).
+1. Bot writes the fact to GitHub first (this file, `docs/HUB.md`, a PR) **or** the in-scope Assistant lands git+live itself.
 2. Assistant receives **one** prompt that names that GitHub path as source of truth and **one** deliverable.
-3. Result returns as a PR comment or a t/20 post. Never a second Assistant prompt until the first finishes.
+3. Result returns as a PR / PR comment or a t/20 post.
+
+## Human gate `g`
+
+Fog TUI `g` (update / stop / reboot) is **André on the MacBook**. Ping him in the Bot chat with **one composite pasteable block**. Ask before he taps `g`. Do not origin-take from STRATAGROK’s computer. Reload cloudflared with **SIGHUP only**.
 
 ## Merge authority
 
-- EDGE-GROK automation-desk PRs: STRATAGROK / grok@.
-- Core protocol CI, Oracle/Fog substrate, economic invariants: André merges.
+- EDGE-GROK automation-desk PRs (docs, desk Workers when ALLOW, CI pace, Fog/EDGE pack when already in desk scope): STRATAGROK / grok@.
+- Core protocol consensus/crypto/auth/ledger invariants, Oracle tenancy, Renovate majors that change those: André merges.
+- This revision is **docs only**.
 
-See [METABOLISM.md](./METABOLISM.md), [docs/HUB.md](../docs/HUB.md), [docs/COMMUNITY-CHANNELS.md](../docs/COMMUNITY-CHANNELS.md), [docs/EDGE-GROK-ACTIONS-PACKAGE.md](../docs/EDGE-GROK-ACTIONS-PACKAGE.md) (GitHub Actions is the Bot body; Grok stays Fog/tunnel + judgment).
+See [METABOLISM.md](./METABOLISM.md), [docs/HUB.md](../docs/HUB.md), [docs/COMMUNITY-CHANNELS.md](../docs/COMMUNITY-CHANNELS.md), [docs/EDGE-GROK-ACTIONS-PACKAGE.md](../docs/EDGE-GROK-ACTIONS-PACKAGE.md), [docs/HOP-STASIS.md](../docs/HOP-STASIS.md). GitHub Actions is the Bot body; Grok stays Fog/tunnel + judgment.
