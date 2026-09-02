@@ -28,7 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Restore previous circuit (optional artifact)
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39883 # v4
+        continue-on-error: true
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: stasis-state.json
           key: stasis-state-${{ github.run_id }}

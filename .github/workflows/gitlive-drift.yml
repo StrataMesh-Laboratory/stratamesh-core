@@ -36,47 +36,57 @@ jobs:
       - name: Compare live /content to git
         id: drift
         run: python3 ops/bin/gitlive-drift.py
-      - name: Comment #52 on hard drift only
+      - name: Comment #123 on hard drift only
         if: always() && steps.drift.outputs.hard == 'true'
         continue-on-error: true
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
+            const ISSUE = 123;
             const marker = '<!-- stratamesh-gitlive-drift -->';
-            // Default listComments is oldest-first; page through so a 90-comment #52 still sees the last marker.
-            const all = [];
-            for (let page = 1; page <= 5; page++) {
-              const { data } = await github.rest.issues.listComments({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 100, page,
+            try {
+              const all = [];
+              for (let page = 1; page <= 5; page++) {
+                const { data } = await github.rest.issues.listComments({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: ISSUE, per_page: 100, page,
+                });
+                all.push(...data);
+                if (!data.length || data.length < 100) break;
+              }
+              const last = [...all].reverse().find(c => c.body && c.body.includes(marker));
+              if (last && (Date.now() - new Date(last.created_at).getTime()) < 5 * 3600 * 1000) {
+                core.info('skip duplicate drift comment');
+                return;
+              }
+              const scripts = process.env.HARD_SCRIPTS || '';
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ISSUE,
+                body: [
+                  '## gitlive-drift hard DRIFT (observe; check stays green)',
+                  '',
+                  'Scripts: `' + scripts + '`',
+                  '',
+                  'Live Worker SHA-256 ≠ git (not hold_put). **Grok execute** (Actions does not PUT):',
+                  '',
+                  '```bash',
+                  'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
+                  '```',
+                  '',
+                  'Run: ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
+                  '',
+                  marker,
+                ].join('\n'),
               });
-              all.push(...data);
-              if (!data.length || data.length < 100) break;
+            } catch (e) {
+              const status = e.status || (e.response && e.response.status);
+              const msg = String((e.message || e));
+              if (status === 403 || status === 404 || /locked/i.test(msg)) {
+                core.info('skip-locked: ' + status + ' ' + msg);
+                return;
+              }
+              throw e;
             }
-            const last = [...all].reverse().find(c => c.body && c.body.includes(marker));
-            if (last && (Date.now() - new Date(last.created_at).getTime()) < 5 * 3600 * 1000) {
-              core.info('skip duplicate drift comment');
-              return;
-            }
-            const scripts = process.env.HARD_SCRIPTS || '';
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: 52,
-              body: [
-                '## gitlive-drift hard DRIFT (observe; check stays green)',
-                '',
-                'Scripts: `' + scripts + '`',
-                '',
-                'Live Worker SHA-256 ≠ git (not hold_put). **Grok execute** (Actions does not PUT):',
-                '',
-                '```bash',
-                'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
-                '```',
-                '',
-                'Run: ' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
-                '',
-                marker,
-              ].join('\n'),
-            });
         env:
           HARD_SCRIPTS: ${{ steps.drift.outputs.hard_scripts }}

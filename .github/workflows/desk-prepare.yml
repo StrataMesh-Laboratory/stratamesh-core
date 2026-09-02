@@ -33,10 +33,11 @@ jobs:
         uses: ./.github/actions/upload-desk
         with:
           name: desk-prepare
-      - name: Hint #52 when drift + Q-gate ALLOW
+      - name: Hint #123 when drift + Q-gate ALLOW
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
+            const ISSUE = 123;
             const fs = require('fs');
             let pack = {};
             try { pack = JSON.parse(fs.readFileSync('artifacts/PUBLISH-PACK.json', 'utf8')); } catch (_) { return; }
@@ -47,31 +48,41 @@ jobs:
             }
             const marker = '<!-- stratamesh-desk-prepare -->';
             const sig = 'Drift: `' + drift.join(', ') + '`';
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: 52, per_page: 30,
-            });
-            const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
-            if (last && last.body.includes(sig) && (Date.now() - new Date(last.created_at).getTime()) < 6 * 3600 * 1000) {
-              core.info('skip duplicate prepare comment');
-              return;
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: ISSUE, per_page: 30,
+              });
+              const last = [...comments].reverse().find(c => c.body && c.body.includes(marker));
+              if (last && last.body.includes(sig) && (Date.now() - new Date(last.created_at).getTime()) < 6 * 3600 * 1000) {
+                core.info('skip duplicate prepare comment');
+                return;
+              }
+              const cmd = (pack.execute && pack.execute.command) || 'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json';
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ISSUE,
+                body: [
+                  '## desk-prepare: Grok execute ready',
+                  '',
+                  'Actions finished labor. Download pack: `gh run download ' + context.runId + ' -n desk-prepare`',
+                  '',
+                  '```bash',
+                  'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
+                  '# or: ' + cmd,
+                  '```',
+                  '',
+                  sig,
+                  '',
+                  marker,
+                ].join('\n'),
+              });
+            } catch (e) {
+              const status = e.status || (e.response && e.response.status);
+              const msg = String((e.message || e));
+              if (status === 403 || status === 404 || /locked/i.test(msg)) {
+                core.info('skip-locked: ' + status + ' ' + msg);
+                return;
+              }
+              throw e;
             }
-            const cmd = (pack.execute && pack.execute.command) || 'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json';
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: 52,
-              body: [
-                '## desk-prepare: Grok execute ready',
-                '',
-                'Actions finished labor. Download pack: `gh run download ' + context.runId + ' -n desk-prepare`',
-                '',
-                '```bash',
-                'python3 ops/bin/desk-execute.py --from-pack artifacts/PUBLISH-PACK.json',
-                '# or: ' + cmd,
-                '```',
-                '',
-                sig,
-                '',
-                marker,
-              ].join('\n'),
-            });

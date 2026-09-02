@@ -1,5 +1,6 @@
-# Observe failed Actions runs. Log + #52 notify. Grok fixes. Never re-run from here.
+# Observe failed Actions runs. Log + #123 notify. Grok fixes. Never re-run from here.
 # No workflow_run fanout (that skipped 80+ times per push). Schedule + dispatch only.
+# #52 is locked/closed (lab-stress). Do not comment there.
 name: gha-fail-watch
 
 on:
@@ -23,7 +24,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DESK_TICK_OUT: ${{ github.workspace }}/artifacts
-      DESK_ISSUE: "52"
+      DESK_ISSUE: "123"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Scan failed runs
