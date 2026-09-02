@@ -486,6 +486,7 @@ def draw(msg: str = "") -> None:
         pass
     pyh = get("http://127.0.0.1:8790/health", timeout=0.8)
     ndh = get("http://127.0.0.1:8791/health", timeout=0.8)
+    dnh = get("http://127.0.0.1:8792/health", timeout=0.8)
     cols, rows = shutil.get_terminal_size((88, 28))
     cols = max(72, min(int(cols), 120))
 
@@ -506,7 +507,7 @@ def draw(msg: str = "") -> None:
     height = dag.get("height") or dag.get("max_height") or 0
     txs = dag.get("tx") or dag.get("count") or 0
     tips = dag.get("tips") or dag.get("tip_count") or 0
-    pending = rails.get("pending_poc") or keep.get("pending_poc") or 0
+    pending = rails.get("pending_poc") if rails.get("pending_poc") is not None else (keep.get("pending_poc") if keep.get("pending_poc") is not None else 0)
     mint = bool(rails.get("mint_armed"))
     burn = bool(rails.get("burn_armed"))
     waiver = bool(rails.get("lab_waived"))
@@ -557,6 +558,7 @@ def draw(msg: str = "") -> None:
     pair(" " + lamp(fog_ok) + " fog      :8787", " PoC   " + bar(min(float(pending or 0) / 40.0, 1.0), 12) + " " + str(pending)[:8])
     pair(" " + lamp(bool(pyh.get("ok"))) + " python   :8790", " spa   %s / %s" % (spa.get("active") or 0, spa.get("total") or 0))
     pair(" " + lamp(bool(ndh.get("ok"))) + " node     :8791", " meta  %s  pace=%s" % (dec, met.get("pace") or "—"))
+    pair(" " + lamp(bool(dnh.get("ok"))) + " deno     :8792", " resolve / object / mail")
     pair(" " + lamp(pub_ok) + " public   " + str(pub.get("origin") or "—"),
          " plus  " + str((sub.get("surplus") if isinstance(sub, dict) else None) or "—"))
     print(mid)

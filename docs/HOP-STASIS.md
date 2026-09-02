@@ -50,3 +50,8 @@ GraphQL 2026-09-01 00:00Z→12:30Z:
 `hourly_cap = remaining / hours_until_renewal(UTC 00:00)`
 `STASIS` if `hour_spent ≥ 2 × cap`.
 Static Pages assets do not consume the Workers 100k/plan bucket.
+
+
+## Mutual mw channels (2026-09-02)
+
+Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and of CF (Workers 100k/day reset 00:00 UTC / 01:00 PT, KV 1000 writes/day, Pages HTML). Prefer first healthy: Deno (object/mail/resolve) · python (auth/wb) · node (compose) · CF paced API. Freeze last. Never workers.dev, never spa catch-all, never a 6th cron. workerd `:8788` metabol is local meter (`HOPMESH`); do not poll `status.calhegasmorais.pt` on the TUI tick. Inbound MX stays CF Email Routing.

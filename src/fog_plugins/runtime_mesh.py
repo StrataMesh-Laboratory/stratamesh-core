@@ -63,21 +63,29 @@ class RuntimeMeshPlugin:
         js = ROOT / "ops" / "middleware" / "fog_mw.js"
         if py.is_file() and not _healthy(PY_PORT):
             log = open(DATA / "mw-py.log", "ab")
+            env = os.environ.copy()
+            env.setdefault("FOG_SRC", str(ROOT))
+            env.setdefault("FOG_DATA", str(DATA))
             p = subprocess.Popen(
                 ["python3", str(py)],
                 stdout=log,
                 stderr=log,
                 start_new_session=True,
+                env=env,
             )
             self.py_pid = p.pid
         node = shutil.which("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             log = open(DATA / "mw-node.log", "ab")
+            env = os.environ.copy()
+            env.setdefault("FOG_SRC", str(ROOT))
+            env.setdefault("FOG_DATA", str(DATA))
             p = subprocess.Popen(
                 [node, str(js)],
                 stdout=log,
                 stderr=log,
                 start_new_session=True,
+                env=env,
             )
             self.node_pid = p.pid
 
