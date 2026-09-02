@@ -1,7 +1,8 @@
 # Pages fail-open (1027). Never SPA-rewrite hop-owned paths to index HTML.
 # Live 2026-09-02 PT: /atelier and /api/health were 200 same HTML as /;
 # Do NOT add /* /index.html 200. Do not SPA-rewrite /chat.
-# /sandbox and /dashboard are static dashboard documents (sandbox.html / dashboard.html).
+# /sandbox is the sandbox document (sandbox.html: chrome + #atelierFrame → gnu-atelier.pages.dev).
+# /dashboard is the workbench (dashboard.html). They are not the same HTML.
 # /atelier remains 404 on apex Pages (renderer lives on gnu-atelier.pages.dev).
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
