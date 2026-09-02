@@ -42,6 +42,11 @@
     .acts button{flex:1 1 auto;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;border-radius:2px;cursor:pointer}
     .acts button.ghost{background:transparent;color:var(--ink)}
     .acts button[disabled]{opacity:.38;cursor:not-allowed}
+
+    @media(max-width:719px){
+      .on-stage{display:none}
+      header.chrome{flex-wrap:wrap}
+    }
   </style>
 </head>
 <body>
@@ -56,7 +61,7 @@
     </div>
   </header>
   <main class="stage">
-    <iframe id="atelierFrame" title="Atelier GNU" src="/gnu-atelier.html" allow="fullscreen; pointer-lock"></iframe>
+    <iframe id="atelierFrame" title="Ateliê GNU" src="about:blank" data-atelier="/gnu-atelier.html?v=20260902e&lang=pt-PT" allow="fullscreen; pointer-lock"></iframe>
     <aside class="on-stage" id="objectPanel">
       <div class="object-top">
         <h2 id="pieceName">Objecto no palco</h2>
@@ -90,21 +95,37 @@
       var oracleLive = false;
       var contains = [];
       function token() {
-        try { return localStorage.getItem("sm_token") || localStorage.getItem("token") || sessionStorage.getItem("sm_token") || ""; }
-        catch (e) { return ""; }
+        try {
+          var m = document.cookie.match(/(?:^|; )sm_token=([^;]*)/);
+          var c = m ? decodeURIComponent(m[1]) : "";
+          return c || localStorage.getItem("sm_token") || localStorage.getItem("token") || sessionStorage.getItem("sm_token") || "";
+        } catch (e) { return ""; }
       }
       function email() {
         try { return localStorage.getItem("sm_email") || ""; }
         catch (e) { return ""; }
       }
 
-      var labels = { still: 'Repouso', live: 'A correr', ended: 'Terminado', containsEmpty: 'Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.', sessionEmpty: 'sessão · sandbox.calhegasmorais.pt' };
+      var labels = { still: 'Repouso', live: 'A correr', ended: 'Terminado', containsEmpty: 'Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.', sessionEmpty: 'sem sessão · entrar na bancada' };
       function paintSession() {
         var el = document.getElementById("sessionChip");
         if (!el) return;
+        el.innerHTML = '';
+        var a = document.createElement('a');
+        a.href = 'https://dashboard.calhegasmorais.pt/dashboard';
+        a.textContent = labels.sessionEmpty;
+        el.appendChild(a);
         var t = token();
-        var em = email();
-        el.textContent = t ? ("sessão · " + (em || 'conta') + " · sandbox") : labels.sessionEmpty;
+        if (!t) return;
+        fetch('https://auth.calhegasmorais.pt/api/auth/me', {
+          headers: { Authorization: 'Bearer ' + t, Accept: 'application/json' },
+          credentials: 'include'
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          var u = (j && (j.user || j)) || {};
+          var who = u.email || u.username || '';
+          if (!who) return;
+          a.textContent = 'sessão · ' + who;
+        }).catch(function () {});
       }
       function paintChrome() {
         var lamp = document.getElementById("moodLamp");
@@ -141,8 +162,28 @@
       });
       document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
       document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
-      paintSession();
+      function requireAccount() {
+        var next = encodeURIComponent(location.href);
+        var bancada = 'https://dashboard.calhegasmorais.pt/dashboard?next=' + next;
+        var t = token();
+        var f = document.getElementById('atelierFrame');
+        function bounce() { location.replace(bancada); }
+        if (!t) { bounce(); return; }
+        fetch('https://auth.calhegasmorais.pt/api/auth/me', {
+          headers: { Authorization: 'Bearer ' + t, Accept: 'application/json' },
+          credentials: 'include'
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          var u = (j && (j.user || j)) || {};
+          var who = u.email || u.username || '';
+          if (!who) { bounce(); return; }
+          var el = document.getElementById('sessionChip');
+          if (el) el.textContent = (el.getAttribute('data-sess') || 'sessão') + ' · ' + who;
+          if (f) f.src = f.getAttribute('data-atelier') || '/gnu-atelier.html';
+          paintChrome();
+        }).catch(function () { bounce(); });
+      }
       paintChrome();
+      requireAccount();
     })();
   </script>
 </body>

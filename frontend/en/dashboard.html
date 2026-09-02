@@ -159,7 +159,7 @@ body.in-session .user-info{display:flex!important}
     <button type="button" class="active" data-panel="wallet" onclick="showPanel('wallet',this)" title="L-STRATA treasury">Treasury</button>
     <button type="button" data-panel="agora" onclick="showPanel('agora',this)" title="Peer-to-peer book">Agora</button>
     <button type="button" data-panel="economy" onclick="showPanel('economy',this)" title="PoC · Proof of Contribution">Mesh</button>
-    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)" title="Unix UGC NFT workbench">Atelier</button>
+    <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)" title="Unix UGC NFT workbench">Sandbox</button>
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)" title="DAO chambers">Chambers</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)" title="SPA · Service Pact Agreement">Compacts</button>
     <button type="button" data-panel="acb" data-user="1" onclick="showPanel('acb',this)" title="SCA · Synthetic Computational Agent">Agents</button>
@@ -290,7 +290,7 @@ body.in-session .user-info{display:flex!important}
       <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
     </p>
         <div id="bancadaStage" style="position:relative;width:100%;height:min(78vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#07111c;margin-bottom:1rem">
-      <iframe id="atelierFrame" title="Atelier GNU (renderer)" src="https://gnu-atelier.pages.dev/" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
+      <iframe id="atelierFrame" title="GNU Atelier" src="about:blank" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
     </div>
       </div>
 
@@ -298,7 +298,7 @@ body.in-session .user-info{display:flex!important}
     <h3>Objects owned</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">NFTs and CIDs of this account (loadSandboxBench).</p>
 <div class="stat-grid" style="margin-bottom:1rem">
-      <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Ateliers</div></div>
+      <div class="stat-card"><div class="value" id="sbxCount">—</div><div class="label">Sandboxes</div></div>
       <div class="stat-card"><div class="value" id="nftCount">—</div><div class="label">NFT STRATA</div></div>
     </div>
     <div style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.5rem">
@@ -328,7 +328,7 @@ body.in-session .user-info{display:flex!important}
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="settingsEmail">—</div><div class="label">Session</div></div>
     </div>
-    <p style="margin:0 0 1rem;font-size:.85rem"><a href="/dashboard" style="color:var(--accent)" hreflang="pt-PT" data-cmn-lang="pt-PT">PT</a> · <a href="/en/dashboard" style="color:var(--accent)" hreflang="en-GB" data-cmn-lang="en-GB">EN</a></p>
+    <p style="margin:0 0 1rem;font-size:.85rem"><a href="portal-pt.html" style="color:var(--accent)">PT</a> · <a href="portal-en.html" style="color:var(--accent)">EN</a></p>
     <button type="button" onclick="typeof logout==='function'&&logout()" style="padding:.45rem .8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.78rem">Sign out</button>
 
 
@@ -747,7 +747,7 @@ function atelierToken(){ return localStorage.getItem('sm_token')||localStorage.g
 function isAtelierRendererOrigin(o){
   try{
     var h=o&&new URL(o).hostname;
-    return h==='gnu-atelier.pages.dev';
+    return h==='gnu-atelier.pages.dev'||h==='atelier.calhegasmorais.pt';
   }catch(_){ return false; }
 }
 function atelierRendererOrigin(){ return 'https://gnu-atelier.pages.dev'; }
@@ -2954,7 +2954,7 @@ window.showPanel = function(name, btn){
       var sc = document.getElementById('sbxCount');
       if (sc) sc.textContent = String(sandboxes.length);
       var title = document.getElementById('bancadaHudTitle');
-      if(title) title.textContent = (typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) ? 'Bancada SCA' : 'Bancada da conta';
+      if(title) title.textContent = (typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) ? 'SCA Workbench' : 'Account workbench';
       var forceList = !!document.getElementById('atelierFrame');
       if (forceList || !initBancada3D()) {
         var el = document.getElementById('sandboxBench');
@@ -3721,7 +3721,7 @@ window.loadACBPanel=async function(){
       {n:'SO Metaverso Web3', d:'Sistema operativo partilhado entre nós'},
       {n:'Domínio Virtual', d:'Infraestrutura / hipervisor'},
       {n:'Mundo Aberto', d:'Mundos acessíveis a utilizadores e SCA'},
-      {n:'Bancada CGU', d:'Criação · NFT STRATA · frações de colateral'},
+      {n:'CGU Workbench', d:'Criação · NFT STRATA · frações de colateral'},
       {n:'Agente / Utilizador', d:'SCA e humanos no mesmo holon terminal'},
     ];
     try{
@@ -4166,20 +4166,7 @@ window.loadACBPanel=async function(){
 })();
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e846d979ba0cf8',t:'MTc4NzMwMTAzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0f088bf7cf2c6',t:'MTc4NzM5MTg3Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"d072b1bb92d24250897c8467ea4664c2","r":1}' crossorigin="anonymous"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f122647bf777fd',t:'MTc4NzM5MzkxNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>
-(function(){
-  function cmnSet(lang){
-    document.cookie='cmn_lang='+lang+'; Path=/; Max-Age=31536000; SameSite=Lax';
-  }
-  window.cmnSetLang=cmnSet;
-  document.addEventListener('click',function(ev){
-    var el=ev.target&&ev.target.closest&&ev.target.closest('[data-cmn-lang]');
-    if(!el) return;
-    cmnSet(el.getAttribute('data-cmn-lang'));
-  },true);
-})();
-</script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f122647bf777fd',t:'MTc4NzM5MzkxNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){
@@ -4437,7 +4424,7 @@ async function forgotPassword(){
       if (!ifr) {
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
-        ifr.title = 'Atelier GNU (renderer)';
+        ifr.title = 'GNU Atelier';
         ifr.src = 'https://gnu-atelier.pages.dev/';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
@@ -4447,7 +4434,7 @@ async function forgotPassword(){
     var title = el('bancadaPanelTitle');
     if (title) {
       title.style.display = '';
-      title.textContent = t('Atelier GNU · v0.5.1-lab', 'GNU Atelier · Holon 5');
+      title.textContent = t('Ateliê GNU', 'GNU Atelier');
     }
     var intro = title && title.nextElementSibling;
     if (intro && intro.tagName === 'P') {

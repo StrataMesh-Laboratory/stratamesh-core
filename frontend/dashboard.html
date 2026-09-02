@@ -149,6 +149,18 @@ body.in-session .user-info{display:flex!important}
     </form>
     <script>
     var AUTH_BASE = "https://auth.calhegasmorais.pt";
+    (function(){
+      function writeTok(t){
+        if(!t) return;
+        try{ document.cookie='sm_token='+encodeURIComponent(t)+'; Domain=.calhegasmorais.pt; Path=/; Secure; SameSite=Lax; Max-Age=2592000'; }catch(_){}
+      }
+      var _set=localStorage.setItem.bind(localStorage);
+      localStorage.setItem=function(k,v){
+        _set(k,v);
+        if(k==='sm_token'||k==='token') writeTok(v);
+      };
+      try{ writeTok(localStorage.getItem('sm_token')||localStorage.getItem('token')||''); }catch(_){}
+    })();
     function mapAuthErr(m){var s=String(m==null?'':m).trim();if(/failed to fetch/i.test(s)||/^load failed$/i.test(s)||/networkerror/i.test(s))return 'Não foi possível contactar o nó de autenticação. A sessão da bancada permanece neste carril; Workers/KV estão em ritmo — não é congelamento até às 00:00 UTC.';if(/^stasis$/i.test(s)||/^cf_stasis$/i.test(s)||/"error"\s*:\s*"stasis"/i.test(s))return 'O serviço de autenticação está em ritmo mínimo (não é congelamento). Tente novamente após o rearme das 00:00 UTC.';return s;}
     window.__cmnSubmit=async function(ev){
       if(ev){ ev.preventDefault(); ev.stopPropagation(); }
@@ -188,6 +200,12 @@ body.in-session .user-info{display:flex!important}
           var tok=j.token||j.session_token;
           try{ localStorage.setItem('token',tok); localStorage.setItem('sm_token',tok); localStorage.setItem('sm_email', email); }catch(_){}
           document.body.classList.add('in-session');
+          (function(){
+            try {
+              var n = new URLSearchParams(location.search).get('next') || '';
+              if (n.indexOf('https://sandbox.calhegasmorais.pt/') === 0) { location.replace(n); return; }
+            } catch (_) {}
+          })();
           var login=document.getElementById('loginPage');
           var portal=document.getElementById('portalPage');
           if(login){ login.style.display='none'; login.classList.add('hidden'); }
@@ -223,7 +241,7 @@ body.in-session .user-info{display:flex!important}
 <div class="portal" id="portalPage">
   <!-- Painel comum = base; Pessoal = comum + extras desbloqueados por clearance -->
   <div class="nav" id="mainNav">
-    <button type="button" class="active champion" data-panel="sandbox" onclick="showPanel('sandbox',this)">Atelier</button>
+    <button type="button" class="active champion" data-panel="sandbox" onclick="showPanel('sandbox',this)">Sandbox</button>
     <button type="button" class="nav-sec" data-panel="wallet" onclick="showPanel('wallet',this)">Tesouraria</button>
     <button type="button" class="nav-sec" data-panel="agora" onclick="showPanel('agora',this)">Ágora</button>
     <button type="button" class="nav-sec" data-panel="economy" onclick="showPanel('economy',this)">Malha</button>
@@ -351,8 +369,8 @@ body.in-session .user-info{display:flex!important}
   </div>
 
   <div class="panel" id="panel-sandbox">
-    <h3 id="bancadaPanelTitle">Atelier GNU · renderer</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">O Atelier GNU é só o renderer 3D. O sandbox/dashboard completo (sessão, definições, objectos) vive em sandbox.calhegasmorais.pt, /sandbox e /dashboard.</p>
+    <h3 id="bancadaPanelTitle">Ateliê GNU · renderer</h3>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">O Ateliê GNU é só o renderer 3D. O sandbox/dashboard completo (sessão, definições, objectos) vive em sandbox.calhegasmorais.pt, /sandbox e /dashboard.</p>
     <p style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:center">
       <a id="goSandbox" href="https://sandbox.calhegasmorais.pt/sandbox" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
       <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
@@ -373,7 +391,7 @@ body.in-session .user-info{display:flex!important}
       <span id="bancadaModeLabel" style="font-size:.72rem;color:var(--muted);margin-left:.25rem">Modo: órbita</span>
     </div>
         <div id="bancadaStage" style="position:relative;width:100%;height:min(78vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#07111c;margin-bottom:1rem">
-      <iframe id="atelierFrame" title="Atelier GNU (renderer)" src="https://gnu-atelier.pages.dev/" onload="pushAtelierSession()" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
+      <iframe id="atelierFrame" title="Ateliê GNU" src="about:blank" onload="pushAtelierSession()" allow="fullscreen; pointer-lock" style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c"></iframe>
     </div>
       </div>
 
@@ -432,7 +450,7 @@ body.in-session .user-info{display:flex!important}
     <div class="stat-grid" style="margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="settingsEmail">—</div><div class="label">Sessão</div></div>
     </div>
-    <p style="margin:0 0 1rem;font-size:.85rem"><a href="/dashboard" style="color:var(--accent)" hreflang="pt-PT" data-cmn-lang="pt-PT">PT</a> · <a href="/en/dashboard" style="color:var(--accent)" hreflang="en-GB" data-cmn-lang="en-GB">EN</a></p>
+    <p style="margin:0 0 1rem;font-size:.85rem"><a href="/dashboard" style="color:var(--accent)">PT</a> · <a href="portal-en.html" style="color:var(--accent)">EN</a></p>
     <button type="button" onclick="typeof logout==='function'&&logout()" style="padding:.45rem .8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:.78rem">Sair</button>
 
 
@@ -894,22 +912,17 @@ function atelierToken(){ return localStorage.getItem('sm_token')||localStorage.g
 function isAtelierRendererOrigin(o){
   try{
     var h=o&&new URL(o).hostname;
-    return h==='gnu-atelier.pages.dev';
+    return h==='sandbox.calhegasmorais.pt'||h==='calhegasmorais.pt';
   }catch(_){ return false; }
 }
-function atelierRendererOrigin(){ return 'https://gnu-atelier.pages.dev'; }
+function atelierRendererOrigin(){ return 'https://sandbox.calhegasmorais.pt'; }
 function pushAtelierSession(){
   try{
     var f=document.getElementById('atelierFrame');
     var tok=atelierToken();
     if(!f) return;
     var origin=atelierRendererOrigin();
-    if(tok && f.src.indexOf('#cmn=')<0){
-      f.src=origin+'/?space=bancada#cmn='+encodeURIComponent(tok);
-    }
-    if(f.contentWindow&&tok){
-      f.contentWindow.postMessage({type:'cmn-session',token:tok,email:localStorage.getItem('sm_email')||''},origin);
-    }
+    return;
   }catch(_){}
 }
 window.addEventListener('message',function(e){
@@ -997,7 +1010,7 @@ function logout(){
     localStorage.removeItem('clearance_level');
   }catch(e){}
   try{
-    document.cookie='sm_token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+    document.cookie='sm_token=; Domain=.calhegasmorais.pt; Path=/; Max-Age=0; Secure; SameSite=Lax';
     document.cookie='auth_type=; Path=/; Max-Age=0; Secure; SameSite=Lax';
   }catch(e){}
   location.replace('/dashboard');
@@ -4427,20 +4440,7 @@ window.loadACBPanel=async function(){
   else window.addEventListener('load', hudFps);
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0eff56e97e645',t:'MTc4NzM5MTg0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f120552ad0062d',t:'MTc4NzM5MzgzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>
-(function(){
-  function cmnSet(lang){
-    document.cookie='cmn_lang='+lang+'; Path=/; Max-Age=31536000; SameSite=Lax';
-  }
-  window.cmnSetLang=cmnSet;
-  document.addEventListener('click',function(ev){
-    var el=ev.target&&ev.target.closest&&ev.target.closest('[data-cmn-lang]');
-    if(!el) return;
-    cmnSet(el.getAttribute('data-cmn-lang'));
-  },true);
-})();
-</script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2e84342c912e60b',t:'MTc4NzMwMDg5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f0eff56e97e645',t:'MTc4NzM5MTg0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f120552ad0062d',t:'MTc4NzM5MzgzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 <script>
 (function(){
@@ -4699,7 +4699,7 @@ async function forgotPassword(){
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
         ifr.title = 'Atelier GNU (renderer)';
-        ifr.src = 'https://gnu-atelier.pages.dev/';
+        ifr.src = 'about:blank';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
         stage.appendChild(ifr);

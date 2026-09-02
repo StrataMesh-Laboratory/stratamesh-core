@@ -1,0 +1,11 @@
+/sandbox
+  Cache-Control: no-store
+
+/sandbox.html
+  Cache-Control: no-store
+
+/gnu-atelier.html
+  Cache-Control: no-store
+
+/
+  Cache-Control: no-store

@@ -14,7 +14,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="theme-color" content="#07111c"/>
-<title>Atelier GNU · v0.5.1-session · gnu-atelier.pages.dev</title>
+<title></title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
 <link rel="canonical" href="https://sandbox.calhegasmorais.pt/gnu-atelier.html"/>
 <meta property="og:title" content="Atelier GNU · v0.5.1-session"/>
@@ -122,19 +122,19 @@ h1{font-size:13px}
 </script>
 </head>
 <body>
-<canvas id="stage" tabindex="0" aria-label="GNU atelier first-person renderer"></canvas>
+<canvas id="stage" tabindex="0" aria-label="Ateliê GNU"></canvas>
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
       <div class="mono" id="idMeta">gnu-atelier.pages.dev · v0.5.1-session · holon 5 UGC</div>
-      <h1 id="ztitle">Workbench · UGC Sandbox (Holon 5)</h1>
+      <h1 id="ztitle">Bancada · Sandbox</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
     <div id="topRight">
       <button class="ghost" id="btnMode" type="button">Orbit</button>
       <button class="ghost" id="btnMenu" type="button" aria-label="Menu">Menu</button>
       <div class="nav desk-nav">
-        <a class="here" href="/atelier">Atelier</a>
+        <a class="here" href="/atelier">Ateliê GNU</a>
         <a href="https://calhegasmorais.pt/dashboard">Portal</a>
         <a href="https://calhegasmorais.pt">Lab</a>
       </div>
@@ -167,7 +167,7 @@ h1{font-size:13px}
       <p class="muted" id="sheetPath"></p>
       <p class="mono" id="sheetWallet">50.0 L-STRATA</p>
       <div class="nav row" style="justify-content:flex-start">
-        <a class="here" href="/atelier">Atelier</a>
+        <a class="here" href="/atelier">Ateliê GNU</a>
         <a href="https://calhegasmorais.pt/dashboard">Portal</a>
         <a href="https://calhegasmorais.pt">Lab</a>
       </div>
@@ -187,21 +187,6 @@ h1{font-size:13px}
   </div>
   <div id="log"></div>
   
-  <div id="gate" aria-live="polite">
-    <div class="card">
-      <div class="mono">sandbox.calhegasmorais.pt</div>
-      <h2>Registered session required</h2>
-      <p class="muted" id="gateMsg">There is no public sandbox. Sign in here — the workbench binds to your account (user or SCA).</p>
-      <form id="gateForm" style="display:flex;flex-direction:column;gap:.55rem;margin:.85rem 0 0;text-align:left">
-        <label class="mono" for="gateEmail">email</label>
-        <input id="gateEmail" type="email" autocomplete="username" required style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#0c1a28;color:var(--ink)"/>
-        <label class="mono" for="gatePass">password</label>
-        <input id="gatePass" type="password" autocomplete="current-password" required style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#0c1a28;color:var(--ink)"/>
-        <button class="btn" type="submit" id="gateSubmit">Enter workbench</button>
-      </form>
-      <input id="gateOtp" type="text" inputmode="numeric" placeholder="2FA" style="display:none;width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#0c1a28;color:var(--ink)"/>
-    </div>
-  </div>
   <div id="avatarSheet">
     <div class="panel">
       <div class="mono">UGC · Avatar STRATA NFT</div>
@@ -218,7 +203,7 @@ h1{font-size:13px}
 
   <div id="enter"><div class="card" id="enterBtn" role="button" onclick="window.__gnuPlay&&window.__gnuPlay(event)" ontouchend="window.__gnuPlay&&window.__gnuPlay(event)">
     <div class="mono">v0.5.1-session · inhabit / orbit</div>
-    <h2>Enter the GNU atelier</h2>
+    <h2 id="enterTitle">Entrar no Ateliê GNU</h2>
     <p class="muted">Session-bound workbench. WASD walk · drag look · tap floor / object. Touch devices get joysticks.</p>
   </div></div>
   <aside id="atlas">
@@ -250,6 +235,11 @@ h1{font-size:13px}
 <script>
 
 const CORE = "v0.5.1-session";
+const UI_LANG = (function(){
+  try { return new URLSearchParams(location.search).get("lang") || ""; } catch (e) { return ""; }
+})();
+const IS_EN = (UI_LANG.indexOf("en") === 0) || (document.documentElement.lang || "").indexOf("en") === 0;
+function L(pt, en){ return IS_EN ? en : pt; }
 const NODE_ID = "FOG-NODE-PT-CM-001";
 const PORTAL = "https://calhegasmorais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
@@ -264,7 +254,7 @@ async function hopFetch(path, opts) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 2500);
     try {
-      const r = await fetch(base + path, Object.assign({ credentials: "omit", signal: ctrl.signal }, opts || {}));
+      const r = await fetch(base + path, Object.assign({ credentials: "include", signal: ctrl.signal }, opts || {}));
       const ct = (r.headers.get("content-type") || "");
       if (!ct.includes("json") || r.status === 429 || r.status === 405 || r.status === 1027 || r.status >= 500) {
         last = r;
@@ -298,17 +288,16 @@ function allowedOrigin(o) {
     return h === "calhegasmorais.pt" || h.endsWith(".calhegasmorais.pt") || h.endsWith(".grok-sandbox.com") || h === "localhost" || h === "127.0.0.1";
   } catch { return false; }
 }
+function cookieToken() {
+  try {
+    const m = document.cookie.match(/(?:^|; )sm_token=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  } catch { return ""; }
+}
 function readToken() {
   try {
-    const q = new URLSearchParams(location.search);
-    const t = q.get("token") || sessionStorage.getItem("sm_token") || localStorage.getItem("sm_token") || localStorage.getItem("token") || "";
-    if (q.get("token")) {
-      sessionStorage.setItem("sm_token", t);
-      const u = new URL(location.href);
-      u.searchParams.delete("token");
-      history.replaceState({}, "", u.pathname + (u.search || "") + u.hash);
-    }
-    return t;
+    const t = cookieToken() || sessionStorage.getItem("sm_token") || localStorage.getItem("sm_token") || localStorage.getItem("token") || "";
+    return t || "";
   } catch { return ""; }
 }
 function normalizeMe(j) {
@@ -337,7 +326,7 @@ async function fetchMe(token) {
     try {
       const r = await fetch(url, {
         headers: { Authorization: "Bearer " + token, Accept: "application/json" },
-        credentials: "omit",
+        credentials: "include",
         signal: ctrl.signal,
       });
       if (!r.ok) continue;
@@ -408,7 +397,7 @@ const TOUCH = screenTouch();
 document.documentElement.dataset.screenTouch = TOUCH ? "yes" : "no";
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
 const ZONES = {
-  bancada: { title: "Workbench · UGC Sandbox (Holon 5)", half: 7.2, spawn: { x: 0, z: 5.2, yaw: 0 }, sky: 0xf4e4c1, fog: 0xc9a06a },
+  bancada: { title: L("Bancada · Sandbox (Holon 5)", "Workbench · Sandbox (Holon 5)", half: 7.2, spawn: { x: 0, z: 5.2, yaw: 0 }, sky: 0xf4e4c1, fog: 0xc9a06a },
   rua: { title: "Street · Open World · CMN", half: 22, spawn: { x: 0, z: 18.5, yaw: Math.PI }, sky: 0x1a2430, fog: 0x0e1a24 },
   agora: { title: "Agora · Lab Book", half: 14, spawn: { x: 0, z: 11.4, yaw: Math.PI }, sky: 0x241810, fog: 0x1a120c, hue: 0xd4a017 },
   pulse: { title: "Pulse · Fog holon", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x101820, fog: 0x0a1218, hue: 0x2f9e8a },
@@ -433,7 +422,7 @@ const EXITS = {
 const ROOM_LOTS = [
   ["pulse","Pulse"],["wallet","Wallet"],["agora","Agora"],["dag","DAG"],
   ["sca","SCA"],["republic","Republic"],["edge","Edge"],["mesh","Mesh"],
-  ["kyc","KYC"],["orch","Orch"],["acb","ACB Hall"],["bancada","Workbench"],
+  ["kyc","KYC"],["orch","Orch"],["acb","ACB Hall"],["bancada", L("Bancada","Workbench")],
 ];
 const ACB_ROSTER = [
   { id:"acb-orch", name:"Orion-CMN", cargo:"ORCHESTRATOR", sca:"SCA-ORCH-CMN-001", color:0xd4a017 },
@@ -473,7 +462,7 @@ const frozen = {};
 const nfts = [];
 const groups = [];
 const logs = [];
-const tty = [`GNU Atelier ${CORE} · type help`];
+const tty = [L("Ateliê GNU","GNU Atelier") + " " + CORE];
 const staticRoot = new THREE.Group();
 const nftRoot = new THREE.Group();
 const pickables = [];
@@ -1534,7 +1523,11 @@ layoutHud(); applyCam();
 try { renderer.render(scene, camera); } catch (e) { console.error(e); }
 requestAnimationFrame(tick);
 bootSession().then((ok) => {
-  log("boot", "GNU Atelier " + CORE + " · session " + (ok ? ADDR.owner : "locked"));
+  document.title = L("Ateliê GNU", "GNU Atelier") + " · " + CORE;
+  var h1 = document.getElementById("ztitle");
+  if (h1 && !SESSION.ready) h1.textContent = L("Bancada", "Workbench") + " · Sandbox";
+  document.querySelectorAll("a.here[href='/atelier']").forEach(function(a){ a.textContent = L("Ateliê GNU", "GNU Atelier"); });
+  log("boot", L("Ateliê GNU", "GNU Atelier") + " " + CORE + " · " + (ok ? ADDR.owner : "no-session"));
 });
 
 </script>
