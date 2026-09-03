@@ -145,7 +145,9 @@ def recycle_mw(ports=None) -> int:
     Default: fog :8787, workerd :8788, python :8790, node :8791, deno :8792.
     Supervise paths pass MW_PORTS so Fog/workerd are not SIGTERM'd by attach.
     Never pkill cloudflared. Never PUT Workers.
-    Already-dead hops are skipped. After SIGTERM wait up to 8s then SIGKILL leftovers.
+    Already-dead hops are skipped. After SIGTERM wait up to 8s then SIGKILL leftovers
+    that are not python/Python/python3 (SIGTERM only — SIGKILL Python.app is the macOS
+    crash dialog). Never SIGKILL cloudflared. Node/deno leftovers may still SIGKILL.
     """
     ports = tuple(RECYCLE_PORTS if ports is None else ports)
 
@@ -178,6 +180,10 @@ def recycle_mw(ports=None) -> int:
             time.sleep(0.25)
         for port in ports:
             for pid in live_pids(port):
+                comm = Path(_comm(pid).replace("\\", "/")).name.lower()
+                # SIGTERM only for CPython; SIGKILL Python.app is the crash dialog.
+                if comm in {"python", "python3", "python.app"} or comm.startswith("python"):
+                    continue
                 try:
                     os.kill(pid, signal.SIGKILL)
                     killed += 1
@@ -187,17 +193,15 @@ def recycle_mw(ports=None) -> int:
 
 
 def _mw_stale(port: int, script: Path) -> bool:
-    """True if a healthy listener is from another cwd/script or an older FOG_SRC sha."""
+    """True if a healthy listener is from another cwd/script or an older FOG_SRC sha.
+
+    HOLD (host_cap.over) is pace not freeze: sha-mismatch alone is not stale while
+    metabol is over. cwd/script mismatch still is. sha stamp is git identity, not metabol.
+    """
     if not _healthy(port):
         return False
-    sha_now = _repo_sha()
-    stamped = _stamped_sha()
-    if sha_now and sha_now != stamped:
-        return True
     expected = str(script)
     pids = _pids_listening(port)
-    if not pids:
-        return False
     for pid in pids:
         cmd = _cmd(pid)
         if expected not in cmd:
@@ -210,6 +214,12 @@ def _mw_stale(port: int, script: Path) -> bool:
                     return True
             except OSError:
                 return True
+    sha_now = _repo_sha()
+    stamped = _stamped_sha()
+    if sha_now and sha_now != stamped:
+        if host_cap.over():
+            return False
+        return True
     return False
 
 
@@ -366,7 +376,7 @@ class RuntimeMeshPlugin:
 
     def _spawn(self):
         # host_cap.over() is metabolic burn-rate (keep-up/PoC), not OS load-shed.
-        # Record it, skip extra sha stamps, but still bind :8790/:8791/:8792 if unhealthy.
+        # Still bind :8790/:8791/:8792 if unhealthy. sha stamp is git identity, not metabol.
         cap_over = host_cap.over()
         if cap_over:
             self.last_error = "host_cap"
@@ -387,8 +397,9 @@ class RuntimeMeshPlugin:
             env = os.environ.copy()
             env.setdefault("FOG_SRC", str(ROOT))
             env.setdefault("FOG_DATA", str(DATA))
+            py_bin = _which_bin("python3") or "python3"
             p = subprocess.Popen(
-                ["python3", str(py)],
+                [py_bin, str(py)],
                 stdout=log,
                 stderr=log,
                 start_new_session=True,
@@ -396,8 +407,7 @@ class RuntimeMeshPlugin:
                 env=env,
             )
             self.py_pid = p.pid
-            if not cap_over:
-                _write_sha()
+            _write_sha()  # sha stamp is git identity, not metabol
             self._kick_object_layers_probe()
         node = _which_bin("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
@@ -422,8 +432,7 @@ class RuntimeMeshPlugin:
                 except OSError:
                     tail = ""
                 self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
-            if not cap_over:
-                _write_sha()
+            _write_sha()  # sha stamp is git identity, not metabol
         deno = _which_bin("deno")
         if deno and ts.is_file() and not _healthy(DENO_PORT):
             log = open(DATA / "mw-deno.log", "ab")
@@ -439,8 +448,7 @@ class RuntimeMeshPlugin:
                 env=env,
             )
             self.deno_pid = p.pid
-            if not cap_over:
-                _write_sha()
+            _write_sha()  # sha stamp is git identity, not metabol
 
     def attach(self):
         if self._thread and self._thread.is_alive():

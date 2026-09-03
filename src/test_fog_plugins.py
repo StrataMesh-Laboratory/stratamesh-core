@@ -153,7 +153,7 @@ def test_spawn_still_listens_when_host_cap_over():
              patch.object(runtime_mesh, "DATA", data), \
              patch.object(runtime_mesh.host_cap, "over", return_value=True), \
              patch.object(runtime_mesh, "_healthy", return_value=False), \
-             patch.object(runtime_mesh, "_write_sha"), \
+             patch.object(runtime_mesh, "_write_sha") as write_sha, \
              patch.object(runtime_mesh.subprocess, "Popen", fake_popen), \
              patch.object(runtime_mesh.shutil, "which", return_value=None), \
              patch("builtins.open", MagicMock()):
@@ -161,6 +161,7 @@ def test_spawn_still_listens_when_host_cap_over():
     assert plugin.last_error == "host_cap"
     assert popen_cmds, "host_cap.over() must not return before Popen"
     assert popen_cmds[0][0] == "python3"
+    assert write_sha.called, "HOLD must still stamp git sha after spawn"
 
 
 def test_attach_spawns_immediately_after_recycle():
@@ -503,6 +504,66 @@ def test_recycle_leftover_gets_sigkill():
         n = runtime_mesh.recycle_mw((8791,))
     assert n == 0
     assert all(pid != 7 for pid, _s in kills)
+
+
+def test_mw_stale_healthy_cap_over_sha_mismatch_false():
+    """HOLD: healthy hop + sha mismatch alone is not stale. cwd/script mismatch still is."""
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    script = Path("/ops/middleware/fog_mw.py")
+    with patch.object(runtime_mesh, "_healthy", return_value=True), \
+         patch.object(runtime_mesh, "_repo_sha", return_value="aaa111"), \
+         patch.object(runtime_mesh, "_stamped_sha", return_value="bbb222"), \
+         patch.object(runtime_mesh, "_pids_listening", return_value=[99]), \
+         patch.object(runtime_mesh, "_cmd", return_value=str(script)), \
+         patch.object(runtime_mesh, "_cwd", return_value=""), \
+         patch.object(runtime_mesh.host_cap, "over", return_value=True):
+        assert runtime_mesh._mw_stale(8790, script) is False
+    with patch.object(runtime_mesh, "_healthy", return_value=True), \
+         patch.object(runtime_mesh, "_repo_sha", return_value="aaa111"), \
+         patch.object(runtime_mesh, "_stamped_sha", return_value="bbb222"), \
+         patch.object(runtime_mesh, "_pids_listening", return_value=[99]), \
+         patch.object(runtime_mesh, "_cmd", return_value="/other/fog_mw.py"), \
+         patch.object(runtime_mesh, "_cwd", return_value=""), \
+         patch.object(runtime_mesh.host_cap, "over", return_value=True):
+        assert runtime_mesh._mw_stale(8790, script) is True
+
+
+def test_recycle_leftover_python_sigterm_only_node_sigkill():
+    import signal
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    def run(comm, pid):
+        kills = []
+
+        def fake_kill(p, sig):
+            kills.append((p, sig))
+
+        t = {"n": 0}
+
+        def fake_time():
+            t["n"] += 1
+            return 1000.0 if t["n"] < 3 else 1010.0
+
+        with patch.object(runtime_mesh, "_pids_listening", return_value=[pid]), \
+             patch.object(runtime_mesh, "_comm", return_value=comm), \
+             patch.object(runtime_mesh.os, "kill", fake_kill), \
+             patch.object(runtime_mesh.time, "sleep", lambda *_a, **_k: None), \
+             patch.object(runtime_mesh.time, "time", fake_time):
+            runtime_mesh.recycle_mw((8790,))
+        return kills
+
+    py_kills = run("python3", 111)
+    assert (111, signal.SIGTERM) in py_kills
+    assert (111, signal.SIGKILL) not in py_kills
+    app_kills = run("Python", 112)
+    assert (112, signal.SIGTERM) in app_kills
+    assert (112, signal.SIGKILL) not in app_kills
+    node_kills = run("node", 222)
+    assert (222, signal.SIGTERM) in node_kills
+    assert (222, signal.SIGKILL) in node_kills
 
 
 def test_tui_fog_kernel_and_orch_4s():
