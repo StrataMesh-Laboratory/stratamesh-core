@@ -1451,7 +1451,7 @@ def draw(msg: str = "") -> None:
                   + MUT + "  n=" + RST + BOLD + str(n) + RST
                   + MUT + "  member=" + RST + str(bool(member)), w))
     print(mid)
-    print(boxline(" " + ACC + "FOG" + RST + MUT + "  MESH / IPC complementary hops" + RST, w))
+    print(boxline(" " + ACC + "FOG" + RST + MUT + "  kernel  ·  MW cover: workerd python node deno" + RST, w))
     mesh = (
         (8787, "fog", fog_ok),
         (8788, "workerd", hop_ok),

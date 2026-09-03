@@ -62,6 +62,21 @@ def main() -> int:
         "standby",
     )
     must(
+        "ops/config/hop-policy.json",
+        "python:8790",
+        "frontend/maintenance-1xxx.html",
+        "cf-auth:ALLOW",
+        '"role": "kernel"',
+        "never Worker PUT",
+    )
+    must(
+        "ops/lib/hop_chain.py",
+        "try_next",
+        "cf_allowed",
+        "maintenance",
+        "X-Fog-Chain",
+    )
+    must(
         "deploy/mac-fog/hop-map.yml",
         "fog.calhegasmorais.pt",
         "origin.calhegasmorais.pt",
@@ -77,6 +92,8 @@ def main() -> int:
     print("  workerd → fog:8787 (origin)")
     print("  workerd /assemble → node:8791 (compose)")
     print("  python:8790 (cap, plugins, strata, fallback)")
+    print("  5-slot: 3 MW + CF ALLOW + maintenance-1xxx.html")
+    print("  FOG :8787 kernel; MW cover each other")
     return 0
 
 

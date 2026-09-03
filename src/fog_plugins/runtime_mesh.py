@@ -191,6 +191,16 @@ def _mw_stale(port: int, script: Path) -> bool:
 
 
 
+
+def _hop_policy_routes():
+    try:
+        p = ROOT / "ops" / "config" / "hop-policy.json"
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return data.get("routes") or {}
+    except Exception:
+        return {}
+
+
 def _write_object_layers_last(payload, data_dir=None):
     target = Path(data_dir or DATA)
     try:
@@ -296,6 +306,9 @@ class RuntimeMeshPlugin:
                 "binary": deno_bin,
             },
             "workerd_alongside": True,
+            "fog_role": "kernel",
+            "mw": ["workerd:8788", "python:8790", "node:8791", "deno:8792"],
+            "hop_policy": _hop_policy_routes(),
             "reboots": self.reboots,
             "last_error": self.last_error,
         }

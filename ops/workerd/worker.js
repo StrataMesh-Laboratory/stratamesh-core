@@ -87,34 +87,47 @@ export default {
       "content-type": "application/json",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
-    if (HOPMESH) {
-      const pth = url.pathname;
-      const chain = [];
+    // GET /health is hop-live proof — do not chain it.
+    const pth = url.pathname;
+    const healthPath = pth === "/health" || pth === "/workerd" || pth.endsWith("/health");
+    if (HOPMESH && !healthPath && !request.headers.get("x-fog-chain")) {
       const dead = globalThis.__hopDead || (globalThis.__hopDead = Object.create(null));
       const now = Date.now();
+      let slots = [];
       if (pth.startsWith("/api") || pth.startsWith("/auth") || pth === "/login" || pth === "/me") {
-        chain.push(env.MW_PY, env.MW_DENO, "http://127.0.0.1:8790", "http://127.0.0.1:8791", "http://127.0.0.1:8792");
-      } else if (pth.startsWith("/mw") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/dashboard") || pth.startsWith("/desk") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/resolve")) {
-        chain.push(env.MW_NODE, env.MW_PY, env.MW_DENO, "http://127.0.0.1:8791", "http://127.0.0.1:8790", "http://127.0.0.1:8792");
+        slots = ["http://127.0.0.1:8790", "http://127.0.0.1:8791", "http://127.0.0.1:8792"]; // auth: py node deno; workerd skipped (proxy only, no session store)
+      } else if (pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/resolve")) {
+        slots = ["http://127.0.0.1:8792", "http://127.0.0.1:8790", "http://127.0.0.1:8791"]; // object: deno py node; workerd skipped (no object/mail handlers)
+      } else if (pth.startsWith("/assemble") || pth.startsWith("/mw") || pth.startsWith("/desk")) {
+        slots = ["http://127.0.0.1:8791", "http://127.0.0.1:8790", "http://127.0.0.1:8792"]; // compose: node py deno; workerd thin forward only
+      } else if (pth.startsWith("/atelier") || pth.startsWith("/dashboard")) {
+        slots = ["http://127.0.0.1:8791", "http://127.0.0.1:8790"]; // html_atelier: node py then this workerd local
+      } else if (pth.startsWith("/metabol")) {
+        slots = []; // metabol: this workerd is primary; py/node after local miss
       }
-      const hopKey = (hop) => (typeof hop === "string" ? hop : (hop && hop.name) || "svc");
-      for (const hop of chain) {
-        if (!hop) continue;
-        const k = hopKey(hop);
+      const svc = { "http://127.0.0.1:8790": env.MW_PY, "http://127.0.0.1:8791": env.MW_NODE, "http://127.0.0.1:8792": env.MW_DENO };
+      let any = false;
+      for (const hop of slots) {
+        const k = hop;
         if (dead[k] && now < dead[k]) continue;
         try {
           const ac = new AbortController();
           const to = setTimeout(() => ac.abort(), 400);
+          const bound = svc[hop];
           let r;
-          if (typeof hop.fetch === "function") r = await hop.fetch(request);
-          else r = await fetch(String(hop).replace(/\/$/, "") + pth + url.search, { method: request.method, headers: request.headers, redirect: "manual", signal: ac.signal });
+          if (bound && typeof bound.fetch === "function") r = await bound.fetch(request);
+          else r = await fetch(hop + pth + url.search, { method: request.method, headers: { ...Object.fromEntries(request.headers), "x-fog-chain": "1" }, redirect: "manual", signal: ac.signal });
           clearTimeout(to);
           if (r && r.status < 500 && r.status !== 0) return r;
           dead[k] = now + 8000;
+          any = true;
         } catch (_) {
           dead[k] = now + 8000;
+          any = true;
         }
       }
+      // after local handlers miss, layer 5 is applied at the final FOG.fetch skip below for module paths
+      globalThis.__hopTried = { pth, slots, any };
     }
 
 
@@ -302,8 +315,23 @@ export default {
           return env.MW_NODE.fetch("http://mw" + rest);
         }
       } catch (e) {
-        return Response.json({ ok: false, error: String(e && e.message || e) }, { status: 502, headers: cors });
+        /* try-next: python then maintenance */
       }
+    }
+    if (pth.startsWith("/api") || pth.startsWith("/auth") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/metabol")) {
+      const rest = [];
+      if (pth.startsWith("/metabol")) rest.push("http://127.0.0.1:8790", "http://127.0.0.1:8791");
+      if (pth.startsWith("/atelier") || pth.startsWith("/dashboard")) rest.push("http://127.0.0.1:8792");
+      for (const hop of rest) {
+        try {
+          const r = await fetch(hop + pth + url.search, { method: request.method, headers: { "x-fog-chain": "1" }, signal: AbortSignal.timeout(400) });
+          if (r && r.status < 500) return r;
+        } catch (_) {}
+      }
+      return new Response(
+        "<!DOCTYPE html><html lang=\"pt-PT\"><head><meta charset=utf-8><title>Nó em stasis</title></head><body><p>MW hops down. Never workers.dev.</p></body></html>",
+        { status: 200, headers: { ...cors, "content-type": "text/html; charset=utf-8", "x-fog-hold": "maintenance" } }
+      );
     }
     return env.FOG.fetch(request);
   },

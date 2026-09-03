@@ -311,6 +311,90 @@ def test_hop_spark_always_live_not_blank():
     assert "spark(LOAD_HIST)" in text
 
 
+
+def test_hop_policy_five_slots_kernel_not_mw():
+    import json
+    pol = json.loads((Path(__file__).resolve().parent.parent / "ops/config/hop-policy.json").read_text(encoding="utf-8"))
+    assert pol["fog"]["role"] == "kernel"
+    assert pol["mw"]["workerd"] == 8788
+    for name, route in pol["routes"].items():
+        assert len(route) == 5, name
+        assert "maintenance" in str(route[4])
+        assert "workers.dev" not in json.dumps(route)
+        if name != "html":
+            assert str(route[3]).startswith("cf-")
+            for hop in route[:3]:
+                assert not str(hop).startswith("cf-")
+                assert "fog:8787" not in str(hop)
+
+
+def test_try_next_stasis_skips_cf_then_maintenance():
+    import sys
+    root = Path(__file__).resolve().parent.parent
+    lib = str(root / "ops/lib")
+    if lib not in sys.path:
+        sys.path.insert(0, lib)
+    import hop_chain
+
+    def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
+        raise ConnectionError("down")
+
+    pol = hop_chain.load_policy(root)
+    out = hop_chain.try_next(
+        "/api/auth/login",
+        self_hop="python:8790",
+        decision="STASIS",
+        policy=pol,
+        fetch=fetch,
+        local=lambda _p: {"skip": True},
+        root=root,
+    )
+    assert out.get("skip") is True
+    assert out.get("rest") == ["node:8791", "deno:8792"]
+    closed = hop_chain.close_chain(
+        out["cf"], out["hold"], "STASIS", "/api/auth/login", "POST", b"{}", "",
+        fetch, 1.2, [], "auth_wb_session", root,
+    )
+    assert closed.get("maintenance") is True
+    assert closed["status"] == 200
+    assert hop_chain.cf_allowed("STASIS", "/api/auth/login") is False
+    health = hop_chain.try_next("/health", self_hop="python:8790", policy=pol, fetch=fetch)
+    assert health.get("via") == "health"
+
+
+def test_try_next_layer2_when_primary_down():
+    import sys
+    root = Path(__file__).resolve().parent.parent
+    lib = str(root / "ops/lib")
+    if lib not in sys.path:
+        sys.path.insert(0, lib)
+    import hop_chain
+
+    def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
+        if ":8791" in url:
+            return 200, {"Content-Type": "application/json"}, b'{"ok":true,"hop":"node:8791"}'
+        raise ConnectionError("down")
+
+    out = hop_chain.try_next(
+        "/assemble",
+        self_hop="python:8790",
+        decision="ALLOW",
+        policy=hop_chain.load_policy(root),
+        fetch=fetch,
+        local=lambda _p: {"skip": True},
+        root=root,
+    )
+    assert out.get("handled") is True
+    assert "node:8791" in str(out.get("via"))
+    assert not out.get("maintenance")
+
+
+def test_tui_fog_kernel_and_orch_4s():
+    text = (Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py").read_text(encoding="utf-8")
+    assert "kernel" in text and "MW cover" in text
+    body = text[text.index("def orch_aiops_report"):text.index("def orch_aiops_report") + 1200]
+    assert "4.0" in body
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

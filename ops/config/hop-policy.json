@@ -1,5 +1,5 @@
 {
-  "schema": "stratamesh.hop.v1",
+  "schema": "stratamesh.hop.v2",
   "html_origin": "pages:calhegasmorais-pt",
   "pages_dev": "https://calhegasmorais-pt.pages.dev/",
   "forbid_catch_all_workers": [
@@ -7,6 +7,22 @@
     "www.calhegasmorais.pt/*"
   ],
   "api_workers_only": true,
+  "fog": {
+    "port": 8787,
+    "role": "kernel",
+    "not": "middleware"
+  },
+  "mw": {
+    "workerd": 8788,
+    "python": 8790,
+    "node": 8791,
+    "deno": 8792
+  },
+  "layers": {
+    "1_3": "live MW ranked by how well they carry the module vs the owner",
+    "4": "CF (auth / Pages / deomail as fits) ONLY when metabol decide() is ALLOW; HOLD/STASIS skip CF, keep MW or go to 5; login/auth never 503 because CF STASIS",
+    "5": "static frontend/maintenance-1xxx.html until ANY MW can run the module again"
+  },
   "node_fallback": {
     "script": "ops/bin/cmn-spa-node.mjs",
     "port": 8791
@@ -16,6 +32,7 @@
   "retired_issue": 52,
   "mesh": {
     "fog": 8787,
+    "role": "kernel",
     "ipc": {
       "workerd": 8788,
       "python": 8790,
@@ -28,23 +45,57 @@
       "python:8790",
       "node:8791",
       "deno:8792",
-      "cf-auth:ALLOW"
+      "cf-auth:ALLOW",
+      "frontend/maintenance-1xxx.html"
     ],
     "compose_assemble_desk": [
       "node:8791",
       "python:8790",
-      "deno:8792"
+      "deno:8792",
+      "cf-pages:ALLOW",
+      "frontend/maintenance-1xxx.html"
     ],
     "object_cid_mail": [
       "deno:8792",
       "python:8790",
-      "cf-deomail:ALLOW"
+      "node:8791",
+      "cf-deomail:ALLOW",
+      "frontend/maintenance-1xxx.html"
+    ],
+    "html_atelier": [
+      "node:8791/atelier",
+      "python:8790",
+      "workerd:8788",
+      "cf-pages:ALLOW",
+      "frontend/maintenance-1xxx.html"
     ],
     "html": [
       "pages",
-      "node:8791/atelier"
+      "node:8791/atelier",
+      "python:8790",
+      "workerd:8788",
+      "frontend/maintenance-1xxx.html"
+    ],
+    "metabol_origin": [
+      "workerd:8788",
+      "python:8790",
+      "node:8791",
+      "cf-metabol:ALLOW",
+      "frontend/maintenance-1xxx.html"
     ]
   },
+  "skip_workerd": {
+    "auth_wb_session": "python owns in-memory session/wb; workerd only proxies /api to MW and has no session store — including it would duplicate the tunnel hop, not add a carrier",
+    "compose_assemble_desk": "node owns assemble/desk JSON; workerd /assemble is a thin MW_NODE forward, not a third compose runtime",
+    "object_cid_mail": "deno owns CID/mail/resolve; workerd has no object/mail handlers. node is the better 3rd JSON carrier"
+  },
+  "cf_layer": {
+    "cf-auth:ALLOW": "metabol gate only; never workers.dev; never Worker PUT on hot path; skip on HOLD/STASIS; login/auth never 503",
+    "cf-pages:ALLOW": "static Pages / pages.dev; outside Worker 100k; never SPA catch-all",
+    "cf-deomail:ALLOW": "deomail API when ALLOW; inbound MX stays CF Email Routing; not a Worker",
+    "cf-metabol:ALLOW": "CF metabol gate only (HOPMESH local meter); do not poll status.calhegasmorais.pt on the TUI tick"
+  },
+  "hold_html": "frontend/maintenance-1xxx.html",
   "metabol_pace": "per-hop (own renewal/quota/burn_rate)",
   "cf_worker_req": {
     "daily": 100000,
@@ -54,7 +105,7 @@
     "daily": 1000,
     "reset": "00:00 UTC"
   },
-  "pages_html": "outside Worker bucket; never SPA catch-all",
+  "pages_html": "outside Worker bucket; never SPA catch-all; first for static origin",
   "local_hops_cf_daily": false,
   "deno_deploy": "ALLOW fallback only",
   "hold_stasis": "pace not freeze; login/auth never 503 because CF decide() is STASIS",
@@ -66,6 +117,8 @@
   "never": [
     "workers.dev",
     "Worker PUT on hot path",
-    "pkill cloudflared"
+    "pkill cloudflared",
+    "SPA catch-all",
+    "CF 503 on login because STASIS"
   ]
 }

@@ -424,6 +424,17 @@
       "debt_persists_across_renewal": false,
       "note": "Cursor @amcmorais Free + STRATAGROK desk. Cloud Agent API is Pro+ (plan_required). daily_limit 0 = HOLD. Vault cursor.api never git. Dashboard https://cursor.com/dashboard/api"
     },
+    "hop-workerd": {
+      "layer": "fog",
+      "kind": "rate",
+      "billing": "host",
+      "unit": "requests",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "cf_daily": false,
+      "unknown_remaining": "allow",
+      "note": "Local workerd :8788 isolate + metabol. MW not kernel. CF 100k is a different hop (cf-worker-req). metabol_pace per hop."
+    },
     "hop-python": {
       "layer": "fog",
       "kind": "rate",

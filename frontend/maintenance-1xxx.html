@@ -19,15 +19,15 @@
 </head>
 <body>
 <main>
-  <div class="mono">CMN · metabolic stasis · erro 1xxx</div>
-  <h1>O hop está em stasis</h1>
-  <p>O plano Workers chegou ao teto do dia. A edge da Cloudflare bloqueia o Worker antes de servir o atelier ou a API. Isto não é uma falha do Fog.</p>
-  <p>Enquanto o teto não renovar (00:00 UTC):</p>
+  <div class="mono">CMN · layer 5 · hold until any MW</div>
+  <h1>O módulo está em stasis</h1>
+  <p>As três hops MW (workerd :8788, python :8790, node :8791, deno :8792 — as que carregam este módulo) não conseguiram servir. Fog :8787 é kernel, não MW. CF layer 4 só entra se metabol decide() for ALLOW; HOLD/STASIS é ritmo, não freeze — login/auth nunca 503 por STASIS.</p>
+  <p>Esta página estática fica até qualquer MW voltar a correr o módulo. Nunca workers.dev. Nunca Worker PUT.</p>
   <ul>
-    <li>HTML: <a href="https://calhegasmorais-pt.pages.dev/">calhegasmorais-pt.pages.dev</a></li>
+    <li>HTML origin: <a href="https://calhegasmorais-pt.pages.dev/">calhegasmorais-pt.pages.dev</a></li>
     <li>Bancada: <a href="https://calhegasmorais-pt.pages.dev/dashboard">/dashboard</a></li>
   </ul>
-  <p class="mono" style="margin-top:1.2rem">renewal 00:00 UTC · hop L0 Pages · never workers.dev</p>
+  <p class="mono" style="margin-top:1.2rem">layer 5 · never workers.dev · SIGHUP only</p>
 </main>
 </body>
 </html>

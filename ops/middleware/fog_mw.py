@@ -34,12 +34,16 @@ NODE = os.environ.get("FOG_MW_NODE") or "http://127.0.0.1:8791"
 DENO = os.environ.get("FOG_MW_DENO") or "http://127.0.0.1:8792"
 MESH = {
     "fog": 8787,
+    "role": "kernel",
     "ipc": {"workerd": 8788, "python": 8790, "node": 8791, "deno": 8792},
+    "mw": ["workerd:8788", "python:8790", "node:8791", "deno:8792"],
     "routes": {
-        "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
-        "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792"],
-        "object_cid_mail": ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
-        "html": ["pages", "node:8791/atelier"],
+        "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW", "frontend/maintenance-1xxx.html"],
+        "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+        "object_cid_mail": ["deno:8792", "python:8790", "node:8791", "cf-deomail:ALLOW", "frontend/maintenance-1xxx.html"],
+        "html_atelier": ["node:8791/atelier", "python:8790", "workerd:8788", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+        "html": ["pages", "node:8791/atelier", "python:8790", "workerd:8788", "frontend/maintenance-1xxx.html"],
+        "metabol_origin": ["workerd:8788", "python:8790", "node:8791", "cf-metabol:ALLOW", "frontend/maintenance-1xxx.html"],
     },
 }
 
@@ -218,6 +222,84 @@ def _j(url, timeout=1.2):
         return {"ok": False, "error": str(e)[:120]}
 
 
+
+def _lib_path():
+    path = _src_path()
+    return os.path.abspath(os.path.join(path, "..", "ops", "lib"))
+
+
+def _hop_chain():
+    lib = _lib_path()
+    if lib not in sys.path:
+        sys.path.insert(0, lib)
+    import hop_chain
+    return hop_chain
+
+
+def _chain_dispatch(handler, path, method, body_bytes=None):
+    """Try-next 3 MW then CF ALLOW then maintenance. /health never enters."""
+    try:
+        hc = _hop_chain()
+    except Exception:
+        return False
+    if hc.is_health(path):
+        return False
+    hdr = {}
+    try:
+        hdr = {k: handler.headers.get(k) for k in handler.headers.keys()}
+    except Exception:
+        hdr = {}
+    pace = _metabol_pace("python")
+    decision = str((pace or {}).get("decision") or "ALLOW")
+
+    def local(_p):
+        return {"skip": True, "via": "local"}
+
+    def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
+        h = dict(headers or {})
+        h.setdefault("User-Agent", "fog-mw-py/chain")
+        req = Request(url, data=body, method=method, headers=h)
+        with urlopen(req, timeout=timeout) as r:
+            return int(getattr(r, "status", 200) or 200), dict(r.headers.items()), r.read()
+
+    out = hc.try_next(
+        path,
+        self_hop=HOP,
+        method=method,
+        headers=hdr,
+        body=body_bytes,
+        decision=decision,
+        fetch=fetch,
+        local=local,
+        policy={"routes": MESH["routes"]},
+    )
+    if not out or out.get("skip"):
+        return False
+    if out.get("maintenance"):
+        raw = out.get("body") or b""
+        handler.send_response(int(out.get("status") or 200))
+        handler.send_header("Content-Type", "text/html; charset=utf-8")
+        handler.send_header("X-Fog-Hold", "maintenance")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("Access-Control-Allow-Origin", "*")
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+        return True
+    if out.get("handled") and out.get("via") and out.get("via") != HOP:
+        raw = out.get("body") or b""
+        handler.send_response(int(out.get("status") or 200))
+        ct = (out.get("headers") or {}).get("Content-Type") or (out.get("headers") or {}).get("content-type") or "application/json"
+        handler.send_header("Content-Type", ct)
+        handler.send_header("Access-Control-Allow-Origin", "*")
+        handler.send_header("X-Fog-Via", str(out.get("via")))
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+        return True
+    return False
+
+
 def _metabol_pace(hop="python"):
     """This hop's own pace. Local py has no CF daily clock. Never 503 login on CF STASIS."""
     try:
@@ -368,7 +450,7 @@ def handle_orch_chat(method, body):
                     "User-Agent": "fog-mw-py/orch",
                 },
             )
-            with urlopen(req, timeout=2.0) as r:
+            with urlopen(req, timeout=4.0) as r:
                 txt = r.read().decode() or "{}"
                 try:
                     obj = json.loads(txt)
@@ -418,10 +500,13 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def _body(self):
-        n = int(self.headers.get("Content-Length") or self.headers.get("content-length") or 0)
-        raw = self.rfile.read(n) if n else b"{}"
+        raw = getattr(self, "_cached_body", None)
+        if raw is None:
+            n = int(self.headers.get("Content-Length") or self.headers.get("content-length") or 0)
+            raw = self.rfile.read(n) if n else b"{}"
+            self._cached_body = raw
         try:
-            return json.loads(raw.decode() or "{}")
+            return json.loads((raw or b"{}").decode() or "{}")
         except Exception:
             return {}
 
@@ -529,6 +614,11 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        n = int(self.headers.get("Content-Length") or self.headers.get("content-length") or 0)
+        raw = self.rfile.read(n) if n else b"{}"
+        self._cached_body = raw
+        if _chain_dispatch(self, path, "POST", raw):
+            return
         if path.startswith("/api/auth"):
             return self._auth()
         if path.startswith("/api/wb"):
@@ -549,6 +639,11 @@ class H(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         path = self.path.split("?", 1)[0]
+        n = int(self.headers.get("Content-Length") or self.headers.get("content-length") or 0)
+        raw = self.rfile.read(n) if n else b"{}"
+        self._cached_body = raw
+        if _chain_dispatch(self, path, "PUT", raw):
+            return
         if path.startswith("/api/auth"):
             return self._auth()
         if path.startswith("/api/wb"):
@@ -568,6 +663,8 @@ class H(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        if _chain_dispatch(self, path, "GET"):
+            return
         if path.startswith("/api/auth"):
             return self._auth()
         if path.startswith("/api/wb"):
@@ -599,6 +696,13 @@ class H(BaseHTTPRequestHandler):
             "/mw/fallback": "fallback",
             "/strata": "strata",
             "/mw/strata": "strata",
+            "/assemble": "cmn",
+            "/mw/assemble": "cmn",
+            "/atelier": "cmn",
+            "/mw/atelier": "cmn",
+            "/dashboard": "cmn",
+            "/desk": "cmn",
+            "/mw/dashboard": "cmn",
         }
         kind = table.get(path)
         if not kind:

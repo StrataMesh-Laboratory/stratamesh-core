@@ -134,6 +134,18 @@ async function fetchFog(path: string): Promise<Record<string, unknown> | null> {
   }
 }
 
+async function prefixMw(req: Request, path: string, hops: string[]): Promise<Response | null> {
+  if (req.headers.get("x-fog-chain")) return null;
+  if (path === "/" || path === "/health") return null;
+  for (const hop of hops) {
+    try {
+      const r = await fetch(hop + path, { method: req.method, headers: { "x-fog-chain": "1" }, signal: AbortSignal.timeout(1200) });
+      if (r.status < 500) return r;
+    } catch { /* next */ }
+  }
+  return null;
+}
+
 Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -145,6 +157,8 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
     return json({ ok: false, error: "method", hint: "auth complementary: py then node then deno" }, 405);
   }
   if (authPath) {
+    const pre = await prefixMw(req, path, ["http://127.0.0.1:8790", "http://127.0.0.1:8791"]);
+    if (pre) return pre;
     return json({
       ok: true,
       hop: "deno:8792",
@@ -165,7 +179,7 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json", "user-agent": "fog-mw-deno/orch" },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(2000),
+          signal: AbortSignal.timeout(4000),
         });
         const text = await r.text();
         let obj: Record<string, unknown> = {};
@@ -305,10 +319,12 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
         fog: 8787,
         ipc: { workerd: 8788, python: 8790, node: 8791, deno: 8792 },
         routes: {
-          auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
-          compose_assemble_desk: ["node:8791", "python:8790", "deno:8792"],
-          object_cid_mail: ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
-          html: ["pages", "node:8791/atelier"],
+          auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW", "frontend/maintenance-1xxx.html"],
+          compose_assemble_desk: ["node:8791", "python:8790", "deno:8792", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+          object_cid_mail: ["deno:8792", "python:8790", "node:8791", "cf-deomail:ALLOW", "frontend/maintenance-1xxx.html"],
+          html_atelier: ["node:8791/atelier", "python:8790", "workerd:8788", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+          html: ["pages", "node:8791/atelier", "python:8790", "workerd:8788", "frontend/maintenance-1xxx.html"],
+          metabol_origin: ["workerd:8788", "python:8790", "node:8791", "cf-metabol:ALLOW", "frontend/maintenance-1xxx.html"],
         },
       },
       metabol_pace: { hop: "deno", cf_daily: false, decision: "ALLOW" },
@@ -320,5 +336,13 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
   }
   if (path === "/mail/send" && req.method === "POST") return mailSend(req);
   if (path === "/mail/send" && req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+  if (path.startsWith("/assemble") || path.startsWith("/atelier") || path.startsWith("/dashboard")) {
+    const pre = await prefixMw(req, path, ["http://127.0.0.1:8791", "http://127.0.0.1:8790"]);
+    if (pre) return pre;
+  }
+  if (path.startsWith("/metabol")) {
+    const pre = await prefixMw(req, path, ["http://127.0.0.1:8788", "http://127.0.0.1:8790", "http://127.0.0.1:8791"]);
+    if (pre) return pre;
+  }
   return json({ ok: false, error: "not found", hop: "deno" }, 404);
 });

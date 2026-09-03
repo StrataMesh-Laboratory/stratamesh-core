@@ -1139,10 +1139,12 @@ HOP_ALIASES = {
 }
 
 COMPLEMENTARY_ROUTES = {
-    "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth"],
-    "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792"],
-    "object_cid_mail": ["deno:8792", "python:8790", "cf-deomail"],
-    "html": ["pages", "node:8791/atelier"],
+    "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW", "frontend/maintenance-1xxx.html"],
+    "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+    "object_cid_mail": ["deno:8792", "python:8790", "node:8791", "cf-deomail:ALLOW", "frontend/maintenance-1xxx.html"],
+    "html_atelier": ["node:8791/atelier", "python:8790", "workerd:8788", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+    "html": ["pages", "node:8791/atelier", "python:8790", "workerd:8788", "frontend/maintenance-1xxx.html"],
+    "metabol_origin": ["workerd:8788", "python:8790", "node:8791", "cf-metabol:ALLOW", "frontend/maintenance-1xxx.html"],
 }
 
 

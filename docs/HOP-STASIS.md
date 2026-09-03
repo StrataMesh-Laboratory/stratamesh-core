@@ -59,7 +59,7 @@ Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and o
 
 ## Hold HTML vs live hops (2026-09-02)
 
-`frontend/maintenance-1xxx.html` is the L4 1027 card. Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `sandbox.calhegasmorais.pt` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
+`frontend/maintenance-1xxx.html` is **layer 5** (not CF, not workers.dev). Live `academy.` Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `sandbox.calhegasmorais.pt` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
 
 
 ## /health outdated alias (2026-09-02)
@@ -72,3 +72,24 @@ Fix: `FOG_MESH_N=2` (lab P1). `/health` n/member follow mesh n, not ORIGIN. ORIG
 ## Auto-g + hop skip (2026-09-02)
 
 LaunchAgent `pt.calhegasmorais.fog-auto-update` (StartInterval 1800, RunAtLoad false) pulls `origin/main` only while workerd `:8788` is healthy and TUI **g** has not stamped `last-manual-g` in the last 1800s. Kickstart fog+workerd labels only — never tunnel/cloudflared, never brew upgrade, never a 6th CF cron. Hop chain skips a dead mw for 8s (400ms abort); metabol talk is local HOPMESH (STASIS paces, freeze last).
+
+
+## 5-slot module chain (2026-09-03)
+
+FOG `:8787` is **kernel**, not middleware. MESH/IPC MW (covering each other): workerd `:8788`, python `:8790`, node `:8791`, deno `:8792`.
+
+Per module: **1–3 live MW** ranked by how well they carry that module vs the owner; **4 CF** (auth / Pages / deomail as fits) **only when metabol `decide()` is ALLOW** (HOLD/STASIS is pace — skip CF, keep MW or go to 5; login/auth never 503 because CF is STASIS); **5** static `frontend/maintenance-1xxx.html` until **any** MW can run the module again.
+
+| module | 1 | 2 | 3 | 4 (ALLOW only) | 5 |
+|---|---|---|---|---|---|
+| auth/wb/session | python:8790 | node:8791 | deno:8792 | cf-auth:ALLOW (gate only; never Worker PUT) | maintenance-1xxx.html |
+| compose/assemble/desk | node:8791 | python:8790 | deno:8792 | cf-pages:ALLOW | maintenance |
+| object CID / mail / resolve | deno:8792 | python:8790 | node:8791 | cf-deomail:ALLOW | maintenance |
+| HTML/atelier after Pages origin | node:8791/atelier | python:8790 | workerd:8788 | cf-pages:ALLOW | maintenance |
+| metabol / origin via tunnel | workerd:8788 | python:8790 | node:8791 | cf-metabol:ALLOW (gate; HOPMESH local) | maintenance |
+
+Pages HTML stays first for **static origin** (`html` route slot 0 = `pages`), never SPA catch-all.
+
+workerd is skipped in auth/compose/object chains because it only proxies those modules (no session store, no compose runtime, no object/mail handlers); it is included in html_atelier and metabol where it actually serves/proxies. See `ops/config/hop-policy.json` `skip_workerd`.
+
+Try-next: down / 5xx / timeout → next MW. GET `/health` is hop-live proof (never maintenance). Tunnel stays: auth/mw → `:8790`; fog/origin/gossip → `:8788`. Reload SIGHUP only; never pkill cloudflared.

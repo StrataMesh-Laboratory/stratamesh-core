@@ -614,6 +614,10 @@ class PerHopMetabolPace(unittest.TestCase):
         self.assertEqual(m["ipc"]["deno"], 8792)
         self.assertEqual(m["routes"]["auth_wb_session"][0], "python:8790")
         self.assertEqual(m["routes"]["html"][0], "pages")
+        self.assertEqual(len(m["routes"]["auth_wb_session"]), 5)
+        self.assertTrue(str(m["routes"]["auth_wb_session"][3]).startswith("cf-"))
+        self.assertIn("maintenance", str(m["routes"]["auth_wb_session"][4]))
+        self.assertEqual(m["routes"]["object_cid_mail"][2], "node:8791")
         self.assertEqual(resolve_hop("8792"), "deno")
 
 

@@ -12,14 +12,118 @@ const DENO = process.env.FOG_MW_DENO || "http://127.0.0.1:8792";
 const FOG = process.env.FOG_HEALTH || "http://127.0.0.1:8787";
 const MESH = {
   fog: 8787,
+  role: "kernel",
   ipc: { workerd: 8788, python: 8790, node: 8791, deno: 8792 },
+  mw: ["workerd:8788", "python:8790", "node:8791", "deno:8792"],
   routes: {
-    auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
-    compose_assemble_desk: ["node:8791", "python:8790", "deno:8792"],
-    object_cid_mail: ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
-    html: ["pages", "node:8791/atelier"],
+    auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW", "frontend/maintenance-1xxx.html"],
+    compose_assemble_desk: ["node:8791", "python:8790", "deno:8792", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+    object_cid_mail: ["deno:8792", "python:8790", "node:8791", "cf-deomail:ALLOW", "frontend/maintenance-1xxx.html"],
+    html_atelier: ["node:8791/atelier", "python:8790", "workerd:8788", "cf-pages:ALLOW", "frontend/maintenance-1xxx.html"],
+    html: ["pages", "node:8791/atelier", "python:8790", "workerd:8788", "frontend/maintenance-1xxx.html"],
+    metabol_origin: ["workerd:8788", "python:8790", "node:8791", "cf-metabol:ALLOW", "frontend/maintenance-1xxx.html"],
   },
 };
+const HOP_BASE = {
+  "python:8790": PY,
+  "node:8791": "http://127.0.0.1:" + PORT,
+  "node:8791/atelier": "http://127.0.0.1:" + PORT,
+  "deno:8792": DENO,
+  "workerd:8788": WORKERD,
+};
+const HOLD_HTML = "<!DOCTYPE html><html lang=\"pt-PT\"><head><meta charset=utf-8><title>Nó em stasis</title></head><body><p>MW hops down. Never workers.dev.</p></body></html>";
+
+function moduleFor(path) {
+  if (path.startsWith("/api/auth") || path.startsWith("/api/wb") || path === "/login" || path === "/me") return "auth_wb_session";
+  if (path.startsWith("/object") || path.startsWith("/mail") || path.startsWith("/resolve")) return "object_cid_mail";
+  if (path.startsWith("/metabol")) return "metabol_origin";
+  if (path.startsWith("/atelier") || path.startsWith("/dashboard") || path.startsWith("/desk")) return "html_atelier";
+  if (path.startsWith("/assemble")) return "compose_assemble_desk";
+  return "compose_assemble_desk";
+}
+function splitSlots(route) {
+  const mw = [], hold = "frontend/maintenance-1xxx.html";
+  let cf = null;
+  for (const s of route || []) {
+    const low = String(s).toLowerCase();
+    if (low.endsWith(".html") || low.includes("maintenance")) { /* hold */ continue; }
+    if (low.startsWith("cf-") || low === "pages" || low.includes(":allow")) { cf = s; continue; }
+    if (low.startsWith("fog:")) continue;
+    if (mw.length < 3) mw.push(s);
+  }
+  return { mw, cf, hold };
+}
+function sameHop(slot) {
+  return String(slot).startsWith("node:");
+}
+async function proxyHop(slot, req, url) {
+  const base = HOP_BASE[slot] || HOP_BASE[String(slot).split("/")[0]];
+  if (!base) return null;
+  try {
+    const r = await fetch(String(base).replace(/\/$/, "") + url, {
+      method: req.method,
+      headers: { "X-Fog-Chain": "1", "content-type": req.headers["content-type"] || "application/json" },
+      signal: AbortSignal.timeout(1200),
+    });
+    if (r.status >= 500) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    return { status: r.status, body: buf, type: r.headers.get("content-type") || "application/json", via: slot };
+  } catch {
+    return null;
+  }
+}
+async function tryNext(req, url, res, localOk) {
+  if (["/", "/health", "/mw/health"].includes(url) || String(url).endsWith("/health")) return false;
+  if (req.headers["x-fog-chain"]) return false;
+  const { mw, cf } = splitSlots(MESH.routes[moduleFor(url)] || []);
+  let seen = false;
+  const before = [], after = [];
+  for (const slot of mw) {
+    if (sameHop(slot)) { seen = true; continue; }
+    (seen ? after : before).push(slot);
+  }
+  for (const slot of before) {
+    const hit = await proxyHop(slot, req, url);
+    if (hit) { sendRaw(res, hit.status, hit.body, hit.type, hit.via); return true; }
+  }
+  if (localOk) return false;
+  for (const slot of after) {
+    const hit = await proxyHop(slot, req, url);
+    if (hit) { sendRaw(res, hit.status, hit.body, hit.type, hit.via); return true; }
+  }
+  if (cf && String(cf).includes("pages") && String(cf).includes("ALLOW")) {
+    try {
+      const r = await fetch("https://calhegasmorais-pt.pages.dev" + url, { signal: AbortSignal.timeout(1200), headers: { "X-Fog-Chain": "1" } });
+      if (r.ok && !String(r.url || "").includes("workers.dev")) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        sendRaw(res, r.status, buf, r.headers.get("content-type") || "text/html", cf);
+        return true;
+      }
+    } catch { /* layer 5 */ }
+  }
+  sendHtml(res, HOLD_HTML);
+  return true;
+}
+function sendRaw(res, code, buf, type, via) {
+  res.writeHead(code, {
+    "Content-Type": type || "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "X-Fog-Via": String(via || ""),
+    "Content-Length": buf.length,
+  });
+  res.end(buf);
+}
+function sendHtml(res, html) {
+  const buf = Buffer.from(html);
+  res.writeHead(200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "X-Fog-Hold": "maintenance",
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+    "Content-Length": buf.length,
+  });
+  res.end(buf);
+}
 const SESS = new Map();
 
 function send(res, code, obj) {
@@ -133,7 +237,7 @@ async function orchChat(req) {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": "fog-mw-node/orch" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(2000),
+        signal: AbortSignal.timeout(4000),
       });
       const text = await r.text();
       let obj = {};
@@ -168,6 +272,7 @@ const server = http.createServer(async (req, res) => {
     });
     return res.end();
   }
+  if (await tryNext(req, url, res, true)) return;
   if (ORCH_PATHS.includes(url) && (req.method === "GET" || req.method === "HEAD" || req.method === "POST")) {
     return send(res, 200, await orchChat(req));
   }
@@ -202,6 +307,14 @@ const server = http.createServer(async (req, res) => {
   if (["/mesh", "/mw/mesh"].includes(url)) {
     return send(res, 200, { ok: true, runtime: "node", mesh: MESH, metabol_pace: { hop: "node", cf_daily: false, decision: "ALLOW" } });
   }
+  if (url.startsWith("/object") || url.startsWith("/mail") || url.startsWith("/resolve")) {
+    const hitPy = await proxyHop("python:8790", req, url);
+    if (hitPy) return sendRaw(res, hitPy.status, hitPy.body, hitPy.type, hitPy.via);
+    const hitDeno = await proxyHop("deno:8792", req, url);
+    if (hitDeno) return sendRaw(res, hitDeno.status, hitDeno.body, hitDeno.type, hitDeno.via);
+    return send(res, 200, { ok: true, hop: "node:8791", role: "object-mail-contingency", path: url });
+  }
+  if (await tryNext(req, url, res, false)) return;
   send(res, 404, { ok: false });
 });
 server.on("error", (err) => {
