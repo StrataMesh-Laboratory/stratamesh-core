@@ -118,7 +118,8 @@ export default {
           if (bound && typeof bound.fetch === "function") r = await bound.fetch(request);
           else r = await fetch(hop + pth + url.search, { method: request.method, headers: { ...Object.fromEntries(request.headers), "x-fog-chain": "1" }, redirect: "manual", signal: ac.signal });
           clearTimeout(to);
-          if (r && r.status < 500 && r.status !== 0) return r;
+          if (r && r.status !== 404 && r.status !== 405 && r.status < 500 && r.status !== 0) return r;
+          if (r && (r.status === 404 || r.status === 405)) { any = true; continue; }
           dead[k] = now + 8000;
           any = true;
         } catch (_) {
@@ -318,19 +319,30 @@ export default {
         /* try-next: python then maintenance */
       }
     }
-    if (pth.startsWith("/api") || pth.startsWith("/auth") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/metabol")) {
+    if (pth.startsWith("/api") || pth.startsWith("/auth") || pth.startsWith("/object") || pth.startsWith("/mail") || pth.startsWith("/assemble") || pth.startsWith("/atelier") || pth.startsWith("/metabol") || pth.startsWith("/dashboard") || pth === "/desk" || pth === "/login") {
       const rest = [];
       if (pth.startsWith("/metabol")) rest.push("http://127.0.0.1:8790", "http://127.0.0.1:8791");
-      if (pth.startsWith("/atelier") || pth.startsWith("/dashboard")) rest.push("http://127.0.0.1:8792");
+      if (pth.startsWith("/atelier") || pth.startsWith("/dashboard") || pth === "/desk") rest.push("http://127.0.0.1:8792");
       for (const hop of rest) {
         try {
           const r = await fetch(hop + pth + url.search, { method: request.method, headers: { "x-fog-chain": "1" }, signal: AbortSignal.timeout(400) });
-          if (r && r.status < 500) return r;
+          if (r && r.status !== 404 && r.status !== 405 && r.status < 500) return r;
+        } catch (_) {}
+      }
+      const decision = localSnap().decision || "ALLOW";
+      const authPath = pth.startsWith("/api/auth") || pth.startsWith("/api/wb") || pth === "/login" || pth.startsWith("/auth");
+      const htmlPath = pth.startsWith("/atelier") || pth.startsWith("/dashboard") || pth === "/desk" || pth.startsWith("/assemble");
+      if (decision === "ALLOW" && htmlPath && !authPath) {
+        try {
+          const pages = "https://calhegasmorais-pt.pages.dev";
+          const r = await fetch(pages + pth + url.search, { headers: { "x-fog-chain": "1" }, signal: AbortSignal.timeout(1200) });
+          const loc = String(r.url || pages);
+          if (r && r.status !== 404 && r.status !== 405 && r.status < 500 && !loc.includes("workers.dev")) return r;
         } catch (_) {}
       }
       return new Response(
         "<!DOCTYPE html><html lang=\"pt-PT\"><head><meta charset=utf-8><title>Nó em stasis</title></head><body><p>MW hops down. Never workers.dev.</p></body></html>",
-        { status: 200, headers: { ...cors, "content-type": "text/html; charset=utf-8", "x-fog-hold": "maintenance" } }
+        { status: 200, headers: { ...cors, "content-type": "text/html; charset=utf-8", "x-fog-hold": "maintenance", "x-fog-stasis-503": "false" } }
       );
     }
     return env.FOG.fetch(request);

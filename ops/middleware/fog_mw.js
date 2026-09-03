@@ -56,6 +56,18 @@ function splitSlots(route) {
 function sameHop(slot) {
   return String(slot).startsWith("node:");
 }
+function hopMiss(status) {
+  const s = Number(status) || 0;
+  return s === 0 || s === 404 || s === 405 || s >= 500;
+}
+function cfAllowed(decision, path) {
+  const d = String(decision || "ALLOW").toUpperCase();
+  const pl = String(path || "").toLowerCase();
+  if (d === "HOLD" || d === "STASIS") return false;
+  if (pl.includes("workers.dev")) return false;
+  if (pl.includes("/api/auth") || pl.includes("/api/wb") || pl.endsWith("/login")) return false;
+  return d === "ALLOW";
+}
 async function proxyHop(slot, req, url) {
   const base = HOP_BASE[slot] || HOP_BASE[String(slot).split("/")[0]];
   if (!base) return null;
@@ -65,7 +77,7 @@ async function proxyHop(slot, req, url) {
       headers: { "X-Fog-Chain": "1", "content-type": req.headers["content-type"] || "application/json" },
       signal: AbortSignal.timeout(1200),
     });
-    if (r.status >= 500) return null;
+    if (hopMiss(r.status)) return null;
     const buf = Buffer.from(await r.arrayBuffer());
     return { status: r.status, body: buf, type: r.headers.get("content-type") || "application/json", via: slot };
   } catch {
@@ -91,10 +103,12 @@ async function tryNext(req, url, res, localOk) {
     const hit = await proxyHop(slot, req, url);
     if (hit) { sendRaw(res, hit.status, hit.body, hit.type, hit.via); return true; }
   }
-  if (cf && String(cf).includes("pages") && String(cf).includes("ALLOW")) {
+  const decision = process.env.FOG_METABOL_DECISION || "ALLOW";
+  if (cf && cfAllowed(decision, url) && (String(cf).includes("pages") || String(cf) === "pages")) {
     try {
       const r = await fetch("https://calhegasmorais-pt.pages.dev" + url, { signal: AbortSignal.timeout(1200), headers: { "X-Fog-Chain": "1" } });
-      if (r.ok && !String(r.url || "").includes("workers.dev")) {
+      const loc = String(r.url || "");
+      if (!hopMiss(r.status) && !loc.includes("workers.dev")) {
         const buf = Buffer.from(await r.arrayBuffer());
         sendRaw(res, r.status, buf, r.headers.get("content-type") || "text/html", cf);
         return true;
@@ -281,7 +295,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" || req.method === "PUT") body = await readBody(req);
     return send(res, 200, authFallback(req, url, body));
   }
-  if (req.method !== "GET") return send(res, 405, { ok: false, error: "method" });
+  if (req.method !== "GET") {
+    if (await tryNext(req, url, res, false)) return;
+    return send(res, 405, { ok: false, error: "method" });
+  }
   if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
       ok: true, runtime: "node", role: "compose", port: PORT,

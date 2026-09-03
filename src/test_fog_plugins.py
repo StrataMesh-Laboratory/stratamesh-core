@@ -138,6 +138,7 @@ def test_spawn_still_listens_when_host_cap_over():
         popen_cmds.append(list(cmd))
         m = MagicMock()
         m.pid = 4242
+        m.poll.return_value = None
         return m
 
     with tempfile.TemporaryDirectory() as td:
@@ -211,6 +212,7 @@ def test_spawn_deno_8792_when_host_cap_over():
         popen_cmds.append(list(cmd))
         m = MagicMock()
         m.pid = 8792
+        m.poll.return_value = None
         return m
 
     def fake_which(name):
@@ -349,20 +351,38 @@ def test_try_next_stasis_skips_cf_then_maintenance():
         decision="STASIS",
         policy=pol,
         fetch=fetch,
-        local=lambda _p: {"skip": True},
+        local=lambda _p: {},
         root=root,
     )
-    assert out.get("skip") is True
-    assert out.get("rest") == ["node:8791", "deno:8792"]
-    closed = hop_chain.close_chain(
-        out["cf"], out["hold"], "STASIS", "/api/auth/login", "POST", b"{}", "",
-        fetch, 1.2, [], "auth_wb_session", root,
-    )
-    assert closed.get("maintenance") is True
-    assert closed["status"] == 200
+    assert out.get("maintenance") is True
+    assert out.get("status") == 200
+    assert "503" not in str(out.get("status"))
     assert hop_chain.cf_allowed("STASIS", "/api/auth/login") is False
+    skipped = " ".join(str(x) for x in (out.get("tried") or []))
+    assert "metabol" in skipped or "STASIS" in skipped
     health = hop_chain.try_next("/health", self_hop="python:8790", policy=pol, fetch=fetch)
     assert health.get("via") == "health"
+    assert health.get("skip") is True
+
+
+def test_try_next_health_not_chained():
+    import sys
+    root = Path(__file__).resolve().parent.parent
+    lib = str(root / "ops/lib")
+    if lib not in sys.path:
+        sys.path.insert(0, lib)
+    import hop_chain
+    fetched = []
+
+    def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
+        fetched.append(url)
+        return 200, {}, b"{}"
+
+    pol = hop_chain.load_policy(root)
+    for path in ("/health", "/mw/health", "/"):
+        out = hop_chain.try_next(path, self_hop="python:8790", policy=pol, fetch=fetch)
+        assert out.get("via") == "health" and out.get("skip") is True
+    assert fetched == []
 
 
 def test_try_next_layer2_when_primary_down():
@@ -374,22 +394,96 @@ def test_try_next_layer2_when_primary_down():
     import hop_chain
 
     def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
+        if ":8790" in url:
+            raise ConnectionError("primary down")
         if ":8791" in url:
             return 200, {"Content-Type": "application/json"}, b'{"ok":true,"hop":"node:8791"}'
         raise ConnectionError("down")
 
     out = hop_chain.try_next(
-        "/assemble",
-        self_hop="python:8790",
+        "/api/auth/login",
+        self_hop="workerd:8788",
         decision="ALLOW",
         policy=hop_chain.load_policy(root),
         fetch=fetch,
-        local=lambda _p: {"skip": True},
+        local=lambda _p: {},
         root=root,
     )
     assert out.get("handled") is True
     assert "node:8791" in str(out.get("via"))
     assert not out.get("maintenance")
+
+    def fetch404(url, method="GET", headers=None, body=None, timeout=1.2):
+        if ":8790" in url:
+            return 404, {"Content-Type": "application/json"}, b'{"ok":false}'
+        if ":8791" in url:
+            return 200, {"Content-Type": "application/json"}, b'{"ok":true,"hop":"node:8791"}'
+        raise ConnectionError("down")
+
+    out404 = hop_chain.try_next(
+        "/api/auth/login",
+        self_hop="workerd:8788",
+        decision="ALLOW",
+        policy=hop_chain.load_policy(root),
+        fetch=fetch404,
+        local=lambda _p: {},
+        root=root,
+    )
+    assert out404.get("handled") is True
+    assert "node:8791" in str(out404.get("via"))
+
+
+def test_which_bin_brew_path_when_which_none():
+    import os
+    import tempfile
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    assert "/opt/homebrew/bin" in runtime_mesh.WHICH_FALLBACK_DIRS
+    with tempfile.TemporaryDirectory() as td:
+        brew = Path(td) / "opt" / "homebrew" / "bin"
+        brew.mkdir(parents=True)
+        node = brew / "node"
+        node.write_text("#!/bin/sh\n", encoding="utf-8")
+        os.chmod(node, 0o755)
+        with patch.object(runtime_mesh.shutil, "which", return_value=None), \
+             patch.object(runtime_mesh, "WHICH_FALLBACK_DIRS", (str(brew), "/usr/local/bin")):
+            got = runtime_mesh._which_bin("node")
+        assert got == str(node)
+
+
+def test_recycle_leftover_gets_sigkill():
+    import signal
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    kills = []
+
+    def fake_kill(pid, sig):
+        kills.append((pid, sig))
+
+    t = {"n": 0}
+
+    def fake_time():
+        t["n"] += 1
+        # jump past 8s after SIGTERM so leftovers get SIGKILL
+        return 1000.0 if t["n"] < 3 else 1010.0
+
+    with patch.object(runtime_mesh, "_pids_listening", return_value=[4242]), \
+         patch.object(runtime_mesh, "_comm", return_value="node"), \
+         patch.object(runtime_mesh.os, "kill", fake_kill), \
+         patch.object(runtime_mesh.time, "sleep", lambda *_a, **_k: None), \
+         patch.object(runtime_mesh.time, "time", fake_time):
+        runtime_mesh.recycle_mw((8791,))
+    sigs = [s for _pid, s in kills]
+    assert signal.SIGTERM in sigs
+    assert signal.SIGKILL in sigs
+    with patch.object(runtime_mesh, "_pids_listening", return_value=[7]), \
+         patch.object(runtime_mesh, "_comm", return_value="cloudflared"), \
+         patch.object(runtime_mesh.os, "kill", fake_kill):
+        n = runtime_mesh.recycle_mw((8791,))
+    assert n == 0
+    assert all(pid != 7 for pid, _s in kills)
 
 
 def test_tui_fog_kernel_and_orch_4s():

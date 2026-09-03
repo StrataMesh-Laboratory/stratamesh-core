@@ -88,6 +88,15 @@ def is_health(path: str) -> bool:
     return p in ("/", "/health", "/mw/health", "/workerd") or p.endswith("/health")
 
 
+def hop_miss(status) -> bool:
+    """Dead hop or this hop does not carry the module (404/405). Try next layer."""
+    try:
+        s = int(status or 0)
+    except (TypeError, ValueError):
+        return True
+    return s == 0 or s in (404, 405) or s >= 500
+
+
 def hop_key(slot: str) -> str:
     s = str(slot).split("/")[0]
     return s
@@ -183,7 +192,7 @@ def try_next(
         except Exception as e:
             tried.append({"hop": slot, "error": type(e).__name__})
             return None
-        if int(status) >= 500 or int(status) == 0:
+        if hop_miss(status):
             tried.append({"hop": slot, "status": int(status)})
             return None
         return {
@@ -209,6 +218,7 @@ def try_next(
             return hit
 
     if local is None:
+        # Caller will serve this hop, then resume via local-miss if 404/405.
         return {
             "skip": True,
             "via": "local",
@@ -218,24 +228,16 @@ def try_next(
             "cf": cf,
             "hold": hold,
         }
-    if local is not None:
-        out = local(path)
-        if isinstance(out, dict) and out.get("handled"):
-            out = dict(out)
-            out.setdefault("via", self_hop)
-            out["module"] = mod
-            out["tried"] = tried + [{"hop": self_hop, "via": "local"}]
-            return out
-        if isinstance(out, dict) and out.get("skip"):
-            return {
-                "skip": True,
-                "via": "local",
-                "module": mod,
-                "tried": tried,
-                "rest": after,
-                "cf": cf,
-                "hold": hold,
-            }
+    out = local(path)
+    if isinstance(out, dict) and out.get("handled") and not hop_miss(out.get("status", 200)):
+        out = dict(out)
+        out.setdefault("via", self_hop)
+        out["module"] = mod
+        out["tried"] = tried + [{"hop": self_hop, "via": "local"}]
+        return out
+    if isinstance(out, dict) and out.get("handled") and hop_miss(out.get("status", 200)):
+        tried.append({"hop": self_hop, "status": int(out.get("status") or 0)})
+    else:
         tried.append({"hop": self_hop, "error": "local-miss"})
 
     for slot in after:
@@ -253,7 +255,7 @@ def close_chain(cf, hold, decision, path, method, body, query, fetch, timeout, t
         if url and "workers.dev" not in str(url):
             try:
                 status, rh, raw = fetch(url.rstrip("/") + path + (query or ""), method, {CHAIN_HEADER: "1"}, body, timeout)
-                if int(status) < 500:
+                if not hop_miss(status):
                     return {
                         "handled": True,
                         "via": cf,
@@ -263,6 +265,7 @@ def close_chain(cf, hold, decision, path, method, body, query, fetch, timeout, t
                         "tried": tried,
                         "module": mod,
                     }
+                tried.append({"hop": cf, "status": int(status)})
             except Exception as e:
                 tried.append({"hop": cf, "error": type(e).__name__})
         else:
@@ -274,7 +277,7 @@ def close_chain(cf, hold, decision, path, method, body, query, fetch, timeout, t
         "handled": True,
         "via": hold,
         "status": 200,
-        "headers": {"Content-Type": "text/html; charset=utf-8", "X-Fog-Hold": "maintenance", "Cache-Control": "no-store"},
+        "headers": {"Content-Type": "text/html; charset=utf-8", "X-Fog-Hold": "maintenance", "Cache-Control": "no-store", "X-Fog-Stasis-503": "false"},
         "body": html,
         "tried": tried,
         "module": mod,

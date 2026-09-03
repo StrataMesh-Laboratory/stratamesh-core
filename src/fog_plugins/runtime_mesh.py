@@ -121,6 +121,22 @@ def _write_sha() -> None:
 
 
 DEAD_MW_SKIP_SEC = 8.0
+WHICH_FALLBACK_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
+
+
+def _which_bin(name: str):
+    """shutil.which, then Homebrew and /usr/local — LaunchAgent PATH may omit node."""
+    found = shutil.which(name)
+    if found:
+        return found
+    for d in WHICH_FALLBACK_DIRS:
+        cand = Path(d) / name
+        try:
+            if cand.is_file() and os.access(str(cand), os.X_OK):
+                return str(cand)
+        except OSError:
+            continue
+    return None
 
 
 def recycle_mw(ports=None) -> int:
@@ -129,7 +145,7 @@ def recycle_mw(ports=None) -> int:
     Default: fog :8787, workerd :8788, python :8790, node :8791, deno :8792.
     Supervise paths pass MW_PORTS so Fog/workerd are not SIGTERM'd by attach.
     Never pkill cloudflared. Never PUT Workers.
-    Already-dead hops are skipped. After SIGTERM wait up to 8s then skip leftovers.
+    Already-dead hops are skipped. After SIGTERM wait up to 8s then SIGKILL leftovers.
     """
     ports = tuple(RECYCLE_PORTS if ports is None else ports)
 
@@ -160,6 +176,13 @@ def recycle_mw(ports=None) -> int:
             if not leftover:
                 break
             time.sleep(0.25)
+        for port in ports:
+            for pid in live_pids(port):
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                    killed += 1
+                except OSError:
+                    pass
     return killed
 
 
@@ -287,8 +310,8 @@ class RuntimeMeshPlugin:
         self.last_error = None
 
     def snapshot(self) -> dict:
-        node_bin = shutil.which("node")
-        deno_bin = shutil.which("deno")
+        node_bin = _which_bin("node")
+        deno_bin = _which_bin("deno")
         return {
             "ok": _healthy(PY_PORT),
             "plugin": "runtime-mesh",
@@ -376,7 +399,7 @@ class RuntimeMeshPlugin:
             if not cap_over:
                 _write_sha()
             self._kick_object_layers_probe()
-        node = shutil.which("node")
+        node = _which_bin("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             log = open(DATA / "mw-node.log", "ab")
             env = os.environ.copy()
@@ -391,9 +414,17 @@ class RuntimeMeshPlugin:
                 env=env,
             )
             self.node_pid = p.pid
+            rc = p.poll()
+            if rc is not None:
+                tail = ""
+                try:
+                    tail = (DATA / "mw-node.log").read_bytes()[-800:].decode("utf-8", "replace").strip()[-400:]
+                except OSError:
+                    tail = ""
+                self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
             if not cap_over:
                 _write_sha()
-        deno = shutil.which("deno")
+        deno = _which_bin("deno")
         if deno and ts.is_file() and not _healthy(DENO_PORT):
             log = open(DATA / "mw-deno.log", "ab")
             env = os.environ.copy()
@@ -432,11 +463,11 @@ class RuntimeMeshPlugin:
                 ts = ROOT / "ops" / "deno" / "main.ts"
                 need = (
                     not _healthy(PY_PORT)
-                    or (shutil.which("node") and not _healthy(NODE_PORT))
-                    or (shutil.which("deno") and not _healthy(DENO_PORT))
+                    or (_which_bin("node") and not _healthy(NODE_PORT))
+                    or (_which_bin("deno") and not _healthy(DENO_PORT))
                     or (py.is_file() and _mw_stale(PY_PORT, py))
                     or (js.is_file() and _mw_stale(NODE_PORT, js))
-                    or (ts.is_file() and shutil.which("deno") and _mw_stale(DENO_PORT, ts))
+                    or (ts.is_file() and _which_bin("deno") and _mw_stale(DENO_PORT, ts))
                 )
                 if need:
                     self._spawn()

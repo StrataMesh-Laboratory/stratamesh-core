@@ -236,8 +236,36 @@ def _hop_chain():
     return hop_chain
 
 
-def _chain_dispatch(handler, path, method, body_bytes=None):
-    """Try-next 3 MW then CF ALLOW then maintenance. /health never enters."""
+def _chain_send(handler, out):
+    if not out or out.get("skip"):
+        return False
+    if out.get("maintenance"):
+        raw = out.get("body") or b""
+        handler.send_response(int(out.get("status") or 200))
+        handler.send_header("Content-Type", "text/html; charset=utf-8")
+        handler.send_header("X-Fog-Hold", "maintenance")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("X-Fog-Stasis-503", "false")
+        handler.send_header("Access-Control-Allow-Origin", "*")
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+        return True
+    if out.get("handled") and out.get("via") and out.get("via") != HOP:
+        raw = out.get("body") or b""
+        handler.send_response(int(out.get("status") or 200))
+        ct = (out.get("headers") or {}).get("Content-Type") or (out.get("headers") or {}).get("content-type") or "application/json"
+        handler.send_header("Content-Type", ct)
+        handler.send_header("Access-Control-Allow-Origin", "*")
+        handler.send_header("X-Fog-Via", str(out.get("via")))
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+        return True
+    return False
+
+
+def _chain_try(handler, path, method, body_bytes=None, local=None):
     try:
         hc = _hop_chain()
     except Exception:
@@ -251,9 +279,6 @@ def _chain_dispatch(handler, path, method, body_bytes=None):
         hdr = {}
     pace = _metabol_pace("python")
     decision = str((pace or {}).get("decision") or "ALLOW")
-
-    def local(_p):
-        return {"skip": True, "via": "local"}
 
     def fetch(url, method="GET", headers=None, body=None, timeout=1.2):
         h = dict(headers or {})
@@ -273,31 +298,18 @@ def _chain_dispatch(handler, path, method, body_bytes=None):
         local=local,
         policy={"routes": MESH["routes"]},
     )
-    if not out or out.get("skip"):
-        return False
-    if out.get("maintenance"):
-        raw = out.get("body") or b""
-        handler.send_response(int(out.get("status") or 200))
-        handler.send_header("Content-Type", "text/html; charset=utf-8")
-        handler.send_header("X-Fog-Hold", "maintenance")
-        handler.send_header("Cache-Control", "no-store")
-        handler.send_header("Access-Control-Allow-Origin", "*")
-        handler.send_header("Content-Length", str(len(raw)))
-        handler.end_headers()
-        handler.wfile.write(raw)
-        return True
-    if out.get("handled") and out.get("via") and out.get("via") != HOP:
-        raw = out.get("body") or b""
-        handler.send_response(int(out.get("status") or 200))
-        ct = (out.get("headers") or {}).get("Content-Type") or (out.get("headers") or {}).get("content-type") or "application/json"
-        handler.send_header("Content-Type", ct)
-        handler.send_header("Access-Control-Allow-Origin", "*")
-        handler.send_header("X-Fog-Via", str(out.get("via")))
-        handler.send_header("Content-Length", str(len(raw)))
-        handler.end_headers()
-        handler.wfile.write(raw)
-        return True
-    return False
+    return _chain_send(handler, out)
+
+
+def _chain_dispatch(handler, path, method, body_bytes=None):
+    """Try higher-ranked MW first. /health never enters. Local serve happens after skip."""
+    return _chain_try(handler, path, method, body_bytes, local=None)
+
+
+def _chain_finish(handler, path, method, body_bytes=None):
+    """404/405 on this live hop: try layer 2/3, CF if ALLOW, else maintenance. Never 503."""
+    return _chain_try(handler, path, method, body_bytes, local=lambda _p: {})
+
 
 
 def _metabol_pace(hop="python"):
@@ -634,7 +646,11 @@ class H(BaseHTTPRequestHandler):
             return self._send(code, obj)
         if path.startswith("/object"):
             code, obj = handle_object("POST", path, self._body())
+            if code in (404, 405) and _chain_finish(self, path, "POST", raw):
+                return
             return self._send(code, obj)
+        if _chain_finish(self, path, "POST", raw):
+            return
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_PUT(self):
@@ -650,7 +666,11 @@ class H(BaseHTTPRequestHandler):
             return self._wb()
         if path.startswith("/object"):
             code, obj = handle_object("PUT", path, self._body())
+            if code in (404, 405) and _chain_finish(self, path, "PUT", raw):
+                return
             return self._send(code, obj)
+        if _chain_finish(self, path, "PUT", raw):
+            return
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_DELETE(self):
@@ -659,6 +679,8 @@ class H(BaseHTTPRequestHandler):
             return self._auth()
         if path.startswith("/api/wb"):
             return self._wb()
+        if _chain_finish(self, path, "DELETE"):
+            return
         self._send(404, {"ok": False, "error": "not found", "path": path, "hop": HOP})
 
     def do_GET(self):
@@ -708,7 +730,11 @@ class H(BaseHTTPRequestHandler):
         if not kind:
             if path.startswith("/object"):
                 code, obj = handle_object("GET", path, {})
+                if code in (404, 405) and _chain_finish(self, path, "GET"):
+                    return
                 self._send(code, obj)
+                return
+            if _chain_finish(self, path, "GET"):
                 return
             self._send(404, {"ok": False, "error": "not found", "path": path})
             return
