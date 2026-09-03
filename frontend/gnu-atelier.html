@@ -415,7 +415,7 @@ const ZONES = {
 const LAB_HOLDER = "amcmorais@icloud.com";
 const LAB_BUNDLE_ID = "obj-lab-land-bundle";
 const LAB_LAND = (function () {
-  const parcelIds = Object.keys(ZONES).map((z) => "par-lab-" + z);
+  const parcelIds = Object.keys(ZONES).filter((z) => z !== "sca" && z !== "acb").map((z) => "par-lab-" + z);
   const parcels = parcelIds.map((id) => {
     const z = id.slice("par-lab-".length);
     return { id, kind: "parcel", name: "LAB land · " + z, unmovable: true, dest: "world", containedBy: LAB_BUNDLE_ID };
@@ -425,7 +425,7 @@ const LAB_LAND = (function () {
     bundle: {
       id: LAB_BUNDLE_ID,
       kind: "bundle",
-      name: "LAB land · CMN",
+      name: "CMN Open World #1",
       aspectos: parcelIds,
       contrato: { type: "ownership", holder: LAB_HOLDER, covers: parcelIds },
     },

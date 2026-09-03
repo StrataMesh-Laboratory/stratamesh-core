@@ -3,7 +3,7 @@
   "bundle": {
     "id": "obj-lab-land-bundle",
     "kind": "bundle",
-    "name": "LAB land · CMN",
+    "name": "CMN Open World #1",
     "aspectos": [
       "par-lab-bancada",
       "par-lab-rua",
@@ -11,13 +11,11 @@
       "par-lab-pulse",
       "par-lab-wallet",
       "par-lab-dag",
-      "par-lab-sca",
       "par-lab-republic",
       "par-lab-edge",
       "par-lab-mesh",
       "par-lab-kyc",
-      "par-lab-orch",
-      "par-lab-acb"
+      "par-lab-orch"
     ],
     "contrato": {
       "type": "ownership",
@@ -29,13 +27,11 @@
         "par-lab-pulse",
         "par-lab-wallet",
         "par-lab-dag",
-        "par-lab-sca",
         "par-lab-republic",
         "par-lab-edge",
         "par-lab-mesh",
         "par-lab-kyc",
-        "par-lab-orch",
-        "par-lab-acb"
+        "par-lab-orch"
       ]
     },
     "deployed": true,
@@ -48,15 +44,15 @@
       "par-lab-pulse",
       "par-lab-wallet",
       "par-lab-dag",
-      "par-lab-sca",
       "par-lab-republic",
       "par-lab-edge",
       "par-lab-mesh",
       "par-lab-kyc",
-      "par-lab-orch",
-      "par-lab-acb"
+      "par-lab-orch"
     ],
-    "trade": ""
+    "trade": "",
+    "catalog_class": "open_world",
+    "display_id": "obj-lab-land-bundle"
   },
   "parcels": [
     {
@@ -69,7 +65,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "open_world_parcel"
     },
     {
       "id": "par-lab-rua",
@@ -81,7 +78,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "open_world_parcel"
     },
     {
       "id": "par-lab-agora",
@@ -93,7 +91,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "open_world_parcel"
     },
     {
       "id": "par-lab-pulse",
@@ -105,7 +104,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-wallet",
@@ -117,7 +117,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-dag",
@@ -129,19 +130,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
-    },
-    {
-      "id": "par-lab-sca",
-      "kind": "parcel",
-      "name": "LAB land · sca",
-      "unmovable": true,
-      "dest": "world",
-      "deployed": true,
-      "containedBy": "obj-lab-land-bundle",
-      "rules": "owner",
-      "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-republic",
@@ -153,7 +143,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "open_world_parcel"
     },
     {
       "id": "par-lab-edge",
@@ -165,7 +156,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-mesh",
@@ -177,7 +169,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-kyc",
@@ -189,7 +182,8 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
+      "trade": "",
+      "catalog_class": "holon_zone"
     },
     {
       "id": "par-lab-orch",
@@ -201,16 +195,21 @@
       "containedBy": "obj-lab-land-bundle",
       "rules": "owner",
       "contains": [],
-      "trade": ""
-    },
+      "trade": "",
+      "catalog_class": "holon_zone"
+    }
+  ],
+  "rooms": [
     {
-      "id": "par-lab-acb",
-      "kind": "parcel",
-      "name": "LAB land · acb",
+      "id": "obj-lab-room-bancada",
+      "kind": "room",
+      "catalog_class": "room",
+      "name": "Bancada",
+      "name_en": "Workbench",
+      "sitsOn": "par-lab-bancada",
       "unmovable": true,
-      "dest": "world",
       "deployed": true,
-      "containedBy": "obj-lab-land-bundle",
+      "dest": "room",
       "rules": "owner",
       "contains": [],
       "trade": ""

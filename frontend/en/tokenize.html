@@ -21,11 +21,11 @@
     button[disabled]{opacity:.38;cursor:not-allowed}
     .row{display:flex;gap:.4rem;flex-wrap:wrap;margin:.35rem 0}
     .row button{flex:1}
-    ul#list{list-style:none;border:1px solid var(--line);border-radius:3px;min-height:4.5rem;background:#fff}
-    ul#list li{padding:.55rem .6rem;border-bottom:1px solid var(--line);cursor:pointer}
-    ul#list li:last-child{border-bottom:0}
-    ul#list li.on{background:#efe6d4}
-    ul#list .id{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink2)}
+    ul.cat{list-style:none;border:1px solid var(--line);border-radius:3px;min-height:4.5rem;background:#fff}
+    ul.cat li{padding:.55rem .6rem;border-bottom:1px solid var(--line);cursor:pointer}
+    ul.cat li:last-child{border-bottom:0}
+    ul.cat li.on{background:#efe6d4}
+    ul.cat .id{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink2)}
     .empty{padding:.7rem .6rem}
     .chip{display:inline-block;font:600 .55rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);padding:.18rem .35rem;margin:.15rem .2rem 0 0}
     .chip.dep{border-color:var(--live);color:#3d5a42}
@@ -41,7 +41,16 @@
 
   <h3>This account</h3>
     <p class="note" id="labNote" style="display:none">LAB land título held by amcmorais@icloud.com (bundled parcels, not merged). Read-only — not copied into this account.</p>
-  <ul id="list"><li class="empty">No objects. Tokenising lands here, not on the stage.</li></ul>
+  <h3>CMN LAB Rooms</h3>
+  <ul id="listRooms" class="cat"><li class="empty">No rooms.</li></ul>
+  <h3>CMN Open World #1</h3>
+  <ul id="listWorld" class="cat"><li class="empty">No open world.</li></ul>
+  <h3>NFT contracts in progress</h3>
+  <ul id="listContratos" class="cat"><li class="empty">No contracts in progress.</li></ul>
+  <h3>Other NFT objects</h3>
+  <ul id="listOther" class="cat"><li class="empty">No other objects.</li></ul>
+  <h3>STRATA LOT</h3>
+  <ul id="listLots" class="cat"><li class="empty">No STRATA lot.</li></ul>
 
   <h3>Tokenise</h3>
   <p>The <code>object_id</code> is the NFT. It enters the catalog at Rest, not GNU Atelier.</p>
@@ -125,7 +134,15 @@
     var items = load();
 
     var LAB_HOLDER = "amcmorais@icloud.com";
-    var LAB_ZONES = ["bancada","rua","agora","pulse","wallet","dag","sca","republic","edge","mesh","kyc","orch","acb"];
+    var LAB_ZONES = ["bancada","rua","agora","pulse","wallet","dag","republic","edge","mesh","kyc","orch"];
+    var ROOM_ZONES = { bancada: true };
+    var OPEN_PARCEL_ZONES = { bancada: true, rua: true, agora: true, republic: true };
+    function catalogClassForParcel(id) {
+      var z = String(id || "").replace(/^par-lab-/, "");
+      if (z === "sca" || z === "acb") return "subject_place";
+      if (OPEN_PARCEL_ZONES[z]) return "open_world_parcel";
+      return "holon_zone";
+    }
     function labCanon() {
       var covers = LAB_ZONES.map(function (z) { return "par-lab-" + z; });
       var parcels = LAB_ZONES.map(function (z) {
@@ -137,15 +154,20 @@
           dest: "world",
           deployed: true,
           containedBy: "obj-lab-land-bundle",
+          catalog_class: catalogClassForParcel("par-lab-" + z),
           rules: "owner",
           contains: [],
           trade: ""
         };
       });
+      var rooms = [
+        { id: "obj-lab-room-bancada", kind: "room", catalog_class: "room", name: "Bancada", name_en: "Workbench", sitsOn: "par-lab-bancada", unmovable: true, deployed: true, dest: "room", rules: "owner", contains: [], trade: "" }
+      ];
       var bundle = {
         id: "obj-lab-land-bundle",
         kind: "bundle",
-        name: "LAB land · CMN",
+        name: "CMN Open World #1",
+        catalog_class: "open_world",
         aspectos: covers,
         contrato: { type: "ownership", holder: LAB_HOLDER, covers: covers },
         deployed: true,
@@ -154,34 +176,81 @@
         contains: covers,
         trade: ""
       };
-      return { holder: LAB_HOLDER, bundle: bundle, parcels: parcels };
+      return { holder: LAB_HOLDER, bundle: bundle, parcels: parcels, rooms: rooms };
     }
     function readLabLand() {
       try { return JSON.parse(localStorage.getItem("sm_lab_land") || "null"); } catch (e) { return null; }
     }
+    function upsertKeepId(cat, it) {
+      for (var i = 0; i < cat.length; i++) {
+        if (cat[i].id === it.id) {
+          var cur = cat[i];
+          if (it.catalog_class && !cur.catalog_class) cur.catalog_class = it.catalog_class;
+          if (it.kind && !cur.kind) cur.kind = it.kind;
+          if (it.sitsOn && !cur.sitsOn) cur.sitsOn = it.sitsOn;
+          if (it.containedBy && !cur.containedBy) cur.containedBy = it.containedBy;
+          if (it.unmovable) cur.unmovable = true;
+          if (it.id === "obj-lab-land-bundle") {
+            cur.name = "CMN Open World #1";
+            cur.kind = "bundle";
+            cur.catalog_class = "open_world";
+            if (it.aspectos) cur.aspectos = it.aspectos;
+            if (it.contrato && !cur.contrato) cur.contrato = it.contrato;
+          }
+          if (it.kind === "room" && (cur.name === ("LAB land · " + String(it.sitsOn || "").replace("par-lab-", "")) || !cur.name)) {
+            cur.name = it.name;
+          }
+          if (it.kind === "room") {
+            cur.kind = "room";
+            cur.catalog_class = "room";
+            if (it.name_en) cur.name_en = it.name_en;
+          }
+          return;
+        }
+      }
+      cat.push(it);
+    }
+    function migrateCatalog(cat) {
+      if (!Array.isArray(cat)) cat = [];
+      var canon = labCanon();
+      upsertKeepId(cat, canon.bundle);
+      (canon.parcels || []).forEach(function (p) { upsertKeepId(cat, p); });
+      (canon.rooms || []).forEach(function (r) { upsertKeepId(cat, r); });
+      cat.forEach(function (it) {
+        if (!it || !it.id) return;
+        if (String(it.id).indexOf("par-lab-") === 0) {
+          it.kind = it.kind || "parcel";
+          it.catalog_class = it.catalog_class || catalogClassForParcel(it.id);
+          it.containedBy = it.containedBy || "obj-lab-land-bundle";
+          it.unmovable = true;
+        }
+        if (it.id === "obj-lab-land-bundle") {
+          it.name = "CMN Open World #1";
+          it.kind = "bundle";
+          it.catalog_class = "open_world";
+        }
+      });
+      var drop = { "par-lab-sca":1, "par-lab-acb":1, "obj-lab-room-acb":1 }; return cat.filter(function (it) { var id = String((it && it.id) || ""); if (drop[id]) return false; if (id === "par-lab-sca" || id === "par-lab-acb") return false; if (/(^|-)(sca|acb)$/.test(id) && it.kind !== "object") return false; return true; });
+    }
     function seedLabLand() {
       var existing = readLabLand();
-      var reg = (existing && existing.holder) ? existing : labCanon();
-      if (!(existing && existing.holder)) {
-        try { localStorage.setItem("sm_lab_land", JSON.stringify(reg)); } catch (e) {}
+      var reg = labCanon();
+      if (existing && existing.holder) {
+        reg.holder = existing.holder;
       }
+      try { localStorage.setItem("sm_lab_land", JSON.stringify(reg)); } catch (e) {}
       var hkey = "sm_catalog_" + LAB_HOLDER.toLowerCase();
       var cat = [];
       try { cat = JSON.parse(localStorage.getItem(hkey) || "[]"); } catch (e) { cat = []; }
-      if (!Array.isArray(cat)) cat = [];
-      function upsert(it) {
-        for (var i = 0; i < cat.length; i++) if (cat[i].id === it.id) { return; }
-        cat.push(it);
-      }
-      upsert(reg.bundle);
-      (reg.parcels || []).forEach(upsert);
+      cat = migrateCatalog(cat);
       try { localStorage.setItem(hkey, JSON.stringify(cat)); } catch (e) {}
       return reg;
     }
     var labReg = seedLabLand();
     var isHolder = w.toLowerCase() === LAB_HOLDER.toLowerCase();
     if (isHolder) {
-      items = load();
+      items = migrateCatalog(load());
+      save(items);
     }
     var labNote = document.getElementById("labNote");
     if (labNote) {
@@ -192,27 +261,62 @@
       }
     }
     var sel = null;
-    function paintList() {
-      var ul = document.getElementById("list");
+    function catalogBucket(it) {
+      var id = String(it.id || ""); if (id === "par-lab-sca" || id === "par-lab-acb" || id === "obj-lab-room-acb" || it.kind === "subject") return "hide";
+      if (it.kind === "lot") return "lot";
+      if (it.kind === "bundle" || id === "obj-lab-land-bundle") return "world";
+      if (id.indexOf("par-lab-") === 0 || it.kind === "parcel") return "hide";
+      if (id !== "obj-lab-room-bancada" && (it.kind === "room" || it.id === "obj-lab-room-acb")) return "hide"; if (it.kind === "room" || (it.catalog_class === "room" && it.kind !== "parcel")) return "room";
+      if (it.contrato && it.kind !== "bundle") return "contrato";
+      return "other";
+    }
+    function kindLabel(it) {
+      if (it.kind === "lot") return "STRATA lot";
+      if (it.kind === "room") return "room";
+      if (it.kind === "bundle") return "open world";
+      if (it.contrato) return "contract";
+      return "object";
+    }
+    function stateChip(it) {
+      if (it.kind === "lot") return "lot";
+      if (it.contrato) return it.deployed ? "Live" : "Still";
+      return it.deployed ? ("deployed · " + it.dest) : "in catalog";
+    }
+    function fillUl(ul, arr, emptyTxt) {
       ul.innerHTML = "";
-      if (!items.length) {
-        ul.innerHTML = '<li class="empty">No objects. Tokenising lands here, not on the stage.</li>';
-        document.getElementById("detail").style.display = "none";
+      if (!arr.length) {
+        ul.innerHTML = '<li class="empty">' + emptyTxt + "</li>";
         return;
       }
-      items.forEach(function (it, i) {
+      arr.forEach(function (it) {
         var li = document.createElement("li");
         if (sel === it.id) li.className = "on";
-        var kind = it.kind === "lot" ? "STRATA lot" : (it.kind === "parcel" ? "parcel" : (it.kind === "bundle" ? "bundle" : "object"));
-        if (it.unmovable) kind = kind + " · unmovable";
-        var st = it.deployed ? ("deployed · " + it.dest) : "in catalog";
-        li.innerHTML = "<strong>" + (it.name || kind) + "</strong> <span class=\"chip\">" + kind + "</span>" +
-          (it.deployed ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
+        var kind = kindLabel(it);
+        var st = stateChip(it);
+        var title = it.name_en || it.name || kind;
+        if (it.id === "obj-lab-land-bundle") title = "CMN Open World #1";
+        li.innerHTML = "<strong>" + title + "</strong> <span class=\"chip\">" + kind + "</span>" +
+          (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
           "<div class=\"id\">" + it.id + "</div>";
         li.onclick = function () { sel = it.id; paintList(); paintDet(); };
         ul.appendChild(li);
-        if (sel === it.id) {}
       });
+    }
+    function paintList() {
+      var rooms = [], world = [], contratos = [], other = [], lots = [];
+      items.forEach(function (it) {
+        var b = catalogBucket(it);
+        if (b === "room") rooms.push(it);
+        else if (b === "world") world.push(it);
+        else if (b === "contrato") contratos.push(it);
+        else if (b === "lot") lots.push(it);
+        else if (b === "other") other.push(it);
+      });
+      fillUl(document.getElementById("listRooms"), rooms, "No rooms.");
+      fillUl(document.getElementById("listWorld"), world, "No open world.");
+      fillUl(document.getElementById("listContratos"), contratos, "No contracts in progress.");
+      fillUl(document.getElementById("listOther"), other, "No other objects.");
+      fillUl(document.getElementById("listLots"), lots, "No STRATA lot.");
     }
     function cur() {
       for (var i = 0; i < items.length; i++) if (items[i].id === sel) return items[i];
