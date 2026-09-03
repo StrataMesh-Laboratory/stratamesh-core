@@ -1437,17 +1437,20 @@ def wait_key(seconds: float) -> str:
 
 
 def confirm(prompt: str) -> bool:
-    """y/n on the composer line only. Full draw() froze the TUI (public probe + TCSADRAIN)."""
-    row = int(COMPOSER_ROW or 22)
+    """y/n on the last terminal row. Never COMPOSER_ROW/22 (that sat mid-TUI on 55-line Fog)."""
+    try:
+        row = max(1, shutil.get_terminal_size((88, 28)).lines)
+    except Exception:
+        row = 28
     try:
         DEV_TTY.write("\033[%d;1H\033[2K\033[?25h" % row)
-        DEV_TTY.write(prompt + "  y/n ")
+        DEV_TTY.write((prompt + "  y/n ")[:120])
         DEV_TTY.flush()
     except Exception:
         pass
     yes = wait_key(30) in ("y", "Y")
     try:
-        DEV_TTY.write("\033[?25l")
+        DEV_TTY.write("\033[%d;1H\033[2K\033[?25l" % row)
         DEV_TTY.flush()
     except Exception:
         pass
