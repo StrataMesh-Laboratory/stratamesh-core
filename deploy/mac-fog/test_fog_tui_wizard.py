@@ -224,5 +224,49 @@ class DrawFast(unittest.TestCase):
         self.assertFalse(_MOD.is_local_instrument_url("https://status.calhegasmorais.pt/metabol"))
 
 
+
+class OrchAiopsReport(unittest.TestCase):
+    def test_post_404_on_live_hop_is_not_chain_fail(self):
+        def fake(url: str, method: str = "GET", data=None, timeout: float = 4.0):
+            if url.endswith("/api/orchestrator/chat") and method == "POST" and "127.0.0.1" in url:
+                return {"ok": False, "error": "not found", "_http": 404}
+            if url.endswith("/health") and "127.0.0.1" in url:
+                return {"ok": True, "listening": True, "_http": 200}
+            if "calhegasmorais.pt" in url and method == "GET":
+                return {
+                    "status": "ok",
+                    "service": "stratamesh-orchestrator",
+                    "version": "origin-orch-chat-1.1.1",
+                    "_http": 200,
+                }
+            if "calhegasmorais.pt" in url and method == "POST":
+                return {"ok": False, "error": "Method Not Allowed", "_http": 405}
+            return {"ok": False, "error": "no", "_http": 0}
+
+        with mock.patch.object(_MOD, "_http_json", side_effect=fake):
+            note = _MOD.orch_aiops_report("status", "faq", {})
+        self.assertIn("orch-aiops", note)
+        self.assertIn("hop-live", note)
+        self.assertNotIn("8791 fail", note)
+        self.assertNotIn("8790 fail", note)
+        self.assertNotIn("calhegasmorais.pt fail", note)
+        self.assertIn("origin GET ok", note)
+
+    def test_local_post_200_stops_chain(self):
+        def fake(url: str, method: str = "GET", data=None, timeout: float = 4.0):
+            if url == "http://127.0.0.1:8791/api/orchestrator/chat" and method == "POST":
+                return {"ok": True, "accepted": True, "_http": 200, "hop": "node:8791"}
+            return {"ok": False, "error": "should-not-hit", "_http": 0}
+
+        with mock.patch.object(_MOD, "_http_json", side_effect=fake) as m:
+            note = _MOD.orch_aiops_report("h", "b", {})
+        self.assertIn("8791 POST 200", note)
+        self.assertIn("orch-aiops ok", note)
+        urls = [c.args[0] for c in m.call_args_list]
+        self.assertTrue(all("calhegasmorais.pt" not in u for u in urls))
+        self.assertTrue(all("aiops" not in u for u in urls))
+
+
+
 if __name__ == "__main__":
     unittest.main()

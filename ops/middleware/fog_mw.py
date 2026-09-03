@@ -293,6 +293,57 @@ def payload(kind: str):
     return base
 
 
+
+ORIGIN_ORCH = "https://calhegasmorais.pt/api/orchestrator/chat"
+
+
+def handle_orch_chat(method, body):
+    """POST/GET /api/orchestrator/chat — accept wizard reports locally; fail-open to origin. Never secrets."""
+    body = body if isinstance(body, dict) else {}
+    headline = str(body.get("headline") or body.get("message") or body.get("text") or "")[:160]
+    origin = {"forwarded": False}
+    if method == "POST":
+        try:
+            raw = json.dumps(body).encode()
+            req = Request(
+                ORIGIN_ORCH,
+                data=raw,
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "User-Agent": "fog-mw-py/orch",
+                },
+            )
+            with urlopen(req, timeout=2.0) as r:
+                txt = r.read().decode() or "{}"
+                try:
+                    obj = json.loads(txt)
+                except Exception:
+                    obj = {}
+                origin = {
+                    "forwarded": True,
+                    "http": int(getattr(r, "status", 200) or 200),
+                    "version": (obj or {}).get("version"),
+                    "ok": True,
+                }
+        except Exception as e:
+            origin = {"forwarded": False, "fail_open": True, "error": type(e).__name__}
+    return 200, {
+        "ok": True,
+        "hop": HOP,
+        "role": "orchestrator-chat",
+        "accepted": True,
+        "dest": "AIOps Dev Team via Orchestrator",
+        "headline": headline,
+        "origin": origin,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "version": "fog-mw-orch-chat-1",
+        "service": "stratamesh-orchestrator",
+        "status": "ok",
+    }
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
@@ -427,6 +478,15 @@ class H(BaseHTTPRequestHandler):
             return self._auth()
         if path.startswith("/api/wb"):
             return self._wb()
+        if path.rstrip("/") in (
+            "/api/orchestrator/chat",
+            "/api/orchestrator/health",
+            "/api/v1/orchestrator/chat",
+            "/api/v1/orchestrator/health",
+            "/orchestrator/chat",
+        ):
+            code, obj = handle_orch_chat("POST", self._body())
+            return self._send(code, obj)
         if path.startswith("/object"):
             code, obj = handle_object("POST", path, self._body())
             return self._send(code, obj)
@@ -457,6 +517,15 @@ class H(BaseHTTPRequestHandler):
             return self._auth()
         if path.startswith("/api/wb"):
             return self._wb()
+        if path.rstrip("/") in (
+            "/api/orchestrator/chat",
+            "/api/orchestrator/health",
+            "/api/v1/orchestrator/chat",
+            "/api/v1/orchestrator/health",
+            "/orchestrator/chat",
+        ):
+            code, obj = handle_orch_chat("GET", {})
+            return self._send(code, obj)
         table = {
             "/": "health",
             "/health": "health",

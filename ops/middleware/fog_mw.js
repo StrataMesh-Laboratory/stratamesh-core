@@ -72,9 +72,76 @@ async function assemble() {
   };
 }
 
+function readBody(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString() || "{}")); }
+      catch { resolve({}); }
+    });
+    req.on("error", () => resolve({}));
+  });
+}
+
+const ORCH_PATHS = [
+  "/api/orchestrator/chat",
+  "/api/orchestrator/health",
+  "/api/v1/orchestrator/chat",
+  "/api/v1/orchestrator/health",
+  "/orchestrator/chat",
+];
+
+async function orchChat(req) {
+  let body = {};
+  if (req.method === "POST") body = await readBody(req);
+  const headline = String(body.headline || body.message || body.text || "").slice(0, 160);
+  let origin = { forwarded: false };
+  if (req.method === "POST") {
+    try {
+      const r = await fetch("https://calhegasmorais.pt/api/orchestrator/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": "fog-mw-node/orch" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(2000),
+      });
+      const text = await r.text();
+      let obj = {};
+      try { obj = JSON.parse(text); } catch { /* raw */ }
+      origin = { forwarded: true, http: r.status, version: obj.version || null, ok: r.ok };
+    } catch (e) {
+      origin = { forwarded: false, fail_open: true, error: String(e && e.message || e).slice(0, 80) };
+    }
+  }
+  return {
+    ok: true,
+    hop: "node:8791",
+    role: "orchestrator-chat",
+    accepted: true,
+    dest: "AIOps Dev Team via Orchestrator",
+    headline,
+    origin,
+    methods: ["GET", "POST", "OPTIONS"],
+    version: "fog-mw-orch-chat-1",
+    service: "stratamesh-orchestrator",
+    status: "ok",
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = String(req.url || "/").split("?")[0];
-  if (req.method !== "GET") return send(res, 405, { ok: false });
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    });
+    return res.end();
+  }
+  if (ORCH_PATHS.includes(url) && (req.method === "GET" || req.method === "HEAD" || req.method === "POST")) {
+    return send(res, 200, await orchChat(req));
+  }
+  if (req.method !== "GET") return send(res, 405, { ok: false, error: "method" });
   if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
       ok: true, runtime: "node", role: "compose", port: PORT,

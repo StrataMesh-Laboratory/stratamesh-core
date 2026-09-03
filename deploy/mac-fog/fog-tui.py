@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -963,8 +964,69 @@ def wizard_faq_improvise(prompt: str, snap: dict | None = None) -> str:
     ) % (s.get("git") or "?", s.get("n"), s.get("member"), s.get("host_cap_over"), lamps, (prompt or "")[:240])
 
 
+def _http_json(url: str, method: str = "GET", data: bytes | None = None, timeout: float = 4.0) -> dict:
+    """JSON GET/POST. Reads HTTPError body. Never secrets. Never blocks draw (caller is a thread)."""
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "fog-tui-wizard/1",
+    }
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    try:
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read().decode(errors="replace") or "{}"
+            try:
+                obj = json.loads(raw)
+            except Exception:
+                obj = {"ok": True, "raw": raw[:120]}
+            if not isinstance(obj, dict):
+                obj = {"ok": True, "value": obj}
+            obj["_http"] = int(getattr(r, "status", 200) or 200)
+            return obj
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode(errors="replace")[:240]
+        except Exception:
+            body = ""
+        parsed: dict = {}
+        try:
+            maybe = json.loads(body) if body else {}
+            if isinstance(maybe, dict):
+                parsed = maybe
+        except Exception:
+            parsed = {}
+        err = str(parsed.get("error") or parsed.get("message") or body or e.reason or e)[:120]
+        out = {"ok": False, "error": err, "_http": int(e.code or 0)}
+        if parsed:
+            out["_body"] = {k: parsed[k] for k in list(parsed)[:8]}
+        return out
+    except Exception as e:
+        return {"ok": False, "error": type(e).__name__, "_http": 0}
+
+
+def _orch_endpoint_live(d: dict | None) -> bool:
+    if not isinstance(d, dict):
+        return False
+    http = int(d.get("_http") or 0)
+    if d.get("ok") is True:
+        return True
+    if str(d.get("status") or "").lower() in ("ok", "operational"):
+        return True
+    if d.get("listening") is True or d.get("service") == "stratamesh-orchestrator":
+        return True
+    if http in (200, 204) and not d.get("error"):
+        return True
+    return False
+
+
 def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str:
-    """Fail-open e2e: local orch hops, then origin Orchestrator chat, then AIOps chat. Never secrets."""
+    """Fail-open e2e: POST orch chat on live mw hops, then origin. GET /health is not a chain fail.
+
+    POST 404/405 on a hop whose GET /health is live means the route was missing — not hop-down.
+    Never secrets. Never workers.dev.
+    """
     payload = {
         "schema": "stratamesh.wizard.v1",
         "source": "fog-tui-wizard",
@@ -978,25 +1040,55 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
         "lab": True,
     }
     raw = json.dumps(payload).encode()
-    urls = (
-        "http://127.0.0.1:8791/api/orchestrator/chat",
-        "http://127.0.0.1:8790/api/orchestrator/chat",
-        "https://calhegasmorais.pt/api/orchestrator/chat",
-        "https://aiops.calhegasmorais.pt/chat",
+    local = (
+        ("8791", "http://127.0.0.1:8791"),
+        ("8790", "http://127.0.0.1:8790"),
+        ("8792", "http://127.0.0.1:8792"),
     )
-    notes = []
-    for url in urls:
-        try:
-            req = urllib.request.Request(
-                url, data=raw, method="POST",
-                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "fog-tui-wizard/1"},
-            )
-            with urllib.request.urlopen(req, timeout=1.5) as r:
-                notes.append("%s %s" % (url.split("/")[2], r.status))
-                break
-        except Exception as e:
-            notes.append("%s fail" % url.split("/")[2])
-    return "orch-aiops " + " · ".join(notes[:4])
+    notes: list[str] = []
+    delivered = False
+    hop_live_any = False
+    for port, base in local:
+        post = _http_json(base + "/api/orchestrator/chat", "POST", raw, 4.0)
+        http = int(post.get("_http") or 0)
+        if _orch_endpoint_live(post) or (200 <= http < 300):
+            notes.append("%s POST %s" % (port, http or 200))
+            delivered = True
+            break
+        health = _http_json(base + "/health", "GET", None, 1.5)
+        live = _orch_endpoint_live(health)
+        err = str(post.get("error") or "")[:40]
+        if live:
+            hop_live_any = True
+            notes.append("%s hop-live POST %s%s" % (port, http or "err", (" " + err) if err else ""))
+        else:
+            notes.append("%s down %s" % (port, err or "no-health"))
+    if not delivered:
+        origin = "https://calhegasmorais.pt/api/orchestrator/chat"
+        opost = _http_json(origin, "POST", raw, 4.0)
+        ohttp = int(opost.get("_http") or 0)
+        if _orch_endpoint_live(opost) or (200 <= ohttp < 300):
+            notes.append("origin POST %s" % (ohttp or 200))
+            delivered = True
+        else:
+            oget = _http_json(origin, "GET", None, 4.0)
+            if _orch_endpoint_live(oget):
+                notes.append("origin GET ok %s" % (oget.get("version") or oget.get("_http") or "service"))
+            else:
+                notes.append("origin POST %s" % (ohttp or opost.get("error") or "err"))
+                ai = _http_json("https://aiops.calhegasmorais.pt/chat", "POST", raw, 4.0)
+                ahttp = int(ai.get("_http") or 0)
+                if _orch_endpoint_live(ai) or (200 <= ahttp < 300):
+                    notes.append("aiops POST %s" % (ahttp or 200))
+                    delivered = True
+                else:
+                    aget = _http_json("https://aiops.calhegasmorais.pt/chat", "GET", None, 2.0)
+                    if _orch_endpoint_live(aget):
+                        notes.append("aiops GET ok")
+                    elif not hop_live_any:
+                        notes.append("aiops %s" % (ai.get("error") or ahttp or "err"))
+    tag = "ok" if delivered or hop_live_any else "degraded"
+    return "orch-aiops %s · " % tag + " · ".join(notes[:6])
 
 
 def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
@@ -1034,7 +1126,7 @@ def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
                     out = ""
             if not out:
                 out = wizard_faq_improvise(prompt, snap)
-                wizard_append("sys", "ollama waking — FAQ from hops (not observe-only)")
+                wizard_append("sys", "ollama waking — FAQ from hops")
             wizard_append("ollama", out)
             for act in parse_wizard_actions(out):
                 wizard_run_action(act)

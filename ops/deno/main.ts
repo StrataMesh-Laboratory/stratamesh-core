@@ -139,8 +139,44 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
   const objectPost = req.method === "POST" && path.startsWith("/object");
-  if (req.method !== "GET" && !(req.method === "POST" && (path.startsWith("/mail") || objectPost))) {
+  const orchPath = path.startsWith("/api/orchestrator") || path === "/orchestrator/chat" || path.startsWith("/api/v1/orchestrator");
+  if (req.method !== "GET" && !(req.method === "POST" && (path.startsWith("/mail") || objectPost || orchPath))) {
     return json({ ok: false, error: "method", hint: "auth is python:8790" }, 405);
+  }
+  if (orchPath) {
+    let body: Record<string, unknown> = {};
+    if (req.method === "POST") body = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const headline = String(body.headline || body.message || body.text || "").slice(0, 160);
+    let origin: Record<string, unknown> = { forwarded: false };
+    if (req.method === "POST") {
+      try {
+        const r = await fetch("https://calhegasmorais.pt/api/orchestrator/chat", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json", "user-agent": "fog-mw-deno/orch" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(2000),
+        });
+        const text = await r.text();
+        let obj: Record<string, unknown> = {};
+        try { obj = JSON.parse(text); } catch { /* raw */ }
+        origin = { forwarded: true, http: r.status, version: obj.version || null, ok: r.ok };
+      } catch (e) {
+        origin = { forwarded: false, fail_open: true, error: String(e).slice(0, 80) };
+      }
+    }
+    return json({
+      ok: true,
+      hop: "deno:8792",
+      role: "orchestrator-chat",
+      accepted: true,
+      dest: "AIOps Dev Team via Orchestrator",
+      headline,
+      origin,
+      methods: ["GET", "POST", "OPTIONS"],
+      version: "fog-mw-orch-chat-1",
+      service: "stratamesh-orchestrator",
+      status: "ok",
+    });
   }
   if (path === "/" || path === "/health") {
     return json({
