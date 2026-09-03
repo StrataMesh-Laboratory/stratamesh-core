@@ -47,6 +47,7 @@
   <input id="nameIn" maxlength="80" placeholder="nome do objecto" autocomplete="off">
   <div class="row">
     <button type="button" id="btnMint">Tokenizar → catálogo</button>
+    <button type="button" id="btnParcel" class="ghost">Parcela (mundo aberto)</button>
     <button type="button" id="btnLot" class="ghost">Lot STRATA (troca)</button>
   </div>
   <p class="note">Um lot STRATA é representação para troca. O livro de saldo fica na bancada; isto não mina STRATA.</p>
@@ -59,9 +60,9 @@
 
     <h3>Desdobrar (opcional)</h3>
     <select id="dest">
+      <option value="world" selected>Mundo aberto</option>
       <option value="personal">Sandbox pessoal (com visitantes convidados)</option>
       <option value="room">Sala partilhada</option>
-      <option value="world">Mundo aberto</option>
     </select>
     <select id="rules">
       <option value="owner">Interacção: só a conta dona</option>
@@ -133,7 +134,7 @@
       items.forEach(function (it, i) {
         var li = document.createElement("li");
         if (sel === it.id) li.className = "on";
-        var kind = it.kind === "lot" ? "lot STRATA" : "objecto";
+        var kind = it.kind === "lot" ? "lot STRATA" : (it.kind === "parcel" ? "parcela" : "objecto");
         var st = it.deployed ? ("desdobrado · " + it.dest) : "no catálogo";
         li.innerHTML = "<strong>" + (it.name || kind) + "</strong> <span class=\"chip\">" + kind + "</span>" +
           (it.deployed ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
@@ -160,13 +161,22 @@
           ? ("Desdobrado em " + it.dest + " · regras: " + it.rules)
           : "No catálogo privado. Ainda não está no sandbox.");
       document.getElementById("detState").textContent = line;
-      document.getElementById("dest").value = it.dest || "personal";
+      document.getElementById("dest").value = it.dest || "world";
       document.getElementById("rules").value = it.rules || "owner";
       document.getElementById("tradeNote").textContent = it.trade || "";
     }
     document.getElementById("btnMint").onclick = function () {
       var n = (document.getElementById("nameIn").value || "").trim() || "objecto";
       var it = { id: nid("obj"), kind: "object", name: n, deployed: false, dest: "", rules: "owner", contains: [], trade: "" };
+      items.unshift(it);
+      save(items);
+      sel = it.id;
+      document.getElementById("nameIn").value = "";
+      paintList(); paintDet();
+    };
+    document.getElementById("btnParcel").onclick = function () {
+      var n = (document.getElementById("nameIn").value || "").trim() || "parcela";
+      var it = { id: nid("par"), kind: "parcel", name: n, deployed: false, dest: "world", rules: "owner", contains: [], trade: "" };
       items.unshift(it);
       save(items);
       sel = it.id;
