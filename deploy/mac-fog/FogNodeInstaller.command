@@ -102,6 +102,12 @@ WD="$FOG/workerd-runtime/node_modules/.bin/workerd"
 [[ -x "$WD" ]] || die "workerd binary missing"
 "$WD" --version || true
 
+say "5b/9 ollama (Fog TUI ? wizard)"
+if command -v brew >/dev/null 2>&1; then
+  brew list ollama >/dev/null 2>&1 || brew install ollama || true
+fi
+command -v ollama >/dev/null 2>&1 && { ollama serve >/dev/null 2>&1 & disown 2>/dev/null || true; }
+
 say "6/9 cloudflared $CF_VER"
 if [[ "$ARCH" == "arm64" ]]; then CF_ARCH=arm64; else CF_ARCH=amd64; fi
 CF_URL="https://github.com/cloudflare/cloudflared/releases/download/${CF_VER}/cloudflared-darwin-${CF_ARCH}.tgz"
