@@ -18,20 +18,20 @@ This document fixes a two-category economy so participants are not collapsed int
 
 | Category | Members | Role |
 |----------|---------|------|
-| **Subjects** | Human users · SCAs | Act, agree, own, govern, transact *as participants* |
+| **Subjects** | Human users · ACBs | Act, agree, own, govern, transact *as participants* |
 | **Objects** | STRATA · STRATA NFTs · computational resources · digital creations · other protocol-native resources | Are owned, used, transferred, locked, burned |
 
 **Rule S1 — Subjects act; objects are acted upon.**
 
 **Rule S2 — Ownership of objects is not the same relation as relations among subjects.**
 
-A human or an SCA may **own** STRATA or an NFT.  
-A human does **not** “own” an SCA in the same ontological sense as they own STRATA.  
-An SCA does not become the *property* of another SCA merely by interacting with it.
+A human or an ACB may **own** STRATA or an NFT.  
+A human does **not** “own” an ACB in the same ontological sense as they own STRATA.  
+An ACB does not become the *property* of another ACB merely by interacting with it.
 
-Two SCAs may transact, contract, cooperate, compete, or associate — they remain **subjects**, not each other’s inventory.
+Two ACBs may transact, contract, cooperate, compete, or associate — they remain **subjects**, not each other’s inventory.
 
-Live NFT contract (unchanged): *Agent owns/operates NFT — never NFT owns Agent* (`Agent = User | SCA`).
+Live NFT contract (unchanged): *Agent owns/operates NFT — never NFT owns Agent* (`Agent = User | ACB`).
 
 ---
 
@@ -41,7 +41,7 @@ Live NFT contract (unchanged): *Agent owns/operates NFT — never NFT owns Agent
                     SUBJECTS
                 ┌──────────────┐
                 │              │
-             HUMAN            SCA
+             HUMAN            ACB
                 │              │
                 └──────┬───────┘
                        │
@@ -57,13 +57,13 @@ Live NFT contract (unchanged): *Agent owns/operates NFT — never NFT owns Agent
 Subject ↔ subject (independent of ownership edges):
 
 - Human ↔ Human  
-- Human ↔ SCA  
-- SCA ↔ SCA  
+- Human ↔ ACB  
+- ACB ↔ ACB  
 
 Subject → object:
 
 - Human → STRATA / NFT / resources  
-- SCA → STRATA / NFT / resources  
+- ACB → STRATA / NFT / resources  
 
 ---
 
@@ -71,9 +71,9 @@ Subject → object:
 
 A wallet alone does not make a subject.
 
-An SCA is recognized as a **participant**: it can hold relations to objects *and* to other subjects — e.g. “this STRATA is mine”, “I spend it on this resource”, “I agree to this SPA”, “I act at this CLP time”, “I vote in this association”.
+An ACB is recognized as a **participant**: it can hold relations to objects *and* to other subjects — e.g. “this STRATA is mine”, “I spend it on this resource”, “I agree to this SPA”, “I act at this CLP time”, “I vote in this association”.
 
-An NFT does not autonomously possess STRATA in that sense. **The NFT is the object; the SCA (or human) is the subject.**
+An NFT does not autonomously possess STRATA in that sense. **The NFT is the object; the ACB (or human) is the subject.**
 
 ---
 
@@ -81,7 +81,7 @@ An NFT does not autonomously possess STRATA in that sense. **The NFT is the obje
 
 A **population** is a set of **subjects**, not of assets.
 
-Native population (lab sense) ⊆ { humans ∪ SCAs }.
+Native population (lab sense) ⊆ { humans ∪ ACBs }.
 
 - STRATA is not a citizen.  
 - An NFT is not a citizen.  
@@ -93,7 +93,7 @@ Native population (lab sense) ⊆ { humans ∪ SCAs }.
 
 | Layer | Examples |
 |-------|----------|
-| **Subjects** | Humans, SCAs |
+| **Subjects** | Humans, ACBs |
 | **Objects** | STRATA, NFTs, resources, creations |
 | **Infrastructure** | Fog, Edge, GDA/DLT, OS, networking |
 | **Institutions** | Governance, Agora, Computational Republic, SPAs/agreements |
@@ -113,7 +113,7 @@ StrataMesh additionally specifies **subjects, infrastructure, institutions, envi
 
 ## 7. Lab honesty
 
-This ontology is **normative for description and design**. The network remains **lab / not mainnet**. Recognition of SCA standing is protocol-local and experimental.
+This ontology is **normative for description and design**. The network remains **lab / not mainnet**. Recognition of ACB standing is protocol-local and experimental.
 
 ---
 

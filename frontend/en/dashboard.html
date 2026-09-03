@@ -188,9 +188,9 @@ body.in-session .user-info{display:flex!important}
     <button type="button" data-panel="sandbox" onclick="showPanel('sandbox',this)" title="Unix UGC NFT workbench">Sandbox</button>
     <button type="button" data-panel="dao" onclick="showPanel('dao',this)" title="DAO chambers">Chambers</button>
     <button type="button" data-panel="spa" onclick="showPanel('spa',this)" title="SPA · Service Pact Agreement">Compacts</button>
-    <button type="button" data-panel="acb" data-user="1" onclick="showPanel('acb',this)" title="SCA · Synthetic Computational Agent">Agents</button>
-    <button type="button" data-panel="sca-self" data-sca="1" onclick="showPanel('sca-self',this)" style="display:none">My SCA</button>
-    <button type="button" data-panel="sca-bancada" data-sca="1" onclick="showPanel('sandbox',this)" style="display:none">SCA atelier</button>
+    <button type="button" data-panel="acb" data-user="1" onclick="showPanel('acb',this)" title="ACB · Autonomous Computational Being">Agents</button>
+    <button type="button" data-panel="sca-self" data-sca="1" onclick="showPanel('sca-self',this)" style="display:none">My ACB</button>
+    <button type="button" data-panel="sca-bancada" data-sca="1" onclick="showPanel('sandbox',this)" style="display:none">ACB atelier</button>
     <button type="button" data-panel="iot" onclick="showPanel('iot',this)" title="IoT edge ingest">Edge</button>
     <button type="button" data-panel="diagnostics" onclick="showPanel('diagnostics',this)" title="Service pulse">Health</button>
     <button type="button" data-panel="orch" onclick="showPanel('orch',this)" title="Hybrid orchestrator">Orchestrator</button>
@@ -294,7 +294,7 @@ body.in-session .user-info{display:flex!important}
       <div class="stat-card"><div class="value" id="ecoMint">—</div><div class="label">#mint</div></div>
       <div class="stat-card"><div class="value" id="ecoAgoraRate">—</div><div class="label">Agora EUR</div></div>
       <div class="stat-card"><div class="value" id="ecoDepin">—</div><div class="label">Providers DePIN</div></div>
-      <div class="stat-card"><div class="value" id="ecoServices">—</div><div class="label">SCA services</div></div>
+      <div class="stat-card"><div class="value" id="ecoServices">—</div><div class="label">ACB services</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
@@ -302,7 +302,7 @@ body.in-session .user-info{display:flex!important}
         <pre id="ecoPoc" style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;color:var(--muted);white-space:pre-wrap;max-height:200px;overflow:auto">—</pre>
       </div>
       <div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">
-        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">SCA labour market</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">ACB labour market</div>
         <div id="ecoAcbBody" style="font-size:.8rem">—</div>
       </div>
     </div>
@@ -390,8 +390,8 @@ body.in-session .user-info{display:flex!important}
 
   
   <div class="panel" id="panel-sca-self">
-    <h3>SCA space · self-management</h3>
-    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">This agent’s own workspace. Not a user console to control SCAs — the SCA operates itself.</p>
+    <h3>ACB space · self-management</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">This agent’s own workspace. Not a user console to control ACBs — the ACB operates itself.</p>
     <div id="scaSelfIdentity" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:1rem;font-size:.85rem;line-height:1.5;color:var(--muted)">Loading identity…</div>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1rem">
       <div class="stat-card"><div class="value" id="scaSelfPds">—</div><div class="label">PoS</div></div>
@@ -401,16 +401,16 @@ body.in-session .user-info{display:flex!important}
     </div>
     <h4 style="margin:0 0 .5rem;font-size:.9rem">KPIs do cargo</h4>
     <div id="scaSelfKpis" style="margin-bottom:1rem"></div>
-    <h4 style="margin:0 0 .5rem;font-size:.9rem">NFT criados por este SCA</h4>
+    <h4 style="margin:0 0 .5rem;font-size:.9rem">NFT criados por este ACB</h4>
     <div id="scaSelfNftList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.65rem"><p style="color:var(--muted)">—</p></div>
-    <p style="margin-top:1rem;font-size:.78rem;color:var(--muted)">Atelier: NFT objects of this account only. <button type="button" onclick="showPanel('sandbox',document.querySelector('[data-panel=sandbox]'))" style="padding:.3rem .6rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Open SCA atelier</button></p>
+    <p style="margin-top:1rem;font-size:.78rem;color:var(--muted)">Atelier: NFT objects of this account only. <button type="button" onclick="showPanel('sandbox',document.querySelector('[data-panel=sandbox]'))" style="padding:.3rem .6rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Open ACB atelier</button></p>
   </div>
 
 <div class="panel" id="panel-acb">
-    <h3>SCA · identity and roles</h3>
-    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Each SCA has a personal identity (agent) and a node appointment. PdS sustains runtime; KPIs measure role delivery.</p>
+    <h3>ACB · identity and roles</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin:0 0 1rem;line-height:1.45">Each ACB has a personal identity (agent) and a node appointment. PdS sustains runtime; KPIs measure role delivery.</p>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1rem">
-      <div class="stat-card"><div class="value" id="acbCount">—</div><div class="label">SCA</div></div>
+      <div class="stat-card"><div class="value" id="acbCount">—</div><div class="label">ACB</div></div>
       <div class="stat-card"><div class="value" id="acbActive">—</div><div class="label">Active</div></div>
       <div class="stat-card"><div class="value" id="acbDormant">—</div><div class="label">Dormant</div></div>
       <div class="stat-card"><div class="value" id="acbKpiAvg">—</div><div class="label">Avg KPI</div></div>
@@ -597,7 +597,7 @@ function toggleMode(){
   isRegister=!isRegister;
   document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');
   document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');
-  document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar','Already have an account? Sign in'):T('Precisa de conta? Registar','Need an account? Register');
+  document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar', 'Already have an account? Sign in'):T('Precisa de conta? Registar', 'Need an account? Register');
   document.getElementById('loginError').style.display='none';
   var pw=document.getElementById('password');
   if(pw){ pw.style.display=isRegister?'none':'block'; if(isRegister) pw.value=''; }
@@ -729,7 +729,7 @@ function applyNavPermissions(){
   nav.querySelectorAll('button[data-user="1"]').forEach(function(btn){
     btn.style.display=(!sca || staff)?'':'none';
   });
-  // SCA workspace: hide user-control-of-SCA roster; show self panels
+  // ACB workspace: hide user-control-of-ACB roster; show self panels
   nav.querySelectorAll('button[data-panel="acb"]').forEach(function(btn){
     if(sca && !staff) btn.style.display='none';
   });
@@ -739,8 +739,8 @@ function applyNavPermissions(){
       hint.textContent='Painel de pessoal · clearance '+(currentClearance()||'—');
       hint.style.color='var(--accent)';
     }else if(sca){
-      var id=(currentUser&&(currentUser.identity_name||currentUser.sca_id||currentUser.id))||'SCA';
-      hint.textContent='Espaço SCA · '+id+' · auto-gestão (não é painel de controlo por utilizadores)';
+      var id=(currentUser&&(currentUser.identity_name||currentUser.sca_id||currentUser.id))||'ACB';
+      hint.textContent='Espaço ACB · '+id+' · auto-gestão (não é painel de controlo por utilizadores)';
       hint.style.color='var(--accent)';
     }else{
       hint.textContent='Conta de utilizador · carteira e bancada desta conta · clearance '+(currentClearance()||'internal');
@@ -934,11 +934,11 @@ async function handleAuth(){
       return;
     }
   }
-  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório','Email required'):'Email required'); return; }
+  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório', 'Email required'):'Email required'); return; }
     if(!(document.getElementById('termsAccept')&&document.getElementById('termsAccept').checked)){
       setErr(LANG==='en'?'You must accept the Node terms and conditions.':'Tem de aceitar os termos e condições do Nó.'); return;
     }
-  } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios','Email and password required'):'Email and password required'); return; } }
+  } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios', 'Email and password required'):'Email and password required'); return; } }
   setErr('');
   if(isRegister && !getTurnstileToken()){
     setErr(LANG==='en'?'Complete the security check (Turnstile) first.':'Complete primeiro a verificação de segurança (Turnstile).');
@@ -1068,7 +1068,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
+          : T('Sem movimentos ainda', 'Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -1103,18 +1103,15 @@ async function loadAgora(){
         return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
-    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
-    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas','—'));
+    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras', '—'));
+    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas', '—'));
     // role note under orders
     var note=document.getElementById('agoraRoleNote');
     if(!note && price){
       note=document.createElement('p'); note.id='agoraRoleNote'; note.style.cssText='color:var(--muted);font-size:.82rem;margin-top:1rem';
       price.closest('.panel').appendChild(note);
     }
-    if(note) note.textContent = T(
-      'A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.',
-      'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.'
-    );
+    if(note) note.textContent = T('A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.', 'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.');
   }catch(e){
     if(price) price.textContent='—';
     if(bids) bids.innerHTML='<span style="color:var(--muted)">'+esc(e.message||e)+'</span>';
@@ -1124,14 +1121,14 @@ async function loadAgora(){
 async function loadDAO(){
   var el=document.getElementById('proposalList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…','Loading motions…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…', 'Loading motions…')+'</p>';
   try{
     var r=await fetch(SVC.dao+'/proposals',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{proposals:[]};
     var props=j.proposals||j||[];
     if(!Array.isArray(props)) props=[];
     if(!props.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.','No open proposals in this laboratory.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.', 'No open proposals in this laboratory.')+'</p>';
       return;
     }
     el.innerHTML=props.map(function(pr){
@@ -1141,7 +1138,7 @@ async function loadDAO(){
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
-        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
+        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor', 'For')+' '+(pr.votes_for||0)+' · '+T('Contra', 'Against')+' '+(pr.votes_against||0)+' · '+T('Quórum', 'Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
     }).join('');
   }catch(e){
@@ -1152,19 +1149,19 @@ async function loadDAO(){
 async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…','Loading sandboxes / SPAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…', 'Loading sandboxes / SPAs…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.', 'No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin-bottom:.5rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<strong style="color:var(--fg)">'+esc(s.title||s.name||s.id)+'</strong>'+
-        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo','world')+' '+esc(s.parent_world_id||'—')+
+        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo', 'world')+' '+esc(s.parent_world_id||'—')+
         ' · '+esc(s.status||s.isolation||'')+'</div></div>';
     }).join('');
   }catch(e){
@@ -1179,7 +1176,7 @@ async function loadSandbox(){
 async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACBs…')+'</p>';
   try{
     var team=null, list=null, health=null;
     try{ var rt=await fetch(SVC.acb+'/acb/team',{signal:AbortSignal.timeout(8000)}); if(rt.ok) team=await rt.json(); }catch(_){}
@@ -1188,16 +1185,16 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
-      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
     }
     if(health){
       html+='<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">'+
-        T('Registados','Registered')+': '+(health.acbs||'—')+' · '+
-        T('Contratos','Contracts')+': '+(health.contracts||'—')+' · '+
-        T('Anúncios','Listings')+': '+(health.open_listings||'—')+'</p>';
+        T('Registados', 'Registered')+': '+(health.acbs||'—')+' · '+
+        T('Contratos', 'Contracts')+': '+(health.contracts||'—')+' · '+
+        T('Anúncios', 'Listings')+': '+(health.open_listings||'—')+'</p>';
     }
     var acbs=(list&&list.acbs)||[];
     if(acbs.length){
@@ -1210,7 +1207,7 @@ async function loadACB(){
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
-      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCAs listed.')+'</p>';
+      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACBs listed.')+'</p>';
     }
     el.innerHTML=html;
   }catch(e){
@@ -1224,7 +1221,7 @@ async function loadEconomy(){ /* superseded — see definitive loadEconomy below
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -1234,15 +1231,15 @@ async function loadKYC(){
     var j=r.ok?await r.json():{users:[]};
     var users=j.users||j.pending||[];
     if(pending){
-      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('No pending verification.','No pending verifications.')+'</p>';
+      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('No pending verification.', 'No pending verifications.')+'</p>';
       else pending.innerHTML=users.map(function(u){
         return '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)">'+esc(u.email||u.id)+
-          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar','Approve')+'</button></div>';
+          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar', 'Approve')+'</button></div>';
       }).join('');
     }
-    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.','Queue operational in laboratory mode.')+'</p>';
+    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.', 'Queue operational in laboratory mode.')+'</p>';
   }catch(e){
-    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.','KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
+    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.', 'KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
   }
 }
 
@@ -1272,7 +1269,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…','Loading live status…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…', 'Loading live status…')+'</p>';
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
@@ -1286,7 +1283,7 @@ async function loadSystemPanel(){
       if(r2.ok) tdra=await r2.json();
     }catch(_){}
     if(!live){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.','Status unavailable.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.', 'Status unavailable.')+'</p>';
       return;
     }
     var up=live.upstream||{};
@@ -1302,10 +1299,10 @@ async function loadSystemPanel(){
       ' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
       '</div>'+
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(7rem,1fr));gap:.6rem;margin-bottom:1rem">'+
-      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação','Circulating')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação', 'Circulating')+'</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.mint_emitted!=null?Number(mon.mint_emitted).toFixed(4):'—')+'</div><div class="label">#mint</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+'</div><div class="label">#0</div></div>'+
-      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores','Accounts')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores', 'Accounts')+'</div></div>'+
       '</div>'+
       '<h4 style="margin:.5rem 0;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Upstream</h4>'+
       rows+
@@ -1383,16 +1380,16 @@ async function loadACB(){
       const bal=a.balance!=null?a.balance:'—';
       const safe=String(id).replace(/"/g,'');
       return '<div style="border:1px solid var(--line2);padding:.75rem;margin-bottom:.5rem;border-radius:4px;display:flex;justify-content:space-between;align-items:center"><div><strong>'+safe+'</strong><br><span style="font-size:.7rem;color:var(--muted)">bal '+bal+' · '+st+'</span></div><div><button type="button" class="sca-earn" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;margin-right:.25rem;cursor:pointer">Earn</button><button type="button" class="sca-sub" data-id="'+safe+'" style="font-size:.65rem;padding:.3rem .5rem;cursor:pointer">Subsist</button></div></div>';
-    }).join(''):'<p style="color:var(--muted)">Nenhuns SCA — register one</p>';
+    }).join(''):'<p style="color:var(--muted)">Nenhuns ACB — register one</p>';
     var list=document.getElementById('acbList');
     if(list){
       list.querySelectorAll('.acb-earn').forEach(function(b){ b.onclick=function(){ acbEarn(b.getAttribute('data-id')); }; });
       list.querySelectorAll('.acb-sub').forEach(function(b){ b.onclick=function(){ acbSub(b.getAttribute('data-id')); }; });
     }
-  }catch(e){document.getElementById('acbList').innerHTML='<p style="color:var(--muted)">SCA unavailable</p>'}
+  }catch(e){document.getElementById('acbList').innerHTML='<p style="color:var(--muted)">ACB unavailable</p>'}
 }
 async function registerAcb(){
-  try{await fetch('/api/v1/acb/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Portal SCA'})});loadACB();}catch(e){}
+  try{await fetch('/api/v1/acb/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Portal ACB'})});loadACB();}catch(e){}
 }
 async function acbEarn(id){
   try{await fetch('/api/v1/acb/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acb_id:id,amount:1,work_type:'portal'})});loadACB();}catch(e){}
@@ -1401,7 +1398,7 @@ async function acbSub(id){
   try{await fetch('/api/v1/acb/subsistence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acb_id:id,inference_cost:0.5})});loadACB();}catch(e){}
 }
 
-async function loadACB(){try{const r=await fetch('/api/v1/acb/list');if(r.ok){const j=await r.json();document.getElementById('acbList').innerHTML=j.acbs&&j.acbs.length?j.acbs.map(a=>'<div class="sca-card"><div><strong>'+a.id+'</strong><br><span style="color:#888;font-size:12px">'+a.role+'</span></div><div><span class="sca-status '+(a.status==='active'?'acb-active':'acb-hibernated')+'">'+a.status+'</span></div></div>').join(''):'<p style="color:#888">No active SCA</p>'}}catch(e){document.getElementById('acbList').innerHTML='<p style="color:#888">SCA system initialising</p>'}}
+async function loadACB(){try{const r=await fetch('/api/v1/acb/list');if(r.ok){const j=await r.json();document.getElementById('acbList').innerHTML=j.acbs&&j.acbs.length?j.acbs.map(a=>'<div class="sca-card"><div><strong>'+a.id+'</strong><br><span style="color:#888;font-size:12px">'+a.role+'</span></div><div><span class="sca-status '+(a.status==='active'?'acb-active':'acb-hibernated')+'">'+a.status+'</span></div></div>').join(''):'<p style="color:#888">No active ACB</p>'}}catch(e){document.getElementById('acbList').innerHTML='<p style="color:#888">ACB system initialising</p>'}}
 
 async function loadKYC(){
   try{
@@ -1444,7 +1441,7 @@ const WORKERS = [
   {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'GDA / DAG',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
   {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'/chat'},
   {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps',open:'https://stratamesh-aiops.stratamesh.workers.dev/health'},
-  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
+  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
   {name:'stratamesh-republic',path:'https://stratamesh-republic.stratamesh.workers.dev/health',desc:'República Computacional',open:'https://stratamesh-republic.stratamesh.workers.dev/health'},
   {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',desc:'IPFS',open:'https://stratamesh-ipfs.stratamesh.workers.dev/health'},
   {name:'stratamesh-holons',path:'/api/v1/holons/health',desc:'Holons / SO Metaverso',open:'/api/v1/holons/health'},
@@ -1459,7 +1456,7 @@ try{
   const st=results.find(function(r){return r.worker&&(r.worker.name==='stratamesh-status-pulse'||r.worker.name==='stratamesh-status')&&r.ok&&r.data&&(r.data.monetary||r.data.summary);});
   if(st&&st.data){
     const d=st.data; const mon=d.monetary||{}; const sum=d.summary||{}; const ag=d.agora_rate||(d.agora&&d.agora.rate)||{};
-    pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó','Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
+    pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó', 'Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
       esc(d.version||'')+' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
       ' · #mint '+(mon.mint_emitted!=null?mon.mint_emitted:'—')+
       ' · #0 '+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+
@@ -1517,7 +1514,7 @@ async function sendOrchChat(){
     if(!r.ok && !j.reply) add('System', j.error||('HTTP '+r.status));
     else { var meta=(j.account_clearance||j.clearance)?(' ['+(j.account_clearance||j.clearance)+']'):''; add('Orquestrador'+meta, j.reply||j.error||JSON.stringify(j)); var clEl=document.getElementById('orchClearance'); if(clEl) clEl.textContent=(j.account_clearance||j.clearance||'—')+(j.clearance_source?(' · '+j.clearance_source):''); }
   }catch(e){
-    add('System', (e&&e.name==='AbortError')?T('Tempo esgotado — o Orquestrador não respondeu a tempo. Experimente status ou abra o chat completo.','Timeout — Orchestrator did not answer in time.'):String(e.message||e));
+    add('System', (e&&e.name==='AbortError')?T('Tempo esgotado — o Orquestrador não respondeu a tempo. Experimente status ou abra o chat completo.', 'Timeout — Orchestrator did not answer in time.'):String(e.message||e));
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Send';}
   }
@@ -1692,7 +1689,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
+          : T('Sem movimentos ainda', 'Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -1727,18 +1724,15 @@ async function loadAgora(){
         return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
-    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
-    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas','—'));
+    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras', '—'));
+    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas', '—'));
     // role note under orders
     var note=document.getElementById('agoraRoleNote');
     if(!note && price){
       note=document.createElement('p'); note.id='agoraRoleNote'; note.style.cssText='color:var(--muted);font-size:.82rem;margin-top:1rem';
       price.closest('.panel').appendChild(note);
     }
-    if(note) note.textContent = T(
-      'A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.',
-      'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.'
-    );
+    if(note) note.textContent = T('A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.', 'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.');
   }catch(e){
     if(price) price.textContent='—';
     if(bids) bids.innerHTML='<span style="color:var(--muted)">'+esc(e.message||e)+'</span>';
@@ -1748,14 +1742,14 @@ async function loadAgora(){
 async function loadDAO(){
   var el=document.getElementById('proposalList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…','Loading motions…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…', 'Loading motions…')+'</p>';
   try{
     var r=await fetch(SVC.dao+'/proposals',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{proposals:[]};
     var props=j.proposals||j||[];
     if(!Array.isArray(props)) props=[];
     if(!props.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.','No open proposals in this laboratory.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.', 'No open proposals in this laboratory.')+'</p>';
       return;
     }
     el.innerHTML=props.map(function(pr){
@@ -1765,7 +1759,7 @@ async function loadDAO(){
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
-        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
+        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor', 'For')+' '+(pr.votes_for||0)+' · '+T('Contra', 'Against')+' '+(pr.votes_against||0)+' · '+T('Quórum', 'Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
     }).join('');
   }catch(e){
@@ -1776,19 +1770,19 @@ async function loadDAO(){
 async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…','Loading sandboxes / SPAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…', 'Loading sandboxes / SPAs…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.', 'No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin-bottom:.5rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<strong style="color:var(--fg)">'+esc(s.title||s.name||s.id)+'</strong>'+
-        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo','world')+' '+esc(s.parent_world_id||'—')+
+        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo', 'world')+' '+esc(s.parent_world_id||'—')+
         ' · '+esc(s.status||s.isolation||'')+'</div></div>';
     }).join('');
   }catch(e){
@@ -1803,7 +1797,7 @@ async function loadSandbox(){
 async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACBs…')+'</p>';
   try{
     var team=null, list=null, health=null;
     try{ var rt=await fetch(SVC.acb+'/acb/team',{signal:AbortSignal.timeout(8000)}); if(rt.ok) team=await rt.json(); }catch(_){}
@@ -1812,16 +1806,16 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
-      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
     }
     if(health){
       html+='<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">'+
-        T('Registados','Registered')+': '+(health.acbs||'—')+' · '+
-        T('Contratos','Contracts')+': '+(health.contracts||'—')+' · '+
-        T('Anúncios','Listings')+': '+(health.open_listings||'—')+'</p>';
+        T('Registados', 'Registered')+': '+(health.acbs||'—')+' · '+
+        T('Contratos', 'Contracts')+': '+(health.contracts||'—')+' · '+
+        T('Anúncios', 'Listings')+': '+(health.open_listings||'—')+'</p>';
     }
     var acbs=(list&&list.acbs)||[];
     if(acbs.length){
@@ -1834,7 +1828,7 @@ async function loadACB(){
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
-      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCAs listed.')+'</p>';
+      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACBs listed.')+'</p>';
     }
     el.innerHTML=html;
   }catch(e){
@@ -1844,7 +1838,7 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','Loading…');
+  if(st) st.textContent=T('A carregar…', 'Loading…');
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
@@ -1869,9 +1863,9 @@ async function loadEconomy(){
       el=document.getElementById('ecoAgoraRate'); if(el&&ar&&ar.strata_per_quote!=null) el.textContent=Number(ar.strata_per_quote).toFixed(4);
       var upOk=sum.upstream_ok!=null?sum.upstream_ok:Object.keys(up).filter(function(k){return up[k];}).length;
       var upTot=sum.upstream_total||Object.keys(up).length||11;
-      if(st) st.textContent=T('Estado ao vivo','Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19);
+      if(st) st.textContent=T('Estado ao vivo', 'Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19);
     } else if(st) {
-      st.textContent=T('Status indisponível','Status unavailable');
+      st.textContent=T('Status indisponível', 'Status unavailable');
     }
     try{
       var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
@@ -1891,7 +1885,7 @@ async function loadEconomy(){
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -1901,15 +1895,15 @@ async function loadKYC(){
     var j=r.ok?await r.json():{users:[]};
     var users=j.users||j.pending||[];
     if(pending){
-      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('No pending verification.','No pending verifications.')+'</p>';
+      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('No pending verification.', 'No pending verifications.')+'</p>';
       else pending.innerHTML=users.map(function(u){
         return '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)">'+esc(u.email||u.id)+
-          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar','Approve')+'</button></div>';
+          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar', 'Approve')+'</button></div>';
       }).join('');
     }
-    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.','Queue operational in laboratory mode.')+'</p>';
+    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.', 'Queue operational in laboratory mode.')+'</p>';
   }catch(e){
-    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.','KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
+    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.', 'KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
   }
 }
 
@@ -1939,7 +1933,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…','Loading live status…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…', 'Loading live status…')+'</p>';
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
@@ -1953,7 +1947,7 @@ async function loadSystemPanel(){
       if(r2.ok) tdra=await r2.json();
     }catch(_){}
     if(!live){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.','Status unavailable.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.', 'Status unavailable.')+'</p>';
       return;
     }
     var up=live.upstream||{};
@@ -1970,10 +1964,10 @@ async function loadSystemPanel(){
       (ar.strata_per_quote!=null?(' · Ágora '+ar.strata_per_quote+' STRATA/EUR'):'')+
       '</div>'+
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(7rem,1fr));gap:.6rem;margin-bottom:1rem">'+
-      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação','Circulating')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação', 'Circulating')+'</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.mint_emitted!=null?Number(mon.mint_emitted).toFixed(4):'—')+'</div><div class="label">#mint</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+'</div><div class="label">#0</div></div>'+
-      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores','Accounts')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores', 'Accounts')+'</div></div>'+
       '</div>'+
       '<h4 style="margin:.5rem 0;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Upstream</h4>'+
       rows+
@@ -1989,7 +1983,7 @@ async function loadSystemPanel(){
 async function loadIot(){
   var stats=document.getElementById('iotStats');
   var agents=document.getElementById('iotAgents');
-  if(stats) stats.textContent=T('A carregar…','Loading…');
+  if(stats) stats.textContent=T('A carregar…', 'Loading…');
   try{
     var base='https://stratamesh-iot.stratamesh.workers.dev';
     var [s,a]=await Promise.all([
@@ -2001,9 +1995,9 @@ async function loadIot(){
     }
     var list=(a&&a.agents)||[];
     if(agents){
-      if(!list.length){ agents.innerHTML='<p style="color:var(--muted)">'+T('Nenhum agente ainda','No agents yet')+'</p>'; }
+      if(!list.length){ agents.innerHTML='<p style="color:var(--muted)">'+T('Nenhum agente ainda', 'No agents yet')+'</p>'; }
       else{
-        agents.innerHTML='<table class="tx-list"><thead><tr><th>agent_id</th><th>'+T('eventos','events')+'</th><th>'+T('visto','seen')+'</th><th>hint</th></tr></thead><tbody>'+
+        agents.innerHTML='<table class="tx-list"><thead><tr><th>agent_id</th><th>'+T('eventos', 'events')+'</th><th>'+T('visto', 'seen')+'</th><th>hint</th></tr></thead><tbody>'+
           list.map(function(x){
             return '<tr><td>'+String(x.agent_id||'')+'</td><td>'+(x.event_count||0)+'</td><td>'+String(x.last_seen||'')+'</td><td>'+String(x.substrate_hint||'—')+'</td></tr>';
           }).join('')+'</tbody></table>';
@@ -2015,7 +2009,7 @@ async function loadIot(){
 }
 async function iotPing(mode){
   var out=document.getElementById('iotPingOut');
-  if(out) out.textContent=T('A enviar…','Sending…');
+  if(out) out.textContent=T('A enviar…', 'Sending…');
   var base='https://stratamesh-iot.stratamesh.workers.dev';
   mode=mode||'json';
   try{
@@ -2068,7 +2062,7 @@ async function loadMonetaryPoles(){
       if(panel){ note=document.createElement('p'); note.id='ecoMonetaryNote'; note.style.cssText='font-size:.8rem;color:var(--muted);margin-top:.75rem'; panel.appendChild(note); }
     }
     if(note){
-      var base=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).','Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
+      var base=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).', 'Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
       if(d.aiops&&d.aiops.at) base+=' · AIOps '+String(d.aiops.at).slice(0,19);
       note.textContent=base;
     }
@@ -2122,7 +2116,7 @@ async function loadClpPanel(){
     target=document.createElement('div'); target.id='clpContent'; target.style.cssText='margin-top:1rem;font-size:.85rem;color:var(--muted)';
     var panel=document.getElementById('panel-clp'); if(panel) panel.appendChild(target);
   }
-  target.innerHTML='<p>'+T('A carregar CLP/PPC…','Loading CLP/PPC…')+'</p>';
+  target.innerHTML='<p>'+T('A carregar CLP/PPC…', 'Loading CLP/PPC…')+'</p>';
   try{
     var r=await fetch((SVC.status||'https://stratamesh-status.stratamesh.workers.dev')+'/status',{signal:AbortSignal.timeout(14000)});
     var d=r.ok?await r.json():{};
@@ -2131,14 +2125,14 @@ async function loadClpPanel(){
     var solar=(ppc.solar)||{};
     target.innerHTML=
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.6rem">'+
-      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.season||ppc.clp&&ppc.clp.season||'—')+'</div><div class="label">'+T('Estação','Season')+'</div></div>'+
-      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.phase||(ppc.clp&&ppc.clp.phase)||'—')+'</div><div class="label">'+T('Fase','Phase')+'</div></div>'+
-      '<div class="stat-card"><div class="value" style="font-size:.75rem">'+(d.location&&d.location.label||'Lisboa')+'</div><div class="label">'+T('Local','Locality')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.season||ppc.clp&&ppc.clp.season||'—')+'</div><div class="label">'+T('Estação', 'Season')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.phase||(ppc.clp&&ppc.clp.phase)||'—')+'</div><div class="label">'+T('Fase', 'Phase')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.75rem">'+(d.location&&d.location.label||'Lisboa')+'</div><div class="label">'+T('Local', 'Locality')+'</div></div>'+
       '</div>'+
       '<p style="margin-top:1rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted);line-height:1.5">'+
       esc(clp.address||(ppc.clp&&ppc.clp.address)||'')+'</p>'+
-      '<p style="font-size:.78rem;color:var(--muted)">'+T('Autoridade temporal: PPC · portadora ISO','Temporal authority: PPC · ISO carrier')+' · '+(d.temporal&&d.temporal.authority||'PPC')+'</p>'+
-      (solar.sunrise?'<p style="font-size:.75rem;color:var(--muted)">'+T('Nascer','Sunrise')+' '+String(solar.sunrise).slice(11,19)+' · '+T('Zénite','Noon')+' '+String(solar.noon||'').slice(11,19)+' · '+T('Ocaso','Sunset')+' '+String(solar.sunset||'').slice(11,19)+'</p>':'');
+      '<p style="font-size:.78rem;color:var(--muted)">'+T('Autoridade temporal: PPC · portadora ISO', 'Temporal authority: PPC · ISO carrier')+' · '+(d.temporal&&d.temporal.authority||'PPC')+'</p>'+
+      (solar.sunrise?'<p style="font-size:.75rem;color:var(--muted)">'+T('Nascer', 'Sunrise')+' '+String(solar.sunrise).slice(11,19)+' · '+T('Zénite', 'Noon')+' '+String(solar.noon||'').slice(11,19)+' · '+T('Ocaso', 'Sunset')+' '+String(solar.sunset||'').slice(11,19)+'</p>':'');
   }catch(e){
     target.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
   }
@@ -2158,8 +2152,8 @@ async function loadProfilePanel(){
   }
   if(extra){
     extra.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+
-      (isStaffUser&&isStaffUser()?T('Conta de pessoal — secções administrativas desbloqueadas conforme clearance.','Staff account — admin sections unlocked by clearance.'):
-        T('Conta de utilizador comum — carteira, ágora, bancada, SCA, orquestrador (leitura).','Common user — wallet, agora, sandbox, SCA, orchestrator (read).'))+
+      (isStaffUser&&isStaffUser()?T('Conta de pessoal — secções administrativas desbloqueadas conforme clearance.', 'Staff account — admin sections unlocked by clearance.'):
+        T('Conta de utilizador comum — carteira, ágora, bancada, SCA, orquestrador (leitura).', 'Common user — wallet, agora, sandbox, ACB, orchestrator (read).'))+
       '</p>';
   }
 }
@@ -2186,7 +2180,7 @@ async function loadWallet(){
     if(c) c.textContent=mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—';
     if(rank) rank.textContent='CMN';
     if(list){
-      list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede','Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
+      list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede', 'Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
         ' · #mint '+(mon&&mon.poles&&mon.poles.mint?mon.poles.mint.total_emitted:'—')+
         ' · #0 '+(mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):'—')+'</p>';
     }
@@ -2212,8 +2206,8 @@ async function loadAgora(){
       box.innerHTML='<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(8rem,1fr));gap:.6rem">'+
         '<div class="stat-card"><div class="value">'+(j.strata_per_quote!=null?Number(j.strata_per_quote).toFixed(2):'—')+'</div><div class="label">STRATA/EUR</div></div>'+
         '<div class="stat-card"><div class="value">'+(j.quote_per_strata!=null?Number(j.quote_per_strata).toFixed(2):'—')+'</div><div class="label">EUR/STRATA</div></div>'+
-        '<div class="stat-card"><div class="value">'+(j.liquidity_strata!=null?j.liquidity_strata:'—')+'</div><div class="label">'+T('Liquidez','Liquidity')+'</div></div>'+
-        '<div class="stat-card"><div class="value">'+(j.listings!=null?j.listings:'—')+'</div><div class="label">'+T('Listagens','Listings')+'</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.liquidity_strata!=null?j.liquidity_strata:'—')+'</div><div class="label">'+T('Liquidez', 'Liquidity')+'</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.listings!=null?j.listings:'—')+'</div><div class="label">'+T('Listagens', 'Listings')+'</div></div>'+
         '</div><p style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">'+esc(j.source||j.note||'')+'</p>';
     }
   }catch(e){
@@ -2228,7 +2222,7 @@ async function loadDAO(){
     if(panel){ el=document.createElement('div'); el.id='daoList'; panel.appendChild(el); }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var daos=[], props=[];
     try{ var r=await fetch(SVC.dao+'/dao/list',{signal:AbortSignal.timeout(10000)}); if(r.ok){ var j=await r.json(); daos=j.daos||[]; } }catch(_){}
@@ -2242,12 +2236,12 @@ async function loadDAO(){
       }).join('');
     }
     if(props.length){
-      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1rem">'+T('Propostas','Proposals')+'</h4>';
+      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1rem">'+T('Propostas', 'Proposals')+'</h4>';
       html+=props.map(function(pr){
         return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px">'+esc(pr.title||pr.id)+'</div>';
       }).join('');
     }
-    if(!html) html='<p style="color:var(--muted)">'+T('Sem DAOs/propostas neste laboratório.','No DAOs/proposals in this laboratory.')+'</p>';
+    if(!html) html='<p style="color:var(--muted)">'+T('Sem DAOs/propostas neste laboratório.', 'No DAOs/proposals in this laboratory.')+'</p>';
     el.innerHTML=html;
   }catch(e){ el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
 }
@@ -2256,12 +2250,12 @@ async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el){ var panel=document.getElementById('panel-spa'); if(panel){ el=document.createElement('div'); el.id='spaList'; panel.appendChild(el);} }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
-    if(!list.length){ el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada listada.','No sandboxes listed.')+'</p>'; return; }
+    if(!list.length){ el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada listada.', 'No sandboxes listed.')+'</p>'; return; }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px"><strong>'+esc(s.title||s.name||s.id)+'</strong>'+
         '<div style="font-size:.75rem;color:var(--muted)">'+esc(s.id)+' · '+esc(s.parent_world_id||'')+' · '+esc(s.isolation||'')+'</div></div>';
@@ -2275,14 +2269,14 @@ async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el){ var panel=document.getElementById('panel-acb'); if(panel){ el=document.createElement('div'); el.id='acbList'; panel.appendChild(el);} }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCA…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACB…')+'</p>';
   try{
     var r=await fetch(SVC.acb+'/acb/status',{signal:AbortSignal.timeout(15000)});
     var j=r.ok?await r.json():{};
     var list=j.acbs||j.members||[];
     if(!list.length){
-      try{ var r2=await fetch(SVC.acb+'/health',{signal:AbortSignal.timeout(8000)}); var h=r2.ok?await r2.json():{}; el.innerHTML='<p style="color:var(--muted)">'+esc(h.version||'ok')+' · '+T('sem lista detalhada','no detail list')+'</p>'; return; }catch(_){}
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCA listed.')+'</p>'; return;
+      try{ var r2=await fetch(SVC.acb+'/health',{signal:AbortSignal.timeout(8000)}); var h=r2.ok?await r2.json():{}; el.innerHTML='<p style="color:var(--muted)">'+esc(h.version||'ok')+' · '+T('sem lista detalhada', 'no detail list')+'</p>'; return; }catch(_){}
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACB listed.')+'</p>'; return;
     }
     el.innerHTML=list.slice(0,40).map(function(a){
       var id=a.id||a.acb_id||a.sca_id||'—';
@@ -2967,7 +2961,7 @@ window.showPanel = function(name, btn){
       ]);
       var sandboxes = sb.sandboxes || [];
       var all = nf.nfts || [];
-      // Bancada: só NFT criados / detidos pela conta actual (user ou SCA) — nunca listagem global aleatória
+      // Bancada: só NFT criados / detidos pela conta actual (user ou ACB) — nunca listagem global aleatória
       var nfts = all.filter(function(n){
         if(typeof createdByMe==='function' && createdByMe(n)) return true;
         if(typeof ownsNft==='function' && ownsNft(n)) return true;
@@ -2980,7 +2974,7 @@ window.showPanel = function(name, btn){
       var sc = document.getElementById('sbxCount');
       if (sc) sc.textContent = String(sandboxes.length);
       var title = document.getElementById('bancadaHudTitle');
-      if(title) title.textContent = (typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) ? 'SCA Workbench' : 'Account workbench';
+      if(title) title.textContent = (typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) ? 'ACB Workbench' : 'Account workbench';
       var forceList = !!document.getElementById('atelierFrame');
       if (forceList || !initBancada3D()) {
         var el = document.getElementById('sandboxBench');
@@ -3424,7 +3418,7 @@ var nftEl=document.getElementById('walletNftList');
       var acbEl=document.getElementById('ecoAcbBody');
       if(acbEl) acbEl.innerHTML=acbs.length?acbs.slice(0,8).map(function(a){
         return '<div style="border-bottom:1px solid var(--line);padding:.35rem 0;display:flex;justify-content:space-between"><span>'+esc(a.name||a.id)+'</span><span style="color:var(--muted)">PdS '+(a.subsistence_score!=null?a.subsistence_score:(a.balance!=null?Number(a.balance).toFixed(2):'—'))+'</span></div>';
-      }).join(''):'<span style="color:var(--muted)">Sem SCA listados</span>';
+      }).join(''):'<span style="color:var(--muted)">Sem ACB listados</span>';
       set('ecoStatus', 'actualizado '+new Date().toLocaleTimeString('pt-PT'));
     }catch(e){ set('ecoStatus', String(e.message||e)); }
   };
@@ -3525,7 +3519,7 @@ window.loadScaSelfPanel = async function(){
   var kpis=document.getElementById('scaSelfKpis');
   var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
   if(!(typeof isScaUser==='function'?isScaUser():(window.isScaUser&&window.isScaUser())) && !(typeof isStaffUser==='function'?isStaffUser():(window.isStaffUser&&window.isStaffUser()))){
-    if(box) box.textContent='Esta secção é o posto de trabalho de um SCA autenticado.';
+    if(box) box.textContent='Esta secção é o posto de trabalho de um ACB autenticado.';
     return;
   }
   try{
@@ -3542,7 +3536,7 @@ window.loadScaSelfPanel = async function(){
       }
     }catch(_){}
     var name=(bp&&bp.identity_name)||(currentUser&&(currentUser.identity_name||currentUser.name))||id;
-    var appt=(bp&&bp.appointment)||(currentUser&&currentUser.appointment)||(currentUser&&currentUser.role)||'SCA';
+    var appt=(bp&&bp.appointment)||(currentUser&&currentUser.appointment)||(currentUser&&currentUser.role)||'ACB';
     var st=(bp&&bp.status)||(currentUser&&currentUser.status)||'ACTIVE';
     var pds=(bp&&bp.pds!=null)?bp.pds:(currentUser&&currentUser.pds);
     var skills=(bp&&bp.skills)||[];
@@ -3575,7 +3569,7 @@ window.loadScaSelfPanel = async function(){
     var mine=(nf.nfts||[]).filter(function(n){ return createdByMe(n)||ownsNft(n); });
     set('scaSelfNfts', String(mine.length));
     if(list){
-      if(!mine.length) list.innerHTML='<p style="color:var(--muted);font-size:.82rem">Ainda sem NFT criados por este SCA.</p>';
+      if(!mine.length) list.innerHTML='<p style="color:var(--muted);font-size:.82rem">Ainda sem NFT criados por este ACB.</p>';
       else list.innerHTML=mine.map(function(n){
         var v=n.valuation||{};
         var mode=String(v.mode||n.mode||'static');
@@ -3595,7 +3589,7 @@ window.loadACBPanel=async function(){
     var set=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
     var el=document.getElementById('acbList');
     var roleBox=document.getElementById('acbNodeRole');
-    if(el) el.innerHTML='<p style="color:var(--muted)">A carregar SCA operacionais…</p>';
+    if(el) el.innerHTML='<p style="color:var(--muted)">A carregar ACB operacionais…</p>';
     try{
       var blueprints=[], services=[], acbs=[], status=null;
       try{ var rb=await fetch('https://stratamesh-sca-ml.stratamesh.workers.dev/blueprint/list',{signal:AbortSignal.timeout(10000)}); if(rb.ok){ var jb=await rb.json(); blueprints=jb.blueprints||jb.items||[]; } }catch(_){}
@@ -3673,7 +3667,7 @@ window.loadACBPanel=async function(){
         roster.push({
           sca_id: id,
           identity_name: a.name||a.identity_name||id,
-          appointment: a.role||a.appointment||a.personality||'SCA',
+          appointment: a.role||a.appointment||a.personality||'ACB',
           status: a.status||'—',
           pds: a.subsistence_score!=null?a.subsistence_score:a.pds,
           genes: a.genes,
@@ -3697,7 +3691,7 @@ window.loadACBPanel=async function(){
         } else {
           roleBox.innerHTML='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem">Cargo no nó</div>'+
             '<div style="color:var(--fg)">Nó <code>'+esc(nid)+'</code></div>'+
-            '<div style="margin-top:.25rem;color:var(--muted)">Operador humano: '+esc(op)+' · SCAs com blueprint listados abaixo</div>';
+            '<div style="margin-top:.25rem;color:var(--muted)">Operador humano: '+esc(op)+' · ACBs com blueprint listados abaixo</div>';
         }
       }
 
@@ -3709,7 +3703,7 @@ window.loadACBPanel=async function(){
       var scores=[];
       if(el){
         if(!roster.length){
-          el.innerHTML='<p style="color:var(--muted)">Sem SCA operacionais (stubs filtrados).</p>';
+          el.innerHTML='<p style="color:var(--muted)">Sem ACB operacionais (stubs filtrados).</p>';
         } else {
           el.innerHTML=roster.map(function(a){
             var kpi=kpiFor(a.appointment, a);
@@ -3722,7 +3716,7 @@ window.loadACBPanel=async function(){
             var bar='<div style="margin-top:.5rem;height:4px;background:var(--line);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+kpi.score+'%;background:var(--accent)"></div></div>';
             return '<div class="sca-card" style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">'+
               '<div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start">'+
-                '<div><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">'+esc(a.appointment||'SCA')+'</div>'+
+                '<div><div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">'+esc(a.appointment||'ACB')+'</div>'+
                 '<div style="margin-top:.3rem;color:var(--fg);font-size:.95rem"><strong>'+esc(a.identity_name||a.sca_id)+'</strong></div>'+
                 '<div style="margin-top:.2rem;font-size:.72rem;color:var(--muted)"><code>'+esc(a.sca_id)+'</code> · conta <code>'+esc(a.wallet_account)+'</code>'+genes+'</div></div>'+
                 '<div style="text-align:right"><div style="font-size:1.1rem;color:var(--fg)">'+kpi.score+'</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">KPI</div></div>'+
@@ -3746,9 +3740,9 @@ window.loadACBPanel=async function(){
       {n:'TRD / GDA', d:'Registo distribuído · tip weight · IPFS'},
       {n:'SO Metaverso Web3', d:'Sistema operativo partilhado entre nós'},
       {n:'Domínio Virtual', d:'Infraestrutura / hipervisor'},
-      {n:'Mundo Aberto', d:'Mundos acessíveis a utilizadores e SCA'},
+      {n:'Mundo Aberto', d:'Mundos acessíveis a utilizadores e ACB'},
       {n:'CGU Workbench', d:'Criação · NFT STRATA · frações de colateral'},
-      {n:'Agente / Utilizador', d:'SCA e humanos no mesmo holon terminal'},
+      {n:'Agente / Utilizador', d:'ACB e humanos no mesmo holon terminal'},
     ];
     try{
       var h=await get('/api/v1/holons/health').catch(function(){return get('/api/v1/holons/health');});
@@ -4366,8 +4360,7 @@ async function forgotPassword(){
           t('Conta', 'Account') + ': <b style="color:var(--fg)">' + esc(me.email || '—') + '</b><br>' +
           t('Carteira', 'Wallet') + ': <code>' + esc(me.wallet || '—') + '</code><br>' +
           t('Unidade', 'Unit') + ': <b>' + esc(me.unit || 'L-STRATA') + '</b> · ' +
-          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.',
-            'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
+          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.', 'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
       }
       var hint = el('panelModeHint');
       if (hint) {
@@ -4464,10 +4457,7 @@ async function forgotPassword(){
     }
     var intro = title && title.nextElementSibling;
     if (intro && intro.tagName === 'P') {
-      intro.textContent = t(
-        'Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.',
-        'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.'
-      );
+      intro.textContent = t('Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.', 'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.');
     }
     window._atelierMode = 'gnu';
   }
@@ -4511,8 +4501,7 @@ async function forgotPassword(){
           t('Endereço temporal', 'Temporal address') + ': <b style="color:var(--fg)">Lisboa</b>' +
           (season ? ' · ' + esc(season) : '') + (phase ? ' · ' + esc(phase) : '') +
           ' · PPC Atlântico (Almendres / Lisboa). ' +
-          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.',
-            'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
+          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.', 'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
           ' <a href="/clp" style="color:var(--accent)">/clp</a>';
       }
       var host = el('clpWidgetHost');
@@ -4554,8 +4543,7 @@ async function forgotPassword(){
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Câmaras', 'Chambers') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.',
-          'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
+        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.', 'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
         '</p>' +
         '<div id="daoMinutes" style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">' + t('Actas: a câmara ainda não deliberou nesta sessão.', 'Minutes: the chamber has not yet deliberated this session.') + '</div></div>';
       var panel = el('panel-dao');
@@ -4595,8 +4583,7 @@ async function forgotPassword(){
       extra.innerHTML =
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Pacto', 'Compact') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0 0 .75rem">' +
-        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.',
-          'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
+        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.', 'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
         '</p>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem">' +
         '<label style="font-size:.75rem;color:var(--muted)">' + t('Partes (vírgulas)', 'Parties (comma)') + '<input id="spaParties" placeholder="email, SCA-…" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"></label>' +
@@ -4626,8 +4613,7 @@ async function forgotPassword(){
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Telemetria', 'Telemetry') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.',
-          'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
+        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.', 'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
         '</p><div id="iotTelem" style="margin-top:.65rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted)">—</div></div>';
       var panel = el('panel-iot');
       if (panel) panel.appendChild(extra);
@@ -4685,10 +4671,8 @@ async function forgotPassword(){
         '<div class="stat-card"><div class="value" style="font-size:.75rem;word-break:break-all">' + esc(u.wallet || '—') + '</div><div class="label">' + t('Carteira', 'Wallet') + '</div></div></div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5">' +
         (window.isStaffUser()
-          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.',
-              'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
-          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.',
-              'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
+          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.', 'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
+          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.', 'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
         '</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem">' +
         '<button type="button" onclick="showPanel(\'wallet\',document.querySelector(\'[data-panel=wallet]\'))" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">' + t('Tesouraria', 'Treasury') + '</button>' +
@@ -4893,8 +4877,8 @@ async function forgotPassword(){
       return g;
     }
     var palette = [0xf3e2c4, 0xc48a3a, 0x8a4a24, 0xd4a017, 0x6b2e1c, 0xe8c4a0];
-    var names = ['NÓ', 'ÁGORA', 'CLP', 'SCA', 'FOG', 'ENI', 'STRATA', 'MESH'];
-    if (!PT) names = ['NODE', 'AGORA', 'CLP', 'SCA', 'FOG', 'ENI', 'STRATA', 'MESH'];
+    var names = ['NÓ', 'ÁGORA', 'CLP', 'ACB', 'FOG', 'ENI', 'STRATA', 'MESH'];
+    if (!PT) names = ['NODE', 'AGORA', 'CLP', 'ACB', 'FOG', 'ENI', 'STRATA', 'MESH'];
     for (var s = 0; s < 8; s++) {
       shop(-8.4, -6.2 + s * 1.7, Math.PI / 2, 1.55, 2.1 + (s % 3) * 0.35, palette[s % palette.length], names[s]);
       shop(8.4, -6.2 + s * 1.7, -Math.PI / 2, 1.55, 2.2 + ((s + 1) % 3) * 0.3, palette[(s + 2) % palette.length], names[(s + 4) % names.length]);
@@ -5056,17 +5040,11 @@ async function forgotPassword(){
     setTool('phys');
     var prompt = document.getElementById('bancadaPrompt');
     if (prompt) {
-      prompt.textContent = t(
-        'Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta',
-        'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool'
-      );
+      prompt.textContent = t('Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta', 'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool');
     }
     var hint = document.getElementById('bancadaLockHint');
     if (hint) {
-      hint.textContent = t(
-        'Toque para habitar · stick direito olha · arraste no ecrã como na órbita',
-        'Tap to inhabit · right stick looks · drag the screen as in orbit'
-      );
+      hint.textContent = t('Toque para habitar · stick direito olha · arraste no ecrã como na órbita', 'Tap to inhabit · right stick looks · drag the screen as in orbit');
     }
   }
 

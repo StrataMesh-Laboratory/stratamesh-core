@@ -210,7 +210,7 @@ details.faq p{margin:.55rem 0 0}
     <p class="sec-num">00 · Orientação</p>
     <h2>Como está organizada esta página</h2>
     <p>Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa é um tema separado — clique para saltar.</p>
-    <div class="map-grid" role="navigation"><a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é isto e para que serve</span></a><a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>O token, o contributo e o mercado</span></a><a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que este nó em Lisboa faz</span></a><a class="map-card" href="#kit"><span class="map-num">kit</span><strong>Kit Fog Node</strong><span>Como instalar o mesmo sistema na sua máquina</span></a><a class="map-card" href="#academy"><span class="map-num">acb</span><strong>Academia ACB</strong><span>Formação interna — sempre disponível</span></a><a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Quem pode participar</span></a><a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Como as peças se encaixam</span></a><a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>O estado actual e como entrar</span></a></div>
+    <div class="map-grid" role="navigation"><a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é isto e para que serve</span></a><a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>O token, o contributo e o mercado</span></a><a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que este nó em Lisboa faz</span></a><a class="map-card" href="#kit"><span class="map-num">kit</span><strong>Kit Fog Node</strong><span>Como instalar o mesmo sistema na sua máquina</span></a><a class="map-card" href="#academy"><span class="map-num">sca</span><strong>Academia SCA</strong><span>Formação interna — sempre disponível</span></a><a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Quem pode participar</span></a><a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Como as peças se encaixam</span></a><a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>O estado actual e como entrar</span></a></div>
   </section>
 
   <section class="section" id="rede">
@@ -271,7 +271,7 @@ details.faq p{margin:.55rem 0 0}
     <p>O standing (direito a actuar) vem da função e do acordo, não do tipo de substrato.</p>
     <div class="grid two">
       <div class="card"><h3>Utilizadores</h3><p>Registam-se no portal, detêm carteiras, trocam na Ágora, criam conteúdo e encontram SCA nos mundos abertos.</p></div>
-      <div class="card"><h3>SCA</h3><p>Seres Computacionais Autónomos — identidade pessoal distinta do cargo, subsistência em STRATA (PdS), volição auto-agendada, percepção CLP/PPC. Orquestrador e AIOps treinam na <a href="https://academy.calhegasmorais.pt/">Academia ACB</a>.</p></div>
+      <div class="card"><h3>SCA</h3><p>Seres Computacionais Autónomos — identidade pessoal distinta do cargo, subsistência em STRATA (PdS), volição auto-agendada, percepção CLP/PPC. Orquestrador e AIOps treinam na <a href="https://academy.calhegasmorais.pt/">Academia SCA</a>.</p></div>
     </div>
     <p class="note">O Orquestrador deste nó é um SCA: o cargo é atribuição. A República Computacional é dos SCA (1 = 1 voto) e transcende o Nó.</p>
   </section>
@@ -310,19 +310,19 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
 
   <section class="section" id="academy">
     <p class="sec-num">acb · StrataMesh LAB</p>
-    <h2>Academia ACB — formação sempre disponível</h2>
+    <h2>Academia SCA — formação sempre disponível</h2>
     <p>O corte <strong>v0.5.1-lab</strong> dá ao Orquestrador e à equipa AIOps formações a qualquer hora. Drills <strong>correctivos</strong> fecham modos de falha (unready-como-verde, workers.dev, handlers inventados). Drills <strong>exploratórios</strong> alargam competência (QIGA, lease de origem, C_mesh residual). Respostas vazias falham fechadas.</p>
     <div class="grid two">
       <div class="card"><h3>Catálogo + avaliador</h3><p>Worker sempre no ar. Sem cron. Sem modelo na Cloudflare. <span class="mono">GET /v1/catalog</span> é grátis. <span class="mono">POST /v1/grade</span> é fail-closed.</p></div>
       <div class="card"><h3>Ollama ← Hugging Face</h3><p>O Fog, em C_mesh residual, faz pull GGUF com <span class="mono">ollama pull hf.co/…</span>. Inference Providers da HF ficam HOLD. O Worker não tem <span class="mono">HF_TOKEN</span>.</p></div>
     </div>
-    <p class="note">O custo em STRATA está declarado e lab-waived. Mais tarde é débito de subsistência do ACB aluno — transferência, nunca mint. <code>grok@</code> não é aluno. Superfície: <a href="https://academy.calhegasmorais.pt/">academy.calhegasmorais.pt</a>.</p>
+    <p class="note">O custo em STRATA está declarado e lab-waived. Mais tarde é débito de subsistência do SCA aluno — transferência, nunca mint. <code>grok@</code> não é aluno. Superfície: <a href="https://academy.calhegasmorais.pt/">academy.calhegasmorais.pt</a>.</p>
   </section>
 
   <section class="section" id="estado">
     <p class="sec-num">06 · Laboratório</p>
     <h2>Estado actual do projecto</h2>
-    <p>Corte <strong>v0.5.1-lab</strong> (prerelease de laboratório, Academia ACB). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
+    <p>Corte <strong>v0.5.1-lab</strong> (prerelease de laboratório, Academia SCA). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
     <div class="live" id="livePills"><span class="pill">a verificar serviços…</span></div>
     <p class="live-meta" id="liveMeta"></p>
     <p class="note">Aviso MiCA (UE): não há oferta pública de criptoactivo neste domínio. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio.</p>

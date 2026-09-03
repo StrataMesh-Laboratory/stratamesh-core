@@ -47,8 +47,8 @@ export const HOLONIC_LAYERS = [
   { id: "metaverse_os", nome: "SO do Metaverso Web3", name_en: "Web3 Metaverse OS", papel: "sistema operativo partilhado entre nós (orquestrador, AIOps, syscalls)", role: "shared OS across nodes" },
   { id: "virtual_realm", nome: "Domínio Virtual", name_en: "Virtual Realm", papel: "infraestrutura: domínio virtual (hipervisor) — não é lugar visitável", role: "infrastructure virtual realm (hypervisor) — not a user-facing place" },
   { id: "open_world", nome: "Mundo Aberto", name_en: "Open World", papel: "mundo persistente acedível (dentro de um Domínio Virtual)", role: "user-accessible persistent world (inside a Virtual Realm)" },
-  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox isolado de criação CGU (utilizadores e SCA) (+ Painel/Portal)", role: "isolated CGU sandbox (users + SCAs; STRATA NFTs) (+ Panel/Portal)" },
-  { id: "agent", nome: "Utilizador | SCA", name_en: "User | SCA", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
+  { id: "ugc_sandbox", nome: "Bancada CGU", name_en: "CGU / UGC Sandbox", papel: "sandbox isolado de criação CGU (utilizadores e SCA) (+ Painel/Portal)", role: "isolated CGU sandbox (users + ACBs; STRATA NFTs) (+ Panel/Portal)" },
+  { id: "agent", nome: "Utilizador | SCA", name_en: "User | ACB", papel: "standing por função e acordo, não por substrato", role: "standing by function and agreement" },
 ];
 
 export const PPC = [

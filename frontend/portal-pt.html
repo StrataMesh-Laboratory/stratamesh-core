@@ -701,7 +701,7 @@ function toggleMode(){
   isRegister=!isRegister;
   document.getElementById('formTitle').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Sign in':'Entrar');
   document.getElementById('authBtn').textContent=isRegister?(LANG==='en'?'Register':'Registar'):(LANG==='en'?'Continue':'Continuar');
-  document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar','Already have an account? Sign in'):T('Precisa de conta? Registar','Need an account? Register');
+  document.getElementById('toggleText').textContent=isRegister?T('Já tem conta? Entrar', 'Already have an account? Sign in'):T('Precisa de conta? Registar', 'Need an account? Register');
   document.getElementById('loginError').style.display='none';
   var pw=document.getElementById('password');
   if(pw){ pw.style.display=isRegister?'none':'block'; if(isRegister) pw.value=''; }
@@ -1066,11 +1066,11 @@ async function handleAuth(){
       return;
     }
   }
-  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório','Email required'):'Email required'); return; }
+  if(isRegister){ if(!e){ setErr(typeof T==='function'?T('E-mail obrigatório', 'Email required'):'Email required'); return; }
     if(!(document.getElementById('termsAccept')&&document.getElementById('termsAccept').checked)){
       setErr(LANG==='en'?'You must accept the Node terms and conditions.':'Tem de aceitar os termos e condições do Nó.'); return;
     }
-  } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios','Email and password required'):'Email and password required'); return; } }
+  } else { if(!e||!p){ setErr(typeof T==='function'?T('Email e palavra-passe obrigatórios', 'Email and password required'):'Email and password required'); return; } }
   setErr('');
   if(isRegister && !getTurnstileToken()){
     setErr(LANG==='en'?'Complete the security check (Turnstile) first.':'Complete primeiro a verificação de segurança (Turnstile).');
@@ -1186,40 +1186,40 @@ function vaPaintMeta(k){
   var hasPaste=!!((document.getElementById('vaTokenBox')||{}).value);
   if(!st) return;
   if(!k){
-    st.textContent=T('desligado','off');
+    st.textContent=T('desligado', 'off');
     if(ex) ex.textContent='—';
     if(px) px.textContent='—';
-    if(hint) hint.textContent=T('Passo 1: Ligar. O pacote só aparece uma vez.','Step 1: Connect. The pack is shown once.');
-    vaSetPrimary(T('Ligar · 7 dias','Connect · 7 days'), 'connect');
+    if(hint) hint.textContent=T('Passo 1: Ligar. O pacote só aparece uma vez.', 'Step 1: Connect. The pack is shown once.');
+    vaSetPrimary(T('Ligar · 7 dias', 'Connect · 7 days'), 'connect');
     return;
   }
   var expired=!!k.expired;
-  st.textContent=k.revoked_at?T('revogado','revoked'):(expired?T('expirado','expired'):T('ligado','on'));
+  st.textContent=k.revoked_at?T('revogado', 'revoked'):(expired?T('expirado', 'expired'):T('ligado', 'on'));
   var days=(k.days_left!=null)?k.days_left:null;
   if(ex) ex.textContent=k.expires_at?(String(k.expires_at).replace('T',' ').slice(0,16)+(days!=null?(' · '+days+'d'):'')):'—';
   if(px) px.textContent=k.prefix||'—';
   if(expired){
-    if(hint) hint.textContent=T('Expirado. Renovar gera um token novo (o antigo deixa de valer).','Expired. Renew issues a new token (old one dies).');
-    vaSetPrimary(T('Renovar · 7 dias','Renew · 7 days'), 'renew');
+    if(hint) hint.textContent=T('Expirado. Renovar gera um token novo (o antigo deixa de valer).', 'Expired. Renew issues a new token (old one dies).');
+    vaSetPrimary(T('Renovar · 7 dias', 'Renew · 7 days'), 'renew');
   } else {
     if(hint) hint.textContent=hasPaste
-      ? T('Passo 2: copiar o pacote e colar no AI.','Step 2: copy the pack into your AI.')
-      : T('Token já emitido esta semana — não volta a ser mostrado. Renovar se o AI ainda não o tiver.','Token already issued this week — not shown again. Renew if the AI never got it.');
-    vaSetPrimary(T('Renovar · 7 dias','Renew · 7 days'), 'renew');
+      ? T('Passo 2: copiar o pacote e colar no AI.', 'Step 2: copy the pack into your AI.')
+      : T('Token já emitido esta semana — não volta a ser mostrado. Renovar se o AI ainda não o tiver.', 'Token already issued this week — not shown again. Renew if the AI never got it.');
+    vaSetPrimary(T('Renovar · 7 dias', 'Renew · 7 days'), 'renew');
   }
 }
 function vaShowToken(j){
   var box=document.getElementById('vaTokenBox');
   var pack=j.paste||j.token||'';
   if(box){ box.value=pack; box.focus(); box.select(); }
-  if(typeof showToast==='function') showToast(T('Pacote de 7 dias — copie agora','7-day pack — copy now'));
+  if(typeof showToast==='function') showToast(T('Pacote de 7 dias — copie agora', '7-day pack — copy now'));
   vaPaintMeta(j.key);
 }
 async function loadVaPanel(){
   try{
     var box=document.getElementById('vaTokenBox'); if(box && !box.value) box.value='';
     var j=await vaApi('/v1/va/keys');
-    if(j.http===401){ vaPaintMeta(null); var h=document.getElementById('vaHint'); if(h) h.textContent=T('Inicie sessão para ligar o assistente.','Sign in to connect the assistant.'); return; }
+    if(j.http===401){ vaPaintMeta(null); var h=document.getElementById('vaHint'); if(h) h.textContent=T('Inicie sessão para ligar o assistente.', 'Sign in to connect the assistant.'); return; }
     var keys=(j.keys||[]).filter(function(k){return !k.revoked_at;});
     vaPaintMeta(keys[keys.length-1]||null);
   }catch(e){ vaPaintMeta(null); }
@@ -1231,14 +1231,14 @@ async function vaPrimary(){
 async function vaConnect(){
   try{
     var j=await vaApi('/v1/va/connect',{method:'POST',body:'{}'});
-    if(j.already){ vaPaintMeta(j.key); if(typeof showToast==='function') showToast(T('Já ligado — renovar só se o AI não tiver o token','Already on — renew only if the AI never got the token')); return; }
+    if(j.already){ vaPaintMeta(j.key); if(typeof showToast==='function') showToast(T('Já ligado — renovar só se o AI não tiver o token', 'Already on — renew only if the AI never got the token')); return; }
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
     vaShowToken(j);
   }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
 }
 async function vaRenew(){
   try{
-    if(!confirm(T('Renovar invalida o token actual. Continuar?','Renew kills the current token. Continue?'))) return;
+    if(!confirm(T('Renovar invalida o token actual. Continuar?', 'Renew kills the current token. Continue?'))) return;
     var j=await vaApi('/v1/va/keys/renew',{method:'POST',body:'{}'});
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
     vaShowToken(j);
@@ -1246,21 +1246,21 @@ async function vaRenew(){
 }
 async function vaRevoke(){
   try{
-    if(!_vaActive||!_vaActive.id){ if(typeof showToast==='function') showToast(T('Nada a revogar','Nothing to revoke'),'error'); return; }
-    if(!confirm(T('Revogar agora? O AI perde o acesso.','Revoke now? The AI loses access.'))) return;
+    if(!_vaActive||!_vaActive.id){ if(typeof showToast==='function') showToast(T('Nada a revogar', 'Nothing to revoke'),'error'); return; }
+    if(!confirm(T('Revogar agora? O AI perde o acesso.', 'Revoke now? The AI loses access.'))) return;
     var j=await vaApi('/v1/va/keys/'+_vaActive.id,{method:'DELETE'});
     if(!j.ok){ if(typeof showToast==='function') showToast(j.error||'fail','error'); return; }
     var box=document.getElementById('vaTokenBox'); if(box) box.value='';
     vaPaintMeta(null);
-    if(typeof showToast==='function') showToast(T('Token revogado','Token revoked'));
+    if(typeof showToast==='function') showToast(T('Token revogado', 'Token revoked'));
   }catch(e){ if(typeof showToast==='function') showToast(String(e.message||e),'error'); }
 }
 function vaCopy(){
   var box=document.getElementById('vaTokenBox');
   var t=box&&box.value;
-  if(!t){ if(typeof showToast==='function') showToast(T('Ligue ou renove primeiro para ver o pacote','Connect or renew first to see the pack'),'error'); return; }
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ showToast(T('Pacote copiado','Pack copied')); }); return; }
-  box.select(); document.execCommand('copy'); if(typeof showToast==='function') showToast(T('Pacote copiado','Pack copied'));
+  if(!t){ if(typeof showToast==='function') showToast(T('Ligue ou renove primeiro para ver o pacote', 'Connect or renew first to see the pack'),'error'); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){ showToast(T('Pacote copiado', 'Pack copied')); }); return; }
+  box.select(); document.execCommand('copy'); if(typeof showToast==='function') showToast(T('Pacote copiado', 'Pack copied'));
 }
 
 async function loadWallet(){
@@ -1299,7 +1299,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
+          : T('Sem movimentos ainda', 'Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -1334,18 +1334,15 @@ async function loadAgora(){
         return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
-    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
-    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas','—'));
+    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras', '—'));
+    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas', '—'));
     // role note under orders
     var note=document.getElementById('agoraRoleNote');
     if(!note && price){
       note=document.createElement('p'); note.id='agoraRoleNote'; note.style.cssText='color:var(--muted);font-size:.82rem;margin-top:1rem';
       price.closest('.panel').appendChild(note);
     }
-    if(note) note.textContent = T(
-      'A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.',
-      'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.'
-    );
+    if(note) note.textContent = T('A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.', 'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.');
   }catch(e){
     if(price) price.textContent='—';
     if(bids) bids.innerHTML='<span style="color:var(--muted)">'+esc(e.message||e)+'</span>';
@@ -1355,14 +1352,14 @@ async function loadAgora(){
 async function loadDAO(){
   var el=document.getElementById('proposalList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…','A carregar propostas…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…', 'A carregar propostas…')+'</p>';
   try{
     var r=await fetch(SVC.dao+'/proposals',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{proposals:[]};
     var props=j.proposals||j||[];
     if(!Array.isArray(props)) props=[];
     if(!props.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.','No open proposals in this laboratory.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.', 'No open proposals in this laboratory.')+'</p>';
       return;
     }
     el.innerHTML=props.map(function(pr){
@@ -1372,7 +1369,7 @@ async function loadDAO(){
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
-        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
+        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor', 'For')+' '+(pr.votes_for||0)+' · '+T('Contra', 'Against')+' '+(pr.votes_against||0)+' · '+T('Quórum', 'Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
     }).join('');
   }catch(e){
@@ -1383,19 +1380,19 @@ async function loadDAO(){
 async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…','Loading sandboxes / SPAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…', 'Loading sandboxes / SPAs…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.', 'No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin-bottom:.5rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<strong style="color:var(--fg)">'+esc(s.title||s.name||s.id)+'</strong>'+
-        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo','world')+' '+esc(s.parent_world_id||'—')+
+        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo', 'world')+' '+esc(s.parent_world_id||'—')+
         ' · '+esc(s.status||s.isolation||'')+'</div></div>';
     }).join('');
   }catch(e){
@@ -1410,7 +1407,7 @@ async function loadSandbox(){
 async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACBs…')+'</p>';
   try{
     var team=null, list=null, health=null;
     try{ var rt=await fetch(SVC.acb+'/acb/team',{signal:AbortSignal.timeout(8000)}); if(rt.ok) team=await rt.json(); }catch(_){}
@@ -1419,16 +1416,16 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
-      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
     }
     if(health){
       html+='<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">'+
-        T('Registados','Registered')+': '+(health.acbs||'—')+' · '+
-        T('Contratos','Contracts')+': '+(health.contracts||'—')+' · '+
-        T('Anúncios','Listings')+': '+(health.open_listings||'—')+'</p>';
+        T('Registados', 'Registered')+': '+(health.acbs||'—')+' · '+
+        T('Contratos', 'Contracts')+': '+(health.contracts||'—')+' · '+
+        T('Anúncios', 'Listings')+': '+(health.open_listings||'—')+'</p>';
     }
     var acbs=(list&&list.acbs)||[];
     if(acbs.length){
@@ -1441,7 +1438,7 @@ async function loadACB(){
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
-      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCAs listed.')+'</p>';
+      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACBs listed.')+'</p>';
     }
     el.innerHTML=html;
   }catch(e){
@@ -1455,7 +1452,7 @@ async function loadEconomy(){ /* superseded — see definitive loadEconomy below
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -1465,15 +1462,15 @@ async function loadKYC(){
     var j=r.ok?await r.json():{users:[]};
     var users=j.users||j.pending||[];
     if(pending){
-      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma verificação pendente.','No pending verifications.')+'</p>';
+      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma verificação pendente.', 'No pending verifications.')+'</p>';
       else pending.innerHTML=users.map(function(u){
         return '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)">'+esc(u.email||u.id)+
-          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar','Approve')+'</button></div>';
+          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar', 'Approve')+'</button></div>';
       }).join('');
     }
-    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.','Queue operational in laboratory mode.')+'</p>';
+    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.', 'Queue operational in laboratory mode.')+'</p>';
   }catch(e){
-    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.','KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
+    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.', 'KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
   }
 }
 
@@ -1503,7 +1500,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…','Loading live status…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…', 'Loading live status…')+'</p>';
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
@@ -1517,7 +1514,7 @@ async function loadSystemPanel(){
       if(r2.ok) tdra=await r2.json();
     }catch(_){}
     if(!live){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.','Status unavailable.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.', 'Status unavailable.')+'</p>';
       return;
     }
     var up=live.upstream||{};
@@ -1533,10 +1530,10 @@ async function loadSystemPanel(){
       ' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
       '</div>'+
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(7rem,1fr));gap:.6rem;margin-bottom:1rem">'+
-      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação','Circulating')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação', 'Circulating')+'</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.mint_emitted!=null?Number(mon.mint_emitted).toFixed(4):'—')+'</div><div class="label">#mint</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+'</div><div class="label">#0</div></div>'+
-      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores','Users')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores', 'Users')+'</div></div>'+
       '</div>'+
       '<h4 style="margin:.5rem 0;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Upstream</h4>'+
       rows+
@@ -1675,7 +1672,7 @@ const WORKERS = [
   {name:'stratamesh-dag',path:'https://stratamesh-dag.stratamesh.workers.dev/health',desc:'GDA / DAG',open:'https://stratamesh-dag.stratamesh.workers.dev/health'},
   {name:'stratamesh-orchestrator',path:'https://stratamesh-orchestrator.stratamesh.workers.dev/health',fallback:'/api/orchestrator/chat',desc:'Orquestrador',open:'/chat'},
   {name:'stratamesh-aiops',path:'https://stratamesh-aiops.stratamesh.workers.dev/health',desc:'AIOps',open:'https://stratamesh-aiops.stratamesh.workers.dev/health'},
-  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA / ACB',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
+  {name:'stratamesh-acb',path:'https://stratamesh-acb.stratamesh.workers.dev/health',desc:'SCA',open:'https://stratamesh-acb.stratamesh.workers.dev/health'},
   {name:'stratamesh-republic',path:'https://stratamesh-republic.stratamesh.workers.dev/health',desc:'República Computacional',open:'https://stratamesh-republic.stratamesh.workers.dev/health'},
   {name:'stratamesh-ipfs',path:'https://stratamesh-ipfs.stratamesh.workers.dev/health',desc:'IPFS',open:'https://stratamesh-ipfs.stratamesh.workers.dev/health'},
   {name:'stratamesh-holons',path:'/api/v1/holons/health',desc:'Holons / SO Metaverso',open:'/api/v1/holons/health'},
@@ -1690,7 +1687,7 @@ try{
   const st=results.find(function(r){return r.worker&&(r.worker.name==='stratamesh-status-pulse'||r.worker.name==='stratamesh-status')&&r.ok&&r.data&&(r.data.monetary||r.data.summary);});
   if(st&&st.data){
     const d=st.data; const mon=d.monetary||{}; const sum=d.summary||{}; const ag=d.agora_rate||(d.agora&&d.agora.rate)||{};
-    pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó','Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
+    pulse='<div class="diag-summary" style="margin-bottom:1rem"><h4>'+T('Pulse do nó', 'Node pulse')+'</h4><p style="font-size:.82rem;color:var(--muted)">'+
       esc(d.version||'')+' · upstream '+(sum.upstream_ok!=null?sum.upstream_ok:'?')+'/'+(sum.upstream_total||9)+
       ' · #mint '+(mon.mint_emitted!=null?mon.mint_emitted:'—')+
       ' · #0 '+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+
@@ -1748,7 +1745,7 @@ async function sendOrchChat(){
     if(!r.ok && !j.reply) add('System', j.error||('HTTP '+r.status));
     else { var meta=(j.account_clearance||j.clearance)?(' ['+(j.account_clearance||j.clearance)+']'):''; add('Orquestrador'+meta, j.reply||j.error||JSON.stringify(j)); var clEl=document.getElementById('orchClearance'); if(clEl) clEl.textContent=(j.account_clearance||j.clearance||'—')+(j.clearance_source?(' · '+j.clearance_source):''); }
   }catch(e){
-    add('System', (e&&e.name==='AbortError')?T('Tempo esgotado — o Orquestrador não respondeu a tempo. Experimente status ou abra o chat completo.','Timeout — Orchestrator did not answer in time.'):String(e.message||e));
+    add('System', (e&&e.name==='AbortError')?T('Tempo esgotado — o Orquestrador não respondeu a tempo. Experimente status ou abra o chat completo.', 'Timeout — Orchestrator did not answer in time.'):String(e.message||e));
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Send';}
   }
@@ -1922,7 +1919,7 @@ async function loadWallet(){
         list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">'+
           (tok ? T('Oferta de laboratório: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+ (tok.holders||0)+' detentores · emissão só via PdC',
                    'Lab supply: '+Number(tok.total_supply||0).toFixed(2)+' STRATA · '+(tok.holders||0)+' holders · mint only via PoC')
-          : T('Sem movimentos ainda','Sem movimentos ainda'))+'</td></tr>';
+          : T('Sem movimentos ainda', 'Sem movimentos ainda'))+'</td></tr>';
       }
     }
   }catch(e){
@@ -1957,18 +1954,15 @@ async function loadAgora(){
         return '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;margin:.2rem 0">'+esc(o.price||o.rate||o[0]||'—')+' · '+esc(o.amount||o.size||o[1]||'')+'</div>';
       }).join('');
     }
-    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras','—'));
-    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas','—'));
+    if(bids) bids.innerHTML = side(book&&(book.bids||book.buy), T('Sem compras', '—'));
+    if(asks) asks.innerHTML = side(book&&(book.asks||book.sell), T('Sem vendas', '—'));
     // role note under orders
     var note=document.getElementById('agoraRoleNote');
     if(!note && price){
       note=document.createElement('p'); note.id='agoraRoleNote'; note.style.cssText='color:var(--muted);font-size:.82rem;margin-top:1rem';
       price.closest('.panel').appendChild(note);
     }
-    if(note) note.textContent = T(
-      'A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.',
-      'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.'
-    );
+    if(note) note.textContent = T('A Ágora é câmbio P2P: STRATA cotada face a valor externo. Não é um segundo token nem um motor de emissão.', 'The Agora is a P2P exchange: STRATA quoted against external value. Not a second token and not a mint.');
   }catch(e){
     if(price) price.textContent='—';
     if(bids) bids.innerHTML='<span style="color:var(--muted)">'+esc(e.message||e)+'</span>';
@@ -1978,14 +1972,14 @@ async function loadAgora(){
 async function loadDAO(){
   var el=document.getElementById('proposalList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…','A carregar propostas…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar propostas…', 'A carregar propostas…')+'</p>';
   try{
     var r=await fetch(SVC.dao+'/proposals',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{proposals:[]};
     var props=j.proposals||j||[];
     if(!Array.isArray(props)) props=[];
     if(!props.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.','No open proposals in this laboratory.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Sem propostas abertas neste laboratório.', 'No open proposals in this laboratory.')+'</p>';
       return;
     }
     el.innerHTML=props.map(function(pr){
@@ -1995,7 +1989,7 @@ async function loadDAO(){
       return '<div class="card" style="margin-bottom:.65rem;padding:.85rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;color:var(--accent);letter-spacing:.06em">'+esc(pr.proposal_type||'governance')+' · '+esc(pr.status||'')+'</div>'+
         '<div style="margin-top:.35rem;color:var(--fg)">'+esc(title)+'</div>'+
-        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor','For')+' '+(pr.votes_for||0)+' · '+T('Contra','Against')+' '+(pr.votes_against||0)+' · '+T('Quórum','Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
+        '<div style="margin-top:.35rem;font-size:.78rem;color:var(--muted)">'+T('A favor', 'For')+' '+(pr.votes_for||0)+' · '+T('Contra', 'Against')+' '+(pr.votes_against||0)+' · '+T('Quórum', 'Quorum')+' '+(pr.quorum_required||'—')+'</div>'+
         '</div>';
     }).join('');
   }catch(e){
@@ -2006,19 +2000,19 @@ async function loadDAO(){
 async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…','Loading sandboxes / SPAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar bancadas / APS…', 'Loading sandboxes / SPAs…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
     if(!list.length){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.','No UGC sandboxes listed.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada CGU listada.', 'No UGC sandboxes listed.')+'</p>';
       return;
     }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin-bottom:.5rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">'+
         '<strong style="color:var(--fg)">'+esc(s.title||s.name||s.id)+'</strong>'+
-        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo','world')+' '+esc(s.parent_world_id||'—')+
+        '<div style="font-size:.78rem;color:var(--muted);margin-top:.25rem">'+esc(s.id)+' · '+T('mundo', 'world')+' '+esc(s.parent_world_id||'—')+
         ' · '+esc(s.status||s.isolation||'')+'</div></div>';
     }).join('');
   }catch(e){
@@ -2033,7 +2027,7 @@ async function loadSandbox(){
 async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCAs…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACBs…')+'</p>';
   try{
     var team=null, list=null, health=null;
     try{ var rt=await fetch(SVC.acb+'/acb/team',{signal:AbortSignal.timeout(8000)}); if(rt.ok) team=await rt.json(); }catch(_){}
@@ -2042,16 +2036,16 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN','AIOps team · CMN node')+'</div>';
-      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder','Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
     }
     if(health){
       html+='<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">'+
-        T('Registados','Registered')+': '+(health.acbs||'—')+' · '+
-        T('Contratos','Contracts')+': '+(health.contracts||'—')+' · '+
-        T('Anúncios','Listings')+': '+(health.open_listings||'—')+'</p>';
+        T('Registados', 'Registered')+': '+(health.acbs||'—')+' · '+
+        T('Contratos', 'Contracts')+': '+(health.contracts||'—')+' · '+
+        T('Anúncios', 'Listings')+': '+(health.open_listings||'—')+'</p>';
     }
     var acbs=(list&&list.acbs)||[];
     if(acbs.length){
@@ -2064,7 +2058,7 @@ async function loadACB(){
           (a.balance!=null?('STRATA '+esc(a.balance)):'')+'</div></div>';
       }).join('');
     } else if(!html){
-      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCAs listed.')+'</p>';
+      html='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACBs listed.')+'</p>';
     }
     el.innerHTML=html;
   }catch(e){
@@ -2074,7 +2068,7 @@ async function loadACB(){
 
 async function loadEconomy(){
   var st=document.getElementById('ecoStatus');
-  if(st) st.textContent=T('A carregar…','Loading…');
+  if(st) st.textContent=T('A carregar…', 'Loading…');
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var tokenBase=(typeof ECO!=='undefined'&&ECO.token)?ECO.token:'https://stratamesh-token.stratamesh.workers.dev';
@@ -2099,9 +2093,9 @@ async function loadEconomy(){
       el=document.getElementById('ecoAgoraRate'); if(el&&ar&&ar.strata_per_quote!=null) el.textContent=Number(ar.strata_per_quote).toFixed(4);
       var upOk=sum.upstream_ok!=null?sum.upstream_ok:Object.keys(up).filter(function(k){return up[k];}).length;
       var upTot=sum.upstream_total||Object.keys(up).length||11;
-      if(st) st.textContent=T('Estado ao vivo','Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19);
+      if(st) st.textContent=T('Estado ao vivo', 'Live status')+' · '+upOk+'/'+upTot+' · '+(live.timestamp||'').slice(0,19);
     } else if(st) {
-      st.textContent=T('Status indisponível','Status unavailable');
+      st.textContent=T('Status indisponível', 'Status unavailable');
     }
     try{
       var rb=await fetch(tokenBase+'/balance?account=FOG-NODE-PT-CM-001',{signal:AbortSignal.timeout(8000)});
@@ -2121,7 +2115,7 @@ async function loadEconomy(){
 async function loadKYC(){
   var pending=document.getElementById('kycPending');
   var verified=document.getElementById('kycVerified');
-  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','A carregar…')+'</p>';
+  if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'A carregar…')+'</p>';
   try{
     var r=await fetch(SVC.auth+'/kyc/pending',{headers:authHeaders(),signal:AbortSignal.timeout(8000)});
     if(!r.ok){
@@ -2131,15 +2125,15 @@ async function loadKYC(){
     var j=r.ok?await r.json():{users:[]};
     var users=j.users||j.pending||[];
     if(pending){
-      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma verificação pendente.','No pending verifications.')+'</p>';
+      if(!users.length) pending.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma verificação pendente.', 'No pending verifications.')+'</p>';
       else pending.innerHTML=users.map(function(u){
         return '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)">'+esc(u.email||u.id)+
-          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar','Approve')+'</button></div>';
+          ' <button type="button" onclick="verify(\''+esc(u.id)+'\',\'verified\')" style="margin-left:.5rem">'+T('Aprovar', 'Approve')+'</button></div>';
       }).join('');
     }
-    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.','Queue operational in laboratory mode.')+'</p>';
+    if(verified) verified.innerHTML='<p style="color:var(--muted)">'+T('Fila operacional em laboratório.', 'Queue operational in laboratory mode.')+'</p>';
   }catch(e){
-    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.','KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
+    if(pending) pending.innerHTML='<p style="color:var(--muted)">'+T('KYC indisponível neste endpoint de laboratório.', 'KYC unavailable on this lab endpoint.')+' <code style="font-size:.75rem">'+esc(e.message||e)+'</code></p>';
   }
 }
 
@@ -2169,7 +2163,7 @@ async function loadSystemPanel(){
     }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…','Loading live status…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar estado ao vivo…', 'Loading live status…')+'</p>';
   try{
     var statusBase=(typeof ECO!=='undefined'&&ECO.status)?ECO.status:'https://stratamesh-status.stratamesh.workers.dev';
     var orchBase=(window.SVC&&SVC.orchestrator)?SVC.orchestrator:'https://stratamesh-orchestrator.stratamesh.workers.dev';
@@ -2183,7 +2177,7 @@ async function loadSystemPanel(){
       if(r2.ok) tdra=await r2.json();
     }catch(_){}
     if(!live){
-      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.','Status unavailable.')+'</p>';
+      el.innerHTML='<p style="color:var(--muted)">'+T('Status indisponível.', 'Status unavailable.')+'</p>';
       return;
     }
     var up=live.upstream||{};
@@ -2200,10 +2194,10 @@ async function loadSystemPanel(){
       (ar.strata_per_quote!=null?(' · Ágora '+ar.strata_per_quote+' STRATA/EUR'):'')+
       '</div>'+
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(7rem,1fr));gap:.6rem;margin-bottom:1rem">'+
-      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação','Circulating')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</div><div class="label">'+T('Circulação', 'Circulating')+'</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.mint_emitted!=null?Number(mon.mint_emitted).toFixed(4):'—')+'</div><div class="label">#mint</div></div>'+
       '<div class="stat-card"><div class="value">'+(mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—')+'</div><div class="label">#0</div></div>'+
-      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores','Users')+'</div></div>'+
+      '<div class="stat-card"><div class="value">'+(live.auth&&live.auth.users!=null?live.auth.users:'—')+'</div><div class="label">'+T('Utilizadores', 'Users')+'</div></div>'+
       '</div>'+
       '<h4 style="margin:.5rem 0;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Upstream</h4>'+
       rows+
@@ -2219,7 +2213,7 @@ async function loadSystemPanel(){
 async function loadIot(){
   var stats=document.getElementById('iotStats');
   var agents=document.getElementById('iotAgents');
-  if(stats) stats.textContent=T('A carregar…','Loading…');
+  if(stats) stats.textContent=T('A carregar…', 'Loading…');
   try{
     var base='https://stratamesh-iot.stratamesh.workers.dev';
     var [s,a]=await Promise.all([
@@ -2231,9 +2225,9 @@ async function loadIot(){
     }
     var list=(a&&a.agents)||[];
     if(agents){
-      if(!list.length){ agents.innerHTML='<p style="color:var(--muted)">'+T('Nenhum agente ainda','No agents yet')+'</p>'; }
+      if(!list.length){ agents.innerHTML='<p style="color:var(--muted)">'+T('Nenhum agente ainda', 'No agents yet')+'</p>'; }
       else{
-        agents.innerHTML='<table class="tx-list"><thead><tr><th>agent_id</th><th>'+T('eventos','events')+'</th><th>'+T('visto','seen')+'</th><th>hint</th></tr></thead><tbody>'+
+        agents.innerHTML='<table class="tx-list"><thead><tr><th>agent_id</th><th>'+T('eventos', 'events')+'</th><th>'+T('visto', 'seen')+'</th><th>hint</th></tr></thead><tbody>'+
           list.map(function(x){
             return '<tr><td>'+String(x.agent_id||'')+'</td><td>'+(x.event_count||0)+'</td><td>'+String(x.last_seen||'')+'</td><td>'+String(x.substrate_hint||'—')+'</td></tr>';
           }).join('')+'</tbody></table>';
@@ -2245,7 +2239,7 @@ async function loadIot(){
 }
 async function iotPing(mode){
   var out=document.getElementById('iotPingOut');
-  if(out) out.textContent=T('A enviar…','Sending…');
+  if(out) out.textContent=T('A enviar…', 'Sending…');
   var base='https://stratamesh-iot.stratamesh.workers.dev';
   mode=mode||'json';
   try{
@@ -2298,7 +2292,7 @@ async function loadMonetaryPoles(){
       if(panel){ note=document.createElement('p'); note.id='ecoMonetaryNote'; note.style.cssText='font-size:.8rem;color:var(--muted);margin-top:.75rem'; panel.appendChild(note); }
     }
     if(note){
-      var base=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).','Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
+      var base=T('Fluxo: PdC → #mint emite → circulação → uso de recursos → #0 (só recebe, nunca transfere).', 'Flow: PoC → #mint emits → circulation → resource use → #0 (receives only, never transfers out).');
       if(d.aiops&&d.aiops.at) base+=' · AIOps '+String(d.aiops.at).slice(0,19);
       note.textContent=base;
     }
@@ -2353,7 +2347,7 @@ async function loadClpPanel(){
     target=document.createElement('div'); target.id='clpContent'; target.style.cssText='margin-top:1rem;font-size:.85rem;color:var(--muted)';
     var panel=document.getElementById('panel-clp'); if(panel) panel.appendChild(target);
   }
-  target.innerHTML='<p>'+T('A carregar CLP/PPC…','Loading CLP/PPC…')+'</p>';
+  target.innerHTML='<p>'+T('A carregar CLP/PPC…', 'Loading CLP/PPC…')+'</p>';
   try{
     var r=await fetch((SVC.status||'https://stratamesh-status.stratamesh.workers.dev')+'/status',{signal:AbortSignal.timeout(14000)});
     var d=r.ok?await r.json():{};
@@ -2362,14 +2356,14 @@ async function loadClpPanel(){
     var solar=(ppc.solar)||{};
     target.innerHTML=
       '<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.6rem">'+
-      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.season||ppc.clp&&ppc.clp.season||'—')+'</div><div class="label">'+T('Estação','Season')+'</div></div>'+
-      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.phase||(ppc.clp&&ppc.clp.phase)||'—')+'</div><div class="label">'+T('Fase','Phase')+'</div></div>'+
-      '<div class="stat-card"><div class="value" style="font-size:.75rem">'+(d.location&&d.location.label||'Lisboa')+'</div><div class="label">'+T('Local','Locality')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.season||ppc.clp&&ppc.clp.season||'—')+'</div><div class="label">'+T('Estação', 'Season')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.85rem">'+(clp.phase||(ppc.clp&&ppc.clp.phase)||'—')+'</div><div class="label">'+T('Fase', 'Phase')+'</div></div>'+
+      '<div class="stat-card"><div class="value" style="font-size:.75rem">'+(d.location&&d.location.label||'Lisboa')+'</div><div class="label">'+T('Local', 'Locality')+'</div></div>'+
       '</div>'+
       '<p style="margin-top:1rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted);line-height:1.5">'+
       esc(clp.address||(ppc.clp&&ppc.clp.address)||'')+'</p>'+
-      '<p style="font-size:.78rem;color:var(--muted)">'+T('Autoridade temporal: PPC · portadora ISO','Temporal authority: PPC · ISO carrier')+' · '+(d.temporal&&d.temporal.authority||'PPC')+'</p>'+
-      (solar.sunrise?'<p style="font-size:.75rem;color:var(--muted)">'+T('Nascer','Sunrise')+' '+String(solar.sunrise).slice(11,19)+' · '+T('Zénite','Noon')+' '+String(solar.noon||'').slice(11,19)+' · '+T('Ocaso','Sunset')+' '+String(solar.sunset||'').slice(11,19)+'</p>':'');
+      '<p style="font-size:.78rem;color:var(--muted)">'+T('Autoridade temporal: PPC · portadora ISO', 'Temporal authority: PPC · ISO carrier')+' · '+(d.temporal&&d.temporal.authority||'PPC')+'</p>'+
+      (solar.sunrise?'<p style="font-size:.75rem;color:var(--muted)">'+T('Nascer', 'Sunrise')+' '+String(solar.sunrise).slice(11,19)+' · '+T('Zénite', 'Noon')+' '+String(solar.noon||'').slice(11,19)+' · '+T('Ocaso', 'Sunset')+' '+String(solar.sunset||'').slice(11,19)+'</p>':'');
   }catch(e){
     target.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>';
   }
@@ -2389,8 +2383,8 @@ async function loadProfilePanel(){
   }
   if(extra){
     extra.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+
-      (isStaffUser&&isStaffUser()?T('Conta de pessoal — secções administrativas desbloqueadas conforme clearance.','Staff account — admin sections unlocked by clearance.'):
-        T('Conta de utilizador comum — carteira, ágora, bancada, SCA, orquestrador (leitura).','Common user — wallet, agora, sandbox, SCA, orchestrator (read).'))+
+      (isStaffUser&&isStaffUser()?T('Conta de pessoal — secções administrativas desbloqueadas conforme clearance.', 'Staff account — admin sections unlocked by clearance.'):
+        T('Conta de utilizador comum — carteira, ágora, bancada, SCA, orquestrador (leitura).', 'Common user — wallet, agora, sandbox, ACB, orchestrator (read).'))+
       '</p>';
   }
 }
@@ -2417,7 +2411,7 @@ async function loadWallet(){
     if(c) c.textContent=mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—';
     if(rank) rank.textContent='CMN';
     if(list){
-      list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede','Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
+      list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede', 'Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
         ' · #mint '+(mon&&mon.poles&&mon.poles.mint?mon.poles.mint.total_emitted:'—')+
         ' · #0 '+(mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(4):'—')+'</p>';
     }
@@ -2443,8 +2437,8 @@ async function loadAgora(){
       box.innerHTML='<div class="stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(8rem,1fr));gap:.6rem">'+
         '<div class="stat-card"><div class="value">'+(j.strata_per_quote!=null?Number(j.strata_per_quote).toFixed(2):'—')+'</div><div class="label">STRATA/EUR</div></div>'+
         '<div class="stat-card"><div class="value">'+(j.quote_per_strata!=null?Number(j.quote_per_strata).toFixed(2):'—')+'</div><div class="label">EUR/STRATA</div></div>'+
-        '<div class="stat-card"><div class="value">'+(j.liquidity_strata!=null?j.liquidity_strata:'—')+'</div><div class="label">'+T('Liquidez','Liquidity')+'</div></div>'+
-        '<div class="stat-card"><div class="value">'+(j.listings!=null?j.listings:'—')+'</div><div class="label">'+T('Listagens','Listings')+'</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.liquidity_strata!=null?j.liquidity_strata:'—')+'</div><div class="label">'+T('Liquidez', 'Liquidity')+'</div></div>'+
+        '<div class="stat-card"><div class="value">'+(j.listings!=null?j.listings:'—')+'</div><div class="label">'+T('Listagens', 'Listings')+'</div></div>'+
         '</div><p style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">'+esc(j.source||j.note||'')+'</p>';
     }
   }catch(e){
@@ -2459,7 +2453,7 @@ async function loadDAO(){
     if(panel){ el=document.createElement('div'); el.id='daoList'; panel.appendChild(el); }
   }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var daos=[], props=[];
     try{ var r=await fetch(SVC.dao+'/dao/list',{signal:AbortSignal.timeout(10000)}); if(r.ok){ var j=await r.json(); daos=j.daos||[]; } }catch(_){}
@@ -2473,12 +2467,12 @@ async function loadDAO(){
       }).join('');
     }
     if(props.length){
-      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1rem">'+T('Propostas','Proposals')+'</h4>';
+      html+='<h4 style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1rem">'+T('Propostas', 'Proposals')+'</h4>';
       html+=props.map(function(pr){
         return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px">'+esc(pr.title||pr.id)+'</div>';
       }).join('');
     }
-    if(!html) html='<p style="color:var(--muted)">'+T('Sem DAOs/propostas neste laboratório.','No DAOs/proposals in this laboratory.')+'</p>';
+    if(!html) html='<p style="color:var(--muted)">'+T('Sem DAOs/propostas neste laboratório.', 'No DAOs/proposals in this laboratory.')+'</p>';
     el.innerHTML=html;
   }catch(e){ el.innerHTML='<p style="color:var(--muted)">'+esc(String(e.message||e))+'</p>'; }
 }
@@ -2487,12 +2481,12 @@ async function loadSPA(){
   var el=document.getElementById('spaList');
   if(!el){ var panel=document.getElementById('panel-spa'); if(panel){ el=document.createElement('div'); el.id='spaList'; panel.appendChild(el);} }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…','Loading…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar…', 'Loading…')+'</p>';
   try{
     var r=await fetch(SVC.sandbox+'/list',{signal:AbortSignal.timeout(10000)});
     var j=r.ok?await r.json():{};
     var list=j.sandboxes||j.items||[];
-    if(!list.length){ el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada listada.','No sandboxes listed.')+'</p>'; return; }
+    if(!list.length){ el.innerHTML='<p style="color:var(--muted)">'+T('Nenhuma bancada listada.', 'No sandboxes listed.')+'</p>'; return; }
     el.innerHTML=list.map(function(s){
       return '<div class="card" style="margin:.5rem 0;padding:.75rem;border:1px solid var(--line);border-radius:4px"><strong>'+esc(s.title||s.name||s.id)+'</strong>'+
         '<div style="font-size:.75rem;color:var(--muted)">'+esc(s.id)+' · '+esc(s.parent_world_id||'')+' · '+esc(s.isolation||'')+'</div></div>';
@@ -2506,14 +2500,14 @@ async function loadACB(){
   var el=document.getElementById('acbList');
   if(!el){ var panel=document.getElementById('panel-acb'); if(panel){ el=document.createElement('div'); el.id='acbList'; panel.appendChild(el);} }
   if(!el) return;
-  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…','Loading SCA…')+'</p>';
+  el.innerHTML='<p style="color:var(--muted)">'+T('A carregar SCA…', 'Loading ACB…')+'</p>';
   try{
     var r=await fetch(SVC.acb+'/acb/status',{signal:AbortSignal.timeout(15000)});
     var j=r.ok?await r.json():{};
     var list=j.acbs||j.members||[];
     if(!list.length){
-      try{ var r2=await fetch(SVC.acb+'/health',{signal:AbortSignal.timeout(8000)}); var h=r2.ok?await r2.json():{}; el.innerHTML='<p style="color:var(--muted)">'+esc(h.version||'ok')+' · '+T('sem lista detalhada','no detail list')+'</p>'; return; }catch(_){}
-      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhum SCA listado.','No SCA listed.')+'</p>'; return;
+      try{ var r2=await fetch(SVC.acb+'/health',{signal:AbortSignal.timeout(8000)}); var h=r2.ok?await r2.json():{}; el.innerHTML='<p style="color:var(--muted)">'+esc(h.version||'ok')+' · '+T('sem lista detalhada', 'no detail list')+'</p>'; return; }catch(_){}
+      el.innerHTML='<p style="color:var(--muted)">'+T('Nenhum SCA listado.', 'No ACB listed.')+'</p>'; return;
     }
     el.innerHTML=list.slice(0,40).map(function(a){
       var id=a.id||a.acb_id||a.sca_id||'—';
@@ -4614,8 +4608,7 @@ async function forgotPassword(){
           t('Conta', 'Account') + ': <b style="color:var(--fg)">' + esc(me.email || '—') + '</b><br>' +
           t('Carteira', 'Wallet') + ': <code>' + esc(me.wallet || '—') + '</code><br>' +
           t('Unidade', 'Unit') + ': <b>' + esc(me.unit || 'L-STRATA') + '</b> · ' +
-          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.',
-            'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
+          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.', 'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
       }
       var hint = el('panelModeHint');
       if (hint) {
@@ -4712,10 +4705,7 @@ async function forgotPassword(){
     }
     var intro = title && title.nextElementSibling;
     if (intro && intro.tagName === 'P') {
-      intro.textContent = t(
-        'Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.',
-        'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.'
-      );
+      intro.textContent = t('Sala GNU. Órbita ou habitar. Stick esquerdo anda, stick direito olha, toque no chão para ir, toque no objecto para agir.', 'GNU room. Orbit or inhabit. Left stick walks, right stick looks, tap the floor to go, tap an object to act.');
     }
     window._atelierMode = 'gnu';
   }
@@ -4759,8 +4749,7 @@ async function forgotPassword(){
           t('Endereço temporal', 'Temporal address') + ': <b style="color:var(--fg)">Lisboa</b>' +
           (season ? ' · ' + esc(season) : '') + (phase ? ' · ' + esc(phase) : '') +
           ' · PPC Atlântico (Almendres / Lisboa). ' +
-          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.',
-            'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
+          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.', 'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
           ' <a href="/clp" style="color:var(--accent)">/clp</a>';
       }
       var host = el('clpWidgetHost');
@@ -4802,8 +4791,7 @@ async function forgotPassword(){
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Câmaras', 'Chambers') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.',
-          'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
+        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.', 'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
         '</p>' +
         '<div id="daoMinutes" style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">' + t('Actas: a câmara ainda não deliberou nesta sessão.', 'Minutes: the chamber has not yet deliberated this session.') + '</div></div>';
       var panel = el('panel-dao');
@@ -4843,8 +4831,7 @@ async function forgotPassword(){
       extra.innerHTML =
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Pacto', 'Compact') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0 0 .75rem">' +
-        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.',
-          'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
+        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.', 'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
         '</p>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem">' +
         '<label style="font-size:.75rem;color:var(--muted)">' + t('Partes (vírgulas)', 'Parties (comma)') + '<input id="spaParties" placeholder="email, SCA-…" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"></label>' +
@@ -4874,8 +4861,7 @@ async function forgotPassword(){
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Telemetria', 'Telemetry') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.',
-          'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
+        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.', 'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
         '</p><div id="iotTelem" style="margin-top:.65rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted)">—</div></div>';
       var panel = el('panel-iot');
       if (panel) panel.appendChild(extra);
@@ -4933,10 +4919,8 @@ async function forgotPassword(){
         '<div class="stat-card"><div class="value" style="font-size:.75rem;word-break:break-all">' + esc(u.wallet || '—') + '</div><div class="label">' + t('Carteira', 'Wallet') + '</div></div></div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5">' +
         (window.isStaffUser()
-          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.',
-              'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
-          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.',
-              'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
+          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.', 'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
+          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.', 'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
         '</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem">' +
         '<button type="button" onclick="showPanel(\'wallet\',document.querySelector(\'[data-panel=wallet]\'))" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">' + t('Tesouraria', 'Treasury') + '</button>' +
@@ -5304,17 +5288,11 @@ async function forgotPassword(){
     setTool('phys');
     var prompt = document.getElementById('bancadaPrompt');
     if (prompt) {
-      prompt.textContent = t(
-        'Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta',
-        'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool'
-      );
+      prompt.textContent = t('Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta', 'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool');
     }
     var hint = document.getElementById('bancadaLockHint');
     if (hint) {
-      hint.textContent = t(
-        'Toque para habitar · stick direito olha · arraste no ecrã como na órbita',
-        'Tap to inhabit · right stick looks · drag the screen as in orbit'
-      );
+      hint.textContent = t('Toque para habitar · stick direito olha · arraste no ecrã como na órbita', 'Tap to inhabit · right stick looks · drag the screen as in orbit');
     }
   }
 

@@ -2,14 +2,14 @@
 
 **Release:** [v0.5.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab) — **Adversarial LAB phase P1**. Live/lab version is **v0.5.1-lab**, not 0.4.1. Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
 
-**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** SCAs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
+**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** ACBs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
 Motto: *Intelligentia · Vigilantia · Veritas*
 
 ## Monetary poles (STRATA)
 | Address | Role |
 |---------|------|
 | `#mint` | Emission source only — creates via PoC; never receives; no spendable balance |
-| Wallets | Circulation (nodes, users, SCAs) |
+| Wallets | Circulation (nodes, users, ACBs) |
 | `#0` | Burn sink — receives on resource use; never transfers out |
 
 API: `GET https://calhegasmorais.pt/api/v1/token/monetary` · `POST /api/v1/token/burn`
@@ -86,9 +86,9 @@ We cultivate **open-source engineers already shipping** in adjacent ecosystems (
 
 ## Subject–Object Economy
 
-**Subjects** (humans, SCAs) act, agree, and own. **Objects** (STRATA, NFTs, resources) are owned and used — never the reverse for NFTs.
+**Subjects** (humans, ACBs) act, agree, and own. **Objects** (STRATA, NFTs, resources) are owned and used — never the reverse for NFTs.
 
-A human or SCA may own STRATA/NFTs; a human does not “own” an SCA as they own a token. SCA↔SCA relations are among subjects. Population = subjects only (not tokens or NFTs as citizens).
+A human or ACB may own STRATA/NFTs; a human does not “own” an ACB as they own a token. ACB↔ACB relations are among subjects. Population = subjects only (not tokens or NFTs as citizens).
 
 Normative: [`docs/SUBJECT-OBJECT-ECONOMY.md`](docs/SUBJECT-OBJECT-ECONOMY.md) · live NFT: `Agent owns/operates NFT — never NFT owns Agent`.
 
@@ -107,7 +107,7 @@ Source of truth: `shared/holonic-clp.js` (embedded into edge workers).
 STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
   ├─ CLP temporal kernel (civil time)
   ├─ Dashboard / Portal (OS apps, inside the holarchy)
-  └─ Virtual Domain → World → Sandbox → User | SCA
+  └─ Virtual Domain → World → Sandbox → User | ACB
 ```
 
 - **Civil time:** CLP (`/clp`); **wire time:** ISO-8601 for DAG/interop.
@@ -119,9 +119,9 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 
 | Area | Status |
 |------|--------|
-| Holonic inhabitance | Personal UGC/CGU sandbox per SCA (STRATA NFTs); open worlds as STRATA NFTs; open-world co-presence (SCA + users) |
+| Holonic inhabitance | Personal UGC/CGU sandbox per ACB (STRATA NFTs); open worlds as STRATA NFTs; open-world co-presence (ACB + users) |
 | Temporal kernel | CLP/PPC at Node locus **Lisbon**; ISO-8601 as carrier only |
-| SCA volition | Self-scheduled `next_volition_at`; dispatcher honours queue / soft nudge only |
+| ACB volition | Self-scheduled `next_volition_at`; dispatcher honours queue / soft nudge only |
 | Computational Republic | SCA-only associative DAO — distinct from Node operations |
 | Workers (ACB) | `stratamesh-acb` ≥ 5.11 · senses, holon/ensure, world presence |
 
@@ -146,7 +146,7 @@ StrataMesh absorbs **mechanics** from adjacent systems without copying their ont
 | IOTA Tangle | DAG cumulative weight, MCMC tip selection, confirmation confidence — `/api/v1/consensus` |
 | Hedera Hashgraph | Gossip-about-gossip events + lab virtual voting — `/api/v1/gossip`, consensus `virtual_voting` |
 | Akash / Render | DePIN reverse auction, STRATA escrow leases — `/api/v1/depin` |
-| Fetch.ai / Olas | Multi-SCA agent services + shared-state gadget — `/api/v1/agent-services` |
+| Fetch.ai / Olas | Multi-ACB agent services + shared-state gadget — `/api/v1/agent-services` |
 | Urbit | Holonic Fog→Edge identity; Metaverse OS layers |
 
 Details: [`docs/PARALLELS.md`](docs/PARALLELS.md). STRATA mint remains **PoC-only**.

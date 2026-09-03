@@ -103,26 +103,20 @@ def spark(vals) -> str:
 
 
 def hop_spark(vals) -> str:
-    """Hop-live 0/1 spark. Never min-max — always-live (all 1.0) must not paint U+2800 blank.
+    """Hop live/dark TIME HISTORY (HOP_LIVE_HIST), not a capacity fill bar.
 
-    0 → empty braille, 1 → full (⣿). Analog HOST LOAD_HIST keeps spark() min-max.
+    1.0 → ':' tick (Apple Terminal.app safe; not U+28FF). 0.0 → '.' gap, same
+    column so a hole is visible. Always-live → a row of ticks. Never min-max
+    (that blanked always-up). Never bar(frac)/█ fill. HOST LOAD_HIST keeps spark().
+    Length 8–12.
     """
     xs = [1.0 if v else 0.0 for v in vals if v is not None]
-    left = (0x00, 0x40, 0x44, 0x46, 0x47)
-    right = (0x00, 0x80, 0xA0, 0xB0, 0xB8)
-    if len(xs) < 2:
-        if not xs:
-            return "·" * 8
-        cell = chr(0x2800 + left[4] + right[4]) if xs[-1] else chr(0x2800)
-        return cell * 8
-    if len(xs) % 2:
-        xs = [xs[0]] + list(xs)
-    out = []
-    for i in range(0, len(xs), 2):
-        h0 = 4 if xs[i] else 0
-        h1 = 4 if xs[i + 1] else 0
-        out.append(chr(0x2800 + left[h0] + right[h1]))
-    return "".join(out[-12:])
+    if not xs:
+        return "." * 8
+    xs = list(xs)[-12:]
+    if len(xs) < 8:
+        xs = [0.0] * (8 - len(xs)) + xs
+    return "".join(":" if v else "." for v in xs)
 
 
 def use_color() -> bool:
@@ -620,7 +614,8 @@ def sync_workerd_config() -> str:
 
 
 def brew_update_upgrade() -> str:
-    """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall."""
+    """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
+    Interactive g and auto-g both brew. Never return or print "brew skip (auto-g)"."""
     brew = shutil.which("brew")
     if not brew:
         return "brew missing"
@@ -667,6 +662,8 @@ def git_pull_reboot() -> str:
     extra = (" " + " · ".join(copied)) if copied else ""
     # Interactive g and auto-g both brew. Off the paint thread (caller is fog-tui-g).
     brew_note = brew_update_upgrade()
+    if "brew skip" in brew_note:
+        brew_note = brew_update_upgrade()
     fog_rc = reboot_fog()
     return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 
@@ -694,7 +691,11 @@ def vislen(s: str) -> int:
         if unicodedata.combining(ch):
             i += 1
             continue
-        n += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+        # █░ ambiguous/fullwidth in some locales; treat as 1. : . ticks too.
+        if ch in ("█", "░", ":", "."):
+            n += 1
+        else:
+            n += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         i += 1
     return n
 
@@ -717,7 +718,10 @@ def boxline(inner: str, width: int) -> str:
                 out.append(ch)
                 i += 1
                 continue
-            wch = 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+            if ch in ("█", "░", ":", "."):
+                wch = 1
+            else:
+                wch = 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
             if used + wch > width:
                 break
             out.append(ch)
@@ -1466,7 +1470,7 @@ def draw(msg: str = "") -> None:
             sp = hop_spark(hist)
         else:
             sp = ""
-        indent = " " if port == 8787 else "   "
+        indent = " "
         nm = (BOLD + name.ljust(8) + RST) if okh else (MUT + name.ljust(8) + RST)
         print(boxline(indent + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp, w))
     pub_nm = pub_origin_label(pub)

@@ -1,14 +1,14 @@
 /** Holonic stack — nested layers of the Calhegas Morais Node.
  *
- *   0  TRD              Distributed ledger: GDA, STRATA poles, PdC, PdS, CLP, SCA identity.
+ *   0  TRD              Distributed ledger: GDA, STRATA poles, PdC, PdS, CLP, ACB identity.
  *   1  Nó Fog           Fog holon with operator. Runs and instantiates OS (native StrataMesh + others on the TRD).
  *   2  SO Metaverso     Native StrataMesh Web3 Metaverse OS, shared, instantiated locally by Fog Nodes.
  *        2.1  DV        Virtual Realm = VM hypervisors (servers of the open worlds)
  *        2.2  MA        Open World — hosted on those VM hypervisors
- *        2.3  Bancada   Creation sandbox of users and SCAs, hosted in the open worlds
+ *        2.3  Bancada   Creation sandbox of users and ACBs, hosted in the open worlds
  *              Painel   Private dashboard of that account. TanStack is the UI kit.
- *   —  User | SCA       account holders (Painel + Bancada). The Node provides accounts.
- *                       The Node is not an entity: no user/SCA account. It has a Fog wallet.
+ *   —  User | ACB       account holders (Painel + Bancada). The Node provides accounts.
+ *                       The Node is not an entity: no user/ACB account. It has a Fog wallet.
  *
  *   CLP is TRD kernel time. PdC / PdS belong to the TRD. Edge is indexed to a Fog.
  */
@@ -32,7 +32,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "DLT",
-      body: "StrataMesh Distributed Ledger: DAG, STRATA poles (#mint / #0), PoC, PoS, CLP and SCA identity. The Fog inscribes these rules on the mesh.",
+      body: "StrataMesh Distributed Ledger: DAG, STRATA poles (#mint / #0), PoC, PoS, CLP and ACB identity. The Fog inscribes these rules on the mesh.",
     },
   },
   {
@@ -44,7 +44,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "Calhegas Morais Node",
-      body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human). The appointment admits an associative DAO, a corporate DAO, or an SCA with sufficient STRATA to open a Fog. Layer above the OS: it runs and instantiates operating systems locally — the native StrataMesh Metaverse OS and other OS developed or imported on the TRD — and indexes Edge.",
+      body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human). The appointment admits an associative DAO, a corporate DAO, or an ACB with sufficient STRATA to open a Fog. Layer above the OS: it runs and instantiates operating systems locally — the native StrataMesh Metaverse OS and other OS developed or imported on the TRD — and indexes Edge.",
     },
   },
   {
@@ -56,7 +56,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "Metaverse OS",
-      body: "Native StrataMesh Web3 metaverse operating system, shared among nodes. Fog Nodes instantiate it locally: a local session of the shared OS. It lives in the layer below the Node. Subsystems: Virtual Realm (VM hypervisor), Open World and UGC sandbox. Each user or SCA account is assigned its Panel and sandbox on this OS.",
+      body: "Native StrataMesh Web3 metaverse operating system, shared among nodes. Fog Nodes instantiate it locally: a local session of the shared OS. It lives in the layer below the Node. Subsystems: Virtual Realm (VM hypervisor), Open World and UGC sandbox. Each user or ACB account is assigned its Panel and sandbox on this OS.",
     },
   },
   {
@@ -80,7 +80,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "Open World",
-      body: "Habitable subsystem of the Metaverse OS, hosted on the Virtual Realm VMs. STRATA NFT objects. Users and SCAs coexist here.",
+      body: "Habitable subsystem of the Metaverse OS, hosted on the Virtual Realm VMs. STRATA NFT objects. Users and ACBs coexist here.",
     },
   },
   {
@@ -92,7 +92,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "UGC Sandbox",
-      body: "Private creation space of each user or SCA account, assigned by the Node. The Node provides those accounts; the Node is not an entity and has no account. It has a Fog wallet: what it produces (PoC) and what it spends goes through that wallet. Creations = STRATA NFTs. This account’s Panel opens here; TanStack is the UI kit.",
+      body: "Private creation space of each user or ACB account, assigned by the Node. The Node provides those accounts; the Node is not an entity and has no account. It has a Fog wallet: what it produces (PoC) and what it spends goes through that wallet. Creations = STRATA NFTs. This account’s Panel opens here; TanStack is the UI kit.",
     },
   },
 ];

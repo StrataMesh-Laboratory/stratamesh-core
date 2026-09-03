@@ -1,5 +1,5 @@
 /** Holonic stack.
- *  A Fog Node is a holon and requires an operator (human, associative DAO, corporate DAO, or — future-open — an SCA).
+ *  A Fog Node is a holon and requires an operator (human, associative DAO, corporate DAO, or — future-open — an ACB).
  *  Edge Nodes are not independent holons of operation: they have no operator; they are indexed to a principal Fog.
  *  The Node is not the Metaverse OS. It is not an NFT. CLP is TRD kernel time — not a holon. */
 
@@ -22,7 +22,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "DLT",
-      body: "StrataMesh Distributed Ledger. The rules live here: DAG, STRATA poles (#mint / #0), PoC, PoS, CLP, SCA identity. The Fog inscribes; it does not legislate. Analogy: mathematics may be written on paper — the paper does not define it.",
+      body: "StrataMesh Distributed Ledger. The rules live here: DAG, STRATA poles (#mint / #0), PoC, PoS, CLP, ACB identity. The Fog inscribes; it does not legislate. Analogy: mathematics may be written on paper — the paper does not define it.",
     },
   },
   {
@@ -34,7 +34,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "Calhegas Morais Node",
-      body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human user). The operator appointment also admits an associative DAO, a corporate DAO, or — future-open — an SCA with sufficient STRATA to open a Fog. Indexed Edge, no operator of its own.",
+      body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human user). The operator appointment also admits an associative DAO, a corporate DAO, or — future-open — an ACB with sufficient STRATA to open a Fog. Indexed Edge, no operator of its own.",
     },
   },
   {
@@ -70,7 +70,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "Open World",
-      body: "Habitable OS holon, composed of STRATA NFT objects. Users and SCAs coexist here.",
+      body: "Habitable OS holon, composed of STRATA NFT objects. Users and ACBs coexist here.",
     },
   },
   {
@@ -82,7 +82,7 @@ export const HOLONS: Holon[] = [
     },
     en: {
       title: "UGC Sandbox",
-      body: "Creation holon (humans and SCAs). Creations = STRATA NFTs. The panel opens here as the Node holon's interface — not as the OS.",
+      body: "Creation holon (humans and ACBs). Creations = STRATA NFTs. The panel opens here as the Node holon's interface — not as the OS.",
     },
   },
 ];

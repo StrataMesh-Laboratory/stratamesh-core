@@ -209,7 +209,7 @@ h1{font-size:13px}
   <aside id="atlas">
     <div class="mono">Absorb models, not ontology · v0.5.1-session</div>
     <h2>Atlas · GNU / MUD / MMORPG</h2>
-    <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. SCA = Sovereign Computational Agent. UGC = User-Generated Content (Holon 5).</p>
+    <p class="muted">Each account sandbox is a virtual address. L-STRATA = lab unit (non-transitioning, 1 = €0.10). SPA = Smart Persistent Agent. <span id="atlasSubject"></span> UGC = User-Generated Content (Holon 5).</p>
     <article><b>Evennia</b><div class="muted">Rooms + Exits. Workbench is a room; +Z door is the Exit onto the open world.</div></article>
     <article><b>Ranvier</b><div class="muted">Bundles → NFT Actions. Content pack until publish.</div></article>
     <article><b>FluffOS</b><div class="muted">First-class objects. Each STRATA NFT is an object in the room. F grab/place.</div></article>
@@ -231,7 +231,7 @@ h1{font-size:13px}
     </div>
   </div>
 </div>
-<script src="/vendor/three.min.js?v=20260903e"></script>
+<script src="/vendor/three.min.js?v=20260903g"></script>
 <script>
 
 const CORE = "v0.5.1-session";
@@ -240,6 +240,7 @@ const UI_LANG = (function(){
 })();
 const IS_EN = (UI_LANG.indexOf("en") === 0) || (document.documentElement.lang || "").indexOf("en") === 0;
 function L(pt, en){ return IS_EN ? en : pt; }
+(function(){ var el=document.getElementById("atlasSubject"); if(el) el.textContent = L("SCA = Seres Computacionais Autónomos.", "ACB = Autonomous Computational Beings."); })();
 const NODE_ID = "FOG-NODE-PT-CM-001";
 const PORTAL = "https://calhegasmorais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
@@ -403,13 +404,12 @@ const ZONES = {
   pulse: { title: "Pulse · Fog holon", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x101820, fog: 0x0a1218, hue: 0x2f9e8a },
   wallet: { title: "Wallet · Account", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x181410, fog: 0x120e0a, hue: 0xd4a017 },
   dag: { title: "DAG · Ledger", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x121018, fog: 0x0c0a12, hue: 0x8a7cff },
-  sca: { title: "SCA · Agents", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x14181c, fog: 0x0c1014, hue: 0xc45c4a },
+  sca: { title: L("SCA", "ACB"), half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x14181c, fog: 0x0c1014, hue: 0xc45c4a },
   republic: { title: "Republic · Charter", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x1a1810, fog: 0x12100a, hue: 0xc4a574 },
   edge: { title: "Edge · Limiar", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x101418, fog: 0x0a0e12, hue: 0x6fbf73 },
   mesh: { title: "Mesh · Gossip", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x101616, fog: 0x0a1010, hue: 0x2f9e8a },
   kyc: { title: "KYC · Clearance", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x161410, fog: 0x100e0a, hue: 0xc45c4a },
   orch: { title: "Orchestrator · Cargo", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x14101a, fog: 0x0e0a14, hue: 0xd4a017 },
-  acb: { title: "ACB Hall · Offices", half: 16, spawn: { x: 0, z: 13, yaw: Math.PI }, sky: 0x121820, fog: 0x0a1016, hue: 0xc4a574 },
 };
 
 const LAB_HOLDER = "amcmorais@icloud.com";
@@ -439,16 +439,16 @@ function paintLandTitle() {
 }
 const EXITS = {
   bancada: { n: "rua" },
-  rua: { n: "agora", s: "bancada", e: "acb" },
+  rua: { n: "agora", s: "bancada", e: "sca" },
   agora: { s: "rua" },
   pulse: { s: "rua" }, wallet: { s: "rua" }, dag: { s: "rua" }, sca: { s: "rua" },
   republic: { s: "rua" }, edge: { s: "rua" }, mesh: { s: "rua" }, kyc: { s: "rua" },
-  orch: { s: "rua" }, acb: { w: "rua" },
+  orch: { s: "rua" },
 };
 const ROOM_LOTS = [
   ["pulse","Pulse"],["wallet","Wallet"],["agora","Agora"],["dag","DAG"],
-  ["sca","SCA"],["republic","Republic"],["edge","Edge"],["mesh","Mesh"],
-  ["kyc","KYC"],["orch","Orch"],["acb","ACB Hall"],["bancada", L("Bancada","Workbench")],
+  ["sca", L("SCA","ACB")],["republic","Republic"],["edge","Edge"],["mesh","Mesh"],
+  ["kyc","KYC"],["orch","Orch"],["bancada", L("Bancada","Workbench")],
 ];
 const ACB_ROSTER = [
   { id:"acb-orch", name:"Orion-CMN", cargo:"ORCHESTRATOR", sca:"SCA-ORCH-CMN-001", color:0xd4a017 },
@@ -460,7 +460,7 @@ const ACB_ROSTER = [
 ];
 const ROOM_OBJECTS = [
   ["pulse","Fog pulse holon"],["wallet","Account vault"],["agora","EUR book stall"],
-  ["dag","Ledger tip"],["sca","SCA desk"],["republic","Charter stone"],
+  ["dag","Ledger tip"],["sca", L("secretária SCA","ACB desk")],["republic","Charter stone"],
   ["edge","Limiar gate"],["mesh","Gossip beacon"],["kyc","Clearance seal"],
   ["orch","Cargo board"],
 ];
@@ -581,7 +581,7 @@ function buildZone() {
     }
     const door = box(staticRoot, 1.6, 2.3, 0.12, 0, 1.15, H - 0.2, toon(0x3a2014, 0xc45c4a, 0.28), "door");
     box(staticRoot, 0.12, 2.3, 1.6, H - 0.2, 1.15, 0, toon(0x3a2014, 0xc45c4a, 0.28), "door");
-  } else if (zone === "acb") {
+  } else if (zone === "sca") {
 
     box(staticRoot, H * 2, 0.1, H * 2, 0, 0, 0, toon(0x1a2430), "floor");
     box(staticRoot, 4, 0.06, H * 2, 0, 0.08, 0, toon(0x243040), "floor");
@@ -645,7 +645,7 @@ function rebuild() {
       const cap = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 1.1), toon(0xc4a574));
       cap.position.y = 3.28; g.add(cap);
     } else if (nft.role === "avatar") {
-      const a = i * GOLDEN, r = (zone === "acb" ? 4.2 : 1.8) + (i % 3) * 0.35;
+      const a = i * GOLDEN, r = (zone === "sca" ? 4.2 : 1.8) + (i % 3) * 0.35;
       g.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
       const parts = nft.parts || {};
       const col = parts.torso || nft.color || 0xd4a017;
@@ -741,6 +741,7 @@ function nearest(max = 1.5) {
 }
 function half() { return ZONES[zone].half; }
 function travel(to) {
+  if (to === "acb") to = "sca";
   zone = to;
   const sp = ZONES[to].spawn;
   px = sp.x; pz = sp.z; yaw = sp.yaw; pitch = 0;

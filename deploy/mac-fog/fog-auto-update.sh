@@ -47,6 +47,7 @@ hop_up() {
 }
 
 # Interactive g and auto-g both brew (update then upgrade). Never skip brew because hops are down.
+# Never log or print "brew skip (auto-g)".
 if command -v brew >/dev/null 2>&1; then
   brew update >>"$LOG" 2>&1 || log "brew update rc=$?"
   brew upgrade >>"$LOG" 2>&1 || log "brew upgrade rc=$?"

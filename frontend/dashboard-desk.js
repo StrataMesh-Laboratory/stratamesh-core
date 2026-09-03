@@ -95,8 +95,7 @@
           t('Conta', 'Account') + ': <b style="color:var(--fg)">' + esc(me.email || '—') + '</b><br>' +
           t('Carteira', 'Wallet') + ': <code>' + esc(me.wallet || '—') + '</code><br>' +
           t('Unidade', 'Unit') + ': <b>' + esc(me.unit || 'L-STRATA') + '</b> · ' +
-          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.',
-            'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
+          t('L-STRATA de laboratório (não transita). STRATA PdC só de #mint.', 'Laboratory L-STRATA (non-transitioning). PoC STRATA only from #mint.');
       }
       var hint = el('panelModeHint');
       if (hint) {
@@ -236,8 +235,7 @@
           t('Endereço temporal', 'Temporal address') + ': <b style="color:var(--fg)">Lisboa</b>' +
           (season ? ' · ' + esc(season) : '') + (phase ? ' · ' + esc(phase) : '') +
           ' · PPC Atlântico (Almendres / Lisboa). ' +
-          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.',
-            'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
+          t('Calendário Lunisolar Planetário calibra o tempo na TRD — não é uma camada holónica à parte.', 'The Planetary Lunisolar Calendar calibrates time in the TRD — not a separate holonic layer.') +
           ' <a href="/clp" style="color:var(--accent)">/clp</a>';
       }
       var host = el('clpWidgetHost');
@@ -279,8 +277,7 @@
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Câmaras', 'Chambers') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.',
-          'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
+        t('Associativa: um membro, um voto; quotas iguais, sem distribuição de lucros. Corporativa: participação proporcional ao capital social externo. Ambas residem como NFT STRATA na malha.', 'Associative: one member, one vote; equal dues, no profit distribution. Corporate: stake follows external share capital. Both live as STRATA NFTs on the mesh.') +
         '</p>' +
         '<div id="daoMinutes" style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">' + t('Actas: a câmara ainda não deliberou nesta sessão.', 'Minutes: the chamber has not yet deliberated this session.') + '</div></div>';
       var panel = el('panel-dao');
@@ -320,8 +317,7 @@
       extra.innerHTML =
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Pacto', 'Compact') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0 0 .75rem">' +
-        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.',
-          'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
+        t('Um APS é um NFT-contrato: mint estático, execução dinâmica, pausa que preserva colateral, fecho quando o colateral esgota. Partes, gatilho e duração residem no próprio objecto — não numa VM EVM.', 'A compact is a contract-NFT: minted static, executed dynamic, pause preserves collateral, close when collateral is exhausted. Parties, trigger and duration live on the object — not an EVM.') +
         '</p>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem">' +
         '<label style="font-size:.75rem;color:var(--muted)">' + t('Partes (vírgulas)', 'Parties (comma)') + '<input id="spaParties" placeholder="email, SCA-…" style="display:block;width:100%;margin-top:.25rem;padding:.4rem;background:var(--bg);border:1px solid var(--line2);color:var(--fg);border-radius:4px"></label>' +
@@ -351,8 +347,7 @@
         '<div style="padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:8px">' +
         '<div style="font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">' + t('Telemetria', 'Telemetry') + '</div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin:0">' +
-        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.',
-          'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
+        t('Ingestão universal no limiar: o dispositivo não corre runtime StrataMesh. Eventos sintéticos do EDGE alimentam a malha sem impacto no hardware.', 'Universal edge ingest: the device does not run a StrataMesh runtime. EDGE synthetic events feed the mesh with no hardware impact.') +
         '</p><div id="iotTelem" style="margin-top:.65rem;font-family:ui-monospace,monospace;font-size:.72rem;color:var(--muted)">—</div></div>';
       var panel = el('panel-iot');
       if (panel) panel.appendChild(extra);
@@ -410,10 +405,8 @@
         '<div class="stat-card"><div class="value" style="font-size:.75rem;word-break:break-all">' + esc(u.wallet || '—') + '</div><div class="label">' + t('Carteira', 'Wallet') + '</div></div></div>' +
         '<p style="font-size:.8rem;color:var(--muted);line-height:1.5">' +
         (window.isStaffUser()
-          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.',
-              'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
-          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.',
-              'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
+          ? t('Conta de pessoal — secções administrativas desbloqueadas conforme clearance. Confiança 2FA: 1 hora.', 'Staff account — administrative sections unlock by clearance. 2FA trust window: 1 hour.')
+          : t('Identidade desta conta no Nó. L-STRATA é concessão de laboratório e não transita. 2FA fiável durante 1 hora após o último código.', 'This account’s identity on the Node. L-STRATA is a laboratory grant and does not transit. 2FA is trusted for 1 hour after the last code.')) +
         '</p>' +
         '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem">' +
         '<button type="button" onclick="showPanel(\'wallet\',document.querySelector(\'[data-panel=wallet]\'))" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.78rem">' + t('Tesouraria', 'Treasury') + '</button>' +

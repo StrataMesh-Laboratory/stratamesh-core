@@ -127,7 +127,7 @@
     }
     var palette = [0xf3e2c4, 0xc48a3a, 0x8a4a24, 0xd4a017, 0x6b2e1c, 0xe8c4a0];
     var names = ['NÓ', 'ÁGORA', 'CLP', 'SCA', 'FOG', 'ENI', 'STRATA', 'MESH'];
-    if (!PT) names = ['NODE', 'AGORA', 'CLP', 'SCA', 'FOG', 'ENI', 'STRATA', 'MESH'];
+    if (!PT) names = ['NODE', 'AGORA', 'CLP', 'ACB', 'FOG', 'ENI', 'STRATA', 'MESH'];
     for (var s = 0; s < 8; s++) {
       shop(-8.4, -6.2 + s * 1.7, Math.PI / 2, 1.55, 2.1 + (s % 3) * 0.35, palette[s % palette.length], names[s]);
       shop(8.4, -6.2 + s * 1.7, -Math.PI / 2, 1.55, 2.2 + ((s + 1) % 3) * 0.3, palette[(s + 2) % palette.length], names[(s + 4) % names.length]);
@@ -289,17 +289,11 @@
     setTool('phys');
     var prompt = document.getElementById('bancadaPrompt');
     if (prompt) {
-      prompt.textContent = t(
-        'Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta',
-        'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool'
-      );
+      prompt.textContent = t('Esq. andar · Dir. olhar · arrastar para olhar · WASD · F pegar · 1–5 ferramenta', 'Left stick walk · Right stick look · drag to look · WASD · F grab · 1–5 tool');
     }
     var hint = document.getElementById('bancadaLockHint');
     if (hint) {
-      hint.textContent = t(
-        'Toque para habitar · stick direito olha · arraste no ecrã como na órbita',
-        'Tap to inhabit · right stick looks · drag the screen as in orbit'
-      );
+      hint.textContent = t('Toque para habitar · stick direito olha · arraste no ecrã como na órbita', 'Tap to inhabit · right stick looks · drag the screen as in orbit');
     }
   }
 

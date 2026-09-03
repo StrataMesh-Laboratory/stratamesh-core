@@ -1,4 +1,4 @@
-/** Laboratory kernels — QIGA, FL, volition, NFT, SCA registry.
+/** Laboratory kernels — QIGA, FL, volition, NFT, ACB registry.
  *  PdS is a TRD rule (burn to #0). This Node only inscribes the debit. */
 
 import { NODE_ACCT } from "@/lib/dlt-engine";
@@ -279,7 +279,7 @@ export function seedScas(): ScaRecord[] {
   ];
 }
 
-/** Identity stays. Appointment moves. Node hires only Republic-enrolled SCAs. */
+/** Identity stays. Appointment moves. Node hires only Republic-enrolled ACBs. */
 export function appoint(scas: ScaRecord[], scaId: string, role: string | null): ScaRecord[] {
   const target = scas.find((s) => s.id === scaId);
   if (role && target && !target.enrolled) return scas;

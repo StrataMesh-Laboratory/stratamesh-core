@@ -74,7 +74,7 @@ export const HOLON_CONTRACTS = {
     name: "Dashboard / Portal",
     parent: "metaverse_os",
     children: [],
-    role: "Human/SCA UI surface inside Metaverse OS holarchy",
+    role: "Human/ACB UI surface inside Metaverse OS holarchy",
     capabilities: ["portal_spa", "auth_gate", "chat_orch", "clp_ui"],
     apis: ["stratamesh-spa", "stratamesh-ui", "stratamesh-portal"],
     invariants: ["lives inside holarchy", "clearance is account field"],
@@ -127,7 +127,7 @@ export const HOLON_CONTRACTS = {
   },
   agent: {
     order: 6,
-    name: "User | SCA",
+    name: "User | ACB",
     parent: "ugc_sandbox",
     children: [],
     role: "Standing by function and agreement; personal identity ≠ node function",

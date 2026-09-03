@@ -268,5 +268,26 @@ class OrchAiopsReport(unittest.TestCase):
 
 
 
+class HopSparkHistory(unittest.TestCase):
+    def test_always_live_is_ticks_not_fill_or_braille(self):
+        s = _MOD.hop_spark([1.0] * 12)
+        self.assertGreaterEqual(len(s), 8)
+        self.assertLessEqual(len(s), 12)
+        self.assertEqual(set(s), {":"})
+        self.assertNotIn("\u28ff", s)
+        self.assertNotIn("\u2800", s)
+        self.assertNotIn("█", s)
+        self.assertNotIn("░", s)
+
+    def test_down_slice_is_gap_column(self):
+        s = _MOD.hop_spark([1, 0, 1, 0, 1, 0, 1, 0])
+        self.assertEqual(len(s), 8)
+        self.assertEqual(s, ":.:.:.:.")
+
+    def test_empty_is_gap_row(self):
+        s = _MOD.hop_spark([])
+        self.assertEqual(s, "." * 8)
+
+
 if __name__ == "__main__":
     unittest.main()
