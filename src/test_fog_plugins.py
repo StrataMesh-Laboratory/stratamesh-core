@@ -254,8 +254,13 @@ def test_tui_g_always_brews():
     text = tui.read_text(encoding="utf-8")
     pull = text[text.index("def git_pull_reboot"):text.index("\ndef mark")]
     assert "brew skip" not in pull
+    assert "brew skip" not in text
     assert "brew_update_upgrade()" in pull
     assert "brew skip (auto-g)" not in text
+    brew_fn = text[text.index("def brew_update_upgrade"):text.index("def runtime_mesh_last_error")]
+    assert "reinstall" in brew_fn and "llhttp" in brew_fn and "node" in brew_fn
+    assert brew_fn.index("upgrade") < brew_fn.index("reinstall")
+    assert "/usr/local/bin" in text and "/opt/homebrew/bin" in text
     assert "wait_key uses stdin" in text or "stdin only" in text
     assert "/dev/tty" in text[text.index("def _yn_from_tty"):text.index("def confirm")]
 
@@ -264,8 +269,11 @@ def test_auto_update_brews_before_runtime_skip():
     sh = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-auto-update.sh"
     text = sh.read_text(encoding="utf-8")
     assert "brew skip (auto-g)" not in text
+    assert "brew skip" not in text
     assert text.index("brew update") < text.index("skip runtime-down")
     assert "brew upgrade" in text
+    assert "brew reinstall llhttp node" in text
+    assert text.index("brew upgrade") < text.index("brew reinstall llhttp node")
     assert "recycle_mw((8787,8788,8790,8791,8792))" in text.replace(" ", "")
 
 
@@ -564,6 +572,91 @@ def test_recycle_leftover_python_sigterm_only_node_sigkill():
     node_kills = run("node", 222)
     assert (222, signal.SIGTERM) in node_kills
     assert (222, signal.SIGKILL) in node_kills
+
+
+
+def test_tui_node_dark_last_error_needle():
+    """Dark node lamp shows runtime-mesh last_error / mw-node hint. No secrets."""
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    text = tui.read_text(encoding="utf-8")
+    assert "def runtime_mesh_last_error" in text
+    assert "last_error" in text
+    assert "mw-node" in text
+    assert "runtime_mesh" in text
+    assert "ghp_" in text  # scrub needle
+    import ast
+    tree = ast.parse(text)
+    keep = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "runtime_mesh_last_error"]
+    mod = ast.Module(body=keep, type_ignores=[])
+    ast.fix_missing_locations(mod)
+    ns = {}
+    exec(compile(mod, "fog-tui.py", "exec"), ns, ns)
+    fn = ns["runtime_mesh_last_error"]
+    hint = fn({"runtime_mesh": {"plugin": "runtime-mesh", "last_error": "mw-node exit 1 dyld libllhttp.9.3.dylib"}})
+    assert "dyld" in hint and "libllhttp" in hint
+    red = fn({"runtime_mesh": {"last_error": "mw-node ghp_SECRETTOKEN123 llhttp"}})
+    assert "ghp_" not in red
+    assert red == "mw-node error"
+    assert fn({"runtime_mesh": {}}) == ""
+    assert "workers.dev" not in text[text.index("def runtime_mesh_last_error"):text.index("def runtime_mesh_last_error")+800]
+
+
+def test_node_dyld_last_error_backs_off_60s():
+    """Immediate dyld death must not tight-loop Popen every 12s."""
+    import tempfile
+    from unittest.mock import MagicMock, patch
+    from fog_plugins import runtime_mesh
+
+    assert runtime_mesh.NODE_DYLD_BACKOFF_SEC == 60.0
+    src = Path(runtime_mesh.__file__).read_text(encoding="utf-8")
+    assert "NODE_DYLD_BACKOFF_SEC" in src
+    assert "_node_backoff_until" in src
+    assert "dyld" in src and "libllhttp" in src
+    loop = __import__("inspect").getsource(runtime_mesh.RuntimeMeshPlugin._loop)
+    assert "continue" not in loop
+
+    plugin = runtime_mesh.RuntimeMeshPlugin()
+    popens = []
+    clock = {"t": 1000.0}
+
+    def fake_popen(cmd, *args, **kwargs):
+        popens.append(list(cmd))
+        m = MagicMock()
+        m.pid = 8791
+        m.poll.return_value = 1
+        return m
+
+    def fake_which(name):
+        if name == "node":
+            return "/usr/local/bin/node"
+        return None
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data = root / "data"
+        data.mkdir()
+        js = root / "ops" / "middleware" / "fog_mw.js"
+        js.parent.mkdir(parents=True)
+        js.write_text("// stub\n", encoding="utf-8")
+        (data / "mw-node.log").write_bytes(b"dyld: Library not loaded: /usr/local/opt/llhttp/lib/libllhttp.9.3.dylib\n")
+        with patch.object(runtime_mesh, "ROOT", root), \
+             patch.object(runtime_mesh, "DATA", data), \
+             patch.object(runtime_mesh.host_cap, "over", return_value=False), \
+             patch.object(runtime_mesh, "_healthy", return_value=False), \
+             patch.object(runtime_mesh, "_write_sha"), \
+             patch.object(runtime_mesh.subprocess, "Popen", fake_popen), \
+             patch.object(runtime_mesh, "_which_bin", fake_which), \
+             patch.object(runtime_mesh.time, "time", lambda: clock["t"]):
+            plugin._spawn()
+            assert popens, "first spawn must try node"
+            assert plugin.last_error and "dyld" in plugin.last_error.lower()
+            assert plugin._node_backoff_until >= clock["t"] + 60.0
+            n1 = len(popens)
+            plugin._spawn()
+            assert len(popens) == n1, "must not respawn node during 60s dyld backoff"
+            clock["t"] += 61.0
+            plugin._spawn()
+            assert len(popens) == n1 + 1, "must try again after 60s backoff"
 
 
 def test_tui_fog_kernel_and_orch_4s():

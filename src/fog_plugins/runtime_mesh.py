@@ -121,7 +121,14 @@ def _write_sha() -> None:
 
 
 DEAD_MW_SKIP_SEC = 8.0
+NODE_DYLD_BACKOFF_SEC = 60.0
 WHICH_FALLBACK_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
+
+
+def _dyld_node_error(err) -> bool:
+    """Broken Homebrew node bottle (dyld libllhttp) — backoff, do not tight-loop."""
+    s = (err or "").lower()
+    return "dyld" in s or "libllhttp" in s
 
 
 def _which_bin(name: str):
@@ -318,6 +325,7 @@ class RuntimeMeshPlugin:
         self.node_pid = None
         self.deno_pid = None
         self.last_error = None
+        self._node_backoff_until = 0.0
 
     def snapshot(self) -> dict:
         node_bin = _which_bin("node")
@@ -411,28 +419,35 @@ class RuntimeMeshPlugin:
             self._kick_object_layers_probe()
         node = _which_bin("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
-            log = open(DATA / "mw-node.log", "ab")
-            env = os.environ.copy()
-            env.setdefault("FOG_SRC", str(ROOT))
-            env.setdefault("FOG_DATA", str(DATA))
-            p = subprocess.Popen(
-                [node, str(js)],
-                stdout=log,
-                stderr=log,
-                start_new_session=True,
-                cwd=str(ROOT),
-                env=env,
-            )
-            self.node_pid = p.pid
-            rc = p.poll()
-            if rc is not None:
-                tail = ""
-                try:
-                    tail = (DATA / "mw-node.log").read_bytes()[-800:].decode("utf-8", "replace").strip()[-400:]
-                except OSError:
+            now = time.time()
+            # last_error dyld/libllhttp arms 60s; skip Popen until then (host_cap may rewrite last_error).
+            if now < float(self._node_backoff_until or 0):
+                pass  # 60s backoff: broken bottle, still retry after
+            else:
+                log = open(DATA / "mw-node.log", "ab")
+                env = os.environ.copy()
+                env.setdefault("FOG_SRC", str(ROOT))
+                env.setdefault("FOG_DATA", str(DATA))
+                p = subprocess.Popen(
+                    [node, str(js)],
+                    stdout=log,
+                    stderr=log,
+                    start_new_session=True,
+                    cwd=str(ROOT),
+                    env=env,
+                )
+                self.node_pid = p.pid
+                rc = p.poll()
+                if rc is not None:
                     tail = ""
-                self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
-            _write_sha()  # sha stamp is git identity, not metabol
+                    try:
+                        tail = (DATA / "mw-node.log").read_bytes()[-800:].decode("utf-8", "replace").strip()[-400:]
+                    except OSError:
+                        tail = ""
+                    self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
+                    if _dyld_node_error(self.last_error):
+                        self._node_backoff_until = time.time() + NODE_DYLD_BACKOFF_SEC
+                _write_sha()  # sha stamp is git identity, not metabol
         deno = _which_bin("deno")
         if deno and ts.is_file() and not _healthy(DENO_PORT):
             log = open(DATA / "mw-deno.log", "ab")

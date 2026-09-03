@@ -51,6 +51,18 @@ hop_up() {
 if command -v brew >/dev/null 2>&1; then
   brew update >>"$LOG" 2>&1 || log "brew update rc=$?"
   brew upgrade >>"$LOG" 2>&1 || log "brew upgrade rc=$?"
+  # Intel /usr/local and Apple Silicon /opt/homebrew are already on PATH.
+  node_out=""
+  node_rc=1
+  if command -v node >/dev/null 2>&1; then
+    node_out=$(node -v 2>&1) && node_rc=0 || node_rc=$?
+  fi
+  case "$node_out" in
+    *[Dd]yld*|*libllhttp*) node_rc=1 ;;
+  esac
+  if [[ "$node_rc" -ne 0 ]]; then
+    brew reinstall llhttp node >>"$LOG" 2>&1 || log "brew reinstall llhttp node rc=$?"
+  fi
 else
   log "brew missing"
 fi

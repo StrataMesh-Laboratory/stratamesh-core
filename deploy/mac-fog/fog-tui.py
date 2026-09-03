@@ -614,10 +614,33 @@ def sync_workerd_config() -> str:
     return "sync " + " · ".join(notes) if notes else "sync skip"
 
 
+def _brew_env() -> dict:
+    """Intel /usr/local and Apple Silicon /opt/homebrew on PATH for brew/node."""
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
+    return env
+
+
+def _which_brew_node(name: str):
+    found = shutil.which(name)
+    if found:
+        return found
+    for d in ("/opt/homebrew/bin", "/usr/local/bin"):
+        cand = Path(d) / name
+        try:
+            if cand.is_file() and os.access(str(cand), os.X_OK):
+                return str(cand)
+        except OSError:
+            continue
+    return None
+
+
 def brew_update_upgrade() -> str:
     """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
-    Interactive g and auto-g both brew."""
-    brew = shutil.which("brew")
+    Interactive g and auto-g both brew. If node -v fails (dyld/libllhttp),
+    brew reinstall llhttp node (non-fatal)."""
+    env = _brew_env()
+    brew = _which_brew_node("brew")
     if not brew:
         return "brew missing"
     notes = []
@@ -628,11 +651,57 @@ def brew_update_upgrade() -> str:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=300,
+                env=env,
             )
             notes.append("%s rc=%s" % (verb, rc))
         except Exception:
-            notes.append("%s skip" % verb)
+            notes.append("%s fail" % verb)
+    node_bin = _which_brew_node("node") or "node"
+    node_bad = False
+    try:
+        p = subprocess.run(
+            [node_bin, "-v"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env=env,
+        )
+        err = (p.stderr or "") + (p.stdout or "")
+        node_bad = p.returncode != 0 or "dyld" in err.lower() or "libllhttp" in err.lower()
+    except Exception:
+        node_bad = True
+    if node_bad:
+        try:
+            rc = subprocess.call(
+                [brew, "reinstall", "llhttp", "node"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=600,
+                env=env,
+            )
+            notes.append("reinstall llhttp node rc=%s" % rc)
+        except Exception:
+            notes.append("reinstall llhttp node fail")
     return "brew " + " · ".join(notes)
+
+
+def runtime_mesh_last_error(st: dict | None = None) -> str:
+    """Short runtime-mesh last_error for a dark node lamp. Never secrets."""
+    st = st if isinstance(st, dict) else {}
+    rm = st.get("runtime_mesh") if isinstance(st.get("runtime_mesh"), dict) else st
+    if not isinstance(rm, dict):
+        return ""
+    if rm.get("plugin") not in (None, "runtime-mesh") and "last_error" not in rm:
+        rm = st.get("runtime-mesh") if isinstance(st.get("runtime-mesh"), dict) else rm
+    err = str(rm.get("last_error") or "").strip().replace("\n", " ").replace("\r", " ")
+    if not err:
+        return ""
+    low = err.lower()
+    if "ghp_" in low or "github_pat_" in low or "cfat_" in low or "bearer " in low:
+        return "mw-node error"
+    if len(err) > 72:
+        err = err[:72]
+    return err
 
 
 def git_pull_reboot() -> str:
@@ -1731,6 +1800,9 @@ def draw(msg: str = "") -> None:
         (8791, "node", bool(ndh.get("ok"))),
         (8792, "deno", bool(dnh.get("ok"))),
     )
+    node_hint = ""
+    if not bool(ndh.get("ok")):
+        node_hint = runtime_mesh_last_error(st)
     for port, name, okh in mesh:
         hist = HOP_LIVE_HIST.get(port)
         if hist is not None:
@@ -1740,7 +1812,10 @@ def draw(msg: str = "") -> None:
             sp = ""
         indent = " "
         nm = (BOLD + name.ljust(8) + RST) if okh else (MUT + name.ljust(8) + RST)
-        print(boxline(indent + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp, w))
+        extra = ""
+        if name == "node" and not okh and node_hint:
+            extra = MUT + " " + node_hint + RST
+        print(boxline(indent + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp + extra, w))
     pub_nm = pub_origin_label(pub)
     print(boxline(" " + lamp(pub_ok) + " " + (BOLD if pub_ok else MUT) + "public".ljust(8) + RST
                   + MUT + " " + pub_nm + RST, w))
@@ -1772,10 +1847,16 @@ def draw(msg: str = "") -> None:
     print(boxline("  DSK " + dsk + "  " + dsk_path, w))
     print(boxline("  NET " + net(), w))
     sha_now = git_sha()
-    print(boxline("  GIT " + sha_now + "  " + awake_line(), w))
+    git_extra = ""
+    if node_hint and not bool(ndh.get("ok")):
+        git_extra = MUT + "  mw-node " + node_hint + RST
+    print(boxline("  GIT " + sha_now + "  " + awake_line() + git_extra, w))
     print(bot)
     print(MUT + "  g update   b reboot   s stop   r refresh   ? wizard   q quit" + RST)
-    print(MUT + "  instrument · 60s · named-tunnel stays up" + RST)
+    instr = "  instrument · 60s · named-tunnel stays up"
+    if node_hint and not bool(ndh.get("ok")):
+        instr = instr + " · " + node_hint
+    print(MUT + instr + RST)
 
     WIZARD_SNAP.clear()
     WIZARD_SNAP.update({
