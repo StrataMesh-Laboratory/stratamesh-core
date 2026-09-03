@@ -249,8 +249,10 @@ def public_http_ok(d) -> bool:
 
 
 def apply_public_result(raw: dict, which: str = "pub") -> dict:
-    """Hysteresis: 1 success -> live; 3 consecutive failures -> dark.
-    Last-good JSON (origin, ok, n, mac_live) held >=5 min. One timeout never paints public --.
+    """Hysteresis: 1 success -> live. Last-good JSON held >=5 min.
+    A single HTTPS timeout with last_good does not increment PUB_FAILS and
+    does not force _lamp False (hairpin/NAT). PUB_DARK_STREAK is annotation
+    only. MESH public row follows local workerd hop_ok, not this _lamp.
     """
     global PUB_FAILS, EDGE_FAILS
     now = time.monotonic()
@@ -273,6 +275,28 @@ def apply_public_result(raw: dict, which: str = "pub") -> dict:
             cache.clear()
             cache.update(snap)
             cache["_lamp"] = True
+            cache["_annot_fails"] = 0
+            return dict(cache)
+        g_busy = "g running" in (G_MSG or "")
+        if which != "edge" and (last_good or g_busy):
+            # Hairpin timeout / g recycle: probe optional. Do not increment
+            # PUB_FAILS. Do not force _lamp False while last_good exists.
+            paint = dict(last_good) if last_good else dict(raw)
+            annot = int(cache.get("_annot_fails") or 0)
+            if last_good and not g_busy:
+                annot += 1
+            cache.clear()
+            cache.update(paint)
+            cache["_annot_fails"] = annot
+            cache["_lamp"] = bool(last_good)
+            # annotation only — streak does not hollow the MESH row (draw uses hop_ok)
+            cache["_annot_dark"] = bool(last_good) and annot >= PUB_DARK_STREAK
+            if last_good and last_good.get("origin") is not None:
+                cache["origin"] = last_good.get("origin")
+                if "n" in last_good:
+                    cache["n"] = last_good["n"]
+                if "mac_live" in last_good:
+                    cache["mac_live"] = last_good["mac_live"]
             return dict(cache)
         if which == "edge":
             EDGE_FAILS += 1
@@ -332,7 +356,10 @@ def kick_public_refresh() -> None:
                 pub = {"ok": False, "error": "bad"}
             if not isinstance(edge, dict):
                 edge = {"ok": False, "error": "bad"}
-            apply_public_result(pub, "pub")
+            if "g running" in (G_MSG or "") and not public_http_ok(pub):
+                pass  # probe optional while g running; do not increment fails
+            else:
+                apply_public_result(pub, "pub")
             apply_public_result(edge, "edge")
         except Exception:
             pass
@@ -1263,8 +1290,10 @@ def draw(msg: str = "") -> None:
     waiver = bool(rails.get("lab_waived"))
     oracle = bool(st.get("oracle_live") or hop.get("oracle_live"))
     over = bool(cap.get("over"))
-    pub_ok = bool(pub.get("_lamp"))
     hop_ok = hop.get("ok") is True
+    # This Mac is the public session when local workerd :8788 is live.
+    # HTTPS probe _lamp is an origin/annotation flag, not the MESH circle.
+    pub_ok = hop_ok
     fog_ok = st.get("status") == "operational"
     decision = local_decision(hop_ok, fog_ok, over)
 
