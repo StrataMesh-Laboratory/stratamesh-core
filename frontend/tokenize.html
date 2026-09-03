@@ -40,6 +40,7 @@
   <p class="lede">Tokenizar escreve neste catálogo da conta. Só depois, se a conta ou um SCA quiser, se desdobra no sandbox (mundo aberto, sala partilhada, ou sandbox pessoal com visitantes convidados). Sem prateleira pública, sem avatar de visita.</p>
 
   <h3>Desta conta</h3>
+    <p class="note" id="labNote" style="display:none">LAB land título held by amcmorais@icloud.com (bundled parcels, not merged). Read-only — not copied into this account.</p>
   <ul id="list"><li class="empty">Nenhum objecto. Tokenizar entra aqui, não no palco.</li></ul>
 
   <h3>Tokenizar</h3>
@@ -122,6 +123,74 @@
       return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
     }
     var items = load();
+
+    var LAB_HOLDER = "amcmorais@icloud.com";
+    var LAB_ZONES = ["bancada","rua","agora","pulse","wallet","dag","sca","republic","edge","mesh","kyc","orch","acb"];
+    function labCanon() {
+      var covers = LAB_ZONES.map(function (z) { return "par-lab-" + z; });
+      var parcels = LAB_ZONES.map(function (z) {
+        return {
+          id: "par-lab-" + z,
+          kind: "parcel",
+          name: "LAB land · " + z,
+          unmovable: true,
+          dest: "world",
+          deployed: true,
+          containedBy: "obj-lab-land-bundle",
+          rules: "owner",
+          contains: [],
+          trade: ""
+        };
+      });
+      var bundle = {
+        id: "obj-lab-land-bundle",
+        kind: "bundle",
+        name: "LAB land · CMN",
+        aspectos: covers,
+        contrato: { type: "ownership", holder: LAB_HOLDER, covers: covers },
+        deployed: true,
+        dest: "world",
+        rules: "owner",
+        contains: covers,
+        trade: ""
+      };
+      return { holder: LAB_HOLDER, bundle: bundle, parcels: parcels };
+    }
+    function readLabLand() {
+      try { return JSON.parse(localStorage.getItem("sm_lab_land") || "null"); } catch (e) { return null; }
+    }
+    function seedLabLand() {
+      var existing = readLabLand();
+      var reg = (existing && existing.holder) ? existing : labCanon();
+      if (!(existing && existing.holder)) {
+        try { localStorage.setItem("sm_lab_land", JSON.stringify(reg)); } catch (e) {}
+      }
+      var hkey = "sm_catalog_" + LAB_HOLDER.toLowerCase();
+      var cat = [];
+      try { cat = JSON.parse(localStorage.getItem(hkey) || "[]"); } catch (e) { cat = []; }
+      if (!Array.isArray(cat)) cat = [];
+      function upsert(it) {
+        for (var i = 0; i < cat.length; i++) if (cat[i].id === it.id) { return; }
+        cat.push(it);
+      }
+      upsert(reg.bundle);
+      (reg.parcels || []).forEach(upsert);
+      try { localStorage.setItem(hkey, JSON.stringify(cat)); } catch (e) {}
+      return reg;
+    }
+    var labReg = seedLabLand();
+    var isHolder = w.toLowerCase() === LAB_HOLDER.toLowerCase();
+    if (isHolder) {
+      items = load();
+    }
+    var labNote = document.getElementById("labNote");
+    if (labNote) {
+      if (!isHolder) {
+        labNote.style.display = "block";
+      } else {
+        labNote.style.display = "none";
+      }
+    }
     var sel = null;
     function paintList() {
       var ul = document.getElementById("list");
@@ -134,7 +203,8 @@
       items.forEach(function (it, i) {
         var li = document.createElement("li");
         if (sel === it.id) li.className = "on";
-        var kind = it.kind === "lot" ? "lot STRATA" : (it.kind === "parcel" ? "parcela" : "objecto");
+        var kind = it.kind === "lot" ? "lot STRATA" : (it.kind === "parcel" ? "parcela" : (it.kind === "bundle" ? "bundle" : "objecto"));
+        if (it.unmovable) kind = kind + " · unmovable";
         var st = it.deployed ? ("desdobrado · " + it.dest) : "no catálogo";
         li.innerHTML = "<strong>" + (it.name || kind) + "</strong> <span class=\"chip\">" + kind + "</span>" +
           (it.deployed ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
@@ -161,9 +231,24 @@
           ? ("Desdobrado em " + it.dest + " · regras: " + it.rules)
           : "No catálogo privado. Ainda não está no sandbox.");
       document.getElementById("detState").textContent = line;
+      var extra = "";
+      if (it.kind === "bundle") {
+        extra = " Aspectos: " + ((it.aspectos || it.contains || []).join(", ") || "—") +
+          ". Contrato: ownership · holder " + ((it.contrato && it.contrato.holder) || LAB_HOLDER) +
+          " (título, not merged land). Troca aplica-se ao título do bundle.";
+      } else if (it.unmovable || it.kind === "parcel") {
+        extra = " Parcela unmovable — não se recolhe terra para o inventário.";
+      }
+      document.getElementById("detState").textContent = line + extra;
       document.getElementById("dest").value = it.dest || "world";
       document.getElementById("rules").value = it.rules || "owner";
       document.getElementById("tradeNote").textContent = it.trade || "";
+      var lockLand = !!(it.unmovable || (it.kind === "parcel" && String(it.id || "").indexOf("par-lab-") === 0));
+      var isBundle = it.kind === "bundle";
+      document.getElementById("btnUndeploy").disabled = lockLand || isBundle;
+      document.getElementById("btnDeploy").disabled = lockLand;
+      document.getElementById("btnDonate").disabled = lockLand;
+      document.getElementById("btnTrade").disabled = lockLand;
     }
     document.getElementById("btnMint").onclick = function () {
       var n = (document.getElementById("nameIn").value || "").trim() || "objecto";
@@ -194,7 +279,7 @@
       paintList(); paintDet();
     };
     document.getElementById("btnDeploy").onclick = function () {
-      var it = cur(); if (!it || it.kind === "lot") return;
+      var it = cur(); if (!it || it.kind === "lot" || it.unmovable) return;
       it.deployed = true;
       it.dest = document.getElementById("dest").value;
       it.rules = document.getElementById("rules").value;
@@ -202,16 +287,19 @@
     };
     document.getElementById("btnUndeploy").onclick = function () {
       var it = cur(); if (!it) return;
+      if (it.unmovable || it.kind === "bundle" || String(it.id || "").indexOf("par-lab-") === 0) return;
       it.deployed = false; it.dest = "";
       save(items); paintList(); paintDet();
     };
     document.getElementById("btnDonate").onclick = function () {
       var it = cur(); if (!it) return;
+      if (it.unmovable || it.kind === "parcel") return;
       it.trade = "doação · drop do catálogo (lab) · " + new Date().toISOString().slice(0, 16);
       save(items); paintDet();
     };
     document.getElementById("btnTrade").onclick = function () {
       var it = cur(); if (!it) return;
+      if (it.unmovable || it.kind === "parcel") return;
       var peer = (document.getElementById("peer").value || "").trim() || "contraparte";
       it.trade = "troca directa · este catálogo larga " + it.id + " · " + peer + " larga do seu (lab)";
       it.rules = "counterpart";
