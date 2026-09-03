@@ -615,7 +615,7 @@ def sync_workerd_config() -> str:
 
 def brew_update_upgrade() -> str:
     """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
-    Interactive g and auto-g both brew. Never return or print "brew skip (auto-g)"."""
+    Interactive g and auto-g both brew."""
     brew = shutil.which("brew")
     if not brew:
         return "brew missing"
@@ -662,8 +662,6 @@ def git_pull_reboot() -> str:
     extra = (" " + " · ".join(copied)) if copied else ""
     # Interactive g and auto-g both brew. Off the paint thread (caller is fog-tui-g).
     brew_note = brew_update_upgrade()
-    if "brew skip" in brew_note:
-        brew_note = brew_update_upgrade()
     fog_rc = reboot_fog()
     return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 

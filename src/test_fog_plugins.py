@@ -297,14 +297,17 @@ def test_hop_spark_always_live_not_blank():
     hs = hop_spark(live)
     assert hs
     assert blank not in hs
+    assert all(ch == ":" for ch in hs)
     ss = spark(live)
     assert ss and all(ch == blank for ch in ss)
     down = [0.0] * 16
     hd = hop_spark(down)
-    assert hd and all(ch == blank for ch in hd)
+    assert hd and all(ch == "." for ch in hd)
+    assert blank not in hd
     mixed = [1.0, 0.0, 1.0, 0.0] * 4
     hm = hop_spark(mixed)
-    assert any(ch != blank for ch in hm)
+    assert ":" in hm and "." in hm
+    assert blank not in hm
     tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
     text = tui.read_text(encoding="utf-8")
     assert "hop_spark(hist)" in text
