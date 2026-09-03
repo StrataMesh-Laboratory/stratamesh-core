@@ -133,3 +133,6 @@ UIDN=$(id -u)
 launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
 launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.workerd" >/dev/null 2>&1 || true
 log "kickstart fog+workerd done (no tunnel)"
+
+# ollama wizard
+command -v ollama >/dev/null 2>&1 && curl -sf --max-time 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1 || { ollama serve >/dev/null 2>&1 & true; }
