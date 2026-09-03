@@ -1357,8 +1357,21 @@ def wait_key(seconds: float) -> str:
 
 
 def confirm(prompt: str) -> bool:
-    draw(prompt + "  y/n")
-    return wait_key(30) in ("y", "Y")
+    """y/n on the composer line only. Full draw() froze the TUI (public probe + TCSADRAIN)."""
+    row = int(COMPOSER_ROW or 22)
+    try:
+        DEV_TTY.write("\033[%d;1H\033[2K\033[?25h" % row)
+        DEV_TTY.write(prompt + "  y/n ")
+        DEV_TTY.flush()
+    except Exception:
+        pass
+    yes = wait_key(30) in ("y", "Y")
+    try:
+        DEV_TTY.write("\033[?25l")
+        DEV_TTY.flush()
+    except Exception:
+        pass
+    return yes
 
 
 def main() -> int:
