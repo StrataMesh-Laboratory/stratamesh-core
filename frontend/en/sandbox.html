@@ -21,7 +21,7 @@
     #sessionChip{font:500 .68rem/1.3 ui-monospace,Menlo,monospace;color:var(--muted);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     main.stage{flex:1 1 auto;position:relative;min-height:0}
     #atelierFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c}
-    .on-stage{position:absolute;z-index:2;left:.7rem;bottom:.7rem;width:min(22.5rem,calc(100% - 1.4rem));background:var(--cream);color:var(--ink);border:1px solid #d8d0c2;border-radius:4px;padding:.7rem .8rem .75rem;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+    .on-stage{display:none!important}
     .object-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
     .on-stage h2{font:500 .92rem/1.2 Georgia,ui-serif,serif}
     .chip{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;border:1px solid #cfc6b6;padding:.22rem .4rem;border-radius:2px;color:var(--ink2)}
@@ -43,10 +43,7 @@
     .acts button.ghost{background:transparent;color:var(--ink)}
     .acts button[disabled]{opacity:.38;cursor:not-allowed}
 
-    @media(max-width:719px){
-      .on-stage{display:none}
-      header.chrome{flex-wrap:wrap}
-    }
+    @media(max-width:719px){ header.chrome{flex-wrap:wrap} }
   </style>
 </head>
 <body>
@@ -57,33 +54,13 @@
       <a class="here" href="https://sandbox.calhegasmorais.pt/en/sandbox">Sandbox</a>
       <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a>
       <a href="https://calhegasmorais.pt/en/">Lab</a>
+      <button type="button" id="btnToken">Tokenisation</button>
       <button type="button" id="btnFs">Fullscreen</button>
     </div>
   </header>
   <main class="stage">
-    <iframe id="atelierFrame" title="GNU Atelier" src="about:blank" data-atelier="/gnu-atelier.html?v=20260903a&lang=en-GB" allow="fullscreen; pointer-lock"></iframe>
-    <aside class="on-stage" id="objectPanel">
-      <div class="object-top">
-        <h2 id="pieceName">Object on stage</h2>
-        <span class="chip" id="nameChip">draft</span>
-      </div>
-      <div class="contains">
-        <h3>Aspects</h3>
-        <p id="containsList">No objects inside. An NFT may contain others; depth is this object's own rules.</p>
-      </div>
-      <section class="aspect" id="contractAspect" data-oracle-live="false" data-strata-units="0" data-mood="still">
-        <h3>Contract · lab</h3>
-        <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Still</span></div>
-        <div class="tank-label">Interior tank · contract collateral</div>
-        <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
-        <div class="tank-read" id="tankRead">0 STRATA · lab</div>
-        <p class="hint">When rules exist, the contract runs on its own tank. The pocket lives on the workbench.</p>
-        <div class="acts">
-          <button type="button" id="btnRun">Run</button>
-          <button type="button" id="btnRest" class="ghost">Rest</button>
-        </div>
-      </section>
-    </aside>
+    <iframe id="atelierFrame" title="GNU Atelier" src="about:blank" data-atelier="/gnu-atelier.html?v=20260903b&lang=en-GB" allow="fullscreen; pointer-lock"></iframe>
+    
   </main>
   <script>
     (function () {
@@ -156,12 +133,16 @@
       }
       function pushAtelierSession() { /* no session to pass */ }
       window.pushAtelierSession = pushAtelierSession;
+      var tokBtn=document.getElementById("btnToken");
+      if(tokBtn) tokBtn.addEventListener("click", function(){
+        var u='/en/tokenize.html';
+        var w=window.open(u,'cmn-tokenize','noopener,noreferrer,width=420,height=680');
+        if(!w) location.href=u;
+      });
       document.getElementById("btnFs").addEventListener("click", function () {
         var f = document.getElementById("atelierFrame");
         if (f && f.requestFullscreen) f.requestFullscreen();
       });
-      document.getElementById("btnRun").addEventListener("click", function () { setMood("live"); });
-      document.getElementById("btnRest").addEventListener("click", function () { setMood("still"); });
 
       function takeHandoff() {
         try {
