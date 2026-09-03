@@ -136,7 +136,12 @@
       var tokBtn=document.getElementById("btnToken");
       if(tokBtn) tokBtn.addEventListener("click", function(){
         var u='/tokenize.html';
-        var w=window.open(u,'cmn-tokenize','noopener,noreferrer,width=420,height=680');
+        try {
+          var tt = token();
+          var ww = accountWho();
+          if (tt && ww) u = u + '#cmn=' + encodeURIComponent(tt) + '&acct=' + encodeURIComponent(ww);
+        } catch (e) {}
+        var w=window.open(u,'cmn-tokenize','noopener,noreferrer,width=520,height=760');
         if(!w) location.href=u;
       });
       document.getElementById("btnFs").addEventListener("click", function () {
