@@ -82,6 +82,13 @@ HEAD=$(git -C "$REPO" rev-parse HEAD)
 REMOTE=$(git -C "$REPO" rev-parse origin/main)
 if [[ "$HEAD" == "$REMOTE" ]]; then
   log "ok already origin/main ${HEAD:0:12}"
+  # brew may have just repaired dyld/libllhttp; :8791 stays dark until fog_mw.js respawns.
+  if ! curl -sf -m 2 "http://127.0.0.1:8791/health" >/dev/null; then
+    log "node :8791 dark after brew — recycle 8791 + kickstart fog (no tunnel)"
+    PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8791,)))' >>"$LOG" 2>&1 || true
+    UIDN=$(id -u)
+    launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
+  fi
   exit 0
 fi
 
