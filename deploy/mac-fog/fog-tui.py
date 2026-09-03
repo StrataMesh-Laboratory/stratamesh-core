@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
-TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434, observe-only if down.
+TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434. FAQ from hops if generate is waking. Report via Orchestrator to AIOps (fail-open).
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -750,15 +750,15 @@ def ollama_base() -> str:
 
 
 WIZARD_SYSTEM = (
-    "You are the Fog LAB instrument troubleshooting wizard on the operator Mac TUI. "
+    "You are the Fog LAB smart wizard: dynamic FAQ improviser and troubleshooting reporter. "
     "Lab phase is Adversarial P1 at n=2 (f_max=0). Public hop ORIGIN=session with n=1 is a "
     "public-origin flag, not the lab phase. TUI HOLD is metabolic host_cap, not a CPU RCA. "
     "Never pkill cloudflared. Never origin-take. Never workers.dev. Never a 6th Cloudflare cron. "
     "Never secrets. Never PATCH STASIS=1. "
     "You may emit lines ACTION:probe hops / ACTION:tail fog log / ACTION:suggest g / "
-    "ACTION:suggest s / ACTION:suggest b. Ask the operator before they press g/s/b; do not "
-    "claim you executed them. Triage, diagnose, and log problems. Suggest fixes only within "
-    "those parameters."
+    "ACTION:suggest s / ACTION:suggest b / ACTION:report orch. Ask the operator before they press "
+    "g/s/b; do not claim you executed them. End each diagnosis with a short FAQ answer and a "
+    "one-line report for AIOps Dev Team via Orchestrator (no secrets)."
 )
 
 _ACTION_DENY = (
@@ -785,7 +785,7 @@ def wizard_action_allowed(spec: str) -> bool:
         return True
     if s == "tail fog log":
         return True
-    if s in ("suggest g", "suggest s", "suggest b"):
+    if s in ("suggest g", "suggest s", "suggest b", "report orch"):
         return True
     return False
 
@@ -859,6 +859,10 @@ def wizard_run_action(spec: str) -> tuple[str, str]:
         note = "operator: press %s" % names.get(k, k)
         wizard_append("sys", note)
         return "ok", note
+    if low == "report orch":
+        note = orch_aiops_report("wizard ACTION:report orch", "operator asked report", dict(WIZARD_SNAP))
+        wizard_append("sys", note)
+        return "ok", note
     note = "ACTION rejected: %s" % s[:80]
     wizard_append("sys", note)
     return "rejected", note
@@ -906,44 +910,113 @@ def _wizard_history_text() -> str:
     return "\n".join(lines)
 
 
+def ensure_ollama_daemon() -> bool:
+    """Serve local Ollama if the binary exists. Never brew here (launcher does). Never block draw (caller is a thread)."""
+    if ollama_first_tag(0.4):
+        return True
+    bin_ = shutil.which("ollama")
+    if not bin_:
+        return False
+    try:
+        subprocess.Popen([bin_, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        return False
+    time.sleep(0.7)
+    return bool(ollama_first_tag(0.8))
+
+
+def wizard_faq_improvise(prompt: str, snap: dict | None = None) -> str:
+    s = snap or {}
+    hops = s.get("hops") or {}
+    lamps = " ".join(":%s=%s" % (k, "LIVE" if v else "DARK") for k, v in hops.items()) or "hops?"
+    return (
+        "FAQ · git=%s n=%s member=%s cap_over=%s · %s. "
+        "HOLD is metabolic host_cap, not CPU. Public session n=1 is origin flag, not lab n. "
+        "Ask before g/s/b. Q: %s"
+    ) % (s.get("git") or "?", s.get("n"), s.get("member"), s.get("host_cap_over"), lamps, (prompt or "")[:240])
+
+
+def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str:
+    """Fail-open e2e: local orch hops, then origin Orchestrator chat, then AIOps chat. Never secrets."""
+    payload = {
+        "schema": "stratamesh.wizard.v1",
+        "source": "fog-tui-wizard",
+        "role": "troubleshooting",
+        "dest": "AIOps Dev Team via Orchestrator",
+        "headline": (headline or "")[:160],
+        "message": (body or "")[:1200],
+        "node_id": "FOG-NODE-PT-CM-001",
+        "git": (snap or {}).get("git"),
+        "hops": (snap or {}).get("hops"),
+        "lab": True,
+    }
+    raw = json.dumps(payload).encode()
+    urls = (
+        "http://127.0.0.1:8791/api/orchestrator/chat",
+        "http://127.0.0.1:8790/api/orchestrator/chat",
+        "https://calhegasmorais.pt/api/orchestrator/chat",
+        "https://aiops.calhegasmorais.pt/chat",
+    )
+    notes = []
+    for url in urls:
+        try:
+            req = urllib.request.Request(
+                url, data=raw, method="POST",
+                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "fog-tui-wizard/1"},
+            )
+            with urllib.request.urlopen(req, timeout=1.5) as r:
+                notes.append("%s %s" % (url.split("/")[2], r.status))
+                break
+        except Exception as e:
+            notes.append("%s fail" % url.split("/")[2])
+    return "orch-aiops " + " · ".join(notes[:4])
+
+
 def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
-    """POST /api/generate stream:false on a daemon thread. Never blocks draw()."""
+    """Generate on a daemon thread. FAQ if model is waking. Never blocks draw(). Never 'observe-only' as the product."""
     global WIZARD_BUSY
 
     def _run() -> None:
         global WIZARD_BUSY
+        out = ""
         try:
-            model = ollama_first_tag()
-            if not model:
-                wizard_append("sys", "ollama down — wizard observe-only")
-                return
-            body = json.dumps({
-                "model": model,
-                "prompt": "CONTEXT:\n%s\n\nCHAT:\n%s\n\nUSER:\n%s\n" % (
-                    compact_wizard_context(snap),
-                    _wizard_history_text(),
-                    prompt,
-                ),
-                "system": WIZARD_SYSTEM,
-                "stream": False,
-            }).encode()
-            req = urllib.request.Request(
-                ollama_base() + "/api/generate",
-                data=body,
-                method="POST",
-                headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
-            )
-            with urllib.request.urlopen(req, timeout=12.0) as r:
-                resp = json.loads(r.read().decode())
-            out = str((resp or {}).get("response") or "").strip()
+            ensure_ollama_daemon()
+            model = ollama_first_tag(0.8)
+            if model:
+                body = json.dumps({
+                    "model": model,
+                    "prompt": "CONTEXT:\n%s\n\nCHAT:\n%s\n\nUSER:\n%s\n" % (
+                        compact_wizard_context(snap),
+                        _wizard_history_text(),
+                        prompt,
+                    ),
+                    "system": WIZARD_SYSTEM,
+                    "stream": False,
+                }).encode()
+                req = urllib.request.Request(
+                    ollama_base() + "/api/generate",
+                    data=body,
+                    method="POST",
+                    headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
+                )
+                try:
+                    with urllib.request.urlopen(req, timeout=12.0) as r:
+                        resp = json.loads(r.read().decode())
+                    out = str((resp or {}).get("response") or "").strip()
+                except Exception:
+                    out = ""
             if not out:
-                wizard_append("sys", "ollama empty — wizard observe-only")
-                return
+                out = wizard_faq_improvise(prompt, snap)
+                wizard_append("sys", "ollama waking — FAQ from hops (not observe-only)")
             wizard_append("ollama", out)
             for act in parse_wizard_actions(out):
                 wizard_run_action(act)
-        except Exception:
-            wizard_append("sys", "ollama down — wizard observe-only")
+            note = orch_aiops_report((prompt or "")[:80], out, snap)
+            wizard_append("sys", note)
+        except Exception as e:
+            faq = wizard_faq_improvise(prompt, snap)
+            wizard_append("ollama", faq)
+            wizard_append("sys", "wizard catch %s" % type(e).__name__)
         finally:
             WIZARD_BUSY = False
 
