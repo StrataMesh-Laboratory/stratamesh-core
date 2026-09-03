@@ -289,5 +289,74 @@ class HopSparkHistory(unittest.TestCase):
         self.assertEqual(s, "." * 8)
 
 
+
+
+class WizardFaqDocs(unittest.TestCase):
+    def setUp(self):
+        _MOD.WIZARD_DOCS = (
+            "Fog kernel listens on :8787. "
+            "Middleware hops are workerd, python, node, and deno (five slots). "
+            "SCA (PT) and ACB (EN) name the same subject. "
+            "HOLD is metabolic host_cap, not a CPU RCA. "
+            "The subject-object economy treats labour as the subject."
+        )
+        _MOD.WIZARD_DOCS_LOADED = True
+
+    def test_faq_improvise_uses_user_prompt_and_docs(self):
+        snap = {
+            "git": "69e7e94",
+            "n": 2,
+            "member": True,
+            "host_cap_over": True,
+            "hops": {"8788": True, "8787": True},
+        }
+        a = _MOD.wizard_faq_improvise("what is this runtime", snap)
+        b = _MOD.wizard_faq_improvise("explain HOLD", snap)
+        c = _MOD.wizard_faq_improvise("SCA ACB subject", snap)
+        self.assertIn("Q: what is this runtime", a)
+        self.assertIn("Q: explain HOLD", b)
+        self.assertNotEqual(a, b)
+        self.assertIn("8787", a)
+        self.assertIn("kernel", a.lower())
+        self.assertIn("HOLD", b)
+        self.assertIn("host_cap", b)
+        self.assertTrue("SCA" in c or "ACB" in c)
+        self.assertNotIn("member=True", a)
+        self.assertNotIn("cap_over=True", a)
+        self.assertIn("hops git=69e7e94", a)
+        self.assertIn(":8788=LIVE", a)
+
+    def test_generate_timeout_at_least_60(self):
+        self.assertGreaterEqual(_MOD.OLLAMA_GENERATE_TIMEOUT, 60.0)
+        captured = {}
+
+        class FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def __iter__(self):
+                yield b'{"response":"hello from ollama","done":true}\n'
+
+        def fake_urlopen(req, timeout=None):
+            captured["timeout"] = timeout
+            return FakeResp()
+
+        with mock.patch.object(_MOD.urllib.request, "urlopen", side_effect=fake_urlopen):
+            out = _MOD._ollama_generate_text("llama3.2:1b", "explain", {"git": "x"})
+        self.assertGreaterEqual(float(captured.get("timeout") or 0), 60.0)
+        self.assertEqual(out, "hello from ollama")
+        self.assertNotIn("member=True", out)
+        self.assertNotIn("cap_over", out)
+
+    def test_preferred_llama32_1b_else_first(self):
+        with mock.patch.object(_MOD, "ollama_tag_names", return_value=["mistral:7b", "llama3.2:1b"]):
+            self.assertEqual(_MOD.ollama_preferred_tag(), "llama3.2:1b")
+        with mock.patch.object(_MOD, "ollama_tag_names", return_value=["phi3:mini"]):
+            self.assertEqual(_MOD.ollama_preferred_tag(), "phi3:mini")
+
+
 if __name__ == "__main__":
     unittest.main()

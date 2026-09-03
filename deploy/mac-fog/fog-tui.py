@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
-TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434. FAQ from hops if generate is waking. Report via Orchestrator to AIOps (fail-open).
+TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434 (llama3.2:1b). FAQ from public docs if generate is waking. Report via Orchestrator to AIOps (fail-open).
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -806,14 +806,31 @@ def ollama_base() -> str:
 
 WIZARD_SYSTEM = (
     "You are the Fog LAB smart wizard: dynamic FAQ improviser and troubleshooting reporter. "
+    "Answer from CONTEXT PUBLIC DOCS first, then hop snapshot. "
     "Lab phase is Adversarial P1 at n=2 (f_max=0). Public hop ORIGIN=session with n=1 is a "
     "public-origin flag, not the lab phase. TUI HOLD is metabolic host_cap, not a CPU RCA. "
+    "SCA (PT) and ACB (EN) name the same subject. Fog kernel is :8787; MW slots are "
+    "workerd/python/node/deno (five hops). "
     "Never pkill cloudflared. Never origin-take. Never workers.dev. Never a 6th Cloudflare cron. "
-    "Never secrets. Never PATCH STASIS=1. "
+    "Never secrets. Never PATCH STASIS=1. Never KeePass. Never mail tokens. "
     "You may emit lines ACTION:probe hops / ACTION:tail fog log / ACTION:suggest g / "
     "ACTION:suggest s / ACTION:suggest b / ACTION:report orch. Ask the operator before they press "
     "g/s/b; do not claim you executed them. End each diagnosis with a short FAQ answer and a "
     "one-line report for AIOps Dev Team via Orchestrator (no secrets)."
+)
+
+OLLAMA_GENERATE_TIMEOUT = 60.0
+OLLAMA_PREFERRED = "llama3.2:1b"
+WIZARD_DOCS = ""
+WIZARD_DOCS_LOADED = False
+WIZARD_DOCS_MAX = 7500
+_WIZARD_WAKING_SAID = False
+WIZARD_DOCS_SEED = (
+    "Fog kernel listens on :8787. Middleware hops are workerd, python, node, and deno (five slots). "
+    "SCA (PT) and ACB (EN) name the same subject. "
+    "HOLD is metabolic host_cap, not a CPU RCA. "
+    "Local Ollama answers the wizard; if it is down the FAQ is fail-open from public docs. "
+    "Never pkill cloudflared. Never workers.dev. Never secrets."
 )
 
 _ACTION_DENY = (
@@ -944,16 +961,43 @@ def compact_wizard_context(snap: dict | None = None) -> str:
     )
 
 
-def ollama_first_tag(timeout: float = 2.0) -> str:
+def ollama_tag_names(timeout: float = 2.0) -> list[str]:
     try:
         data = get(ollama_base() + "/api/tags", timeout=timeout)
         models = data.get("models") if isinstance(data, dict) else None
         if not models:
-            return ""
-        first = models[0] if isinstance(models[0], dict) else {}
-        return str(first.get("name") or first.get("model") or "")
+            return []
+        names = []
+        for m in models:
+            if isinstance(m, dict):
+                n = str(m.get("name") or m.get("model") or "").strip()
+            else:
+                n = str(m).strip()
+            if n:
+                names.append(n)
+        return names
     except Exception:
+        return []
+
+
+def ollama_first_tag(timeout: float = 2.0) -> str:
+    names = ollama_tag_names(timeout)
+    return names[0] if names else ""
+
+
+def ollama_preferred_tag(timeout: float = 2.0) -> str:
+    """Prefer llama3.2:1b when listed; else first tag. Fail-open empty."""
+    names = ollama_tag_names(timeout)
+    if not names:
         return ""
+    want = OLLAMA_PREFERRED
+    for n in names:
+        if n == want or n.startswith(want + "/") or n.split(":")[0:2] == want.split(":")[0:2] and n.startswith(want):
+            return n
+    for n in names:
+        if n.split(":")[0] == "llama3.2" and ("1b" in n):
+            return n
+    return names[0]
 
 
 def _wizard_history_text() -> str:
@@ -980,15 +1024,213 @@ def ensure_ollama_daemon() -> bool:
     return bool(ollama_first_tag(0.8))
 
 
-def wizard_faq_improvise(prompt: str, snap: dict | None = None) -> str:
+def _public_scrub(text: str) -> str:
+    """Drop mail, tokens, workers.dev, KeePass. Never secrets."""
+    keep = []
+    for line in (text or "").splitlines():
+        low = line.lower()
+        if "workers.dev" in low or "keepass" in low:
+            continue
+        if re.search(r"\b(api[_-]?key|password\s*[=:]|authorization:)\b", low):
+            continue
+        if re.search(r"\bbearer\s+[a-z0-9._\-]+", low):
+            continue
+        if re.search(r"\b(sk-|ghp_|github_pat_|xox[baprs]-)", line):
+            continue
+        if re.search(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", line):
+            continue
+        keep.append(line)
+    return "\n".join(keep)
+
+
+def _strip_markup(raw: str) -> str:
+    t = re.sub(r"<script[\s\S]*?</script>", " ", raw or "", flags=re.I)
+    t = re.sub(r"<style[\s\S]*?</style>", " ", t, flags=re.I)
+    t = re.sub(r"<[^>]+>", " ", t)
+    t = unicodedata.normalize("NFKC", t)
+    t = re.sub(r"\s+", " ", t)
+    return t.strip()
+
+
+def _html_title_toc(html: str) -> str:
+    title = ""
+    m = re.search(r"<title[^>]*>(.*?)</title>", html or "", flags=re.I | re.S)
+    if m:
+        title = _strip_markup(m.group(1))
+    heads = [_strip_markup(h) for h in re.findall(r"<h[1-3][^>]*>(.*?)</h[1-3]>", html or "", flags=re.I | re.S)]
+    heads = [h for h in heads if h][:12]
+    parts = []
+    if title:
+        parts.append(title)
+    if heads:
+        parts.append("TOC: " + " · ".join(heads))
+    return _public_scrub("\n".join(parts))
+
+
+def _wizard_repo_roots() -> list[Path]:
+    roots: list[Path] = []
+    here = Path(__file__).resolve().parent
+    for p in (
+        REPO,
+        FOG / "repo",
+        Path.home() / "StrataMesh/fog/repo",
+        here.parent.parent,  # deploy/mac-fog -> repo root when in-tree
+        here,
+    ):
+        try:
+            rp = p
+        except Exception:
+            continue
+        if rp not in roots:
+            roots.append(rp)
+    return roots
+
+
+def _read_public_file(path: Path, limit: int) -> str:
+    try:
+        if not path.is_file():
+            return ""
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+    if path.suffix.lower() in (".html", ".htm"):
+        raw = _strip_markup(raw)
+    raw = _public_scrub(raw)
+    raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
+    return raw[:limit]
+
+
+def _optional_origin_toc() -> str:
+    """Fail-open title/toc from public origin. Never secrets. Timeout 2s."""
+    try:
+        req = urllib.request.Request(
+            "https://calhegasmorais.pt/",
+            headers={"User-Agent": "fog-tui-wizard/1", "Accept": "text/html"},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=2.0) as r:
+            html = r.read(80000).decode("utf-8", "replace")
+        return _html_title_toc(html)[:800]
+    except Exception:
+        return ""
+
+
+def load_wizard_docs(refresh: bool = False) -> str:
+    """Public docs next to FOG repo, truncated ~6–8k. Fail-open. Never secrets."""
+    global WIZARD_DOCS, WIZARD_DOCS_LOADED
+    if WIZARD_DOCS_LOADED and not refresh:
+        return WIZARD_DOCS
+    chunks: list[str] = [WIZARD_DOCS_SEED]
+    budget = WIZARD_DOCS_MAX
+    seen: set[str] = set()
+    wanted_rel = [
+        "docs/SUBJECT-OBJECT-ECONOMY.md",
+        "frontend/landing-pt.html",
+        "frontend/tokenize.html",
+    ]
+    for root in _wizard_repo_roots():
+        for rel in wanted_rel:
+            path = root / rel
+            key = str(path)
+            if key in seen or not path.is_file():
+                continue
+            seen.add(key)
+            room = max(400, budget - sum(len(c) for c in chunks))
+            if room < 200:
+                break
+            txt = _read_public_file(path, min(2800, room))
+            if txt:
+                chunks.append("## %s\n%s" % (rel, txt))
+        road = root / "docs" / "ROADMAP-PUBLIC-v0.3.md"
+        if not road.is_file():
+            docs = root / "docs"
+            cands = []
+            if docs.is_dir():
+                cands = sorted(docs.glob("ROADMAP-PUBLIC*.md"), reverse=True)
+                if not cands:
+                    cands = sorted(docs.glob("*ROADMAP*.md"), reverse=True)
+            road = cands[0] if cands else road
+        if road.is_file() and str(road) not in seen:
+            seen.add(str(road))
+            room = max(400, budget - sum(len(c) for c in chunks))
+            txt = _read_public_file(road, min(2200, room))
+            if txt:
+                chunks.append("## %s\n%s" % (road.name, txt))
+        for rel in ("CHARTER.md", "docs/CHARTER.md", "laboratory/CHARTER.md", "LABORATORY.md"):
+            path = root / rel
+            if path.is_file() and str(path) not in seen:
+                seen.add(str(path))
+                room = max(300, budget - sum(len(c) for c in chunks))
+                txt = _read_public_file(path, min(1600, room))
+                if txt:
+                    chunks.append("## %s\n%s" % (rel, txt))
+                    break
+    toc = _optional_origin_toc()
+    if toc:
+        chunks.append("## origin\n%s" % toc)
+    blob = "\n\n".join(chunks)
+    blob = _public_scrub(blob)[:WIZARD_DOCS_MAX]
+    WIZARD_DOCS = blob
+    WIZARD_DOCS_LOADED = True
+    return WIZARD_DOCS
+
+
+def wizard_public_docs() -> str:
+    return load_wizard_docs(False)
+
+
+def _hop_line(snap: dict | None) -> str:
     s = snap or {}
     hops = s.get("hops") or {}
     lamps = " ".join(":%s=%s" % (k, "LIVE" if v else "DARK") for k, v in hops.items()) or "hops?"
-    return (
-        "FAQ · git=%s n=%s member=%s cap_over=%s · %s. "
-        "HOLD is metabolic host_cap, not CPU. Public session n=1 is origin flag, not lab n. "
-        "Ask before g/s/b. Q: %s"
-    ) % (s.get("git") or "?", s.get("n"), s.get("member"), s.get("host_cap_over"), lamps, (prompt or "")[:240])
+    return "hops git=%s %s" % (s.get("git") or "?", lamps)
+
+
+def _prompt_terms(prompt: str) -> set[str]:
+    stop = {
+        "the", "this", "that", "what", "which", "who", "whom", "whose",
+        "is", "are", "was", "were", "a", "an", "of", "and", "or", "to",
+        "for", "from", "how", "why", "does", "do", "did", "me", "my",
+        "please", "explain", "faq", "tell", "about", "with", "into",
+        "your", "you", "can", "could", "would", "should",
+    }
+    return {w for w in re.findall(r"[a-zA-Z0-9_:]{3,}", (prompt or "").lower()) if w not in stop}
+
+
+def _extract_docs_for_prompt(prompt: str, docs: str, limit: int = 4) -> str:
+    text = (docs or "").strip()
+    if not text:
+        return ""
+    blob = text.replace("\n", " ")
+    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", blob) if len(s.strip()) > 20]
+    if not sents:
+        sents = [ln.strip() for ln in text.splitlines() if len(ln.strip()) > 20]
+    terms = _prompt_terms(prompt)
+    scored: list[tuple[int, int, str]] = []
+    for s in sents:
+        sl = s.lower()
+        score = sum(1 for t in terms if t in sl)
+        if score:
+            scored.append((score, -len(s), s))
+    scored.sort(reverse=True)
+    picked: list[str] = []
+    for _sc, _ln, s in scored:
+        if s not in picked:
+            picked.append(s)
+        if len(picked) >= limit:
+            break
+    if not picked:
+        picked = sents[:3]
+    return " ".join(picked[:4])[:1200]
+
+
+def wizard_faq_improvise(prompt: str, snap: dict | None = None) -> str:
+    """Extractive FAQ from public docs for the user prompt, plus one hop line. Never hop-dump loop."""
+    docs = wizard_public_docs()
+    extract = _extract_docs_for_prompt(prompt, docs)
+    q = (prompt or "").strip()[:240]
+    body = extract or WIZARD_DOCS_SEED
+    return "FAQ · Q: %s\n%s\n%s" % (q or "(empty)", body, _hop_line(snap))
 
 
 def _http_json(url: str, method: str = "GET", data: bytes | None = None, timeout: float = 4.0) -> dict:
@@ -1118,42 +1360,67 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
     return "orch-aiops %s · " % tag + " · ".join(notes[:6])
 
 
+def _ollama_generate_text(model: str, prompt: str, snap: dict | None) -> str:
+    """POST /api/generate. Stream until first tokens; overall timeout >= 60s. Fail-open empty."""
+    docs = wizard_public_docs()
+    hop_ctx = compact_wizard_context(snap)
+    context = "PUBLIC DOCS:\n%s\n\nHOPS:\n%s" % (docs[:WIZARD_DOCS_MAX], hop_ctx)
+    payload = {
+        "model": model,
+        "prompt": "CONTEXT:\n%s\n\nCHAT:\n%s\n\nUSER:\n%s\n" % (
+            context,
+            _wizard_history_text(),
+            prompt,
+        ),
+        "system": WIZARD_SYSTEM,
+        "stream": True,
+    }
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        ollama_base() + "/api/generate",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
+    )
+    chunks: list[str] = []
+    try:
+        with urllib.request.urlopen(req, timeout=OLLAMA_GENERATE_TIMEOUT) as r:
+            for raw_line in r:
+                line = raw_line.decode("utf-8", "replace").strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                piece = str(obj.get("response") or "")
+                if piece:
+                    chunks.append(piece)
+                if obj.get("done") is True:
+                    break
+    except Exception:
+        if not chunks:
+            return ""
+    return "".join(chunks).strip()
+
+
 def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
-    """Generate on a daemon thread. FAQ if model is waking. Never blocks draw(). Never 'observe-only' as the product."""
-    global WIZARD_BUSY
+    """Generate on a daemon thread. FAQ from public docs if model is waking. Never blocks draw()."""
+    global WIZARD_BUSY, _WIZARD_WAKING_SAID
 
     def _run() -> None:
-        global WIZARD_BUSY
+        global WIZARD_BUSY, _WIZARD_WAKING_SAID
         out = ""
         try:
             ensure_ollama_daemon()
-            model = ollama_first_tag(0.8)
+            model = ollama_preferred_tag(0.8)
             if model:
-                body = json.dumps({
-                    "model": model,
-                    "prompt": "CONTEXT:\n%s\n\nCHAT:\n%s\n\nUSER:\n%s\n" % (
-                        compact_wizard_context(snap),
-                        _wizard_history_text(),
-                        prompt,
-                    ),
-                    "system": WIZARD_SYSTEM,
-                    "stream": False,
-                }).encode()
-                req = urllib.request.Request(
-                    ollama_base() + "/api/generate",
-                    data=body,
-                    method="POST",
-                    headers={"Content-Type": "application/json", "User-Agent": "fog-tui/8"},
-                )
-                try:
-                    with urllib.request.urlopen(req, timeout=12.0) as r:
-                        resp = json.loads(r.read().decode())
-                    out = str((resp or {}).get("response") or "").strip()
-                except Exception:
-                    out = ""
+                out = _ollama_generate_text(model, prompt, snap)
             if not out:
                 out = wizard_faq_improvise(prompt, snap)
-                wizard_append("sys", "ollama waking — FAQ from hops")
+                if not _WIZARD_WAKING_SAID:
+                    wizard_append("sys", "ollama waking — FAQ from public docs")
+                    _WIZARD_WAKING_SAID = True
             wizard_append("ollama", out)
             for act in parse_wizard_actions(out):
                 wizard_run_action(act)
@@ -1165,8 +1432,10 @@ def wizard_ollama_generate(prompt: str, snap: dict | None = None) -> None:
             wizard_append("sys", "wizard catch %s" % type(e).__name__)
         finally:
             WIZARD_BUSY = False
+            _WIZARD_WAKING_SAID = False
 
     WIZARD_BUSY = True
+    _WIZARD_WAKING_SAID = False
     threading.Thread(target=_run, name="fog-tui-ollama", daemon=True).start()
 
 
