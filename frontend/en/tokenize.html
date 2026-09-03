@@ -3,68 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tokenisation · conta · Calhegas Morais</title>
+  <title>Catalog · Tokenisation · Calhegas Morais</title>
   <meta name="theme-color" content="#07111c">
   <style>
-    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--still:#8aa0b3;--live:#6b8f71}
+    :root{--cream:#f3eee4;--ink:#1a1712;--ink2:#5c564c;--line:#d8d0c2;--acc:#8a6a3a;--live:#6b8f71}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100dvh;background:var(--cream);color:var(--ink);font-family:Georgia,ui-serif,serif;padding:1rem 1.1rem 1.4rem}
-    h1{font:500 1.15rem/1.25 Georgia,ui-serif,serif;margin:.2rem 0 .5rem}
-    .who{font:500 .72rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink2);margin-bottom:.85rem}
-    .chip{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;border:1px solid #cfc6b6;padding:.22rem .4rem;border-radius:2px}
-    .contains{margin:.15rem 0 .55rem;padding:.4rem .5rem;border:1px dashed #cfc6b6;border-radius:3px}
-    h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.28rem}
-    p{font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
-    .aspect{padding-top:.45rem;border-top:1px solid #d8d0c2}
-    .mood{display:flex;align-items:center;gap:.45rem;margin:.2rem 0 .45rem;font:500 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase}
-    .lamp{width:.7rem;height:.7rem;border-radius:50%;background:var(--still);box-shadow:0 0 0 3px rgba(138,160,179,.22)}
-    .lamp.live{background:var(--live)}
-    .tank{height:.42rem;background:#e4dccf;border:1px solid #cfc6b6;margin:.28rem 0}
-    .tank>i{display:block;height:100%;width:0;background:var(--acc)}
-    .acts{display:flex;gap:.4rem;margin-top:.5rem}
-    .acts button{flex:1;font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.5rem;cursor:pointer}
-    .acts button.ghost{background:transparent;color:var(--ink)}
+    body{min-height:100dvh;background:var(--cream);color:var(--ink);font-family:Georgia,ui-serif,serif;padding:1rem 1.1rem 1.6rem}
+    h1{font:500 1.12rem/1.25 Georgia,ui-serif,serif;margin:.15rem 0 .4rem}
+    h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin:1rem 0 .35rem}
+    .who{font:500 .72rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink2);margin-bottom:.55rem}
+    p,li{font:400 .8rem/1.4 Georgia,ui-serif,serif;color:var(--ink2)}
+    .lede{margin-bottom:.7rem}
+    input,select,textarea{width:100%;font:400 .85rem/1.3 Georgia,ui-serif,serif;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.4rem .5rem;border-radius:2px;margin:.2rem 0 .45rem}
+    textarea{min-height:3.2rem}
+    button{font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;cursor:pointer}
+    button.ghost{background:transparent;color:var(--ink)}
+    button[disabled]{opacity:.38;cursor:not-allowed}
+    .row{display:flex;gap:.4rem;flex-wrap:wrap;margin:.35rem 0}
+    .row button{flex:1}
+    ul#list{list-style:none;border:1px solid var(--line);border-radius:3px;min-height:4.5rem;background:#fff}
+    ul#list li{padding:.55rem .6rem;border-bottom:1px solid var(--line);cursor:pointer}
+    ul#list li:last-child{border-bottom:0}
+    ul#list li.on{background:#efe6d4}
+    ul#list .id{font:500 .62rem/1.3 ui-monospace,Menlo,monospace;color:var(--ink2)}
+    .empty{padding:.7rem .6rem}
+    .chip{display:inline-block;font:600 .55rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);padding:.18rem .35rem;margin:.15rem .2rem 0 0}
+    .chip.dep{border-color:var(--live);color:#3d5a42}
+    .note{margin-top:.35rem;font:400 .75rem/1.35 Georgia,ui-serif,serif}
     a{color:var(--acc)}
+    #detail{display:none;margin-top:.6rem;padding-top:.5rem;border-top:1px solid var(--line)}
   </style>
 </head>
 <body>
   <p class="who" id="who">no account · workbench</p>
-  <h1>Tokenisation</h1>
-  <p>Engine for this account. It does not cover GNU Atelier. Objects of this account only — no public catalog, no avatar.</p>
-  <p class="chip" id="nameChip" style="display:inline-block;margin:.6rem 0">rascunho</p>
-  <div class="contains">
-    <h3>Aspectos</h3>
-    <p id="containsList">No objects inside. An NFT may contain others; depth is this object's own rules.</p>
+  <h1>Private catalog</h1>
+  <p class="lede">Tokenising writes into this account’s catalog. Only later, if the account or an SCA wants, it may be deployed in the sandbox (open world, shared room, or personal sandbox with invited visitors). No public shelf, no visitor avatar.</p>
+
+  <h3>This account</h3>
+  <ul id="list"><li class="empty">No objects. Tokenising lands here, not on the stage.</li></ul>
+
+  <h3>Tokenise</h3>
+  <p>The <code>object_id</code> is the NFT. It enters the catalog at Rest, not GNU Atelier.</p>
+  <input id="nameIn" maxlength="80" placeholder="object name" autocomplete="off">
+  <div class="row">
+    <button type="button" id="btnMint">Tokenise → catalog</button>
+    <button type="button" id="btnLot" class="ghost">STRATA lot (trade)</button>
   </div>
-  <section class="aspect">
-    <h3>Contract · lab</h3>
-    <div class="mood"><span class="lamp" id="moodLamp"></span><span id="moodLabel">Still</span></div>
-    <div>Interior tank · contract collateral</div>
-    <div class="tank"><i id="tankFill"></i></div>
-    <p id="tankRead">0 STRATA · lab</p>
-    <p>If there are rules, the contract runs in its own tank. The wallet stays on the workbench.</p>
-    <div class="acts">
-      <button type="button" id="btnRun">Run</button>
-      <button type="button" id="btnRest" class="ghost">Still</button>
+  <p class="note">A STRATA lot is a trade representation. The balance book stays on the workbench; this does not mint STRATA.</p>
+
+  <section id="detail">
+    <h3 id="detTitle">object</h3>
+    <p class="id" id="detId"></p>
+    <p id="detState"></p>
+    <p>Aspectos: what this object contains. Contract (Still/Live, tank) only if that block exists — it is not the object.</p>
+
+    <h3>Deploy (optional)</h3>
+    <select id="dest">
+      <option value="personal">Personal sandbox (with invited visitors)</option>
+      <option value="room">Shared room</option>
+      <option value="world">Open world</option>
+    </select>
+    <select id="rules">
+      <option value="owner">Interact: owner account only</option>
+      <option value="invited">Interact: invited visitors</option>
+      <option value="counterpart">Interact: trade counterpart</option>
+    </select>
+    <div class="row">
+      <button type="button" id="btnDeploy">Deploy</button>
+      <button type="button" id="btnUndeploy" class="ghost">Return to catalog</button>
     </div>
+    <p class="note">GNU Atelier only renders after deploy. A visitor is invited, never an anonymous walk-on.</p>
+
+    <h3>Trade</h3>
+    <p>Donation = drop from this catalog. Direct = each side drops an item from their catalog (object or STRATA lot).</p>
+    <input id="peer" placeholder="counterpart (account)" autocomplete="off">
+    <div class="row">
+      <button type="button" id="btnDonate">Donation · drop</button>
+      <button type="button" id="btnTrade" class="ghost">Direct trade · drop</button>
+    </div>
+    <p class="note" id="tradeNote"></p>
   </section>
-  <p style="margin-top:1rem;font:600 .65rem/1.4 ui-monospace,Menlo,monospace"><a href="/sandbox">← Sandbox</a> · <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a></p>
+
+  <p style="margin-top:1.1rem;font:600 .65rem/1.4 ui-monospace,Menlo,monospace"><a href="/sandbox">← Sandbox</a> · <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a></p>
   <script>
-  (function(){
-    var bancada='https://dashboard.calhegasmorais.pt/dashboard';
-    function who(){ try{ return localStorage.getItem('sm_email')||''; }catch(e){ return ''; } }
-    function tok(){ try{ return localStorage.getItem('sm_token')||localStorage.getItem('token')||''; }catch(e){ return ''; } }
-    var t=tok(), w=who();
-    if(!t||!w){ location.replace(bancada+'?next='+encodeURIComponent(location.href.split('#')[0])); return; }
-    document.getElementById('who').textContent='conta · '+w;
-    var mood='still';
-    function paint(){
-      document.getElementById('moodLamp').className='lamp'+(mood==='live'?' live':'');
-      document.getElementById('moodLabel').textContent=mood==='live'?'Live':'Still';
+  (function () {
+    var bancada = "https://dashboard.calhegasmorais.pt/dashboard";
+    function takeHandoff() {
+      try {
+        var h = location.hash || "";
+        if (h.indexOf("#cmn=") !== 0) return;
+        var bits = h.slice(5).split("&");
+        var tok = decodeURIComponent(bits[0] || "");
+        var acct = "";
+        for (var i = 1; i < bits.length; i++) {
+          if (bits[i].indexOf("acct=") === 0) acct = decodeURIComponent(bits[i].slice(5));
+        }
+        if (tok) { localStorage.setItem("sm_token", tok); localStorage.setItem("token", tok); }
+        if (acct) localStorage.setItem("sm_email", acct);
+        history.replaceState({}, "", location.pathname + location.search);
+      } catch (e) {}
     }
-    document.getElementById('btnRun').onclick=function(){ mood='live'; paint(); };
-    document.getElementById('btnRest').onclick=function(){ mood='still'; paint(); };
-    paint();
+    takeHandoff();
+    function who() { try { return localStorage.getItem("sm_email") || ""; } catch (e) { return ""; } }
+    function tok() { try { return localStorage.getItem("sm_token") || localStorage.getItem("token") || ""; } catch (e) { return ""; } }
+    var t = tok(), w = who();
+    if (!t || !w) {
+      location.replace(bancada + "?next=" + encodeURIComponent(location.href.split("#")[0]));
+      return;
+    }
+    document.getElementById("who").textContent = "account · " + w;
+    var key = "sm_catalog_" + w.toLowerCase();
+    function load() {
+      try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) { return []; }
+    }
+    function save(items) { localStorage.setItem(key, JSON.stringify(items)); }
+    function nid(prefix) {
+      return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    var items = load();
+    var sel = null;
+    function paintList() {
+      var ul = document.getElementById("list");
+      ul.innerHTML = "";
+      if (!items.length) {
+        ul.innerHTML = '<li class="empty">No objects. Tokenising lands here, not on the stage.</li>';
+        document.getElementById("detail").style.display = "none";
+        return;
+      }
+      items.forEach(function (it, i) {
+        var li = document.createElement("li");
+        if (sel === it.id) li.className = "on";
+        var kind = it.kind === "lot" ? "STRATA lot" : "object";
+        var st = it.deployed ? ("deployed · " + it.dest) : "in catalog";
+        li.innerHTML = "<strong>" + (it.name || kind) + "</strong> <span class=\"chip\">" + kind + "</span>" +
+          (it.deployed ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
+          "<div class=\"id\">" + it.id + "</div>";
+        li.onclick = function () { sel = it.id; paintList(); paintDet(); };
+        ul.appendChild(li);
+        if (sel === it.id) {}
+      });
+    }
+    function cur() {
+      for (var i = 0; i < items.length; i++) if (items[i].id === sel) return items[i];
+      return null;
+    }
+    function paintDet() {
+      var it = cur();
+      var box = document.getElementById("detail");
+      if (!it) { box.style.display = "none"; return; }
+      box.style.display = "block";
+      document.getElementById("detTitle").textContent = it.name || it.id;
+      document.getElementById("detId").textContent = (it.kind === "lot" ? "lot (not an NFT) · " : "object_id · ") + it.id;
+      var line = it.kind === "lot"
+        ? (it.amount || "0") + " STRATA represented for trade. Book on the workbench."
+        : (it.deployed
+          ? ("Deployed in " + it.dest + " · rules: " + it.rules)
+          : "In the private catalog. Not yet in the sandbox.");
+      document.getElementById("detState").textContent = line;
+      document.getElementById("dest").value = it.dest || "personal";
+      document.getElementById("rules").value = it.rules || "owner";
+      document.getElementById("tradeNote").textContent = it.trade || "";
+    }
+    document.getElementById("btnMint").onclick = function () {
+      var n = (document.getElementById("nameIn").value || "").trim() || "object";
+      var it = { id: nid("obj"), kind: "object", name: n, deployed: false, dest: "", rules: "owner", contains: [], trade: "" };
+      items.unshift(it);
+      save(items);
+      sel = it.id;
+      document.getElementById("nameIn").value = "";
+      paintList(); paintDet();
+    };
+    document.getElementById("btnLot").onclick = function () {
+      var n = (document.getElementById("nameIn").value || "").trim();
+      var amt = n && /^[0-9]+([.,][0-9]+)?$/.test(n) ? n.replace(",", ".") : "0.1";
+      var it = { id: nid("lot"), kind: "lot", name: amt + " STRATA", amount: amt, deployed: false, dest: "", rules: "counterpart", trade: "" };
+      items.unshift(it);
+      save(items);
+      sel = it.id;
+      document.getElementById("nameIn").value = "";
+      paintList(); paintDet();
+    };
+    document.getElementById("btnDeploy").onclick = function () {
+      var it = cur(); if (!it || it.kind === "lot") return;
+      it.deployed = true;
+      it.dest = document.getElementById("dest").value;
+      it.rules = document.getElementById("rules").value;
+      save(items); paintList(); paintDet();
+    };
+    document.getElementById("btnUndeploy").onclick = function () {
+      var it = cur(); if (!it) return;
+      it.deployed = false; it.dest = "";
+      save(items); paintList(); paintDet();
+    };
+    document.getElementById("btnDonate").onclick = function () {
+      var it = cur(); if (!it) return;
+      it.trade = "donation · catalog drop (lab) · " + new Date().toISOString().slice(0, 16);
+      save(items); paintDet();
+    };
+    document.getElementById("btnTrade").onclick = function () {
+      var it = cur(); if (!it) return;
+      var peer = (document.getElementById("peer").value || "").trim() || "counterpart";
+      it.trade = "direct trade · this catalog drops " + it.id + " · " + peer + " drops from theirs (lab)";
+      it.rules = "counterpart";
+      save(items); paintDet();
+    };
+    paintList();
   })();
   </script>
 </body>
