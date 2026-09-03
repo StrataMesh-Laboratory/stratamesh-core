@@ -39,6 +39,7 @@ HOP_LIVE_HIST: dict = {
     8792: deque(maxlen=16),
 }
 HELP = False
+G_MSG = ""
 FOCUS = 0
 FRAME = 0
 WIZARD_LOG: list[dict] = []
@@ -588,7 +589,7 @@ def brew_update_upgrade() -> str:
 
 def git_pull_reboot() -> str:
     stamp_manual_g()
-    brew_note = brew_update_upgrade()
+    brew_note = "brew skip (auto-g)"
     repo = REPO if (REPO / ".git").exists() else Path.home() / "StrataMesh/fog/repo"
     if not (repo / ".git").exists():
         return "no git repo at %s" % repo
@@ -1315,26 +1316,37 @@ def draw(msg: str = "") -> None:
 
 
 
+_TTY_IN = None
+
+def _key_fd():
+    """Stable fd for keys. stdin if it is a tty; else keep /dev/tty open (do not reopen every frame)."""
+    global _TTY_IN
+    if sys.stdin.isatty():
+        return sys.stdin.fileno()
+    if _TTY_IN is None:
+        _TTY_IN = open("/dev/tty", "rb", buffering=0)
+    return _TTY_IN.fileno()
+
+
 def wait_key(seconds: float) -> str:
-    """Keys from /dev/tty. TCSANOW so y/n is not stuck behind a drain."""
+    """Poll keys without freezing draw. TCSANOW. Never sleep the whole interval if stdin is not a tty."""
     import tty
     import termios
-    f = None
     try:
-        f = open("/dev/tty", "rb", buffering=0)
-        fd = f.fileno()
+        fd = _key_fd()
     except Exception:
-        if not sys.stdin.isatty():
-            time.sleep(min(float(seconds), 0.25))
-            return ""
-        fd = sys.stdin.fileno()
-        f = None
-    old = termios.tcgetattr(fd)
+        time.sleep(min(float(seconds), 0.25))
+        return ""
+    try:
+        old = termios.tcgetattr(fd)
+    except Exception:
+        time.sleep(min(float(seconds), 0.25))
+        return ""
     try:
         tty.setcbreak(fd)
-        end = time.time() + seconds
+        end = time.time() + max(0.05, float(seconds))
         while time.time() < end:
-            r, _, _ = select.select([fd], [], [], max(0.0, end - time.time()))
+            r, _, _ = select.select([fd], [], [], min(0.25, max(0.0, end - time.time())))
             if r:
                 b = os.read(fd, 8)
                 if not b:
@@ -1349,11 +1361,6 @@ def wait_key(seconds: float) -> str:
             termios.tcsetattr(fd, termios.TCSANOW, old)
         except Exception:
             pass
-        if f is not None:
-            try:
-                f.close()
-            except Exception:
-                pass
 
 
 def confirm(prompt: str) -> bool:
@@ -1393,6 +1400,11 @@ def main() -> int:
                 msg = ""
             full = True
             ch = wait_key(INTERVAL)
+            global G_MSG
+            if G_MSG:
+                msg = G_MSG
+                G_MSG = ""
+                full = True
             if not ch:
                 full = True
                 continue
@@ -1426,7 +1438,14 @@ def main() -> int:
             elif ch in ("b", "B"):
                 msg = reboot_fog() if confirm("reboot fog+workerd?") else "reboot cancelled"
             elif ch in ("g", "G"):
-                msg = git_pull_reboot() if confirm("git pull origin main + reboot?") else "pull cancelled"
+                if not confirm("git pull origin main + hop recycle?"):
+                    msg = "pull cancelled"
+                else:
+                    msg = "g running…"
+                    def _g():
+                        global G_MSG
+                        G_MSG = git_pull_reboot()
+                    threading.Thread(target=_g, name="fog-tui-g", daemon=True).start()
     except KeyboardInterrupt:
         return 0
     finally:
