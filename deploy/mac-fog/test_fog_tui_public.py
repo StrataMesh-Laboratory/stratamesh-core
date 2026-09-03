@@ -61,11 +61,20 @@ class PublicHysteresis(unittest.TestCase):
         self.assertEqual(_MOD.pub_origin_label(out), "session")
 
     def test_decision_live_when_local_ok_pub_failed(self):
-        self.assertEqual(_MOD.local_decision(True, True, False), "LIVE")
-        self.assertNotEqual(_MOD.local_decision(True, True, False), "PUBLIC?")
+        self.assertEqual(_MOD.local_decision(True, True, "ALLOW"), "LIVE")
+        self.assertNotEqual(_MOD.local_decision(True, True, "ALLOW"), "PUBLIC?")
         _MOD.apply_public_result({"ok": False, "error": "timed out"}, "pub")
         self.assertFalse(_MOD.PUB_CACHE.get("_lamp"))
-        self.assertEqual(_MOD.local_decision(True, True, False), "LIVE")
+        self.assertEqual(_MOD.local_decision(True, True, "ALLOW"), "LIVE")
+
+    def test_header_live_when_host_cap_over_metabol_allow(self):
+        self.assertEqual(_MOD.local_decision(True, True, "ALLOW"), "LIVE")
+
+    def test_header_degraded_when_hop_ok_false(self):
+        self.assertEqual(_MOD.local_decision(False, True, "ALLOW"), "DEGRADED")
+
+    def test_header_hold_when_metabol_hold(self):
+        self.assertEqual(_MOD.local_decision(True, True, "HOLD"), "HOLD")
 
     def test_draw_header_not_public_q(self):
         def local_get(url: str, timeout: float = 2.0) -> dict:

@@ -337,11 +337,12 @@ def apply_public_result(raw: dict, which: str = "pub") -> dict:
         return dict(cache)
 
 
-def local_decision(hop_ok: bool, fog_ok: bool, over: bool) -> str:
-    """Header LIVE/HOLD/DEGRADED from local hops only. Public HTTPS never sets PUBLIC?."""
+def local_decision(hop_ok: bool, fog_ok: bool, metabol_decision: str | None = None) -> str:
+    """Header LIVE/HOLD/DEGRADED from hops + metabol decide(), not host_cap.over()."""
     if not hop_ok or not fog_ok:
         return "DEGRADED"
-    if over:
+    d = str(metabol_decision or "").strip().upper()
+    if d in ("HOLD", "STASIS"):
         return "HOLD"
     return "LIVE"
 
@@ -1683,16 +1684,16 @@ def draw(msg: str = "") -> None:
     # HTTPS probe _lamp is an origin/annotation flag, not the MESH circle.
     pub_ok = hop_ok
     fog_ok = st.get("status") == "operational"
-    decision = local_decision(hop_ok, fog_ok, over)
+    dec = met.get("decision")
+    if not dec and isinstance(met.get("cf"), dict):
+        dec = met.get("cf").get("decision")
+    dec = dec or "—"
+    decision = local_decision(hop_ok, fog_ok, dec)
 
     top = "╭" + "─" * (cols - 2) + "╮"
     bot = "╰" + "─" * (cols - 2) + "╯"
     mid = "├" + "─" * (cols - 2) + "┤"
     clock = time.strftime("%H:%M:%S")
-    dec = met.get("decision")
-    if not dec and isinstance(met.get("cf"), dict):
-        dec = met.get("cf").get("decision")
-    dec = dec or "—"
     w = max(40, cols - 2)
     lw = 30
     rw = max(16, w - lw - 1)
