@@ -126,7 +126,7 @@ h1{font-size:13px}
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
-      <div class="mono" id="idMeta">gnu-atelier.pages.dev · v0.5.1-session · holon 5 UGC</div>
+      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.5.1-session</div>
       <h1 id="ztitle">Bancada · Sandbox</h1>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
@@ -597,7 +597,7 @@ function buildZone() {
   document.getElementById("zpath").textContent = `/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/${zone}/${ADDR.id}`;
   const host = location.hostname || "sandbox.calhegasmorais.pt";
   const mono = document.getElementById("idMeta");
-  if (mono) mono.textContent = host + " · " + CORE + " · holon 5 UGC · " + ADDR.owner + "/" + ADDR.id;
+  if (mono) mono.textContent = host + " · " + CORE + " · " + ADDR.owner + "/" + ADDR.id;
   const sp = document.getElementById("sheetPath");
   if (sp) sp.textContent = document.getElementById("zpath").textContent;
 }
@@ -1344,7 +1344,7 @@ async function applySession(me) {
   ADDR.id = "workbench";
   hideGate();
   const chip = document.getElementById("idMeta");
-  if (chip) chip.textContent = (location.host || "gnu-atelier.pages.dev") + " · " + CORE + " · " + ADDR.owner;
+  if (chip) chip.textContent = (location.host || "sandbox.calhegasmorais.pt") + " · " + CORE + " · " + ADDR.owner;
   const w = document.getElementById("wallet");
   const lab = me.lab_balance != null ? Number(me.lab_balance) : wallet;
   if (!Number.isNaN(lab)) wallet = lab;
