@@ -13,5 +13,59 @@
   },
   "renewal": "00:00 UTC",
   "stasis_source": "ops/config/rails.json",
-  "retired_issue": 52
+  "retired_issue": 52,
+  "mesh": {
+    "fog": 8787,
+    "ipc": {
+      "workerd": 8788,
+      "python": 8790,
+      "node": 8791,
+      "deno": 8792
+    }
+  },
+  "routes": {
+    "auth_wb_session": [
+      "python:8790",
+      "node:8791",
+      "deno:8792",
+      "cf-auth:ALLOW"
+    ],
+    "compose_assemble_desk": [
+      "node:8791",
+      "python:8790",
+      "deno:8792"
+    ],
+    "object_cid_mail": [
+      "deno:8792",
+      "python:8790",
+      "cf-deomail:ALLOW"
+    ],
+    "html": [
+      "pages",
+      "node:8791/atelier"
+    ]
+  },
+  "metabol_pace": "per-hop (own renewal/quota/burn_rate)",
+  "cf_worker_req": {
+    "daily": 100000,
+    "reset": "00:00 UTC"
+  },
+  "cf_kv_writes": {
+    "daily": 1000,
+    "reset": "00:00 UTC"
+  },
+  "pages_html": "outside Worker bucket; never SPA catch-all",
+  "local_hops_cf_daily": false,
+  "deno_deploy": "ALLOW fallback only",
+  "hold_stasis": "pace not freeze; login/auth never 503 because CF decide() is STASIS",
+  "tunnel": {
+    "auth/mw": "127.0.0.1:8790",
+    "fog/origin/gossip": "127.0.0.1:8788",
+    "reload": "SIGHUP only"
+  },
+  "never": [
+    "workers.dev",
+    "Worker PUT on hot path",
+    "pkill cloudflared"
+  ]
 }

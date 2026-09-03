@@ -46,16 +46,17 @@ hop_up() {
   return 1
 }
 
-if ! hop_up; then
-  log "skip runtime-down"
-  exit 0
-fi
-
+# Interactive g and auto-g both brew (update then upgrade). Never skip brew because hops are down.
 if command -v brew >/dev/null 2>&1; then
   brew update >>"$LOG" 2>&1 || log "brew update rc=$?"
   brew upgrade >>"$LOG" 2>&1 || log "brew upgrade rc=$?"
 else
-  log "brew missing — skip brew update"
+  log "brew missing"
+fi
+
+if ! hop_up; then
+  log "skip runtime-down (brew already ran)"
+  exit 0
 fi
 
 if [[ ! -d "$REPO/.git" ]]; then

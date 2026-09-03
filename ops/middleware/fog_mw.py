@@ -30,6 +30,18 @@ FOG_PUB = "https://fog.calhegasmorais.pt"
 SESS = {}  # token -> {email, exp, kind}
 WB = {}  # token -> {nfts, avatarId, at}  in-memory Workbench; not KV
 HOP = "python:8790"
+NODE = os.environ.get("FOG_MW_NODE") or "http://127.0.0.1:8791"
+DENO = os.environ.get("FOG_MW_DENO") or "http://127.0.0.1:8792"
+MESH = {
+    "fog": 8787,
+    "ipc": {"workerd": 8788, "python": 8790, "node": 8791, "deno": 8792},
+    "routes": {
+        "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
+        "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792"],
+        "object_cid_mail": ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
+        "html": ["pages", "node:8791/atelier"],
+    },
+}
 
 DEFAULT_OWNER = "FOG-NODE-PT-CM-001"
 _REG = None
@@ -206,6 +218,29 @@ def _j(url, timeout=1.2):
         return {"ok": False, "error": str(e)[:120]}
 
 
+def _metabol_pace(hop="python"):
+    """This hop's own pace. Local py has no CF daily clock. Never 503 login on CF STASIS."""
+    try:
+        import sys
+        path = _src_path()
+        lib = os.path.abspath(os.path.join(path, "..", "ops", "lib"))
+        if lib not in sys.path:
+            sys.path.insert(0, lib)
+        import metabolism as met
+        cap = _cap()
+        return met.metabol_pace(hop, host_over=bool(cap.get("over")), is_p0=True, path="/api/auth/login")
+    except Exception as e:
+        return {
+            "ok": True,
+            "hop": hop,
+            "decision": "ALLOW",
+            "cf_daily": False,
+            "freeze": False,
+            "http_503": False,
+            "reason": "pace fail-open %s" % type(e).__name__,
+        }
+
+
 def _cap():
     try:
         import sys
@@ -244,9 +279,10 @@ def payload(kind: str):
     if kind == "cmn":
         return {
             **base,
-            "hop": "internet→tunnel→workerd:8788→fog:8787 | mw py:8790 node:8791",
+            "hop": "FOG:8787 MESH/IPC workerd:8788 python:8790 node:8791 deno:8792",
+            "mesh": MESH,
             "public": {"fog": FOG_PUB, "edge": EDGE},
-            "loopback": {"workerd": WORKERD, "fog": FOG, "py": f"http://127.0.0.1:{PORT}"},
+            "loopback": {"workerd": WORKERD, "fog": FOG, "py": f"http://127.0.0.1:{PORT}", "node": NODE, "deno": DENO},
             "plugins": ["host_cap", "keepup", "ping", "rails", "tmp_sweep", "runtime_mesh"],
         }
     if kind == "plugins":
@@ -273,7 +309,24 @@ def payload(kind: str):
         live["fog"] = _j(FOG + "/health")
         return {"ok": True, "runtime": "python", "port": PORT, "plugins": live}
     if kind == "metabol":
-        return {"ok": True, "via": WORKERD + "/metabol", "snap": _j(WORKERD + "/metabol")}
+        pace = _metabol_pace("python")
+        return {
+            "ok": True,
+            "hop": HOP,
+            "metabol_pace": pace,
+            "via": WORKERD + "/metabol",
+            "snap": _j(WORKERD + "/metabol"),
+            "note": "per-hop pace; local py has no CF daily clock; HOLD/STASIS is pace not 503",
+        }
+    if kind == "mesh":
+        return {
+            "ok": True,
+            "runtime": "python",
+            "port": PORT,
+            "mesh": MESH,
+            "metabol_pace": _metabol_pace("python"),
+            "tunnel": {"auth/mw": "127.0.0.1:8790", "fog/origin/gossip": "127.0.0.1:8788", "reload": "SIGHUP"},
+        }
     if kind == "strata":
         fog = _j(FOG + "/status") or _j(FOG + "/health")
         return {
@@ -380,6 +433,8 @@ class H(BaseHTTPRequestHandler):
                 "ok": True,
                 "hop": HOP,
                 "role": "auth-fallback+middleware",
+                "stasis_503": False,
+                "metabol_pace": "host_cap only",
             })
         body = self._body() if method in ("POST", "PUT") else {}
         if path.endswith("/login") or path.endswith("/email"):
@@ -538,6 +593,8 @@ class H(BaseHTTPRequestHandler):
             "/mw/plugins": "plugins",
             "/metabol": "metabol",
             "/mw/metabol": "metabol",
+            "/mesh": "mesh",
+            "/mw/mesh": "mesh",
             "/fallback": "fallback",
             "/mw/fallback": "fallback",
             "/strata": "strata",

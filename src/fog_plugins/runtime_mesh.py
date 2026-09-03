@@ -120,23 +120,46 @@ def _write_sha() -> None:
         pass
 
 
+DEAD_MW_SKIP_SEC = 8.0
+
+
 def recycle_mw(ports=None) -> int:
     """SIGTERM listeners on loopback hop ports so the next spawn uses current files.
 
     Default: fog :8787, workerd :8788, python :8790, node :8791, deno :8792.
     Supervise paths pass MW_PORTS so Fog/workerd are not SIGTERM'd by attach.
     Never pkill cloudflared. Never PUT Workers.
+    Already-dead hops are skipped. After SIGTERM wait up to 8s then skip leftovers.
     """
-    killed = 0
-    for port in tuple(RECYCLE_PORTS if ports is None else ports):
+    ports = tuple(RECYCLE_PORTS if ports is None else ports)
+
+    def live_pids(port: int):
+        out = []
         for pid in _pids_listening(int(port)):
             if "cloudflared" in _comm(pid).lower():
                 continue
+            out.append(pid)
+        return out
+
+    killed = 0
+    for port in ports:
+        for pid in live_pids(port):
             try:
                 os.kill(pid, signal.SIGTERM)
                 killed += 1
             except OSError:
                 pass
+    if killed:
+        deadline = time.time() + DEAD_MW_SKIP_SEC
+        while time.time() < deadline:
+            leftover = False
+            for port in ports:
+                if live_pids(port):
+                    leftover = True
+                    break
+            if not leftover:
+                break
+            time.sleep(0.25)
     return killed
 
 

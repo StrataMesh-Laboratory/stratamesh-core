@@ -140,8 +140,19 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
   const objectPost = req.method === "POST" && path.startsWith("/object");
   const orchPath = path.startsWith("/api/orchestrator") || path === "/orchestrator/chat" || path.startsWith("/api/v1/orchestrator");
-  if (req.method !== "GET" && !(req.method === "POST" && (path.startsWith("/mail") || objectPost || orchPath))) {
-    return json({ ok: false, error: "method", hint: "auth is python:8790" }, 405);
+  const authPath = path.startsWith("/api/auth") || path.startsWith("/api/wb");
+  if (req.method !== "GET" && !(req.method === "POST" && (path.startsWith("/mail") || objectPost || orchPath || authPath))) {
+    return json({ ok: false, error: "method", hint: "auth complementary: py then node then deno" }, 405);
+  }
+  if (authPath) {
+    return json({
+      ok: true,
+      hop: "deno:8792",
+      role: "auth-fallback",
+      stasis_503: false,
+      metabol_pace: { hop: "deno", cf_daily: false, decision: "ALLOW", reason: "local deno — no CF daily clock" },
+      note: "complementary after python:8790 then node:8791; CF auth only if ALLOW",
+    });
   }
   if (orchPath) {
     let body: Record<string, unknown> = {};
@@ -288,7 +299,20 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
     });
   }
   if (path === "/api/mesh" || path === "/mesh") {
-    return json({ ok: true, n: 2, f_max: 0, oracle_live: false, head: HEAD });
+    return json({
+      ok: true, n: 2, f_max: 0, oracle_live: false, head: HEAD, hop: "deno:8792",
+      mesh: {
+        fog: 8787,
+        ipc: { workerd: 8788, python: 8790, node: 8791, deno: 8792 },
+        routes: {
+          auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
+          compose_assemble_desk: ["node:8791", "python:8790", "deno:8792"],
+          object_cid_mail: ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
+          html: ["pages", "node:8791/atelier"],
+        },
+      },
+      metabol_pace: { hop: "deno", cf_daily: false, decision: "ALLOW" },
+    });
   }
   if (path === "/mail/health" || path === "/mail") {
     const key = await deomailKey();

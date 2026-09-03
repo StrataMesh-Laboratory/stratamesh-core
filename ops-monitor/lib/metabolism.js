@@ -626,6 +626,129 @@ export function snapshot(cfg, now = new Date(), live = {}, ledger = { rails: {} 
   };
 }
 
+export const HOP_PACE = {
+  fog: { kind: "host", port: 8787, cf_daily: false, note: "FOG instrument; host_cap only" },
+  workerd: { kind: "cf-worker", port: 8788, rail: "cf-worker-req", daily_limit: 100000, renewal_hhmm: "00:00", renewal_tz: "UTC", note: "CF Workers 100k/day reset 00:00 UTC; never workers.dev" },
+  python: { kind: "local", port: 8790, rail: "hop-python", cf_daily: false, note: "local py; host cap only" },
+  node: { kind: "local", port: 8791, rail: "hop-node", cf_daily: false, note: "local node; host cap only" },
+  deno: { kind: "local", port: 8792, rail: "hop-deno-local", cf_daily: false, note: "local Deno :8792; host cap only" },
+  "deno-deploy": { kind: "allow-fallback", rail: "hop-deno-deploy", cf_daily: false, note: "Deno Deploy Free is ALLOW fallback only" },
+  kv: { kind: "cf-kv", rail: "cf-kv-writes", daily_limit: 1000, renewal_hhmm: "00:00", renewal_tz: "UTC", note: "KV 1000 writes/day UTC; separate from Worker 100k" },
+  pages: { kind: "pages-html", rail: "cf-pages", outside_worker_bucket: true, note: "Pages HTML outside Worker bucket; never SPA catch-all" },
+  "cf-auth": { kind: "cf-worker", rail: "cf-worker-req", p0: true, note: "CF auth only if ALLOW" },
+  "cf-deomail": { kind: "cf-worker", rail: "deomail", note: "CF deomail only if ALLOW" },
+};
+
+export const COMPLEMENTARY_ROUTES = {
+  auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth"],
+  compose_assemble_desk: ["node:8791", "python:8790", "deno:8792"],
+  object_cid_mail: ["deno:8792", "python:8790", "cf-deomail"],
+  html: ["pages", "node:8791/atelier"],
+};
+
+const HOP_ALIASES = {
+  "8787": "fog", fog: "fog",
+  "8788": "workerd", workerd: "workerd", cf: "workerd", workers: "workerd",
+  "8790": "python", python: "python", py: "python", mw: "python",
+  "8791": "node", node: "node",
+  "8792": "deno", deno: "deno", "deno-local": "deno",
+  "deno-deploy": "deno-deploy", deploy: "deno-deploy",
+  kv: "kv", "cf-kv": "kv", "cf-kv-writes": "kv",
+  pages: "pages", html: "pages", "cf-pages": "pages",
+  "cf-auth": "cf-auth", auth: "python",
+  "cf-deomail": "cf-deomail", deomail: "cf-deomail",
+};
+
+export function resolveHopName(hop) {
+  const s = String(hop || "").trim().toLowerCase().split("/")[0];
+  if (!s) return "";
+  if (s.includes(":")) {
+    const [left, right] = s.split(":");
+    if (HOP_ALIASES[left]) return HOP_ALIASES[left];
+    if (HOP_ALIASES[right]) return HOP_ALIASES[right];
+    return HOP_ALIASES[left] || left;
+  }
+  return HOP_ALIASES[s] || s;
+}
+
+export function metabolPace(hop, opts = {}) {
+  const key = resolveHopName(hop);
+  const spec = HOP_PACE[key] || {};
+  let p0 = !!opts.isP0;
+  const pl = String(opts.path || "").split("?")[0].toLowerCase();
+  if (pl.endsWith("/login") || pl.endsWith("/verify") || pl.endsWith("/health") || pl.includes("/api/auth") || pl.includes("/api/wb")) p0 = true;
+  const base = {
+    hop: key,
+    port: spec.port || null,
+    kind: spec.kind || "unknown",
+    cf_daily: !!spec.cf_daily,
+    rail: spec.rail || null,
+    renewal_hhmm: spec.renewal_hhmm || null,
+    renewal_tz: spec.renewal_tz || null,
+    daily_limit: spec.daily_limit || null,
+    outside_worker_bucket: !!spec.outside_worker_bucket,
+    freeze: false,
+    http_503: false,
+    is_p0: p0,
+    note: spec.note || "",
+    routes: COMPLEMENTARY_ROUTES,
+  };
+  if (!spec.kind) {
+    return { ...base, decision: HOLD, reason: "unknown hop — fail closed pace", pace: true };
+  }
+  if (spec.kind === "local" || spec.kind === "host") {
+    if (opts.hostOver) return { ...base, decision: HOLD, reason: "host_cap pace (not freeze)", pace: true };
+    return { ...base, decision: ALLOW, reason: "local hop — no CF daily clock", pace: false };
+  }
+  if (spec.kind === "allow-fallback") {
+    return { ...base, decision: ALLOW, reason: "Deno Deploy Free ALLOW fallback only", pace: false, fallback_only: true };
+  }
+  if (spec.kind === "pages-html") {
+    return { ...base, decision: ALLOW, reason: "Pages HTML outside Worker 100k bucket", pace: false, outside_worker_bucket: true, cf_daily: false };
+  }
+  const rail = spec.rail || "cf-worker-req";
+  let remaining = opts.remaining;
+  if (remaining == null && spec.daily_limit != null) remaining = Math.max(0, spec.daily_limit - Number(opts.daySpent || 0));
+  const pack = decide(rail, {
+    remaining,
+    hourSpent: opts.hourSpent || 0,
+    now: opts.now,
+    cost: opts.cost == null ? 1 : opts.cost,
+    isP0: p0,
+    cfg: opts.cfg,
+    url: opts.url,
+    prevCircuit: opts.prevCircuit,
+    contingencyUrl: opts.contingencyUrl,
+    contingencyOk: opts.contingencyOk,
+    ledger: opts.ledger,
+  });
+  const gate = admit(pack, { isP0: p0, rand: opts.rand == null ? 1 : opts.rand, hourSpent: opts.hourSpent || 0 });
+  const out = { ...pack, ...base };
+  out.admit = gate.admit;
+  out.freeze = !!(gate.freeze) && !p0;
+  out.http_503 = p0 ? false : !!gate.freeze;
+  out.pace = (out.decision === HOLD || out.decision === STASIS) && !out.freeze;
+  out.reason = gate.reason || out.reason;
+  if (p0) {
+    out.freeze = false;
+    out.http_503 = false;
+    out.admit = true;
+    out.reason = (out.reason || "") + " · login/auth P0 never 503 on CF STASIS";
+  }
+  return out;
+}
+
+export function meshMap() {
+  return {
+    fog: 8787,
+    ipc: { workerd: 8788, python: 8790, node: 8791, deno: 8792 },
+    routes: COMPLEMENTARY_ROUTES,
+    tunnel: { "auth/mw": "127.0.0.1:8790", "fog/origin/gossip": "127.0.0.1:8788", reload: "SIGHUP" },
+    never: ["workers.dev", "Worker PUT on hot path", "pkill cloudflared", "SPA catch-all"],
+    hops: HOP_PACE,
+  };
+}
+
 
 
 /** INC-KV-50 — KV writes are a separate free-tier meter (≈1000/UTC-day).

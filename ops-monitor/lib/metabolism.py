@@ -1096,6 +1096,183 @@ def snapshot(
     }
 
 
+
+# --- per-hop metabol_pace (complementary mesh, not one CF clock) ---
+HOP_PACE = {
+    "fog": {"kind": "host", "port": 8787, "cf_daily": False, "note": "FOG instrument; host_cap only"},
+    "workerd": {
+        "kind": "cf-worker", "port": 8788, "rail": "cf-worker-req",
+        "daily_limit": 100000, "renewal_hhmm": "00:00", "renewal_tz": "UTC",
+        "note": "CF Workers 100k/day reset 00:00 UTC; never workers.dev",
+    },
+    "python": {"kind": "local", "port": 8790, "rail": "hop-python", "cf_daily": False, "note": "local py; host cap only"},
+    "node": {"kind": "local", "port": 8791, "rail": "hop-node", "cf_daily": False, "note": "local node; host cap only"},
+    "deno": {"kind": "local", "port": 8792, "rail": "hop-deno-local", "cf_daily": False, "note": "local Deno :8792; host cap only"},
+    "deno-deploy": {
+        "kind": "allow-fallback", "rail": "hop-deno-deploy", "cf_daily": False,
+        "note": "Deno Deploy Free is ALLOW fallback only",
+    },
+    "kv": {
+        "kind": "cf-kv", "rail": "cf-kv-writes", "daily_limit": 1000,
+        "renewal_hhmm": "00:00", "renewal_tz": "UTC",
+        "note": "KV 1000 writes/day UTC; separate from Worker 100k",
+    },
+    "pages": {
+        "kind": "pages-html", "rail": "cf-pages", "outside_worker_bucket": True,
+        "note": "Pages HTML outside Worker bucket; never SPA catch-all",
+    },
+    "cf-auth": {"kind": "cf-worker", "rail": "cf-worker-req", "p0": True, "note": "CF auth only if ALLOW"},
+    "cf-deomail": {"kind": "cf-worker", "rail": "deomail", "note": "CF deomail only if ALLOW"},
+}
+
+HOP_ALIASES = {
+    "8787": "fog", "fog": "fog",
+    "8788": "workerd", "workerd": "workerd", "cf": "workerd", "workers": "workerd",
+    "8790": "python", "python": "python", "py": "python", "mw": "python",
+    "8791": "node", "node": "node",
+    "8792": "deno", "deno": "deno", "deno-local": "deno",
+    "deno-deploy": "deno-deploy", "deploy": "deno-deploy",
+    "kv": "kv", "cf-kv": "kv", "cf-kv-writes": "kv",
+    "pages": "pages", "html": "pages", "cf-pages": "pages",
+    "cf-auth": "cf-auth", "auth": "python",
+    "cf-deomail": "cf-deomail", "deomail": "cf-deomail",
+}
+
+COMPLEMENTARY_ROUTES = {
+    "auth_wb_session": ["python:8790", "node:8791", "deno:8792", "cf-auth"],
+    "compose_assemble_desk": ["node:8791", "python:8790", "deno:8792"],
+    "object_cid_mail": ["deno:8792", "python:8790", "cf-deomail"],
+    "html": ["pages", "node:8791/atelier"],
+}
+
+
+def resolve_hop(hop) -> str:
+    s = str(hop or "").strip().lower().split("/")[0]
+    if not s:
+        return ""
+    if ":" in s:
+        left, right = s.split(":", 1)
+        left, right = left.strip(), right.strip()
+        if left in HOP_ALIASES:
+            return HOP_ALIASES[left]
+        if right in HOP_ALIASES:
+            return HOP_ALIASES[right]
+        if left.isdigit():
+            return HOP_ALIASES.get(left, left)
+        return HOP_ALIASES.get(left, left)
+    return HOP_ALIASES.get(s, s)
+
+
+def metabol_pace(
+    hop,
+    *,
+    host_over: bool = False,
+    remaining: Optional[float] = None,
+    day_spent: float = 0,
+    hour_spent: float = 0,
+    now: Optional[datetime] = None,
+    is_p0: bool = False,
+    cfg: Optional[dict] = None,
+    cost: float = 1,
+    path: str = "",
+    **kwargs,
+) -> dict:
+    """Per-hop pace. Each hop has its own renewal/quota/burn_rate.
+
+    python/node/local Deno have no CF daily clock (host_cap only).
+    HOLD/STASIS is pace not freeze. login/auth must not 503 because CF decide() is STASIS.
+    Never workers.dev. Deno Deploy Free is ALLOW fallback only.
+    """
+    key = resolve_hop(hop)
+    spec = dict(HOP_PACE.get(key) or {})
+    p0 = bool(is_p0)
+    pl = str(path or "").split("?")[0].lower()
+    if pl.endswith("/login") or pl.endswith("/verify") or pl.endswith("/health") or "/api/auth" in pl or "/api/wb" in pl:
+        p0 = True
+    base = {
+        "hop": key,
+        "port": spec.get("port"),
+        "kind": spec.get("kind") or "unknown",
+        "cf_daily": bool(spec.get("cf_daily")),
+        "rail": spec.get("rail"),
+        "renewal_hhmm": spec.get("renewal_hhmm"),
+        "renewal_tz": spec.get("renewal_tz"),
+        "daily_limit": spec.get("daily_limit"),
+        "outside_worker_bucket": bool(spec.get("outside_worker_bucket")),
+        "freeze": False,
+        "http_503": False,
+        "is_p0": p0,
+        "note": spec.get("note") or "",
+        "routes": COMPLEMENTARY_ROUTES,
+    }
+    if not spec:
+        base.update({"decision": HOLD, "reason": "unknown hop — fail closed pace", "pace": True})
+        return base
+    if spec.get("kind") in ("local", "host"):
+        if host_over:
+            base.update({"decision": HOLD, "reason": "host_cap pace (not freeze)", "pace": True})
+            return base
+        base.update({"decision": ALLOW, "reason": "local hop — no CF daily clock", "pace": False})
+        return base
+    if spec.get("kind") == "allow-fallback":
+        base.update({"decision": ALLOW, "reason": "Deno Deploy Free ALLOW fallback only", "pace": False, "fallback_only": True})
+        return base
+    if spec.get("kind") == "pages-html":
+        base.update({
+            "decision": ALLOW,
+            "reason": "Pages HTML outside Worker 100k bucket",
+            "pace": False,
+            "outside_worker_bucket": True,
+            "cf_daily": False,
+        })
+        return base
+    rail = spec.get("rail") or "cf-worker-req"
+    rem = remaining
+    if rem is None and spec.get("daily_limit") is not None:
+        rem = max(0.0, float(spec["daily_limit"]) - float(day_spent or 0))
+    v = decide(
+        rail,
+        remaining=rem,
+        hour_spent=hour_spent,
+        now=now,
+        cost=cost,
+        is_p0=p0,
+        cfg=cfg,
+        **{k: kwargs[k] for k in kwargs if k in ("url", "prev_circuit", "contingency_url", "contingency_ok", "ledger", "day_spent")},
+    )
+    pack = v.as_dict() if hasattr(v, "as_dict") else dict(v)
+    gate = admit(pack, {"is_p0": p0, "rand": kwargs.get("rand", 1.0), "hour_spent": hour_spent})
+    pack.update(base)
+    pack["decision"] = pack.get("decision") or v.decision
+    pack["admit"] = gate.get("admit")
+    pack["freeze"] = bool(gate.get("freeze")) and not p0
+    pack["http_503"] = False if p0 else bool(gate.get("freeze"))
+    pack["pace"] = pack.get("decision") in (HOLD, STASIS) and not pack["freeze"]
+    pack["reason"] = gate.get("reason") or pack.get("reason")
+    if p0:
+        pack["freeze"] = False
+        pack["http_503"] = False
+        pack["admit"] = True
+        pack["reason"] = (pack.get("reason") or "") + " · login/auth P0 never 503 on CF STASIS"
+    return pack
+
+
+def mesh_map() -> dict:
+    return {
+        "fog": 8787,
+        "ipc": {"workerd": 8788, "python": 8790, "node": 8791, "deno": 8792},
+        "routes": COMPLEMENTARY_ROUTES,
+        "tunnel": {
+            "auth/mw": "127.0.0.1:8790",
+            "fog/origin/gossip": "127.0.0.1:8788",
+            "reload": "SIGHUP",
+        },
+        "never": ["workers.dev", "Worker PUT on hot path", "pkill cloudflared", "SPA catch-all"],
+        "hops": {k: {kk: vv for kk, vv in spec.items()} for k, spec in HOP_PACE.items()},
+    }
+
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     import sys
     argv = argv if argv is not None else sys.argv[1:]

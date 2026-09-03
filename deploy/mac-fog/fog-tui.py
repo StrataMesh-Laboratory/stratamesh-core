@@ -101,6 +101,30 @@ def spark(vals) -> str:
         out.append(chr(0x2800 + left[h0] + right[h1]))
     return "".join(out[-12:])
 
+
+def hop_spark(vals) -> str:
+    """Hop-live 0/1 spark. Never min-max — always-live (all 1.0) must not paint U+2800 blank.
+
+    0 → empty braille, 1 → full (⣿). Analog HOST LOAD_HIST keeps spark() min-max.
+    """
+    xs = [1.0 if v else 0.0 for v in vals if v is not None]
+    left = (0x00, 0x40, 0x44, 0x46, 0x47)
+    right = (0x00, 0x80, 0xA0, 0xB0, 0xB8)
+    if len(xs) < 2:
+        if not xs:
+            return "·" * 8
+        cell = chr(0x2800 + left[4] + right[4]) if xs[-1] else chr(0x2800)
+        return cell * 8
+    if len(xs) % 2:
+        xs = [xs[0]] + list(xs)
+    out = []
+    for i in range(0, len(xs), 2):
+        h0 = 4 if xs[i] else 0
+        h1 = 4 if xs[i + 1] else 0
+        out.append(chr(0x2800 + left[h0] + right[h1]))
+    return "".join(out[-12:])
+
+
 def use_color() -> bool:
     """Fail-open: no color when TERM=dumb or NO_COLOR. No extra deps."""
     if os.environ.get("NO_COLOR"):
@@ -617,7 +641,6 @@ def brew_update_upgrade() -> str:
 
 def git_pull_reboot() -> str:
     stamp_manual_g()
-    brew_note = "brew skip (auto-g)"
     repo = REPO if (REPO / ".git").exists() else Path.home() / "StrataMesh/fog/repo"
     if not (repo / ".git").exists():
         return "no git repo at %s" % repo
@@ -642,6 +665,8 @@ def git_pull_reboot() -> str:
     sync = sync_workerd_config()
     copied.append(sync)
     extra = (" " + " · ".join(copied)) if copied else ""
+    # Interactive g and auto-g both brew. Off the paint thread (caller is fog-tui-g).
+    brew_note = brew_update_upgrade()
     fog_rc = reboot_fog()
     return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 
@@ -1426,7 +1451,7 @@ def draw(msg: str = "") -> None:
                   + MUT + "  n=" + RST + BOLD + str(n) + RST
                   + MUT + "  member=" + RST + str(bool(member)), w))
     print(mid)
-    print(boxline(" " + ACC + "MESH" + RST + MUT + "  loopback hops (cover each other)" + RST, w))
+    print(boxline(" " + ACC + "FOG" + RST + MUT + "  MESH / IPC complementary hops" + RST, w))
     mesh = (
         (8787, "fog", fog_ok),
         (8788, "workerd", hop_ok),
@@ -1438,11 +1463,12 @@ def draw(msg: str = "") -> None:
         hist = HOP_LIVE_HIST.get(port)
         if hist is not None:
             hist.append(1.0 if okh else 0.0)
-            sp = spark(hist)
+            sp = hop_spark(hist)
         else:
             sp = ""
+        indent = " " if port == 8787 else "   "
         nm = (BOLD + name.ljust(8) + RST) if okh else (MUT + name.ljust(8) + RST)
-        print(boxline(" " + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp, w))
+        print(boxline(indent + lamp(okh) + " " + nm + MUT + " :%d  " % port + RST + sp, w))
     pub_nm = pub_origin_label(pub)
     print(boxline(" " + lamp(pub_ok) + " " + (BOLD if pub_ok else MUT) + "public".ljust(8) + RST
                   + MUT + " " + pub_nm + RST, w))
@@ -1513,17 +1539,12 @@ def draw(msg: str = "") -> None:
 _TTY_IN = None
 
 def _key_fd():
-    """Stable fd for keys. stdin if it is a tty; else keep /dev/tty open (do not reopen every frame)."""
-    global _TTY_IN
-    if sys.stdin.isatty():
-        return sys.stdin.fileno()
-    if _TTY_IN is None:
-        _TTY_IN = open("/dev/tty", "rb", buffering=0)
-    return _TTY_IN.fileno()
+    """wait_key uses stdin only. Never /dev/tty here (g y/n opens it in confirm)."""
+    return sys.stdin.fileno()
 
 
 def wait_key(seconds: float) -> str:
-    """Poll keys without freezing draw. TCSANOW. Never sleep the whole interval if stdin is not a tty."""
+    """Poll keys on stdin without freezing draw. TCSANOW. /dev/tty is not used."""
     import tty
     import termios
     try:
@@ -1557,6 +1578,47 @@ def wait_key(seconds: float) -> str:
             pass
 
 
+def _yn_from_tty(seconds: float = 30.0) -> str:
+    """g y/n only. /dev/tty — wait_key stays on stdin."""
+    import tty
+    import termios
+    fh = None
+    try:
+        fh = open("/dev/tty", "rb", buffering=0)
+        fd = fh.fileno()
+        old = termios.tcgetattr(fd)
+    except Exception:
+        if fh:
+            try:
+                fh.close()
+            except Exception:
+                pass
+        return wait_key(seconds)
+    try:
+        tty.setcbreak(fd)
+        end = time.time() + max(0.05, float(seconds))
+        while time.time() < end:
+            r, _, _ = select.select([fd], [], [], min(0.25, max(0.0, end - time.time())))
+            if r:
+                b = os.read(fd, 8)
+                if not b:
+                    return ""
+                try:
+                    return b.decode("utf-8", "ignore")[:1]
+                except Exception:
+                    return chr(b[0]) if b else ""
+        return ""
+    finally:
+        try:
+            termios.tcsetattr(fd, termios.TCSANOW, old)
+        except Exception:
+            pass
+        try:
+            fh.close()
+        except Exception:
+            pass
+
+
 def confirm(prompt: str) -> bool:
     """y/n on the last terminal row. Never COMPOSER_ROW/22 (that sat mid-TUI on 55-line Fog)."""
     try:
@@ -1569,7 +1631,7 @@ def confirm(prompt: str) -> bool:
         DEV_TTY.flush()
     except Exception:
         pass
-    yes = wait_key(30) in ("y", "Y")
+    yes = _yn_from_tty(30) in ("y", "Y")
     try:
         DEV_TTY.write("\033[%d;1H\033[2K\033[?25l" % row)
         DEV_TTY.flush()

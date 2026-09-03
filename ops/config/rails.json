@@ -327,10 +327,11 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": false,
-      "note": "Static apex landing is free/unlimited. Pages Functions share cf-worker-req 100k/day UTC. Not a second 100k pool. Prefer static Pages over Worker catch-alls.",
+      "note": "Static apex landing is free/unlimited. Pages Functions share cf-worker-req 100k/day UTC. Not a second 100k pool. Prefer static Pages over Worker catch-alls. HTML is outside the Worker 100k bucket.",
       "shares_pool": "cf-worker-req",
       "static_assets_free": true,
-      "skip_meter": true
+      "skip_meter": true,
+      "outside_worker_bucket": true
     },
     "lockstep-probe": {
       "layer": "node",
@@ -422,6 +423,49 @@
       "min_interval_ms": 3600000,
       "debt_persists_across_renewal": false,
       "note": "Cursor @amcmorais Free + STRATAGROK desk. Cloud Agent API is Pro+ (plan_required). daily_limit 0 = HOLD. Vault cursor.api never git. Dashboard https://cursor.com/dashboard/api"
+    },
+    "hop-python": {
+      "layer": "fog",
+      "kind": "rate",
+      "billing": "host",
+      "unit": "requests",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "cf_daily": false,
+      "unknown_remaining": "allow",
+      "note": "Local python :8790. No CF daily clock. host_cap only. Auth/wb first hop."
+    },
+    "hop-node": {
+      "layer": "fog",
+      "kind": "rate",
+      "billing": "host",
+      "unit": "requests",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "cf_daily": false,
+      "unknown_remaining": "allow",
+      "note": "Local node :8791. No CF daily clock. host_cap only. Compose/assemble/desk first hop."
+    },
+    "hop-deno-local": {
+      "layer": "fog",
+      "kind": "rate",
+      "billing": "host",
+      "unit": "requests",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "cf_daily": false,
+      "unknown_remaining": "allow",
+      "note": "Local Deno :8792. No CF daily clock. host_cap only. Object CID/mail first hop."
+    },
+    "hop-deno-deploy": {
+      "layer": "lab",
+      "kind": "alias",
+      "billing": "quota",
+      "unit": "requests",
+      "daily_limit": 0,
+      "skip_meter": true,
+      "unknown_remaining": "allow",
+      "note": "Deno Deploy Free is ALLOW fallback only. Never workers.dev. Local :8792 is the hop."
     }
   }
 }

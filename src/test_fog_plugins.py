@@ -245,6 +245,72 @@ def test_spawn_deno_8792_when_host_cap_over():
     py_cmds = [c for c in popen_cmds if c and c[0] == "python3"]
     assert py_cmds, "python :8790 must still spawn under host_cap.over"
 
+
+def test_tui_g_always_brews():
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    text = tui.read_text(encoding="utf-8")
+    pull = text[text.index("def git_pull_reboot"):text.index("\ndef mark")]
+    assert "brew skip" not in pull
+    assert "brew_update_upgrade()" in pull
+    assert "brew skip (auto-g)" not in text
+    assert "wait_key uses stdin" in text or "stdin only" in text
+    assert "/dev/tty" in text[text.index("def _yn_from_tty"):text.index("def confirm")]
+
+
+def test_auto_update_brews_before_runtime_skip():
+    sh = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-auto-update.sh"
+    text = sh.read_text(encoding="utf-8")
+    assert "brew skip (auto-g)" not in text
+    assert text.index("brew update") < text.index("skip runtime-down")
+    assert "brew upgrade" in text
+    assert "recycle_mw((8787,8788,8790,8791,8792))" in text.replace(" ", "")
+
+
+def test_recycle_skips_dead_mw_8s():
+    from fog_plugins.runtime_mesh import DEAD_MW_SKIP_SEC, recycle_mw
+    assert DEAD_MW_SKIP_SEC == 8.0
+    assert recycle_mw() == 0
+
+
+
+def _tui_fns():
+    """Load spark/hop_spark without opening /dev/tty or running the TUI."""
+    import ast
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    src = tui.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    keep = []
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name in ("spark", "hop_spark"):
+            keep.append(node)
+    mod = ast.Module(body=keep, type_ignores=[])
+    ast.fix_missing_locations(mod)
+    ns = {}
+    exec(compile(mod, "fog-tui.py", "exec"), ns, ns)
+    return ns["spark"], ns["hop_spark"]
+
+
+def test_hop_spark_always_live_not_blank():
+    spark, hop_spark = _tui_fns()
+    blank = chr(0x2800)
+    live = [1.0] * 16
+    hs = hop_spark(live)
+    assert hs
+    assert blank not in hs
+    ss = spark(live)
+    assert ss and all(ch == blank for ch in ss)
+    down = [0.0] * 16
+    hd = hop_spark(down)
+    assert hd and all(ch == blank for ch in hd)
+    mixed = [1.0, 0.0, 1.0, 0.0] * 4
+    hm = hop_spark(mixed)
+    assert any(ch != blank for ch in hm)
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    text = tui.read_text(encoding="utf-8")
+    assert "hop_spark(hist)" in text
+    assert "spark(LOAD_HIST)" in text
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

@@ -14,7 +14,7 @@ from metabolism import (  # noqa: E402
     decide, hours_until_renewal, monitor_interval_sec, snapshot, load_rails,
     record_spend, empty_rail_state, phase_delta,
     density_of, effective_capacity, coalesce_intents, circuit_trip,
-    pace_factor, live_decide_kwargs, pace_failed, admit,
+    pace_factor, live_decide_kwargs, pace_failed, admit, metabol_pace, mesh_map, resolve_hop,
 )
 
 CFG = load_rails()
@@ -554,6 +554,67 @@ class PaceVsFreeze(unittest.TestCase):
                    "contingency_url": "https://auth.calhegasmorais.pt", "contingency_ok": True})
         self.assertTrue(a["freeze"])
         self.assertFalse(a["admit"])
+
+
+
+class PerHopMetabolPace(unittest.TestCase):
+    def test_local_hops_no_cf_clock(self):
+        for hop in ("python:8790", "node:8791", "deno:8792", "fog", "8787"):
+            v = metabol_pace(hop, host_over=False, cfg=CFG)
+            self.assertEqual(v["decision"], ALLOW)
+            self.assertFalse(v.get("cf_daily"))
+            self.assertFalse(v["http_503"])
+
+    def test_host_over_is_hold_not_503(self):
+        v = metabol_pace("python", host_over=True, cfg=CFG)
+        self.assertEqual(v["decision"], HOLD)
+        self.assertTrue(v["pace"])
+        self.assertFalse(v["freeze"])
+        self.assertFalse(v["http_503"])
+
+    def test_pages_outside_worker_bucket(self):
+        v = metabol_pace("pages", cfg=CFG)
+        self.assertEqual(v["decision"], ALLOW)
+        self.assertTrue(v["outside_worker_bucket"])
+
+    def test_kv_own_quota(self):
+        v = metabol_pace("kv", remaining=1000, hour_spent=0, cfg=CFG, now=T(1, 0))
+        self.assertEqual(v["rail"], "cf-kv-writes")
+        self.assertEqual(v["daily_limit"], 1000)
+        self.assertEqual(v.get("renewal_tz"), "UTC")
+
+    def test_workerd_cf_100k_utc(self):
+        v = metabol_pace("workerd", remaining=100000, hour_spent=0, cfg=CFG, now=T(1, 0))
+        self.assertEqual(v["rail"], "cf-worker-req")
+        self.assertEqual(v["daily_limit"], 100000)
+        self.assertEqual(v.get("renewal_tz"), "UTC")
+
+    def test_login_never_503_on_cf_stasis(self):
+        v = metabol_pace(
+            "cf-auth", remaining=0, hour_spent=9000, cfg=CFG, now=T(1, 0),
+            path="/api/auth/login", is_p0=True,
+        )
+        self.assertFalse(v["http_503"])
+        self.assertFalse(v["freeze"])
+        self.assertTrue(v["admit"])
+
+    def test_deno_deploy_allow_fallback(self):
+        v = metabol_pace("deno-deploy", cfg=CFG)
+        self.assertEqual(v["decision"], ALLOW)
+        self.assertTrue(v.get("fallback_only"))
+
+    def test_workers_dev_still_forbidden(self):
+        v = metabol_pace("workerd", remaining=100000, cfg=CFG, now=T(1, 0),
+                         url="https://x.workers.dev/health")
+        self.assertTrue(v.get("freeze") or v["decision"] == STASIS)
+
+    def test_mesh_map_structure(self):
+        m = mesh_map()
+        self.assertEqual(m["fog"], 8787)
+        self.assertEqual(m["ipc"]["deno"], 8792)
+        self.assertEqual(m["routes"]["auth_wb_session"][0], "python:8790")
+        self.assertEqual(m["routes"]["html"][0], "pages")
+        self.assertEqual(resolve_hop("8792"), "deno")
 
 
 try:

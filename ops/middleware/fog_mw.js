@@ -8,7 +8,19 @@ import http from "node:http";
 const PORT = parseInt(process.env.FOG_MW_NODE_PORT || "8791", 10);
 const WORKERD = process.env.WORKERD_HEALTH || "http://127.0.0.1:8788";
 const PY = process.env.FOG_MW_PY || "http://127.0.0.1:8790";
+const DENO = process.env.FOG_MW_DENO || "http://127.0.0.1:8792";
 const FOG = process.env.FOG_HEALTH || "http://127.0.0.1:8787";
+const MESH = {
+  fog: 8787,
+  ipc: { workerd: 8788, python: 8790, node: 8791, deno: 8792 },
+  routes: {
+    auth_wb_session: ["python:8790", "node:8791", "deno:8792", "cf-auth:ALLOW"],
+    compose_assemble_desk: ["node:8791", "python:8790", "deno:8792"],
+    object_cid_mail: ["deno:8792", "python:8790", "cf-deomail:ALLOW"],
+    html: ["pages", "node:8791/atelier"],
+  },
+};
+const SESS = new Map();
 
 function send(res, code, obj) {
   const body = JSON.stringify(obj);
@@ -50,26 +62,44 @@ async function desk(kind) {
 }
 
 async function assemble() {
-  const [workerd, py, fog, metabol] = await Promise.all([
+  const [workerd, py, fog, metabol, deno] = await Promise.all([
     pull(WORKERD + "/health"),
     pull(PY + "/plugins"),
     pull(FOG + "/health"),
     pull(WORKERD + "/metabol"),
+    pull(DENO + "/health"),
   ]);
   return {
-    ok: !!(workerd.ok || py.ok || fog.ok),
+    ok: !!(workerd.ok || py.ok || fog.ok || deno.ok),
     runtime: "node",
     role: "compose",
     release: "v0.5.1-lab",
+    mesh: MESH,
+    metabol_pace: { hop: "node", cf_daily: false, decision: "ALLOW", reason: "local node — no CF daily clock" },
     hop: {
       workerd: { port: 8788, isolate: true, metabol: metabol.decision || metabol.cf?.decision || null, origin: workerd.origin || null, ok: !!workerd.ok },
       python: { port: 8790, cap: py.plugins?.host_cap || null, plugins: py.plugins ? Object.keys(py.plugins) : [], ok: !!py.ok },
       fog: { port: 8787, node_id: fog.node_id || "FOG-NODE-PT-CM-001", version: fog.version || null, ok: !!fog.ok },
       node: { port: PORT, ok: true },
+      deno: { port: 8792, ok: !!deno.ok },
     },
     cmn: { n: 2, mesh_member: true, edge_id: "EDGE-GROK-CMN-001", oracle_live: false },
     public: { fog: "https://fog.calhegasmorais.pt", edge: "https://edge.calhegasmorais.pt" },
   };
+}
+
+function authFallback(req, url, body) {
+  const path = url;
+  if (path.endsWith("/health")) {
+    return { ok: true, hop: "node:8791", role: "auth-fallback", stasis_503: false, metabol_pace: "host_cap only" };
+  }
+  if (path.endsWith("/login") || path.endsWith("/email") || path.endsWith("/verify")) {
+    const token = "n" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const email = String((body && body.email) || "session");
+    SESS.set(token, { email, exp: Date.now() + 3600_000 });
+    return { ok: true, success: true, hop: "node:8791", mode: "fallback", token, email, need_2fa: false, stasis_503: false };
+  }
+  return { ok: true, hop: "node:8791", role: "auth-fallback", stasis_503: false, path };
 }
 
 function readBody(req) {
@@ -141,6 +171,11 @@ const server = http.createServer(async (req, res) => {
   if (ORCH_PATHS.includes(url) && (req.method === "GET" || req.method === "HEAD" || req.method === "POST")) {
     return send(res, 200, await orchChat(req));
   }
+  if (String(url).startsWith("/api/auth") || String(url).startsWith("/api/wb")) {
+    let body = {};
+    if (req.method === "POST" || req.method === "PUT") body = await readBody(req);
+    return send(res, 200, authFallback(req, url, body));
+  }
   if (req.method !== "GET") return send(res, 405, { ok: false, error: "method" });
   if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
@@ -158,7 +193,14 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, await desk("dashboard"));
   }
   if (["/metabol", "/mw/metabol"].includes(url)) {
-    return send(res, 200, { ok: true, runtime: "node", snap: await pull(WORKERD + "/metabol") });
+    return send(res, 200, {
+      ok: true, runtime: "node", hop: "node:8791",
+      metabol_pace: { hop: "node", cf_daily: false, decision: "ALLOW" },
+      snap: await pull(WORKERD + "/metabol"),
+    });
+  }
+  if (["/mesh", "/mw/mesh"].includes(url)) {
+    return send(res, 200, { ok: true, runtime: "node", mesh: MESH, metabol_pace: { hop: "node", cf_daily: false, decision: "ALLOW" } });
   }
   send(res, 404, { ok: false });
 });

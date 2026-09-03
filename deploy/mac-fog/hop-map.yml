@@ -1,4 +1,6 @@
 # Named-tunnel hop-map (Mac Fog). SIGHUP-only reload — never kill/pkill cloudflared.
+# Mesh: FOG :8787 → IPC workerd :8788, python :8790, node :8791, deno :8792.
+# Per-hop metabol_pace (own renewal/quota/burn_rate). Complementary routes, not a ladder.
 # STRATAGROK may `kill -HUP <cloudflared pid>` on the Mac after this file is copied
 # into the live config. Do not origin-take. Do not Worker PUT. Do not KV.
 #
