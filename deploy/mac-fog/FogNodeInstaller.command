@@ -158,6 +158,7 @@ cat > "$LAUNCH/${AGENT}.plist" <<EOF
     <key>FOG_MESH_N</key><string>$MESH_N</string>
     <key>FOG_NODE_ID</key><string>$NODE_ID</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
   <key>KeepAlive</key><true/>
   <key>RunAtLoad</key><true/>
@@ -180,6 +181,10 @@ cat > "$LAUNCH/pt.calhegasmorais.workerd.plist" <<EOF
     <string>serve</string>
     <string>$FOG/workerd-config/config.capnp</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
   <key>KeepAlive</key><true/>
   <key>RunAtLoad</key><false/>
   <key>StandardOutPath</key><string>$FOG/log/workerd.out</string>

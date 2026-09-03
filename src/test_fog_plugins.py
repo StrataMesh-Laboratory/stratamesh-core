@@ -452,6 +452,25 @@ def test_which_bin_brew_path_when_which_none():
         assert got == str(node)
 
 
+def test_fog_launchagent_plist_has_homebrew_path():
+    """Fog KeepAlive plist heredoc (not only auto-update) must PATH Homebrew for node :8791."""
+    inst = Path(__file__).resolve().parent.parent / "deploy/mac-fog/FogNodeInstaller.command"
+    text = inst.read_text(encoding="utf-8")
+    start = text.index('cat > "$LAUNCH/${AGENT}.plist"')
+    fog_plist = text[start:text.index("\nEOF", start)]
+    assert "<key>PATH</key>" in fog_plist
+    assert "/opt/homebrew/bin" in fog_plist
+    assert "/usr/local/bin:/usr/bin:/bin" in fog_plist
+    au_start = text.index('cat > "$LAUNCH/${AU}.plist"')
+    assert start < au_start
+    assert fog_plist.count("<key>PATH</key>") == 1
+    au_plist = text[au_start:text.index("\nEOF", au_start)]
+    assert "/opt/homebrew/bin" in au_plist
+    assert "fog-auto-update" not in fog_plist
+    tunnel = text[text.index("run-tunnel.sh"):text.index("Auto-update")]
+    assert "<key>PATH</key>" not in tunnel
+
+
 def test_recycle_leftover_gets_sigkill():
     import signal
     from unittest.mock import patch
