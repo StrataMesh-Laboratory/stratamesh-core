@@ -614,10 +614,6 @@ def git_pull_reboot() -> str:
     copied.append(sync)
     extra = (" " + " · ".join(copied)) if copied else ""
     fog_rc = reboot_fog()
-    # this process still holds the old draw(); replace it with the copied TUI
-    dst = FOG / "bin/fog-tui.py"
-    if dst.is_file():
-        os.execv(sys.executable, [sys.executable, str(dst)])
     return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 
 
@@ -1320,23 +1316,44 @@ def draw(msg: str = "") -> None:
 
 
 def wait_key(seconds: float) -> str:
-    fd = sys.stdin.fileno()
-    if not sys.stdin.isatty():
-        time.sleep(seconds)
-        return ""
+    """Keys from /dev/tty. TCSANOW so y/n is not stuck behind a drain."""
     import tty
     import termios
+    f = None
+    try:
+        f = open("/dev/tty", "rb", buffering=0)
+        fd = f.fileno()
+    except Exception:
+        if not sys.stdin.isatty():
+            time.sleep(min(float(seconds), 0.25))
+            return ""
+        fd = sys.stdin.fileno()
+        f = None
     old = termios.tcgetattr(fd)
     try:
         tty.setcbreak(fd)
         end = time.time() + seconds
         while time.time() < end:
-            r, _, _ = select.select([sys.stdin], [], [], max(0.0, end - time.time()))
+            r, _, _ = select.select([fd], [], [], max(0.0, end - time.time()))
             if r:
-                return sys.stdin.read(1)
+                b = os.read(fd, 8)
+                if not b:
+                    return ""
+                try:
+                    return b.decode("utf-8", "ignore")[:1]
+                except Exception:
+                    return chr(b[0]) if b else ""
         return ""
     finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        try:
+            termios.tcsetattr(fd, termios.TCSANOW, old)
+        except Exception:
+            pass
+        if f is not None:
+            try:
+                f.close()
+            except Exception:
+                pass
 
 
 def confirm(prompt: str) -> bool:
