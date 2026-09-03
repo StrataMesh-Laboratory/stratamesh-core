@@ -33,6 +33,7 @@ canvas#stage:active{cursor:grabbing}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
 h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 .muted{color:var(--muted);font-size:11px}
+#landTitle{margin-top:.12rem;letter-spacing:.04em;font:500 10px/1.3 ui-monospace,Menlo,monospace;text-transform:none;color:var(--acc)}
 #top{position:absolute;top:max(.6rem,env(safe-area-inset-top));left:.7rem;right:.7rem;display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}
 #topRight{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.3rem;align-items:flex-start}
 #tools{position:absolute;bottom:max(.7rem,calc(env(safe-area-inset-bottom) + var(--vv-bottom)));left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;max-width:min(42rem,calc(100% - 1.4rem))}
@@ -71,6 +72,7 @@ h1{margin:.15rem 0 0;font-size:15px;font-weight:600}
 #hud.busy .stick,#hud.busy #phoneDock,#hud.busy #tools,#hud.busy #prompt{visibility:hidden;pointer-events:none}
 @media(max-width:719px){
   #idMeta,#zpath,.desk-nav,#walletChip,#tools{display:none}
+  #landTitle{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #idChip{padding:.28rem .55rem;max-width:calc(100% - 7.5rem)}
   #idChip h1{font-size:13px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #btnMenu,#btnMode{display:inline-flex;align-items:center;justify-content:center}
@@ -128,6 +130,7 @@ h1{font-size:13px}
     <div class="chip" id="idChip">
       <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.5.1-session</div>
       <h1 id="ztitle">Bancada · Sandbox</h1>
+      <div class="muted" id="landTitle">título · amcmorais@icloud.com</div>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
     </div>
     <div id="topRight">
@@ -411,6 +414,32 @@ const ZONES = {
   orch: { title: "Orchestrator · Cargo", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x14101a, fog: 0x0e0a14, hue: 0xd4a017 },
   acb: { title: "ACB Hall · Offices", half: 16, spawn: { x: 0, z: 13, yaw: Math.PI }, sky: 0x121820, fog: 0x0a1016, hue: 0xc4a574 },
 };
+
+const LAB_HOLDER = "amcmorais@icloud.com";
+const LAB_BUNDLE_ID = "obj-lab-land-bundle";
+const LAB_LAND = (function () {
+  const parcelIds = Object.keys(ZONES).map((z) => "par-lab-" + z);
+  const parcels = parcelIds.map((id) => {
+    const z = id.slice("par-lab-".length);
+    return { id, kind: "parcel", name: "LAB land · " + z, unmovable: true, dest: "world", containedBy: LAB_BUNDLE_ID };
+  });
+  return {
+    holder: LAB_HOLDER,
+    bundle: {
+      id: LAB_BUNDLE_ID,
+      kind: "bundle",
+      name: "LAB land · CMN",
+      aspectos: parcelIds,
+      contrato: { type: "ownership", holder: LAB_HOLDER, covers: parcelIds },
+    },
+    parcels,
+  };
+})();
+function paintLandTitle() {
+  const el = document.getElementById("landTitle");
+  if (!el) return;
+  el.textContent = "título · " + LAB_LAND.holder;
+}
 const EXITS = {
   bancada: { n: "rua" },
   rua: { n: "agora", s: "bancada", e: "acb" },
@@ -598,6 +627,7 @@ function buildZone() {
   const host = location.hostname || "sandbox.calhegasmorais.pt";
   const mono = document.getElementById("idMeta");
   if (mono) mono.textContent = host + " · " + CORE + " · " + ADDR.owner + "/" + ADDR.id;
+  paintLandTitle();
   const sp = document.getElementById("sheetPath");
   if (sp) sp.textContent = document.getElementById("zpath").textContent;
 }
@@ -1360,6 +1390,7 @@ async function applySession(me) {
   hideGate();
   const chip = document.getElementById("idMeta");
   if (chip) chip.textContent = (location.host || "sandbox.calhegasmorais.pt") + " · " + CORE + " · " + ADDR.owner;
+  paintLandTitle();
   const w = document.getElementById("wallet");
   const lab = me.lab_balance != null ? Number(me.lab_balance) : wallet;
   if (!Number.isNaN(lab)) wallet = lab;
