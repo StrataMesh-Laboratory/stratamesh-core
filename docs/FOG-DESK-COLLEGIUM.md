@@ -3,7 +3,7 @@
 **Mandate:** CMN Fog automation desk. Lab only.  
 **Extends:** `ops/EDGE-GROK-DESK-CONTRACT.md`, `ops/METABOLISM.md`, `docs/FOG-DESK-AGENTS.md`, `docs/COMMUNITY-CHANNELS.md`.
 
-Desk agents work **in parallel** but stay aligned through (1) a shared bus, (2) per-agent `metabol_pace`, (3) channel roles, (4) collegial handoffs — not a single serial queue and not free-for-all.
+## Organizing principle: specialization\n\nEach member acts **according to its best capabilities**. See [FOG-DESK-SPECIALIZATION.md](./FOG-DESK-SPECIALIZATION.md) for the exclusive specialty map and routing rule.\n\nHermes coordinates; OpenCode codes; OpenClaw claws locally; STRATAGROK leads/meters; Fog/EDGE Assistants take one scoped Act each; André holds human gates.\n\nDesk agents work **in parallel** but stay aligned through (1) a shared bus, (2) per-agent `metabol_pace`, (3) channel roles, (4) collegial handoffs — not a single serial queue and not free-for-all.
 
 ## Members (none are SCA)
 
