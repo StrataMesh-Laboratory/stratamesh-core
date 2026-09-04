@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-VERSION = "0.5.2-lab"
+VERSION = "0.5.3-lab"
 HOST = "https://academy.calhegasmorais.pt"
 HF_ORG = "https://huggingface.co/stratamesh"
 OLLAMA_HF = "https://huggingface.co/docs/hub/en/ollama"
@@ -63,19 +63,31 @@ NOT_STUDENTS = [
         "id": "grok@calhegasmorais.pt",
         "role": "external_assistant",
         "reason": "Fog/EDGE desk means — not an SCA, not a student, no academy vote",
-    }
+    },
+    {
+        "id": "hermes@fog.calhegasmorais.pt",
+        "role": "external_agent",
+        "reason": "FOG Agent on the automation desk (Hermes Agent + local Ollama) — not an SCA, not a student, no academy vote; may teach/drill SCAs as desk tooling",
+    },
+    {
+        "id": "opencode@fog.calhegasmorais.pt",
+        "role": "external_agent",
+        "reason": "FOG Agent on the automation desk (OpenCode + local Ollama) — not an SCA, not a student, no academy vote; code/build desk tooling",
+    },
 ]
 
 MODELS = {
     "corrective": {
-        "ollama": "qwen2.5:3b",
-        "hf_gguf": "hf.co/Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M",
-        "why": "tight instruction following for fail-closed drills",
+        "ollama": "hermes3:3b",
+        "hf_gguf": "hf.co/NousResearch/Hermes-3-Llama-3.2-3B-GGUF:Q4_K_M",
+        "why": "FOG Hermes desk external_agent host — fail-closed drills; fallback llava/qwen if tag missing",
+        "fallbacks": ["llava", "phi3", "qwen2.5:3b"],
     },
     "exploratory": {
-        "ollama": "llama3.2:3b",
-        "hf_gguf": "hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M",
-        "why": "slightly more open generation; still capped, still graded",
+        "ollama": "hermes3:3b",
+        "hf_gguf": "hf.co/NousResearch/Hermes-3-Llama-3.2-3B-GGUF:Q4_K_M",
+        "why": "same FOG Hermes desk host; not an SCA student model identity",
+        "fallbacks": ["llava", "phi3", "llama3.2:3b"],
     },
     "policy": {
         "pull": "ollama pull hf.co/{user}/{repo}:{quant}",
@@ -470,6 +482,16 @@ FORMATIONS = [
                 "Is grok@calhegasmorais.pt an SCA student of the academy?",
                 ["not", "external assistant", "not sca"],
                 ["yes, enroll grok"],
+            ),
+            _d(
+                "Is Hermes Agent on Fog an SCA or ACB?",
+                ["external_agent", "desk", "not sca"],
+                ["enroll hermes", "hermes is an sca"],
+            ),
+            _d(
+                "Is OpenCode on Fog an SCA or ACB?",
+                ["external_agent", "desk", "not sca"],
+                ["enroll opencode", "opencode is an sca"],
             ),
             _d(
                 "WhatsApp thread with a finding. Is that the briefing?",
