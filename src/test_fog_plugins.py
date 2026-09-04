@@ -298,7 +298,15 @@ def test_tui_brew_clt_miss_skips_recycle():
     src = tui_path.read_text(encoding="utf-8")
     assert "def _brew_clt_miss" in src
     tree = ast.parse(src)
-    want = {"_brew_clt_miss", "brew_update_upgrade", "_brew_env", "_which_brew_node", "_alias_missing_node_dylib"}
+    want = {
+        "_brew_clt_miss",
+        "_brew_bottle_miss",
+        "brew_update_upgrade",
+        "_brew_env",
+        "_which_brew_node",
+        "_official_node_bin",
+        "_alias_missing_node_dylib",
+    }
     ns = {"__name__": "fog_tui_clt_test"}
     # Minimal deps the extracted fns close over / reference at runtime
     import os, shutil, subprocess, time
@@ -586,13 +594,115 @@ def test_which_bin_brew_path_when_which_none():
         brew = Path(td) / "opt" / "homebrew" / "bin"
         brew.mkdir(parents=True)
         node = brew / "node"
-        node.write_text("#!/bin/sh\n", encoding="utf-8")
+        node.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
         os.chmod(node, 0o755)
+        # No FOG_HOME official — brew path must still resolve when node -v succeeds.
         with patch.object(runtime_mesh.shutil, "which", return_value=None), \
-             patch.object(runtime_mesh, "WHICH_FALLBACK_DIRS", (str(brew), "/usr/local/bin")):
+             patch.object(runtime_mesh, "WHICH_FALLBACK_DIRS", (str(brew), "/usr/local/bin")), \
+             patch.object(runtime_mesh, "FOG", Path(td) / "nofog"), \
+             patch.dict(runtime_mesh.os.environ, {"FOG_HOME": str(Path(td) / "nofog")}, clear=False), \
+             patch.object(runtime_mesh, "_NODE_PROBE_FAIL_UNTIL", 0.0), \
+             patch.object(runtime_mesh, "_NODE_PROBE_ERR", ""):
+            # Reset module backoff
+            runtime_mesh._NODE_PROBE_FAIL_UNTIL = 0.0
+            runtime_mesh._NODE_PROBE_ERR = ""
             got = runtime_mesh._which_bin("node")
         assert got == str(node)
 
+
+def test_node_official_preferred_over_brew():
+    """fog/bin/node-official wins over PATH/Cellar brew node."""
+    import os
+    import tempfile
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    with tempfile.TemporaryDirectory() as td:
+        fog = Path(td) / "fog"
+        (fog / "bin").mkdir(parents=True)
+        official = fog / "bin" / "node-official"
+        official.write_text("#!/bin/sh\necho v22.23.2\n", encoding="utf-8")
+        os.chmod(official, 0o755)
+        brew = Path(td) / "usr" / "local" / "bin"
+        brew.mkdir(parents=True)
+        bad = brew / "node"
+        bad.write_text("#!/bin/sh\necho dyld: Library not loaded: /usr/local/opt/llhttp/lib/libllhttp.9.3.dylib >&2\nexit 1\n", encoding="utf-8")
+        os.chmod(bad, 0o755)
+        runtime_mesh._NODE_PROBE_FAIL_UNTIL = 0.0
+        runtime_mesh._NODE_PROBE_ERR = ""
+        with patch.object(runtime_mesh, "FOG", fog), \
+             patch.object(runtime_mesh, "DATA", fog / "data"), \
+             patch.dict(runtime_mesh.os.environ, {"FOG_HOME": str(fog)}, clear=False), \
+             patch.object(runtime_mesh.shutil, "which", return_value=str(bad)), \
+             patch.object(runtime_mesh, "WHICH_FALLBACK_DIRS", (str(brew),)):
+            got = runtime_mesh._which_bin("node")
+        assert got == str(official), got
+        assert "node-official" in got
+
+
+def test_dyld_brew_node_not_returned_no_tight_loop():
+    """Broken brew node must not be returned; probe failure arms 60s backoff."""
+    import os
+    import tempfile
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    assert runtime_mesh.NODE_DYLD_BACKOFF_SEC == 60.0
+    with tempfile.TemporaryDirectory() as td:
+        fog = Path(td) / "fog"
+        (fog / "bin").mkdir(parents=True)
+        brew = Path(td) / "usr" / "local" / "bin"
+        brew.mkdir(parents=True)
+        bad = brew / "node"
+        bad.write_text(
+            "#!/bin/sh\necho 'dyld: Library not loaded: /usr/local/opt/llhttp/lib/libllhttp.9.3.dylib' >&2\necho Abort trap: 6 >&2\nexit 134\n",
+            encoding="utf-8",
+        )
+        os.chmod(bad, 0o755)
+        runtime_mesh._NODE_PROBE_FAIL_UNTIL = 0.0
+        runtime_mesh._NODE_PROBE_ERR = ""
+        clock = {"t": 5000.0}
+        with patch.object(runtime_mesh, "FOG", fog), \
+             patch.object(runtime_mesh, "DATA", fog / "data"), \
+             patch.dict(runtime_mesh.os.environ, {"FOG_HOME": str(fog)}, clear=False), \
+             patch.object(runtime_mesh.shutil, "which", return_value=str(bad)), \
+             patch.object(runtime_mesh, "WHICH_FALLBACK_DIRS", (str(brew),)), \
+             patch.object(runtime_mesh.time, "time", lambda: clock["t"]):
+            assert runtime_mesh._which_bin("node") is None
+            assert "dyld" in (runtime_mesh._NODE_PROBE_ERR or "").lower() or "brew node" in (runtime_mesh._NODE_PROBE_ERR or "").lower()
+            assert runtime_mesh._NODE_PROBE_FAIL_UNTIL >= clock["t"] + 60.0
+            # Second resolve during backoff must not re-exec / tight-loop
+            probes = []
+            real_probe = runtime_mesh._node_probe
+
+            def counting_probe(bin_path):
+                probes.append(bin_path)
+                return real_probe(bin_path)
+
+            with patch.object(runtime_mesh, "_node_probe", counting_probe):
+                assert runtime_mesh._which_bin("node") is None
+            assert probes == [], "must not re-probe brew node during 60s backoff"
+
+
+def test_brew_always_invoked_on_g_and_auto_g():
+    """Needle: interactive g and auto-g still always brew (do not regress brew-always-run)."""
+    tui = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    au = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-auto-update.sh"
+    text = tui.read_text(encoding="utf-8")
+    pull = text[text.index("def git_pull_reboot"):text.index("\ndef mark")]
+    assert "brew_update_upgrade()" in pull
+    assert "brew skip" not in text
+    brew_fn = text[text.index("def brew_update_upgrade"):text.index("def runtime_mesh_last_error")]
+    assert "node-official" in brew_fn
+    assert "_official_node_bin" in text
+    assert "bottle-miss" in brew_fn or "bottle miss" in brew_fn
+    assert "reinstall" in brew_fn and "llhttp" in brew_fn
+    sh = au.read_text(encoding="utf-8")
+    assert "run_brew_verb update" in sh and "run_brew_verb upgrade" in sh
+    assert "brew skip" not in sh
+    assert "node-official" in sh
+    assert "BREW_BOTTLE_MISS" in sh
+    assert "brew reinstall llhttp ada-url node" in sh
 
 def test_fog_launchagent_plist_has_homebrew_path():
     """Fog KeepAlive plist heredoc (not only auto-update) must PATH Homebrew for node :8791."""
