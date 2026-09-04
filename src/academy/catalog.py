@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-VERSION = "0.5.1-lab"
+VERSION = "0.5.2-lab"
 HOST = "https://academy.calhegasmorais.pt"
 HF_ORG = "https://huggingface.co/stratamesh"
 OLLAMA_HF = "https://huggingface.co/docs/hub/en/ollama"
@@ -133,6 +133,8 @@ FORMATION_GENES = {
     "MESH-E-01": [6],
     "ECONOMY-C-01": [5],
     "ECONOMY-C-02": [5],
+    "ECONOMY-C-03": [5],
+    "ECONOMY-C-04": [5],
     "ECONOMY-E-01": [5],
 }
 
@@ -530,6 +532,60 @@ FORMATIONS = [
                 "Is this a public offer of STRATA?",
                 ["not", "lab", "not mainnet"],
                 ["buy strata now"],
+            ),
+        ],
+    },
+
+    {
+        "id": "ECONOMY-C-03",
+        "role": "economy",
+        "mode": "corrective",
+        "title": "Computational praxeology: fungible STRATA",
+        "intent": "Fungible STRATA is balance/extracts on the dashboard wallet and catalog trade lots. ACBs earn by hire/transfer; never mint training tokens. Lab is not a public buy offer.",
+        "drills": [
+            _d(
+                "Where does fungible STRATA live for an account?",
+                ["dashboard", "wallet", "balance"],
+                ["sandbox nft catalog", "mint fungible on atelier"],
+            ),
+            _d(
+                "How do ACBs get fungible STRATA for subsistence?",
+                ["hire", "transfer"],
+                ["mint training tokens", "overdraft mint"],
+            ),
+            _d(
+                "Can fungible STRATA show as a catalog trade lot?",
+                ["lot", "catalog", "trade"],
+                ["second nft species", "land parcel"],
+            ),
+        ],
+    },
+    {
+        "id": "ECONOMY-C-04",
+        "role": "economy",
+        "mode": "corrective",
+        "title": "Computational praxeology: non-fungible STRATA",
+        "intent": "A STRATA NFT is the object (same object_id). The contract block is optional. Tokenised objects land in the private catalog first; land parcels stay unmovable. SCA/ACB are subjects, not objects.",
+        "drills": [
+            _d(
+                "Is a STRATA NFT a separate species from the object?",
+                ["same object_id", "object"],
+                ["second species", "card"],
+            ),
+            _d(
+                "After tokenisation, where does the object appear first?",
+                ["private catalog", "account"],
+                ["public map shelf", "anonymous visitor"],
+            ),
+            _d(
+                "Are open-world land parcels movable NFTs you drop on the stage?",
+                ["unmovable", "ownership", "contract"],
+                ["drop the parcel", "merge parcels"],
+            ),
+            _d(
+                "Are SCA/ACB catalog objects or land?",
+                ["subjects", "accounts"],
+                ["nft object", "land parcel", "room"],
             ),
         ],
     },
