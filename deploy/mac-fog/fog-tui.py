@@ -50,8 +50,8 @@ WIZARD_SNAP: dict = {}
 _WIZARD_LOCK = threading.Lock()
 WIZARD_VIEW = 8
 WIZARD_MAX = 80
-# g/r/s/b/q stay dashboard keys even while HELP. Composer does not swallow them.
-WIZARD_RESERVED = frozenset("gGsSbBqQrR")
+# While HELP (? wizard): all printable keys (incl. g/s/b/r/q) go to composer.
+WIZARD_RESERVED = frozenset()  # empty — typing must not fire dashboard handlers
 COMPOSER_ROW = 0  # 1-based row of "> " prompt; paint_composer only
 DRAW_ROW = 1
 LOCAL_HTTP_TIMEOUT = 0.3
@@ -1689,11 +1689,12 @@ def wizard_send(text: str | None = None) -> None:
 
 
 def wizard_consume_key(ch: str):
-    """Composer + TAB-clear. While HELP, dashboard keys type into the prompt.
+    """Composer + TAB-clear. While HELP, lock keyboard to the wizard.
 
     Returns "type" | "clear" | "send" | "leave" | False (not consumed).
     TAB clears even if HELP is False. ? and Esc leave HELP (do not quit).
-    C/c are ordinary letters while HELP. g/r/s/b/q stay reserved.
+    While HELP: g/s/b/r/q and digits type into the prompt — they must NOT
+    run dashboard update/stop/reboot/refresh/quit/focus. Ctrl-C still False.
     """
     global WIZARD_INPUT
     if ch == "\t":
@@ -1710,8 +1711,6 @@ def wizard_consume_key(ch: str):
         WIZARD_INPUT = WIZARD_INPUT[:-1]
         return "type"
     if ch in ("\x03",):
-        return False
-    if WIZARD_RESERVED and ch in WIZARD_RESERVED:
         return False
     if len(ch) == 1 and ch.isprintable():
         WIZARD_INPUT += ch
