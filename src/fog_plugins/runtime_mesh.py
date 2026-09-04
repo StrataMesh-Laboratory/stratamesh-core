@@ -491,17 +491,11 @@ class RuntimeMeshPlugin:
         node = _which_bin("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             now = time.time()
-            # last_error dyld arms 60s only after heal already ran this cycle.
+            # last_error dyld/libllhttp arms 60s; skip Popen until then.
             if now < float(self._node_backoff_until or 0):
-                pass
+                pass  # 60s backoff: broken bottle, still retry after
             else:
-                heal = heal_node_dyld()
                 log = open(DATA / "mw-node.log", "ab")
-                try:
-                    log.write((heal + "\n").encode("utf-8", "replace"))
-                    log.flush()
-                except OSError:
-                    pass
                 env = os.environ.copy()
                 env.setdefault("FOG_SRC", str(ROOT))
                 env.setdefault("FOG_DATA", str(DATA))
@@ -524,21 +518,7 @@ class RuntimeMeshPlugin:
                         tail = ""
                     self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
                     if _dyld_node_error(self.last_error):
-                        heal_node_dyld()
-                        p2 = subprocess.Popen(
-                            [node, str(js)],
-                            stdout=log,
-                            stderr=log,
-                            start_new_session=True,
-                            cwd=str(ROOT),
-                            env=env,
-                        )
-                        self.node_pid = p2.pid
-                        if p2.poll() is not None and _dyld_node_error(self.last_error):
-                            self._node_backoff_until = time.time() + NODE_DYLD_BACKOFF_SEC
-                        else:
-                            self.last_error = None
-                            self._node_backoff_until = 0
+                        self._node_backoff_until = time.time() + NODE_DYLD_BACKOFF_SEC
                 _write_sha()  # sha stamp is git identity, not metabol
         deno = _which_bin("deno")
         if deno and ts.is_file() and not _healthy(DENO_PORT):
