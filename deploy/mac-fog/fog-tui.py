@@ -635,6 +635,32 @@ def _which_brew_node(name: str):
     return None
 
 
+def _official_node_bin():
+    """Prefer $FOG_HOME/bin/node-official or ~/StrataMesh/fog/bin/node-official."""
+    for base in (FOG, Path(os.environ.get("FOG_HOME") or ""), Path.home() / "StrataMesh/fog"):
+        if not base:
+            continue
+        cand = Path(base) / "bin" / "node-official"
+        try:
+            if cand.is_file() and os.access(str(cand), os.X_OK):
+                return str(cand)
+        except OSError:
+            continue
+    return None
+
+
+def _brew_bottle_miss(text: str) -> bool:
+    """True when brew would source-build because bottles are missing / unavailable."""
+    t = (text or "").lower()
+    return (
+        "no bottle available" in t
+        or "no bottles available" in t
+        or "bottle missing" in t
+        or ("failed to download" in t and "bottle" in t)
+        or ("cannot install" in t and "bottle" in t)
+    )
+
+
 def _alias_missing_node_dylib(err: str) -> str:
     """Map dyld 'Library not loaded: /usr/local/opt/FORMULA/lib/libX.N.dylib' to Cellar."""
     import re
@@ -690,15 +716,17 @@ def _brew_clt_miss(text: str) -> bool:
 
 def brew_update_upgrade() -> str:
     """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
-    Interactive g and auto-g both brew. If node -v fails (dyld/libllhttp),
-    brew reinstall llhttp node (non-fatal). CLT / Xcode-alone failures set
-    clt-miss skip-recycle so g does not recycle_mw healthy python/fog."""
+    Interactive g and auto-g both brew. Prefer fog/bin/node-official over brew node.
+    If node -v fails (dyld/libllhttp) and official is absent, brew reinstall llhttp
+    node (non-fatal) unless CLT miss or bottles missing (no source thrash).
+    CLT / bottle-miss set skip-recycle so g does not recycle_mw healthy python/fog."""
     env = _brew_env()
     brew = _which_brew_node("brew")
     if not brew:
         return "brew missing"
     notes = []
     clt_miss = False
+    bottle_miss = False
     for verb in ("update", "upgrade"):
         try:
             p = subprocess.run(
@@ -713,9 +741,13 @@ def brew_update_upgrade() -> str:
             if _brew_clt_miss(out):
                 clt_miss = True
                 notes.append("clt-miss")
+            if _brew_bottle_miss(out):
+                bottle_miss = True
+                notes.append("bottle-miss")
         except Exception:
             notes.append("%s fail" % verb)
-    node_bin = _which_brew_node("node") or "node"
+    official = _official_node_bin()
+    node_bin = official or _which_brew_node("node") or "node"
     node_bad = False
     err = ""
     try:
@@ -727,12 +759,26 @@ def brew_update_upgrade() -> str:
             env=env,
         )
         err = (p.stderr or "") + (p.stdout or "")
-        node_bad = p.returncode != 0 or "dyld" in err.lower() or "library not loaded" in err.lower()
+        low = err.lower()
+        node_bad = (
+            p.returncode != 0
+            or "dyld" in low
+            or "library not loaded" in low
+            or "abort" in low
+        )
     except Exception:
         node_bad = True
         err = ""
+    if official and not node_bad:
+        notes.append("node-official ok")
+    elif node_bad and official:
+        # Official present but broken — do not thrash brew source builds.
+        notes.append("node-official broken; skip reinstall")
+        node_bad = False  # skip reinstall path; runtime_mesh will surface error
     if node_bad and clt_miss:
         notes.append("skip reinstall (CLT miss)")
+    elif node_bad and bottle_miss:
+        notes.append("skip reinstall (bottle miss)")
     elif node_bad:
         try:
             p = subprocess.run(
@@ -747,12 +793,18 @@ def brew_update_upgrade() -> str:
             if _brew_clt_miss(out):
                 clt_miss = True
                 notes.append("clt-miss")
+            if _brew_bottle_miss(out):
+                bottle_miss = True
+                notes.append("bottle-miss")
+                notes.append("skip further source thrash")
         except Exception:
             notes.append("reinstall node deps fail")
+        # Prefer official for post-reinstall probe when present.
+        probe_bin = _official_node_bin() or node_bin
         for _ in range(8):
             try:
                 p = subprocess.run(
-                    [node_bin, "-v"],
+                    [probe_bin, "-v"],
                     capture_output=True,
                     text=True,
                     timeout=15,
@@ -762,20 +814,28 @@ def brew_update_upgrade() -> str:
             except Exception as e:
                 err2 = str(e)
                 p = None
-            if p is not None and p.returncode == 0 and "dyld" not in err2.lower():
+            if (
+                p is not None
+                and p.returncode == 0
+                and "dyld" not in err2.lower()
+                and "abort" not in err2.lower()
+            ):
                 notes.append("node " + err2.strip().split()[0][:16])
+                break
+            if official and probe_bin == official:
+                notes.append("dyld on brew; use node-official")
                 break
             note = _alias_missing_node_dylib(err2 or err)
             notes.append(note or "dyld unparsed")
             if not note or note.startswith("no source") or note.startswith("link fail"):
                 break
-    if clt_miss:
+    if clt_miss or bottle_miss:
         notes.append("skip-recycle")
     return "brew " + " · ".join(notes)
 
-
 def runtime_mesh_last_error(st: dict | None = None) -> str:
-    """Short runtime-mesh last_error for a dark node lamp. Never secrets."""
+    """Short runtime-mesh last_error for a dark node lamp. Never secrets.
+    Surfaces node-official missing vs brew dyld/Abort clearly (max 72 chars)."""
     st = st if isinstance(st, dict) else {}
     rm = st.get("runtime_mesh") if isinstance(st.get("runtime_mesh"), dict) else st
     if not isinstance(rm, dict):
@@ -788,10 +848,23 @@ def runtime_mesh_last_error(st: dict | None = None) -> str:
     low = err.lower()
     if "ghp_" in low or "github_pat_" in low or "cfat_" in low or "bearer " in low:
         return "mw-node error"
+    # Prefer a stable short label when the RCA is known.
+    if "node-official missing" in low and ("dyld" in low or "brew node" in low):
+        err = "node-official missing; brew dyld"
+    elif "node-official missing" in low:
+        err = "node-official missing"
+    elif "node-official broken" in low:
+        err = "node-official broken"
+    elif "brew node dyld" in low or ("dyld" in low and "library not loaded" in low):
+        if "libllhttp" in low:
+            err = "brew dyld libllhttp"
+        elif "libada" in low:
+            err = "brew dyld libada"
+        elif len(err) > 72:
+            err = err[:72]
     if len(err) > 72:
         err = err[:72]
     return err
-
 
 def git_pull_reboot() -> str:
     stamp_manual_g()
