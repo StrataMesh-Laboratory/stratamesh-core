@@ -50,8 +50,12 @@ hop_up() {
 # Hops down is not a reason to omit brew; brew still runs first, then runtime-down may exit.
 # CLT / Xcode-alone brew failures must not recycle_mw / kickstart-kill healthy hops.
 BREW_CLT_MISS=0
+BREW_BOTTLE_MISS=0
 brew_clt_miss() {
   printf '%s' "$1" | grep -qiE 'Xcode alone is not sufficient|xcode-select|Command Line Tools'
+}
+brew_bottle_miss() {
+  printf '%s' "$1" | grep -qiE 'no bottle available|no bottles available|bottle missing|Failed to download.*bottle|cannot install.*bottle'
 }
 run_brew_verb() {
   local verb="$1" out rc=0
@@ -63,25 +67,48 @@ run_brew_verb() {
   if brew_clt_miss "$out"; then
     BREW_CLT_MISS=1
     log "brew $verb clt-miss rc=$rc — skip recycle/kickstart this run"
+  elif brew_bottle_miss "$out"; then
+    BREW_BOTTLE_MISS=1
+    log "brew $verb bottle-miss rc=$rc — skip source reinstall/recycle this run"
   elif [[ "$rc" -ne 0 ]]; then
     log "brew $verb rc=$rc"
   fi
 }
+# Prefer official Node (nodejs.org) over broken brew Cellar bottles.
+NODE_BIN=""
+if [[ -x "$FOG/bin/node-official" ]]; then
+  NODE_BIN="$FOG/bin/node-official"
+elif [[ -n "${FOG_HOME:-}" && -x "$FOG_HOME/bin/node-official" ]]; then
+  NODE_BIN="$FOG_HOME/bin/node-official"
+elif [[ -x "$HOME/StrataMesh/fog/bin/node-official" ]]; then
+  NODE_BIN="$HOME/StrataMesh/fog/bin/node-official"
+elif command -v node >/dev/null 2>&1; then
+  NODE_BIN="$(command -v node)"
+fi
 if command -v brew >/dev/null 2>&1; then
   run_brew_verb update
   run_brew_verb upgrade
   # Intel /usr/local and Apple Silicon /opt/homebrew are already on PATH.
   node_out=""
   node_rc=1
-  if command -v node >/dev/null 2>&1; then
-    node_out=$(node -v 2>&1) && node_rc=0 || node_rc=$?
+  if [[ -n "$NODE_BIN" ]]; then
+    set +e
+    node_out=$("$NODE_BIN" -v 2>&1)
+    node_rc=$?
+    set -e
   fi
   case "$node_out" in
-    *[Dd]yld*|*libllhttp*) node_rc=1 ;;
+    *[Dd]yld*|*libllhttp*|*[Aa]bort*|*Library\ not\ loaded*) node_rc=1 ;;
   esac
-  if [[ "$node_rc" -ne 0 ]]; then
-    if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+  if [[ -n "$NODE_BIN" && "$NODE_BIN" == *node-official* && "$node_rc" -eq 0 ]]; then
+    log "node-official ok $($NODE_BIN -v 2>/dev/null | head -1)"
+  elif [[ "$node_rc" -ne 0 ]]; then
+    if [[ -n "$NODE_BIN" && "$NODE_BIN" == *node-official* ]]; then
+      log "node-official broken — skip brew reinstall; runtime_mesh will surface last_error"
+    elif [[ "$BREW_CLT_MISS" -eq 1 ]]; then
       log "skip brew reinstall (CLT miss)"
+    elif [[ "$BREW_BOTTLE_MISS" -eq 1 ]]; then
+      log "skip brew reinstall (bottle miss)"
     else
       set +e
       re_out=$(brew reinstall llhttp ada-url node 2>&1)
@@ -91,6 +118,9 @@ if command -v brew >/dev/null 2>&1; then
       if brew_clt_miss "$re_out"; then
         BREW_CLT_MISS=1
         log "brew reinstall clt-miss rc=$re_rc — skip recycle/kickstart this run"
+      elif brew_bottle_miss "$re_out"; then
+        BREW_BOTTLE_MISS=1
+        log "brew reinstall bottle-miss rc=$re_rc — skip source thrash/recycle this run"
       elif [[ "$re_rc" -ne 0 ]]; then
         log "brew reinstall llhttp ada-url node rc=$re_rc"
       fi
@@ -121,6 +151,11 @@ if command -v brew >/dev/null 2>&1; then
   i=0
   while (( i < 8 )); do
     i=$((i + 1))
+    if [[ -n "$NODE_BIN" && "$NODE_BIN" == *node-official* ]]; then
+      node_out=$("$NODE_BIN" -v 2>&1) && break
+      log "node-official still failing — stop dyld alias loop"
+      break
+    fi
     node_out=$(node -v 2>&1) && break
     miss=$(printf '%s\n' "$node_out" | sed -n 's/.*Library not loaded: //p' | awk '{print $1}' | head -1)
     [[ -z "$miss" ]] && break
@@ -156,8 +191,12 @@ if [[ "$HEAD" == "$REMOTE" ]]; then
   log "ok already origin/main ${HEAD:0:12}"
   # brew may have just repaired dyld/libllhttp; :8791 stays dark until fog_mw.js respawns.
   if ! curl -sf -m 2 "http://127.0.0.1:8791/health" >/dev/null; then
-    if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
-      log "node :8791 dark + CLT miss — heal_node_dyld only; skip recycle_mw/kickstart"
+    if [[ "$BREW_CLT_MISS" -eq 1 || "$BREW_BOTTLE_MISS" -eq 1 ]]; then
+      if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+        log "node :8791 dark + CLT miss — heal_node_dyld only; skip recycle_mw/kickstart"
+      else
+        log "node :8791 dark + bottle miss — heal_node_dyld only; skip recycle_mw/kickstart"
+      fi
       PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld; print(heal_node_dyld())' >>"$LOG" 2>&1 || true
     else
       log "node :8791 dark after brew — heal dyld + recycle 8791 + kickstart fog (no tunnel)"
@@ -230,8 +269,12 @@ fi
 
 healed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld; print(heal_node_dyld())' 2>/dev/null || echo heal-skip)
 log "heal_node_dyld $healed"
-if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
-  log "CLT miss — skip recycle_mw / hop kills / kickstart (healthy python/fog/workerd kept)"
+if [[ "$BREW_CLT_MISS" -eq 1 || "$BREW_BOTTLE_MISS" -eq 1 ]]; then
+  if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+    log "CLT miss — skip recycle_mw / hop kills / kickstart (healthy python/fog/workerd kept)"
+  else
+    log "bottle miss — skip recycle_mw / hop kills / kickstart (healthy python/fog/workerd kept)"
+  fi
 else
   killed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8787,8788,8790,8791,8792)))' 2>/dev/null || echo skip)
   log "recycle_mw $killed"
