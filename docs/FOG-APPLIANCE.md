@@ -3,6 +3,7 @@
 **Status:** proposed R&D architecture — not an existing production device.  
 **No public date.** Post-MacBook hardware track for FOG-NODE-PT-CM-001.  
 **Lab:** StrataMesh Laboratory · Lisbon · operator AMCM ENI · software today v0.5.1-lab.  
+**Spine:** [FOG-STACK.md](FOG-STACK.md)  
 **Pages:** <https://calhegasmorais.pt/fog-appliance>  
 **Pair:** [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · <https://calhegasmorais.pt/fog-infrastructure>
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Resource spine · S0–S6 · Calhegas Morais</title>
+  <link rel="canonical" href="https://calhegasmorais.pt/fog-stack"/>
+  <meta name="description" content="How the Fog appliance and 2×2 m hut join stratamesh-core: ResourceOffer, receipts, STRATA. Laboratory v0.5.1-lab."/>
+  <link rel="icon" href="/favicon.ico"/>
+<style>
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.75;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+.top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand strong{color:var(--fg);font-weight:500}
+.wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+header{margin-bottom:2.2rem;padding-bottom:2rem;border-bottom:1px solid var(--line)}
+.kicker{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-weight:400;font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.85rem}
+.lead{font-size:1.05rem;color:var(--muted)}
+.cta-row{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.4rem}
+.btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px}
+.btn:hover{background:var(--accent);color:#111}
+.btn.ghost{border-color:var(--line2);color:var(--muted)}
+.note{font-size:.88rem;border-left:2px solid var(--line2);padding:.55rem 0 .55rem .9rem;margin:1rem 0;color:var(--muted)}
+.sec-num{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.45rem}
+h2{font-weight:400;font-size:1.45rem;letter-spacing:-.015em;margin:.35rem 0 .7rem}
+p,li{color:var(--muted)}p{margin-bottom:.8rem}
+p strong,li strong{color:var(--fg);font-weight:400}
+ul{margin:.2rem 0 1rem 1.2rem}
+.section{margin-bottom:2.2rem;padding-bottom:1.8rem;border-bottom:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1.05rem 1.1rem;margin:.7rem 0}
+.card h3{margin:0 0 .35rem;font-size:.78rem;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.stack{font-family:ui-monospace,monospace;font-size:.72rem;line-height:1.65;color:var(--muted);padding:1rem 1.1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;margin:1rem 0;white-space:pre-wrap}
+.grid{display:grid;gap:.7rem;margin:1rem 0}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+.toc{display:flex;flex-wrap:wrap;gap:.4rem;margin:1.2rem 0 0}
+.toc a{font-family:ui-monospace,monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:.4rem .55rem;border-radius:3px;background:var(--card)}
+footer{margin-top:2.5rem;padding-top:1.4rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-inner">
+  <div class="brand"><strong>Calhegas Morais</strong> · resource spine</div>
+  <div class="brand"><a href="/fog-appliance">Appliance</a> · <a href="/fog-infrastructure">Hut</a> · <a href="/en/roadmap">Roadmap</a></div>
+</div></div>
+<main class="wrap">
+<header>
+  <p class="kicker">FOG-NODE-PT-CM-001 · v0.5.1-lab · not mainnet</p>
+  <h1>One spine for three surfaces</h1>
+  <p class="lead">calhegasmorais.pt is the node surface. stratamesh-core is the protocol. The appliance and hut are the physical substrate. The missing join is ResourceOffer → evidence → receipt → STRATA.</p>
+  <p class="note">Canonical: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/FOG-STACK.md">docs/FOG-STACK.md</a>. Pair: <a href="/fog-appliance">appliance</a> · <a href="/fog-infrastructure">infrastructure</a>.</p>
+  <div class="cta-row">
+    <a class="btn" href="/fog-appliance">Appliance</a>
+    <a class="btn ghost" href="/fog-infrastructure">Infrastructure</a>
+    <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core">stratamesh-core</a>
+  </div>
+</header>
+
+<section class="section">
+  <p class="sec-num">S0–S6</p>
+  <h2>Seven layers, one node</h2>
+  <div class="grid two">
+    <div class="card"><h3>S0 Infrastructure</h3><p>Grid, gas, solar, generator, fiber, Starlink, radio, cooling.</p></div>
+    <div class="card"><h3>S1 Appliance</h3><p>CPU, RAM, disk, NIC, MCU, sensors, thermal, power.</p></div>
+    <div class="card"><h3>S2 Runtime</h3><p>Node id, workers, scheduler, health. Mac Fog today.</p></div>
+    <div class="card"><h3>S3 Evidence</h3><p>Measure, timestamp, attest. Not “the chain saw the CPU.”</p></div>
+    <div class="card"><h3>S4 Mesh</h3><p>Gossip, DAG, tips. Coordination, not generic validation.</p></div>
+    <div class="card"><h3>S5 Economy</h3><p>Offer, match, receipt, escrow. PoC → #mint. Use → #0.</p></div>
+    <div class="card"><h3>S6 Holonic</h3><p>Human, SCA/ACB, world, CGU. Intent above resources.</p></div>
+    <div class="card"><h3>Surfaces</h3><p>calhegasmorais.pt node · fog · gossip · origin · status.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <p class="sec-num">spine</p>
+  <h2>ResourceOffer</h2>
+  <div class="stack">provider · type · capacity / sustained / now
+locality · latency · energy · thermal
+resilience · fallback · confidence
+evidence ref · price · validity
+        ↓
+request → match → allocate → execute
+        ↓
+evidence → receipt → STRATA</div>
+  <p>Two nodes with “8 cores / 16 GB” are not equal if one has only grid+fiber and the other has solar, generator, Starlink and thermal headroom. Resilience is a scheduling primitive.</p>
+</section>
+
+<section class="section">
+  <p class="sec-num">honesty</p>
+  <h2>The node is not a trusted oracle</h2>
+  <p>A signed claim on the DAG proves the claim was incorporated. It does not prove the wattmeter. The appliance evidence plane closes that gap. The MacBook Fog is useful Gen-0 because it shows software-up ≠ physically-up.</p>
+</section>
+
+<footer>
+  <p>Laboratory architecture. Track A mesh reality · Track B protocol depth. Not a public network.</p>
+</footer>
+</main>
+</body>
+</html>
