@@ -678,29 +678,46 @@ def _alias_missing_node_dylib(err: str) -> str:
         return "link fail %s" % type(e).__name__
 
 
+def _brew_clt_miss(text: str) -> bool:
+    """True when brew failed because Xcode.app alone / missing CLT / xcode-select."""
+    t = (text or "").lower()
+    return (
+        "xcode alone is not sufficient" in t
+        or "xcode-select" in t
+        or "command line tools" in t
+    )
+
+
 def brew_update_upgrade() -> str:
     """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
     Interactive g and auto-g both brew. If node -v fails (dyld/libllhttp),
-    brew reinstall llhttp node (non-fatal)."""
+    brew reinstall llhttp node (non-fatal). CLT / Xcode-alone failures set
+    clt-miss skip-recycle so g does not recycle_mw healthy python/fog."""
     env = _brew_env()
     brew = _which_brew_node("brew")
     if not brew:
         return "brew missing"
     notes = []
+    clt_miss = False
     for verb in ("update", "upgrade"):
         try:
-            rc = subprocess.call(
+            p = subprocess.run(
                 [brew, verb],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
                 timeout=300,
                 env=env,
             )
-            notes.append("%s rc=%s" % (verb, rc))
+            out = (p.stderr or "") + (p.stdout or "")
+            notes.append("%s rc=%s" % (verb, p.returncode))
+            if _brew_clt_miss(out):
+                clt_miss = True
+                notes.append("clt-miss")
         except Exception:
             notes.append("%s fail" % verb)
     node_bin = _which_brew_node("node") or "node"
     node_bad = False
+    err = ""
     try:
         p = subprocess.run(
             [node_bin, "-v"],
@@ -714,16 +731,22 @@ def brew_update_upgrade() -> str:
     except Exception:
         node_bad = True
         err = ""
-    if node_bad:
+    if node_bad and clt_miss:
+        notes.append("skip reinstall (CLT miss)")
+    elif node_bad:
         try:
-            rc = subprocess.call(
+            p = subprocess.run(
                 [brew, "reinstall", "llhttp", "ada-url", "node"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
                 timeout=600,
                 env=env,
             )
-            notes.append("reinstall llhttp ada-url node rc=%s" % rc)
+            out = (p.stderr or "") + (p.stdout or "")
+            notes.append("reinstall llhttp ada-url node rc=%s" % p.returncode)
+            if _brew_clt_miss(out):
+                clt_miss = True
+                notes.append("clt-miss")
         except Exception:
             notes.append("reinstall node deps fail")
         for _ in range(8):
@@ -746,6 +769,8 @@ def brew_update_upgrade() -> str:
             notes.append(note or "dyld unparsed")
             if not note or note.startswith("no source") or note.startswith("link fail"):
                 break
+    if clt_miss:
+        notes.append("skip-recycle")
     return "brew " + " · ".join(notes)
 
 
@@ -796,7 +821,11 @@ def git_pull_reboot() -> str:
     extra = (" " + " · ".join(copied)) if copied else ""
     # Interactive g and auto-g both brew. Off the paint thread (caller is fog-tui-g).
     brew_note = brew_update_upgrade()
-    fog_rc = reboot_fog()
+    # CLT / Xcode-alone brew fail: keep pull/TUI copy; do not recycle_mw / kickstart-kill hops.
+    if "clt-miss" in brew_note or "skip-recycle" in brew_note:
+        fog_rc = "skip recycle (CLT miss)"
+    else:
+        fog_rc = reboot_fog()
     return ("pull %s | %s | %s" % (pull.strip()[:80] or fetch.strip()[:40] or "ok", brew_note, fog_rc)) + extra
 
 
