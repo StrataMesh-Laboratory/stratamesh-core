@@ -20,6 +20,7 @@ from fog_plugins import host_cap
 
 DATA = Path(os.environ.get("FOG_DATA") or Path.home() / "StrataMesh/fog/data")
 ROOT = Path(os.environ.get("FOG_SRC") or Path.home() / "StrataMesh/fog/repo")
+FOG = Path(os.environ.get("FOG_HOME") or Path.home() / "StrataMesh/fog")
 PY_PORT = int(os.environ.get("FOG_MW_PY_PORT") or "8790")
 NODE_PORT = int(os.environ.get("FOG_MW_NODE_PORT") or "8791")
 DENO_PORT = int(os.environ.get("FOG_MW_DENO_PORT") or "8792")
@@ -126,10 +127,21 @@ NODE_DYLD_BACKOFF_SEC = 60.0
 WHICH_FALLBACK_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
 
 
+_NODE_PROBE_FAIL_UNTIL = 0.0
+_NODE_PROBE_ERR = ""
+
+
 def _dyld_node_error(err) -> bool:
-    """Broken Homebrew node bottle (dyld libllhttp / libada / next)."""
+    """Broken Homebrew node bottle (dyld libllhttp / libada / Abort / next)."""
     s = (err or "").lower()
-    return "dyld" in s or "libllhttp" in s or "library not loaded" in s or "libada" in s
+    return (
+        "dyld" in s
+        or "libllhttp" in s
+        or "library not loaded" in s
+        or "libada" in s
+        or "abort trap" in s
+        or "abort" in s
+    )
 
 
 def alias_missing_node_dylib(err: str) -> str:
@@ -173,9 +185,116 @@ def alias_missing_node_dylib(err: str) -> str:
         return "link fail %s" % type(e).__name__
 
 
+def _fog_bin_dirs():
+    """FOG/bin candidates for node-official (FOG_HOME, default StrataMesh/fog, FOG_DATA parent)."""
+    dirs = []
+    for raw in (
+        os.environ.get("FOG_HOME"),
+        str(Path.home() / "StrataMesh/fog"),
+        str(FOG) if FOG else None,
+    ):
+        if not raw:
+            continue
+        p = Path(raw) / "bin"
+        if p not in dirs:
+            dirs.append(p)
+    try:
+        data_fog = DATA.parent if DATA.name == "data" else None
+        if data_fog is not None:
+            p = data_fog / "bin"
+            if p not in dirs:
+                dirs.append(p)
+    except Exception:
+        pass
+    return dirs
+
+
+def _node_probe(bin_path: str):
+    """Return (ok, combined_stderr_stdout). ok only when node -v exits 0 without dyld/Abort."""
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
+    try:
+        p = subprocess.run(
+            [bin_path, "-v"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env=env,
+        )
+        err = (p.stderr or "") + (p.stdout or "")
+    except Exception as e:
+        return False, str(e)[:200]
+    if p.returncode != 0 or _dyld_node_error(err):
+        return False, err.strip()[:200]
+    return True, err.strip()[:200]
+
+
+def _official_node_candidates():
+    out = []
+    for d in _fog_bin_dirs():
+        cand = d / "node-official"
+        if cand not in out:
+            out.append(cand)
+    return out
+
+
+def _resolve_node_bin():
+    """Prefer fog/bin/node-official; else PATH/brew node only if node -v succeeds.
+
+    Broken brew (dyld / Library not loaded / Abort) must not be returned — avoids
+    spawn storms. Probe failures arm a 60s module backoff before re-probing brew.
+    """
+    global _NODE_PROBE_FAIL_UNTIL, _NODE_PROBE_ERR
+    for cand in _official_node_candidates():
+        try:
+            if cand.is_file() and os.access(str(cand), os.X_OK):
+                ok, err = _node_probe(str(cand))
+                if ok:
+                    _NODE_PROBE_ERR = ""
+                    return str(cand)
+                _NODE_PROBE_ERR = ("node-official broken: %s" % (err or "fail"))[:200]
+        except OSError:
+            continue
+    now = time.time()
+    if now < float(_NODE_PROBE_FAIL_UNTIL or 0):
+        return None
+    found = _which_bin_path("node")
+    if not found:
+        miss = " · ".join(str(c) for c in _official_node_candidates()[:2])
+        _NODE_PROBE_ERR = ("node-official missing (%s); no PATH node" % miss)[:200]
+        _NODE_PROBE_FAIL_UNTIL = now + NODE_DYLD_BACKOFF_SEC
+        return None
+    ok, err = _node_probe(found)
+    if ok:
+        _NODE_PROBE_ERR = ""
+        return found
+    low = (err or "").lower()
+    if _dyld_node_error(err):
+        _NODE_PROBE_ERR = ("brew node dyld: %s" % (err or "Library not loaded"))[:200]
+    else:
+        _NODE_PROBE_ERR = ("brew node fail: %s" % (err or "node -v nonzero"))[:200]
+    _NODE_PROBE_FAIL_UNTIL = now + NODE_DYLD_BACKOFF_SEC
+    return None
+
+
 def heal_node_dyld(rounds: int = 8) -> str:
-    """node -v until it prints a version, aliasing each missing dylib. Auto-g calls this."""
-    node = _which_bin("node") or "node"
+    """Prefer node-official; else node -v aliasing missing dylibs. Auto-g calls this.
+    Does not brew reinstall (CLT / no-bottle source builds stay in brew_update paths)."""
+    official = None
+    for cand in _official_node_candidates():
+        try:
+            if cand.is_file() and os.access(str(cand), os.X_OK):
+                official = str(cand)
+                break
+        except OSError:
+            continue
+    if official:
+        ok, err = _node_probe(official)
+        if ok:
+            return "heal node-official " + (err.strip().split()[0][:24] if err else "ok")
+        # official present but broken — do not thrash brew aliases for a different binary
+        return "heal node-official broken " + (err or "fail")[:80]
+    node = _which_bin_path("node") or "node"
     notes = []
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
@@ -192,7 +311,7 @@ def heal_node_dyld(rounds: int = 8) -> str:
         except Exception as e:
             notes.append(type(e).__name__)
             break
-        if p.returncode == 0 and "dyld" not in err.lower() and "library not loaded" not in err.lower():
+        if p.returncode == 0 and not _dyld_node_error(err):
             notes.append(err.strip().split()[0][:24] or "node-ok")
             break
         note = alias_missing_node_dylib(err)
@@ -202,8 +321,8 @@ def heal_node_dyld(rounds: int = 8) -> str:
     return "heal " + " · ".join(notes) if notes else "heal skip"
 
 
-def _which_bin(name: str):
-    """shutil.which, then Homebrew and /usr/local — LaunchAgent PATH may omit node."""
+def _which_bin_path(name: str):
+    """shutil.which, then Homebrew and /usr/local — LaunchAgent PATH may omit binaries."""
     found = shutil.which(name)
     if found:
         return found
@@ -215,6 +334,13 @@ def _which_bin(name: str):
         except OSError:
             continue
     return None
+
+
+def _which_bin(name: str):
+    """Resolve a binary. For node: prefer fog/bin/node-official; brew only if runnable."""
+    if name == "node":
+        return _resolve_node_bin()
+    return _which_bin_path(name)
 
 
 def recycle_mw(ports=None) -> int:
@@ -402,7 +528,19 @@ class RuntimeMeshPlugin:
         """HOLD paces keep-up/PoC. Never overwrite a dyld/mw-node RCA on :8791."""
         err = str(self.last_error or "")
         low = err.lower()
-        if any(s in low for s in ("dyld", "libllhttp", "libada", "mw-node", "library not loaded")):
+        if any(
+            s in low
+            for s in (
+                "dyld",
+                "libllhttp",
+                "libada",
+                "mw-node",
+                "library not loaded",
+                "abort",
+                "node-official",
+                "brew node",
+            )
+        ):
             return
         if not _healthy(NODE_PORT):
             return
@@ -499,17 +637,28 @@ class RuntimeMeshPlugin:
             _write_sha()  # sha stamp is git identity, not metabol
             self._kick_object_layers_probe()
         node = _which_bin("node")
-        if node and js.is_file() and not _healthy(NODE_PORT):
+        if js.is_file() and not _healthy(NODE_PORT):
             now = time.time()
-            # last_error dyld/libllhttp arms 60s; skip Popen until then.
+            # last_error dyld/libllhttp/Abort arms 60s; skip Popen until then.
             if now < float(self._node_backoff_until or 0):
-                pass  # 60s backoff: broken bottle, still retry after
+                pass  # 60s backoff: broken bottle / probe fail, still retry after
+            elif not node:
+                # Prefer surfacing official-missing vs brew dyld — never Popen a known-bad bin.
+                err = (_NODE_PROBE_ERR or "node-official missing; brew node unusable")[:200]
+                self.last_error = err
+                self._node_backoff_until = max(
+                    float(self._node_backoff_until or 0),
+                    float(_NODE_PROBE_FAIL_UNTIL or 0),
+                    now + NODE_DYLD_BACKOFF_SEC,
+                )
             else:
                 log = open(DATA / "mw-node.log", "ab")
                 env = os.environ.copy()
                 env.setdefault("FOG_SRC", str(ROOT))
                 env.setdefault("FOG_DATA", str(DATA))
-                env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
+                # Prefer official first on PATH for child tools; keep brew dirs as fallback.
+                fog_bins = ":".join(str(d) for d in _fog_bin_dirs())
+                env["PATH"] = fog_bins + ":/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
                 p = subprocess.Popen(
                     [node, str(js)],
                     stdout=log,
