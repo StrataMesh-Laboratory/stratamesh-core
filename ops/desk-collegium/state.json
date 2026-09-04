@@ -1,0 +1,60 @@
+{
+  "schema": "desk.collegium.state.v1",
+  "version": "0.1.0-lab",
+  "updated": "2026-09-05T00:50:00+01:00",
+  "members": [
+    {
+      "id": "grok@calhegasmorais.pt",
+      "role": "external_assistant",
+      "lane": "lane-bot",
+      "pace": "ALLOW",
+      "specialty": "lead"
+    },
+    {
+      "id": "hermes@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "lane": "lane-hermes",
+      "pace": "ALLOW",
+      "specialty": "coord"
+    },
+    {
+      "id": "opencode@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "lane": "lane-opencode",
+      "pace": "ALLOW",
+      "specialty": "code"
+    },
+    {
+      "id": "openclaw@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "lane": "lane-openclaw",
+      "pace": "ALLOW",
+      "specialty": "claw"
+    }
+  ],
+  "channels": {
+    "email": {
+      "addr": "grok@calhegasmorais.pt",
+      "enabled": true
+    },
+    "discord_lab": {
+      "enabled": false,
+      "note": "enable in Hermes Messaging"
+    },
+    "slack_lab": {
+      "enabled": false,
+      "note": "enable if workspace exists"
+    },
+    "openclaw_deliver": {
+      "enabled": false
+    },
+    "discourse_t20": {
+      "enabled": true,
+      "url": "https://stratamesh.discourse.group/t/20"
+    }
+  },
+  "bus": "propose\u2192constrain\u2192revise\u2192commit|escalate",
+  "open_tasks": [],
+  "last_commit": null,
+  "notes": "Initial collegium seed. Parallel OK on disjoint specialties. STASIS paces lanes."
+}
