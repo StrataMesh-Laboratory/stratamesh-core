@@ -63,6 +63,19 @@ if command -v brew >/dev/null 2>&1; then
   if [[ "$node_rc" -ne 0 ]]; then
     brew reinstall llhttp node >>"$LOG" 2>&1 || log "brew reinstall llhttp node rc=$?"
   fi
+  # Sequoia: Xcode.app alone cannot brew-build. Node 25.x looks for
+  # libllhttp.9.3.dylib while Cellar may only have 9.4.x. Alias until CLT+reinstall.
+  for d in /usr/local/opt/llhttp/lib /opt/homebrew/opt/llhttp/lib; do
+    [[ -d "$d" ]] || continue
+    if [[ ! -e "$d/libllhttp.9.3.dylib" ]]; then
+      src=""
+      [[ -e "$d/libllhttp.dylib" ]] && src="$d/libllhttp.dylib"
+      [[ -z "$src" ]] && src=$(ls "$d"/libllhttp.*.dylib 2>/dev/null | tail -1 || true)
+      if [[ -n "$src" ]]; then
+        ln -sf "$src" "$d/libllhttp.9.3.dylib" && log "linked $src -> $d/libllhttp.9.3.dylib"
+      fi
+    fi
+  done
 else
   log "brew missing"
 fi

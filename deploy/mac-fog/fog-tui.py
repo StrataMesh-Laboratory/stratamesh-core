@@ -682,6 +682,22 @@ def brew_update_upgrade() -> str:
             notes.append("reinstall llhttp node rc=%s" % rc)
         except Exception:
             notes.append("reinstall llhttp node fail")
+        # Sequoia CLT missing: alias 9.4.x / unversioned dylib as 9.3 so node -v works.
+        for d in ("/usr/local/opt/llhttp/lib", "/opt/homebrew/opt/llhttp/lib"):
+            libdir = Path(d)
+            dest = libdir / "libllhttp.9.3.dylib"
+            if dest.exists() or dest.is_symlink():
+                continue
+            src = libdir / "libllhttp.dylib"
+            if not src.exists():
+                cands = sorted(libdir.glob("libllhttp.*.dylib"))
+                src = cands[-1] if cands else None
+            if src and src.exists():
+                try:
+                    dest.symlink_to(src)
+                    notes.append("link %s -> 9.3" % src.name)
+                except OSError:
+                    notes.append("link 9.3 fail")
     return "brew " + " · ".join(notes)
 
 

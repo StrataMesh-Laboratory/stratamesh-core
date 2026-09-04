@@ -277,6 +277,8 @@ def test_auto_update_brews_before_runtime_skip():
     assert "recycle_mw((8787,8788,8790,8791,8792))" in text.replace(" ", "")
     assert "node :8791 dark after brew" in text
     assert "recycle_mw((8791,))" in text.replace(" ", "")
+    assert "libllhttp.9.3.dylib" in text
+    assert "/usr/local/opt/llhttp/lib" in text
 
 
 def test_recycle_skips_dead_mw_8s():
