@@ -1,6 +1,6 @@
 {
   "schema": "desk.collegium.state.v1",
-  "version": "0.1.0-lab",
+  "version": "0.1.1-lab",
   "updated": "2026-09-05T00:50:00+01:00",
   "members": [
     {
@@ -8,28 +8,36 @@
       "role": "external_assistant",
       "lane": "lane-bot",
       "pace": "ALLOW",
-      "specialty": "lead"
+      "specialty": "lead",
+      "best_at": "eisenhower,meters,git-lead,human-gates",
+      "does_not": "mac-g,local-gui-storms"
     },
     {
       "id": "hermes@fog.calhegasmorais.pt",
       "role": "external_agent",
       "lane": "lane-hermes",
       "pace": "ALLOW",
-      "specialty": "coord"
+      "specialty": "coord",
+      "best_at": "collegium-bus,wizard,messaging",
+      "does_not": "large-patches,worker-deploy"
     },
     {
       "id": "opencode@fog.calhegasmorais.pt",
       "role": "external_agent",
       "lane": "lane-opencode",
       "pace": "ALLOW",
-      "specialty": "code"
+      "specialty": "code",
+      "best_at": "code,tests,refactors",
+      "does_not": "channel-fanout,metabol-decide"
     },
     {
       "id": "openclaw@fog.calhegasmorais.pt",
       "role": "external_agent",
       "lane": "lane-openclaw",
       "pace": "ALLOW",
-      "specialty": "claw"
+      "specialty": "claw",
+      "best_at": "local-automation,ws-loops",
+      "does_not": "protocol-design,assistant-prompts"
     }
   ],
   "channels": {
@@ -56,5 +64,6 @@
   "bus": "propose\u2192constrain\u2192revise\u2192commit|escalate",
   "open_tasks": [],
   "last_commit": null,
-  "notes": "Initial collegium seed. Parallel OK on disjoint specialties. STASIS paces lanes."
+  "notes": "Specialization owns routing; metabol_pace owns burn. Parallel OK on disjoint specialties.",
+  "organizing_principle": "specialization"
 }
