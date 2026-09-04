@@ -44,7 +44,7 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
 
-Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.5.1-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
+Docs: [`ROADMAP-VISION.md`](docs/ROADMAP-VISION.md) · [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.5.1-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
 **v0.5.1-lab** Adversarial P1: two distinct hosts (Mac Fog `FOG-NODE-PT-CM-001` continuous + EDGE-GROK local `EDGE-GROK-CMN-001`). Production splits into:
@@ -52,6 +52,25 @@ Docs: [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historica
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 
 Full detail: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md)
+
+## Paradigm (vision, not live)
+
+The terminal is not the computer. A subject requests a **capability**; the fabric allocates measured physical resources; evidence and a **Resource Receipt** settle in STRATA. Device envelope ≠ accessible computational envelope.
+
+| Milestone | Objective | Now |
+|-----------|-----------|-----|
+| I Laboratory protocol | DAG, gossip, STRATA, workers | **v0.5.1-lab** |
+| II Adversarial multi-host | two hosts, chaos, resource-proof MVP | **P1 in progress** |
+| III Fog appliance | dedicated measurable machine | proposed — [FOG-APPLIANCE.md](docs/FOG-APPLIANCE.md) |
+| IV Resilient infrastructure | 2×2 m hut, dual WAN/energy | proposed — [FOG-INFRASTRUCTURE.md](docs/FOG-INFRASTRUCTURE.md) |
+| V Public testnet | offers, allocation, external demand | unscheduled |
+| VI Metaversal OS | worlds, SCAs, volition | holon labels on the node |
+| VII Terminalization | interface ≠ compute location | vision |
+| VIII Global fabric | geo / energy / resilience scheduling | vision |
+| IX Mature mainnet | full intention→receipt→state loop | explicit decision after evidence |
+
+Full vision: [docs/ROADMAP-VISION.md](docs/ROADMAP-VISION.md) · spine [docs/FOG-STACK.md](docs/FOG-STACK.md) · site `/fog-stack`
+
 
 ## Hybrid Orchestrator
 Federated meta-learning controller (probabilistic + symbolic lobes, QIGA):
