@@ -48,9 +48,28 @@ hop_up() {
 
 # Interactive g and auto-g both brew (update then upgrade) before hop_up.
 # Hops down is not a reason to omit brew; brew still runs first, then runtime-down may exit.
+# CLT / Xcode-alone brew failures must not recycle_mw / kickstart-kill healthy hops.
+BREW_CLT_MISS=0
+brew_clt_miss() {
+  printf '%s' "$1" | grep -qiE 'Xcode alone is not sufficient|xcode-select|Command Line Tools'
+}
+run_brew_verb() {
+  local verb="$1" out rc=0
+  set +e
+  out=$(brew "$verb" 2>&1)
+  rc=$?
+  set -e
+  printf '%s\n' "$out" >>"$LOG"
+  if brew_clt_miss "$out"; then
+    BREW_CLT_MISS=1
+    log "brew $verb clt-miss rc=$rc — skip recycle/kickstart this run"
+  elif [[ "$rc" -ne 0 ]]; then
+    log "brew $verb rc=$rc"
+  fi
+}
 if command -v brew >/dev/null 2>&1; then
-  brew update >>"$LOG" 2>&1 || log "brew update rc=$?"
-  brew upgrade >>"$LOG" 2>&1 || log "brew upgrade rc=$?"
+  run_brew_verb update
+  run_brew_verb upgrade
   # Intel /usr/local and Apple Silicon /opt/homebrew are already on PATH.
   node_out=""
   node_rc=1
@@ -61,7 +80,21 @@ if command -v brew >/dev/null 2>&1; then
     *[Dd]yld*|*libllhttp*) node_rc=1 ;;
   esac
   if [[ "$node_rc" -ne 0 ]]; then
-    brew reinstall llhttp ada-url node >>"$LOG" 2>&1 || log "brew reinstall llhttp ada-url node rc=$?"
+    if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+      log "skip brew reinstall (CLT miss)"
+    else
+      set +e
+      re_out=$(brew reinstall llhttp ada-url node 2>&1)
+      re_rc=$?
+      set -e
+      printf '%s\n' "$re_out" >>"$LOG"
+      if brew_clt_miss "$re_out"; then
+        BREW_CLT_MISS=1
+        log "brew reinstall clt-miss rc=$re_rc — skip recycle/kickstart this run"
+      elif [[ "$re_rc" -ne 0 ]]; then
+        log "brew reinstall llhttp ada-url node rc=$re_rc"
+      fi
+    fi
   fi
   # Sequoia: Xcode.app alone cannot brew-build. Node 25.x looks for
   # libllhttp.9.3.dylib while Cellar may only have 9.4.x. Alias until CLT+reinstall.
@@ -123,10 +156,15 @@ if [[ "$HEAD" == "$REMOTE" ]]; then
   log "ok already origin/main ${HEAD:0:12}"
   # brew may have just repaired dyld/libllhttp; :8791 stays dark until fog_mw.js respawns.
   if ! curl -sf -m 2 "http://127.0.0.1:8791/health" >/dev/null; then
-    log "node :8791 dark after brew — heal dyld + recycle 8791 + kickstart fog (no tunnel)"
-    PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld, recycle_mw; print(heal_node_dyld()); print(recycle_mw((8791,)))' >>"$LOG" 2>&1 || true
-    UIDN=$(id -u)
-    launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
+    if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+      log "node :8791 dark + CLT miss — heal_node_dyld only; skip recycle_mw/kickstart"
+      PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld; print(heal_node_dyld())' >>"$LOG" 2>&1 || true
+    else
+      log "node :8791 dark after brew — heal dyld + recycle 8791 + kickstart fog (no tunnel)"
+      PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld, recycle_mw; print(heal_node_dyld()); print(recycle_mw((8791,)))' >>"$LOG" 2>&1 || true
+      UIDN=$(id -u)
+      launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
+    fi
   fi
   exit 0
 fi
@@ -192,14 +230,18 @@ fi
 
 healed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld; print(heal_node_dyld())' 2>/dev/null || echo heal-skip)
 log "heal_node_dyld $healed"
-killed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8787,8788,8790,8791,8792)))' 2>/dev/null || echo skip)
-log "recycle_mw $killed"
+if [[ "$BREW_CLT_MISS" -eq 1 ]]; then
+  log "CLT miss — skip recycle_mw / hop kills / kickstart (healthy python/fog/workerd kept)"
+else
+  killed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8787,8788,8790,8791,8792)))' 2>/dev/null || echo skip)
+  log "recycle_mw $killed"
 
-UIDN=$(id -u)
-# NEVER tunnel / cloudflared
-launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
-launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.workerd" >/dev/null 2>&1 || true
-log "kickstart fog+workerd done (no tunnel)"
+  UIDN=$(id -u)
+  # NEVER tunnel / cloudflared
+  launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
+  launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.workerd" >/dev/null 2>&1 || true
+  log "kickstart fog+workerd done (no tunnel)"
+fi
 
 # ollama wizard
 command -v ollama >/dev/null 2>&1 && curl -sf --max-time 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1 || { ollama serve >/dev/null 2>&1 & true; }
