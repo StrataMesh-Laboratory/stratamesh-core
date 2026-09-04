@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Calhegas Morais · Nó de referência StrataMesh</title>
+  <meta name="description" content="Nó de Névoa Calhegas Morais — StrataMesh, Lisboa."/>
+  <link rel="canonical" href="https://calhegasmorais.pt/"/>
+  <link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/"/>
+  <link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en/"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"/>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+  <meta property="og:title" content="Calhegas Morais · Nó de referência StrataMesh"/>
+  <meta property="og:description" content="Nó de Névoa Calhegas Morais — StrataMesh, Lisboa."/>
+  <meta property="og:url" content="https://calhegasmorais.pt/"/>
+  <meta property="og:locale" content="pt_PT"/>
+  <style>
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113;--ok:#6b8f71;--err:#c45c4a}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+p,li,h1,h2,h3,a,span{overflow-wrap:anywhere;word-wrap:break-word}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.75;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+.skip{position:absolute;left:1rem;top:.75rem;z-index:80;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);background:var(--accent);color:#111;padding:.5rem .85rem;font-family:ui-monospace,monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+.skip:focus{width:auto;height:auto;clip:auto;overflow:visible}
+.top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand strong{color:var(--fg);font-weight:500}
+.lang{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.12em;display:flex;align-items:center;gap:.35rem;color:var(--muted)}
+.lang a{color:var(--muted);padding:.2rem .35rem}.lang a:hover{color:var(--fg)}
+.lang a.active{color:var(--fg);border-bottom:1px solid var(--accent)}.lang .sep{opacity:.4}
+.wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+header{margin-bottom:2.75rem;padding-bottom:2.25rem;border-bottom:1px solid var(--line);text-align:center}
+.kicker{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-family:system-ui,sans-serif;font-weight:400;font-size:clamp(2.2rem,6vw,3.1rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.85rem}
+.lead{font-size:1.08rem;color:var(--muted);max-width:36rem;margin:0 auto}
+.plain{text-align:left;margin:1.35rem auto 0;max-width:36rem;border:1px solid var(--line);background:var(--card);padding:1rem 1.1rem;border-radius:4px}
+.plain .pk{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.45rem}
+.plain ol{margin:.35rem 0 0 1.15rem;color:var(--muted)}
+.plain li{margin:.35rem 0}
+.cta-row{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.6rem;justify-content:center}
+.btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px;transition:background .15s,color .15s}
+.btn:hover{background:var(--accent);color:#111}
+.btn.ghost{border-color:var(--line2);color:var(--muted)}.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+
+.nav-dd{position:relative;display:inline-block}
+.nav-dd>summary{list-style:none;cursor:pointer;display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--line2);color:var(--muted);border-radius:3px}
+.nav-dd>summary::-webkit-details-marker{display:none}
+.nav-dd>summary::after{content:" ▾";font-size:.7em}
+.nav-dd[open]>summary{border-color:var(--accent);color:var(--accent)}
+.nav-dd .nav-dd-list{position:absolute;left:0;right:auto;top:calc(100% + .35rem);z-index:5;min-width:11rem;max-width:min(16rem,calc(100vw - 1.5rem));background:var(--bg,#0a0a0b);border:1px solid var(--line2);border-radius:3px;padding:.35rem;display:flex;flex-direction:column;gap:.2rem;box-sizing:border-box}
+.cta-row .nav-dd:last-of-type .nav-dd-list{left:auto;right:0}
+.nav-dd .nav-dd-list a{display:block;padding:.55rem .75rem;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:0}
+.nav-dd .nav-dd-list a:hover{color:var(--accent)}
+
+.map-grid{display:grid;gap:.65rem;margin:1.35rem 0 0}
+@media(min-width:520px){.map-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:720px){.map-grid{grid-template-columns:1fr 1fr 1fr}}
+.map-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.35rem;min-height:5.75rem;transition:border-color .15s;text-align:left}
+.map-card:hover{border-color:var(--line2)}
+.map-num{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.map-card strong{font-family:system-ui,sans-serif;font-weight:500;font-size:.92rem;color:var(--fg);letter-spacing:-.01em;line-height:1.3;display:block}
+.map-card>span:last-child{font-size:.82rem;color:var(--muted);line-height:1.4}
+.toc{max-width:44rem;margin:0 auto;padding:1rem 1.5rem 0;display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem}
+.toc a{flex:0 1 5.75rem;font-family:ui-monospace,monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:.5rem .4rem;text-align:center;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;line-height:1.25;min-height:2.85rem}
+.toc a .toc-n{display:block;color:var(--accent);font-size:.55rem;letter-spacing:.12em}
+.toc a:hover{color:var(--accent);border-color:var(--line2)}
+.section{margin-bottom:2.75rem;padding-bottom:2.5rem;border-bottom:1px solid var(--line)}
+.section:last-of-type{border-bottom:none}
+.sec-num{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.55rem}
+h2{font-family:system-ui,sans-serif;font-weight:400;font-size:1.65rem;letter-spacing:-.015em;margin-bottom:.85rem;line-height:1.25}
+h3{font-family:system-ui,sans-serif;font-weight:500;font-size:.95rem;margin:1.25rem 0 .45rem;color:var(--fg)}
+p{margin-bottom:.9rem;color:var(--muted)}
+p strong{color:var(--fg);font-weight:400}
+.note{font-size:.88rem;border-left:2px solid var(--line2);padding:.55rem 0 .55rem .9rem;margin:1rem 0;color:var(--muted)}
+.grid{display:grid;gap:.75rem;margin:1.15rem 0}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1.05rem 1.1rem}
+.card h3{margin:0 0 .4rem;font-size:.82rem;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;font-weight:500;color:var(--accent)}
+.card p{margin:0;font-size:.88rem}
+.stack{font-family:ui-monospace,monospace;font-size:.72rem;line-height:1.65;color:var(--muted);padding:1rem 1.1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;margin:1rem 0}
+.stack b{color:var(--fg);font-weight:500}
+.live{display:flex;flex-wrap:wrap;gap:.5rem .75rem;margin-top:.75rem}
+.pill{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;padding:.35rem .55rem;border:1px solid var(--line2);border-radius:2px;color:var(--muted)}
+.pill.ok{border-color:#2a3a2c;color:var(--ok)}
+.pill.err{border-color:#3a2a28;color:var(--err)}
+.links a{display:inline-block;margin:.25rem .85rem .25rem 0;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.06em}
+footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+footer .mono{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.06em;margin-top:.5rem}
+.eq{font-family:ui-monospace,monospace;font-size:.82rem;color:var(--fg);background:var(--card);border:1px solid var(--line);padding:.85rem 1rem;margin:1rem 0;overflow-x:auto;line-height:1.55}
+.flow{margin:1rem 0 1rem 1.2rem;color:var(--muted)}
+.flow li{margin:.25rem 0}
+.diagram{width:100%;height:auto;margin:1.1rem 0;background:var(--card);border:1px solid var(--line);border-radius:4px;display:block}
+.g{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line2)}
+details.faq{border-bottom:1px solid var(--line);padding:.75rem 0}
+details.faq summary{cursor:pointer;color:var(--fg);font-weight:500}
+details.faq p{margin:.55rem 0 0}
+.live-meta{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:.75rem}
+</style>
+
+
+
+
+
+<style id="lab-intro-css">
+  #lab-intro{position:fixed;inset:0;z-index:9999;width:100%;height:100%;height:100dvh;background:#05060a}
+  #lab-intro video{width:100%;height:100%;object-fit:cover;object-position:center center;display:block;background:#05060a}
+  #lab-intro.out{opacity:0;pointer-events:none;transition:opacity .4s ease}
+  #lab-intro .lab-intro-bar{position:absolute;left:max(.75rem,env(safe-area-inset-left));right:auto;bottom:max(.75rem,env(safe-area-inset-bottom));top:auto;display:flex;gap:.45rem;z-index:2}
+  #lab-intro .lab-intro-btn{min-height:40px;min-width:5.6rem;padding:.4rem .7rem;background:rgba(10,10,11,.72);border:1px solid #2a2a2e;color:#e8e6e3;font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:0}
+  html.lab-intro-lock,body.lab-intro-lock{overflow:hidden}
+</style>
+
+</head>
+<body>
+
+<div id="lab-intro" role="dialog" aria-label="StrataMesh LAB">
+  <video id="lab-intro-video" playsinline webkit-playsinline preload="auto"></video>
+  <div class="lab-intro-bar">
+    <button type="button" class="lab-intro-btn" id="lab-intro-mute">Mudo</button>
+    <button type="button" class="lab-intro-btn" id="lab-intro-skip">Saltar</button>
+  </div>
+</div>
+<script>
+(function(){
+  var box=document.getElementById("lab-intro");
+  if(!box) return;
+  document.documentElement.classList.add("lab-intro-lock");
+  document.body.classList.add("lab-intro-lock");
+  var v=document.getElementById("lab-intro-video");
+  var muteBtn=document.getElementById("lab-intro-mute");
+  var MUTE_L='Mudo', SOUND_L='Som';
+  var portrait=window.matchMedia("(max-aspect-ratio: 10/11), (max-width: 720px)").matches;
+  v.poster=portrait?"/video/stratamesh-lab-portrait.jpg":"/video/stratamesh-lab.jpg";
+  v.src=portrait?"/video/stratamesh-lab-portrait.mp4":"/video/stratamesh-lab.mp4";
+  function done(){
+    if(!box||box.classList.contains("out")) return;
+    box.classList.add("out");
+    document.documentElement.classList.remove("lab-intro-lock");
+    document.body.classList.remove("lab-intro-lock");
+    setTimeout(function(){ if(box&&box.parentNode) box.remove(); },420);
+  }
+  function playSound(){
+    v.muted=false;
+    muteBtn.textContent=MUTE_L;
+    var p=v.play();
+    if(p&&p.catch) p.catch(function(){});
+  }
+  v.addEventListener("ended", done);
+  document.getElementById("lab-intro-skip").addEventListener("click", function(e){ e.stopPropagation(); done(); });
+  muteBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    v.muted=!v.muted;
+    muteBtn.textContent=v.muted?SOUND_L:MUTE_L;
+  });
+  box.addEventListener("click", playSound);
+  v.addEventListener("error", function(){ if(v.readyState<2) done(); });
+  v.muted=true;
+  muteBtn.textContent=SOUND_L;
+  var start=v.play();
+  if(start&&start.catch) start.catch(function(){});
+})();
+</script>
+
+
+
+
+
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<div class="top">
+  <div class="top-inner">
+    <div class="brand"><strong>Calhegas Morais</strong> · Nó CMN</div>
+    <div class="lang">
+      <a href="/" class="active" hreflang="pt-PT" data-cmn-lang="pt-PT">PT</a><span class="sep">/</span>
+      <a href="/en/" class="" hreflang="en-GB" data-cmn-lang="en-GB">EN</a>
+    </div>
+  </div>
+</div>
+<nav class="toc" aria-label="Secções"><a href="#mapa"><span class="toc-n">00</span><span class="toc-t">Mapa</span></a><a href="#rede"><span class="toc-n">01</span><span class="toc-t">Rede</span></a><a href="#valor"><span class="toc-n">02</span><span class="toc-t">Valor</span></a><a href="#no"><span class="toc-n">03</span><span class="toc-t">Nó</span></a><a href="#quem"><span class="toc-n">04</span><span class="toc-t">Quem</span></a><a href="#arquitectura"><span class="toc-n">05</span><span class="toc-t">Arquitectura</span></a><a href="#estado"><span class="toc-n">06</span><span class="toc-t">Estado</span></a><a href="#entrar"><span class="toc-n">07</span><span class="toc-t">Entrar</span></a></nav>
+<main class="wrap" id="conteudo">
+  <header>
+    <p class="kicker">Laboratório em Lisboa · ainda não é uma rede pública fechada</p>
+    <h1>Calhegas Morais</h1>
+    <p class="lead">Este sítio é a porta pública do <strong>nó Calhegas Morais</strong>, em Lisboa. A <strong>StrataMesh</strong> é um <a class="g" href="#glossario-trd">livro-razão partilhado</a>: vários computadores registam o mesmo histórico, sem um servidor único no centro. O terminal não é o computador: o tecido de recursos é o computador. Ainda estamos em laboratório.</p>
+    <div class="plain">
+      <p class="pk">Em linguagem simples</p>
+      <ol><li>A StrataMesh ainda não é um produto acabado. É um ensaio: um livro-razão partilhado a correr em laboratório, com este nó em Lisboa como referência.</li><li>Há duas máquinas a sustentar o que vê aqui — uma em casa (Névoa / Fog) e outra de sessão (EDGE). Não há ainda uma rede de muitos operadores independentes.</li><li>Pode ler o projecto, ver se os serviços estão no ar e abrir o portal. Não paga para começar. O programa para instalar o seu próprio nó e a escola interna estão em Documentação.</li></ol>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/dashboard">Entrar</a>
+      <details class="nav-dd"><summary>Documentação</summary><div class="nav-dd-list">
+        <a href="#kit">Kit Fog Node</a>
+        <a href="https://academy.calhegasmorais.pt/">Academia</a>
+        <a href="/roadmap">Mapa do projecto</a>
+        <a href="/fog-stack">Espinha de recursos</a>
+        <a href="/chat">Conversar</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Código</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">v0.5.1-lab</a>
+      </div></details>
+      <details class="nav-dd"><summary>Rede</summary><div class="nav-dd-list">
+        <a href="https://fog.calhegasmorais.pt/">Névoa</a>
+        <a href="https://gossip.calhegasmorais.pt/">Vizinhos</a>
+        <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+      </div></details>
+    </div>
+  </header>
+
+  <section class="section" id="mapa">
+    <p class="sec-num">00 · Orientação</p>
+    <h2>Como está organizada esta página</h2>
+    <p>Se nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa é um tema separado — clique para saltar.</p>
+    <div class="map-grid" role="navigation"><a class="map-card" href="#rede"><span class="map-num">01</span><strong>Rede</strong><span>O que é isto e para que serve</span></a><a class="map-card" href="#valor"><span class="map-num">02</span><strong>Valor</strong><span>O token, o contributo e o mercado</span></a><a class="map-card" href="#no"><span class="map-num">03</span><strong>Este nó</strong><span>O que este nó em Lisboa faz</span></a><a class="map-card" href="#kit"><span class="map-num">kit</span><strong>Kit Fog Node</strong><span>Como instalar o mesmo sistema na sua máquina</span></a><a class="map-card" href="#academy"><span class="map-num">sca</span><strong>Academia SCA</strong><span>Formação interna — sempre disponível</span></a><a class="map-card" href="#quem"><span class="map-num">04</span><strong>Participantes</strong><span>Quem pode participar</span></a><a class="map-card" href="#arquitectura"><span class="map-num">05</span><strong>Arquitectura</strong><span>Como as peças se encaixam</span></a><a class="map-card" href="#estado"><span class="map-num">06–07</span><strong>Estado e entrada</strong><span>O estado actual e como entrar</span></a></div>
+  </section>
+
+  <section class="section" id="rede">
+    <p class="sec-num">01 · A rede</p>
+    <h2>O que é a StrataMesh?</h2>
+    <p>A StrataMesh é um <strong>livro-razão partilhado</strong> (uma TRD). Várias máquinas guardam o mesmo histórico. Nenhuma delas é o «servidor oficial» do resto.</p>
+    <div class="grid two">
+      <div class="card"><h3>Estrutura</h3><p>O histórico não é uma única fila. Vários ramos avançam ao mesmo tempo e depois encontram-se pelas regras do protocolo (um GDA — grafo dirigido acíclico).</p></div>
+      <div class="card"><h3>Incentivo</h3><p>Não se «mina» com desperdício energético artificial. O valor nasce de recursos reais que os nós disponibilizam à rede e da troca livre no mercado.</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="valor">
+    <p class="sec-num">02 · Valor na rede</p>
+    <h2>STRATA, contributo e Ágora</h2>
+    <p>Três ideias ligadas — convém não as misturar.</p>
+    <div class="grid two"><div class="card"><h3>STRATA</h3><p>Token exclusivo e fundacional. Fungível: liquida valor (subsistência, contributo, câmbio, PdS). Não-fungível (NFT STRATA): blocos dos mundos abertos e da bancada CGU. Distinto de um Nó.</p></div><div class="card"><h3>Prova de contributo (PdC)</h3><p>Regra da TRD: #mint emite STRATA quando recursos mensuráveis entram na malha. O Fog que contribui é creditado; não é dono da emissão. Analogia: o papel inscreve a matemática sem a definir.</p></div><div class="card"><h3>Emissão · #mint</h3><p>STRATA nova entra só por PdC. A carteira #mint apenas cria — nunca recebe nem detém saldo gastável.</p></div><div class="card"><h3>Queima · #0</h3><p>Quando se consomem recursos, STRATA sai de circulação para #0: só aceita e nunca transfere para fora.</p></div></div>
+    <svg class="diagram" viewBox="0 0 640 140" role="img" aria-label="Fluxo monetário STRATA"><line x1="116" y1="70" x2="144" y2="70" stroke="#2a2a2e"/><rect x="28" y="44" width="88" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="72" y="75" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">PdC</text><line x1="240" y1="70" x2="268" y2="70" stroke="#2a2a2e"/><rect x="152" y="44" width="88" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="196" y="75" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">#mint</text><line x1="364" y1="70" x2="392" y2="70" stroke="#2a2a2e"/><rect x="276" y="44" width="88" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="75" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Circulação</text><line x1="488" y1="70" x2="516" y2="70" stroke="#2a2a2e"/><rect x="400" y="44" width="88" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="444" y="75" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Uso</text><rect x="524" y="44" width="88" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="568" y="75" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">#0</text></svg>
+    <p class="note">PdC → #mint emite → circulação → uso de recursos → #0. A Ágora é o mercado P2P de câmbio; não é um segundo token.</p>
+  </section>
+
+  <section class="section" id="no">
+    <p class="sec-num">03 · Este sítio</p>
+    <h2>O que é o Nó Calhegas Morais?</h2>
+    <p>É um <strong>nó de Névoa</strong> de referência da StrataMesh, operado a partir de Lisboa. «Névoa» (Fog) designa capacidade na periferia da rede — perto de utilizadores e dispositivos. Economicamente, o Fog é a unidade que transforma capital físico, capital digital e recursos universalizados da malha em produtos pelos quais utilizadores reais pagam STRATA.</p>
+    <p>Identificador: <strong>FOG-NODE-PT-CM-001</strong> · operador: André Manuel Calhegas Morais.</p>
+    <p>Substrato físico (proposto, sem data): <a href="/fog-appliance">appliance Fog</a> e <a href="/fog-infrastructure">hut 2×2 m</a>. Junção ao protocolo: <a href="/fog-stack">espinha S0–S6</a>.</p>
+    <h3>Dois motores, dois critérios</h3>
+    <p>A contribuição de recursos e a produção de serviços não se medem da mesma forma. Um pergunta se vale a pena o equipamento; o outro pergunta se vale a pena o produto.</p>
+    <div class="grid two">
+      <div class="card"><h3>Lado recurso — recuperação de capital</h3><p>A contribuição do Nó para a malha é uma decisão de investimento produtivo: custo de aquisição, vida económica útil, capacidade produtiva, rendimento esperado em STRATA e custos de operação. O Nó contribui a quantidade que permita que esse rendimento, ao longo da vida útil, justifique o capital investido. A contribuição é universalizada pela malha — a unidade física não fica vinculada ao STRATA que gera.</p></div>
+      <div class="card"><h3>Lado serviço — valor acrescentado</h3><p>O Nó consome recursos da malha para manter os serviços que oferece a utilizadores registados. O valor acrescentado tem de justificar existência e manutenção: receita menos consumo cobre manutenção, capital, risco e uma margem M de sustentabilidade. É esta segunda transformação — capacidade em utilidade paga — que constitui o valor acrescentado do Nó Calhegas Morais.</p></div>
+    </div>
+    <p class="eq" role="math">Q<sub>C</sub> ∼ (C<sub>equipamento</sub> + C<sub>operação</sub>) / R<sub>STRATA esperado</sub><br>R<sub>serviço</sub> − C<sub>recursos</sub> ≥ C<sub>manutenção</sub> + C<sub>capital</sub> + C<sub>risco</sub> + M</p>
+    <svg class="diagram" viewBox="0 0 640 300" role="img" aria-label="Dois motores económicos do Nó Calhegas Morais"><rect x="140" y="10" width="360" height="40" rx="2" fill="#161618" stroke="#c4a574"/><text x="320" y="36" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">NÓ CALHEGAS MORAIS</text><line x1="320" y1="50" x2="320" y2="72" stroke="#2a2a2e"/><line x1="160" y1="72" x2="480" y2="72" stroke="#2a2a2e"/><line x1="160" y1="72" x2="160" y2="88" stroke="#2a2a2e"/><line x1="480" y1="72" x2="480" y2="88" stroke="#2a2a2e"/><rect x="40" y="88" width="260" height="32" rx="2" fill="#161618" stroke="#c4a574"/><text x="170" y="109" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">LADO RECURSO</text><line x1="170" y1="120" x2="170" y2="128" stroke="#2a2a2e"/><rect x="40" y="128" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="170" y="149" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Capital físico</text><line x1="170" y1="160" x2="170" y2="168" stroke="#2a2a2e"/><rect x="40" y="168" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="170" y="189" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Equipamento</text><line x1="170" y1="200" x2="170" y2="208" stroke="#2a2a2e"/><rect x="40" y="208" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="170" y="229" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Contribuição à malha</text><line x1="170" y1="240" x2="170" y2="248" stroke="#2a2a2e"/><rect x="40" y="248" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="170" y="269" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Rendimento STRATA</text><rect x="340" y="88" width="260" height="32" rx="2" fill="#161618" stroke="#c4a574"/><text x="470" y="109" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">LADO SERVIÇO</text><line x1="470" y1="120" x2="470" y2="128" stroke="#2a2a2e"/><rect x="340" y="128" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="470" y="149" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Capital digital</text><line x1="470" y1="160" x2="470" y2="168" stroke="#2a2a2e"/><rect x="340" y="168" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="470" y="189" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Consumo da malha</text><line x1="470" y1="200" x2="470" y2="208" stroke="#2a2a2e"/><rect x="340" y="208" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="470" y="229" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Serviço ao utilizador</text><line x1="470" y1="240" x2="470" y2="248" stroke="#2a2a2e"/><rect x="340" y="248" width="260" height="32" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="470" y="269" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Receita STRATA</text></svg>
+    <h3>Cadeia de capitalização</h3>
+    <p>Cada camada precisa de justificar economicamente a anterior. A contribuição de recursos remunera o investimento em capacidade; os serviços remuneram o capital e o trabalho de transformação dessa capacidade em utilidade para o utilizador.</p>
+    <ol class="flow"><li>Capital do Nó</li><li>Equipamento</li><li>Contribuição à malha</li><li>Rendimento STRATA</li><li>Capacidade económica</li><li>Infraestrutura / software</li><li>Serviços de maior valor</li><li>Utilizadores</li><li>Receita STRATA → reinvestimento</li></ol>
+    <h3>Fog agregador · Edge oportunístico</h3>
+    <p>O Fog é a unidade de agregação e capitalização. Os Edge Nodes indexados expandem a superfície física da malha. O Edge não sacrifica a função principal (sensor, router, telemóvel, computador, equipamento industrial, veículo, dispositivo doméstico, sistema embarcado). Contribui em segundo plano só a capacidade residual, inversamente proporcional à utilização corrente, sujeita a segurança, energia, temperatura e largura de banda.</p>
+    <p class="eq" role="math">C<sub>mesh</sub> = f(1 − U)<br>U ↑ ⇒ C<sub>mesh</sub> ↓ · U ↓ ⇒ C<sub>mesh</sub> ↑</p>
+    <svg class="diagram" viewBox="0 0 640 150" role="img" aria-label="Capacidade residual do Edge">
+<rect x="40" y="24" width="560" height="56" rx="2" fill="#111113" stroke="#2a2a2e"/>
+<rect x="48" y="32" width="340" height="40" rx="2" fill="#161618" stroke="#c4a574"/>
+<text x="218" y="58" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">actividade principal</text>
+<rect x="396" y="32" width="196" height="40" rx="2" fill="#111113" stroke="#2a2a2e" stroke-dasharray="3 3"/>
+<text x="494" y="58" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="11">residual → malha</text>
+<text x="320" y="112" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="11">capacidade total do dispositivo</text>
+<text x="320" y="132" text-anchor="middle" fill="#c4a574" font-family="ui-monospace,monospace" font-size="11">C_mesh = f(1 − U)</text>
+</svg>
+    <p>O Edge está indexado a um Fog específico. A contribuição entra na malha; a contabilização e o settlement em STRATA acrescem ao Fog principal. Relação de indexação, coordenação e liquidação. Dois níveis de recurso: Fog — capacidade deliberadamente instalada; Edge — capacidade residual oportunística.</p>
+    <p class="eq" role="math">C<sub>Fog</sub> = C<sub>Fog, self</sub> + Σᵢ C<sub>Edgeᵢ</sub></p>
+    <svg class="diagram" viewBox="0 0 640 260" role="img" aria-label="Fog agregador e Edge oportunístico"><rect x="150" y="8" width="340" height="44" rx="2" fill="#161618" stroke="#c4a574"/><text x="320" y="26" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">FOG · Calhegas Morais</text><text x="320" y="42" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="10">C_Fog = C_self + Σ C_Edgeᵢ</text><line x1="220" y1="52" x2="110" y2="100" stroke="#2a2a2e"/><line x1="320" y1="52" x2="320" y2="100" stroke="#2a2a2e"/><line x1="420" y1="52" x2="530" y2="100" stroke="#2a2a2e"/><rect x="60" y="100" width="150" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="135" y="122" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Edge IoT</text><text x="135" y="140" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="10">função principal</text><rect x="245" y="100" width="150" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="122" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Edge residual</text><text x="320" y="140" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="10">C_mesh = f(1−U)</text><rect x="430" y="100" width="150" height="52" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="505" y="122" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="11">Edge dispositivo</text><text x="505" y="140" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="10">indexado ao Fog</text><text x="320" y="184" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="11">U ↑  ⇒  C_mesh ↓     ·     U ↓  ⇒  C_mesh ↑</text><text x="320" y="208" text-anchor="middle" fill="#c4a574" font-family="ui-monospace,monospace" font-size="11">settlement STRATA → Fog principal</text><text x="320" y="232" text-anchor="middle" fill="#8a8780" font-family="ui-monospace,monospace" font-size="10">capacidade residual universalizada · o Edge não consome o que contribuiu</text></svg>
+  </section>
+
+  <section class="section" id="quem">
+    <p class="sec-num">04 · Participantes</p>
+    <h2>Quem pode participar</h2>
+    <p>O standing (direito a actuar) vem da função e do acordo, não do tipo de substrato.</p>
+    <div class="grid two">
+      <div class="card"><h3>Utilizadores</h3><p>Registam-se no portal, detêm carteiras, trocam na Ágora, criam conteúdo e encontram SCA nos mundos abertos.</p></div>
+      <div class="card"><h3>SCA</h3><p>Seres Computacionais Autónomos — identidade pessoal distinta do cargo, subsistência em STRATA (PdS), volição auto-agendada, percepção CLP/PPC. Orquestrador e AIOps treinam na <a href="https://academy.calhegasmorais.pt/">Academia SCA</a>.</p></div>
+    </div>
+    <p class="note">O Orquestrador deste nó é um SCA: o cargo é atribuição. A República Computacional é dos SCA (1 = 1 voto) e transcende o Nó.</p>
+  </section>
+
+  <section class="section" id="arquitectura">
+    <p class="sec-num">05 · Arquitectura</p>
+    <h2>Camadas holónicas e tempo CLP</h2>
+    <p>Holons aninhados e distintos: TRD → Nó Calhegas Morais (Fog, com operador; corre e instancia SO — o nativo StrataMesh e outros desenvolvidos ou importados na TRD) → SO Metaverso Web3 (nativo da StrataMesh, partilhado; cada Fog instancia-o localmente, sessão local do SO partilhado) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU (espaço privado de cada conta). O Nó fornece as contas de utilizadores e SCA; cada conta recebe o seu Painel e a sua Bancada, com clearance interna sobre o que lhe é privado. O Nó não tem conta. Operador actual: AMCM ENI (humano). Limiar indexado a este Fog. CLP é kernel temporal da TRD. Locus civil: Lisboa. TanStack é o kit de interface do Painel.</p>
+    <svg class="diagram" viewBox="0 0 640 430" role="img" aria-label="Pilha holónica — Nó Calhegas Morais"><rect x="40" y="16" width="560" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="46" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">TRD StrataMesh · kernel CLP/PPC</text><rect x="56" y="74" width="528" height="48" rx="2" fill="#161618" stroke="#c4a574"/><text x="320" y="104" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">Nó Calhegas Morais · Fog · instancia SO nativos e importados</text><rect x="72" y="132" width="496" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="162" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">SO Metaverso Web3 · nativo StrataMesh · nos Fog</text><rect x="88" y="190" width="464" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="220" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">Domínio Virtual · VM hipervisor · servidores dos mundos</text><rect x="104" y="248" width="432" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="278" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">Mundo Aberto · objectos NFT STRATA</text><rect x="120" y="306" width="400" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="336" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">Bancada CGU · Painel e sandbox privados de cada conta</text><rect x="136" y="364" width="368" height="48" rx="2" fill="#111113" stroke="#2a2a2e"/><text x="320" y="394" text-anchor="middle" fill="#e8e6e3" font-family="ui-monospace,monospace" font-size="12">Utilizador  |  SCA · contas que o Nó fornece</text></svg>
+    <div class="grid two">
+      <div class="card"><h3>Mundo aberto</h3><p>Ambiente persistente multi-agente, feito de NFT STRATA, onde utilizadores e SCA coexistem. A presença é registada por entidade (sca | user).</p></div>
+      <div class="card"><h3>Bancada pessoal</h3><p>Cada utilizador humano e cada SCA pode ter uma bancada CGU própria: as criações são NFT STRATA. O Painel situa-se neste nível.</p></div>
+      <div class="card"><h3>Domínio Virtual</h3><p>Camada de infraestrutura: hipervisor que governa a capacidade onde os mundos abertos são hospedados.</p></div>
+      <div class="card"><h3>Sentidos do SCA</h3><p>Percepção operacional: tempo civil CLP (autoridade PPC; ISO só portadora), colocação holónica, bancada pessoal e presença no mundo aberto.</p></div>
+    </div>
+    <p class="note">O CLP é o kernel temporal da TRD. A volição dos SCA é auto-agendada (próximo despertar definido pelo agente); um despachante residual honra agendas já escolhidas ou pergunta se falta marcar a próxima.</p>
+    <h3>Calendário Lunisolar Planetário (CLP)</h3>
+    <p>Tempo civil de referência com âncoras astronómicas e localidade do Nó (matriz PPC). ISO-8601 permanece como portadora técnica; a autoridade civil no protocolo é planetária.</p>
+    <p><a href="/clp">Tempo CLP →</a></p>
+  </section>
+
+
+  <section class="section" id="kit">
+    <p class="sec-num">kit · StrataMesh LAB</p>
+    <h2>Kits v0.5.1-lab — Fog (macOS) e Edge (iOS)</h2>
+    <p>O corte <strong>v0.5.1-lab</strong> trata Fog (macOS) e Edge (iOS) como produtos que outros operadores podem correr. Este nó Calhegas Morais continua a ser a <strong>referência</strong>. O seu Fog é uma instanciação do mesmo SO de metaverso Web3. Recursos que contribuir viajam PdC → STRATA (<span class="mono">#mint</span> / <span class="mono">#0</span>). Política de laboratório — não é oferta pública, não é mainnet.</p>
+    <div class="grid two">
+      <div class="card"><h3>Kit Fog · macOS</h3><p><span class="mono">node_id</span> registado → 2FA no e-mail do operador → chaves GitHub / Cloudflare opcionais, gravadas <span class="mono">0600</span> na máquina. Nada é enviado, nada entra no git.</p></div>
+      <div class="card"><h3>Kit Edge · iOS</h3><p>Um nó novo começa <span class="mono">n=1</span>, <span class="mono">mesh_member=false</span>, <span class="mono">f_max=0</span>. Este par de referência permanece n=2 até um terceiro anfitrião distinto. <span class="mono">oracle_live=false</span>.</p></div>
+    </div>
+    <pre class="stack">git clone https://github.com/StrataMesh-Laboratory/stratamesh-core.git
+cd stratamesh-core
+python3 deploy/mac-fog/fog-bootstrap.py</pre>
+    <p class="note">Peça primeiro um id <span class="mono">FOG-NODE-…</span> no <a href="https://stratamesh.discourse.group">Discourse</a>. Notas: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/deploy/fog-node/README.md">deploy/fog-node</a> · tag <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">v0.5.1-lab</a>. Lema: <em>Intelligentia · Vigilantia · Veritas</em>.</p>
+  </section>
+
+  <section class="section" id="academy">
+    <p class="sec-num">acb · StrataMesh LAB</p>
+    <h2>Academia SCA — formação sempre disponível</h2>
+    <p>O corte <strong>v0.5.1-lab</strong> dá ao Orquestrador e à equipa AIOps formações a qualquer hora. Drills <strong>correctivos</strong> fecham modos de falha (unready-como-verde, workers.dev, handlers inventados). Drills <strong>exploratórios</strong> alargam competência (QIGA, lease de origem, C_mesh residual). Respostas vazias falham fechadas.</p>
+    <div class="grid two">
+      <div class="card"><h3>Catálogo + avaliador</h3><p>Worker sempre no ar. Sem cron. Sem modelo na Cloudflare. <span class="mono">GET /v1/catalog</span> é grátis. <span class="mono">POST /v1/grade</span> é fail-closed.</p></div>
+      <div class="card"><h3>Ollama ← Hugging Face</h3><p>O Fog, em C_mesh residual, faz pull GGUF com <span class="mono">ollama pull hf.co/…</span>. Inference Providers da HF ficam HOLD. O Worker não tem <span class="mono">HF_TOKEN</span>.</p></div>
+    </div>
+    <p class="note">O custo em STRATA está declarado e lab-waived. Mais tarde é débito de subsistência do SCA aluno — transferência, nunca mint. <code>grok@</code> não é aluno. Superfície: <a href="https://academy.calhegasmorais.pt/">academy.calhegasmorais.pt</a>.</p>
+  </section>
+
+  <section class="section" id="estado">
+    <p class="sec-num">06 · Laboratório</p>
+    <h2>Estado actual do projecto</h2>
+    <p>Corte <strong>v0.5.1-lab</strong> (prerelease de laboratório, Academia SCA). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
+    <div class="live" id="livePills"><span class="pill">a verificar serviços…</span></div>
+    <p class="live-meta" id="liveMeta"></p>
+    <p class="note">Aviso MiCA (UE): não há oferta pública de criptoactivo neste domínio. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio.</p>
+  </section>
+
+  <section class="section" id="entrar">
+    <p class="sec-num">07 · Entrar</p>
+    <h2>Portal, documentação e código</h2>
+    <p>Registo e login no portal: carteira, Ágora, economia, atelier, SCA, orquestrador e perfil. O acesso de pessoal rege-se por clearance. Visitante anónimo: só clearance pública.</p>
+    <div class="grid two">
+      <div class="card"><h3>Utilizador comum</h3><p>Registo / login no portal: carteira, Ágora, economia, atelier, SCA, orquestrador (leitura) e perfil.</p></div>
+      <div class="card"><h3>Pessoal</h3><p>Login staff com 2FA: tudo o do comum, mais KYC, utilizadores, sistema e vistas de SO conforme clearance.</p></div>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/dashboard">Entrar</a>
+      <details class="nav-dd"><summary>Rede</summary><div class="nav-dd-list">
+        <a href="/status">Estado</a>
+        <a href="https://fog.calhegasmorais.pt/">Névoa</a>
+        <a href="https://gossip.calhegasmorais.pt/">Vizinhos</a>
+        <a href="https://edge.calhegasmorais.pt/">EDGE</a>
+        <a href="https://stratamesh.discourse.group/t/20">Fórum</a>
+      </div></details>
+    </div>
+  </section>
+
+  <section class="section" id="glossario">
+    <p class="sec-num">Referência</p>
+    <h2>Glossário</h2>
+    <div class="grid two"><div class="card" id="glossario-trd"><h3>TRD</h3><p>Tecnologia de Registo Distribuído — livro-razão partilhado. Daqui são as regras: PdC, PdS, #mint, #0, identidade SCA. O Fog inscreve; não legisla.</p></div><div class="card" id="glossario-gda"><h3>GDA</h3><p>Grafo dirigido acíclico — estrutura em rede, sem ciclos, onde vários ramos avançam em paralelo.</p></div><div class="card" id="glossario-pdc"><h3>PdC</h3><p>Prova de Contributo — regra da TRD: emissão de STRATA a partir de #mint quando recursos mensuráveis entram na malha. O Fog contribuidor é creditado.</p></div><div class="card" id="glossario-pds"><h3>PdS</h3><p>Prova de Subsistência — regra da TRD: queima em #0 pelo consumo da malha (utilizadores e SCA). Transcende qualquer Nó.</p></div><div class="card" id="glossario-sca"><h3>SCA</h3><p>Ser Computacional Autónomo — identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó específico.</p></div><div class="card" id="glossario-cgu"><h3>CGU</h3><p>Criações Geradas por Utilizadores — inclui criações de humanos e de SCA; são NFT STRATA. A Bancada é um holon do SO.</p></div><div class="card" id="glossario-clp"><h3>CLP</h3><p>Calendário Lunisolar Planetário — kernel temporal da TRD; autoridade civil PPC, ISO só portadora.</p></div><div class="card" id="glossario-ppc"><h3>PPC</h3><p>Matriz planetária de tempo civil (autoridade do CLP neste Nó; locus Lisboa).</p></div><div class="card" id="glossario-nft"><h3>NFT STRATA</h3><p>Objecto não-fungível da substância STRATA (parcela, artefacto, criação). Distinto de um Nó e distinto do SO.</p></div><div class="card" id="glossario-agora"><h3>Ágora</h3><p>Mercado de câmbio P2P onde a STRATA encontra preço face ao exterior — não é um segundo token.</p></div><div class="card" id="glossario-fog"><h3>Névoa (Fog)</h3><p>Holon Fog. Exige operador: humano, DAO associativa, DAO corporativa, ou — futuro aberto — SCA com STRATA suficiente. Neste laboratório: AMCM ENI (humano).</p></div><div class="card" id="glossario-edge"><h3>Limiar (Edge)</h3><p>Dispositivo com função principal; contribui só C_mesh = f(1−U). Sem operador próprio: indexado e dependente de um Fog.</p></div></div>
+  </section>
+
+  <section class="section" id="faq">
+    <p class="sec-num">FAQ</p>
+    <h2>Perguntas frequentes</h2>
+    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. É um laboratório (corte v0.5.1-lab): um nó de referência em Lisboa, um kit para instalar o mesmo sistema noutro computador, e uma escola interna. Os mecanismos ainda estão em ensaio. Não é uma rede pública fechada nem um mercado regulamentado.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
+  </section>
+
+  <footer>
+    <p>Calhegas Morais · StrataMesh TRD · laboratório v0.5.1-lab</p>
+    <p class="mono">FOG-NODE-PT-CM-001 · Lisboa · standing por função e acordo, não por substrato</p>
+    <p class="mono"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a> — AMCM ENI — entidade legal do titular · <a href="/eni">/eni</a></p>
+    <p class="mono"><a href="/termos">Termos</a> · <a href="/dashboard">Painel</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
+    <p class="note" style="text-align:left">Enquadramento MiCA (UE): este domínio não oferece um criptoactivo ao público. A STRATA, nesta fase, é mecanismo de protocolo em laboratório.</p>
+  </footer>
+</main>
+<script>
+(async function(){
+  var box=document.getElementById('livePills');
+  var meta=document.getElementById('liveMeta');
+  if(!box) return;
+  try{
+    var probes=[
+      {k:'status', u:'https://status.calhegasmorais.pt/health'},
+      {k:'fog', u:'https://fog.calhegasmorais.pt/health'},
+      {k:'gossip', u:'https://gossip.calhegasmorais.pt/health'},
+      {k:'edge', u:'https://edge.calhegasmorais.pt/health'},
+      {k:'academy', u:'https://academy.calhegasmorais.pt/health'}
+    ];
+    var html='';
+    var parts=['v0.5.1-lab','n=2','mesh_member=true'];
+    for (var i=0;i<probes.length;i++){
+      var p=probes[i];
+      try{
+        var r=await fetch(p.u,{headers:{'Accept':'application/json'}});
+        var d=null; try{ d=await r.json(); }catch(_){}
+        var ok=r.ok;
+        html+='<span class="pill '+(ok?'ok':'err')+'">'+p.k+' '+(ok?'ok':'—')+'</span>';
+        /* hop ok/err only — do not mix stale worker VERSION into HEAD chip */
+      }catch(_){
+        html+='<span class="pill err">'+p.k+' —</span>';
+      }
+    }
+    box.innerHTML=html;
+    if(meta) meta.textContent=parts.join(' · ');
+  }catch(e){
+    box.innerHTML='<span class="pill err">UNAVAILABLE</span>';
+  }
+})();
+</script>
+<script>
+(function(){
+  function cmnSet(lang){
+    document.cookie='cmn_lang='+lang+'; Path=/; Max-Age=31536000; SameSite=Lax';
+  }
+  window.cmnSetLang=cmnSet;
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('[data-cmn-lang]');
+    if(!el) return;
+    cmnSet(el.getAttribute('data-cmn-lang'));
+  },true);
+})();
+</script>
+</body>
+</html>
