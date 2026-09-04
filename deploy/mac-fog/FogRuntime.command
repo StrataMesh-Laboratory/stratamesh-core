@@ -25,5 +25,11 @@ ensure_wizard_ollama() {
 ensure_wizard_ollama || true
 unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory \
       MallocScribble MallocGuardEdges MallocNanoZone || true
-exec /usr/bin/caffeinate -ims python3 "$TUI" \
+# Prefer Homebrew python3. Apple CLT Python.app 3.9 SIGSEGV is the crash dialog.
+PY=""
+for c in /usr/local/bin/python3 /opt/homebrew/bin/python3; do
+  if [[ -x "$c" ]]; then PY="$c"; break; fi
+done
+PY="${PY:-python3}"
+exec /usr/bin/caffeinate -ims "$PY" "$TUI" \
   2> >(grep -v -F 'MallocStackLogging' >&2 || true)

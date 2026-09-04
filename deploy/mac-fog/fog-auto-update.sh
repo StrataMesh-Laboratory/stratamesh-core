@@ -65,17 +65,25 @@ if command -v brew >/dev/null 2>&1; then
   fi
   # Sequoia: Xcode.app alone cannot brew-build. Node 25.x looks for
   # libllhttp.9.3.dylib while Cellar may only have 9.4.x. Alias until CLT+reinstall.
+  src=""
   for d in /usr/local/opt/llhttp/lib /opt/homebrew/opt/llhttp/lib; do
-    [[ -d "$d" ]] || continue
-    if [[ ! -e "$d/libllhttp.9.3.dylib" ]]; then
-      src=""
-      [[ -e "$d/libllhttp.dylib" ]] && src="$d/libllhttp.dylib"
-      [[ -z "$src" ]] && src=$(ls "$d"/libllhttp.*.dylib 2>/dev/null | tail -1 || true)
-      if [[ -n "$src" ]]; then
+    [[ -e "$d/libllhttp.dylib" ]] && src="$d/libllhttp.dylib"
+    [[ -z "$src" ]] && src=$(ls "$d"/libllhttp.*.dylib 2>/dev/null | grep -v '9\.3' | tail -1 || true)
+    [[ -n "$src" ]] && break
+  done
+  if [[ -z "$src" ]]; then
+    src=$(ls /usr/local/Cellar/llhttp/*/lib/libllhttp*.dylib /opt/homebrew/Cellar/llhttp/*/lib/libllhttp*.dylib 2>/dev/null | grep -v '9\.3' | tail -1 || true)
+  fi
+  if [[ -n "$src" ]]; then
+    for d in /usr/local/opt/llhttp/lib /opt/homebrew/opt/llhttp/lib; do
+      mkdir -p "$d"
+      if [[ ! -e "$d/libllhttp.9.3.dylib" ]]; then
         ln -sf "$src" "$d/libllhttp.9.3.dylib" && log "linked $src -> $d/libllhttp.9.3.dylib"
       fi
-    fi
-  done
+    done
+  else
+    log "llhttp dylib missing (opt+Cellar)"
+  fi
 else
   log "brew missing"
 fi

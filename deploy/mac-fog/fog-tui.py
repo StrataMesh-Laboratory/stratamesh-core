@@ -682,20 +682,28 @@ def brew_update_upgrade() -> str:
             notes.append("reinstall llhttp node rc=%s" % rc)
         except Exception:
             notes.append("reinstall llhttp node fail")
-        # Sequoia CLT missing: alias 9.4.x / unversioned dylib as 9.3 so node -v works.
-        for d in ("/usr/local/opt/llhttp/lib", "/opt/homebrew/opt/llhttp/lib"):
-            libdir = Path(d)
-            dest = libdir / "libllhttp.9.3.dylib"
-            if dest.exists() or dest.is_symlink():
-                continue
-            src = libdir / "libllhttp.dylib"
-            if not src.exists():
-                cands = sorted(libdir.glob("libllhttp.*.dylib"))
-                src = cands[-1] if cands else None
-            if src and src.exists():
+        # opt/ may be unlinked; Cellar 9.4.x is the real bottle. mkdir + alias 9.3.
+        sources = []
+        for d in (Path("/usr/local/opt/llhttp/lib"), Path("/opt/homebrew/opt/llhttp/lib")):
+            if (d / "libllhttp.dylib").exists():
+                sources.append(d / "libllhttp.dylib")
+            sources.extend(sorted(d.glob("libllhttp.*.dylib")))
+        for root in (Path("/usr/local/Cellar/llhttp"), Path("/opt/homebrew/Cellar/llhttp")):
+            if root.is_dir():
+                sources.extend(sorted(root.glob("*/lib/libllhttp*.dylib")))
+        src = next((p for p in sources if p.exists() and "9.3" not in p.name), None)
+        src = src or next((p for p in sources if p.exists()), None)
+        if src:
+            for dest in (
+                Path("/usr/local/opt/llhttp/lib/libllhttp.9.3.dylib"),
+                Path("/opt/homebrew/opt/llhttp/lib/libllhttp.9.3.dylib"),
+            ):
                 try:
-                    dest.symlink_to(src)
-                    notes.append("link %s -> 9.3" % src.name)
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    if dest.exists() or dest.is_symlink():
+                        continue
+                    dest.symlink_to(src.resolve())
+                    notes.append("link %s -> %s" % (src, dest))
                 except OSError:
                     notes.append("link 9.3 fail")
     return "brew " + " · ".join(notes)
