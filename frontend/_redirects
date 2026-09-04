@@ -13,3 +13,6 @@
 /api/* /404.html 404
 /chat /chat.html 200
 /chat/* /chat.html 200
+
+/fog-appliance /fog-appliance.html 200
+/en/fog-appliance /fog-appliance.html 200

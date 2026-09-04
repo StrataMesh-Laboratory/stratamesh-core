@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Fog appliance · post-MacBook hardware · Calhegas Morais</title>
+  <link rel="canonical" href="https://calhegasmorais.pt/fog-appliance"/>
+  <meta name="description" content="Proposed R&amp;D architecture: FOG-NODE-PT-CM-001 from MacBook laboratory host to a dedicated always-on mini-server. No public date. Not a production device."/>
+  <meta property="og:title" content="Fog appliance · post-MacBook hardware"/>
+  <meta property="og:url" content="https://calhegasmorais.pt/fog-appliance"/>
+  <link rel="icon" href="/favicon.ico"/>
+<style>
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113;--ok:#6b8f71}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.75;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+.top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand strong{color:var(--fg);font-weight:500}
+.wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+header{margin-bottom:2.2rem;padding-bottom:2rem;border-bottom:1px solid var(--line)}
+.kicker{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-weight:400;font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.85rem}
+.lead{font-size:1.05rem;color:var(--muted)}
+.cta-row{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.4rem}
+.btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px}
+.btn:hover{background:var(--accent);color:#111}
+.btn.ghost{border-color:var(--line2);color:var(--muted)}
+.note{font-size:.88rem;border-left:2px solid var(--line2);padding:.55rem 0 .55rem .9rem;margin:1rem 0;color:var(--muted)}
+.sec-num{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.45rem}
+h2{font-weight:400;font-size:1.45rem;letter-spacing:-.015em;margin:.35rem 0 .7rem}
+h3{font-weight:500;font-size:.95rem;margin:1.1rem 0 .4rem}
+p,li{color:var(--muted)}
+p{margin-bottom:.8rem}
+p strong,li strong{color:var(--fg);font-weight:400}
+ul,ol{margin:.2rem 0 1rem 1.2rem}
+.section{margin-bottom:2.2rem;padding-bottom:1.8rem;border-bottom:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1.05rem 1.1rem;margin:.7rem 0}
+.card h3{margin:0 0 .35rem;font-size:.78rem;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.stack{font-family:ui-monospace,monospace;font-size:.72rem;line-height:1.65;color:var(--muted);padding:1rem 1.1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;margin:1rem 0;white-space:pre-wrap}
+.grid{display:grid;gap:.7rem;margin:1rem 0}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+.pill{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;padding:.35rem .55rem;border:1px solid var(--line2);border-radius:2px;color:var(--muted);display:inline-block;margin:.15rem .25rem .15rem 0}
+footer{margin-top:2.5rem;padding-top:1.4rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+.toc{display:flex;flex-wrap:wrap;gap:.4rem;margin:1.2rem 0 0}
+.toc a{font-family:ui-monospace,monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:.4rem .55rem;border-radius:3px;background:var(--card)}
+.toc a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-inner">
+  <div class="brand"><strong>Calhegas Morais</strong> · Fog appliance</div>
+  <div class="brand"><a href="/en/roadmap">Roadmap</a> · <a href="/">Home</a></div>
+</div></div>
+<main class="wrap">
+<header>
+  <p class="kicker">FOG-NODE-PT-CM-001 · proposed R&amp;D · no public date</p>
+  <h1>Post-MacBook Fog appliance</h1>
+  <p class="lead">From the live MacBook laboratory host to a standalone, always-on mini-server. Modular compute, resource evidence, and energy-aware hardware. Not a production device.</p>
+  <p class="note">Canonical text: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/FOG-APPLIANCE.md">docs/FOG-APPLIANCE.md</a>. Software today remains v0.5.1-lab on the Mac. Experimental thermal cartridges must not be single points of failure.</p>
+  <div class="cta-row">
+    <a class="btn" href="/en/roadmap">Master roadmap</a>
+    <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/FOG-APPLIANCE.md">Full prospectus</a>
+    <a class="btn ghost" href="https://fog.calhegasmorais.pt/health">Fog health</a>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#why">Why</a><a href="#gen0">Gen-0</a><a href="#modules">Modules</a>
+    <a href="#evidence">Evidence</a><a href="#thermal">Thermal</a><a href="#phases">Phases A–J</a>
+    <a href="#metrics">Metrics</a><a href="#spec">Spec</a>
+  </nav>
+</header>
+
+<section class="section" id="why">
+  <p class="sec-num">01 · proposition</p>
+  <h2>The Fog is planned capacity</h2>
+  <p>Edge contributes residual capacity. Fog is installed, persistent, and provisioned on purpose. A useful node is not a peak-benchmark machine. It is sustained, measurable, verifiable work per euro, watt, cubic centimetre, and maintenance hour.</p>
+  <p>Nominal watts are not operating cost. Operating cost is compute + memory + storage + network + conversion loss + cooling + control + standby. Declared capacity is not accepted capacity. The hardware must expose that difference.</p>
+</section>
+
+<section class="section" id="gen0">
+  <p class="sec-num">02 · first prototype</p>
+  <h2>Gen-0 is a used mini-PC</h2>
+  <p>Do not manufacture a custom appliance first. Target about <strong>€50–100</strong> second-hand: x86 mini-PC or thin client, ≥8&nbsp;GB RAM, working SSD, Ethernet, Linux, conventional cooling, a cheap MCU, basic temperature and power sensors.</p>
+  <p>Success is not a new cooler. Success is: another machine sends work, gets a useful result, and can verify that this node provided the claimed resource for the claimed interval.</p>
+  <div class="stack">Used mini-PC
+ ├── Linux host
+ ├── StrataMesh Fog runtime
+ ├── resource collector + benchmark
+ ├── evidence / receipt engine
+ └── hardware telemetry daemon
+        └── USB/serial MCU
+             ├── temperature
+             ├── power
+             └── watchdog</div>
+</section>
+
+<section class="section" id="modules">
+  <p class="sec-num">03 · replaceable cartridges</p>
+  <h2>Nine modules</h2>
+  <div class="grid two">
+    <div class="card"><h3>A Compute</h3><p>Board, CPU, RAM, optional NPU/GPU/FPGA, local fabric.</p></div>
+    <div class="card"><h3>B Memory / storage</h3><p>RAM, NVMe, node state, evidence store, future CXL.</p></div>
+    <div class="card"><h3>C Network</h3><p>Ethernet first. Later programmable NIC / DPU / FPGA.</p></div>
+    <div class="card"><h3>D Evidence / security</h3><p>TPM or secure element, MCU, RTC, sensors, watchdog.</p></div>
+    <div class="card"><h3>E Conventional thermal</h3><p>Cold plate, heat pipe or loop, ordinary fan. Must work alone.</p></div>
+    <div class="card"><h3>F Experimental thermal</h3><p>Magnetocaloric cells, regenerator — research only.</p></div>
+    <div class="card"><h3>G MEMS air</h3><p>Piezoelectric movers for hot-side rejection.</p></div>
+    <div class="card"><h3>H Energy electronics</h3><p>DC bus, rectifier, supercap, measured recovery only.</p></div>
+    <div class="card"><h3>I Accelerator</h3><p>FPGA / NPU / CIM / photonic — optional cartridge.</p></div>
+  </div>
+  <p>The node stays up if F, G, H or I are removed.</p>
+</section>
+
+<section class="section" id="evidence">
+  <p class="sec-num">04 · evidence plane</p>
+  <h2>Declared vs measured</h2>
+  <p>Software may say “32 cores.” Hardware-backed evidence says this identified device booted measured firmware and completed the tests. The OS must not freely rewrite MCU measurements.</p>
+  <div class="stack">SERVICE PLANE  workloads
+RESOURCE PLANE  CPU RAM disk net accel
+EVIDENCE PLANE  measure → timestamp → hash → sign
+SECURE MCU      signed receipt</div>
+  <p>Time is a measurement primitive: start, end, allocation, work done, sensor health, clock drift. Graduated capacity from 100% down to safe shutdown — thermal headroom cuts advertised availability.</p>
+</section>
+
+<section class="section" id="thermal">
+  <p class="sec-num">05 · thermal / energy</p>
+  <h2>Conventional first</h2>
+  <p>Copper cold plate and a normal heatsink/fan are the primary path for several generations. Magnetocaloric work starts as a separate 20–50&nbsp;W bench, not 300&nbsp;W on the node. MEMS air rejects heat to ambient; it is not below-ambient refrigeration. Thermomagnetic recovery is counted only as measured watts at the electrical interface. The node is not self-powered.</p>
+  <p>Net demand = electrical input − measured recovered output. Dew-point interlock before any below-ambient experiment.</p>
+</section>
+
+<section class="section" id="phases">
+  <p class="sec-num">06 · ladder</p>
+  <h2>Phases A–J</h2>
+  <div class="card"><h3>A · cheap reference</h3><p>Used mini-PC + Linux + current Fog stack. Execute remote work. Report contribution.</p></div>
+  <div class="card"><h3>B · instrumented</h3><p>Sensors, MCU, watchdog, benchmark, tamper-evident log. Nominal ≠ sustained.</p></div>
+  <div class="card"><h3>C · dedicated appliance</h3><p>Replace the temporary box. Equal or better useful capacity than the MacBook at lower TCO.</p></div>
+  <div class="card"><h3>D · data plane</h3><p>FPGA/DPU/NIC metering when justified by measurement.</p></div>
+  <div class="card"><h3>E · accelerator cartridge</h3><p>One real StrataMesh workload must benefit.</p></div>
+  <div class="card"><h3>F–J · MEMS / MCM / recovery / integrate / density</h3><p>Only after measured advantage. Long runs 30 / 90 / 180 days.</p></div>
+</section>
+
+<section class="section" id="metrics">
+  <p class="sec-num">07 · what wins</p>
+  <h2>Useful work per euro and per kWh</h2>
+  <p>Over the useful life of the node — not colder CPUs, not theoretical recovery, not TOPS. Do not start with custom silicon, superconducting magnets, a large GPU before workloads, or an enclosure before interfaces exist.</p>
+</section>
+
+<section class="section" id="spec">
+  <p class="sec-num">08 · Gen-0 spec</p>
+  <h2>Compact Fog — planning range</h2>
+  <ul>
+    <li>Compute: efficient used x86 (ARM allowed; x86 first for current tooling)</li>
+    <li>Memory: 8–32&nbsp;GB Gen-0; 32–128&nbsp;GB later</li>
+    <li>Storage: one SSD/NVMe; separate evidence store when practical</li>
+    <li>Network: integrated Ethernet; 2.5&nbsp;GbE if cheap</li>
+    <li>OS: Linux host for the same Fog role the Mac runs today</li>
+    <li>Thermal: conventional + instrumentation</li>
+    <li>Identity: software first; TPM-class next revision</li>
+  </ul>
+  <p>Path: MacBook reference → minimal Fog → instrumented → evidence → programmable → solid-state thermal → energy-aware → composable appliance.</p>
+</section>
+
+<footer>
+  <p>Calhegas Morais · StrataMesh Laboratory · Lisbon · AMCM ENI</p>
+  <p>Proposed architecture. No ship date. Mac Fog origin stays Mac until a dedicated host is measured in.</p>
+</footer>
+</main>
+</body>
+</html>
