@@ -30,6 +30,7 @@ PATH_MAP = {
     "frontend/eni.html": ("eni", "eni-pt"),
     "frontend/sandbox.html": ("sandbox",),
     "frontend/gnu-atelier.html": ("atelier",),
+    "frontend/fog-appliance.html": ("fog-appliance", "fog-appliance-en"),
 }
 
 WORKER_MAP = {
