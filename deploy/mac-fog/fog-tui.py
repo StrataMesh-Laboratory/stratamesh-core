@@ -1867,6 +1867,8 @@ def draw(msg: str = "") -> None:
     node_hint = ""
     if not bool(ndh.get("ok")):
         node_hint = runtime_mesh_last_error(st)
+        if node_hint.strip().lower() == "host_cap":
+            node_hint = ""
     for port, name, okh in mesh:
         hist = HOP_LIVE_HIST.get(port)
         if hist is not None:

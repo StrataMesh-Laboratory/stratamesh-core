@@ -125,6 +125,22 @@ def test_tui_reboot_recycles_mw_before_kickstart():
     assert body.index("recycle_mw") < body.index("kickstart")
 
 
+def test_host_cap_ignores_huge_loadavg():
+    """Mach load1=389 must not trip over by itself (screenshot false positive)."""
+    from unittest.mock import patch
+    from fog_plugins import host_cap
+
+    with patch.object(host_cap.os, "getloadavg", return_value=(389.391, 200.0, 100.0)), \
+         patch.object(host_cap.os, "cpu_count", return_value=8), \
+         patch.object(host_cap, "_mem_frac", return_value=0.77), \
+         patch.object(host_cap, "_disk_frac", return_value=0.35), \
+         patch.object(host_cap, "_cpu_frac", return_value=0.21):
+        snap = host_cap.snapshot()
+    assert snap["load1"] == 389.391
+    assert snap["over"] is False
+    assert snap["reason"] == "ok"
+
+
 def test_spawn_still_listens_when_host_cap_over():
     """host_cap.over is HOLD pacing, not a skip of mw Popen / :8790 listen."""
     import tempfile
@@ -158,8 +174,8 @@ def test_spawn_still_listens_when_host_cap_over():
              patch.object(runtime_mesh.shutil, "which", return_value=None), \
              patch("builtins.open", MagicMock()):
             plugin._spawn()
-    assert plugin.last_error == "host_cap"
     assert popen_cmds, "host_cap.over() must not return before Popen"
+    assert plugin.last_error != "host_cap", "dark hops must not paint last_error=host_cap"
     assert popen_cmds[0][0] == "python3"
     assert write_sha.called, "HOLD must still stamp git sha after spawn"
 
@@ -238,7 +254,7 @@ def test_spawn_deno_8792_when_host_cap_over():
              patch.object(runtime_mesh.shutil, "which", fake_which), \
              patch("builtins.open", MagicMock()):
             plugin._spawn()
-    assert plugin.last_error == "host_cap"
+    assert plugin.last_error != "host_cap", "dark :8791 must keep dyld/mw RCA, not host_cap"
     deno_cmds = [c for c in popen_cmds if c and "deno" in str(c[0])]
     assert deno_cmds, "host_cap.over must not skip deno Popen"
     cmd = deno_cmds[0]

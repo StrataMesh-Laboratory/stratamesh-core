@@ -398,6 +398,16 @@ class RuntimeMeshPlugin:
         self.last_error = None
         self._node_backoff_until = 0.0
 
+    def _mark_host_cap_pace(self) -> None:
+        """HOLD paces keep-up/PoC. Never overwrite a dyld/mw-node RCA on :8791."""
+        err = str(self.last_error or "")
+        low = err.lower()
+        if any(s in low for s in ("dyld", "libllhttp", "libada", "mw-node", "library not loaded")):
+            return
+        if not _healthy(NODE_PORT):
+            return
+        self.last_error = "host_cap"
+
     def snapshot(self) -> dict:
         node_bin = _which_bin("node")
         deno_bin = _which_bin("deno")
@@ -458,7 +468,7 @@ class RuntimeMeshPlugin:
         # Still bind :8790/:8791/:8792 if unhealthy. sha stamp is git identity, not metabol.
         cap_over = host_cap.over()
         if cap_over:
-            self.last_error = "host_cap"
+            self._mark_host_cap_pace()
         DATA.mkdir(parents=True, exist_ok=True)
         py = ROOT / "ops" / "middleware" / "fog_mw.py"
         js = ROOT / "ops" / "middleware" / "fog_mw.js"
@@ -552,7 +562,7 @@ class RuntimeMeshPlugin:
         while not self._stop.is_set():
             try:
                 if host_cap.over():
-                    self.last_error = "host_cap"
+                    self._mark_host_cap_pace()
                 py = ROOT / "ops" / "middleware" / "fog_mw.py"
                 js = ROOT / "ops" / "middleware" / "fog_mw.js"
                 ts = ROOT / "ops" / "deno" / "main.ts"

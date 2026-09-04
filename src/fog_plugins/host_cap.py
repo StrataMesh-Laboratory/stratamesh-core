@@ -13,6 +13,14 @@ from typing import Any
 CAP = float(os.environ.get("FOG_HOST_CAP") or "0.60")
 if CAP <= 0 or CAP > 1:
     CAP = 0.60
+# Laptop RAM/disk trip higher than CPU. Steam + browser routinely sit ~70% RAM
+# and must not paint node :8791 as host_cap or pace-kill keep-up.
+MEM_CAP = float(os.environ.get("FOG_HOST_MEM_CAP") or "0.90")
+if MEM_CAP <= 0 or MEM_CAP > 1:
+    MEM_CAP = 0.90
+DISK_CAP = float(os.environ.get("FOG_HOST_DISK_CAP") or "0.90")
+if DISK_CAP <= 0 or DISK_CAP > 1:
+    DISK_CAP = 0.90
 
 
 def _mem_frac() -> float:
@@ -76,29 +84,55 @@ def _disk_frac() -> float:
     return 0.0
 
 
+def _cpu_frac(ncpu: int, load1: float) -> float:
+    """Prefer instantaneous CPU%. Mach loadavg is not Fog burn-rate.
+
+    load1=389 / 8 cores → load_frac 48 looks like 'over' forever and is a
+    false positive (scheduler run-queue, not the python/node hops).
+    """
+    try:
+        import psutil  # type: ignore
+        pct = float(psutil.cpu_percent(interval=None))
+        if pct > 0:
+            return min(1.0, pct / 100.0)
+    except Exception:
+        pass
+    if ncpu <= 0:
+        return 0.0
+    # No psutil: only treat as hot when the run-queue is at least 1.0 per core.
+    return min(1.0, max(0.0, float(load1) / float(ncpu)))
+
+
 def snapshot() -> dict[str, Any]:
     ncpu = os.cpu_count() or 1
     try:
         load1, load5, load15 = os.getloadavg()
     except Exception:
         load1 = load5 = load15 = 0.0
-    load_frac = float(load1) / float(ncpu)
+    load_frac = float(load1) / float(ncpu) if ncpu else 0.0
     mem_frac = _mem_frac()
     disk_frac = _disk_frac()
-    cpu_frac = load_frac
-    over = load_frac >= CAP or mem_frac >= CAP or disk_frac >= CAP
+    cpu_frac = _cpu_frac(ncpu, load1)
+    over_load = cpu_frac >= CAP
+    over_mem = mem_frac >= MEM_CAP
+    over_disk = disk_frac >= DISK_CAP
+    over = over_load or over_mem or over_disk
     reason = []
-    if load_frac >= CAP:
+    if over_load:
         reason.append("load")
-    if mem_frac >= CAP:
+    if over_mem:
         reason.append("mem")
-    if disk_frac >= CAP:
+    if over_disk:
         reason.append("disk")
     return {
         "schema": "stratamesh.fog.host_cap.v1",
         "cap": CAP,
+        "mem_cap": MEM_CAP,
+        "disk_cap": DISK_CAP,
         "ncpu": ncpu,
         "load1": round(load1, 3),
+        "load5": round(load5, 3),
+        "load15": round(load15, 3),
         "load_frac": round(load_frac, 4),
         "mem_frac": round(mem_frac, 4),
         "disk_frac": round(disk_frac, 4),
