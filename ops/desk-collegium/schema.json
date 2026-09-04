@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "desk.collegium.v1",
+  "title": "Fog desk collegium",
+  "definitions": {
+    "metabol_pace": {
+      "type": "string",
+      "enum": [
+        "ALLOW",
+        "HOLD",
+        "STASIS",
+        "P0_BORROW"
+      ]
+    },
+    "desk_task": {
+      "type": "object",
+      "required": [
+        "schema",
+        "id",
+        "owner",
+        "specialty",
+        "intent",
+        "status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "desk.task.v1"
+        },
+        "id": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "specialty": {
+          "type": "string",
+          "enum": [
+            "coord",
+            "code",
+            "claw",
+            "fog",
+            "edge",
+            "lead",
+            "mail"
+          ]
+        },
+        "intent": {
+          "type": "string"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "propose",
+            "constrain",
+            "revise",
+            "commit",
+            "escalate",
+            "done",
+            "drop"
+          ]
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "result": {
+          "type": "string"
+        },
+        "sha": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
