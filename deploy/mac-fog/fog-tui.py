@@ -1065,7 +1065,7 @@ WIZARD_DOCS_SEED = (
     "Fog kernel listens on :8787. Middleware hops are workerd, python, node, and deno (five slots). "
     "SCA (PT) and ACB (EN) name the same subject. "
     "HOLD is metabolic host_cap, not a CPU RCA. "
-    "FOG Hermes Agent (external_agent desk mandate) answers the wizard via local Ollama; Hermes is not an SCA. If Ollama is down the FAQ is fail-open from public docs. "
+    "FOG desk external_agents (Hermes/OpenCode/OpenClaw) answer via local Ollama; none are SCAs. If Ollama is down the FAQ is fail-open from public docs. "
     "Never pkill cloudflared. Never workers.dev. Never secrets."
 )
 
