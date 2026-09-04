@@ -15,3 +15,18 @@ python3 deploy/mac-fog/fog-bootstrap.py
 ```
 
 Reference CMN (`FOG-NODE-PT-CM-001`) keeps LaunchAgent `pt.calhegasmorais.fog`, origin `macbook`, n=2. Any other registered id uses `lab.stratamesh.fog`, origin `local`, n=1 until it peers.
+
+## Manual node mw (:8791)
+
+Prefer `~/StrataMesh/fog/bin/node-official` over Homebrew `node` on Intel (Cellar dyld / no bottle).
+
+Always start with **absolute** paths from `$HOME` — never from `/tmp` or a Node tarball extract dir (broken multi-line pastes glue cwd + script into one `MODULE_NOT_FOUND` path).
+
+```bash
+cd "$HOME" && nohup "$HOME/StrataMesh/fog/bin/node-official" \
+  "$HOME/StrataMesh/fog/repo/ops/middleware/fog_mw.js" \
+  >>"$HOME/StrataMesh/fog/data/mw-node.log" 2>&1 &
+curl -sf -m 2 http://127.0.0.1:8791/health
+```
+
+Runtime mesh already spawns the same absolute script under `FOG_SRC`/`~/StrataMesh/fog/repo`.
