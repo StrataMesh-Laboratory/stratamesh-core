@@ -646,6 +646,11 @@ if (path.startsWith('/api/')) {
       return serveFogAppliance(request, env, corsHeaders);
     }
 
+    if (path === '/fog-infrastructure' || path === '/fog-infrastructure/' ||
+        path === '/en/fog-infrastructure' || path === '/en/fog-infrastructure/') {
+      return serveFogInfrastructure(request, env, corsHeaders);
+    }
+
     if (
       path === '/' || path === '' || path === '/home' || path === '/index.html' ||
       path === '/pt' || path === '/pt/' || path.startsWith('/pt/') ||
@@ -920,6 +925,35 @@ async function serveFogAppliance(request, env, corsHeaders) {
     }
   } catch (e) {
     console.error("fog-appliance LEDGER", e);
+  }
+  return new Response("Not Found", { status: 404, headers: corsHeaders });
+}
+
+async function serveFogInfrastructure(request, env, corsHeaders) {
+  const keys = ["fog-infrastructure", "fog-infrastructure-en"];
+  try {
+    if (env.LEDGER) {
+      for (const key of keys) {
+        try {
+          const { results: chunks } = await env.LEDGER.prepare(
+            "SELECT idx, value FROM site_content_chunks WHERE key = ? ORDER BY idx ASC"
+          ).bind(key).all();
+          if (chunks && chunks.length) {
+            const html = chunks.map((c) => c.value || "").join("");
+            if (html) {
+              return htmlPage(html, {
+                ...corsHeaders,
+                "Cache-Control": "public, max-age=60",
+                "Content-Language": "en-GB",
+                "X-Home-Source": "site_content_chunks",
+              });
+            }
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    console.error("fog-infrastructure LEDGER", e);
   }
   return new Response("Not Found", { status: 404, headers: corsHeaders });
 }

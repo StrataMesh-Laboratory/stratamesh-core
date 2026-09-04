@@ -81,8 +81,9 @@ jobs:
           cp frontend/portal-pt.html dist/portal-pt.html
           cp frontend/sandbox.html dist/sandbox.html
           cp frontend/fog-appliance.html dist/fog-appliance.html
+          cp frontend/fog-infrastructure.html dist/fog-infrastructure.html
           cp frontend/maintenance-1xxx.html dist/maintenance-1xxx.html
-          printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' > dist/_redirects
+          printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' '/fog-infrastructure /fog-infrastructure.html 200' '/en/fog-infrastructure /fog-infrastructure.html 200' > dist/_redirects
           curl -fsSL -o dist/video/stratamesh-lab.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.mp4 || true
           curl -fsSL -o dist/video/stratamesh-lab-portrait.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab-portrait.mp4 || true
           curl -fsSL -o dist/video/stratamesh-lab.jpg https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.jpg || true

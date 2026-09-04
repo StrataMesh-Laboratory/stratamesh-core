@@ -17,6 +17,7 @@ on:
       - "frontend/eni.html"
       - "frontend/sandbox.html"
       - "frontend/fog-appliance.html"
+      - "frontend/fog-infrastructure.html"
       - "workers/stratamesh-fog-standby.js"
       - "workers/stratamesh-origin-archive.js"
       - "ops/bin/d1-put-html.py"
@@ -80,7 +81,7 @@ jobs:
           LIST=""
           for f in "${CHANGED[@]}"; do
             case "$f" in
-              frontend/landing-pt.html|frontend/landing-en.html|frontend/portal-pt.html|frontend/portal-en.html|frontend/roadmap-pt.html|frontend/roadmap-en.html|frontend/eni.html|frontend/fog-appliance.html|workers/stratamesh-fog-standby.js)
+              frontend/landing-pt.html|frontend/landing-en.html|frontend/portal-pt.html|frontend/portal-en.html|frontend/roadmap-pt.html|frontend/roadmap-en.html|frontend/eni.html|frontend/fog-appliance.html|frontend/fog-infrastructure.html|workers/stratamesh-fog-standby.js)
                 LIST="$LIST $f"
                 ;;
             esac

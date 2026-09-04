@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Fog infrastructure · 2×2 m hut · Calhegas Morais</title>
+  <link rel="canonical" href="https://calhegasmorais.pt/fog-infrastructure"/>
+  <meta name="description" content="Paired R&amp;D prospectus: Fog Infrastructure hut for the Fog Appliance. Grid, gas, fiber, Starlink, radio. No public date."/>
+  <link rel="icon" href="/favicon.ico"/>
+<style>
+:root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--card:#111113}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-weight:300;line-height:1.75;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
+.top{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:44rem;margin:0 auto;padding:.85rem 1.5rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand strong{color:var(--fg);font-weight:500}
+.wrap{max-width:44rem;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+header{margin-bottom:2.2rem;padding-bottom:2rem;border-bottom:1px solid var(--line)}
+.kicker{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.15rem}
+h1{font-weight:400;font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:.85rem}
+.lead{font-size:1.05rem;color:var(--muted)}
+.cta-row{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.4rem}
+.btn{display:inline-block;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.05rem;border:1px solid var(--accent);color:var(--accent);border-radius:3px}
+.btn:hover{background:var(--accent);color:#111}
+.btn.ghost{border-color:var(--line2);color:var(--muted)}
+.note{font-size:.88rem;border-left:2px solid var(--line2);padding:.55rem 0 .55rem .9rem;margin:1rem 0;color:var(--muted)}
+.sec-num{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.45rem}
+h2{font-weight:400;font-size:1.45rem;letter-spacing:-.015em;margin:.35rem 0 .7rem}
+p,li{color:var(--muted)}p{margin-bottom:.8rem}
+p strong,li strong{color:var(--fg);font-weight:400}
+ul{margin:.2rem 0 1rem 1.2rem}
+.section{margin-bottom:2.2rem;padding-bottom:1.8rem;border-bottom:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1.05rem 1.1rem;margin:.7rem 0}
+.card h3{margin:0 0 .35rem;font-size:.78rem;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.stack{font-family:ui-monospace,monospace;font-size:.72rem;line-height:1.65;color:var(--muted);padding:1rem 1.1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;margin:1rem 0;white-space:pre-wrap}
+.grid{display:grid;gap:.7rem;margin:1rem 0}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+.toc{display:flex;flex-wrap:wrap;gap:.4rem;margin:1.2rem 0 0}
+.toc a{font-family:ui-monospace,monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:.4rem .55rem;border-radius:3px;background:var(--card)}
+footer{margin-top:2.5rem;padding-top:1.4rem;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-inner">
+  <div class="brand"><strong>Calhegas Morais</strong> · Fog infrastructure</div>
+  <div class="brand"><a href="/fog-appliance">Appliance</a> · <a href="/en/roadmap">Roadmap</a></div>
+</div></div>
+<main class="wrap">
+<header>
+  <p class="kicker">FOG-NODE-PT-CM-001 · pair of the appliance · no public date</p>
+  <h1>2×2 m infrastructure hut</h1>
+  <p class="lead">Utility optionality. Grid, piped gas and fiber are inputs, not assumptions. Starlink and dispatchable generation are independent fallbacks. The hut enables the appliance.</p>
+  <p class="note">Canonical: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/FOG-INFRASTRUCTURE.md">docs/FOG-INFRASTRUCTURE.md</a>. Pair: <a href="/fog-appliance">Fog appliance</a>. Combustion generation stays outside the occupied 2×2 m.</p>
+  <div class="cta-row">
+    <a class="btn" href="/fog-appliance">Appliance prospectus</a>
+    <a class="btn ghost" href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/FOG-INFRASTRUCTURE.md">Full text</a>
+  </div>
+  <nav class="toc">
+    <a href="#pair">Pair</a><a href="#utilities">Utilities</a><a href="#states">States 0–6</a>
+    <a href="#hut">Hut</a><a href="#ladder">INFRA-0–6</a><a href="#evidence">Evidence</a>
+  </nav>
+</header>
+
+<section class="section" id="pair">
+  <p class="sec-num">01 · two layers</p>
+  <h2>Appliance ≠ infrastructure</h2>
+  <p>The <strong>appliance</strong> produces compute, storage, measurement and receipts. The <strong>infrastructure</strong> supplies power, backhaul, radio, shelter and the human exception desk. Same node role. Different physical layer.</p>
+  <div class="stack">AVAILABLE RESOURCES
+ → health → cost → capacity
+ → contingency state
+ → optimal configuration</div>
+</section>
+
+<section class="section" id="utilities">
+  <p class="sec-num">02 · three utilities + two fallbacks</p>
+  <h2>Optionality</h2>
+  <div class="grid two">
+    <div class="card"><h3>Grid</h3><p>Usual primary power. Not guaranteed. Failure is a transition.</p></div>
+    <div class="card"><h3>Piped gas</h3><p>Dispatchable reserve. Generator and exhaust outside the hut.</p></div>
+    <div class="card"><h3>Fiber</h3><p>Preferred WAN. Not the only path.</p></div>
+    <div class="card"><h3>Starlink</h3><p>Separate failure domain. Orchestrated with fiber.</p></div>
+    <div class="card"><h3>Radio</h3><p>Wi-Fi, LoRa, directional P2P. ANACOM / licensed rules apply.</p></div>
+    <div class="card"><h3>Renewable + fuel</h3><p>Intermittent cheap energy; generator for continuity. No magic off-grid.</p></div>
+  </div>
+</section>
+
+<section class="section" id="states">
+  <p class="sec-num">03 · graceful degradation</p>
+  <h2>States 0–6</h2>
+  <ul>
+    <li><strong>0</strong> Grid + fiber + gas. Starlink is WAN reserve.</li>
+    <li><strong>1</strong> Grid + fiber. No gas.</li>
+    <li><strong>2</strong> Grid + gas. Fiber down → Starlink + radio.</li>
+    <li><strong>3</strong> Gas + fiber. Grid down.</li>
+    <li><strong>4</strong> Gas only. Starlink + radio.</li>
+    <li><strong>5</strong> Renewable + fuel. No grid, pipe or fiber.</li>
+    <li><strong>6</strong> Scarcity shed: safety → control → comms → critical compute → ordinary Fog → opportunistic.</li>
+  </ul>
+  <p>Grid may import or, where DGEG allows, export surplus. A battery is ride-through, not the architecture.</p>
+</section>
+
+<section class="section" id="hut">
+  <p class="sec-num">04 · physical</p>
+  <h2>~2 m × 2 m</h2>
+  <p>Inside: appliance, switch, router, fiber terminate, power electronics, MCU, sensors, optional UPS, radios, one desk + monitor + keyboard. Nobody inside in the normal state.</p>
+  <p>Outside: Starlink, antennas, solar, generator, gas, exhaust. Safety is not minimized — grounding, fire, CO, surge, certified interconnect, radio compliance.</p>
+</section>
+
+<section class="section" id="ladder">
+  <p class="sec-num">05 · deploy ladder</p>
+  <h2>INFRA-0 to INFRA-6</h2>
+  <div class="card"><h3>0 enclosure</h3><p>Hut + grid + network + appliance + environment sensors.</p></div>
+  <div class="card"><h3>1 dual WAN</h3><p>Fiber + Starlink + automatic failover.</p></div>
+  <div class="card"><h3>2 radio</h3><p>Wi-Fi, sensor radio, directional links.</p></div>
+  <div class="card"><h3>3 dispatchable</h3><p>Generator + energy controller.</p></div>
+  <div class="card"><h3>4 renewable hybrid</h3><p>Solar and energy-aware scheduling.</p></div>
+  <div class="card"><h3>5–6 bidirectional / autonomous</h3><p>Authorized export where legal. Full mix orchestrated.</p></div>
+</section>
+
+<section class="section" id="evidence">
+  <p class="sec-num">06 · evidence + settlement</p>
+  <h2>Conditions of the work</h2>
+  <p>The appliance proves the work. The infrastructure proves the conditions: kWh, WAN quality, temperature, generator hours. Resilience itself is a resource: fallback capacity + recovery time + remaining energy.</p>
+  <p>Human path: automatic → alert → remote → visit. The desk is the exception interface.</p>
+</section>
+
+<footer>
+  <p>Calhegas Morais · StrataMesh Laboratory · pair of the Fog appliance prospectus</p>
+  <p>Proposed architecture. No ship date. Heterogeneous sites are a feature.</p>
+</footer>
+</main>
+</body>
+</html>

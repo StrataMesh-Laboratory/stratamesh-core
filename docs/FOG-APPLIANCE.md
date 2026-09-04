@@ -3,7 +3,8 @@
 **Status:** proposed R&D architecture — not an existing production device.  
 **No public date.** Post-MacBook hardware track for FOG-NODE-PT-CM-001.  
 **Lab:** StrataMesh Laboratory · Lisbon · operator AMCM ENI · software today v0.5.1-lab.  
-**Pages:** <https://calhegasmorais.pt/fog-appliance>
+**Pages:** <https://calhegasmorais.pt/fog-appliance>  
+**Pair:** [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · <https://calhegasmorais.pt/fog-infrastructure>
 
 The MacBook remains the live laboratory host. This document is the hardware roadmap for a standalone always-on mini-server. Experimental thermal and energy modules are replaceable cartridges, never single points of failure.
 

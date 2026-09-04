@@ -31,6 +31,7 @@ PATH_MAP = {
     "frontend/sandbox.html": ("sandbox",),
     "frontend/gnu-atelier.html": ("atelier",),
     "frontend/fog-appliance.html": ("fog-appliance", "fog-appliance-en"),
+    "frontend/fog-infrastructure.html": ("fog-infrastructure", "fog-infrastructure-en"),
 }
 
 WORKER_MAP = {
