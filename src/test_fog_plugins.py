@@ -281,6 +281,70 @@ def test_tui_g_always_brews():
     assert "/usr/local/bin" in text and "/opt/homebrew/bin" in text
     assert "wait_key uses stdin" in text or "stdin only" in text
     assert "/dev/tty" in text[text.index("def _yn_from_tty"):text.index("def confirm")]
+    assert "_brew_clt_miss" in text
+    assert "clt-miss" in brew_fn
+    assert "skip-recycle" in brew_fn
+    assert "skip recycle (CLT miss)" in pull
+    assert pull.index("brew_update_upgrade()") < pull.index("reboot_fog()")
+
+
+def test_tui_brew_clt_miss_skips_recycle():
+    """CLT brew stderr must mark clt-miss; git_pull_reboot must not call reboot_fog/recycle."""
+    import ast
+    import types
+    from unittest.mock import patch
+
+    tui_path = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-tui.py"
+    src = tui_path.read_text(encoding="utf-8")
+    assert "def _brew_clt_miss" in src
+    tree = ast.parse(src)
+    want = {"_brew_clt_miss", "brew_update_upgrade", "_brew_env", "_which_brew_node", "_alias_missing_node_dylib"}
+    ns = {"__name__": "fog_tui_clt_test"}
+    # Minimal deps the extracted fns close over / reference at runtime
+    import os, shutil, subprocess, time
+    from pathlib import Path as P
+    ns.update({"os": os, "shutil": shutil, "subprocess": subprocess, "time": time, "Path": P, "FOG": P("/tmp"), "REPO": P("/tmp")})
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name in want:
+            code = compile(ast.Module(body=[node], type_ignores=[]), str(tui_path), "exec")
+            exec(code, ns)
+    assert ns["_brew_clt_miss"]("Error: Xcode alone is not sufficient on this machine")
+    assert ns["_brew_clt_miss"]("install the Command Line Tools: xcode-select --install")
+    assert not ns["_brew_clt_miss"]("Already up-to-date.")
+
+    clt_err = (
+        "Error: Xcode alone is not sufficient on this machine.\n"
+        "Install the Command Line Tools:\n  xcode-select --install\n"
+    )
+
+    class FakeProc:
+        def __init__(self, rc=1, err=""):
+            self.returncode = rc
+            self.stderr = err
+            self.stdout = ""
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(list(cmd))
+        if cmd and str(cmd[0]).endswith("brew") and cmd[1] in ("update", "upgrade"):
+            return FakeProc(1, clt_err)
+        if cmd and "node" in str(cmd[0]) and "-v" in cmd:
+            return FakeProc(1, "dyld: Library not loaded: /usr/local/opt/llhttp/lib/libllhttp.9.3.dylib")
+        return FakeProc(0, "")
+
+    with patch.object(ns["subprocess"], "run", fake_run), \
+         patch.dict(ns, {"_which_brew_node": lambda name: "/opt/homebrew/bin/" + name}):
+        note = ns["brew_update_upgrade"]()
+    assert "clt-miss" in note
+    assert "skip-recycle" in note
+    assert any(c[1] == "update" for c in calls if len(c) > 1)
+    assert any(c[1] == "upgrade" for c in calls if len(c) > 1)
+    assert not any(c[1] == "reinstall" for c in calls if len(c) > 1)
+    # Static: g path skips reboot_fog on clt-miss
+    pull = src[src.index("def git_pull_reboot"): src.index("\ndef mark")]
+    assert 'if "clt-miss" in brew_note' in pull or "skip-recycle" in pull
+    assert "skip recycle (CLT miss)" in pull
 
 
 def test_auto_update_brews_before_runtime_skip():
@@ -288,11 +352,11 @@ def test_auto_update_brews_before_runtime_skip():
     text = sh.read_text(encoding="utf-8")
     assert "brew skip (auto-g)" not in text
     assert "brew skip" not in text
-    assert text.index("brew update") < text.index("skip runtime-down")
-    assert "brew upgrade" in text
+    assert "run_brew_verb update" in text and "run_brew_verb upgrade" in text
+    assert text.index("run_brew_verb update") < text.index("skip runtime-down")
     assert "llhttp" in text and "ada-url" in text
     assert "brew reinstall llhttp ada-url node" in text
-    assert text.index("brew upgrade") < text.index("brew reinstall llhttp ada-url node")
+    assert text.index("run_brew_verb upgrade") < text.index("brew reinstall llhttp ada-url node")
     assert "recycle_mw((8787,8788,8790,8791,8792))" in text.replace(" ", "")
     assert "node :8791 dark after brew" in text
     assert "recycle_mw((8791,))" in text.replace(" ", "")
@@ -300,6 +364,40 @@ def test_auto_update_brews_before_runtime_skip():
     assert "/usr/local/opt/llhttp/lib" in text
     assert "heal_node_dyld" in text
     assert "pull anyway" in text
+    assert "BREW_CLT_MISS" in text
+    assert "brew_clt_miss" in text
+    assert "Xcode alone is not sufficient" in text
+    assert "xcode-select" in text
+    assert "Command Line Tools" in text
+    assert "CLT miss — skip recycle_mw" in text
+    assert text.index('if [[ "$BREW_CLT_MISS" -eq 1 ]]') < text.index(
+        "recycle_mw((8787,8788,8790,8791,8792))"
+    )
+
+
+def test_auto_update_clt_miss_skips_recycle_keeps_brew():
+    """Lab-harness needle: CLT brew failure must not call recycle_mw; brew still always invoked."""
+    sh = Path(__file__).resolve().parent.parent / "deploy/mac-fog/fog-auto-update.sh"
+    text = sh.read_text(encoding="utf-8")
+    assert "run_brew_verb update" in text
+    assert "run_brew_verb upgrade" in text
+    assert "brew skip" not in text
+    assert "node :8791 dark + CLT miss — heal_node_dyld only; skip recycle_mw/kickstart" in text
+    # already-on-main :8791 dark — CLT branch heals only (log may name recycle; call must not).
+    anchor = text.index("node :8791 dark + CLT miss")
+    dark_if = text.rfind('if [[ "$BREW_CLT_MISS" -eq 1 ]]; then', 0, anchor)
+    dark_block = text[dark_if: text.index("exit 0", anchor)]
+    clt_dark = dark_block.split("else", 1)[0]
+    assert "heal_node_dyld" in clt_dark
+    assert "recycle_mw(" not in clt_dark
+    assert "launchctl kickstart" not in clt_dark
+    # pull path — CLT branch before else must not invoke recycle_mw(...)
+    pull_idx = text.index("CLT miss — skip recycle_mw / hop kills / kickstart")
+    pull_if = text.rfind('if [[ "$BREW_CLT_MISS" -eq 1 ]]; then', 0, pull_idx)
+    pull_block = text[pull_if: text.index("kickstart fog+workerd done", pull_idx) + 40]
+    clt_pull = pull_block.split("else", 1)[0]
+    assert "recycle_mw(" not in clt_pull
+    assert "launchctl kickstart" not in clt_pull
 
 
 def test_heal_node_dyld_parses_ada():
