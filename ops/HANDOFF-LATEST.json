@@ -1,27 +1,66 @@
 {
-  "generated_at": "2026-09-02T11:11:00Z",
-  "lisbon": "2026-09-02T12:11:00+0100",
-  "agent": "STRATAGROK",
-  "node": "FOG-NODE-PT-CM-001",
-  "edge": "EDGE-GROK-CMN-001",
-  "host_id": "c3c5b24ece30a133",
-  "phase": "adversarial_lab_P1",
-  "tag": "v0.5.1-lab",
-  "version": "v0.5.1-lab",
-  "fog_n": 2,
-  "mesh": "n=2 FOG-NODE-PT-CM-001 + EDGE-GROK-CMN-001",
-  "mesh_member": true,
-  "public_health_may_lag": {
-    "n": 1,
-    "origin": "session",
-    "mac_live": false,
-    "note": "session-origin software flag; not lab n=1; do not claim mac_live=true on public JSON"
+  "schema": "stratamesh.handoff.v1",
+  "generated_at": "2026-09-04T22:39:19Z",
+  "headline": "Green \u2014 academy 0.5.1-lab live; docs nav fixed; wizard kbd lock on main awaiting g",
+  "posture": "green",
+  "status": {
+    "version": "v0.5.1-lab",
+    "phase": "adversarial_lab_P1",
+    "lab": true
   },
-  "hourly_52": "paused",
-  "cf_workers": "STASIS #80 pace not freeze; freeze=temp hold until auth python hop / Pages / sandbox host",
-  "workers_dev": false,
-  "sixth_cron": false,
-  "p0_as_lab_phase": false,
-  "grok90_inv_tx_pack": "later_bar",
-  "lab_only": true
+  "aiops": {
+    "critical": 0,
+    "warn": 0,
+    "info": 0
+  },
+  "mandatory_actions": [],
+  "optional_actions": [
+    {
+      "id": "tui-g-ba15ae3",
+      "priority": "P2",
+      "owner": "andr\u00e9",
+      "verb": "Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g",
+      "success_check": "Fog TUI GIT shows ba15ae3 or later; ? then type g/s/b/r/q into composer only",
+      "effort": "S"
+    },
+    {
+      "id": "oracle-grok90",
+      "priority": "P1",
+      "owner": "stratagrok",
+      "verb": "Chase Oracle grok90 Always Free until Fog host is provisioned",
+      "success_check": "grok90 instance running Fog before AWS Free hedge ends",
+      "effort": "M"
+    },
+    {
+      "id": "plan-tui-wizard-docs-faq",
+      "priority": "P2",
+      "owner": "fog",
+      "verb": "PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)",
+      "success_check": "wizard FAQ answers cite public docs; no hop-dump timeouts",
+      "effort": "M"
+    }
+  ],
+  "non_actions": [
+    "torch pass \u2014 HOLD-success while mandatory_actions empty",
+    "workers.dev",
+    "6th CF cron",
+    "grok.me Publish"
+  ],
+  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.5.1-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
+  "fog": {
+    "origin": "macbook",
+    "mac_live": true,
+    "n": 2,
+    "version": "v0.5.1-lab"
+  },
+  "slot": "desk-handoff-stratagrok",
+  "identity": "STRATAGROK",
+  "node_id": "FOG-NODE-PT-CM-001",
+  "mode": "HOLD",
+  "n": 2,
+  "mesh_member": true,
+  "f_max": 0,
+  "critical": 0,
+  "p0": false,
+  "ship": false
 }
