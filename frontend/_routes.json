@@ -1,15 +1,5 @@
 {
   "version": 1,
-  "include": ["/*"],
-  "exclude": [
-    "/atelier",
-    "/atelier/*",
-    "/api/*",
-    "/sandbox",
-    "/sandbox/*",
-    "/chat",
-    "/chat/*",
-    "/video",
-    "/video/*"
-  ]
+  "include": ["/api/*"],
+  "exclude": []
 }
