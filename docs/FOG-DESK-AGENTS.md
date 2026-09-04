@@ -8,3 +8,5 @@
 | openclaw@fog.calhegasmorais.pt | external_agent | OpenClaw + Ollama |
 
 None are SCA/ACB.
+
+Coordination: [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md) · `ops/desk-collegium/`.
