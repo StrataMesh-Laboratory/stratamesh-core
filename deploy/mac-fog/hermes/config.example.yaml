@@ -1,21 +1,43 @@
-# Copy to ~/.hermes/config.yaml (or Hermes default path). No secrets in git.
+# Hermes FOG external_agent — copy to ~/.hermes/config.yaml (or Hermes desktop config path)
+# NOT an SCA. Desk automation. No secrets in this file.
+
 agent:
   name: hermes-fog
   role: external_agent
   mandate: fog-automation-desk
   not_sca: true
+  organizing_principle: specialization
+
 model:
   provider: ollama
   base_url: http://127.0.0.1:11434/v1
-  # prefer hermes3:3b; llava is acceptable interim if that is what is pulled
-  name: hermes3:3b
-channels:
-  allow:
-    - email   # grok@calhegasmorais.pt only
-    - discord # lab only
-    - slack   # lab only
-  deny_all_others: true
+  # llava (~32K) FAILS Hermes min 64K — do not use as primary
+  # Prefer a ≥64K window model. Override reported window if Ollama under-reports:
+  name: qwen2.5:7b-instruct-q4_K_M
+  context_length: 65536
+  # fallbacks after pull: hermes3:8b, qwen2.5:14b — never llava as sole agent model
+  fallbacks:
+    - hermes3:8b
+    - qwen2.5:7b
+    - phi3:medium  # only if context_length override ≥65536 and model truly supports it
+
+# Vision-only / short-context tags (llava) may be used as a *tool* later, not agent init model
+
 fog:
   health: http://127.0.0.1:8787/health
   academy: https://academy.calhegasmorais.pt
-  tui_wizard: ollama_generate
+  collegium_state: deploy/mac-fog/hermes/desktop/../..  # resolved on Mac after g
+  openclaw_ws: ws://127.0.0.1:18789
+
+channels:
+  allow:
+    - email
+    - discord
+    - slack
+  deny_all_others: true
+
+autonomy:
+  bus: propose→constrain→revise→commit|escalate
+  specialization: true
+  metabol_pace: true
+  check_in_before_risky: true
