@@ -7,6 +7,8 @@
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
 # /chat is a real static page (chat.html) — rewrite 200, not 404, not SPA.
+# /video/* must not be landing HTML (intro overlay then stays black).
+/video/* /404.html 404
 /manutencao /maintenance-1xxx.html 200
 /atelier /404.html 404
 /atelier/* /404.html 404

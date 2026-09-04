@@ -158,9 +158,14 @@ details.faq p{margin:.55rem 0 0}
     muteBtn.textContent=v.muted?SOUND_L:MUTE_L;
   });
   box.addEventListener("click", playSound);
-  v.muted=false;
+  v.addEventListener("error", done);
+  v.addEventListener("abort", done);
+  v.addEventListener("stalled", function(){ setTimeout(function(){ if(v.readyState<2) done(); }, 800); });
+  setTimeout(function(){ if(v.readyState<2) done(); }, 1600);
+  v.muted=true;
+  muteBtn.textContent=SOUND_L;
   var start=v.play();
-  if(start&&start.catch) start.catch(function(){});
+  if(start&&start.catch) start.catch(function(){ done(); });
 })();
 </script>
 

@@ -8,6 +8,8 @@
     "/sandbox",
     "/sandbox/*",
     "/chat",
-    "/chat/*"
+    "/chat/*",
+    "/video",
+    "/video/*"
   ]
 }
