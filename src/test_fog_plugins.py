@@ -723,6 +723,133 @@ def test_fog_launchagent_plist_has_homebrew_path():
     assert "<key>PATH</key>" not in tunnel
 
 
+def test_recycle_mw_spare_healthy_skips_node():
+    """Healthy :8791 fog_mw.js must not appear in the kill list when spare_healthy."""
+    import signal
+    from unittest.mock import patch
+    from fog_plugins import runtime_mesh
+
+    kills = []
+
+    def fake_kill(pid, sig):
+        kills.append((pid, sig))
+
+    with patch.object(runtime_mesh, "_healthy", side_effect=lambda p: int(p) == 8791), \
+         patch.object(runtime_mesh, "_pids_listening", return_value=[5151]), \
+         patch.object(runtime_mesh, "_comm", return_value="node"), \
+         patch.object(
+             runtime_mesh,
+             "_cmd",
+             return_value="/Users/x/StrataMesh/fog/bin/node-official /repo/ops/middleware/fog_mw.js",
+         ), \
+         patch.object(runtime_mesh.os, "kill", fake_kill):
+        n = runtime_mesh.recycle_mw((8791,), spare_healthy=True)
+    assert n == 0
+    assert kills == []
+    with patch.object(runtime_mesh, "_healthy", side_effect=lambda p: int(p) == 8791), \
+         patch.object(runtime_mesh, "_pids_listening", return_value=[5151]), \
+         patch.object(runtime_mesh, "_comm", return_value="node"), \
+         patch.object(
+             runtime_mesh,
+             "_cmd",
+             return_value="/Users/x/StrataMesh/fog/bin/node-official /repo/ops/middleware/fog_mw.js",
+         ), \
+         patch.object(runtime_mesh.os, "kill", fake_kill), \
+         patch.object(runtime_mesh.time, "sleep", lambda *_a, **_k: None), \
+         patch.object(runtime_mesh.time, "time", side_effect=[1000.0, 1010.0, 1010.0, 1010.0]):
+        assert runtime_mesh._spare_healthy_listener(8791) is True
+        n2 = runtime_mesh.recycle_mw((8791,), force=True)
+    assert n2 >= 1
+    assert (5151, signal.SIGTERM) in kills
+
+
+def test_spawn_stale_recycles_only_stale_port():
+    """Stale node must recycle (8791,) only — not all MW_PORTS / healthy siblings."""
+    import tempfile
+    from unittest.mock import MagicMock, patch
+    from fog_plugins import runtime_mesh
+
+    plugin = runtime_mesh.RuntimeMeshPlugin()
+    recycled = []
+
+    def fake_recycle(ports=None, spare_healthy=True, force=False):
+        recycled.append({"ports": tuple(ports) if ports is not None else None, "force": force})
+        return 0
+
+    def healthy(port):
+        # python+deno healthy; node healthy-but-stale (still /health 200)
+        return int(port) in (8790, 8791, 8792)
+
+    def stale(port, script):
+        return int(port) == 8791
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data = root / "data"
+        py = root / "ops" / "middleware" / "fog_mw.py"
+        js = root / "ops" / "middleware" / "fog_mw.js"
+        ts = root / "ops" / "deno" / "main.ts"
+        py.parent.mkdir(parents=True)
+        ts.parent.mkdir(parents=True)
+        py.write_text("# stub\n", encoding="utf-8")
+        js.write_text("// stub\n", encoding="utf-8")
+        ts.write_text("// stub\n", encoding="utf-8")
+        with patch.object(runtime_mesh, "ROOT", root), \
+             patch.object(runtime_mesh, "DATA", data), \
+             patch.object(runtime_mesh.host_cap, "over", return_value=False), \
+             patch.object(runtime_mesh, "_healthy", healthy), \
+             patch.object(runtime_mesh, "_mw_stale", stale), \
+             patch.object(runtime_mesh, "recycle_mw", fake_recycle), \
+             patch.object(runtime_mesh, "_which_bin", return_value=None), \
+             patch.object(runtime_mesh.time, "sleep", lambda *_a, **_k: None):
+            plugin._spawn()
+    assert recycled, "stale node must trigger recycle"
+    assert recycled[0]["ports"] == (8791,)
+    assert recycled[0]["force"] is True
+    assert recycled[0]["ports"] != runtime_mesh.MW_PORTS
+
+
+def test_attach_recycles_only_unhealthy_or_stale():
+    """attach must not blanket MW_PORTS when hops are healthy current scripts."""
+    from unittest.mock import patch
+    from fog_plugins.runtime_mesh import RuntimeMeshPlugin
+    from fog_plugins import runtime_mesh
+
+    plugin = RuntimeMeshPlugin()
+    recycled = []
+
+    def rec(ports=None, spare_healthy=True, force=False):
+        recycled.append(tuple(ports) if ports is not None else None)
+        return 0
+
+    def sp(*_a, **_k):
+        pass
+
+    def loop(self):
+        self._stop.wait(0.05)
+
+    with patch.object(runtime_mesh, "_mw_ports_needing_recycle", return_value=()), \
+         patch("fog_plugins.runtime_mesh.recycle_mw", rec), \
+         patch.object(RuntimeMeshPlugin, "_spawn", sp), \
+         patch.object(RuntimeMeshPlugin, "_loop", loop):
+        plugin.attach()
+        plugin.stop()
+        if plugin._thread:
+            plugin._thread.join(timeout=2)
+    assert recycled == [()]
+    recycled.clear()
+    with patch.object(runtime_mesh, "_mw_ports_needing_recycle", return_value=(8791,)), \
+         patch("fog_plugins.runtime_mesh.recycle_mw", rec), \
+         patch.object(RuntimeMeshPlugin, "_spawn", sp), \
+         patch.object(RuntimeMeshPlugin, "_loop", loop):
+        plugin2 = RuntimeMeshPlugin()
+        plugin2.attach()
+        plugin2.stop()
+        if plugin2._thread:
+            plugin2._thread.join(timeout=2)
+    assert recycled == [(8791,)]
+
+
 def test_recycle_leftover_gets_sigkill():
     import signal
     from unittest.mock import patch

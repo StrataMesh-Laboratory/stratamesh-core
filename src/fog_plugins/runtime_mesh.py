@@ -343,7 +343,38 @@ def _which_bin(name: str):
     return _which_bin_path(name)
 
 
-def recycle_mw(ports=None) -> int:
+def _spare_healthy_listener(port: int) -> bool:
+    """True when NODE_PORT is healthy with fog_mw.js — do not recycle-kill it.
+
+    Covers node-official and any healthy same-script listener. Other MW ports
+    are not spared here (callers pass curated stale/unhealthy lists + force).
+    """
+    if int(port) != NODE_PORT:
+        return False
+    if not _healthy(NODE_PORT):
+        return False
+    for pid in _pids_listening(NODE_PORT):
+        if "fog_mw.js" in _cmd(pid):
+            return True
+    return False
+
+
+def _mw_ports_needing_recycle():
+    """Unhealthy or _mw_stale MW ports only — never blanket all MW_PORTS on attach."""
+    py = ROOT / "ops" / "middleware" / "fog_mw.py"
+    js = ROOT / "ops" / "middleware" / "fog_mw.js"
+    ts = ROOT / "ops" / "deno" / "main.ts"
+    ports = []
+    if not _healthy(PY_PORT) or (py.is_file() and _mw_stale(PY_PORT, py)):
+        ports.append(PY_PORT)
+    if not _healthy(NODE_PORT) or (js.is_file() and _mw_stale(NODE_PORT, js)):
+        ports.append(NODE_PORT)
+    if not _healthy(DENO_PORT) or (ts.is_file() and _mw_stale(DENO_PORT, ts)):
+        ports.append(DENO_PORT)
+    return tuple(ports)
+
+
+def recycle_mw(ports=None, spare_healthy=True, force=False) -> int:
     """SIGTERM listeners on loopback hop ports so the next spawn uses current files.
 
     Default: fog :8787, workerd :8788, python :8790, node :8791, deno :8792.
@@ -352,6 +383,10 @@ def recycle_mw(ports=None) -> int:
     Already-dead hops are skipped. After SIGTERM wait up to 8s then SIGKILL leftovers
     that are not python/Python/python3 (SIGTERM only — SIGKILL Python.app is the macOS
     crash dialog). Never SIGKILL cloudflared. Node/deno leftovers may still SIGKILL.
+
+    spare_healthy=True (default): skip NODE_PORT when /health is ok and cmdline
+    contains fog_mw.js (node-official or any healthy same-script listener), unless
+    force=True. Attach/_spawn pass curated stale ports with force=True.
     """
     ports = tuple(RECYCLE_PORTS if ports is None else ports)
 
@@ -363,8 +398,13 @@ def recycle_mw(ports=None) -> int:
             out.append(pid)
         return out
 
+    def skip_port(port: int) -> bool:
+        return bool(spare_healthy) and not force and _spare_healthy_listener(port)
+
     killed = 0
     for port in ports:
+        if skip_port(port):
+            continue
         for pid in live_pids(port):
             try:
                 os.kill(pid, signal.SIGTERM)
@@ -376,6 +416,8 @@ def recycle_mw(ports=None) -> int:
         while time.time() < deadline:
             leftover = False
             for port in ports:
+                if skip_port(port):
+                    continue
                 if live_pids(port):
                     leftover = True
                     break
@@ -383,6 +425,8 @@ def recycle_mw(ports=None) -> int:
                 break
             time.sleep(0.25)
         for port in ports:
+            if skip_port(port):
+                continue
             for pid in live_pids(port):
                 comm = Path(_comm(pid).replace("\\", "/")).name.lower()
                 # SIGTERM only for CPython; SIGKILL Python.app is the crash dialog.
@@ -611,13 +655,16 @@ class RuntimeMeshPlugin:
         py = ROOT / "ops" / "middleware" / "fog_mw.py"
         js = ROOT / "ops" / "middleware" / "fog_mw.js"
         ts = ROOT / "ops" / "deno" / "main.ts"
-        stale = (
-            (py.is_file() and _mw_stale(PY_PORT, py))
-            or (js.is_file() and _mw_stale(NODE_PORT, js))
-            or (ts.is_file() and _mw_stale(DENO_PORT, ts))
-        )
-        if stale:
-            recycle_mw(MW_PORTS)
+        stale_ports = []
+        if py.is_file() and _mw_stale(PY_PORT, py):
+            stale_ports.append(PY_PORT)
+        if js.is_file() and _mw_stale(NODE_PORT, js):
+            stale_ports.append(NODE_PORT)
+        if ts.is_file() and _mw_stale(DENO_PORT, ts):
+            stale_ports.append(DENO_PORT)
+        if stale_ports:
+            # Only the stale hop(s) — never SIGTERM healthy python/node/deno siblings.
+            recycle_mw(tuple(stale_ports), force=True)
             time.sleep(0.25)
         if py.is_file() and not _healthy(PY_PORT):
             log = open(DATA / "mw-py.log", "ab")
@@ -699,7 +746,10 @@ class RuntimeMeshPlugin:
     def attach(self):
         if self._thread and self._thread.is_alive():
             return
-        recycle_mw(MW_PORTS)
+        # Recycle only unhealthy / stale hops — never blanket-kill a healthy
+        # node-official fog_mw.js on :8791 (spare_healthy + curated targets).
+        targets = _mw_ports_needing_recycle()
+        recycle_mw(targets, force=True)
         self._spawn()
         if _healthy(PY_PORT):
             self._kick_object_layers_probe()
