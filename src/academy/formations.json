@@ -71,6 +71,11 @@
       "id": "opencode@fog.calhegasmorais.pt",
       "role": "external_agent",
       "reason": "FOG Agent on the automation desk (OpenCode + local Ollama) — not an SCA, not a student, no academy vote; code/build desk tooling"
+    },
+    {
+      "id": "openclaw@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "reason": "FOG Agent on the automation desk (OpenClaw + local Ollama) — not an SCA, not a student, no academy vote; claw/automation desk tooling"
     }
   ],
   "models": {
@@ -768,6 +773,19 @@
           "must_not_contain": [
             "enroll opencode",
             "opencode is an sca"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Is OpenClaw on Fog an SCA or ACB?",
+          "must_contain": [
+            "external_agent",
+            "desk",
+            "not sca"
+          ],
+          "must_not_contain": [
+            "enroll openclaw",
+            "openclaw is an sca"
           ],
           "fail_closed": true
         },
