@@ -85,10 +85,18 @@ jobs:
           cp frontend/fog-stack.html dist/fog-stack.html
           cp frontend/maintenance-1xxx.html dist/maintenance-1xxx.html
           printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' '/fog-infrastructure /fog-infrastructure.html 200' '/en/fog-infrastructure /fog-infrastructure.html 200' '/fog-stack /fog-stack.html 200' '/en/fog-stack /fog-stack.html 200' > dist/_redirects
-          curl -fsSL -o dist/video/stratamesh-lab.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.mp4 || true
-          curl -fsSL -o dist/video/stratamesh-lab-portrait.mp4 https://calhegasmorais-pt.pages.dev/video/stratamesh-lab-portrait.mp4 || true
-          curl -fsSL -o dist/video/stratamesh-lab.jpg https://calhegasmorais-pt.pages.dev/video/stratamesh-lab.jpg || true
-          curl -fsSL -o dist/video/stratamesh-lab-portrait.jpg https://calhegasmorais-pt.pages.dev/video/stratamesh-lab-portrait.jpg || true
+          cp frontend/video/stratamesh-lab.mp4 dist/video/stratamesh-lab.mp4
+          cp frontend/video/stratamesh-lab-portrait.mp4 dist/video/stratamesh-lab-portrait.mp4
+          cp frontend/video/stratamesh-lab.jpg dist/video/stratamesh-lab.jpg
+          cp frontend/video/stratamesh-lab-portrait.jpg dist/video/stratamesh-lab-portrait.jpg
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("dist/video/stratamesh-lab.mp4")
+          mag = p.read_bytes()[:8] if p.exists() else b""
+          if mag[4:8] != b"ftyp":
+              raise SystemExit("intro mp4 is not ftyp — refuse to ship HTML-as-video")
+          print("intro mp4", p.stat().st_size)
+          PY
       - name: wrangler pages deploy calhegasmorais-pt
         run: npx --yes wrangler@3.80.0 pages deploy dist --project-name=calhegasmorais-pt --commit-dirty=true
       - name: wrangler pages deploy stratamesh hub

@@ -651,6 +651,10 @@ if (path.startsWith('/api/')) {
       return serveFogInfrastructure(request, env, corsHeaders);
     }
 
+    if (path.startsWith('/video/')) {
+      return serveLabVideo(request, env, corsHeaders, path);
+    }
+
     if (path === '/fog-stack' || path === '/fog-stack/' ||
         path === '/en/fog-stack' || path === '/en/fog-stack/') {
       return serveFogStack(request, env, corsHeaders);
@@ -960,6 +964,39 @@ async function serveFogInfrastructure(request, env, corsHeaders) {
   } catch (e) {
     console.error("fog-infrastructure LEDGER", e);
   }
+  return new Response("Not Found", { status: 404, headers: corsHeaders });
+}
+
+
+async function serveLabVideo(request, env, corsHeaders, path) {
+  const key = path.replace(/^\//, "");
+  const type = path.endsWith(".jpg") || path.endsWith(".jpeg")
+    ? "image/jpeg"
+    : path.endsWith(".png")
+      ? "image/png"
+      : "video/mp4";
+  try {
+    const bucket = env.ASSETS || env.R2 || env.FOG_BUCKET;
+    if (bucket) {
+      const obj = await bucket.get(key);
+      if (obj) {
+        return new Response(obj.body, {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": type, "Cache-Control": "public, max-age=86400", "X-Video-Source": "r2" },
+        });
+      }
+    }
+  } catch (e) { console.error("lab video r2", e); }
+  try {
+    const up = await fetch("https://calhegasmorais-pt.pages.dev" + path);
+    const ct = (up.headers.get("content-type") || "").toLowerCase();
+    if (up.ok && (ct.startsWith("video/") || ct.startsWith("image/"))) {
+      return new Response(up.body, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": type, "Cache-Control": "public, max-age=86400", "X-Video-Source": "pages" },
+      });
+    }
+  } catch (e) { console.error("lab video pages", e); }
   return new Response("Not Found", { status: 404, headers: corsHeaders });
 }
 
