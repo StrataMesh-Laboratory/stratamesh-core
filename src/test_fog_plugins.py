@@ -260,7 +260,7 @@ def test_tui_g_always_brews():
     assert "No blocking y/n" in text or "g running" in text
     assert "brew skip (auto-g)" not in text
     brew_fn = text[text.index("def brew_update_upgrade"):text.index("def runtime_mesh_last_error")]
-    assert "reinstall" in brew_fn and "llhttp" in brew_fn and "node" in brew_fn
+    assert "reinstall" in brew_fn and "llhttp" in brew_fn and "ada-url" in brew_fn and "node" in brew_fn
     assert brew_fn.index("upgrade") < brew_fn.index("reinstall")
     assert "/usr/local/bin" in text and "/opt/homebrew/bin" in text
     assert "wait_key uses stdin" in text or "stdin only" in text
@@ -274,8 +274,9 @@ def test_auto_update_brews_before_runtime_skip():
     assert "brew skip" not in text
     assert text.index("brew update") < text.index("skip runtime-down")
     assert "brew upgrade" in text
-    assert "brew reinstall llhttp node" in text
-    assert text.index("brew upgrade") < text.index("brew reinstall llhttp node")
+    assert "llhttp" in text and "ada-url" in text
+    assert "brew reinstall llhttp ada-url node" in text
+    assert text.index("brew upgrade") < text.index("brew reinstall llhttp ada-url node")
     assert "recycle_mw((8787,8788,8790,8791,8792))" in text.replace(" ", "")
     assert "node :8791 dark after brew" in text
     assert "recycle_mw((8791,))" in text.replace(" ", "")

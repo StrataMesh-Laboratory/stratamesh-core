@@ -61,7 +61,7 @@ if command -v brew >/dev/null 2>&1; then
     *[Dd]yld*|*libllhttp*) node_rc=1 ;;
   esac
   if [[ "$node_rc" -ne 0 ]]; then
-    brew reinstall llhttp node >>"$LOG" 2>&1 || log "brew reinstall llhttp node rc=$?"
+    brew reinstall llhttp ada-url node >>"$LOG" 2>&1 || log "brew reinstall llhttp ada-url node rc=$?"
   fi
   # Sequoia: Xcode.app alone cannot brew-build. Node 25.x looks for
   # libllhttp.9.3.dylib while Cellar may only have 9.4.x. Alias until CLT+reinstall.
@@ -84,6 +84,24 @@ if command -v brew >/dev/null 2>&1; then
   else
     log "llhttp dylib missing (opt+Cellar)"
   fi
+  # Walk every dyld miss (ada-url libada.3, next bottle, …).
+  i=0
+  while (( i < 8 )); do
+    i=$((i + 1))
+    node_out=$(node -v 2>&1) && break
+    miss=$(printf '%s\n' "$node_out" | sed -n 's/.*Library not loaded: //p' | awk '{print $1}' | head -1)
+    [[ -z "$miss" ]] && break
+    formula=$(printf '%s\n' "$miss" | awk -F/ '{for(i=1;i<=NF;i++) if($i=="opt"){print $(i+1); exit}}')
+    base=$(basename "$miss")
+    stem=${base%%.*}
+    src=$(ls /usr/local/opt/"$formula"/lib/"$stem".dylib /opt/homebrew/opt/"$formula"/lib/"$stem".dylib \
+             /usr/local/Cellar/"$formula"/*/lib/"$stem"*.dylib /opt/homebrew/Cellar/"$formula"/*/lib/"$stem"*.dylib \
+             2>/dev/null | grep -v "$base" | tail -1 || true)
+    [[ -z "$src" ]] && { log "no source for $miss"; break; }
+    dest_dir=/usr/local/opt/"$formula"/lib
+    mkdir -p "$dest_dir"
+    ln -sf "$src" "$dest_dir/$base" && log "linked $src -> $dest_dir/$base"
+  done
 else
   log "brew missing"
 fi

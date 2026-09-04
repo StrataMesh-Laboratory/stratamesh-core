@@ -635,6 +635,49 @@ def _which_brew_node(name: str):
     return None
 
 
+def _alias_missing_node_dylib(err: str) -> str:
+    """Map dyld 'Library not loaded: /usr/local/opt/FORMULA/lib/libX.N.dylib' to Cellar."""
+    import re
+    m = re.search(r"Library not loaded:\s+(\S+\.dylib)", err or "")
+    if not m:
+        return ""
+    wanted = Path(m.group(1))
+    name = wanted.name  # libada.3.dylib
+    stem = name.split(".")[0]  # libada
+    # /usr/local/opt/ada-url/lib/...
+    parts = wanted.parts
+    formula = "llhttp"
+    if "opt" in parts:
+        try:
+            formula = parts[parts.index("opt") + 1]
+        except (ValueError, IndexError):
+            pass
+    sources = []
+    for prefix in ("/usr/local", "/opt/homebrew"):
+        optlib = Path(prefix) / "opt" / formula / "lib"
+        if (optlib / (stem + ".dylib")).exists():
+            sources.append(optlib / (stem + ".dylib"))
+        sources.extend(sorted(optlib.glob(stem + ".*.dylib")))
+        cellar = Path(prefix) / "Cellar" / formula
+        if cellar.is_dir():
+            sources.extend(sorted(cellar.glob("*/lib/" + stem + "*.dylib")))
+    src = next((p for p in sources if p.exists() and p.name != name), None)
+    src = src or next((p for p in sources if p.exists()), None)
+    if not src:
+        return "no source for %s" % name
+    dest = Path("/usr/local/opt") / formula / "lib" / name
+    if str(wanted).startswith("/opt/homebrew"):
+        dest = Path("/opt/homebrew/opt") / formula / "lib" / name
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.exists() or dest.is_symlink():
+            dest.unlink()
+        dest.symlink_to(src.resolve())
+        return "link %s -> %s" % (src.name, dest)
+    except OSError as e:
+        return "link fail %s" % type(e).__name__
+
+
 def brew_update_upgrade() -> str:
     """Non-fatal brew update then brew upgrade. Never --greedy. Never uninstall.
     Interactive g and auto-g both brew. If node -v fails (dyld/libllhttp),
@@ -667,45 +710,42 @@ def brew_update_upgrade() -> str:
             env=env,
         )
         err = (p.stderr or "") + (p.stdout or "")
-        node_bad = p.returncode != 0 or "dyld" in err.lower() or "libllhttp" in err.lower()
+        node_bad = p.returncode != 0 or "dyld" in err.lower() or "library not loaded" in err.lower()
     except Exception:
         node_bad = True
+        err = ""
     if node_bad:
         try:
             rc = subprocess.call(
-                [brew, "reinstall", "llhttp", "node"],
+                [brew, "reinstall", "llhttp", "ada-url", "node"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=600,
                 env=env,
             )
-            notes.append("reinstall llhttp node rc=%s" % rc)
+            notes.append("reinstall llhttp ada-url node rc=%s" % rc)
         except Exception:
-            notes.append("reinstall llhttp node fail")
-        # opt/ may be unlinked; Cellar 9.4.x is the real bottle. mkdir + alias 9.3.
-        sources = []
-        for d in (Path("/usr/local/opt/llhttp/lib"), Path("/opt/homebrew/opt/llhttp/lib")):
-            if (d / "libllhttp.dylib").exists():
-                sources.append(d / "libllhttp.dylib")
-            sources.extend(sorted(d.glob("libllhttp.*.dylib")))
-        for root in (Path("/usr/local/Cellar/llhttp"), Path("/opt/homebrew/Cellar/llhttp")):
-            if root.is_dir():
-                sources.extend(sorted(root.glob("*/lib/libllhttp*.dylib")))
-        src = next((p for p in sources if p.exists() and "9.3" not in p.name), None)
-        src = src or next((p for p in sources if p.exists()), None)
-        if src:
-            for dest in (
-                Path("/usr/local/opt/llhttp/lib/libllhttp.9.3.dylib"),
-                Path("/opt/homebrew/opt/llhttp/lib/libllhttp.9.3.dylib"),
-            ):
-                try:
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    if dest.exists() or dest.is_symlink():
-                        continue
-                    dest.symlink_to(src.resolve())
-                    notes.append("link %s -> %s" % (src, dest))
-                except OSError:
-                    notes.append("link 9.3 fail")
+            notes.append("reinstall node deps fail")
+        for _ in range(8):
+            try:
+                p = subprocess.run(
+                    [node_bin, "-v"],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    env=env,
+                )
+                err2 = (p.stderr or "") + (p.stdout or "")
+            except Exception as e:
+                err2 = str(e)
+                p = None
+            if p is not None and p.returncode == 0 and "dyld" not in err2.lower():
+                notes.append("node " + err2.strip().split()[0][:16])
+                break
+            note = _alias_missing_node_dylib(err2 or err)
+            notes.append(note or "dyld unparsed")
+            if not note or note.startswith("no source") or note.startswith("link fail"):
+                break
     return "brew " + " · ".join(notes)
 
 
