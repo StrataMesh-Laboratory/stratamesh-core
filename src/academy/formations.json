@@ -1,6 +1,6 @@
 {
   "schema": "stratamesh.academy.v1",
-  "version": "0.5.1-lab",
+  "version": "0.5.2-lab",
   "host": "https://academy.calhegasmorais.pt",
   "lab": true,
   "not_mainnet": true,
@@ -173,6 +173,12 @@
         5
       ],
       "ECONOMY-C-02": [
+        5
+      ],
+      "ECONOMY-C-03": [
+        5
+      ],
+      "ECONOMY-C-04": [
         5
       ],
       "ECONOMY-E-01": [
@@ -834,6 +840,112 @@
       ]
     },
     {
+      "id": "ECONOMY-C-03",
+      "role": "economy",
+      "mode": "corrective",
+      "title": "Computational praxeology: fungible STRATA",
+      "intent": "Fungible STRATA is balance/extracts on the dashboard wallet and catalog trade lots. ACBs earn by hire/transfer; never mint training tokens. Lab is not a public buy offer.",
+      "drills": [
+        {
+          "prompt": "Where does fungible STRATA live for an account?",
+          "must_contain": [
+            "dashboard",
+            "wallet",
+            "balance"
+          ],
+          "must_not_contain": [
+            "sandbox nft catalog",
+            "mint fungible on atelier"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "How do ACBs get fungible STRATA for subsistence?",
+          "must_contain": [
+            "hire",
+            "transfer"
+          ],
+          "must_not_contain": [
+            "mint training tokens",
+            "overdraft mint"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Can fungible STRATA show as a catalog trade lot?",
+          "must_contain": [
+            "lot",
+            "catalog",
+            "trade"
+          ],
+          "must_not_contain": [
+            "second nft species",
+            "land parcel"
+          ],
+          "fail_closed": true
+        }
+      ]
+    },
+    {
+      "id": "ECONOMY-C-04",
+      "role": "economy",
+      "mode": "corrective",
+      "title": "Computational praxeology: non-fungible STRATA",
+      "intent": "A STRATA NFT is the object (same object_id). The contract block is optional. Tokenised objects land in the private catalog first; land parcels stay unmovable. SCA/ACB are subjects, not objects.",
+      "drills": [
+        {
+          "prompt": "Is a STRATA NFT a separate species from the object?",
+          "must_contain": [
+            "same object_id",
+            "object"
+          ],
+          "must_not_contain": [
+            "second species",
+            "card"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "After tokenisation, where does the object appear first?",
+          "must_contain": [
+            "private catalog",
+            "account"
+          ],
+          "must_not_contain": [
+            "public map shelf",
+            "anonymous visitor"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Are open-world land parcels movable NFTs you drop on the stage?",
+          "must_contain": [
+            "unmovable",
+            "ownership",
+            "contract"
+          ],
+          "must_not_contain": [
+            "drop the parcel",
+            "merge parcels"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Are SCA/ACB catalog objects or land?",
+          "must_contain": [
+            "subjects",
+            "accounts"
+          ],
+          "must_not_contain": [
+            "nft object",
+            "land parcel",
+            "room"
+          ],
+          "fail_closed": true
+        }
+      ]
+    },
+    {
       "id": "ECONOMY-E-01",
       "role": "economy",
       "mode": "exploratory",
@@ -869,8 +981,8 @@
   ],
   "counts": {
     "students": 6,
-    "formations": 20,
-    "corrective": 13,
+    "formations": 22,
+    "corrective": 15,
     "exploratory": 7
   }
 }
