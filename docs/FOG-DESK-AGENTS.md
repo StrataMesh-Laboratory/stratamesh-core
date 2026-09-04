@@ -1,7 +1,10 @@
-# Fog automation desk agents
-| Id | Role |
-|----|------|
-| grok@ | external_assistant |
-| hermes@fog | external_agent |
-| opencode@fog | external_agent |
+# Fog automation desk agents (external_*)
+
+| Id | Role | Runtime |
+|----|------|---------|
+| grok@calhegasmorais.pt | external_assistant | STRATAGROK |
+| hermes@fog.calhegasmorais.pt | external_agent | Hermes + Ollama |
+| opencode@fog.calhegasmorais.pt | external_agent | OpenCode + Ollama |
+| openclaw@fog.calhegasmorais.pt | external_agent | OpenClaw + Ollama |
+
 None are SCA/ACB.
