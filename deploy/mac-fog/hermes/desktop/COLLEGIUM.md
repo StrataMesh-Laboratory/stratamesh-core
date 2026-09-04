@@ -10,3 +10,7 @@ When asked to work with OpenCode/OpenClaw/STRATAGROK:
 5. Never claim to be an SCA. Never mix Fog+EDGE Assistant prompts.
 
 First pulse: propose one code task (OpenCode) and one local claw task (OpenClaw); keep Discord/Slack to ACKs only.
+
+
+## Runtime gate
+Agent model must have **≥65536** context. See CONTEXT-64K.md. Never init on llava alone.
