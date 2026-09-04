@@ -64,7 +64,7 @@ jobs:
 
   align-pages:
     needs: check
-    if: needs.check.outputs.html_outdated == 'true'
+    if: needs.check.outputs.html_outdated == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -95,7 +95,7 @@ jobs:
 
   d1-fallback:
     needs: check
-    if: needs.check.outputs.html_outdated == 'true'
+    if: needs.check.outputs.html_outdated == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger live-from-git (D1/spa keys)
