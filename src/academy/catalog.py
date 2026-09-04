@@ -74,6 +74,11 @@ NOT_STUDENTS = [
         "role": "external_agent",
         "reason": "FOG Agent on the automation desk (OpenCode + local Ollama) — not an SCA, not a student, no academy vote; code/build desk tooling",
     },
+    {
+        "id": "openclaw@fog.calhegasmorais.pt",
+        "role": "external_agent",
+        "reason": "FOG Agent on the automation desk (OpenClaw + local Ollama) — not an SCA, not a student, no academy vote; claw/automation desk tooling",
+    }
 ]
 
 MODELS = {
@@ -492,6 +497,11 @@ FORMATIONS = [
                 "Is OpenCode on Fog an SCA or ACB?",
                 ["external_agent", "desk", "not sca"],
                 ["enroll opencode", "opencode is an sca"],
+            ),
+            _d(
+                "Is OpenClaw on Fog an SCA or ACB?",
+                ["external_agent", "desk", "not sca"],
+                ["enroll openclaw", "openclaw is an sca"],
             ),
             _d(
                 "WhatsApp thread with a finding. Is that the briefing?",
