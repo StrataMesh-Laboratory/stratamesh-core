@@ -256,6 +256,8 @@ def test_tui_g_always_brews():
     assert "brew skip" not in pull
     assert "brew skip" not in text
     assert "brew_update_upgrade()" in pull
+    assert "gGsSbBqQrR" in text
+    assert "No blocking y/n" in text or "g running" in text
     assert "brew skip (auto-g)" not in text
     brew_fn = text[text.index("def brew_update_upgrade"):text.index("def runtime_mesh_last_error")]
     assert "reinstall" in brew_fn and "llhttp" in brew_fn and "node" in brew_fn

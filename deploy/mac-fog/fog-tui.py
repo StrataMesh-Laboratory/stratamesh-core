@@ -50,8 +50,8 @@ WIZARD_SNAP: dict = {}
 _WIZARD_LOCK = threading.Lock()
 WIZARD_VIEW = 8
 WIZARD_MAX = 80
-# Empty: while HELP, dashboard keys (g s b q r 1-4) type into the composer.
-WIZARD_RESERVED = frozenset()
+# g/r/s/b/q stay dashboard keys even while HELP. Composer does not swallow them.
+WIZARD_RESERVED = frozenset("gGsSbBqQrR")
 COMPOSER_ROW = 0  # 1-based row of "> " prompt; paint_composer only
 DRAW_ROW = 1
 LOCAL_HTTP_TIMEOUT = 0.3
@@ -1551,7 +1551,7 @@ def wizard_consume_key(ch: str):
 
     Returns "type" | "clear" | "send" | "leave" | False (not consumed).
     TAB clears even if HELP is False. ? and Esc leave HELP (do not quit).
-    C/c are ordinary letters while HELP. WIZARD_RESERVED is empty while HELP.
+    C/c are ordinary letters while HELP. g/r/s/b/q stay reserved.
     """
     global WIZARD_INPUT
     if ch == "\t":
@@ -2074,14 +2074,13 @@ def main() -> int:
             elif ch in ("b", "B"):
                 msg = reboot_fog() if confirm("reboot fog+workerd?") else "reboot cancelled"
             elif ch in ("g", "G"):
-                if not confirm("git pull origin main + hop recycle?"):
-                    msg = "pull cancelled"
-                else:
-                    msg = "g running…"
-                    def _g():
-                        global G_MSG
-                        G_MSG = git_pull_reboot()
-                    threading.Thread(target=_g, name="fog-tui-g", daemon=True).start()
+                # No blocking y/n — that prompt sat on the last row and looked like a dead key.
+                # r already refreshes with no confirm; g must answer on the same press.
+                msg = "g running…"
+                def _g():
+                    global G_MSG
+                    G_MSG = git_pull_reboot()
+                threading.Thread(target=_g, name="fog-tui-g", daemon=True).start()
     except KeyboardInterrupt:
         return 0
     finally:
