@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
-TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434 (llama3.2:1b). FAQ from public docs if generate is waking. Report via Orchestrator to AIOps (fail-open).
+TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434 — FOG Hermes external_agent (hermes3/llava), not an SCA. FAQ from public docs if generate is waking. Report via Orchestrator to AIOps (fail-open).
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
 hop fault. Launchers unset the env (never =0 — that *is* the trigger) and
@@ -1056,7 +1056,7 @@ WIZARD_SYSTEM = (
 )
 
 OLLAMA_GENERATE_TIMEOUT = 60.0
-OLLAMA_PREFERRED = "llama3.2:1b"
+OLLAMA_PREFERRED = "hermes3:3b"
 WIZARD_DOCS = ""
 WIZARD_DOCS_LOADED = False
 WIZARD_DOCS_MAX = 7500
@@ -1065,7 +1065,7 @@ WIZARD_DOCS_SEED = (
     "Fog kernel listens on :8787. Middleware hops are workerd, python, node, and deno (five slots). "
     "SCA (PT) and ACB (EN) name the same subject. "
     "HOLD is metabolic host_cap, not a CPU RCA. "
-    "Local Ollama answers the wizard; if it is down the FAQ is fail-open from public docs. "
+    "FOG Hermes Agent (external_agent desk mandate) answers the wizard via local Ollama; Hermes is not an SCA. If Ollama is down the FAQ is fail-open from public docs. "
     "Never pkill cloudflared. Never workers.dev. Never secrets."
 )
 
@@ -1222,14 +1222,29 @@ def ollama_first_tag(timeout: float = 2.0) -> str:
 
 
 def ollama_preferred_tag(timeout: float = 2.0) -> str:
-    """Prefer llama3.2:1b when listed; else first tag. Fail-open empty."""
+    """Prefer FOG Hermes desk models: hermes3:3b, then llava, then llama3.2:1b. Fail-open empty."""
     names = ollama_tag_names(timeout)
     if not names:
         return ""
     want = OLLAMA_PREFERRED
     for n in names:
-        if n == want or n.startswith(want + "/") or n.split(":")[0:2] == want.split(":")[0:2] and n.startswith(want):
+        if n == want or n.startswith(want + "/") or (
+            n.split(":")[0:2] == want.split(":")[0:2] and n.startswith(want.split(":")[0])
+        ):
             return n
+    # FOG Hermes external_agent preference chain (desk host, not SCA)
+    for pref in ("hermes3:3b", "hermes3", "llava", "phi3", "llama3.2:1b"):
+        for n in names:
+            if n == pref or n.startswith(pref + ":") or n.split(":")[0] == pref.split(":")[0]:
+                if pref == "llama3.2:1b" and "1b" not in n and n != pref:
+                    continue
+                if pref.startswith("hermes3") and not n.split(":")[0].startswith("hermes"):
+                    continue
+                if pref == "llava" and n.split(":")[0] != "llava":
+                    continue
+                if pref == "phi3" and n.split(":")[0] != "phi3":
+                    continue
+                return n
     for n in names:
         if n.split(":")[0] == "llama3.2" and ("1b" in n):
             return n
