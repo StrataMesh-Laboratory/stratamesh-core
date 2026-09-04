@@ -351,7 +351,11 @@ class WizardFaqDocs(unittest.TestCase):
         self.assertNotIn("member=True", out)
         self.assertNotIn("cap_over", out)
 
-    def test_preferred_llama32_1b_else_first(self):
+    def test_preferred_hermes_then_llava_then_llama(self):
+        with mock.patch.object(_MOD, "ollama_tag_names", return_value=["mistral:7b", "hermes3:3b", "llava"]):
+            self.assertEqual(_MOD.ollama_preferred_tag(), "hermes3:3b")
+        with mock.patch.object(_MOD, "ollama_tag_names", return_value=["mistral:7b", "llava"]):
+            self.assertEqual(_MOD.ollama_preferred_tag(), "llava")
         with mock.patch.object(_MOD, "ollama_tag_names", return_value=["mistral:7b", "llama3.2:1b"]):
             self.assertEqual(_MOD.ollama_preferred_tag(), "llama3.2:1b")
         with mock.patch.object(_MOD, "ollama_tag_names", return_value=["phi3:mini"]):
