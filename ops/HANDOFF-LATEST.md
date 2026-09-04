@@ -1,57 +1,84 @@
-# HANDOFF-LATEST — 2026-09-02 PT (André honesty)
+# HANDOFF-LATEST — 2026-09-04T22:39:19Z (STRATAGROK)
 
-**generated_at:** 2026-09-02T11:11:00Z
-**lisbon:** 2026-09-02T12:11:00+0100
-**agent:** STRATAGROK / grok@calhegasmorais.pt
-**node:** FOG-NODE-PT-CM-001
-**edge:** EDGE-GROK-CMN-001 (EDGE-GROK local)
-**phase:** adversarial_lab_P1
-**tag:** v0.5.1-lab
+**posture:** green · **mode:** HOLD · **torch:** HOLD-success (mandatory empty)
+**tag:** v0.5.1-lab · **n:** 2 · Fog mac_live
 
-Lab only. grok@ is not an SCA. No mainnet / aBFT / investment claims.
+## Notes
+2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.5.1-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.
 
-## Current lab truth (mandatory)
+## mandatory_actions
+(none — HOLD-success)
 
-| Item | Value |
-|------|-------|
-| Version | **v0.5.1-lab** (live/lab). Not 0.4.1. README/others that still said 0.4.1 were stale. |
-| Mesh | **n=2** — Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. Do **not** say n=1 kernel / n=1 until proven. |
-| Phase | **Adversarial LAB phase P1**. Not “P0 as the lab phase”. |
-| grok90 INV/TX pack | Later bar, not the current phase name. Gate: `docs/P0-INV-TX-MULTIHOST.md`. |
-| Public Fog `/health` | May still JSON `n=1` `origin=session` `mac_live=false`. That is a **session-origin software flag**, not “the lab is n=1”. Do **not** claim `mac_live=true` on public JSON. |
-| Hosts | Two. Do not invent a 6th host. |
+## optional_actions
+- `tui-g-ba15ae3` [P2] andré: Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g
+- `oracle-grok90` [P1] stratagrok: Chase Oracle grok90 Always Free until Fog host is provisioned
+- `plan-tui-wizard-docs-faq` [P2] fog: PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)
 
-## Metabolism
-
-| Item | Value |
-|------|-------|
-| Hourly git+live #52 | **PAUSED** (SuperGrok). Daily 04 observe · 09 ship · 18 t/20 · 23 handoff |
-| CF Workers | STASIS ledger [#80](https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/80). **STASIS is pace, not freeze.** Freeze = temporary holding until contingency routes (auth python hop, Pages, sandbox host). No Worker PUT from this desk |
-| Fog metabol | metabol-v1.3 remaining=1000 ALLOW (different meter from CF spend) |
-| 6th cron | **never** |
-| workers.dev | **never** |
-| grok.me | **HOLD** (no Publish from this desk) |
-| wrangler deploy | **HOLD** while #80 |
-
-## Live curl vs lab mesh
-
-- Public `https://fog.calhegasmorais.pt/health` may still report `origin=session` `n=1` `mac_live=false` `edge_live=false`. Treat as session-origin software flag / hop lag. Lab mesh remains **n=2**.
-- Tag **v0.5.1-lab**. Hop JSON version may lag the tag (session software). Curl of that JSON does not rewrite the lab phase.
-- Public `edge.calhegasmorais.pt/health` may be maintenance HTML, not hop JSON. That is not a sixth host and not proof the local EDGE-GROK is absent.
-- POST `/api/orchestrator/chat` reliability is a Worker/API issue. Not a mesh-n rewrite.
-
-## P0 / P1
-
-- **Current phase name: P1 (Adversarial LAB).** Two-host CMN pair is the live lab mesh.
-- Multi-host **grok90 INV/TX evidence pack** stays a later honesty bar (`docs/P0-INV-TX-MULTIHOST.md`). Do not rename the current phase “P0”.
-- Ingest-guard “n=1 kernel” (`docs/P0-PROCESS-INV-TX.md`) is **historical kernel evidence**, not current lab topology.
-- CF Workers spend ≥ cap (#80): STASIS = **pace**; contingency holds until auth python hop / Pages / sandbox host.
-
-## NEXT PICK
-
-1. Docs/status language matches v0.5.1-lab · Adversarial P1 · n=2 (this note).
-2. No Worker PUT while #80. No workers.dev. No 6th cron. No grok.me Publish.
-3. Do not boot Fog from STRATAGROK computer. Do not claim public JSON `mac_live=true`.
-4. grok90 two-host INV/TX pack remains a later bar, not this hour’s phase rename.
-
-LAB. Session `/health` JSON does not override n=2.
+```json
+{
+  "schema": "stratamesh.handoff.v1",
+  "generated_at": "2026-09-04T22:39:19Z",
+  "headline": "Green \u2014 academy 0.5.1-lab live; docs nav fixed; wizard kbd lock on main awaiting g",
+  "posture": "green",
+  "status": {
+    "version": "v0.5.1-lab",
+    "phase": "adversarial_lab_P1",
+    "lab": true
+  },
+  "aiops": {
+    "critical": 0,
+    "warn": 0,
+    "info": 0
+  },
+  "mandatory_actions": [],
+  "optional_actions": [
+    {
+      "id": "tui-g-ba15ae3",
+      "priority": "P2",
+      "owner": "andr\u00e9",
+      "verb": "Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g",
+      "success_check": "Fog TUI GIT shows ba15ae3 or later; ? then type g/s/b/r/q into composer only",
+      "effort": "S"
+    },
+    {
+      "id": "oracle-grok90",
+      "priority": "P1",
+      "owner": "stratagrok",
+      "verb": "Chase Oracle grok90 Always Free until Fog host is provisioned",
+      "success_check": "grok90 instance running Fog before AWS Free hedge ends",
+      "effort": "M"
+    },
+    {
+      "id": "plan-tui-wizard-docs-faq",
+      "priority": "P2",
+      "owner": "fog",
+      "verb": "PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)",
+      "success_check": "wizard FAQ answers cite public docs; no hop-dump timeouts",
+      "effort": "M"
+    }
+  ],
+  "non_actions": [
+    "torch pass \u2014 HOLD-success while mandatory_actions empty",
+    "workers.dev",
+    "6th CF cron",
+    "grok.me Publish"
+  ],
+  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.5.1-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
+  "fog": {
+    "origin": "macbook",
+    "mac_live": true,
+    "n": 2,
+    "version": "v0.5.1-lab"
+  },
+  "slot": "desk-handoff-stratagrok",
+  "identity": "STRATAGROK",
+  "node_id": "FOG-NODE-PT-CM-001",
+  "mode": "HOLD",
+  "n": 2,
+  "mesh_member": true,
+  "f_max": 0,
+  "critical": 0,
+  "p0": false,
+  "ship": false
+}
+```
