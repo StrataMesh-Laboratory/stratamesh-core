@@ -1,6 +1,6 @@
 {
   "schema": "desk.collegium.state.v1",
-  "version": "0.1.1-lab",
+  "version": "0.1.2-lab",
   "updated": "2026-09-05T00:50:00+01:00",
   "members": [
     {
@@ -65,5 +65,18 @@
   "open_tasks": [],
   "last_commit": null,
   "notes": "Specialization owns routing; metabol_pace owns burn. Parallel OK on disjoint specialties.",
-  "organizing_principle": "specialization"
+  "organizing_principle": "specialization",
+  "hermes_runtime": {
+    "min_context": 65536,
+    "forbidden_agent_models": [
+      "llava",
+      "llava:latest"
+    ],
+    "preferred": [
+      "qwen2.5:7b",
+      "hermes3:8b",
+      "qwen2.5:14b"
+    ],
+    "autonomy_doc": "docs/FOG-DESK-AUTONOMY.md"
+  }
 }
