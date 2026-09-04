@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import shutil
 import subprocess
@@ -126,9 +127,79 @@ WHICH_FALLBACK_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
 
 
 def _dyld_node_error(err) -> bool:
-    """Broken Homebrew node bottle (dyld libllhttp) — backoff, do not tight-loop."""
+    """Broken Homebrew node bottle (dyld libllhttp / libada / next)."""
     s = (err or "").lower()
-    return "dyld" in s or "libllhttp" in s
+    return "dyld" in s or "libllhttp" in s or "library not loaded" in s or "libada" in s
+
+
+def alias_missing_node_dylib(err: str) -> str:
+    """Symlink Cellar dylib to the versioned name Node's bottle still dylds."""
+    m = re.search(r"Library not loaded:\s+(\S+\.dylib)", err or "")
+    if not m:
+        return ""
+    wanted = Path(m.group(1))
+    name = wanted.name
+    stem = name.split(".")[0]
+    parts = wanted.parts
+    formula = "llhttp"
+    if "opt" in parts:
+        try:
+            formula = parts[parts.index("opt") + 1]
+        except (ValueError, IndexError):
+            pass
+    sources = []
+    for prefix in ("/usr/local", "/opt/homebrew"):
+        optlib = Path(prefix) / "opt" / formula / "lib"
+        if (optlib / (stem + ".dylib")).exists():
+            sources.append(optlib / (stem + ".dylib"))
+        sources.extend(sorted(optlib.glob(stem + ".*.dylib")))
+        cellar = Path(prefix) / "Cellar" / formula
+        if cellar.is_dir():
+            sources.extend(sorted(cellar.glob("*/lib/" + stem + "*.dylib")))
+    src = next((p for p in sources if p.exists() and p.name != name), None)
+    src = src or next((p for p in sources if p.exists()), None)
+    if not src:
+        return "no source for %s" % name
+    dest = Path("/usr/local/opt") / formula / "lib" / name
+    if str(wanted).startswith("/opt/homebrew"):
+        dest = Path("/opt/homebrew/opt") / formula / "lib" / name
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.is_symlink() or dest.exists():
+            dest.unlink()
+        dest.symlink_to(src.resolve())
+        return "link %s -> %s" % (src.name, dest)
+    except OSError as e:
+        return "link fail %s" % type(e).__name__
+
+
+def heal_node_dyld(rounds: int = 8) -> str:
+    """node -v until it prints a version, aliasing each missing dylib. Auto-g calls this."""
+    node = _which_bin("node") or "node"
+    notes = []
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
+    for _ in range(max(1, int(rounds))):
+        try:
+            p = subprocess.run(
+                [node, "-v"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                env=env,
+            )
+            err = (p.stderr or "") + (p.stdout or "")
+        except Exception as e:
+            notes.append(type(e).__name__)
+            break
+        if p.returncode == 0 and "dyld" not in err.lower() and "library not loaded" not in err.lower():
+            notes.append(err.strip().split()[0][:24] or "node-ok")
+            break
+        note = alias_missing_node_dylib(err)
+        notes.append(note or "dyld unparsed")
+        if not note or note.startswith("no source") or note.startswith("link fail"):
+            break
+    return "heal " + " · ".join(notes) if notes else "heal skip"
 
 
 def _which_bin(name: str):
@@ -420,14 +491,21 @@ class RuntimeMeshPlugin:
         node = _which_bin("node")
         if node and js.is_file() and not _healthy(NODE_PORT):
             now = time.time()
-            # last_error dyld/libllhttp arms 60s; skip Popen until then (host_cap may rewrite last_error).
+            # last_error dyld arms 60s only after heal already ran this cycle.
             if now < float(self._node_backoff_until or 0):
-                pass  # 60s backoff: broken bottle, still retry after
+                pass
             else:
+                heal = heal_node_dyld()
                 log = open(DATA / "mw-node.log", "ab")
+                try:
+                    log.write((heal + "\n").encode("utf-8", "replace"))
+                    log.flush()
+                except OSError:
+                    pass
                 env = os.environ.copy()
                 env.setdefault("FOG_SRC", str(ROOT))
                 env.setdefault("FOG_DATA", str(DATA))
+                env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
                 p = subprocess.Popen(
                     [node, str(js)],
                     stdout=log,
@@ -446,7 +524,21 @@ class RuntimeMeshPlugin:
                         tail = ""
                     self.last_error = ("mw-node exit %s %s" % (rc, tail)).strip()[:200]
                     if _dyld_node_error(self.last_error):
-                        self._node_backoff_until = time.time() + NODE_DYLD_BACKOFF_SEC
+                        heal_node_dyld()
+                        p2 = subprocess.Popen(
+                            [node, str(js)],
+                            stdout=log,
+                            stderr=log,
+                            start_new_session=True,
+                            cwd=str(ROOT),
+                            env=env,
+                        )
+                        self.node_pid = p2.pid
+                        if p2.poll() is not None and _dyld_node_error(self.last_error):
+                            self._node_backoff_until = time.time() + NODE_DYLD_BACKOFF_SEC
+                        else:
+                            self.last_error = None
+                            self._node_backoff_until = 0
                 _write_sha()  # sha stamp is git identity, not metabol
         deno = _which_bin("deno")
         if deno and ts.is_file() and not _healthy(DENO_PORT):

@@ -282,6 +282,18 @@ def test_auto_update_brews_before_runtime_skip():
     assert "recycle_mw((8791,))" in text.replace(" ", "")
     assert "libllhttp.9.3.dylib" in text
     assert "/usr/local/opt/llhttp/lib" in text
+    assert "heal_node_dyld" in text
+    assert "pull anyway" in text
+
+
+def test_heal_node_dyld_parses_ada():
+    from fog_plugins.runtime_mesh import alias_missing_node_dylib, _dyld_node_error
+    assert _dyld_node_error("Library not loaded: /usr/local/opt/ada-url/lib/libada.3.dylib")
+    # no Cellar on this hop — function must not raise
+    note = alias_missing_node_dylib(
+        "dyld: Library not loaded: /usr/local/opt/ada-url/lib/libada.3.dylib"
+    )
+    assert isinstance(note, str)
 
 
 def test_recycle_skips_dead_mw_8s():

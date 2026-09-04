@@ -123,8 +123,8 @@ if [[ "$HEAD" == "$REMOTE" ]]; then
   log "ok already origin/main ${HEAD:0:12}"
   # brew may have just repaired dyld/libllhttp; :8791 stays dark until fog_mw.js respawns.
   if ! curl -sf -m 2 "http://127.0.0.1:8791/health" >/dev/null; then
-    log "node :8791 dark after brew — recycle 8791 + kickstart fog (no tunnel)"
-    PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8791,)))' >>"$LOG" 2>&1 || true
+    log "node :8791 dark after brew — heal dyld + recycle 8791 + kickstart fog (no tunnel)"
+    PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld, recycle_mw; print(heal_node_dyld()); print(recycle_mw((8791,)))' >>"$LOG" 2>&1 || true
     UIDN=$(id -u)
     launchctl kickstart -k "gui/${UIDN}/pt.calhegasmorais.fog" >/dev/null 2>&1 || true
   fi
@@ -135,9 +135,14 @@ if [[ -f "$MANUAL" ]]; then
   now=$(date +%s)
   mt=$(stat -f %m "$MANUAL" 2>/dev/null || stat -c %Y "$MANUAL" 2>/dev/null || echo 0)
   age=$((now - mt))
-  if (( age < INTERVAL )); then
+  node_dark=0
+  curl -sf -m 2 "http://127.0.0.1:8791/health" >/dev/null || node_dark=1
+  if (( age < INTERVAL )) && [[ "$node_dark" -eq 0 ]]; then
     log "skip last-manual-g age=${age}s < ${INTERVAL}s"
     exit 0
+  fi
+  if (( age < INTERVAL )) && [[ "$node_dark" -eq 1 ]]; then
+    log "last-manual-g age=${age}s but :8791 dark — pull anyway"
   fi
 fi
 
@@ -185,6 +190,8 @@ if [[ -d /tmp/sm-core/ops/workerd ]]; then
   log "copied workerd-config -> /tmp/sm-core/ops/workerd"
 fi
 
+healed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import heal_node_dyld; print(heal_node_dyld())' 2>/dev/null || echo heal-skip)
+log "heal_node_dyld $healed"
 killed=$(PYTHONPATH="$REPO/src" python3 -c 'from fog_plugins.runtime_mesh import recycle_mw; print(recycle_mw((8787,8788,8790,8791,8792)))' 2>/dev/null || echo skip)
 log "recycle_mw $killed"
 
