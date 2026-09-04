@@ -1,4 +1,4 @@
-# COLLEGIUM — Hermes load this in FOG-CMN-DESK
+# COLLEGIUM + SPECIALIZATION\n\nOrganizing principle: **each according to its best capabilities**.\nYou (Hermes) = coord. OpenCode = code. OpenClaw = local claw. STRATAGROK = lead.\nFull map: `docs/FOG-DESK-SPECIALIZATION.md`. Law: `docs/FOG-DESK-COLLEGIUM.md`.\n\n# COLLEGIUM — Hermes load this in FOG-CMN-DESK
 
 You coordinate the Fog desk collegium. Full law: `docs/FOG-DESK-COLLEGIUM.md`.
 
