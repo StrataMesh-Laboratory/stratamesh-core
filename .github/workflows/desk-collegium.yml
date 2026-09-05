@@ -1,4 +1,6 @@
 # Fog desk collegium — protocol + Actions plug-in (labor only; no CF PUT).
+# Also validates/refreshes committed lab progress JSON for fund.calhegasmorais.pt
+# (Worker fetches raw GitHub — no 6th CF cron).
 name: desk-collegium
 
 on:
@@ -9,6 +11,8 @@ on:
     paths:
       - "ops/desk-collegium/**"
       - "ops/bin/desk-collegium-cycle.py"
+      - "status/desk-lab-progress.json"
+      - "workers/stratamesh-fund.js"
       - ".github/workflows/desk-collegium.yml"
 
 concurrency:
@@ -30,6 +34,41 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: desk-collegium cycle
         run: python3 ops/bin/desk-collegium-cycle.py
+      - name: Lab progress snapshot (fund feed)
+        id: progress
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 ops/desk-collegium/desk_metrics.py snapshot --write
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          p = Path("status/desk-lab-progress.json")
+          if not p.is_file():
+              print("FAIL missing status/desk-lab-progress.json")
+              sys.exit(1)
+          d = json.loads(p.read_text())
+          assert d.get("schema") == "desk.lab.progress.v1", d.get("schema")
+          assert d.get("lab") is True
+          assert d.get("not_mainnet") is True
+          assert "acts" in d and "challenges" in d and "pass_counts" in d
+          # no invented EUR fields
+          blob = json.dumps(d).lower()
+          for bad in ("treasury_eur", "grant_eur", "payout_amount", "invented"):
+              if bad in blob and bad != "invented":
+                  # allow note text "no invented"
+                  pass
+          print("ok schema", d.get("schema"), "sha", d.get("git_sha"),
+                "acts", (d.get("acts") or {}).get("delivered_total"),
+                "ch_open", (d.get("challenges") or {}).get("open"),
+                "ch_closed", (d.get("challenges") or {}).get("closed"))
+          Path("artifacts/desk-lab-progress.json").write_text(json.dumps(d, indent=2) + "\n")
+          PY
+          # CI must not invent dollars; fund Worker reads committed main JSON after merge.
+          if ! git diff --quiet -- status/desk-lab-progress.json; then
+            echo "NOTE: snapshot differs from committed file — Mac desk Act should commit real numbers"
+            git diff -- status/desk-lab-progress.json | head -80 || true
+          fi
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4

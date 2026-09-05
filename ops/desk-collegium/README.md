@@ -51,14 +51,27 @@ python3 ops/desk-collegium/desk_ops.py cycle --max 1
 
 Laws include **academy_teach**: all desk agents teach SCA/ACB students; never enroll as students.
 
-## Metrics (operative score)
+## Metrics (operative score + lab progress)
 
 ```bash
 python3 ops/desk-collegium/desk_metrics.py score [--n 20]
+python3 ops/desk-collegium/desk_metrics.py snapshot --write
+python3 ops/desk-collegium/desk_metrics.py show
 ```
 
 Cycle samples append to `$FOG_HOME/data/desk-metrics.jsonl` and alias `$FOG_HOME/data/last-cycle.jsonl`.
+Successful Act also refreshes committed `status/desk-lab-progress.json` (fund + Discourse metrics line).
 Target score ≥ 70. Empty FOG soft-exits 0 (first boot).
+
+## Issues / challenges → GitHub
+
+```bash
+python3 ops/desk-collegium/desk_issues.py ensure   # create/link GH issues; stamp html_url
+python3 ops/desk-collegium/desk_issues.py sync
+python3 ops/desk-collegium/desk_issues.py list
+```
+
+Loop: Act → metrics JSON → GH issue URL → Discourse t/20 draft (HOLD soft-skip) → fund.calhegasmorais.pt `/api/v1/lab-progress`.
 
 ## Actions + agent run
 

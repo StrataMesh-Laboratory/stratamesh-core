@@ -323,6 +323,7 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
             print(f"coord reports warn: {e}", file=sys.stderr)
         try:
             issues = _load("desk_issues")
+            issues.cmd_ensure(argparse.Namespace(dry_run=False, force=False))
             issues.cmd_sync(argparse.Namespace(dry_run=False, limit=15))
         except Exception as e:
             print(f"coord issues warn: {e}", file=sys.stderr)

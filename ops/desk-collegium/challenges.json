@@ -5,17 +5,22 @@
   "items": [
     {
       "id": "ch-desk-organ",
-      "title": "Desk as collegial organ \u2014 majority ship-live",
+      "title": "Desk as collegial organ — majority ship-live",
       "status": "open",
       "specialty": "coord",
-      "intent": "Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus"
+      "intent": "Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
+      "github_issue": 150,
+      "html_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/150"
     },
     {
       "id": "ch-oracle-grok90",
       "title": "Oracle grok90 before AWS hedge end",
       "status": "open",
       "specialty": "lead",
-      "intent": "Chase incident 260826-001576 after vault reset; M-II HOLD until live"
+      "intent": "Chase incident 260826-001576 after vault reset; M-II HOLD until live",
+      "github_issue": 151,
+      "html_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151"
     }
-  ]
+  ],
+  "updated": "2026-09-05T12:27:55+0000"
 }

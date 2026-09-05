@@ -1,13 +1,13 @@
 /**
  * stratamesh-fund — fund.calhegasmorais.pt
- * v0.4.8-destyle — grantor brief + challenge /accept surface (no EUR).
+ * v0.4.9-lab-progress — + desk lab progress from status/desk-lab-progress.json (no EUR).
  * HTML chrome matches Fog/EDGE/Gossip destyle family (system-ui, --accent:#c4a574).
  * Roster/health stay JSON. No webfonts.
  *
  * GitHub = evidence · Fund = stats + payout routing
  * No STRATA / no GDA in V0 · no AI impact scores
  */
-const VERSION = "0.4.8-destyle";
+const VERSION = "0.4.9-lab-progress";
 const ORG = "StrataMesh-Laboratory";
 const REPOS = [
   { owner: ORG, name: "stratamesh-core", role: "Protocol core" },
@@ -47,6 +47,9 @@ const POSTED_CHALLENGE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const RANKING_NOTE = "No grantee deliveries until /accept + evidence PR.";
 const SUMMARY_CACHE_MS = 30 * 60 * 1000;
 const RANKING_CACHE_MS = 10 * 60 * 1000;
+const LAB_PROGRESS_URL =
+  "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/status/desk-lab-progress.json";
+const LAB_PROGRESS_CACHE_MS = 5 * 60 * 1000;
 
 const PREPAID = [
   {
@@ -1471,7 +1474,132 @@ function sponsorsEmbedHtml(sp) {
   );
 }
 
-function homePage(lang, agg, sp) {
+async function fetchLabProgress(env) {
+  const cached = await kvGet(env, "gh:lab-progress:v1");
+  if (cached && cached.payload && cached.cached_at) {
+    const age = Date.now() - new Date(cached.cached_at).getTime();
+    if (age >= 0 && age < LAB_PROGRESS_CACHE_MS) return cached.payload;
+  }
+  try {
+    const res = await fetch(LAB_PROGRESS_URL, {
+      headers: { "User-Agent": "stratamesh-fund", Accept: "application/json" },
+      cf: { cacheTtl: 300 },
+    });
+    if (!res.ok) {
+      return {
+        ok: false,
+        reason: "fetch_" + res.status,
+        note: "Committed metrics unavailable — no invented numbers.",
+      };
+    }
+    const payload = await res.json();
+    payload.ok = true;
+    payload.fetched_at = new Date().toISOString();
+    await kvPut(
+      env,
+      "gh:lab-progress:v1",
+      { cached_at: payload.fetched_at, payload: payload },
+      Math.floor(LAB_PROGRESS_CACHE_MS / 1000),
+    );
+    return payload;
+  } catch (e) {
+    return {
+      ok: false,
+      reason: "fetch_error",
+      note: "Committed metrics unavailable — no invented numbers.",
+    };
+  }
+}
+
+function labProgressSectionHtml(lang, progress) {
+  const pt = lang === "pt";
+  const p = progress || {};
+  if (!p || p.ok === false) {
+    return (
+      '<div class="section"><h2>' +
+      (pt ? "Progresso do lab" : "Lab progress") +
+      "</h2><p class=\"muted mono\">" +
+      esc((p && p.note) || (pt ? "Métricas ainda não commitadas." : "Metrics not yet committed.")) +
+      "</p></div>"
+    );
+  }
+  const acts = p.acts || {};
+  const ch = p.challenges || {};
+  const pc = p.pass_counts || {};
+  const issues = (p.issues && p.issues.tracked) || [];
+  const closed = ch.closed != null ? ch.closed : 0;
+  const open = ch.open != null ? ch.open : 0;
+  const items = (ch.items || [])
+    .slice(0, 8)
+    .map(function (it) {
+      const link = it.html_url
+        ? '<a href="' + esc(it.html_url) + '" rel="noopener">#' + esc(it.github_issue || "?") + "</a>"
+        : '<span class="muted">—</span>';
+      return (
+        "<tr><td class=\"mono\">" +
+        esc(it.id || "") +
+        "</td><td>" +
+        esc(it.status || "") +
+        "</td><td>" +
+        link +
+        "</td><td class=\"muted\">" +
+        esc((it.title || "").slice(0, 72)) +
+        "</td></tr>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="section">' +
+    "<h2>" +
+    (pt ? "Progresso do lab / desafios" : "Lab progress / challenges") +
+    "</h2>" +
+    '<p class="note">' +
+    (pt
+      ? "Números objectivos do desk (Act→métricas→GH). Sem EUR inventados."
+      : "Objective desk numbers (Act→metrics→GH). No invented EUR.") +
+    "</p>" +
+    '<div class="grid">' +
+    '<div class="stat-box"><div class="stat">' +
+    esc(acts.delivered_total != null ? acts.delivered_total : "—") +
+    '</div><div class="stat-label">' +
+    (pt ? "acts concluídos" : "acts delivered") +
+    "</div></div>" +
+    '<div class="stat-box"><div class="stat">' +
+    esc(open) +
+    '</div><div class="stat-label">' +
+    (pt ? "desafios abertos" : "challenges open") +
+    "</div></div>" +
+    '<div class="stat-box"><div class="stat">' +
+    esc(closed) +
+    '</div><div class="stat-label">' +
+    (pt ? "desafios fechados" : "challenges closed") +
+    "</div></div>" +
+    '<div class="stat-box"><div class="stat">' +
+    esc(issues.length) +
+    '</div><div class="stat-label">' +
+    (pt ? "issues seguidas" : "issues tracked") +
+    "</div></div>" +
+    "</div>" +
+    '<p class="mono muted">sha=' +
+    esc(p.git_sha || "—") +
+    " · phase=" +
+    esc(p.phase || "P1") +
+    " · updated=" +
+    esc(p.updated_at_pt || p.updated_at || "—") +
+    " · unittests=" +
+    esc(pc.desk_unittests_ok === true ? "ok" : pc.desk_unittests_ok === false ? "fail" : "—") +
+    "</p>" +
+    (items
+      ? '<div class="card" style="padding:0;overflow:auto"><table><thead><tr><th>Id</th><th>Status</th><th>GH</th><th>Title</th></tr></thead><tbody>' +
+        items +
+        "</tbody></table></div>"
+      : "") +
+    '<p class="mono muted"><a href="/api/v1/lab-progress">GET /api/v1/lab-progress</a> · source <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/status/desk-lab-progress.json" rel="noopener">status/desk-lab-progress.json</a></p>' +
+    "</div>"
+  );
+}
+
+function homePage(lang, agg, sp, progress) {
   const pt = lang === "pt";
   const path = pt ? "/" : "/en";
   const enQ = pt ? "" : "?lang=en";
@@ -1518,6 +1646,7 @@ function homePage(lang, agg, sp) {
       </table>
     </div>
     
+    ${labProgressSectionHtml(lang, progress)}
     <div class="section">
       <h2>${pt ? "Rails de financiamento" : "Funding rails"}</h2>
       <div class="actions">
@@ -1534,7 +1663,7 @@ function homePage(lang, agg, sp) {
     </div>
     <div class="section">
       <h2>API</h2>
-      <p class="mono muted">GET /api/v1/health · /contributors · /ranking · /repositories · /payout-methods · /claim (POST)</p>
+      <p class="mono muted">GET /api/v1/health · /lab-progress · /contributors · /ranking · /repositories · /payout-methods · /claim (POST)</p>
     </div>`;
   return shell({ lang, path, title: "StrataMesh Impact Fund", active: "home", body });
 }
@@ -1908,6 +2037,7 @@ export default {
           organization: sp.organization,
         },
         challenges: { open: ch.open_count, accepted: ch.accepted_count, total_listed: ch.challenges.length },
+        lab_progress: "/api/v1/lab-progress",
         treasury: false,
         envelope_rule: ch.envelope_rule,
         operator_payout: { login: OPERATOR.github_login, method: OPERATOR.method, widget_url: OPERATOR.widget_url },
@@ -2075,14 +2205,27 @@ export default {
       });
     }
 
+    if (path === "/api/v1/lab-progress") {
+      const progress = await fetchLabProgress(env);
+      return json(progress);
+    }
+
     // pages
     if (path === "/" || path === "/pt") {
-      const [data, sp] = await Promise.all([discoverContributors(env), sponsorsStatus(env)]);
-      return html(homePage("pt", data.aggregate, sp));
+      const [data, sp, progress] = await Promise.all([
+        discoverContributors(env),
+        sponsorsStatus(env),
+        fetchLabProgress(env),
+      ]);
+      return html(homePage("pt", data.aggregate, sp, progress));
     }
     if (path === "/en") {
-      const [data, sp] = await Promise.all([discoverContributors(env), sponsorsStatus(env)]);
-      return html(homePage("en", data.aggregate, sp));
+      const [data, sp, progress] = await Promise.all([
+        discoverContributors(env),
+        sponsorsStatus(env),
+        fetchLabProgress(env),
+      ]);
+      return html(homePage("en", data.aggregate, sp, progress));
     }
     if (path === "/contributors") {
       const data = await contributorsWithSummaries(env);

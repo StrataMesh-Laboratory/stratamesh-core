@@ -171,6 +171,162 @@ def write_discourse_daily() -> dict:
     return out
 
 
+def _discourse_rail_hold() -> tuple[bool, str]:
+    """True when Discourse metrics reply should NOT post (HOLD / rate-limit).
+
+    Drafts are still written. Never spam t/20 when bot rail HOLD or recent draft.
+    """
+    # explicit hold flag
+    for cand in (
+        _fog() / "data" / "desk-meters" / "discourse-hold.json",
+        HERE / "meters" / "discourse-hold.json",
+    ):
+        try:
+            if cand.is_file():
+                raw = json.loads(cand.read_text(encoding="utf-8"))
+                if raw.get("hold") or str(raw.get("pace") or "").upper() == "HOLD":
+                    return True, "discourse-hold flag"
+        except Exception:
+            pass
+    # metabol bot lane HOLD (Bot posts Discourse; non-lead continue desk Acts)
+    try:
+        state_p = _fog() / "data" / "desk-collegium" / "state.json"
+        if not state_p.is_file():
+            state_p = HERE / "state.json"
+        if state_p.is_file():
+            st = json.loads(state_p.read_text(encoding="utf-8"))
+            lanes = st.get("lanes") or {}
+            bot = lanes.get("lane-bot") or lanes.get("bot") or {}
+            pace = str((bot.get("pace") if isinstance(bot, dict) else bot) or "").upper()
+            if pace == "HOLD":
+                return True, "lane-bot HOLD"
+    except Exception:
+        pass
+    # rate-limit: same metrics line within 3h
+    flag = _fog() / "data" / "desk-meters" / "discourse-t20-metrics-last.json"
+    try:
+        if flag.is_file():
+            last = json.loads(flag.read_text(encoding="utf-8"))
+            ts = float(last.get("epoch") or 0)
+            if time.time() - ts < 3 * 3600:
+                return True, "rate-limit 3h"
+    except Exception:
+        pass
+    return False, ""
+
+
+def draft_t20_metrics_line() -> dict:
+    """Write t/20 metrics draft from committed lab progress. Soft-skip post if HOLD.
+
+    Always writes discourse-t20-metrics-draft.md when progress exists.
+    Does not POST unless rail allows and DISCOURSE_* available (desk Bot routine).
+    """
+    out = {
+        "ok": True,
+        "path": str(reports_dir() / "discourse-t20-metrics-draft.md"),
+        "ts": _now(),
+        "posted": False,
+        "hold": False,
+    }
+    # load / rebuild progress
+    progress = None
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("desk_metrics", HERE / "desk_metrics.py")
+        m = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(m)
+        progress = m.load_lab_progress() or m.build_lab_progress()
+    except Exception as e:
+        out["ok"] = False
+        out["reason"] = f"metrics:{e.__class__.__name__}"
+        return out
+    line = (progress.get("discourse") or {}).get("metrics_line") or ""
+    if not line:
+        acts = progress.get("acts") or {}
+        line = (
+            f"desk lab P1 · sha={progress.get('git_sha') or '—'} · "
+            f"acts_done={acts.get('delivered_total', 0)} open={acts.get('open_count', 0)} · "
+            f"no EUR invented"
+        )
+    hold, hold_why = _discourse_rail_hold()
+    out["hold"] = hold
+    out["hold_reason"] = hold_why or None
+    # stamp progress discourse.draft_hold
+    try:
+        progress = dict(progress)
+        disc = dict(progress.get("discourse") or {})
+        disc["draft_hold"] = hold
+        disc["metrics_line"] = line
+        progress["discourse"] = disc
+    except Exception:
+        pass
+    md = [
+        "# Discourse t/20 — metrics draft",
+        "",
+        f"_drafted {_now()} · topic [t/20]({DISCOURSE_TOPIC}) · no secrets_",
+        "",
+        f"**HOLD={int(hold)}** {hold_why or 'rail allows (draft only unless Bot posts)'}",
+        "",
+        "## Metrics line (paste / Bot reply)",
+        "",
+        "```",
+        line,
+        "```",
+        "",
+        f"Fund: https://fund.calhegasmorais.pt · progress JSON: `status/desk-lab-progress.json`",
+        "",
+        "Do not spam if HOLD. Objective numbers only — no invented EUR.",
+        "",
+    ]
+    path = reports_dir() / "discourse-t20-metrics-draft.md"
+    path.write_text("\n".join(md) + "\n", encoding="utf-8")
+    out["path"] = str(path)
+    out["metrics_line"] = line
+    # also append into discourse-daily.md
+    try:
+        daily = reports_dir() / "discourse-daily.md"
+        if daily.is_file():
+            body = daily.read_text(encoding="utf-8")
+            if "## Lab metrics line" not in body:
+                body += (
+                    "\n## Lab metrics line\n\n"
+                    f"- HOLD={int(hold)} {hold_why or ''}\n"
+                    f"- `{line}`\n"
+                    f"- draft: `{path.name}`\n"
+                )
+                daily.write_text(body, encoding="utf-8")
+    except Exception:
+        pass
+    # meter for agents
+    try:
+        meters = _fog() / "data" / "desk-meters"
+        meters.mkdir(parents=True, exist_ok=True)
+        (meters / "discourse-t20-metrics-draft.json").write_text(
+            json.dumps({
+                "ts": _now(),
+                "hold": hold,
+                "hold_reason": hold_why,
+                "metrics_line": line,
+                "topic": DISCOURSE_TOPIC,
+                "posted": False,
+            }, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        if not hold:
+            (meters / "discourse-t20-metrics-last.json").write_text(
+                json.dumps({"epoch": time.time(), "ts": _now(), "line": line}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+    except Exception:
+        pass
+    # Never auto-POST from this module when HOLD; even when not HOLD, draft-only
+    # (Bot routine / discourse_client reply 20 is the post rail — avoids spam).
+    out["note"] = "draft only — Bot/discourse_client posts when rail allows"
+    return out
+
+
+
 def write_latest(gh: dict, disc: dict) -> Path:
     md = (
         f"# Desk daily reports\n\n"
@@ -216,6 +372,10 @@ def sync(*, limit: int = 12, prepend: bool = True, feed: bool = True) -> dict:
     """Full reports sync — soft-ok without network/Bot."""
     gh = write_gh_daily(limit=limit)
     disc = write_discourse_daily()
+    try:
+        disc["t20_metrics"] = draft_t20_metrics_line()
+    except Exception as e:
+        disc["t20_metrics"] = {"ok": False, "err": str(e)[:120]}
     latest = write_latest(gh, disc)
     if prepend:
         prepend_to_agent_briefs()

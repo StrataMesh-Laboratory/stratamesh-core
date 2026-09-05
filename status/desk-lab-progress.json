@@ -1,0 +1,97 @@
+{
+  "schema": "desk.lab.progress.v1",
+  "version": "0.6.0-lab",
+  "phase": "P1",
+  "phase_name": "Adversarial LAB P1",
+  "lab": true,
+  "not_mainnet": true,
+  "updated_at": "2026-09-05T12:29:19Z",
+  "updated_at_pt": "2026-09-05T13:29:19+0100",
+  "git_sha": "827a70d",
+  "acts": {
+    "delivered_total": 4,
+    "open_count": 13,
+    "last_picked": [
+      "dt-a-code",
+      "dt-proj-academy-teach-pulse",
+      "dt-proj-academy-code-lesson"
+    ],
+    "idle_skip_last": false,
+    "cycle_delivered": 0,
+    "recent_results": [
+      {
+        "id": "dt-a-claw",
+        "result": "hops fog=1 edge=1 :8787=0 | tokens 2100/33000 | public Fog 200 v0.6.0-lab n=2 mac_live"
+      },
+      {
+        "id": "dt-a-code",
+        "result": "unittest discover rc=0 PASS test_desk_bus 5 + test_desk_roles 11 + test_desk_ops 12 compileall ok"
+      },
+      {
+        "id": "dt-proj-academy-teach-pulse",
+        "result": "academy_teach live=1 students=SCA/ACB teachers=desk academy=0.5.3-lab formations=20"
+      },
+      {
+        "id": "dt-proj-academy-code-lesson",
+        "result": "academy_teach live=1 students=SCA/ACB teachers=desk academy=0.5.3-lab formations=20 | needle=unpark_false_escalates"
+      }
+    ]
+  },
+  "pass_counts": {
+    "desk_unittests_ok": true,
+    "protocol_ok": true,
+    "gh_ok": null,
+    "acts_delivered": 4,
+    "challenges_open": 2,
+    "challenges_closed": 0,
+    "issues_tracked": 4
+  },
+  "challenges": {
+    "open": 2,
+    "closed": 0,
+    "items": [
+      {
+        "id": "ch-desk-organ",
+        "title": "Desk as collegial organ \u2014 majority ship-live",
+        "status": "open",
+        "specialty": "coord",
+        "github_issue": 150,
+        "html_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/150"
+      },
+      {
+        "id": "ch-oracle-grok90",
+        "title": "Oracle grok90 before AWS hedge end",
+        "status": "open",
+        "specialty": "lead",
+        "github_issue": 151,
+        "html_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151"
+      }
+    ]
+  },
+  "issues": {
+    "tracked": [
+      102,
+      123,
+      150,
+      151
+    ],
+    "urls": [
+      "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/102",
+      "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/123",
+      "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/150",
+      "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151"
+    ]
+  },
+  "discourse": {
+    "topic": "https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20",
+    "metrics_line": "desk lab P1 \u00b7 sha=827a70d \u00b7 acts_done=4 open=13 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
+    "draft_hold": false
+  },
+  "fund": {
+    "canonical": "https://fund.calhegasmorais.pt",
+    "section": "lab-progress",
+    "note": "Fed from this JSON \u2014 no invented dollars"
+  },
+  "source": "desk_metrics.snapshot",
+  "note": "Objective lab metrics only \u2014 no EUR invented."
+}

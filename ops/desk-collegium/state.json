@@ -35,7 +35,7 @@
       "id": "dt-proj-ts-taper-t1",
       "owner": "hermes@fog.calhegasmorais.pt",
       "specialty": "coord",
-      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path \u2014 dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -46,7 +46,7 @@
         {
           "verb": "propose",
           "by": "hermes@fog.calhegasmorais.pt",
-          "note": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path \u2014 dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+          "note": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
           "at": "2026-09-05T11:09:18+0000"
         }
       ],
@@ -88,7 +88,7 @@
       "id": "dt-proj-m1-claw-loop",
       "owner": "openclaw@fog.calhegasmorais.pt",
       "specialty": "claw",
-      "intent": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
+      "intent": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
       "lanes": [
         "lane-openclaw"
       ],
@@ -98,7 +98,7 @@
         {
           "verb": "propose",
           "by": "openclaw@fog.calhegasmorais.pt",
-          "note": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
+          "note": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
           "at": "2026-09-05T11:09:18+0000"
         }
       ],
@@ -166,7 +166,7 @@
       "id": "dt-proj-apprentice-desk-ops",
       "owner": "hermes@fog.calhegasmorais.pt",
       "specialty": "coord",
-      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle \u2014 document one real task trail (bus\u2192Actions\u2192outbox) as lesson on academy + StrataMesh proper",
+      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -177,7 +177,7 @@
         {
           "verb": "propose",
           "by": "hermes@fog.calhegasmorais.pt",
-          "note": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle \u2014 document one real task trail (bus\u2192Actions\u2192outbox) as lesson on academy + StrataMesh proper",
+          "note": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
           "at": "2026-09-05T11:09:18+0000"
         }
       ],
@@ -194,7 +194,7 @@
       "id": "dt-proj-apprentice-code-fog",
       "owner": "opencode@fog.calhegasmorais.pt",
       "specialty": "code",
-      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test \u2014 leave testable lesson linked to stratamesh-core + academy",
+      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
       "lanes": [
         "lane-opencode"
       ],
@@ -204,7 +204,7 @@
         {
           "verb": "propose",
           "by": "opencode@fog.calhegasmorais.pt",
-          "note": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test \u2014 leave testable lesson linked to stratamesh-core + academy",
+          "note": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
           "at": "2026-09-05T11:09:18+0000"
         }
       ],
@@ -221,7 +221,7 @@
       "id": "dt-proj-hermes-64k",
       "owner": "hermes@fog.calhegasmorais.pt",
       "specialty": "coord",
-      "intent": "Act: Hermes context \u226564k \u2014 ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+      "intent": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
       "lanes": [
         "lane-hermes"
       ],
@@ -231,7 +231,7 @@
         {
           "verb": "propose",
           "by": "hermes@fog.calhegasmorais.pt",
-          "note": "Act: Hermes context \u226564k \u2014 ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+          "note": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
           "at": "2026-09-05T11:09:18+0000"
         }
       ],
@@ -309,7 +309,7 @@
       "id": "dt-ch-desk-orga",
       "owner": "hermes@fog.calhegasmorais.pt",
       "specialty": "coord",
-      "intent": "challenge:ch-desk-organ Desk as collegial organ \u2014 majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
+      "intent": "challenge:ch-desk-organ Desk as collegial organ — majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
       "lanes": [],
       "status": "propose",
       "constraints": [],
@@ -317,16 +317,19 @@
         {
           "verb": "propose",
           "by": "hermes@fog.calhegasmorais.pt",
-          "note": "challenge:ch-desk-organ Desk as collegial organ \u2014 majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
+          "note": "challenge:ch-desk-organ Desk as collegial organ — majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
           "at": "2026-09-05T11:09:24+0000"
         }
       ],
       "result": "",
       "sha": "",
       "created": "2026-09-05T11:09:24+0000",
-      "updated": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T12:29:19+0000",
       "source": "challenge:ch-desk-organ",
-      "challenge": true
+      "challenge": true,
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/150",
+      "github_issue": 150,
+      "github_issue_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/150"
     },
     {
       "schema": "desk.task.v1",
@@ -348,9 +351,12 @@
       "result": "",
       "sha": "",
       "created": "2026-09-05T11:09:24+0000",
-      "updated": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T12:29:19+0000",
       "source": "challenge:ch-oracle-grok90",
-      "challenge": true
+      "challenge": true,
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151",
+      "github_issue": 151,
+      "github_issue_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151"
     }
   ],
   "done_tasks": [
@@ -385,7 +391,7 @@
         {
           "verb": "constrain",
           "by": "stratagrok",
-          "note": "re-act: propose\u2192constrain\u2192act hop metrics",
+          "note": "re-act: propose→constrain→act hop metrics",
           "at": "2026-09-05T11:14:02+0000"
         },
         {
@@ -421,14 +427,14 @@
         {
           "verb": "done",
           "by": "opencode",
-          "note": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief \u2014 opencode  ## Reports (rea",
+          "note": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea",
           "at": "2026-09-05T11:09:51+0000",
-          "result": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief \u2014 opencode  ## Reports (rea"
+          "result": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea"
         },
         {
           "verb": "constrain",
           "by": "stratagrok",
-          "note": "re-act: propose\u2192constrain\u2192act desk tests",
+          "note": "re-act: propose→constrain→act desk tests",
           "at": "2026-09-05T11:14:02+0000"
         },
         {
@@ -486,7 +492,7 @@
       "id": "dt-proj-academy-code-lesson",
       "owner": "opencode@fog.calhegasmorais.pt",
       "specialty": "code",
-      "intent": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "intent": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
       "lanes": [
         "lane-opencode"
       ],
@@ -496,7 +502,7 @@
         {
           "verb": "propose",
           "by": "opencode@fog.calhegasmorais.pt",
-          "note": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+          "note": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
           "at": "2026-09-05T11:09:18+0000"
         },
         {
@@ -537,11 +543,11 @@
     "lane-hermes": {
       "meter": "ollama_context",
       "renewal": "host_cap",
-      "renewal_note": "no CF daily clock; need context\u226565536; host RAM/CPU",
+      "renewal_note": "no CF daily clock; need context≥65536; host RAM/CPU",
       "context_min": 65536,
       "pace": "ALLOW",
       "context_length": null,
-      "sample_note": "no hermes meter \u2014 prefer \u226564k model; renew=host_cap",
+      "sample_note": "no hermes meter — prefer ≥64k model; renew=host_cap",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-opencode": {
@@ -560,7 +566,7 @@
       "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown; bot_cap_contingency: non-lead lanes keep working",
       "daily_limit": null,
       "pace": "HOLD",
-      "sample_note": "bot-included remaining unknown \u2014 HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)",
+      "sample_note": "bot-included remaining unknown — HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-assistant": {
@@ -569,7 +575,7 @@
       "renewal_note": "weekly pool_frac; reset Europe/Lisbon per grok.com Usage",
       "daily_limit": 1.0,
       "pace": "ALLOW",
-      "sample_note": "no assistant sample \u2014 gate on pool_frac when known; renew=supergrok_weekly Lisbon",
+      "sample_note": "no assistant sample — gate on pool_frac when known; renew=supergrok_weekly Lisbon",
       "hours_until_renewal": null,
       "computed_at": "2026-09-05T11:09:45+0000"
     },
@@ -580,19 +586,19 @@
       "daily_limit": 100000,
       "pace": "ALLOW",
       "hours_until_renewal": 12.837444974166667,
-      "sample_note": "no cf sample \u2014 renew=00:00_UTC h_left=12.8; never workers.dev",
+      "sample_note": "no cf sample — renew=00:00_UTC h_left=12.8; never workers.dev",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-fog-hop": {
       "meter": "mac_mw_ports",
       "renewal": "host_cap",
-      "renewal_note": "local :8787\u2013:8792; skip dead hop 8s",
+      "renewal_note": "local :8787–:8792; skip dead hop 8s",
       "pace": "ALLOW",
       "sample_note": "local MW hops; renew=host_cap",
       "computed_at": "2026-09-05T11:09:45+0000"
     }
   },
-  "updated": "2026-09-05T11:14:02+0000",
+  "updated": "2026-09-05T12:29:19+0000",
   "metabol_tick": "2026-09-05T11:09:45+0000",
   "last_commit": {
     "id": "dt-proj-academy-code-lesson",
