@@ -40,9 +40,11 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 - André: Billing filled 2026-09-05 PT → `TRIAL_ENDS_PT=2026-09-16` (11d left). T1 is **now**.
 
 ### T1 — Substitute primary paths (**NOW** — ≥5 days left until 2026-09-16)
-- Mac (`MBPV`): install/verify **WireGuard client** with `wireguard-client.conf.example` → `10.88.0.2`; `AllowedIPs=10.88.0.0/24` only.
+- Mac (`MBPV`): install/verify **WireGuard client** with `wireguard-client.conf.example` → `10.88.0.2`; `AllowedIPs=10.88.0.0/24` only. Prove sketch: `deploy/mac-fog/tailscale-container/WG-T1-PROVE.md`.
+- **mbpv Exit Node:** turn **OFF** “offer as exit node” / Exit Node in Tailscale app (status still shows `offers exit node` until toggled). Exit nodes are a taper **non-goal** forever.
 - iPhone: prefer **OpenVPN** profile (TCP/onion) or WG app; prove `https://10.88.0.1/` and Fog health via overlay.
 - Document cutover one-pager in DESK feed: “operator = WG/OVPN, public = named tunnel”.
+- Optional TS container bridge on Mac only: `deploy/mac-fog/tailscale-container/compose-up.sh` (`tag:container`). Docker Desktop down ≠ T1 fail — WG prove is primary.
 - Optional spike (time-boxed ≤2h): **Headscale** as free-forever control plane — accept only if Mac/iPhone clients stay Tailscale-compatible *and* we self-host; else drop.
 
 ### T2 — Drain Tailscale dependence (mid taper)
@@ -83,9 +85,11 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 5. After T3: `tailscale status` fails / logged out; `wg show` still has André peer.
 
 ## Containers (Docker / K8s)
-- ACL `tag:container` owned by admin; vaulted ephemeral auth key `~/.config/stratagrok/tailscale-container-auth.key`.
-- Compose: `deploy/mac-fog/tailscale-container/` — **Mac Docker Desktop** (box Docker daemon blocked).
+- ACL `tag:container` owned by admin; vaulted ephemeral auth key `~/.config/stratagrok/tailscale-container-auth.key` (0600).
+- Compose: `deploy/mac-fog/tailscale-container/` — **Mac Docker Desktop** path. Box: socket is root/`docker` group; host is containerized — do not chase box Docker for lab-tailscale.
+- Bring-up: `./compose-up.sh` (handles `docker compose` vs `docker-compose`; fails closed if daemon/key missing).
 - Userspace Tailscale sidecar; no exit-node / accept-routes / accept-dns.
+- **No `lab-tailscale` node yet** until Mac `compose-up.sh` succeeds (André: start Docker Desktop if daemon stopped).
 - **Kubernetes:** HOLD until a cluster exists.
 - Still taper: do not make Fog/desk depend on container `100.x`; WG remains T1 primary.
 

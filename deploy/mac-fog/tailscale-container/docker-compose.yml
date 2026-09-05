@@ -2,22 +2,37 @@
 # Secrets: ~/.config/stratagrok/tailscale-container-auth.key (0600). Never commit the key.
 # Taper: prefer WG 10.88.0.0/24 for operator; TS containers are bridge-only until TRIAL_ENDS_PT.
 #
+# Prefer: ./compose-up.sh
+# Or:
 #   export TS_AUTHKEY="$(tr -d '\n' < ~/.config/stratagrok/tailscale-container-auth.key)"
 #   docker compose up -d
 #
+# Requires Docker Desktop daemon running on mbpv. Box cgroup/socket is not the path.
+# Do not advertise exit-node / accept-routes / accept-dns.
+
+name: lab-tailscale
+
 services:
   tailscale:
     image: tailscale/tailscale:stable
     hostname: lab-docker-sidecar
     container_name: lab-tailscale
     environment:
-      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_AUTHKEY: ${TS_AUTHKEY:?set TS_AUTHKEY from vaulted tailscale-container-auth.key}
       TS_EXTRA_ARGS: --advertise-tags=tag:container --accept-routes=false --accept-dns=false --advertise-exit-node=false
       TS_STATE_DIR: /var/lib/tailscale
       TS_USERSPACE: "true"
+      TS_HOSTNAME: lab-docker-sidecar
     volumes:
       - ts-state:/var/lib/tailscale
     restart: unless-stopped
+    # Userspace = no NET_ADMIN / privileged required (works on Docker Desktop default).
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--peers=false"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
 volumes:
   ts-state:
