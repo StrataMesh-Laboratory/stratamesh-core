@@ -534,6 +534,15 @@
       "eisenhower": "act",
       "note": "Peer help/delegate by skill+qualitative rep; independent of objective meters",
       "status": "pending"
+    },
+    {
+      "id": "proj-api-edge-ollama-wizard",
+      "eisenhower": "act",
+      "status": "act",
+      "intent": "LOCAL Ollama on executing host (:11434) for api-edge smart wizard: account setup, join-mesh, register dependency edges. Worker=contract only. TUI ? stays PLAN.",
+      "specialty": "edge",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "source": "andre:2026-09-05"
     }
   ],
   "updated": "2026-09-05T14:55:00+0100"

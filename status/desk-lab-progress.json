@@ -5,22 +5,20 @@
   "phase_name": "Adversarial LAB P1",
   "lab": true,
   "not_mainnet": true,
-  "updated_at": "2026-09-05T14:08:15Z",
-  "updated_at_pt": "2026-09-05T15:08:15+0100",
-  "git_sha": "ffd750c",
+  "updated_at": "2026-09-05T14:13:15Z",
+  "updated_at_pt": "2026-09-05T15:13:15+0100",
+  "git_sha": "c3ba405",
   "acts": {
-    "delivered_total": 36,
-    "open_count": 9,
+    "delivered_total": 37,
+    "open_count": 10,
     "last_picked": [
-      "dt-proj-gcp-e2micro-fog"
+      "dt-proj-gcp-e2micro-fog",
+      "dt-teach-81a9bb",
+      "dt-proj-homelab-second-host"
     ],
     "idle_skip_last": false,
-    "cycle_delivered": 1,
+    "cycle_delivered": 3,
     "recent_results": [
-      {
-        "id": "dt-proj-fog-host-fallback",
-        "result": ""
-      },
       {
         "id": "dt-desk-camaraderie-rep",
         "result": "v0 implemented: qualitative peer reputation + private consult; no KPI blend; oracle_live untouched"
@@ -32,6 +30,10 @@
       {
         "id": "dt-act-fog-host-fallback",
         "result": "auto-ship majority+metrics authority=unanimous"
+      },
+      {
+        "id": "dt-api-edge-ollama-wizard",
+        "result": "edge api=1 site=1"
       }
     ]
   },
@@ -39,7 +41,7 @@
     "desk_unittests_ok": true,
     "protocol_ok": true,
     "gh_ok": true,
-    "acts_delivered": 36,
+    "acts_delivered": 37,
     "challenges_open": 2,
     "challenges_closed": 0,
     "issues_tracked": 4
@@ -82,7 +84,7 @@
   },
   "discourse": {
     "topic": "https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20",
-    "metrics_line": "desk lab P1 \u00b7 sha=ffd750c \u00b7 acts_done=36 open=9 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
+    "metrics_line": "desk lab P1 \u00b7 sha=c3ba405 \u00b7 acts_done=37 open=10 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
     "draft_hold": false
   },
   "fund": {

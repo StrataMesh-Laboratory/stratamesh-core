@@ -23,6 +23,7 @@
 | GET | `/v1/catalog` | Automation catalog for agents |
 | GET | `/openapi.json` | OpenAPI |
 | GET | `/llms.txt` | LLM/crawler guide |
+| GET/POST | `/v1/wizard/*` | Smart wizard contract (local Ollama on Fog/EDGE host; Worker never calls Ollama) — see `API-EDGE-OLLAMA-WIZARD.md` |
 
 ## POST body (register)
 

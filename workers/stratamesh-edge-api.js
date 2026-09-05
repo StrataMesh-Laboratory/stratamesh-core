@@ -1355,6 +1355,181 @@ async function handleDesk(env, request) {
   return json({ error: "method_not_allowed" }, 405, "no-store");
 }
 
+
+/* api-edge smart wizard contract — LOCAL Ollama on executing host only.
+ * Worker never calls Ollama. Clients on Fog/EDGE use ops/lib/ollama_local.py.
+ */
+const WIZARD_FLOWS = [
+  {
+    id: "account",
+    title: "User account setup",
+    summary: "Guided lab account fields via local Ollama JSON; secrets never in prompts",
+    commit: "POST /v1/wizard/commit/account",
+  },
+  {
+    id: "join-mesh",
+    title: "Fog/EDGE join fog mesh",
+    summary: "Request mesh membership; mesh_member only after Fog health-check of public /health",
+    commit: "POST /v1/wizard/commit/join-mesh",
+  },
+  {
+    id: "register-deps",
+    title: "Register dependency edge nodes",
+    summary: "Build POST /v1/integrations bodies for dependency edges (no secrets)",
+    commit: "POST /v1/wizard/commit/register-deps",
+  },
+];
+
+const WIZARD_POLICY = {
+  ollama: "local_native_only",
+  ollama_host_default: "http://127.0.0.1:11434",
+  never_remote_llm: true,
+  worker_calls_ollama: false,
+  executing_host_sdk: "ops/lib/ollama_local.py",
+  tui_question_wizard: "PLAN_only_separate",
+  metabol: "host_cap for Ollama; cf-worker-req for /v1/wizard/*",
+};
+
+function wizardIndex(ORIGIN) {
+  return {
+    ok: true,
+    surface: "api-edge-smart-wizard",
+    policy: WIZARD_POLICY,
+    flows: WIZARD_FLOWS,
+    steps: ORIGIN + "/v1/wizard/steps",
+    prompts: ORIGIN + "/v1/wizard/prompts/{flow}",
+    parse: { method: "POST", url: ORIGIN + "/v1/wizard/parse" },
+    local_sdk: {
+      ping: "python3 ops/lib/ollama_local.py ping",
+      wizard: "python3 ops/lib/ollama_local.py wizard <account|join-mesh|register-deps>",
+    },
+    related: {
+      integrations: ORIGIN + "/v1/integrations",
+      mesh: ORIGIN + "/v1/mesh",
+      docs: "https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/API-EDGE-OLLAMA-WIZARD.md",
+    },
+  };
+}
+
+function wizardSteps() {
+  return {
+    ok: true,
+    policy: WIZARD_POLICY,
+    steps: [
+      { n: 1, flow: "account", action: "local_ollama_generate", then: "POST /v1/wizard/parse" },
+      { n: 2, flow: "account", action: "POST /v1/wizard/commit/account" },
+      { n: 3, flow: "join-mesh", action: "local_ollama_generate", then: "POST /v1/wizard/parse" },
+      { n: 4, flow: "join-mesh", action: "POST /v1/wizard/commit/join-mesh" },
+      { n: 5, flow: "register-deps", action: "local_ollama_generate", then: "POST /v1/wizard/parse" },
+      { n: 6, flow: "register-deps", action: "POST /v1/wizard/commit/register-deps" },
+    ],
+  };
+}
+
+function wizardPrompt(flow) {
+  const prompts = {
+    account: {
+      system:
+        'Output ONLY JSON: {"flow":"account","email":"","display_name":"","locale":"pt|en","accept_lab_terms":true,"notes":""}. Never passwords/tokens.',
+      user_hint: "Draft a minimal lab account setup intent.",
+    },
+    "join-mesh": {
+      system:
+        'Output ONLY JSON: {"flow":"join-mesh","node_id":"FOG-|EDGE-…","role":"fog|edge","parent_fog":"FOG-NODE-PT-CM-001","health_url":"https://…/health","spare_capacity_only":true,"notes":""}.',
+      user_hint: "Draft a join-mesh request for this host.",
+    },
+    "register-deps": {
+      system:
+        'Output ONLY JSON: {"flow":"register-deps","dependencies":[{"id":"","name":"","type":"contributor_edge","node_id":"","health_url":""}]}. No secrets.',
+      user_hint: "List dependency edge nodes to register in the lab catalog.",
+    },
+  };
+  if (!prompts[flow]) return { ok: false, error: "unknown_flow", flows: Object.keys(prompts) };
+  return { ok: true, flow, policy: WIZARD_POLICY, ...prompts[flow], ollama_endpoint: "http://127.0.0.1:11434/api/chat" };
+}
+
+function secretField(k) {
+  return /secret|password|private_key|api_key|token|authorization/i.test(String(k || ""));
+}
+
+function parseWizardBody(body) {
+  if (!body || typeof body !== "object") return { ok: false, error: "body_required" };
+  const flow = String(body.flow || "").trim();
+  if (!["account", "join-mesh", "register-deps"].includes(flow)) {
+    return { ok: false, error: "invalid_flow", got: flow };
+  }
+  for (const k of Object.keys(body)) {
+    if (secretField(k)) return { ok: false, error: "secret_field_rejected", field: k };
+  }
+  if (flow === "account") {
+    if (!body.email && !body.display_name) return { ok: false, error: "account_needs_email_or_display_name" };
+  }
+  if (flow === "join-mesh") {
+    const nid = String(body.node_id || "");
+    if (!nid.startsWith("FOG") && !nid.startsWith("EDGE")) return { ok: false, error: "node_id_must_be_FOG_or_EDGE" };
+  }
+  if (flow === "register-deps") {
+    const deps = body.dependencies;
+    if (!Array.isArray(deps) || !deps.length) return { ok: false, error: "dependencies_required" };
+    for (const d of deps) {
+      if (!d || !d.id || !d.name) return { ok: false, error: "dependency_needs_id_name" };
+      for (const k of Object.keys(d)) {
+        if (secretField(k)) return { ok: false, error: "secret_field_rejected", field: k };
+      }
+    }
+  }
+  return { ok: true, flow, intent: body, note: "validated_schema_only — Worker does not call Ollama" };
+}
+
+async function commitWizard(env, flow, body) {
+  const parsed = parseWizardBody({ ...body, flow: body.flow || flow });
+  if (!parsed.ok) return parsed;
+  if (flow === "account") {
+    return {
+      ok: true,
+      flow,
+      committed: "account_intent_accepted",
+      next: "complete account via auth bootstrap on Fog host (secrets local)",
+      intent: parsed.intent,
+      lab: true,
+    };
+  }
+  if (flow === "join-mesh") {
+    const key = "wizard:join:" + String(parsed.intent.node_id).slice(0, 80);
+    const row = {
+      ...parsed.intent,
+      status: "requested",
+      mesh_member: false,
+      note: "pending Fog health-check of public /health",
+      at: new Date().toISOString(),
+    };
+    if (env && env.API_KV) await env.API_KV.put(key, JSON.stringify(row), { expirationTtl: 90 * 24 * 3600 });
+    return { ok: true, flow, committed: "join_mesh_requested", stored: !!env?.API_KV, record: row };
+  }
+  if (flow === "register-deps") {
+    const registered = [];
+    for (const d of parsed.intent.dependencies) {
+      // reuse lab registration path semantics (no secrets)
+      const id = String(d.id).slice(0, 64);
+      const row = {
+        id,
+        name: String(d.name).slice(0, 120),
+        type: d.type || "contributor_edge",
+        node_id: d.node_id || null,
+        health_url: d.health_url || null,
+        registered_lab: true,
+        mesh_member: false,
+        via: "wizard_register-deps",
+        at: new Date().toISOString(),
+      };
+      if (env && env.API_KV) await env.API_KV.put("reg:" + id, JSON.stringify(row), { expirationTtl: 90 * 24 * 3600 });
+      registered.push(row);
+    }
+    return { ok: true, flow, committed: "dependencies_registered_lab", count: registered.length, registered };
+  }
+  return { ok: false, error: "unknown_flow" };
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -1378,7 +1553,7 @@ export default {
       return text(`User-agent: *\nAllow: /\nAllow: /SPEC.txt\nAllow: /instructions.txt\nAllow: /openapi.txt\nAllow: /openapi.json\nAllow: /llms.txt\nAllow: /README\nAllow: /v1/\nAllow: /health\nCrawl-delay: 1\nSitemap: ${ORIGIN}/sitemap.xml\n`);
     }
     if (path === "/sitemap.xml") {
-      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations", "/v1/va/instructions.txt", "/v1/mesh"];
+      const urls = ["/", "/README", "/SPEC.txt", "/instructions.txt", "/openapi.txt", "/openapi.json", "/llms.txt", "/health", "/v1/integrations", "/v1/va/instructions.txt", "/v1/mesh", "/v1/wizard"];
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
           urls.map((u) => `  <url><loc>${ORIGIN}${u}</loc></url>`).join("\n") +
@@ -1586,9 +1761,32 @@ export default {
       });
     }
 
+    if (path === "/v1/wizard" || path === "/v1/wizard/index") {
+      return json(wizardIndex(ORIGIN), 200, "no-store");
+    }
+    if (path === "/v1/wizard/steps") {
+      return json(wizardSteps(), 200, "no-store");
+    }
+    if (path.startsWith("/v1/wizard/prompts/")) {
+      const flow = path.slice("/v1/wizard/prompts/".length).split("/")[0];
+      const out = wizardPrompt(flow);
+      return json(out, out.ok ? 200 : 404, "no-store");
+    }
+    if (path === "/v1/wizard/parse" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const out = parseWizardBody(body);
+      return json(out, out.ok ? 200 : 400, "no-store");
+    }
+    if (path.startsWith("/v1/wizard/commit/") && request.method === "POST") {
+      const flow = path.slice("/v1/wizard/commit/".length).split("/")[0];
+      const body = await request.json().catch(() => ({}));
+      const out = await commitWizard(env, flow, body);
+      return json(out, out.ok ? 200 : 400, "no-store");
+    }
+
     return json({
       error: "not_found",
-      try: ["/SPEC.txt", "/README", "/openapi.txt", "/v1/va/instructions.txt", "/health", "/v1/integrations", "/v1/mesh", FOG_API + "/SPEC.txt"],
+      try: ["/SPEC.txt", "/README", "/openapi.txt", "/v1/va/instructions.txt", "/health", "/v1/integrations", "/v1/mesh", "/v1/wizard", FOG_API + "/SPEC.txt"],
     }, 404, "no-store");
   },
 };
