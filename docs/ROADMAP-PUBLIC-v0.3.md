@@ -25,7 +25,7 @@ LAB (exited for CMN reference pair)
       → MAINNET (explicit decision — not scheduled here)
 ```
 
-Current: **Adversarial LAB phase P1**, git **v0.6.0-lab**, mesh **n=2**. grok90 two-host INV/TX evidence pack is a later bar, not the phase name. Public Fog `/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin software flag — not lab n=1; do not claim `mac_live=true` on that JSON).
+Current: **Adversarial LAB phase P1**, git **v0.6.0-lab**, mesh **n=2**. grok90 two-host INV/TX evidence pack is a later bar, not the phase name. M-II gate = **distinct second host** (Pi/AWS-shaped/Oracle optional) — not Oracle-only; see FOG-HOST-FALLBACK.md. Public Fog `/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin software flag — not lab n=1; do not claim `mac_live=true` on that JSON).
 
 No stage is entered by marketing, portal polish, or whitepaper completeness.
 

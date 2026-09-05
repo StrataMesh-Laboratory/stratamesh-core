@@ -20,12 +20,14 @@ python3 $REPO/ops/desk-collegium/desk_sync.py token-check
 3. `desk_bus.py done TASK --result verified`
 
 ## Roadmap staging
-See `docs/ROADMAP-VISION.md`. Desk state `roadmap.current` = M-I. M-II HOLD until Oracle grok90.
+See `docs/ROADMAP-VISION.md` and **`docs/FOG-HOST-FALLBACK.md`**. Desk state `roadmap.current` = M-I.
+M-II HOLD is **distinct second host** (Mac+Pi / Mac+AWS-shaped Fog peer when ready) — **not** “Oracle only”.
+Oracle grok90 remains optional rung 7; `oracle_live=false` until a real remote Fog host exists.
 
 | Milestone | Desk focus |
 |-----------|------------|
-| M-I | Lab protocol, desk collegium, Fog n=1 honesty |
-| M-II | Two-host adversarial (after grok90) |
+| M-I | Lab protocol, desk collegium, Fog n=2 P1 honesty (Mac+EDGE same_host OK) |
+| M-II | Two-host adversarial — distinct host INV/TX (Pi/AWS/Oracle when ready; MariaDB=offload only) |
 | M-III+ | Appliance → fabric → testnet → OS → terminalization → mainnet |
 
 ## Mac vault

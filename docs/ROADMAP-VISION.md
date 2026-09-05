@@ -839,6 +839,8 @@ Introduce:
 
 Objective: demonstrate that coordination survives hostile and degraded conditions.
 
+**Lab note (2026-09-05):** M-II evidence requires a **distinct second host** (Mac+Pi, Mac+AWS-shaped Fog peer, or Oracle when account works). It is **not** Oracle-exclusive. MariaDB exclusive-off and same-Mac EDGE are complementary — not the two-host exit. See `docs/FOG-HOST-FALLBACK.md`. `oracle_live` stays false until a real remote Fog host is provisioned.
+
 ⸻
 
 Milestone III — Physical Fog Appliance
