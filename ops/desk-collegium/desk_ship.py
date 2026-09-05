@@ -99,19 +99,38 @@ def normalize_voter(raw: str) -> str:
     aliases = {
         "stratagrok": "stratagrok",
         "grok": "stratagrok",
+        "grok@calhegasmorais.pt": "stratagrok",
         "hermes": "hermes",
+        "hermes@fog.calhegasmorais.pt": "hermes",
         "opencode": "opencode",
+        "opencode@fog.calhegasmorais.pt": "opencode",
         "openclaw": "openclaw",
+        "openclaw@fog.calhegasmorais.pt": "openclaw",
         "fog": "fog-assistant",
         "fog-assistant": "fog-assistant",
+        "cmn-fog-assistant": "fog-assistant",
         "edge": "edge-assistant",
         "edge-assistant": "edge-assistant",
+        "cmn-edge-assistant": "edge-assistant",
     }
     if s in aliases:
         return aliases[s]
     for m in DEFAULT_VOTERS:
-        if s == m["id"] or s in m["owner"]:
+        if s == m["id"] or s == m["owner"] or s in m["owner"]:
             return m["id"]
+    # email local-part heuristics
+    if "@" in s:
+        local = s.split("@", 1)[0]
+        if local in aliases:
+            return aliases[local]
+        if local.startswith("hermes"):
+            return "hermes"
+        if local.startswith("opencode"):
+            return "opencode"
+        if local.startswith("openclaw"):
+            return "openclaw"
+        if local.startswith("grok"):
+            return "stratagrok"
     return s
 
 
@@ -125,9 +144,10 @@ def tally(task: dict, state: dict) -> dict:
     for v in votes:
         vid = normalize_voter(str(v.get("by") or ""))
         by_map[vid] = str(v.get("vote") or "").lower()
-    acks = sum(1 for m in vs if by_map.get(m["id"]) == "ack")
-    nacks = sum(1 for m in vs if by_map.get(m["id"]) == "nack")
-    cast = sum(1 for m in vs if by_map.get(m["id"]) in ("ack", "nack"))
+    # Canonicalize member ids (emails in state → short ids) before tally
+    acks = sum(1 for m in vs if by_map.get(normalize_voter(str(m.get("id") or ""))) == "ack")
+    nacks = sum(1 for m in vs if by_map.get(normalize_voter(str(m.get("id") or ""))) == "nack")
+    cast = sum(1 for m in vs if by_map.get(normalize_voter(str(m.get("id") or ""))) in ("ack", "nack"))
     need = max(1, int(n * float(policy.get("majority_frac") or 0.5) + 0.999))  # ceil
     # classic majority: > 50% of voters → ceil((n+1)/2) for even? use ceil(n * frac)
     # For frac=0.5 and n=6: int(3+0.999)=3 — require at least 3 ACK (half). Prefer strict majority:

@@ -181,3 +181,27 @@ class DeskShipPut(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TallyEmailVoters(unittest.TestCase):
+    def test_normalize_email_voters_tally(self):
+        import desk_ship as ship
+        state = {
+            "members": [
+                {"id": "grok@calhegasmorais.pt", "vote": True},
+                {"id": "hermes@fog.calhegasmorais.pt", "vote": True},
+                {"id": "opencode@fog.calhegasmorais.pt", "vote": True},
+                {"id": "openclaw@fog.calhegasmorais.pt", "vote": True},
+            ],
+            "ship_policy": {"majority_frac": 0.5, "require_no_nack": True},
+        }
+        task = {
+            "votes": [
+                {"by": "stratagrok", "vote": "ack"},
+                {"by": "hermes", "vote": "ack"},
+                {"by": "opencode", "vote": "ack"},
+            ]
+        }
+        tall = ship.tally(task, state)
+        self.assertEqual(tall["acks"], 3)
+        self.assertTrue(tall["majority"])
