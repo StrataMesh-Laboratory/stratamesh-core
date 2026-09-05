@@ -1,6 +1,6 @@
 # StrataMesh resource spine
 
-**Status:** laboratory architecture — v0.5.1-lab, not mainnet.  
+**Status:** laboratory architecture — v0.6.0-lab, not mainnet.  
 **Integrates:** [FOG-APPLIANCE.md](FOG-APPLIANCE.md) · [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · stratamesh-core protocol.  
 **Pages:** <https://calhegasmorais.pt/fog-stack>
 
@@ -14,7 +14,7 @@ The important shift is this:
 
 The infrastructure/appliance documents describe the physical substrate. The StrataMesh repositories describe the protocol and economic layer that turns that substrate into a coordinated resource network.
 
-I checked the current public lab state and the two key repositories. The lab currently describes itself as a DLT for Fog/Edge resource coordination and STRATA settlement, with FOG-NODE-PT-CM-001 as the reference node. The current core is v0.5.1-lab, explicitly still laboratory/adversarial-lab rather than mainnet. 
+I checked the current public lab state and the two key repositories. The lab currently describes itself as a DLT for Fog/Edge resource coordination and STRATA settlement, with FOG-NODE-PT-CM-001 as the reference node. The current core is v0.6.0-lab, explicitly still laboratory/adversarial-lab rather than mainnet. 
 
 1. The real StrataMesh stack
 

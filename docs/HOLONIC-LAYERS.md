@@ -1,6 +1,6 @@
 # Arquitectura holónica — StrataMesh (PT-PT)
 
-**Laboratório (2026-09-02):** corte **v0.5.1-lab** · fase **Adversarial LAB P1** · malha **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`). Não é n=1 kernel. O JSON público `/health` pode ainda mostrar `n=1` `origin=session` `mac_live=false` — bandeira de software de origem-sessão, não a topologia do lab. Lab only; sem mainnet.
+**Laboratório (2026-09-02):** corte **v0.6.0-lab** · fase **Adversarial LAB P1** · malha **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`). Não é n=1 kernel. O JSON público `/health` pode ainda mostrar `n=1` `origin=session` `mac_live=false` — bandeira de software de origem-sessão, não a topologia do lab. Lab only; sem mainnet.
 
 
 ## Como ler

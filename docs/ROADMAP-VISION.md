@@ -1,6 +1,6 @@
 # Roadmap milestone vision
 
-**Status:** technical vision — laboratory v0.5.1-lab, not mainnet.  
+**Status:** technical vision — laboratory v0.6.0-lab, not mainnet.  
 **Pages:** <https://calhegasmorais.pt/en/roadmap> · spine <https://calhegasmorais.pt/fog-stack>  
 **Pairs:** [FOG-APPLIANCE.md](FOG-APPLIANCE.md) · [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · [FOG-STACK.md](FOG-STACK.md)
 

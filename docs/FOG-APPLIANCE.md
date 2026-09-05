@@ -2,7 +2,7 @@
 
 **Status:** proposed R&D architecture — not an existing production device.  
 **No public date.** Post-MacBook hardware track for FOG-NODE-PT-CM-001.  
-**Lab:** StrataMesh Laboratory · Lisbon · operator AMCM ENI · software today v0.5.1-lab.  
+**Lab:** StrataMesh Laboratory · Lisbon · operator AMCM ENI · software today v0.6.0-lab.  
 **Spine:** [FOG-STACK.md](FOG-STACK.md)  
 **Pages:** <https://calhegasmorais.pt/fog-appliance>  
 **Pair:** [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · <https://calhegasmorais.pt/fog-infrastructure>
@@ -28,7 +28,7 @@ Status: Proposed R&D architecture — not an existing production device
 
 1. Executive proposition
 
-The Calhegas Morais StrataMesh reference Fog node currently operates from a Mac-based laboratory configuration. Public project documentation identifies FOG-NODE-PT-CM-001 as the reference Fog node and describes the current system as a laboratory installation rather than a production network. The current laboratory release is v0.5.1-lab.
+The Calhegas Morais StrataMesh reference Fog node currently operates from a Mac-based laboratory configuration. Public project documentation identifies FOG-NODE-PT-CM-001 as the reference Fog node and describes the current system as a laboratory installation rather than a production network. The current laboratory release is v0.6.0-lab.
 
 This prospectus proposes the next physical evolution:
 

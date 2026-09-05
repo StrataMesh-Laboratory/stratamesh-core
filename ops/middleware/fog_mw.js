@@ -168,7 +168,7 @@ async function desk(kind) {
     ok: true,
     runtime: "node",
     role: kind,
-    release: "v0.5.1-lab",
+    release: "v0.6.0-lab",
     locus: "mw-node:8791",
     hop: snap.hop,
     cmn: snap.cmn,
@@ -191,7 +191,7 @@ async function assemble() {
     ok: !!(workerd.ok || py.ok || fog.ok || deno.ok),
     runtime: "node",
     role: "compose",
-    release: "v0.5.1-lab",
+    release: "v0.6.0-lab",
     mesh: MESH,
     metabol_pace: { hop: "node", cf_daily: false, decision: "ALLOW", reason: "local node — no CF daily clock" },
     hop: {
@@ -302,7 +302,7 @@ const server = http.createServer(async (req, res) => {
   if (["/", "/health", "/mw/health"].includes(url)) {
     return send(res, 200, {
       ok: true, runtime: "node", role: "compose", port: PORT,
-      listening: true, release: "v0.5.1-lab",
+      listening: true, release: "v0.6.0-lab",
     });
   }
   if (["/assemble", "/cmn", "/mw/cmn", "/mw/assemble"].includes(url)) {

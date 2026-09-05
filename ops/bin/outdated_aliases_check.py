@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Scrub outdated public aliases vs HEAD mark v0.5.1-lab.
+"""Scrub outdated public aliases vs HEAD mark v0.6.0-lab.
 
 HTML Pages must carry the mark. /health JSON must not be the P0 session alias
-(n=1 mesh_member=false) and must carry version/release v0.5.1-lab.
+(n=1 mesh_member=false) and must carry version/release v0.6.0-lab.
 Hold HTML on academy/edge /health is outdated. Never workers.dev.
 """
 import json, os, sys, urllib.request
 
-HEAD_MARK = os.environ.get("HEAD_MARK", "v0.5.1-lab")
+HEAD_MARK = os.environ.get("HEAD_MARK", "v0.6.0-lab")
 DEBUG = os.environ.get("DEBUG") == "1"
 
 HTML = [
@@ -15,7 +15,7 @@ HTML = [
     {"url": "https://www.calhegasmorais.pt/", "marks": [HEAD_MARK]},
     {"url": "https://calhegasmorais-pt.pages.dev/", "marks": [HEAD_MARK]},
     {"url": "https://calhegasmorais.pt/dashboard", "marks": [HEAD_MARK]},
-    {"url": "https://sandbox.calhegasmorais.pt/", "marks": ["v0.5.1", "Atelier GNU"]},
+    {"url": "https://sandbox.calhegasmorais.pt/", "marks": [HEAD_MARK, "v0.5.1", "Atelier GNU"]},
 ]
 
 # JSON /health — n/member must not follow ORIGIN=session (outdated P0 alias).
@@ -67,7 +67,7 @@ def main():
                 ver = str(data.get("version") or data.get("release") or "")
                 n = data.get("n")
                 member = data.get("mesh_member")
-                ok_ver = HEAD_MARK in ver or ver in (HEAD_MARK, "0.5.1-lab")
+                ok_ver = HEAD_MARK in ver or ver in (HEAD_MARK, "0.6.0-lab")
                 ok_n = n is None or int(n) >= spec["n"]
                 ok_m = member is True if spec["member"] else True
                 # origin may stay session; n/member must not.

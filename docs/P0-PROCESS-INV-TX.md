@@ -1,7 +1,7 @@
 # P0 process-gossip ingest guard (0.2.3-lab-wip)
 
 **Status (this page):** historical **n=1 kernel** ingest-guard evidence (0.2.3-lab-wip). **Does NOT describe current lab topology.**  
-**Current lab (2026-09-02):** **v0.5.1-lab** · **Adversarial P1** · mesh **n=2**. grok90 two-host INV/TX pack is a later bar ([P0-INV-TX-MULTIHOST.md](./P0-INV-TX-MULTIHOST.md)).  
+**Current lab (2026-09-02):** **v0.6.0-lab** · **Adversarial P1** · mesh **n=2**. grok90 two-host INV/TX pack is a later bar ([P0-INV-TX-MULTIHOST.md](./P0-INV-TX-MULTIHOST.md)).  
 **Lab only.** Not mainnet · not aBFT · not an investment product · not workers.dev.
 
 This page is the honesty note for the **ingest guard** on `POST /tx/ingest`,

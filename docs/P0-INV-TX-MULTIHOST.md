@@ -1,7 +1,7 @@
 # P0 — Multi-host INV/TX (Stage 1 adversarial lab)
 
 **Status:** grok90 two-host INV/TX **evidence pack** — **later bar**, not the current phase name. Lab only.  
-**Current lab:** Adversarial **P1** · **v0.5.1-lab** · **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`).  
+**Current lab:** Adversarial **P1** · **v0.6.0-lab** · **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`).  
 **Roadmap:** [ROADMAP-PUBLIC-v0.3.md](./ROADMAP-PUBLIC-v0.3.md) Stage 1 — Adversarial lab (current).  
 **Desk:** [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-DESK-CONTRACT.md) (locked 2026-08-28).  
 **Not:** mainnet · aBFT · investment product · public testnet exit.

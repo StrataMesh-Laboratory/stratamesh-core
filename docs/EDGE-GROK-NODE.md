@@ -3,7 +3,7 @@
 **Status:** Lab edge of the **n=2** CMN pair · **Linked fog:** `FOG-NODE-PT-CM-001`  
 **Local:** EDGE-GROK process `EDGE-GROK-CMN-001` (counts as the second host).  
 **Public CF Worker** (`stratamesh-edge-grok`) is an observer/relay, not a third Fog and not a 6th host. Custom domain only — not workers.dev as origin.  
-**IDs:** not a physical FOG host, not mainnet. Current lab cut **v0.5.1-lab**, Adversarial P1.
+**IDs:** not a physical FOG host, not mainnet. Current lab cut **v0.6.0-lab**, Adversarial P1.
 
 ## Endpoints
 

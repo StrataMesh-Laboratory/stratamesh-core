@@ -1,5 +1,5 @@
 #!/bin/bash
-# StrataMesh Fog runtime UI v0.5.0-lab — Node Launcher — workerd :8788 + python :8790 + node :8791 middleware.
+# StrataMesh Fog runtime UI v0.6.0-lab — Node Launcher — workerd :8788 + python :8790 + node :8791 middleware.
 # q quit · s stop · b reboot · g git pull+reboot.
 set -euo pipefail
 export FOG_ORIGIN="${FOG_ORIGIN:-macbook}" FOG_MESH_N="${FOG_MESH_N:-2}" FOG_FALLBACK_AFTER="${FOG_FALLBACK_AFTER:-1800}"

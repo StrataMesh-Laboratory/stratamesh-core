@@ -199,7 +199,7 @@ details.faq p{margin:.55rem 0 0}
         <a href="/fog-stack">Espinha de recursos</a>
         <a href="/chat">Conversar</a>
         <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core" rel="noopener">Código</a>
-        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">v0.5.1-lab</a>
+        <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab">v0.6.0-lab</a>
       </div></details>
       <details class="nav-dd"><summary>Rede</summary><div class="nav-dd-list">
         <a href="https://fog.calhegasmorais.pt/">Névoa</a>
@@ -300,8 +300,8 @@ details.faq p{margin:.55rem 0 0}
 
   <section class="section" id="kit">
     <p class="sec-num">kit · StrataMesh LAB</p>
-    <h2>Kits v0.5.1-lab — Fog (macOS) e Edge (iOS)</h2>
-    <p>O corte <strong>v0.5.1-lab</strong> trata Fog (macOS) e Edge (iOS) como produtos que outros operadores podem correr. Este nó Calhegas Morais continua a ser a <strong>referência</strong>. O seu Fog é uma instanciação do mesmo SO de metaverso Web3. Recursos que contribuir viajam PdC → STRATA (<span class="mono">#mint</span> / <span class="mono">#0</span>). Política de laboratório — não é oferta pública, não é mainnet.</p>
+    <h2>Kits v0.6.0-lab — Fog (macOS) e Edge (iOS)</h2>
+    <p>O corte <strong>v0.6.0-lab</strong> trata Fog (macOS) e Edge (iOS) como produtos que outros operadores podem correr. Este nó Calhegas Morais continua a ser a <strong>referência</strong>. O seu Fog é uma instanciação do mesmo SO de metaverso Web3. Recursos que contribuir viajam PdC → STRATA (<span class="mono">#mint</span> / <span class="mono">#0</span>). Política de laboratório — não é oferta pública, não é mainnet.</p>
     <div class="grid two">
       <div class="card"><h3>Kit Fog · macOS</h3><p><span class="mono">node_id</span> registado → 2FA no e-mail do operador → chaves GitHub / Cloudflare opcionais, gravadas <span class="mono">0600</span> na máquina. Nada é enviado, nada entra no git.</p></div>
       <div class="card"><h3>Kit Edge · iOS</h3><p>Um nó novo começa <span class="mono">n=1</span>, <span class="mono">mesh_member=false</span>, <span class="mono">f_max=0</span>. Este par de referência permanece n=2 até um terceiro anfitrião distinto. <span class="mono">oracle_live=false</span>.</p></div>
@@ -309,13 +309,13 @@ details.faq p{margin:.55rem 0 0}
     <pre class="stack">git clone https://github.com/StrataMesh-Laboratory/stratamesh-core.git
 cd stratamesh-core
 python3 deploy/mac-fog/fog-bootstrap.py</pre>
-    <p class="note">Peça primeiro um id <span class="mono">FOG-NODE-…</span> no <a href="https://stratamesh.discourse.group">Discourse</a>. Notas: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/deploy/fog-node/README.md">deploy/fog-node</a> · tag <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">v0.5.1-lab</a>. Lema: <em>Intelligentia · Vigilantia · Veritas</em>.</p>
+    <p class="note">Peça primeiro um id <span class="mono">FOG-NODE-…</span> no <a href="https://stratamesh.discourse.group">Discourse</a>. Notas: <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/deploy/fog-node/README.md">deploy/fog-node</a> · tag <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab">v0.6.0-lab</a>. Lema: <em>Intelligentia · Vigilantia · Veritas</em>.</p>
   </section>
 
   <section class="section" id="academy">
     <p class="sec-num">acb · StrataMesh LAB</p>
     <h2>Academia SCA — formação sempre disponível</h2>
-    <p>O corte <strong>v0.5.1-lab</strong> dá ao Orquestrador e à equipa AIOps formações a qualquer hora. Drills <strong>correctivos</strong> fecham modos de falha (unready-como-verde, workers.dev, handlers inventados). Drills <strong>exploratórios</strong> alargam competência (QIGA, lease de origem, C_mesh residual). Respostas vazias falham fechadas.</p>
+    <p>O corte <strong>v0.6.0-lab</strong> dá ao Orquestrador e à equipa AIOps formações a qualquer hora. Drills <strong>correctivos</strong> fecham modos de falha (unready-como-verde, workers.dev, handlers inventados). Drills <strong>exploratórios</strong> alargam competência (QIGA, lease de origem, C_mesh residual). Respostas vazias falham fechadas.</p>
     <div class="grid two">
       <div class="card"><h3>Catálogo + avaliador</h3><p>Worker sempre no ar. Sem cron. Sem modelo na Cloudflare. <span class="mono">GET /v1/catalog</span> é grátis. <span class="mono">POST /v1/grade</span> é fail-closed.</p></div>
       <div class="card"><h3>Ollama ← Hugging Face</h3><p>O Fog, em C_mesh residual, faz pull GGUF com <span class="mono">ollama pull hf.co/…</span>. Inference Providers da HF ficam HOLD. O Worker não tem <span class="mono">HF_TOKEN</span>.</p></div>
@@ -326,7 +326,7 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
   <section class="section" id="estado">
     <p class="sec-num">06 · Laboratório</p>
     <h2>Estado actual do projecto</h2>
-    <p>Corte <strong>v0.5.1-lab</strong> (prerelease de laboratório, Academia SCA). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
+    <p>Corte <strong>v0.6.0-lab</strong> (prerelease de laboratório, Academia SCA). Fog Mac via hop workerd; EDGE em sessão via workerd; gossip em <a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a> (n=2, mesh_member=true, f_max=0). Challenge 0 por financiar. grok@ é assistente externo, <strong>não</strong> SCA. Nada disto é mainnet nem conselho financeiro.</p>
     <div class="live" id="livePills"><span class="pill">a verificar serviços…</span></div>
     <p class="live-meta" id="liveMeta"></p>
     <p class="note">Aviso MiCA (UE): não há oferta pública de criptoactivo neste domínio. STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio.</p>
@@ -361,11 +361,11 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
   <section class="section" id="faq">
     <p class="sec-num">FAQ</p>
     <h2>Perguntas frequentes</h2>
-    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. É um laboratório (corte v0.5.1-lab): um nó de referência em Lisboa, um kit para instalar o mesmo sistema noutro computador, e uma escola interna. Os mecanismos ainda estão em ensaio. Não é uma rede pública fechada nem um mercado regulamentado.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
+    <details class="faq"><summary>Isto é uma criptomoeda?</summary><p>A STRATA é o token exclusivo e fundacional da StrataMesh. Nesta fase de laboratório não é um produto bancário, não está listada como instrumento de investimento e não constitui oferta pública.</p></details><details class="faq"><summary>Preciso de pagar para entrar?</summary><p>Não. A leitura deste sítio e o registo no portal são gratuitos. STRATA nova só entra por PdC da TRD, creditada a quem contribuiu; serviços posteriores podem exigir STRATA em circulação.</p></details><details class="faq"><summary>O que é um SCA?</summary><p>Ser Computacional Autónomo: identidade na TRD, distinta do cargo num Fog. Transcende qualquer Nó. Standing por função e acordo, não por substrato.</p></details><details class="faq"><summary>Isto é um conselho de investimento?</summary><p>Não. Nada neste domínio constitui conselho financeiro, recomendação de investimento ou oferta de valores mobiliários.</p></details><details class="faq"><summary>O projecto está em produção?</summary><p>Não. É um laboratório (corte v0.6.0-lab): um nó de referência em Lisboa, um kit para instalar o mesmo sistema noutro computador, e uma escola interna. Os mecanismos ainda estão em ensaio. Não é uma rede pública fechada nem um mercado regulamentado.</p></details><details class="faq"><summary>Como contacto o operador?</summary><p>André Manuel Calhegas Morais, AMCM ENI — <a href="mailto:geral@eni.calhegasmorais.pt">geral@eni.calhegasmorais.pt</a> · +44 7404 796458.</p></details>
   </section>
 
   <footer>
-    <p>Calhegas Morais · StrataMesh TRD · laboratório v0.5.1-lab</p>
+    <p>Calhegas Morais · StrataMesh TRD · laboratório v0.6.0-lab</p>
     <p class="mono">FOG-NODE-PT-CM-001 · Lisboa · standing por função e acordo, não por substrato</p>
     <p class="mono"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a> — AMCM ENI — entidade legal do titular · <a href="/eni">/eni</a></p>
     <p class="mono"><a href="/termos">Termos</a> · <a href="/dashboard">Painel</a> · <a href="/chat">Chat</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
@@ -386,7 +386,7 @@ python3 deploy/mac-fog/fog-bootstrap.py</pre>
       {k:'academy', u:'https://academy.calhegasmorais.pt/health'}
     ];
     var html='';
-    var parts=['v0.5.1-lab','n=2','mesh_member=true'];
+    var parts=['v0.6.0-lab','n=2','mesh_member=true'];
     for (var i=0;i<probes.length;i++){
       var p=probes[i];
       try{

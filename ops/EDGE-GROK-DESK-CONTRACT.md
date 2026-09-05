@@ -22,7 +22,7 @@ Metabolic stasis is **StrataMesh lab + Calhegas Morais Node token management**, 
 
 - Phase: **Adversarial LAB P1**. Mesh **n=2** (Mac Fog + EDGE-GROK local). `f_max=0`. `oracle_live=false`. Do not call the lab P0 n=1.
 - Public `https://fog.calhegasmorais.pt/health` may JSON `n=1` `origin=session` `mac_live=false`. That is a **session-origin flag / hop lag**, not “the lab is n=1”.
-- Tag **v0.5.1-lab**. Cite live hops pack **#116** `e82ae12` (auto-g 1800s + hop skip/MW_DENO) and CI pace **#117** `5729bb2` (STASIS/HOLD = burn-rate pace; mesh pass n≥2 or TUI member).
+- Tag **v0.6.0-lab**. Cite live hops pack **#116** `e82ae12` (auto-g 1800s + hop skip/MW_DENO) and CI pace **#117** `5729bb2` (STASIS/HOLD = burn-rate pace; mesh pass n≥2 or TUI member).
 - grok90 INV/TX evidence pack remains a **later bar** (`docs/P0-INV-TX-MULTIHOST.md`), not the current phase name.
 - Do not claim aBFT / mainnet / investment.
 
