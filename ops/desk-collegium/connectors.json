@@ -98,17 +98,19 @@
     {
       "id": "github-pat",
       "kind": "pat",
-      "desc": "gh auth / GITHUB_TOKEN for issues sync + Actions (never chat)",
+      "desc": "GitHub PAT file or gh hosts (never chat/print). Prefer path presence; gh auth optional.",
       "probe": {
-        "type": "gh",
-        "cmd": [
-          "gh",
-          "auth",
-          "status"
-        ]
+        "type": "path",
+        "paths": [
+          "~/.config/stratamesh/github.pat",
+          "~/.config/stratamesh/gh_pat",
+          "~/.config/gh/hosts.yml"
+        ],
+        "any": true
       },
       "ship_gate": true,
-      "never_print": true
+      "never_print": true,
+      "note": "ship_gate: file present is enough; GIT_ASKPASS may use github.pat without gh auth login"
     },
     {
       "id": "fog-tui",
