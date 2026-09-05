@@ -206,6 +206,7 @@ def hold_released(item: dict, data: dict | None = None) -> bool:
         return False
     if hold == "distinct_second_host":
         return False  # need Pi/AWS/remote Fog — not Mac+MDB alone
+    if hold == "trial_t3":
         t3 = _t3_from_pt(data)
         return bool(t3 and today >= t3)
     if hold in ("trial_ended", "trial_le_2d"):

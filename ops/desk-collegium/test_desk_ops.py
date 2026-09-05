@@ -209,7 +209,13 @@ class DeskOps(unittest.TestCase):
         mod = self.mod
         data = {"trial_ends_pt": "2026-09-16", "t3_from_pt": "2026-09-14"}
         self.assertTrue(mod.hold_released({"hold_until": None}, data))
-        self.assertTrue(mod.hold_released({"hold_until": "oracle_grok90"}, data))
+        self.assertFalse(mod.hold_released({"hold_until": "oracle_grok90"}, data))  # needs oracle_fallback
+        os_mod = __import__("os")
+        os_mod.environ["ORACLE_FALLBACK"] = "true"
+        try:
+            self.assertTrue(mod.hold_released({"hold_until": "oracle_grok90"}, data))
+        finally:
+            os_mod.environ.pop("ORACLE_FALLBACK", None)
         self.assertFalse(mod.hold_released({"hold_until": "headscale_eval"}, data))
         # today is 2026-09-05 PT → T3/T4 held
         self.assertFalse(mod.hold_released({"hold_until": "trial_t3"}, data))
