@@ -57,6 +57,14 @@ class DeskOps(unittest.TestCase):
         state = json.loads((self.tmp / "data/desk-collegium/state.json").read_text())
         self.assertNotIn("dt-test-claw", {t["id"] for t in state.get("open_tasks") or []})
         self.assertIn("dt-test-claw", {t["id"] for t in state.get("done_tasks") or []})
+        # cycle must record last-cycle / metrics for Mac operative score
+        metrics = self.tmp / "data" / "desk-metrics.jsonl"
+        last = self.tmp / "data" / "last-cycle.jsonl"
+        self.assertTrue(metrics.is_file(), "desk-metrics.jsonl missing after cycle")
+        self.assertTrue(last.is_file(), "last-cycle.jsonl missing after cycle")
+        row = json.loads(metrics.read_text().strip().splitlines()[-1])
+        self.assertGreaterEqual(int(row.get("delivered") or 0), 1)
+        self.assertTrue(row.get("protocol_ok"))
 
 
 if __name__ == "__main__":
