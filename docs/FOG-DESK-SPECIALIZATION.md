@@ -1,5 +1,7 @@
 # Specialization — organizing principle of the Fog desk collegium
 
+**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+
 **Law:** each member acts **according to its best capabilities**. Overlap is constrained; ownership is exclusive for the specialty core. Parallel work is default when specialties are disjoint.
 
 This amends [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md). If a task fits two agents, the **primary specialty owner** proposes and commits; peers may **act / audit / amend / revise / vote / refer / dispute / constrain** — propose is not the only move; peers do not take over commit ownership.

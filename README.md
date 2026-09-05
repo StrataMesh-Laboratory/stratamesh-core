@@ -1,6 +1,6 @@
 # StrataMesh Core
 
-**Release:** [v0.5.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab) — **Adversarial LAB phase P1**. Live/lab version is **v0.5.1-lab**, not 0.4.1. Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
+**Release:** [v0.5.2-dev](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.2-dev) — **Adversarial LAB phase P1** debug cut (desk collegium). Live debug version is **v0.5.2-dev** (packaged lab cut follows as v0.6.0-lab). Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
 
 **STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** ACBs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
 Motto: *Intelligentia · Vigilantia · Veritas*
@@ -44,10 +44,10 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 Whitepaper phases 0–7 remain theme labels only. Control law: [docs/ROADMAP-PUBLIC-v0.3.md](docs/ROADMAP-PUBLIC-v0.3.md).
 
-Docs: [`ROADMAP-VISION.md`](docs/ROADMAP-VISION.md) · [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.5.1-lab.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
+Docs: [`ROADMAP-VISION.md`](docs/ROADMAP-VISION.md) · [`ROADMAP-PUBLIC-v0.3.md`](docs/ROADMAP-PUBLIC-v0.3.md) · [v0.2 historical](docs/ROADMAP-PUBLIC-v0.2.md) · `docs/PHASE*-SCAFFOLD.md` · `docs/RELEASE-v0.5.2-dev.md` · `docs/OPS-RUNBOOK.md` · [`HUB.md`](docs/HUB.md)
 
 ## Roadmap (summary)
-**v0.5.1-lab** Adversarial P1: two distinct hosts (Mac Fog `FOG-NODE-PT-CM-001` continuous + EDGE-GROK local `EDGE-GROK-CMN-001`). Production splits into:
+**v0.5.2-dev** Adversarial P1 (debug): two distinct hosts (Mac Fog `FOG-NODE-PT-CM-001` continuous + EDGE-GROK local `EDGE-GROK-CMN-001`). Production splits into:
 - **Track A — Mesh reality:** always-on node → multi-host gossip → multi-operator SPAs → public testnet
 - **Track B — Protocol depth:** emission policy → dual-asset Agora → meta-finality → real ACB meters → real PQ
 
@@ -59,7 +59,7 @@ The terminal is not the computer. A subject requests a **capability**; the fabri
 
 | Milestone | Objective | Now |
 |-----------|-----------|-----|
-| I Laboratory protocol | DAG, gossip, STRATA, workers | **v0.5.1-lab** |
+| I Laboratory protocol | DAG, gossip, STRATA, workers | **v0.5.2-dev** |
 | II Adversarial multi-host | two hosts, chaos, resource-proof MVP | **P1 in progress** |
 | III Fog appliance | dedicated measurable machine | proposed — [FOG-APPLIANCE.md](docs/FOG-APPLIANCE.md) |
 | IV Resilient infrastructure | 2×2 m hut, dual WAN/energy | proposed — [FOG-INFRASTRUCTURE.md](docs/FOG-INFRASTRUCTURE.md) |

@@ -1,6 +1,6 @@
 {
   "schema": "desk.projected.v1",
-  "version": "0.3.5-lab",
+  "version": "0.5.2-dev",
   "spine": "docs/ROADMAP-VISION.md",
   "current_milestone": "M-I",
   "note": "Stable catalog \u2014 desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",

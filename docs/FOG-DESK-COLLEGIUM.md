@@ -1,5 +1,7 @@
 # Fog desk collegium — channels + metabol_pace coordination
 
+**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+
 **Mandate:** CMN Fog automation desk. Lab only.  
 **Extends:** `ops/EDGE-GROK-DESK-CONTRACT.md`, `ops/METABOLISM.md`, `docs/FOG-DESK-AGENTS.md`, `docs/COMMUNITY-CHANNELS.md`.
 

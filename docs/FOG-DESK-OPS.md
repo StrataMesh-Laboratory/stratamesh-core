@@ -1,5 +1,7 @@
 # Fog desk ops — paced workflow
 
+**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+
 ## Cadence
 - **r / 60s:** metabol tick → mirror tasks → `/desk` pull+push (Bearer vault)
 - **g / auto-g:** upgrades only (git/brew/recycle)
