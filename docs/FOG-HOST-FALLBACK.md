@@ -108,3 +108,11 @@ python3 ops/desk-collegium/desk_bus.py list | grep -E "fog-host-fallback|m2-twoh
 ```
 
 Document version: FOG-HOST-FALLBACK · 2026-09-05 · LAB · oracle_live=false
+
+## Lifted Oracle HOLDs (2026-09-05)
+
+With `oracle_fallback=true` and `MDB_active=true` (Mac MariaDB `fog_cmn` :3307):
+- Desk `hold_until: oracle_grok90` **releases** (Fog host Acts unblocked).
+- M-II stays `hold_until: distinct_second_host` (not MariaDB alone).
+- `oracle_live` stays **false** (mint/STRATA economic).
+- Oracle Support chase remains OPTIONAL Plan — not an Act blocker.

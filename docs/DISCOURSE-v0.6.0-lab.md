@@ -21,7 +21,7 @@ StrataMesh LAB ships **v0.6.0-lab**: the Fog automation-desk collegium as a pack
 - **Tailscale taper T0–T4** toward WG / OpenVPN / Tor / named-tunnel (no paid seats)
 - **Academy teach / apprenticeship** — desk mentors; never SCA students
 
-Mesh stays **Adversarial LAB P1 · n=2**. Oracle / M-II **HOLD**. Lab only — not mainnet, no aBFT claims, no workers.dev.
+Mesh stays **Adversarial LAB P1 · n=2**. M-II **HOLD** (distinct second host; Oracle optional). Lab only — not mainnet, no aBFT claims, no workers.dev.
 
 Tag: https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab  
 Notes: https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/RELEASE-v0.6.0-lab.md  
@@ -31,4 +31,4 @@ Debug precursor: https://github.com/StrataMesh-Laboratory/stratamesh-core/releas
 
 Ready one-liner for EDGE ops pulse if Bot updates separately:
 
-`v0.6.0-lab cut — desk collegium packaged; fog-tui banner v0.6.0-lab; n=2 P1; Oracle/M-II HOLD; announce: Announcements thread above.`
+`v0.6.0-lab cut — desk collegium packaged; fog-tui banner v0.6.0-lab; n=2 P1; M-II HOLD (distinct second host; Oracle optional; oracle_fallback+MDB_active); announce: Announcements thread above.`

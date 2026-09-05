@@ -177,6 +177,22 @@ def _today_pt_ymd() -> str:
         return time.strftime("%Y-%m-%d")
 
 
+def _oracle_fallback_active() -> bool:
+    import os
+    if (os.environ.get("ORACLE_FALLBACK") or "").strip().lower() in ("1", "true", "yes"):
+        return True
+    try:
+        from pathlib import Path
+        import json
+        p = Path(os.environ.get("FOG_HOME", "")) / "data/desk-meters/lab-flags.json"
+        if p.is_file():
+            j = json.loads(p.read_text())
+            return bool(j.get("oracle_fallback"))
+    except Exception:
+        pass
+    return False
+
+
 def hold_released(item: dict, data: dict | None = None) -> bool:
     """True when projected item may be seeded into open_tasks."""
     hold = item.get("hold_until")
@@ -185,12 +201,11 @@ def hold_released(item: dict, data: dict | None = None) -> bool:
     data = data if data is not None else load_projected()
     today = _today_pt_ymd()
     if hold == "oracle_grok90":
-        return True  # Oracle = STRATAGROK+vaulted grok@; not André park
-    if hold == "headscale_eval":
-        return False  # explicit HOLD until André asks
-    if hold == "billing_trial_date":
-        return bool(_trial_ends_pt(data))
-    if hold == "trial_t3":
+        if _oracle_fallback_active():
+            return True  # Mac+MDB fallback — Fog host not blocked on grok90
+        return False
+    if hold == "distinct_second_host":
+        return False  # need Pi/AWS/remote Fog — not Mac+MDB alone
         t3 = _t3_from_pt(data)
         return bool(t3 and today >= t3)
     if hold in ("trial_ended", "trial_le_2d"):

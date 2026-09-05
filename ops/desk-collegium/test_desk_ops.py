@@ -431,5 +431,15 @@ class DeskOps(unittest.TestCase):
         self.assertTrue(out.get("peer_vote"))
 
 
+    def test_oracle_hold_releases_when_fallback(self):
+        import os
+        os.environ["ORACLE_FALLBACK"] = "true"
+        try:
+            self.assertTrue(self.mod.hold_released({"hold_until": "oracle_grok90"}, {}))
+            self.assertFalse(self.mod.hold_released({"hold_until": "distinct_second_host"}, {}))
+        finally:
+            os.environ.pop("ORACLE_FALLBACK", None)
+
 if __name__ == "__main__":
     unittest.main()
+

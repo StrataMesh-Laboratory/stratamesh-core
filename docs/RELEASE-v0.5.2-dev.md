@@ -6,7 +6,7 @@
 **Debug cut (2026-09-05 PT).** Debugged Fog automation-desk / collegium stack on green HEAD. Adversarial LAB **P1**. Mesh **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`). Not a packaged lab milestone — that is **v0.6.0-lab**.
 
 **Tag:** `v0.5.2-dev` · **Baseline:** [v0.5.1-lab](./RELEASE-v0.5.1-lab.md)  
-Lab only. **Not mainnet.** No aBFT claims. `oracle_live=false`. Oracle / M-II **HOLD**. No workers.dev. No secrets in git.
+Lab only. **Not mainnet.** No aBFT claims. `oracle_live=false`. M-II **HOLD** (distinct second host; Oracle optional). No workers.dev. No secrets in git.
 
 ## Why this cut exists
 
@@ -31,8 +31,8 @@ This tag freezes that **debugged** stack so v0.6.0-lab can package it as the lab
 - Packaged lab cut (see **v0.6.0-lab**)
 - Mainnet / aBFT / investment
 - workers.dev / 6th cron / Worker PUT
-- Oracle grok90 chase complete (HOLD)
-- M-II (HOLD until Oracle)
+- Oracle grok90 chase (OPTIONAL under oracle_fallback)
+- M-II (HOLD until distinct second host)
 
 ## Channels
 

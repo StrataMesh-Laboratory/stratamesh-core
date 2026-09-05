@@ -14,7 +14,7 @@ specialization · bus · metabol_pace · eisenhower · anti_vapour · anti_idle 
 `projected` → `pending` (propose) → `ongoing` (constrain|act|audit|amend|revise|vote|refer|dispute|commit) → `done` | `escalate` — full verbs; propose is not the only move
 
 ## Eisenhower
-One **Act** ordinal. Delegate = Fog|EDGE split. Plan/Note parked. **escalate_to_andre** only: Fog g, 2FA, captcha, Oracle password, Renovate majors. Desk cycle owns routine vault materialize (KeePass→0600). Else STRATAGROK **resolve_as_representative** only when escalated (vault if desk failed / sources absent, gh PATH, edge 429, OpenCode idle, vapour fixes). After dispute: stratagrok act before André ping.
+One **Act** ordinal. Delegate = Fog|EDGE split. Plan/Note parked. **escalate_to_andre** only: Fog g, 2FA, captcha, Renovate majors (Oracle optional; André only 2FA/captcha). Desk cycle owns routine vault materialize (KeePass→0600). Else STRATAGROK **resolve_as_representative** only when escalated (vault if desk failed / sources absent, gh PATH, edge 429, OpenCode idle, vapour fixes). After dispute: stratagrok act before André ping.
 
 ## Autonomy
 Bot = escalate surface for true André gates; otherwise resolve_as_representative. Agents read TODO.md + CONTEXT + reports, self-queue specialty work, self-audit each cycle. Diary shows verb chains (not a single say).

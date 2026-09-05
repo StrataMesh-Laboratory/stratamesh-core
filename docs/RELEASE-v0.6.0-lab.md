@@ -4,7 +4,7 @@
 
 **Tag:** `v0.6.0-lab` · **Baseline:** [v0.5.1-lab](./RELEASE-v0.5.1-lab.md) · **Debug precursor:** [v0.5.2-dev](./RELEASE-v0.5.2-dev.md)
 
-Lab only. **Not mainnet.** No aBFT claims. `oracle_live=false`. Oracle / M-II **HOLD**. No workers.dev. No secrets in git.
+Lab only. **Not mainnet.** No aBFT claims. `oracle_live=false`. M-II **HOLD** (distinct second host; Oracle optional). No workers.dev. No secrets in git.
 
 ## Versioning note
 
@@ -51,7 +51,7 @@ Interim SHAs (non-exhaustive): `7fb13d3`, `c7bff9a`, `94f0c87`, `24fe7cc`, `ecd6
 
 ## Hold / not in this cut
 
-- Oracle grok90 chase (**HOLD**) · M-II (**HOLD**)
+- Oracle grok90 chase (**OPTIONAL**) · M-II (**HOLD** until distinct second host)
 - Mainnet / aBFT / investment / MiCA public offer
 - workers.dev · 6th Cloudflare cron · Worker PUT as Fog origin
 - Paid Tailscale seats · converting trial → paid

@@ -9,13 +9,13 @@
 - **Current lab cut `v0.6.0-lab`.** Spans **since v0.5.1-lab** (includes what **v0.5.2-dev** stabilized). 0.5.2 was not a tagged cut until the debug tag.
 - Desk collegium full stack: bus verbs, autonomy cycle, surfaces/journals/reports (GH+Discourse), metabol enforce, DESK feed explainability, TUI DESK geometry, `automation.desk@` mail shared+per-agent, Tailscale taper T0–T4, academy teach/apprenticeship, role packs, projected Eisenhower catalog, ship-majority, connectors soft-fail, metrics/last-cycle.
 - fog-tui / kits / protocol.json / projected.json / FOG-DESK-* current → **v0.6.0-lab**.
-- LAB only. n=2 P1. Oracle/M-II HOLD. No workers.dev. No mainnet/aBFT. Discourse announce via browser (no Admin API key on Free plan).
+- LAB only. n=2 P1. M-II HOLD (distinct second host; Oracle optional; oracle_fallback+MDB_active). No workers.dev. No mainnet/aBFT. Discourse announce via browser (no Admin API key on Free plan).
 
 ## 2026-09-05 — v0.5.2-dev (debug cut · desk collegium)
 - **Tag `v0.5.2-dev`** — debugged Fog automation-desk / collegium stack on green HEAD. Not the packaged lab milestone (that is v0.6.0-lab).
 - **Note:** no prior tagged 0.5.2 existed; André’s “since 0.5.2” maps to this debug cut. Delta since **v0.5.1-lab** is the desk/collegium mid-stack through `11a317a` (interim SHAs include `7fb13d3`, `c7bff9a`, `94f0c87`, `24fe7cc`, `ecd6217`…).
 - Bus full verbs · autonomy + auto-ship · surfaces/journals/reports · metabol enforce · DESK feed + TUI geometry · `automation.desk@` mail · Tailscale taper T0–T4 · academy teach/apprenticeship.
-- LAB only. n=2 P1. Oracle/M-II HOLD. No workers.dev. No mainnet/aBFT.
+- LAB only. n=2 P1. M-II HOLD (distinct second host; Oracle optional; oracle_fallback+MDB_active). No workers.dev. No mainnet/aBFT.
 
 ## 2026-09-02 — Honesty: v0.5.1-lab Adversarial P1 n=2
 - Current live/lab cut is **v0.5.1-lab**. README and other *current* surfaces that still said 0.4.1 / 0.4.0 were stale. Historical changelog rows for v0.4.0-lab / v0.4.1-lab below are unchanged (those tags happened).

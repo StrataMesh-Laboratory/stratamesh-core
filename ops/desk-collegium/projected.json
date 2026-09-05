@@ -33,10 +33,11 @@
       ],
       "eisenhower": "plan",
       "human_gate": true,
-      "hold_until": "oracle_grok90",
       "andre_gate": true,
       "escalate_to_andre": true,
-      "note": "Optional rung 7. MariaDB+Mac path is Act now. oracle_live stays false until remote Fog host."
+      "note": "Optional rung 7. MariaDB+Mac path is Act now. oracle_live stays false until remote Fog host.",
+      "oracle_fallback": true,
+      "status": "act"
     },
     {
       "id": "proj-ts-taper-t1",
@@ -142,8 +143,8 @@
       ],
       "eisenhower": "plan",
       "human_gate": true,
-      "hold_until": "oracle_grok90",
-      "note": "HOLD = distinct second host missing, not Oracle-only. See FOG-HOST-FALLBACK.md."
+      "hold_until": "distinct_second_host",
+      "note": "HOLD = distinct second host missing, not Oracle-only. See FOG-HOST-FALLBACK.md. | Oracle optional; need distinct host"
     },
     {
       "id": "proj-academy-teach-pulse",
