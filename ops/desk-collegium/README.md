@@ -50,3 +50,23 @@ python3 ops/desk-collegium/desk_ops.py cycle --max 1
 ```
 
 Laws include **academy_teach**: all desk agents teach SCA/ACB students; never enroll as students.
+
+## Metrics (operative score)
+
+```bash
+python3 ops/desk-collegium/desk_metrics.py score [--n 20]
+```
+
+Cycle samples append to `$FOG_HOME/data/desk-metrics.jsonl` and alias `$FOG_HOME/data/last-cycle.jsonl`.
+Target score ≥ 70. Empty FOG soft-exits 0 (first boot).
+
+## Actions + agent run
+
+```bash
+python3 ops/desk-collegium/desk_actions.py sync   # soft if gh missing (Homebrew PATH)
+bash deploy/mac-fog/desk-agent-run.sh all        # no-op soft if outbox empty
+python3 ops/desk-collegium/desk_ops.py token-check
+```
+
+Tests: `python3 -m unittest discover -s ops/desk-collegium -p 'test_*.py' -v`
+
