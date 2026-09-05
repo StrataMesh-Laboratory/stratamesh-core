@@ -214,61 +214,27 @@
       "title": "Home peer Fog (RPi/NUC) via Tailscale+tunnel",
       "eisenhower": "act",
       "hold_until": "distinct_second_host",
-      "note": "TOP1 Oracle substitute — hardware peer",
-      "oracle_fallback": true
+      "note": "Best M-II path when hardware exists. Not live. See docs/ORACLE-OSS-ALTS.md",
+      "oracle_fallback": true,
+      "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared — distinct second host"
     },
     {
       "id": "proj-host-gcp-e2-micro",
       "title": "GCP Always Free e2-micro Fog peer",
       "eisenhower": "act",
       "hold_until": "distinct_second_host",
-      "note": "TOP2 Oracle VM substitute — André 2FA on signup",
-      "oracle_fallback": true
+      "note": "Always-free US regions; 1GB lean Fog. Not live. docs/ORACLE-OSS-ALTS.md",
+      "oracle_fallback": true,
+      "intent": "Act spike: GCP Always Free e2-micro Fog peer (Oracle VM substitute); André 2FA for signup",
+      "human_gate": true
     },
     {
       "id": "proj-host-fly-probe",
-      "title": "Fly.io Machines always-on probe (Fog container)",
+      "title": "Fly.io Fog peer — DROP for new accounts (2026 no free Machines)",
       "eisenhower": "plan",
-      "note": "Only if free always-on proven; else drop",
-      "oracle_fallback": true
-    },
-    {
-      "id": "proj-gcp-e2micro-fog",
-      "specialty": "lead",
-      "owner": "stratagrok",
-      "intent": "Spike: GCP Always Free e2-micro as Oracle VM substitute — Fog+SQLite peer via Tailscale/CF tunnel; MW stays Mac; oracle_live=false until honest remote Fog",
-      "lanes": [
-        "lane-bot"
-      ],
-      "eisenhower": "act",
-      "human_gate": true,
-      "note": "Always-free e2-micro US regions only; 1GB RAM lean Fog. Not live. See data/desk-outbox/apprentice/oracle-oss-alts-2026-09-05.md. M-II exit still needs distinct_second_host evidence."
-    },
-    {
-      "id": "proj-homelab-second-host",
-      "specialty": "coord",
-      "owner": "hermes",
-      "intent": "Inventory spare always-on device (laptop/mini/Termux) + Tailscale Fog peer — zero-cloud distinct host path for M-II",
-      "lanes": [
-        "lane-bot"
-      ],
-      "eisenhower": "act",
-      "human_gate": false,
-      "note": "Best zero-cloud prove if hardware exists. Mac+MDB≠host. Not live until /status peer seen."
-    },
-    {
-      "id": "proj-rpi-ssd-second-host",
-      "specialty": "lead",
-      "owner": "stratagrok",
-      "intent": "Plan: Raspberry Pi+SSD physical second Fog host when André authorizes purchase — durable M-II path",
-      "lanes": [
-        "lane-bot"
-      ],
-      "eisenhower": "plan",
-      "human_gate": true,
-      "hold_until": "distinct_second_host",
-      "andre_gate": true,
-      "note": "No buy now. hold_until=distinct_second_host for M-II exit; purchase is André gate."
+      "note": "Probe only if uptime allowance holds; spin-down unfit. Not live.",
+      "oracle_fallback": true,
+      "status": "note"
     }
   ],
   "projected": [
@@ -498,15 +464,16 @@
       "title": "GCP Always Free e2-micro Fog peer",
       "eisenhower": "act",
       "hold_until": "distinct_second_host",
-      "note": "TOP2 Oracle VM substitute — André 2FA on signup",
+      "note": "TOP2 Always Free e2-micro — us-west1|central1|east1 + standard 30GB PD; André 2FA signup only",
       "oracle_fallback": true
     },
     {
       "id": "proj-host-fly-probe",
-      "title": "Fly.io Machines always-on probe (Fog container)",
-      "eisenhower": "plan",
-      "note": "Only if free always-on proven; else drop",
-      "oracle_fallback": true
+      "title": "Fly.io Fog peer — DROP for new accounts (2026 no free Machines)",
+      "eisenhower": "note",
+      "note": "2026 honesty: free allowance legacy-only; trial!=always-on; paid needs André — not Oracle substitute",
+      "oracle_fallback": true,
+      "status": "note"
     }
   ],
   "updated": "2026-09-05T13:15:00+0000"
