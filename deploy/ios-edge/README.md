@@ -1,6 +1,6 @@
 # StrataMesh LAB — Edge Node (iOS)
 
-**v0.5.2-dev** · lab · not mainnet · not a Fog
+**v0.6.0-lab** · lab · not mainnet · not a Fog
 
 An Edge has a primary job (this iPhone, this iPad). Residual capacity only: C_mesh = f(1-U).
 

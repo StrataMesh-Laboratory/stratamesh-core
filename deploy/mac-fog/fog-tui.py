@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""StrataMesh LAB Fog instrument v0.5.2-dev.
+"""StrataMesh LAB Fog instrument v0.6.0-lab.
 Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard · desk feed below
 TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434 — FOG Hermes external_agent (hermes3/llava), not an SCA. FAQ from public docs if generate is waking. Report via Orchestrator to AIOps (fail-open).
 
@@ -2358,7 +2358,7 @@ def draw(msg: str = "") -> None:
         dec_paint = lamp(False) + " " + BAD + decision + RST
 
     print(top)
-    print(boxline(" " + ACC + BOLD + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.5.2-dev" + RST
+    print(boxline(" " + ACC + BOLD + "STRATAMESH" + RST + "  " + clock + MUT + "  v0.6.0-lab" + RST
                   + "  " + dec_paint, w))
     print(boxline(" " + MUT + str(nid) + RST + "  " + BOLD + str(origin) + RST
                   + MUT + "  n=" + RST + BOLD + str(n) + RST

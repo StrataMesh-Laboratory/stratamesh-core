@@ -1,10 +1,10 @@
 {
   "schema": "stratamesh.handoff.v1",
   "generated_at": "2026-09-04T22:39:19Z",
-  "headline": "Green \u2014 academy 0.5.2-dev live; docs nav fixed; wizard kbd lock on main awaiting g",
+  "headline": "Green \u2014 academy 0.6.0-lab live; docs nav fixed; wizard kbd lock on main awaiting g",
   "posture": "green",
   "status": {
-    "version": "v0.5.2-dev",
+    "version": "v0.6.0-lab",
     "phase": "adversarial_lab_P1",
     "lab": true
   },
@@ -46,12 +46,12 @@
     "6th CF cron",
     "grok.me Publish"
   ],
-  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.5.2-dev (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
+  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.6.0-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
   "fog": {
     "origin": "macbook",
     "mac_live": true,
     "n": 2,
-    "version": "v0.5.2-dev"
+    "version": "v0.6.0-lab"
   },
   "slot": "desk-handoff-stratagrok",
   "identity": "STRATAGROK",

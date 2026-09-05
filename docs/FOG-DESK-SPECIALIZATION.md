@@ -1,6 +1,6 @@
 # Specialization — organizing principle of the Fog desk collegium
 
-**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+**Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
 **Law:** each member acts **according to its best capabilities**. Overlap is constrained; ownership is exclusive for the specialty core. Parallel work is default when specialties are disjoint.
 

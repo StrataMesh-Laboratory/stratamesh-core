@@ -1,6 +1,6 @@
 # Fog automation desk agents (external_*)
 
-**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+**Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
 **Single roster + pointer table.** Machine source: `ops/desk-collegium/agent_roles.json`.
 None are SCA/ACB students — all teach/mentor.

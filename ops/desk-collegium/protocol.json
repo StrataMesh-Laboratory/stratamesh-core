@@ -1,6 +1,6 @@
 {
   "schema": "desk.protocol.v1",
-  "version": "0.5.2-dev",
+  "version": "0.6.0-lab",
   "title": "Fog automation desk \u2014 enforceable methodology",
   "sources": [
     "docs/FOG-DESK-COLLEGIUM.md",

@@ -1,5 +1,8 @@
 # v0.5.2-dev
 
+> **Superseded as current** by **v0.6.0-lab**; historical debug cut unchanged.
+
+
 **Debug cut (2026-09-05 PT).** Debugged Fog automation-desk / collegium stack on green HEAD. Adversarial LAB **P1**. Mesh **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`). Not a packaged lab milestone — that is **v0.6.0-lab**.
 
 **Tag:** `v0.5.2-dev` · **Baseline:** [v0.5.1-lab](./RELEASE-v0.5.1-lab.md)  

@@ -1,6 +1,6 @@
 # Autonomous Fog automation desk — operational loop
 
-**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+**Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
 **Principle:** specialization + collegium bus + metabol_pace + **agent_autonomy**.
 **Bot = escalate surface, not prompter.** Agents = self-initiative + self-audit.

@@ -6,11 +6,11 @@
     "lon": -9.1427,
     "label": "Lisbon, Portugal"
   },
-  "version": "0.5.2-dev",
+  "version": "0.6.0-lab",
   "phase": "P1",
   "phase_name": "Adversarial LAB P1",
   "status": "lab",
-  "timestamp": "2026-09-05T02:40:00Z",
+  "timestamp": "2026-09-05T02:50:00Z",
   "dag": {
     "height_approx": 0,
     "tip_count": 0,

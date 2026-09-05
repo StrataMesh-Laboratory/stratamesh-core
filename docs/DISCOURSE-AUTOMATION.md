@@ -32,3 +32,7 @@ See also [OPS-EMAIL-AGENT-SOP.md](./OPS-EMAIL-AGENT-SOP.md) for magic-link recov
 ## Proven
 
 - Topic: https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20
+
+## Bot routine note (v0.6.0-lab)
+
+When updating `discourse-lab-ops-pulse` / t/20 automation prompts, set current version to **v0.6.0-lab**. Do not embed secrets. Announce body: `docs/DISCOURSE-v0.6.0-lab.md`. Free plan = browser/session (no Admin API key).

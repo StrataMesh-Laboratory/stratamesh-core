@@ -1,6 +1,6 @@
 # Fog TUI live desk feed
 
-**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+**Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
 Operator monitor: a chat-style **DESK** panel under the Fog TUI instrument shows recent automation-desk work from each agent.
 

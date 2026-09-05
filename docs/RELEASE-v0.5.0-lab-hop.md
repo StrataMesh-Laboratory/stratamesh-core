@@ -1,5 +1,8 @@
 # v0.5.0-lab hop — Node Launcher
 
+> **Superseded as current** by **v0.6.0-lab** (via v0.5.2-dev); historical cut unchanged.
+
+
 P1 / A-LAB. Lab. Not mainnet. oracle_live stays false.
 
 ## Hop

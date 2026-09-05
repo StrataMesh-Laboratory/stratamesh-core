@@ -1,6 +1,6 @@
 # v0.5.1-lab
 
-> **Superseded as current** by **v0.5.2-dev** (debug) then **v0.6.0-lab** (lab cut); historical cut unchanged.
+> **Superseded as current** by **v0.6.0-lab** (via debug precursor **v0.5.2-dev**); historical cut unchanged.
 
 
 **Historical lab cut (2026-09-02).** Adversarial LAB **P1**. Mesh **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`). Not 0.4.1. Public `/health` n=1 origin=session mac_live=false is a session-origin software flag, not lab n=1.

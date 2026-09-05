@@ -1,6 +1,6 @@
 # Fog automation desk — enforceable protocol
 
-**Current cut:** `v0.5.2-dev` (debug) · packaged lab: `v0.6.0-lab`.
+**Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
 Machine source: `ops/desk-collegium/protocol.json` · roster: `agent_roles.json`
 CLI: `python3 ops/desk-collegium/desk_protocol.py show|check`

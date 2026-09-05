@@ -31,12 +31,12 @@ fi
 say() { printf "\n== %s ==\n" "$*"; }
 die() { printf "FAIL: %s\n" "$*" >&2; exit 1; }
 
-printf "\n  STRATAMESH LAB  ·  Fog Node v0.5.2-dev\n"
+printf "\n  STRATAMESH LAB  ·  Fog Node v0.6.0-lab\n"
 printf "  Intelligentia · Vigilantia · Veritas\n"
 printf "  node=%s  origin=%s  agent=%s\n" "$NODE_ID" "$ORIGIN" "$AGENT"
 printf "  lab · not mainnet · secrets never in git\n\n"
 
-osascript -e 'display notification "StrataMesh LAB Fog Node v0.5.2-dev" with title "Installer"' >/dev/null 2>&1 || true
+osascript -e 'display notification "StrataMesh LAB Fog Node v0.6.0-lab" with title "Installer"' >/dev/null 2>&1 || true
 
 say "1/9 host"
 ARCH=$(uname -m)
