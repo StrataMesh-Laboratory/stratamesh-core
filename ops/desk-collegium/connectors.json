@@ -1,6 +1,6 @@
 {
   "schema": "desk.connectors.v1",
-  "version": "0.1.0-lab",
+  "version": "0.3.2-lab",
   "note": "Registry of operational surfaces. Values are paths/commands/URLs \u2014 never store PAT/token bytes here.",
   "surfaces": [
     {
@@ -117,6 +117,33 @@
         ]
       },
       "ship_gate": false
+    },
+    {
+      "id": "desk-agent-run",
+      "kind": "scripts",
+      "desc": "Mac desk-agent-run.sh \u2014 opencode|hermes|openclaw|all from outbox",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          "deploy/mac-fog/desk-agent-run.sh"
+        ]
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "gha-desk-collegium",
+      "kind": "actions",
+      "desc": "workflow desk-collegium.yml + desk-tick/prepare",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          ".github/workflows/desk-collegium.yml",
+          ".github/workflows/desk-tick.yml",
+          "ops/bin/desk-collegium-cycle.py",
+          "ops/desk-collegium/desk_actions.py"
+        ]
+      },
+      "ship_gate": true
     }
   ]
 }

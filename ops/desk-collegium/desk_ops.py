@@ -465,6 +465,13 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         print(f"metabol warn: {e}", file=sys.stderr)
 
     state = bus.load_state()
+    # GitHub Actions plug-in
+    try:
+        if not args.dry_run:
+            _load("desk_actions").cmd_sync(argparse.Namespace(limit=12, dry_run=False))
+            state = bus.load_state()
+    except Exception as e:
+        print(f"actions sync warn: {e}", file=sys.stderr)
     # protocol enforce
     try:
         chk = _load("desk_protocol").check(state)

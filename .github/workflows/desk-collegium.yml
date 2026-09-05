@@ -1,0 +1,39 @@
+# Fog desk collegium — protocol + Actions plug-in (labor only; no CF PUT).
+name: desk-collegium
+
+on:
+  schedule:
+    - cron: "20 */2 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "ops/desk-collegium/**"
+      - "ops/bin/desk-collegium-cycle.py"
+      - ".github/workflows/desk-collegium.yml"
+
+concurrency:
+  group: desk-collegium
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collegium:
+    name: Protocol + Actions status
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DESK_TICK_OUT: ${{ github.workspace }}/artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: desk-collegium cycle
+        run: python3 ops/bin/desk-collegium-cycle.py
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desk-collegium
+          path: artifacts/
+          if-no-files-found: ignore

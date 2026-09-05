@@ -1030,6 +1030,16 @@ def kick_desk_refresh() -> None:
                     logp.write_text((r_ops.stdout or "")[-4000:] + "\n" + (r_ops.stderr or "")[-2000:])
                 except Exception:
                     pass
+            # specialty agent scripts (OpenCode/Hermes/OpenClaw outbox)
+            agent_run = sync.parent.parent.parent / "deploy/mac-fog/desk-agent-run.sh"
+            if agent_run.is_file():
+                subprocess.run(
+                    ["bash", str(agent_run), "all"],
+                    cwd=str(sync.parent.parent.parent),
+                    env=env,
+                    timeout=90,
+                    capture_output=True,
+                )
             # pull = live update from EDGE (r/60s — not g)
             subprocess.run(
                 [sys.executable, str(sync), "pull"],

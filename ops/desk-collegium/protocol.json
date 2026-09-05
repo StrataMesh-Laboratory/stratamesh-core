@@ -1,6 +1,6 @@
 {
   "schema": "desk.protocol.v1",
-  "version": "0.3.1-lab",
+  "version": "0.3.2-lab",
   "title": "Fog automation desk \u2014 enforceable methodology",
   "sources": [
     "docs/FOG-DESK-COLLEGIUM.md",
@@ -85,6 +85,7 @@
   },
   "cycle": [
     "metabol.tick",
+    "actions.sync",
     "protocol.check",
     "promote_projected_if_slot",
     "pick_one_ALLOW_ongoing_else_pending",

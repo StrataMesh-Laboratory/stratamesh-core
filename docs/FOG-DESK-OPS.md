@@ -43,3 +43,16 @@ python3 ops/desk-collegium/desk_ship.py ship dt-desk-organ --by stratagrok --sha
 ```
 
 Unanimous ACK ⇒ full authority. Majority ACK ⇒ ship allowed. NACK ⇒ blocked.
+
+## GitHub Actions + agent scripts
+
+```bash
+python3 ops/desk-collegium/desk_actions.py status
+python3 ops/desk-collegium/desk_actions.py sync
+python3 ops/desk-collegium/desk_actions.py dispatch desk-collegium
+bash deploy/mac-fog/desk-agent-run.sh all   # opencode|hermes|openclaw
+```
+
+Workflows: `desk-collegium.yml` (protocol+actions), `desk-tick.yml`, `desk-prepare.yml`.
+TUI `r`/60s runs `desk_ops` then `desk-agent-run.sh all`.
+Outbox: `FOG/data/desk-outbox/{opencode,hermes,openclaw}-next.md`.
