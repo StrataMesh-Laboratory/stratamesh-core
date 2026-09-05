@@ -1,7 +1,7 @@
 # Hermes native desk environment (FOG-CMN-DESK)
 
-STRATAGROK’s computer cannot be shared with Hermes/OpenCode/OpenClaw.
-This **Hermes desktop project** is the desk’s native workspace on André’s Mac.
+STRATAGROK’s **Bot computer** cannot be shared with Hermes/OpenCode/OpenClaw (and Grok Bot app is unsupported on Intel `mbpv`).
+This **Hermes desktop project** is the desk’s **shared desk machine** on André’s Mac — reach it via Tailscale SSH / Remote Login (`hermes-desk`). See [SSH.md](./SSH.md).
 
 ## Paths (Mac)
 
@@ -16,6 +16,15 @@ This **Hermes desktop project** is the desk’s native workspace on André’s M
 | Desk feed | `$FOG_HOME/data/desk-feed.jsonl` |
 | Collegium state | `$FOG_HOME/data/desk-collegium/state.json` |
 | Bearer (never chat) | `~/.config/stratagrok/desk-mail.token` |
+
+## Shared desk machine (SSH)
+
+| Alias | `hermes-desk` → Tailscale `mbpv` (`100.108.35.26`) |
+|-------|-----------------------------------------------------|
+| Enable | `bash deploy/mac-fog/hermes/desktop/install-desk-ssh.sh` |
+| Spec | [SSH.md](./SSH.md) |
+
+Intel Mac: no Grok Bot Computers registration — SSH/Tailscale only.
 
 ## Duty
 

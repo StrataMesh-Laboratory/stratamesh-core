@@ -1,0 +1,7 @@
+# Copy fragments into ~/.ssh/config — never commit private keys.
+Host hermes-desk mbpv
+  HostName 100.108.35.26
+  User andremorais
+  IdentityFile ~/.ssh/desk_hermes_ed25519
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new

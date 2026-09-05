@@ -69,3 +69,18 @@ mail:
     - secrets_in_git_or_chat
     - eni_geral_mix
     - gmail
+
+shared_desk_machine:
+  alias: hermes-desk
+  tailscale_host: mbpv
+  tailscale_ipv4: 100.108.35.26
+  user: andremorais
+  workspace: /Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop
+  fog_src: /Users/andremorais/StrataMesh/fog/repo
+  access: tailscale_ssh_or_remote_login
+  install: deploy/mac-fog/hermes/desktop/install-desk-ssh.sh
+  spec: deploy/mac-fog/hermes/desktop/SSH.md
+  never:
+    - grok_bot_computers_registration
+    - share_stratagrok_bot_desktop
+    - secrets_in_git

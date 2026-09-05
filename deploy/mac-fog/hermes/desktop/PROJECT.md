@@ -5,7 +5,8 @@
 | Mandate | Fog automation desk (native Hermes desktop) |
 | Hermes role | external_agent — coord + academy_teach |
 | Peers | OpenCode, OpenClaw (external_agent) |
-| Lead | STRATAGROK (Grok Bot) — meters/git; desktop not shared |
+| Lead | STRATAGROK (Grok Bot) — meters/git/escalate; Bot desktop not shared |
+| Shared desk machine | Hermes desktop on Mac `mbpv` via SSH `hermes-desk` ([SSH.md](./SSH.md)) |
 | Fog health | http://127.0.0.1:8787/health |
 | Academy | https://academy.calhegasmorais.pt |
 | Ollama | http://127.0.0.1:11434 |

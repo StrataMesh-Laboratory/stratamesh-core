@@ -19,3 +19,7 @@ Preferred path after Fog pull:
 Gateway ready on local desktop is expected; Fog TUI  still uses Ollama  preference chain.
 
 **Start here for live desk:** [DESK.md](./DESK.md) — native environment (Actions, scripts, outbox, academy teach).
+
+## Shared desk SSH
+
+Intel Mac workaround (no Grok Bot app): [SSH.md](./SSH.md) · `install-desk-ssh.sh`
