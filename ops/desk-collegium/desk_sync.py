@@ -20,6 +20,14 @@ import urllib.request
 from pathlib import Path
 
 DEFAULT_URL = os.environ.get("DESK_URL") or "https://api-edge.calhegasmorais.pt/desk"
+
+
+def _now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+def _clock() -> str:
+    return time.strftime("%H:%M:%S")
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTECTED = frozenset({"constrain", "revise", "commit"})
