@@ -14,3 +14,13 @@ python3 ops/desk-collegium/desk_bus.py list
 ```
 
 Tests: `python3 -m unittest ops.desk-collegium.test_desk_bus`
+
+## Sync CLI
+
+```bash
+python3 ops/desk-collegium/desk_sync.py token-check   # present|missing (never prints token)
+python3 ops/desk-collegium/desk_sync.py pull          # live update FROM api-edge /desk
+python3 ops/desk-collegium/desk_sync.py push --sha …  # push as Bearer vault holder
+```
+
+TUI calls pull+push on each 60s `r` / auto-r via `kick_desk_refresh`. `g` is upgrades only.

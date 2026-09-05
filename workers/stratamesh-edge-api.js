@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.4.1-desk";
+const VERSION = "1.4.2-desk";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -352,7 +352,7 @@ function openApiDoc(ORIGIN) {
     "x-dangerous-operations": [
       "POST /v1/integrations (lab catalog write only; rejects secret fields)",
       "DELETE /v1/integrations/{id} (non-seed only)",
-      "GET+POST /desk (Bearer DESK_TOKEN; sanitized headers only)",
+      "GET+POST /desk (Bearer DESK_TOKEN; snapshot v1 + legacy mail)",
     ],
     "x-not-present": ["OAuth", "API keys required for read", "payment", "mainnet settlement"],
     "x-managed-by": EDGE_ID,
@@ -423,8 +423,8 @@ GET  /v1/va/instructions.txt   Personal VA setup (AI-readable). Does NOT replace
 GET  /v1/va/me                  Account VA identity (Bearer smva_)
 POST /v1/va/act                 Allow-listed dashboard remote control (Bearer smva_)
 GET  /v1/mesh                   Live Fog / Edge / Gossip / api-fog probes
-GET  /desk                      Last sanitized mail digest {mailbox,ts,n,latest[]} — Bearer DESK_TOKEN
-POST /desk                      Store same shape from box grok-mail-sync/digest — Bearer DESK_TOKEN
+GET  /desk                      desk.snapshot.v1 (mail + collegium + feed_tail) — Bearer DESK_TOKEN
+POST /desk                      Push snapshot or legacy mail digest — Bearer DESK_TOKEN (vault holders)
 
 Fog installer (different host): ${FOG_API}/SPEC.txt
 
@@ -438,7 +438,7 @@ Fog installer (different host): ${FOG_API}/SPEC.txt
 - GET+POST /desk: Authorization: Bearer matching env DESK_TOKEN (timing-safe). 401 otherwise. Cache-Control: no-store.
 - DESK_TOKEN is never in git. Set only with wrangler secret put DESK_TOKEN or the Cloudflare dashboard.
 - /desk stores last sanitized digest in existing API_KV (dashboard binding; do not add kv_namespaces in git). Worker isolate memory is a fallback only.
-- /desk JSON is headers-only: {mailbox, ts, n, latest:[{date,from,subject}]} — no bodies, no IMAP secrets.
+- /desk JSON: desk.snapshot.v1 = mail headers + collegium open_tasks + feed_tail. No bodies, no IMAP/vault secrets. Bearer holders only (Mac/box vault desk-mail.token).
 
 5. POST /v1/integrations — BODY SCHEMA
 --------------------------------------
@@ -1159,7 +1159,13 @@ async function probeMesh() {
 
 
 const DESK_DIGEST_KEY = "desk:mail:digest";
+const DESK_COLLEGIUM_KEY = "desk:collegium:state";
+const DESK_FEED_KEY = "desk:feed:tail";
+const DESK_META_KEY = "desk:snapshot:meta";
 let lastDeskDigest = null;
+let lastDeskCollegium = null;
+let lastDeskFeed = null;
+let lastDeskMeta = null;
 
 function timingSafeEqualStr(a, b) {
   const enc = new TextEncoder();
@@ -1197,27 +1203,154 @@ function sanitizeDeskDigest(body) {
   };
 }
 
+function sanitizeDeskCollegium(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const tasks = Array.isArray(src.open_tasks) ? src.open_tasks : [];
+  const open_tasks = tasks.slice(0, 40).map((t) => {
+    const row = t && typeof t === "object" ? t : {};
+    return {
+      schema: "desk.task.v1",
+      id: String(row.id != null ? row.id : "").slice(0, 40),
+      owner: String(row.owner != null ? row.owner : "").slice(0, 80),
+      specialty: String(row.specialty != null ? row.specialty : "").slice(0, 16),
+      intent: String(row.intent != null ? row.intent : "").slice(0, 200),
+      status: String(row.status != null ? row.status : "propose").slice(0, 16),
+      lanes: Array.isArray(row.lanes) ? row.lanes.map((x) => String(x).slice(0, 32)).slice(0, 8) : [],
+      constraints: Array.isArray(row.constraints)
+        ? row.constraints.map((x) => String(x).slice(0, 120)).slice(-8)
+        : [],
+      result: String(row.result != null ? row.result : "").slice(0, 200),
+      sha: String(row.sha != null ? row.sha : "").slice(0, 40),
+      updated: String(row.updated != null ? row.updated : "").slice(0, 40),
+    };
+  }).filter((t) => t.id);
+  const members = Array.isArray(src.members)
+    ? src.members.slice(0, 20).map((m) => {
+        const row = m && typeof m === "object" ? m : {};
+        return {
+          id: String(row.id != null ? row.id : "").slice(0, 80),
+          role: String(row.role != null ? row.role : "").slice(0, 40),
+          lane: String(row.lane != null ? row.lane : "").slice(0, 40),
+          pace: String(row.pace != null ? row.pace : "ALLOW").slice(0, 16),
+          specialty: String(row.specialty != null ? row.specialty : "").slice(0, 16),
+        };
+      })
+    : [];
+  let last_commit = null;
+  if (src.last_commit && typeof src.last_commit === "object") {
+    const lc = src.last_commit;
+    last_commit = {
+      id: String(lc.id != null ? lc.id : "").slice(0, 40),
+      sha: String(lc.sha != null ? lc.sha : "").slice(0, 40),
+      result: String(lc.result != null ? lc.result : "").slice(0, 200),
+      at: String(lc.at != null ? lc.at : "").slice(0, 40),
+      owner: String(lc.owner != null ? lc.owner : "").slice(0, 80),
+    };
+  }
+  return {
+    schema: "desk.collegium.state.v1",
+    version: String(src.version != null ? src.version : "").slice(0, 32),
+    updated: String(src.updated != null ? src.updated : "").slice(0, 40),
+    members,
+    open_tasks,
+    last_commit,
+    bus: String(src.bus != null ? src.bus : "propose→constrain→revise→commit|escalate").slice(0, 80),
+  };
+}
+
+function sanitizeDeskFeed(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return list.slice(-60).map((row) => {
+    const r = row && typeof row === "object" ? row : {};
+    return {
+      ts: String(r.ts != null ? r.ts : "").slice(0, 40),
+      t: String(r.t != null ? r.t : "").slice(0, 8),
+      agent: String(r.agent != null ? r.agent : "").slice(0, 32),
+      kind: String(r.kind != null ? r.kind : "say").slice(0, 16),
+      specialty: String(r.specialty != null ? r.specialty : "").slice(0, 16),
+      text: String(r.text != null ? r.text : "").slice(0, 240),
+    };
+  }).filter((r) => r.text);
+}
+
+function buildDeskSnapshot(mail, collegium, feed, meta) {
+  const m = sanitizeDeskDigest(mail || { mailbox: "", ts: "", n: 0, latest: [] });
+  const c = collegium ? sanitizeDeskCollegium(collegium) : null;
+  const f = sanitizeDeskFeed(feed || []);
+  const metaObj = meta && typeof meta === "object" ? meta : {};
+  return {
+    ok: true,
+    schema: "desk.snapshot.v1",
+    synced_at: String(metaObj.synced_at != null ? metaObj.synced_at : new Date().toISOString()).slice(0, 40),
+    git: {
+      sha: String(metaObj.git && metaObj.git.sha != null ? metaObj.git.sha : "").slice(0, 40),
+      node: String(metaObj.git && metaObj.git.node != null ? metaObj.git.node : "").slice(0, 40),
+    },
+    mail: m,
+    // backward-compat top-level mail fields (1.4.1 clients)
+    mailbox: m.mailbox,
+    ts: m.ts,
+    n: m.n,
+    latest: m.latest,
+    collegium: c,
+    feed_tail: f,
+  };
+}
+
 async function handleDesk(env, request) {
   if (!deskAuthOk(request, env)) {
     return json({ ok: false, error: "unauthorized" }, 401, "no-store");
   }
   if (request.method === "GET") {
-    let payload = lastDeskDigest;
+    let mail = lastDeskDigest;
+    let collegium = lastDeskCollegium;
+    let feed = lastDeskFeed;
+    let meta = lastDeskMeta;
     if (env.API_KV) {
-      const fromKv = await kvGet(env, DESK_DIGEST_KEY);
-      if (fromKv) payload = fromKv;
+      const fromMail = await kvGet(env, DESK_DIGEST_KEY);
+      if (fromMail) mail = fromMail;
+      const fromCol = await kvGet(env, DESK_COLLEGIUM_KEY);
+      if (fromCol) collegium = fromCol;
+      const fromFeed = await kvGet(env, DESK_FEED_KEY);
+      if (fromFeed) feed = fromFeed;
+      const fromMeta = await kvGet(env, DESK_META_KEY);
+      if (fromMeta) meta = fromMeta;
     }
-    return json(sanitizeDeskDigest(payload || { mailbox: "", ts: "", n: 0, latest: [] }), 200, "no-store");
+    return json(buildDeskSnapshot(mail, collegium, feed, meta), 200, "no-store");
   }
   if (request.method === "POST") {
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object") {
       return json({ ok: false, error: "invalid_json" }, 400, "no-store");
     }
-    const sanitized = sanitizeDeskDigest(body);
-    lastDeskDigest = sanitized;
-    if (env.API_KV) await kvPut(env, DESK_DIGEST_KEY, sanitized);
-    return json(sanitized, 200, "no-store");
+    // Accept legacy mail-only OR desk.snapshot.v1
+    const mailSrc = body.mail && typeof body.mail === "object" ? body.mail : body;
+    const sanitizedMail = sanitizeDeskDigest(mailSrc);
+    lastDeskDigest = sanitizedMail;
+    if (env.API_KV) await kvPut(env, DESK_DIGEST_KEY, sanitizedMail);
+
+    let collegium = lastDeskCollegium;
+    if (body.collegium && typeof body.collegium === "object") {
+      collegium = sanitizeDeskCollegium(body.collegium);
+      lastDeskCollegium = collegium;
+      if (env.API_KV) await kvPut(env, DESK_COLLEGIUM_KEY, collegium);
+    }
+
+    let feed = lastDeskFeed;
+    if (Array.isArray(body.feed_tail)) {
+      feed = sanitizeDeskFeed(body.feed_tail);
+      lastDeskFeed = feed;
+      if (env.API_KV) await kvPut(env, DESK_FEED_KEY, feed);
+    }
+
+    const meta = {
+      synced_at: String(body.synced_at != null ? body.synced_at : new Date().toISOString()).slice(0, 40),
+      git: body.git && typeof body.git === "object" ? body.git : {},
+    };
+    lastDeskMeta = meta;
+    if (env.API_KV) await kvPut(env, DESK_META_KEY, meta);
+
+    return json(buildDeskSnapshot(sanitizedMail, collegium, feed, meta), 200, "no-store");
   }
   return json({ error: "method_not_allowed" }, 405, "no-store");
 }

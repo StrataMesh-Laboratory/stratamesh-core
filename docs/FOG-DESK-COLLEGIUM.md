@@ -99,3 +99,10 @@ Full spec: [FOG-DESK-FEED.md](./FOG-DESK-FEED.md).
 `ops/desk-collegium/desk_bus.py` is the single write path for task status.
 Open tasks live in state `open_tasks`; completion moves them to `done_tasks` and sets `last_commit`.
 Every transition mirrors a line into the Fog TUI DESK feed.
+
+## /desk sync (Bearer vault)
+
+Holders: automation-desk vault `~/.config/stratagrok/desk-mail.token` or `DESK_TOKEN` in `secrets.env` (Mac `~/.config/stratamesh/` materialize). Never git.
+
+- Live: TUI 60s `r` path pulls+pushes `desk.snapshot.v1` (mail + collegium + feed_tail).
+- CLI: `python3 ops/desk-collegium/desk_sync.py pull|push|sync|token-check`

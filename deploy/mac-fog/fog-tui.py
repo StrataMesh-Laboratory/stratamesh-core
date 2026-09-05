@@ -66,6 +66,10 @@ PUB_DARK_STREAK = 3
 PUB_PROBE_PERIOD = 15.0
 PUB_HTTP_TIMEOUT = 1.2
 _PUB_LAST_KICK = 0.0
+_DESK_LAST_KICK = 0.0
+_DESK_BUSY = False
+_DESK_CYCLE = 0
+DESK_PROBE_PERIOD = 60.0  # live /desk updates on r / auto-r (not g)
 MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no status.calhegasmorais.pt)
 _PUB_LOCK = threading.Lock()
 _PUB_BUSY = False
@@ -966,6 +970,67 @@ def boxline(inner: str, width: int) -> str:
     return DIM + "│" + RST + inner + (" " * pad) + DIM + "│" + RST
 
 
+
+
+
+def kick_desk_refresh() -> None:
+    """Live api-edge /desk pull(+push) on the 60s instrument / r path.
+
+    Upgrades stay on g / auto-g. This never blocks draw(). Fail-open if no
+    DESK_TOKEN vault file. Merge-safe: never clobbers constrain|revise|commit.
+    """
+    global _DESK_BUSY, _DESK_LAST_KICK, _DESK_CYCLE
+    if _DESK_BUSY:
+        return
+    now = time.monotonic()
+    if _DESK_LAST_KICK and (now - _DESK_LAST_KICK) < DESK_PROBE_PERIOD:
+        return
+    _DESK_LAST_KICK = now
+    _DESK_BUSY = True
+
+    def _run() -> None:
+        global _DESK_BUSY, _DESK_CYCLE
+        try:
+            sync = None
+            for cand in (
+                REPO / "ops/desk-collegium/desk_sync.py",
+                FOG / "repo/ops/desk-collegium/desk_sync.py",
+                Path(__file__).resolve().parent.parent.parent / "ops/desk-collegium/desk_sync.py",
+            ):
+                if cand.is_file():
+                    sync = cand
+                    break
+            if not sync:
+                return
+            env = os.environ.copy()
+            # pull = live update from EDGE
+            subprocess.run(
+                [sys.executable, str(sync), "pull"],
+                cwd=str(sync.parent.parent.parent),
+                env=env,
+                timeout=25,
+                capture_output=True,
+            )
+            _DESK_CYCLE += 1
+            # push as Bearer vault holder (same 60s cadence; agents are key holders)
+            sha = ""
+            try:
+                sha = git_sha()
+            except Exception:
+                sha = ""
+            subprocess.run(
+                [sys.executable, str(sync), "push", "--sha", sha],
+                cwd=str(sync.parent.parent.parent),
+                env=env,
+                timeout=25,
+                capture_output=True,
+            )
+        except Exception:
+            pass
+        finally:
+            _DESK_BUSY = False
+
+    threading.Thread(target=_run, name="desk-refresh", daemon=True).start()
 
 
 def desk_feed_path() -> Path:
@@ -1912,6 +1977,7 @@ def draw(msg: str = "") -> None:
     except Exception:
         pass
     kick_public_refresh()
+    kick_desk_refresh()
     tloc = LOCAL_HTTP_TIMEOUT
     hop = get("http://127.0.0.1:8788/health", timeout=tloc)
     st = get("http://127.0.0.1:8787/status", timeout=tloc)
@@ -2123,7 +2189,7 @@ def draw(msg: str = "") -> None:
     draw_desk_feed(w, rows=8, _print=print)
     print(bot)
     print(MUT + "  g update   b reboot   s stop   r refresh   ? wizard   q quit" + RST)
-    instr = "  instrument · 60s · named-tunnel stays up"
+    instr = "  instrument · 60s · desk /desk on r · named-tunnel stays up"
     if node_hint and not bool(ndh.get("ok")):
         instr = instr + " · " + node_hint
     print(MUT + instr + RST)
