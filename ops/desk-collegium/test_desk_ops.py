@@ -129,6 +129,55 @@ class DeskOps(unittest.TestCase):
         picked_ids = {t["id"] for t in picked}
         self.assertNotIn(t2["id"], picked_ids)
 
+    def test_false_escalate_unpark_not_andre_gate(self):
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        state = bus.load_state()
+        state["open_tasks"].append({
+            "schema": "desk.task.v1",
+            "id": "dt-vault-false-esc",
+            "owner": "stratagrok@desk",
+            "specialty": "lead",
+            "intent": "materialize ~/.config/stratagrok/automation.desk.imap vault present",
+            "status": "escalate",
+            "human_gate": True,
+            "andre_gate": True,
+            "escalate_to_andre": True,
+            "constraints": [],
+            "result": "vault missing",
+            "sha": "",
+        })
+        state["open_tasks"].append({
+            "schema": "desk.task.v1",
+            "id": "dt-true-2fa",
+            "owner": "lead@desk",
+            "specialty": "lead",
+            "intent": "André 2FA on Fog installer mail",
+            "status": "escalate",
+            "constraints": [],
+            "result": "",
+            "sha": "",
+        })
+        bus.save_state(state)
+        self.assertFalse(mod._is_andre_human_gate_task(state["open_tasks"][-2]))
+        self.assertTrue(mod._is_andre_human_gate_task(state["open_tasks"][-1]))
+        moved = mod.unpark_false_escalates(bus, bus.load_state(), dry=False)
+        self.assertIn("dt-vault-false-esc", moved)
+        self.assertNotIn("dt-true-2fa", moved)
+        by_id = {t["id"]: t for t in bus.load_state()["open_tasks"]}
+        self.assertEqual(by_id["dt-vault-false-esc"]["status"], "revise")
+        self.assertTrue(by_id["dt-vault-false-esc"].get("resolve_as_representative"))
+        self.assertEqual(by_id["dt-true-2fa"]["status"], "escalate")
+
+    def test_oracle_live_mention_is_not_andre_gate(self):
+        mod = self.mod
+        self.assertFalse(mod._is_andre_human_gate_task({
+            "intent": "report oracle_live=false STRATA 0",
+        }))
+        self.assertTrue(mod._is_andre_human_gate_task({
+            "intent": "Oracle password-reset grok90",
+        }))
+
     def test_hold_released_trial_clock(self):
         mod = self.mod
         data = {"trial_ends_pt": "2026-09-16", "t3_from_pt": "2026-09-14"}

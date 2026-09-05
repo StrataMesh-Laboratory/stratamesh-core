@@ -1075,23 +1075,41 @@ HANDLERS = {
 
 # True André-only gates (protocol human_gates). Everything else: STRATAGROK resolve_as_representative.
 ANDRE_HUMAN_GATE_NEEDLES = (
-    "2fa", "captcha",
-    "oracle", "grok90", "vault reset", "oracle password",
+    "2fa",
+    "captcha",
+    "oracle password",
+    "password-reset",
+    "password reset",
+    "grok90",
     "renovate major",
-    "fog g", " g to recent", "press g", "manual g",
+    "fog g",
+    " g to recent",
+    "press g",
+    "manual g",
+    "tui g",
+)
+ANDRE_HUMAN_GATE_HOLDS = (
+    "oracle_grok90",
+    "andre_2fa",
+    "andre_captcha",
+    "renovate_major",
+    "fog_tui_g",
 )
 
 
 def _is_andre_human_gate_task(task: dict) -> bool:
-    """True only for gates André himself must clear — not STRATAGROK-representable work."""
-    if task.get("andre_gate") or task.get("escalate_to_andre"):
-        return True
-    intent = (task.get("intent") or "").lower()
-    if any(k in intent for k in ANDRE_HUMAN_GATE_NEEDLES):
-        return True
-    # explicit catalog holds that name André-only surfaces
+    """True only for Fog g / 2FA / captcha / Oracle password-reset / Renovate majors.
+
+    Flags andre_gate / escalate_to_andre / human_gate alone do NOT park — vault,
+    automation.desk.*, gh PATH, edge 429 are revise→act (vault is present).
+    """
+    if task.get("resolve_as_representative"):
+        return False
+    intent = f"{task.get('intent') or ''} {task.get('title') or ''} {task.get('result') or ''}".lower()
     hold = str(task.get("hold_until") or "").lower()
-    if hold in ("oracle_grok90", "andre_2fa", "andre_captcha", "renovate_major"):
+    if hold in ANDRE_HUMAN_GATE_HOLDS:
+        return True
+    if any(k in intent for k in ANDRE_HUMAN_GATE_NEEDLES):
         return True
     return False
 
@@ -1241,8 +1259,8 @@ def _seed_one_projected(bus, item: dict, *, dry: bool, as_escalate: bool = False
             task["hold_until"] = item["hold_until"]
         task["updated"] = _now()
         bus.save_state(state)
-    if as_escalate or item.get("human_gate"):
-        bus._mutate(tid, "escalate", by="stratagrok", note="protocol: human_gate from projected catalog")
+    if as_escalate:
+        bus._mutate(tid, "escalate", by="stratagrok", note="protocol: true André gate (g/2FA/captcha/Oracle reset/Renovate major)")
     return tid
 
 
@@ -1278,6 +1296,33 @@ def ensure_projected_catalog(bus, state: dict, *, dry: bool) -> list[str]:
             if not dry:
                 state = bus.load_state()
     return seeded
+
+
+def unpark_false_escalates(bus, state: dict, *, dry: bool = False) -> list[str]:
+    """Move parked escalate tasks that are not true André gates back to revise→act."""
+    moved: list[str] = []
+    for t in list(state.get("open_tasks") or []):
+        st = str(t.get("status") or "")
+        if st not in ("escalate", "hold"):
+            continue
+        if _is_andre_human_gate_task(t):
+            continue
+        tid = t.get("id")
+        if not tid:
+            continue
+        moved.append(tid)
+        if dry:
+            continue
+        t["resolve_as_representative"] = True
+        t["andre_gate"] = False
+        t["escalate_to_andre"] = False
+        bus.save_state(state)
+        try:
+            bus._mutate(tid, "revise", by="stratagrok", note="unpark: not Fog g/2FA/captcha/Oracle reset/Renovate major — vault present; revise→act")
+        except Exception:
+            t["status"] = "revise"
+            bus.save_state(state)
+    return moved
 
 
 def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
@@ -1499,6 +1544,14 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         print(f"metabol warn: {e}", file=sys.stderr)
 
     state = bus.load_state()
+    try:
+        if not args.dry_run:
+            moved = unpark_false_escalates(bus, state, dry=False)
+            if moved:
+                print(f"ops: unparked false André escalates n={len(moved)}")
+            state = bus.load_state()
+    except Exception as e:
+        print(f"unpark warn: {e}", file=sys.stderr)
     # GitHub Actions plug-in
     try:
         if not args.dry_run:
