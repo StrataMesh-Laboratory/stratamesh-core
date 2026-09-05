@@ -5,9 +5,9 @@
   "phase_name": "Adversarial LAB P1",
   "lab": true,
   "not_mainnet": true,
-  "updated_at": "2026-09-05T12:29:19Z",
-  "updated_at_pt": "2026-09-05T13:29:19+0100",
-  "git_sha": "827a70d",
+  "updated_at": "2026-09-05T12:29:37Z",
+  "updated_at_pt": "2026-09-05T13:29:37+0100",
+  "git_sha": "0f9b5a2",
   "acts": {
     "delivered_total": 4,
     "open_count": 13,
@@ -84,7 +84,7 @@
   },
   "discourse": {
     "topic": "https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20",
-    "metrics_line": "desk lab P1 \u00b7 sha=827a70d \u00b7 acts_done=4 open=13 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
+    "metrics_line": "desk lab P1 \u00b7 sha=0f9b5a2 \u00b7 acts_done=4 open=13 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
     "draft_hold": false
   },
   "fund": {
