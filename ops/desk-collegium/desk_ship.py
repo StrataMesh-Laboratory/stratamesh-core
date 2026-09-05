@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Collegium ship-live gate — majority ACK required; unanimous = full authority.
+"""Collegium ship-live gate — majority ACK + metrics + origin PUT.
 
 Law:
   - Ship live only when a collegial majority of voting members ACK.
   - If all voters ACK (unanimous), the organ has full authority to ship.
   - Any NACK blocks ship (revise or escalate to André).
-  - Human gates (Fog g, 2FA, Oracle, Renovate majors) still escalate.
+  - Human gates (Fog g, 2FA, captcha, Renovate majors) still escalate.
+  - Oracle/grok@ is STRATAGROK+vaulted (2FA/captcha only to André).
+  - Ship = majority + connector gates + origin PUT (cf-put-origin/d1/fund).
   - Auto-ship when majority ACK AND metric bands in-band (no Bot prompt).
   - NACK or out-of-band metrics → escalate to STRATAGROK.
 
@@ -35,6 +37,22 @@ def _load_bus():
 
 bus = _load_bus()
 
+
+def _load_origin_put():
+    spec = importlib.util.spec_from_file_location(
+        "desk_origin_put", HERE / "desk_origin_put.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+try:
+    desk_origin_put = _load_origin_put()
+except Exception:  # pragma: no cover
+    desk_origin_put = None  # type: ignore
+
 DEFAULT_VOTERS = [
     {"id": "stratagrok", "owner": "grok@calhegasmorais.pt", "vote": True, "role": "lead"},
     {"id": "hermes", "owner": "hermes@fog.calhegasmorais.pt", "vote": True, "role": "coord"},
@@ -57,7 +75,7 @@ def ensure_ship_policy(state: dict) -> dict:
             "majority_frac": 0.5,
             "require_no_nack": True,
             "unanimous_authority": True,
-            "human_escalate": ["fog_g", "2fa", "oracle", "renovate_major"],
+            "human_escalate": ["fog_g", "2fa", "captcha", "renovate_major"],
         },
     )
     members = state.get("members") or []
@@ -253,6 +271,8 @@ def maybe_auto_ship(*, by: str = "hermes", dry: bool = False) -> dict:
             result=f"auto-ship majority+metrics authority={t['authority']}",
             sha=task.get("sha") or "",
             force_connectors=False,
+            skip_put=False,
+            force=False,
         )
         rc = cmd_ship(ns)
         results.append({"id": tid, "action": "shipped" if rc == 0 else "ship_rc", "rc": rc, "authority": t["authority"]})
@@ -343,7 +363,7 @@ def cmd_mark(args: argparse.Namespace) -> int:
 
 
 def cmd_ship(args: argparse.Namespace) -> int:
-    """Execute ship only if majority (or unanimous) — records last_ship; does not force Mac g."""
+    """Execute ship if majority + gates + origin PUT — records last_ship+put; no Mac g."""
     state = bus.load_state()
     policy = ensure_ship_policy(state)
     task = bus.find_task(state, args.task_id)
@@ -388,17 +408,56 @@ def cmd_ship(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"connector check warn: {e}", file=sys.stderr)
 
+    # Origin PUT before marking shipped (default ON; --skip-put for tests/dry)
+    skip_put = bool(getattr(args, "skip_put", False))
+    force = bool(getattr(args, "force", False))
+    put_result = None
+    if not skip_put:
+        if desk_origin_put is None:
+            put_result = {
+                "ok": False,
+                "mode": "missing_helper",
+                "detail": "desk_origin_put.py not loadable",
+                "sha": args.sha or "",
+                "urls": [],
+                "errors": ["desk_origin_put missing"],
+            }
+        else:
+            put_result = desk_origin_put.put_live(
+                task=task, sha=args.sha or str(task.get("sha") or ""), dry=False
+            )
+        if not (put_result or {}).get("ok"):
+            reason = (put_result or {}).get("detail") or "origin PUT failed"
+            if not force:
+                print(f"REFUSED ship: origin PUT failed — {reason}", file=sys.stderr)
+                bus.feed_append(
+                    "desk",
+                    f"ship-refused {args.task_id} put=FAIL {reason}"[:240],
+                    kind="escalate",
+                    specialty=str(task.get("specialty") or "coord"),
+                )
+                print(json.dumps({"shipped": False, "put": put_result}, indent=2))
+                return 5
+            print(f"WARN ship: put failed but --force: {reason}", file=sys.stderr)
+
     authority = t["authority"]
     task["status"] = "commit"
     task["result"] = args.result or f"ship-live authority={authority}"
     if args.sha:
         task["sha"] = args.sha
+    put_ok = True if skip_put else bool((put_result or {}).get("ok"))
     task["shipped"] = {
         "at": _now(),
         "authority": authority,
         "acks": t["acks"],
         "voters": t["voters"],
         "by": normalize_voter(args.by),
+        "put": {
+            "ok": put_ok,
+            "mode": None if skip_put else (put_result or {}).get("mode"),
+            "detail": "skipped" if skip_put else (put_result or {}).get("detail"),
+            "urls": [] if skip_put else list((put_result or {}).get("urls") or []),
+        },
     }
     task["updated"] = _now()
     state["last_ship"] = {
@@ -407,15 +466,23 @@ def cmd_ship(args: argparse.Namespace) -> int:
         "sha": task.get("sha") or "",
         "at": _now(),
         "result": task.get("result"),
+        "put": task["shipped"]["put"],
     }
     bus.save_state(state)
+    put_tag = "skip" if skip_put else ("ok" if put_ok else "FAIL")
     bus.feed_append(
         normalize_voter(args.by),
-        f"SHIP {args.task_id} auth={authority} sha={task.get('sha') or '-'} {task.get('result')}",
+        f"SHIP {args.task_id} auth={authority} put={put_tag} sha={task.get('sha') or '-'} {task.get('result')}",
         kind="commit",
         specialty=str(task.get("specialty") or "coord"),
     )
-    print(json.dumps({"shipped": True, "task": args.task_id, "authority": authority, **{k: t[k] for k in ("acks", "nacks", "voters", "need")}}, indent=2))
+    print(json.dumps({
+        "shipped": True,
+        "task": args.task_id,
+        "authority": authority,
+        "put": task["shipped"]["put"],
+        **{k: t[k] for k in ("acks", "nacks", "voters", "need")},
+    }, indent=2))
     if authority == "unanimous" and policy.get("unanimous_authority"):
         print("authority=unanimous — full collegial authority to ship live")
     return 0

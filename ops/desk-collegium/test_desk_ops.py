@@ -98,14 +98,13 @@ class DeskOps(unittest.TestCase):
         self.assertEqual(sorted(t["id"] for t in state2["open_tasks"]), ids1)
         self.assertEqual(sorted(t.get("source") or "" for t in state2["open_tasks"]), sources1)
 
-        # Oracle + T3 + T4 + headscale must remain in projected (_hold), not open
+        # T3 + T4 + headscale remain held; Oracle is STRATAGROK act (seeded, not André park)
         board = mod.classify(bus.load_state())
         held_ids = {i["id"] for i in board["projected"] if i.get("_hold")}
-        self.assertIn("proj-oracle-260826", held_ids)
+        self.assertNotIn("proj-oracle-260826", held_ids)
         self.assertIn("proj-ts-taper-t3", held_ids)
         self.assertIn("proj-ts-taper-t4", held_ids)
         self.assertIn("proj-ts-headscale-spike", held_ids)
-        self.assertIn("proj-m2-twohost", held_ids)
 
         # T1 must be seeded (Act NOW); Mac is STRATAGROK representative (not André escalate)
         open_by_src = {t.get("source"): t for t in state2["open_tasks"]}
@@ -117,8 +116,10 @@ class DeskOps(unittest.TestCase):
         self.assertTrue(mac.get("resolve_as_representative") or not mac.get("andre_gate"))
         self.assertFalse(mac.get("andre_gate"))
 
-        # Oracle andre gate stays held (not open)
-        self.assertNotIn("projected:proj-oracle-260826", open_by_src)
+        # Oracle seeded as open representative act (login/reset may still block — not done)
+        ora = open_by_src.get("projected:proj-oracle-260826")
+        self.assertIsNotNone(ora)
+        self.assertNotEqual(ora.get("status"), "done")
 
         # T2 plan seeded as propose, not auto-picked
         t2 = open_by_src.get("projected:proj-ts-taper-t2")
@@ -195,15 +196,20 @@ class DeskOps(unittest.TestCase):
         self.assertFalse(mod._is_andre_human_gate_task({
             "intent": "report oracle_live=false STRATA 0",
         }))
-        self.assertTrue(mod._is_andre_human_gate_task({
+        # Oracle/grok90 is STRATAGROK+vaulted — not André (2FA/captcha only)
+        self.assertFalse(mod._is_andre_human_gate_task({
             "intent": "Oracle password-reset grok90",
+        }))
+        self.assertFalse(mod._is_andre_human_gate_task({
+            "hold_until": "oracle_grok90",
+            "intent": "oracle vault",
         }))
 
     def test_hold_released_trial_clock(self):
         mod = self.mod
         data = {"trial_ends_pt": "2026-09-16", "t3_from_pt": "2026-09-14"}
         self.assertTrue(mod.hold_released({"hold_until": None}, data))
-        self.assertFalse(mod.hold_released({"hold_until": "oracle_grok90"}, data))
+        self.assertTrue(mod.hold_released({"hold_until": "oracle_grok90"}, data))
         self.assertFalse(mod.hold_released({"hold_until": "headscale_eval"}, data))
         # today is 2026-09-05 PT → T3/T4 held
         self.assertFalse(mod.hold_released({"hold_until": "trial_t3"}, data))

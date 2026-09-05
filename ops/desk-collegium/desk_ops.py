@@ -185,7 +185,7 @@ def hold_released(item: dict, data: dict | None = None) -> bool:
     data = data if data is not None else load_projected()
     today = _today_pt_ymd()
     if hold == "oracle_grok90":
-        return False  # human vault gate — never auto-release
+        return True  # Oracle = STRATAGROK+vaulted grok@; not André park
     if hold == "headscale_eval":
         return False  # explicit HOLD until André asks
     if hold == "billing_trial_date":
@@ -548,11 +548,14 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
     if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
         return {
             "ok": True,
-            "result": "escalate Oracle/vault human gate — no fake progress; leave open",
+            "result": "act representative: Oracle/grok@ is STRATAGROK+vaulted (2FA/captcha only to André)",
             "done": False,
             "sha": "",
-            "escalate": True,
-            "verb": "escalate",
+            "escalate": False,
+            "verb": "act",
+            "resolve_as_representative": True,
+            "next_action": "stratagrok: use vaulted grok@; escalate only on 2FA/captcha",
+            "peer_vote": True,
         }
     # Soft: record taper status + board gap note (real meter, not vapour done)
     if not dry:
@@ -1078,10 +1081,7 @@ HANDLERS = {
 ANDRE_HUMAN_GATE_NEEDLES = (
     "2fa",
     "captcha",
-    "oracle password",
-    "password-reset",
-    "password reset",
-    "grok90",
+    # Oracle/grok90 is STRATAGROK + vaulted grok@ — NOT André (2FA/captcha only)
     "renovate major",
     "fog g",
     " g to recent",
@@ -1090,7 +1090,6 @@ ANDRE_HUMAN_GATE_NEEDLES = (
     "tui g",
 )
 ANDRE_HUMAN_GATE_HOLDS = (
-    "oracle_grok90",
     "andre_2fa",
     "andre_captcha",
     "renovate_major",
@@ -1099,7 +1098,7 @@ ANDRE_HUMAN_GATE_HOLDS = (
 
 
 def _is_andre_human_gate_task(task: dict) -> bool:
-    """True only for Fog g / 2FA / captcha / Oracle password-reset / Renovate majors.
+    """True only for Fog g / 2FA / captcha / Renovate majors (Oracle = STRATAGROK).
 
     Flags andre_gate / escalate_to_andre / human_gate alone do NOT park — vault,
     automation.desk.*, gh PATH, edge 429 are revise→act (vault is present).
@@ -1463,6 +1462,21 @@ def collegium_continue_after_soft_fail(bus, task: dict, out: dict, *, by: str) -
                 print(f"cast warn: {e}", file=sys.stderr)
 
 
+_LIVE_ORIGIN_NEEDLES = (
+    "origin", "pages", "worker", "spa", "dag", "pulse", "fund", "html",
+    "put", "ship_live", "atelier", "frontend", "landing",
+)
+
+
+def _task_looks_live_origin(task: dict, out: dict | None = None) -> bool:
+    """True when result should go ship_live (majority+PUT) instead of done."""
+    out = out or {}
+    if out.get("ship_live") or task.get("ship_live"):
+        return True
+    blob = f"{task.get('intent') or ''} {task.get('title') or ''} {out.get('result') or ''}".lower()
+    return any(k in blob for k in _LIVE_ORIGIN_NEEDLES)
+
+
 def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
     tid = task["id"]
     verb = (out.get("verb") or "").strip().lower()
@@ -1477,15 +1491,74 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             _diary(by, "act", tid, f"human_gate next: {out.get('next_action')}"[:160])
             chain.append("act")
     elif out.get("done"):
-        if out.get("sha"):
-            bus._mutate(tid, "commit", by=by, result=out.get("result") or "", sha=out.get("sha") or "")
-            verb = verb or "commit"
-            chain.append("commit")
-            _diary(by, "commit", tid, out.get("result") or "")
-        bus._mutate(tid, "done", by=by, result=out.get("result") or "", close=True)
-        verb = "done"
-        chain.append("done")
-        _diary(by, "done", tid, out.get("result") or "")
+        intent_l = f"{task.get('intent') or ''} {task.get('title') or ''} {out.get('result') or ''}".lower()
+        if ("oracle" in intent_l or "grok90" in intent_l) and not out.get("force_done"):
+            bus._mutate(tid, "act", by=by, note=(out.get("result") or "") + " | oracle keep-open (not done)")
+            bus.feed_append(by, f"oracle keep-open {tid}", kind="act", specialty=str(task.get("specialty") or "lead"))
+            st = bus.load_state()
+            t = bus.find_task(st, tid)
+            if t:
+                t["status"] = "act"
+                t["done"] = False
+                t["resolve_as_representative"] = True
+                t["updated"] = _now()
+                bus.save_state(st)
+            chain.append("oracle_open")
+            _diary(by, "act", tid, "oracle keep-open")
+            verb = "act"
+        elif _task_looks_live_origin(task, out):
+            st = bus.load_state()
+            t = bus.find_task(st, tid)
+            if t:
+                t["ship_live"] = True
+                t["status"] = "act"
+                t["done"] = False
+                t["result"] = out.get("result") or t.get("result") or "mark ship_live"
+                if out.get("sha"):
+                    t["sha"] = out.get("sha")
+                t["updated"] = _now()
+                bus.save_state(st)
+            bus._mutate(tid, "act", by=by, note=(out.get("result") or "") + " | mark ship_live")
+            bus.feed_append(by, f"mark ship_live {tid}", kind="act", specialty=str(task.get("specialty") or "coord"))
+            chain.append("ship_live")
+            _diary(by, "act", tid, "mark ship_live")
+            try:
+                ship = _load("desk_ship")
+                ship.cmd_vote(__import__("argparse").Namespace(
+                    task_id=tid, vote="ack", by=by,
+                    note="auto-ack after mark ship_live",
+                ))
+            except Exception as e:
+                print(f"ship_live vote warn: {e}", file=sys.stderr)
+            verb = "act"
+        else:
+            if out.get("sha"):
+                bus._mutate(tid, "commit", by=by, result=out.get("result") or "", sha=out.get("sha") or "")
+                verb = verb or "commit"
+                chain.append("commit")
+                _diary(by, "commit", tid, out.get("result") or "")
+            bus._mutate(tid, "done", by=by, result=out.get("result") or "", close=True)
+            verb = "done"
+            chain.append("done")
+            _diary(by, "done", tid, out.get("result") or "")
+    elif out.get("put_now") or out.get("ship_now"):
+        try:
+            ship = _load("desk_ship")
+            rc = ship.cmd_ship(__import__("argparse").Namespace(
+                task_id=tid,
+                by=by,
+                result=out.get("result") or "ship_now from apply_result",
+                sha=out.get("sha") or "",
+                force_connectors=bool(out.get("force_connectors")),
+                skip_put=False,
+                force=bool(out.get("force")),
+            ))
+            chain.append("ship" if rc == 0 else f"ship_rc_{rc}")
+            _diary(by, "commit" if rc == 0 else "escalate", tid, f"ship_now rc={rc}")
+            verb = "commit" if rc == 0 else "escalate"
+        except Exception as e:
+            bus.feed_append("desk", f"ship_now fail {tid}: {e}", kind="escalate", specialty="coord")
+            chain.append("ship_err")
     else:
         # After specialty work: prefer explicit verb, else act (not only constrain)
         verb = verb or "act"
