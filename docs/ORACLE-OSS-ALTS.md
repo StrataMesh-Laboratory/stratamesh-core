@@ -108,3 +108,17 @@
 - `proj-host-rpi-nuc-peer` — Act · `hold_until=distinct_second_host` · `oracle_fallback=true`
 - `proj-host-gcp-e2-micro` — Act · `hold_until=distinct_second_host` · `oracle_fallback=true`
 - `proj-host-fly-probe` — **Note/drop** (2026: not always-free for new accounts)
+
+## Implementation (2026-09-05)
+
+| Path | Artifact | Status |
+|------|----------|--------|
+| GCP Always Free e2-micro | [`deploy/gcp-free/`](../deploy/gcp-free/) | **Implemented pack** — VM not provisioned until André signup/2FA |
+| Homelab RPi/NUC | [`deploy/homelab-peer/`](../deploy/homelab-peer/) | **Implemented pack** — needs spare hardware |
+| Same-host dialect | [`ops/bin/fog-peer-rehearsal.sh`](../ops/bin/fog-peer-rehearsal.sh) | **Runnable rehearsal** — not M-II |
+| Prove checklist | [`docs/FOG-PEER-PROVE.md`](./FOG-PEER-PROVE.md) | Ready |
+
+**GCP create traps encoded in** `deploy/gcp-free/gcloud-create-example.sh`: `--no-address`, `pd-standard` 30GB, US regions only.
+
+**Next human gate:** André GCP billing/2FA **or** plug in spare Pi/NUC and run `deploy/homelab-peer/bootstrap.sh`.
+

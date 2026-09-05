@@ -1,0 +1,9 @@
+# Optional peer hostname — do NOT steal fog.calhegasmorais.pt from Mac primary.
+# Prefer Tailscale for INV/TX; tunnel only if you need a public peer name.
+tunnel: REPLACE_TUNNEL_ID
+credentials-file: /etc/cloudflared/REPLACE_TUNNEL_ID.json
+
+ingress:
+  - hostname: fog-gcp.calhegasmorais.pt
+    service: http://127.0.0.1:8787
+  - service: http_status:404
