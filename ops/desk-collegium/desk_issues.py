@@ -111,7 +111,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
     added = 0
     for iss in issues:
         labels = [str(x).lower() for x in (iss.get("labels") or [])]
-        if not any(l in LABELS or l.startswith("domain:") or l.startswith("track:") for l in labels):
+        # Strict: must carry an explicit desk label (no blanket aiops/domain vapour)
+        if not any(l in LABELS for l in labels):
             continue
         source = f"issue:#{iss.get('number')}"
         if _already_sourced(state, source):
