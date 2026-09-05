@@ -386,7 +386,7 @@ class DeskFeed(unittest.TestCase):
         # empty
         import sys
         buf = io.StringIO()
-        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf.write(" ".join(str(x) for x in a) + "\n")):
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf.write(" ".join(str(x) for x in a) + chr(10))):
             _MOD.draw_desk_feed(72, rows=8)
         out = buf.getvalue()
         self.assertIn("DESK", out)
@@ -410,6 +410,28 @@ class DeskFeed(unittest.TestCase):
         painted = _MOD.DEV_TTY.getvalue()
         self.assertIn("DESK", painted)
         self.assertIn("desk feed live", painted)
+
+
+    def test_kick_desk_refresh_defined(self):
+        self.assertTrue(callable(getattr(_MOD, "kick_desk_refresh", None)))
+        self.assertGreaterEqual(getattr(_MOD, "DESK_PROBE_PERIOD", 0), 60.0)
+
+    def test_draw_desk_feed_shows_open_tasks(self):
+        st = _TMP / "data" / "desk-collegium"
+        st.mkdir(parents=True, exist_ok=True)
+        import json
+        (st / "state.json").write_text(json.dumps({
+            "open_tasks": [{"id": "dt-needle", "owner": "opencode@fog", "status": "propose", "intent": "needle-intent"}],
+            "lanes": {"lane-opencode": {"pace": "ALLOW"}},
+        }))
+        _MOD.FOG = _TMP
+        buf = io.StringIO()
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf.write(" ".join(str(x) for x in a) + chr(10))):
+            _MOD.draw_desk_feed(72, rows=8)
+        out = buf.getvalue()
+        self.assertIn("DESK", out)
+        self.assertIn("dt-needle", out)
+        self.assertIn("metabol", out)
 
 
 if __name__ == "__main__":

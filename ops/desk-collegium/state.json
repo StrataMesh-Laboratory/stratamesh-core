@@ -1,127 +1,82 @@
 {
-  "schema": "desk.collegium.state.v1",
-  "version": "0.1.3-lab",
-  "updated": "2026-09-05T00:21:02+0000",
-  "members": [
-    {
-      "id": "grok@calhegasmorais.pt",
-      "role": "external_assistant",
-      "lane": "lane-bot",
-      "pace": "ALLOW",
-      "specialty": "lead",
-      "best_at": "eisenhower,meters,git-lead,human-gates",
-      "does_not": "mac-g,local-gui-storms"
-    },
-    {
-      "id": "hermes@fog.calhegasmorais.pt",
-      "role": "external_agent",
-      "lane": "lane-hermes",
-      "pace": "ALLOW",
-      "specialty": "coord",
-      "best_at": "collegium-bus,wizard,messaging",
-      "does_not": "large-patches,worker-deploy"
-    },
-    {
-      "id": "opencode@fog.calhegasmorais.pt",
-      "role": "external_agent",
-      "lane": "lane-opencode",
-      "pace": "ALLOW",
-      "specialty": "code",
-      "best_at": "code,tests,refactors",
-      "does_not": "channel-fanout,metabol-decide"
-    },
-    {
-      "id": "openclaw@fog.calhegasmorais.pt",
-      "role": "external_agent",
-      "lane": "lane-openclaw",
-      "pace": "ALLOW",
-      "specialty": "claw",
-      "best_at": "local-automation,ws-loops",
-      "does_not": "protocol-design,assistant-prompts"
-    }
-  ],
-  "channels": {
-    "email": {
-      "addr": "grok@calhegasmorais.pt",
-      "enabled": true
-    },
-    "discord_lab": {
-      "enabled": false,
-      "note": "enable in Hermes Messaging"
-    },
-    "slack_lab": {
-      "enabled": false,
-      "note": "enable if workspace exists"
-    },
-    "openclaw_deliver": {
-      "enabled": false
-    },
-    "discourse_t20": {
-      "enabled": true,
-      "url": "https://stratamesh.discourse.group/t/20"
-    }
-  },
-  "bus": "propose→constrain→revise→commit|escalate",
   "open_tasks": [
     {
-      "schema": "desk.task.v1",
-      "id": "dt-0ac2477f",
-      "owner": "opencode@fog.calhegasmorais.pt",
-      "specialty": "code",
-      "intent": "Review Fog desk_bus + DESK feed needles; patch if CI gaps",
-      "lanes": [],
+      "id": "dt-needle",
+      "owner": "opencode@fog",
       "status": "propose",
-      "constraints": [],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:21:02+0000",
-      "updated": "2026-09-05T00:21:02+0000"
-    },
-    {
-      "schema": "desk.task.v1",
-      "id": "dt-d08d38cb",
-      "owner": "openclaw@fog.calhegasmorais.pt",
-      "specialty": "claw",
-      "intent": "Probe local :8787/health + :18789 OpenClaw ws; report to feed",
-      "lanes": [],
-      "status": "propose",
-      "constraints": [],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:21:02+0000",
-      "updated": "2026-09-05T00:21:02+0000"
-    },
-    {
-      "schema": "desk.task.v1",
-      "id": "dt-94fd0c6a",
-      "owner": "hermes@fog.calhegasmorais.pt",
-      "specialty": "coord",
-      "intent": "Collegium pulse: constrain open tasks; ACK Discord only on change",
-      "lanes": [],
-      "status": "propose",
-      "constraints": [],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:21:02+0000",
-      "updated": "2026-09-05T00:21:02+0000"
+      "intent": "needle-intent"
     }
   ],
-  "last_commit": null,
-  "notes": "Specialization owns routing; metabol_pace owns burn. Parallel OK on disjoint specialties. Agents: desk_bus.py propose→constrain→revise→commit|escalate→done (mirrors desk-feed.jsonl).",
-  "organizing_principle": "specialization",
-  "hermes_runtime": {
-    "min_context": 65536,
-    "forbidden_agent_models": [
-      "llava",
-      "llava:latest"
-    ],
-    "preferred": [
-      "qwen2.5:7b",
-      "hermes3:8b",
-      "qwen2.5:14b"
-    ],
-    "autonomy_doc": "docs/FOG-DESK-AUTONOMY.md"
+  "lanes": {
+    "lane-openclaw": {
+      "meter": "ollama_session_tokens",
+      "renewal": "session_or_model_reload",
+      "renewal_note": "session context window (e.g. 33k on llava); reload clears",
+      "pace": "ALLOW",
+      "tokens_used": 0.0,
+      "tokens_limit": 33000.0,
+      "remaining_frac": 1.0,
+      "sample_note": "no meter sample yet — write FOG/data/desk-meters/openclaw.json",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-hermes": {
+      "meter": "ollama_context",
+      "renewal": "host_cap",
+      "renewal_note": "no CF daily clock; need context≥65536; host RAM/CPU",
+      "context_min": 65536,
+      "pace": "ALLOW",
+      "context_length": null,
+      "sample_note": "no hermes meter — prefer ≥64k model; renew=host_cap",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-opencode": {
+      "meter": "ollama_plus_github",
+      "renewal": "github_hour_utc",
+      "renewal_note": "GitHub REST 5000/hour rolling; Ollama host_cap",
+      "github_hour_cap": 5000,
+      "pace": "ALLOW",
+      "hours_until_github_hour_roll": 1.0,
+      "sample_note": "github 5000/hour rolling UTC; Ollama host_cap; renew=github_hour+host",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-bot": {
+      "meter": "grok-bot-included",
+      "renewal": "weekly_unknown",
+      "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown",
+      "daily_limit": null,
+      "pace": "HOLD",
+      "sample_note": "bot-included remaining unknown — HOLD (SuperGrok does not refill)",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-assistant": {
+      "meter": "grok-assistant_pool_frac",
+      "renewal": "supergrok_weekly",
+      "renewal_note": "weekly pool_frac; reset Europe/Lisbon per grok.com Usage",
+      "daily_limit": 1.0,
+      "pace": "ALLOW",
+      "sample_note": "no assistant sample — gate on pool_frac when known; renew=supergrok_weekly Lisbon",
+      "hours_until_renewal": null,
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-cf": {
+      "meter": "cf_worker_req",
+      "renewal": "00:00_UTC",
+      "renewal_note": "100k/day Workers; KV 1000/day; never workers.dev",
+      "daily_limit": 100000,
+      "pace": "ALLOW",
+      "hours_until_renewal": 23.372921438055556,
+      "sample_note": "no cf sample — renew=00:00_UTC h_left=23.4; never workers.dev",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    },
+    "lane-fog-hop": {
+      "meter": "mac_mw_ports",
+      "renewal": "host_cap",
+      "renewal_note": "local :8787–:8792; skip dead hop 8s",
+      "pace": "ALLOW",
+      "sample_note": "local MW hops; renew=host_cap",
+      "computed_at": "2026-09-05T00:37:37+0000"
+    }
   },
-  "bus_cli": "ops/desk-collegium/desk_bus.py",
-  "done_tasks": []
+  "metabol_tick": "2026-09-05T00:37:37+0000",
+  "updated": "2026-09-05T00:37:37+0000"
 }

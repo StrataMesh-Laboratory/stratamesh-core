@@ -1,0 +1,30 @@
+# Fog desk ops — paced workflow
+
+## Cadence
+- **r / 60s:** metabol tick → mirror tasks → `/desk` pull+push (Bearer vault)
+- **g / auto-g:** upgrades only (git/brew/recycle)
+
+## Bus
+```bash
+REPO=$HOME/StrataMesh/fog/repo
+python3 $REPO/ops/desk-collegium/desk_bus.py list
+python3 $REPO/ops/desk-collegium/desk_metabol.py tick
+python3 $REPO/ops/desk-collegium/desk_sync.py token-check
+```
+
+## Complete a task
+1. specialty owner works under constrain
+2. `desk_bus.py commit TASK --result … --sha …`
+3. `desk_bus.py done TASK --result verified`
+
+## Roadmap staging
+See `docs/ROADMAP-VISION.md`. Desk state `roadmap.current` = M-I. M-II HOLD until Oracle grok90.
+
+| Milestone | Desk focus |
+|-----------|------------|
+| M-I | Lab protocol, desk collegium, Fog n=1 honesty |
+| M-II | Two-host adversarial (after grok90) |
+| M-III+ | Appliance → fabric → testnet → OS → terminalization → mainnet |
+
+## Mac vault
+`~/.config/stratagrok/desk-mail.token` (0600) — never git/chat.
