@@ -189,15 +189,20 @@ def load_state() -> dict:
 
 
 def save_state(state: dict) -> None:
-    p = _state_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
+    """Write FOG_HOME state only — never mirror live dumps into the git tree."""
+    fog_p = FOG / "data/desk-collegium/state.json"
+    fog_p.parent.mkdir(parents=True, exist_ok=True)
     state["updated"] = _now()
     text = json.dumps(state, indent=2, ensure_ascii=False) + "\n"
-    p.write_text(text, encoding="utf-8")
-    try:
-        (REPO / "ops/desk-collegium/state.json").write_text(text, encoding="utf-8")
-    except Exception:
-        pass
+    fog_p.write_text(text, encoding="utf-8")
+    # Tests set FOG_HOME to a temp dir; also honor _state_path when it differs.
+    p = _state_path()
+    if p.resolve() != fog_p.resolve():
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+        except Exception:
+            pass
 
 
 def feed_append(agent: str, text: str, kind: str = "act") -> None:

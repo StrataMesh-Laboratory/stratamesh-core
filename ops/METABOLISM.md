@@ -148,3 +148,8 @@ Lab honest. Identity ≠ cargo. AIOps is a team, not a cargo. No mainnet. Challe
 ## On-graph optional (lab)
 
 `decide()` / `pace_factor` may optionally pace STRATA object spend (NFT collateral above floor 0.1, ACB PdS wallet, registered node-user consumption). Opt-in only (`spend_policy: metabolism`); **not exclusive** — existing PoSbs ticks, SPA execute burns, and NFT redeem/liquidate stay valid without it. Fog `NODE_WALLET` is treasury infrastructure, not a citizen rail. Spec: [`docs/METABOLISM-ON-GRAPH.md`](../docs/METABOLISM-ON-GRAPH.md). Adapter: `src/subsistence/metabolism_opt.py`.
+
+## Desk collegium platforms
+
+See [`docs/FOG-DESK-OPS.md`](../docs/FOG-DESK-OPS.md) metabol_pace typology and [`docs/DESK-METABOL-TYPOLOGY.md`](../docs/DESK-METABOL-TYPOLOGY.md).
+Code: `ops/desk-collegium/desk_metabol.py` `PLATFORM_SPECS` + `compute_platforms()` / `platform_allows()`.
