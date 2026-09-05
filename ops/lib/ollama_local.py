@@ -16,7 +16,7 @@ import urllib.request
 from typing import Any
 
 DEFAULT_HOST = "http://127.0.0.1:11434"
-API_EDGE = os.environ.get("API_EDGE_ORIGIN") or "https://api-edge.calhegasmorais.pt"
+API_EDGE = (os.environ.get("API_EDGE_BASE") or os.environ.get("API_EDGE_ORIGIN") or "https://api-edge.calhegasmorais.pt")
 
 FLOWS = ("account", "join-mesh", "register-deps")
 

@@ -75,6 +75,27 @@ Never block account / join-mesh / register-deps on inference. Operator may fill 
 - Remote inference, HF Inference, Grok Bot as wizard engine
 - workers.dev
 
+## Wake / e2e (Mac Fog offline-tolerant)
+
+When **mbpv** Tailscale is offline (expected sleep), do **not** ping André. See [FOG-MAC-OFFLINE.md](./FOG-MAC-OFFLINE.md).
+
+| Path | Command | Mac required? |
+|------|---------|----------------|
+| Fail-open → parse → commit | `python3 ops/bin/wizard-e2e-dryrun.py --fail-open` | **No** (box OK) |
+| Ollama + fail-open | `python3 ops/bin/wizard-e2e-dryrun.py --both` | Ollama leg needs Mac/host; fail-open leg works without |
+| Unit SDK | `python3 ops/lib/test_ollama_local.py` | No (mocks / fail-open) |
+
+Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → `https://api-edge.calhegasmorais.pt`.
+
+Live contract check (any host with egress):
+
+```bash
+curl -sS https://api-edge.calhegasmorais.pt/health   # expect version 1.5.0-wizard, oracle_live=false
+curl -sS https://api-edge.calhegasmorais.pt/v1/wizard
+```
+
+On Mac wake: `git pull`, confirm health, then `--both` for native Ollama proof.
+
 ## Related
 
 - `docs/API-EDGE-MGMT.md`
