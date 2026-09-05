@@ -11,7 +11,7 @@
       "id": "proj-mac-desk-operative",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Act STRATAGROK representative: materialize automation.desk.* from secrets.env if present; fix gh PATH/LaunchAgent soft-fail; escalate_to_andre only if secrets missing entirely or Fog g required",
+      "intent": "Act desk: materialize automation.desk.* from KeePass (Bot only if escalated) if present; fix gh PATH/LaunchAgent soft-fail; escalate_to_andre only if secrets missing entirely or Fog g required",
       "lanes": [
         "lane-bot",
         "lane-hermes"

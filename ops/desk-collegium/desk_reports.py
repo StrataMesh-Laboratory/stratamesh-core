@@ -573,9 +573,10 @@ def verify_vault_surfaces() -> dict:
 
 
 def try_materialize_desk_mail_vault() -> dict:
-    """STRATAGROK representative: copy automation.desk.* from existing secrets.env / vault roots.
+    """Desk-cycle materialize: copy automation.desk.* from KeePass / secrets.env / vault roots.
 
-    Never invent values. Never print secrets. Never write 0-byte stubs. Prefer KeePass Mail/AUTOMATION_DESK_* via stratagrok-vault; if sources missing entirely → escalate_to_andre.
+    Called from ensure_desk_surfaces on r/60s. Never invent values. Never print secrets. Never write 0-byte stubs.
+    Prefer KeePass Mail/AUTOMATION_DESK_* via stratagrok-vault; if sources missing entirely → escalate (Bot may act as representative).
     """
     import re
     import shutil
@@ -727,7 +728,7 @@ def try_materialize_desk_mail_vault() -> dict:
 
 
 def verify_desk_mail_vault() -> dict:
-    """Soft-check automation.desk vault path files exist and are non-empty. Never read values into outbox. Never create 0-byte stubs — missing stays missing until STRATAGROK materializes from KeePass."""
+    """Soft-check automation.desk vault path files exist and are non-empty. Never read values into outbox. Never create 0-byte stubs — desk cycle materializes from KeePass; Bot only if escalated."""
     roots = [
         Path.home() / ".config/stratagrok",
         Path.home() / ".config/stratamesh",
@@ -789,7 +790,7 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
             try:
                 import argparse
                 import importlib.util
-                # STRATAGROK representative first — materialize from existing secrets.env
+                # Desk cycle owns materialize (KeePass / secrets.env / auth-recovery). Bot only if later escalate.
                 mat = try_materialize_desk_mail_vault()
                 out["steps"]["desk_mail_materialize"] = {
                     "ok": mat.get("ok"),
@@ -805,12 +806,12 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
                 spec.loader.exec_module(busmod)
                 tid = "dt-vault-automation-desk"
                 if mat.get("created"):
-                    note = f"act: materialized automation.desk files {','.join(mat.get('created') or [])} from vault (representative)"
+                    note = f"act: materialized automation.desk files {','.join(mat.get('created') or [])} from vault (desk cycle)"
                     st = busmod.load_state()
                     if not busmod.find_task(st, tid):
                         busmod.cmd_propose(argparse.Namespace(
                             owner="stratagrok", specialty="lead",
-                            intent="Act representative: automation.desk vault materialize from secrets.env",
+                            intent="Act desk: automation.desk vault materialize from KeePass/secrets.env",
                             id=tid, lanes=["lane-bot", "lane-hermes"],
                         ))
                         append_diary("stratagrok", verb="propose", task_id=tid, note=note[:160])

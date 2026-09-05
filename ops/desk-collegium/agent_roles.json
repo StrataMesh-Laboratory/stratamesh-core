@@ -25,7 +25,7 @@
       "self_audit": "protocol.check + meters + Eisenhower board; on wake pull outbox/meters",
       "must": [
         "Rank one Act",
-        "resolve_as_representative on vault materialize / gh PATH / edge 429 / OpenCode idle / vapour",
+        "resolve_as_representative on escalated vault materialize / gh PATH / edge 429 / OpenCode idle / vapour (desk owns routine vault fill)",
         "escalate_to_andre ONLY: Fog g, 2FA, captcha, Oracle vault password/reset, Renovate majors",
         "After dispute: stratagrok act before André ping",
         "Register facts multi-surface",

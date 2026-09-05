@@ -46,7 +46,7 @@
     {
       "id": "human_gates",
       "enforce": true,
-      "text": "True André human_gate ONLY: Fog TUI g (when required), 2FA, captcha, Oracle vault password/reset, Renovate majors André must review. Never fake progress; never git secrets. STRATAGROK (lane-bot) resolve_as_representative MUST act on: automation.desk vault materialize from existing KeePass→secrets.env/stratamesh 0600 (never invent/chat-paste; if missing entirely → then escalate_to_andre), gh PATH/soft-fail/LaunchAgent origin fix, edge 429/1015 collegium backoff/retry, OpenCode idle outbox briefs+agent-run, Discourse with prior approval, feed/handler vapour code fixes. After dispute: prefer stratagrok act before André ping.",
+      "text": "True André human_gate ONLY: Fog TUI g (when required), 2FA, captcha, Oracle vault password/reset, Renovate majors André must review. Never fake progress; never git secrets. Desk cycle (ensure_desk_surfaces) owns automation.desk vault materialize from KeePass→0600 (never invent/chat-paste/empty stubs). STRATAGROK (lane-bot) resolve_as_representative ONLY when desk escalates that vault gate (or KeePass sources absent). Also MUST act on: gh PATH/soft-fail/LaunchAgent origin fix, edge 429/1015 collegium backoff/retry, OpenCode idle outbox briefs+agent-run, Discourse with prior approval, feed/handler vapour code fixes. After dispute: prefer stratagrok act before André ping.",
       "escalate_to_andre": [
         "fog_g",
         "2fa",
