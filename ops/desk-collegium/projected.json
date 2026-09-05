@@ -3,7 +3,7 @@
   "version": "0.3.5-lab",
   "spine": "docs/ROADMAP-VISION.md",
   "current_milestone": "M-I",
-  "note": "Stable catalog — desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",
+  "note": "Stable catalog \u2014 desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",
   "trial_ends_pt": "2026-09-16",
   "t3_from_pt": "2026-09-14",
   "items": [
@@ -11,8 +11,11 @@
       "id": "proj-mac-desk-operative",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Act human gate: Mac desk-mail.token vaulted + gh PATH/auth + g to recent SHAs — escalate only (never write token to git)",
-      "lanes": ["lane-bot", "lane-hermes"],
+      "intent": "Act human gate: Mac desk-mail.token vaulted + gh PATH/auth + g to recent SHAs \u2014 escalate only (never write token to git)",
+      "lanes": [
+        "lane-bot",
+        "lane-hermes"
+      ],
       "eisenhower": "act",
       "human_gate": true,
       "hold_until": null
@@ -21,8 +24,10 @@
       "id": "proj-oracle-260826",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Act HOLD: Oracle grok90 chase 260826-001576 after vault reset — escalate only, never fake progress",
-      "lanes": ["lane-bot"],
+      "intent": "Act HOLD: Oracle grok90 chase 260826-001576 after vault reset \u2014 escalate only, never fake progress",
+      "lanes": [
+        "lane-bot"
+      ],
       "eisenhower": "act",
       "human_gate": true,
       "hold_until": "oracle_grok90"
@@ -31,8 +36,11 @@
       "id": "proj-ts-taper-t1",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
-      "lanes": ["lane-hermes", "lane-assistant"],
+      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path \u2014 dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
       "eisenhower": "act",
       "human_gate": false,
       "hold_until": null
@@ -42,7 +50,9 @@
       "specialty": "coord",
       "owner": "hermes",
       "intent": "Plan T2: drain 100.x from scripts/connectors/notes; inventory via WG/Fog; ts-api read-only until T3",
-      "lanes": ["lane-hermes"],
+      "lanes": [
+        "lane-hermes"
+      ],
       "eisenhower": "plan",
       "human_gate": false,
       "hold_until": null
@@ -51,8 +61,10 @@
       "id": "proj-ts-taper-t3",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only — never convert trial→paid",
-      "lanes": ["lane-bot"],
+      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only \u2014 never convert trial\u2192paid",
+      "lanes": [
+        "lane-bot"
+      ],
       "eisenhower": "plan",
       "human_gate": true,
       "hold_until": "trial_t3"
@@ -61,8 +73,10 @@
       "id": "proj-ts-taper-t4",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical — no paid seats; stack=WG+OVPN+Tor+cloudflared",
-      "lanes": ["lane-hermes"],
+      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical \u2014 no paid seats; stack=WG+OVPN+Tor+cloudflared",
+      "lanes": [
+        "lane-hermes"
+      ],
       "eisenhower": "plan",
       "human_gate": false,
       "hold_until": "trial_ended"
@@ -71,8 +85,10 @@
       "id": "proj-ts-headscale-spike",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "HOLD: optional Headscale spike ≤2h only if WG UX fails — self-host AGPL; else drop",
-      "lanes": ["lane-bot"],
+      "intent": "HOLD: optional Headscale spike \u22642h only if WG UX fails \u2014 self-host AGPL; else drop",
+      "lanes": [
+        "lane-bot"
+      ],
       "eisenhower": "note",
       "human_gate": true,
       "hold_until": "headscale_eval"
@@ -81,8 +97,10 @@
       "id": "proj-m1-claw-loop",
       "specialty": "claw",
       "owner": "openclaw",
-      "intent": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
-      "lanes": ["lane-openclaw"],
+      "intent": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
+      "lanes": [
+        "lane-openclaw"
+      ],
       "eisenhower": "act",
       "hold_until": null
     },
@@ -91,7 +109,9 @@
       "specialty": "code",
       "owner": "opencode",
       "intent": "M-I projected: run desk unit tests; patch only on FAIL (no vapour PASS claims)",
-      "lanes": ["lane-opencode"],
+      "lanes": [
+        "lane-opencode"
+      ],
       "eisenhower": "act",
       "hold_until": null
     },
@@ -100,7 +120,9 @@
       "specialty": "coord",
       "owner": "hermes",
       "intent": "M-I projected: desk_ops board + protocol.check; sync strict issues/challenges only",
-      "lanes": ["lane-hermes"],
+      "lanes": [
+        "lane-hermes"
+      ],
       "eisenhower": "act",
       "hold_until": null
     },
@@ -109,7 +131,9 @@
       "specialty": "lead",
       "owner": "stratagrok",
       "intent": "M-II HOLD projected: two-host INV/TX only after Oracle grok90 live",
-      "lanes": ["lane-bot"],
+      "lanes": [
+        "lane-bot"
+      ],
       "eisenhower": "plan",
       "human_gate": true,
       "hold_until": "oracle_grok90"
@@ -119,7 +143,10 @@
       "specialty": "coord",
       "owner": "hermes",
       "intent": "Academy teach duty: ensure one live formation/FAQ/handoff lesson for SCA/ACB students; desk agents teach, never enroll as students",
-      "lanes": ["lane-hermes", "lane-assistant"],
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
       "hold_until": null,
       "eisenhower": "act",
       "duty": "academy_teach"
@@ -128,8 +155,10 @@
       "id": "proj-academy-code-lesson",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
-      "lanes": ["lane-opencode"],
+      "intent": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "lanes": [
+        "lane-opencode"
+      ],
       "hold_until": null,
       "eisenhower": "act",
       "duty": "academy_teach"
@@ -138,8 +167,11 @@
       "id": "proj-apprentice-desk-ops",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
-      "lanes": ["lane-hermes", "lane-assistant"],
+      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle \u2014 document one real task trail (bus\u2192Actions\u2192outbox) as lesson on academy + StrataMesh proper",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
       "duty": "apprenticeship",
       "eisenhower": "act",
       "hold_until": null
@@ -148,11 +180,26 @@
       "id": "proj-apprentice-code-fog",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
-      "lanes": ["lane-opencode"],
+      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test \u2014 leave testable lesson linked to stratamesh-core + academy",
+      "lanes": [
+        "lane-opencode"
+      ],
       "duty": "apprenticeship",
       "eisenhower": "act",
       "hold_until": null
+    },
+    {
+      "id": "proj-hermes-64k",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "Act: Hermes context \u226564k \u2014 ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "hold_until": null,
+      "duty": "hermes_context"
     }
   ]
 }

@@ -56,19 +56,25 @@ export default {
         await e.AUTH_DB.prepare('UPDATE password_recovery SET used=1 WHERE id=?').bind(row.id).run();
         return j({ success: true, message: 'Password updated' });
       }
-      if ((path === '/grok-inbox' || path === '/inbox') && r.method === 'GET') {
+      const readMailInbox = async (prefix) => {
         const auth = r.headers.get('Authorization') || '';
         const ok = e.AUTH_TOKEN && (auth === 'Bearer ' + e.AUTH_TOKEN || auth === e.AUTH_TOKEN);
         if (!ok) return j({ error: 'Unauthorized' }, 401);
         if (!e.RATE_LIMIT) return j({ error: 'no kv' }, 500);
-        const latest = await e.RATE_LIMIT.get('grok-mail:latest');
-        const index = JSON.parse((await e.RATE_LIMIT.get('grok-mail:index')) || '[]');
+        const latest = await e.RATE_LIMIT.get(prefix + 'latest');
+        const index = JSON.parse((await e.RATE_LIMIT.get(prefix + 'index')) || '[]');
         const items = [];
         for (const id of index.slice(0, 10)) {
-          const row = await e.RATE_LIMIT.get('grok-mail:' + id);
+          const row = await e.RATE_LIMIT.get(prefix + id);
           if (row) items.push(JSON.parse(row));
         }
-        return j({ success: true, latest: latest ? JSON.parse(latest) : null, items });
+        return j({ success: true, latest: latest ? JSON.parse(latest) : null, items, prefix });
+      };
+      if ((path === '/grok-inbox' || path === '/inbox') && r.method === 'GET') {
+        return readMailInbox('grok-mail:');
+      }
+      if ((path === '/desk-inbox' || path === '/automation-desk-inbox') && r.method === 'GET') {
+        return readMailInbox('desk-mail:');
       }
       return j({ error: 'Not Found', path }, 404);
     } catch (err) {
@@ -78,20 +84,24 @@ export default {
 
   async email(message, env) {
     const raw = await new Response(message.raw).text();
+    const to = String(message.to || '');
+    const isDesk = to.toLowerCase().includes('automation.desk@');
+    const prefix = isDesk ? 'desk-mail:' : 'grok-mail:';
     const rec = {
       id: Date.now().toString(36) + '-' + crypto.randomUUID().slice(0, 8),
       from: message.from,
-      to: message.to,
+      to,
       subject: message.headers.get('subject') || '',
       receivedAt: new Date().toISOString(),
-      text: raw.slice(0, 24000)
+      text: raw.slice(0, 24000),
+      mailbox: isDesk ? 'automation.desk' : 'grok'
     };
     if (env.RATE_LIMIT) {
-      await env.RATE_LIMIT.put('grok-mail:' + rec.id, JSON.stringify(rec), { expirationTtl: 604800 });
-      await env.RATE_LIMIT.put('grok-mail:latest', JSON.stringify(rec), { expirationTtl: 604800 });
-      const idx = JSON.parse((await env.RATE_LIMIT.get('grok-mail:index')) || '[]');
+      await env.RATE_LIMIT.put(prefix + rec.id, JSON.stringify(rec), { expirationTtl: 604800 });
+      await env.RATE_LIMIT.put(prefix + 'latest', JSON.stringify(rec), { expirationTtl: 604800 });
+      const idx = JSON.parse((await env.RATE_LIMIT.get(prefix + 'index')) || '[]');
       idx.unshift(rec.id);
-      await env.RATE_LIMIT.put('grok-mail:index', JSON.stringify(idx.slice(0, 50)), { expirationTtl: 604800 });
+      await env.RATE_LIMIT.put(prefix + 'index', JSON.stringify(idx.slice(0, 50)), { expirationTtl: 604800 });
     }
   }
 };

@@ -125,10 +125,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
             last = 0.0
         if now - last >= 600:
             bus.feed_append(
-                "desk",
-                "actions sync: gh unavailable — install/auth gh or PATH=/opt/homebrew/bin",
-                kind="say",
-                specialty="code",
+                "openclaw",
+                "actions: gh unavailable (PATH/auth)",
+                kind="dispute",
+                specialty="claw",
             )
             try:
                 flag.parent.mkdir(parents=True, exist_ok=True)
@@ -156,7 +156,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
             continue
         line = f"GHA {wf}: {conc or status} #{rid}"
         if not args.dry_run:
-            bus.feed_append("opencode", line[:200], kind="say", specialty="code")
+            bus.feed_append("opencode", line[:200], kind="audit" if conc != "failure" else "dispute", specialty="code")
         mirrored += 1
         if conc == "failure" and source not in known and not args.dry_run:
             failed += 1

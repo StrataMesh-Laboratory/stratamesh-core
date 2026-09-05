@@ -41,3 +41,31 @@ autonomy:
   specialization: true
   metabol_pace: true
   check_in_before_risky: true
+
+# Shared desk mail (automation.desk@) — PATHS ONLY, no passwords in git.
+# BOTH: shared Maildir/SnappyMail/aerc for all agents AND this per-agent mail: pointer.
+# See ops/desk-collegium/DESK-MAIL-AUTOMATION.md
+mail:
+  address: automation.desk@calhegasmorais.pt
+  role: external_assistant
+  standing: external_assistant_cmn
+  shared_client: true
+  shared_maildir_box: /home/box/mail/automation.desk
+  shared_maildir_mac: ~/mail/automation.desk
+  client_snappymail: http://127.0.0.1:8099
+  imap_env: ~/.config/stratagrok/automation.desk.imap
+  smtp_env: ~/.config/stratagrok/automation.desk.smtp
+  sync_token: ~/.config/stratagrok/automation.desk.token
+  materialize_env: ~/.config/stratamesh/automation.desk.env
+  desk_bearer_token_path: ~/.config/stratagrok/desk-mail.token
+  sync: deploy/mac-fog/desk-mail-sync.sh
+  notes: |
+    Ollama/terminal: configure Messaging Email → automation.desk@
+    Load IMAP/SMTP from env files (never paste into yaml).
+    Shared client (Maildir+SnappyMail:8099) plus this config — not either/or.
+    Bot escalate if vault missing/empty.
+  never:
+    - workers.dev_as_assistant_fetch
+    - secrets_in_git_or_chat
+    - eni_geral_mix
+    - gmail

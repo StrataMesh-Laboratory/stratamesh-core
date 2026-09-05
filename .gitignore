@@ -46,3 +46,13 @@ FOG/data/secrets/
 ops/desk-collegium/meters/*token*
 ops/desk-collegium/meters/*secret*
 data/desk-outbox/**/secrets*
+
+# collegium / desk mail maildirs + vault (never publish)
+**/mail/automation.desk/**
+**/mail/grok/**
+**/automation.desk.imap
+**/automation.desk.smtp
+**/automation.desk.token
+**/automation.desk.env
+**/automation.desk.token.*
+**/.seen-ids

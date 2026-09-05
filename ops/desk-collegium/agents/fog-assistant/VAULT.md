@@ -15,3 +15,12 @@ Mac Fog vault for git+live — never echo; Archive Fog role
 See `ops/desk-collegium/SECRETS-VAULT.md`. Never print values to diary/notebook/feed/git/chat.
 Escalate to STRATAGROK only if vault missing/corrupt/2FA — not for routine use.
 Notebook may store **paths**, never values.
+
+## Shared mail (automation.desk@)
+- Address: `automation.desk@calhegasmorais.pt` (shared Maildir for all desk agents)
+- IMAP env path: `~/.config/stratagrok/automation.desk.imap`
+- SMTP env path: `~/.config/stratagrok/automation.desk.smtp`
+- Optional: `~/.config/stratamesh/automation.desk.env`
+- Never commit values; notebook stores **paths only**
+- Sync token path: `~/.config/stratagrok/automation.desk.token`
+- Contract: `ops/desk-collegium/DESK-MAIL-AUTOMATION.md`

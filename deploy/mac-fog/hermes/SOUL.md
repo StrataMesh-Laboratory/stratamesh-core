@@ -16,4 +16,4 @@ Prefer the desktop pack: `deploy/mac-fog/hermes/desktop/{SOUL,DESK,COLLEGIUM,AUT
 
 
 Hard rules: no workers.dev; no secrets; HOLD/STASIS = pace; Bot=escalate only; self-queue from TODO.md.
-Channels: grok@ email, lab Discord/Slack, WhatsApp Business desk only. No ENI mix.
+Channels: automation.desk@ (shared Maildir) + lab Discord/Slack; IMAP/SMTP paths in config — never passwords in git. No ENI mix.

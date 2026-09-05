@@ -154,7 +154,7 @@ class DeskRolesAutonomy(unittest.TestCase):
     def test_secrets_vault_gitignore(self):
         root = HERE.parents[1]
         gi = (root / ".gitignore").read_text(encoding="utf-8")
-        for needle in ("**/secrets.env", "**/desk-mail.token", "**/.config/stratagrok/**", "*.kdbx"):
+        for needle in ("**/secrets.env", "**/desk-mail.token", "**/.config/stratagrok/**", "*.kdbx", "**/automation.desk.imap", "**/automation.desk.token"):
             self.assertIn(needle, gi)
         self.assertTrue((HERE / "SECRETS-VAULT.md").is_file())
         for aid in REQUIRED:
@@ -177,6 +177,61 @@ class DeskRolesAutonomy(unittest.TestCase):
         self.assertIn("vault", out.get("steps") or {})
         self.assertTrue((out.get("steps") or {}).get("vault", {}).get("vault_md_ok") or (HERE / "agents" / "hermes" / "VAULT.md").is_file())
 
+
+    def test_collegium_mail_contract(self):
+        root = HERE.parents[1]
+        doc = HERE / "DESK-MAIL-AUTOMATION.md"
+        self.assertTrue(doc.is_file(), "DESK-MAIL-AUTOMATION.md")
+        text = doc.read_text(encoding="utf-8")
+        for needle in (
+            "automation.desk@calhegasmorais.pt",
+            "external_assistant",
+            "shared",
+            "per-agent",
+            "grok@",
+            "automation.desk.imap",
+            "SnappyMail",
+        ):
+            self.assertIn(needle, text)
+        # docs/ops copy
+        self.assertTrue((root / "docs/ops/DESK-MAIL-AUTOMATION.md").is_file())
+        roles = json.loads((HERE / "agent_roles.json").read_text(encoding="utf-8"))
+        self.assertEqual(roles.get("collegium_mail", {}).get("address"), "automation.desk@calhegasmorais.pt")
+        self.assertEqual(roles["collegium_mail"].get("standing"), "external_assistant")
+        for m in roles["members"]:
+            self.assertEqual(m.get("collegium_mail"), "automation.desk@calhegasmorais.pt", m["id"])
+        proto = json.loads((HERE / "protocol.json").read_text(encoding="utf-8"))
+        self.assertTrue(any(l.get("id") == "collegium_mail" for l in proto.get("laws") or []))
+        gi = (root / ".gitignore").read_text(encoding="utf-8")
+        for needle in ("**/automation.desk.imap", "**/mail/automation.desk/**", "**/automation.desk.token"):
+            self.assertIn(needle, gi)
+        # agent configs mail pointers
+        for rel in (
+            "deploy/mac-fog/hermes/desktop/config.yaml",
+            "deploy/mac-fog/opencode/config.example.yaml",
+            "deploy/mac-fog/openclaw/config.example.yaml",
+        ):
+            cfg = (root / rel).read_text(encoding="utf-8")
+            self.assertIn("automation.desk@calhegasmorais.pt", cfg)
+            self.assertIn("automation.desk.imap", cfg)
+        self.assertTrue((root / "deploy/mac-fog/desk-mail-sync.sh").is_file())
+        self.assertTrue((root / "deploy/mac-fog/desk-mail-sync.py").is_file())
+        self.assertTrue((HERE / "templates/aerc-automation.desk.conf.example").is_file())
+
+    def test_desk_mail_vault_step(self):
+        tmp = Path(tempfile.mkdtemp(prefix="desk-mail-vault-"))
+        os.environ["FOG_HOME"] = str(tmp)
+        (tmp / "data" / "desk-collegium").mkdir(parents=True)
+        (tmp / "data" / "desk-collegium" / "state.json").write_text(
+            '{"schema":"desk.collegium.state.v1","open_tasks":[],"done_tasks":[]}\n'
+        )
+        rep = _load("desk_reports", HERE / "desk_reports.py")
+        out = rep.ensure_desk_surfaces(limit=2, feed=False)
+        self.assertIn("desk_mail_vault", out.get("steps") or {})
+        step = out["steps"]["desk_mail_vault"]
+        self.assertIn("human_gate", step)
+        self.assertEqual(step.get("address"), "automation.desk@calhegasmorais.pt")
+
+
 if __name__ == "__main__":
     unittest.main()
-

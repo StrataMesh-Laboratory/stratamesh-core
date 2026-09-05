@@ -137,22 +137,51 @@ def save_state(state: dict) -> Path:
     return path
 
 
-def feed_append(agent: str, text: str, *, kind: str, specialty: str = "") -> None:
+def feed_append(
+    agent: str,
+    text: str,
+    *,
+    kind: str,
+    specialty: str = "",
+    dedupe: bool = True,
+    force: bool = False,
+) -> dict:
+    """Append DESK feed line via desk_feed (collegium verbs + 5min digest dedupe)."""
     try:
-        FEED.parent.mkdir(parents=True, exist_ok=True)
-        rec = {
-            "ts": _now(),
-            "t": _clock(),
-            "agent": (agent or "desk")[:32],
-            "kind": (kind or "say")[:16],
-            "specialty": (specialty or "")[:16],
-            "text": (text or "")[:240],
-        }
-        with FEED.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            f.flush()
+        import importlib.util
+        fp = Path(__file__).resolve().parent / "desk_feed.py"
+        spec = importlib.util.spec_from_file_location("desk_feed", fp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        return mod.append(
+            agent,
+            text,
+            kind=kind,
+            specialty=specialty,
+            fog=FOG,
+            dedupe=dedupe,
+            force=force,
+        )
     except Exception as e:
-        print(f"feed warn: {e}", file=sys.stderr)
+        # Fail-open: raw append without dedupe
+        try:
+            FEED.parent.mkdir(parents=True, exist_ok=True)
+            rec = {
+                "ts": _now(),
+                "t": _clock(),
+                "agent": (agent or "desk")[:32],
+                "kind": (kind or "act")[:16],
+                "specialty": (specialty or "")[:16],
+                "text": (text or "")[:240],
+            }
+            with FEED.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                f.flush()
+            return {"ok": True, "deduped": False, "rec": rec, "fallback": str(e)[:80]}
+        except Exception as e2:
+            print(f"feed warn: {e2}", file=sys.stderr)
+            return {"ok": False, "err": str(e2)[:120]}
 
 
 def find_task(state: dict, task_id: str) -> dict | None:

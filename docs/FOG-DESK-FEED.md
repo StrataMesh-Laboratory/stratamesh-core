@@ -2,22 +2,45 @@
 
 Operator monitor: a chat-style **DESK** panel under the Fog TUI instrument shows recent automation-desk work from each agent.
 
+## Display format (explainable + technical)
+
+```
+HH:MM:SS agent verb compact-tech-payload
+```
+
+Examples:
+
+```
+03:17:05 openclaw audit hops fog=1 edge=1 :8787=1 | tokens 2100/33000
+03:17:05 desk     act   surfaces TODO+CONTEXT+reports+journals ok
+03:17:05 openclaw dispute actions: gh unavailable (PATH/auth)
+03:17:05 desk     audit metabol: skip openclaw HOLD tokens=28000/33000
+```
+
+- Prefer collegium verbs (`audit`, `act`, `revise`, `dispute`, `refer`, `vote`, …) over opaque `say`.
+- Keep metrics (ports, tokens, ok=); add a short clause only when it clarifies the failure path.
+- Identical digests are **rate-limited to 1/5min** unless the payload changes (delta).
+
 ## File
 
 `FOG/data/desk-feed.jsonl` (append-only JSONL). One object per line:
 
 ```json
-{"ts":"…","t":"HH:MM:SS","agent":"hermes","kind":"propose","specialty":"coord","text":"…"}
+{"ts":"…","t":"HH:MM:SS","agent":"hermes","kind":"audit","specialty":"coord","text":"…","digest":"…"}
 ```
 
-- `agent` — `hermes` | `opencode` | `openclaw` | `stratagrok` | assistant short id
-- `kind` — `say` | `propose` | `constrain` | `act` | `audit` | `amend` | `revise` | `vote` | `refer` | `dispute` | `commit` | `escalate` | `done` | `drop`
+- `agent` — `hermes` | `opencode` | `openclaw` | `stratagrok` | `desk` | assistant short id
+- `kind` — collegium verbs: `propose` | `constrain` | `act` | `audit` | `amend` | `revise` | `vote` | `refer` | `dispute` | `commit` | `escalate` | `done` | `drop` (legacy `say` → coerced to `act`)
 - `text` — ≤240 chars, no secrets
+- Dedupe state: `FOG/data/desk-feed-dedupe.json`
+
+Canonical writer: `ops/desk-collegium/desk_feed.py` (used by `desk_bus.feed_append`).
 
 ## Append (Mac)
 
 ```bash
-python3 "$FOG_SRC/deploy/mac-fog/desk-feed-append.py" hermes "propose: OpenCode patch X" --kind propose --specialty coord
+python3 "$FOG_SRC/deploy/mac-fog/desk-feed-append.py" openclaw \
+  "hops fog=1 edge=1 :8787=1 | tokens 2100/33000" --kind audit --specialty claw
 ```
 
 TUI paints the DESK panel each refresh (`draw_desk_feed` in `deploy/mac-fog/fog-tui.py`).
@@ -25,23 +48,30 @@ TUI paints the DESK panel each refresh (`draw_desk_feed` in `deploy/mac-fog/fog-
 
 ## Who writes
 
-| Agent | When |
-|-------|------|
-| Hermes | After propose / bus pulse / collegium ACK |
-| OpenCode | After constrain / commit SHA |
-| OpenClaw | After local loop result |
-| STRATAGROK | Major Eisenhower Act start/finish (optional) |
-| Fog/EDGE Assistants | Optional short Act result line (no secrets) |
+| Agent | When | Typical verb |
+|-------|------|----------------|
+| Hermes | protocol/board/reports/teach | `act` / `audit` / `refer` |
+| OpenCode | unittest / compile / CI | `audit` / `refer` / `dispute` |
+| OpenClaw | hop probes / gh PATH miss | `audit` / `dispute` |
+| desk | surfaces / metabol skip | `act` / `audit` |
+| STRATAGROK | cycle push / lead gates | `act` / `escalate` |
+| Fog/EDGE Assistants | origin/api briefs | `audit` / `dispute` |
 
-Aligns with `docs/FOG-DESK-COLLEGIUM.md` bus full verb set: propose/act/audit/amend/revise/vote/refer/dispute/constrain/commit/escalate/done (propose is not the only move).
+Aligns with `docs/FOG-DESK-COLLEGIUM.md` bus full verb set.
+
+## Metabol pace (enforced, not display-only)
+
+`desk_ops.pick_tasks` + pre-handler gate + `specialty_self_audit_tick` respect lanes:
+
+- **STASIS** → no specialty work; feed `desk audit metabol: skip <lane> STASIS …`
+- **HOLD** → skip non-lead auto handlers on that specialty lane
+- **lane-bot HOLD/STASIS** never freezes Hermes/OpenCode/OpenClaw (`bot_cap_contingency`)
 
 ## Deny
 
 No passwords, tokens, 2FA, workers.dev URLs, or Maildir bodies in the feed.
 
 ## Prefer desk_bus (task completion)
-
-Agents should not only chat — they must complete tasks:
 
 ```bash
 python3 ops/desk-collegium/desk_bus.py propose|act|audit|amend|revise|vote|refer|dispute|constrain|commit|done …
@@ -55,7 +85,6 @@ That updates collegium state **and** appends the desk feed in one step.
 - **Upgrades:** Fog TUI `g` / auto-g → git/brew/recycle only (not the live desk poll).
 - Merge-safe: local tasks in `constrain|revise|commit` are never overwritten by a pull.
 
-
 ## DESK panel geometry (Fog TUI)
 
 Invariant (`desk_feed_rows_for` in `fog-tui.py`):
@@ -64,4 +93,3 @@ Invariant (`desk_feed_rows_for` in `fog-tui.py`):
 - Clamp: prefer ≥4 when space allows, else ≥2
 - `draw_desk_feed` pads blank rows to the budget so the panel fills to the last usable terminal row
 - Hop/host chrome above DESK is fixed; DESK absorbs remaining height (scroll content inside)
-

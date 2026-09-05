@@ -1093,7 +1093,7 @@ def desk_feed_path() -> Path:
     return FOG / "data" / "desk-feed.jsonl"
 
 
-def desk_feed_append(agent: str, text: str, *, kind: str = "say", specialty: str = "") -> None:
+def desk_feed_append(agent: str, text: str, *, kind: str = "act", specialty: str = "") -> None:
     """Append one desk-feed line. Safe for concurrent agents (append + flush)."""
     path = desk_feed_path()
     try:
@@ -1104,7 +1104,7 @@ def desk_feed_append(agent: str, text: str, *, kind: str = "say", specialty: str
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "t": time.strftime("%H:%M:%S"),
         "agent": (agent or "desk")[:32],
-        "kind": (kind or "say")[:16],
+        "kind": (kind or "act")[:16],
         "specialty": (specialty or "")[:16],
         "text": (text or "")[:240],
     }
@@ -1285,7 +1285,7 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
             ag_raw = str(rec.get("agent") or "?")
             col, ag = _desk_agent_style(ag_raw)
             tm = str(rec.get("t") or "--:--:--")[:8]
-            kind = str(rec.get("kind") or "say")[:7]
+            kind = str(rec.get("kind") or "act")[:9]
             body = str(rec.get("text") or "").replace("\n", " ")
             head_plain = "%s %s %s " % (tm, ag.ljust(8)[:8], kind)
             wrap_w = max(12, inner - len(head_plain) - 1)

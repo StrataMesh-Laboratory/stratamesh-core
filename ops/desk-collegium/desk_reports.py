@@ -241,9 +241,9 @@ def sync(*, limit: int = 12, prepend: bool = True, feed: bool = True) -> dict:
             assert spec.loader is not None
             spec.loader.exec_module(bus)
             bus.feed_append(
-                "desk",
-                f"reports synced gh_ok={int(bool(gh.get('ok')))} discourse_ok={int(bool(disc.get('ok')))}",
-                kind="say",
+                "hermes",
+                f"reports gh_ok={int(bool(gh.get('ok')))} discourse_ok={int(bool(disc.get('ok')))}",
+                kind="audit",
                 specialty="coord",
             )
         except Exception:
@@ -520,6 +520,16 @@ GITIGNORE_SECRET_NEEDLES = (
     "**/desk-outbox/**/secrets*",
     "**/tailscale-*.key",
     "*.kdbx",
+    "**/automation.desk.imap",
+    "**/automation.desk.smtp",
+    "**/automation.desk.token",
+    "**/mail/automation.desk/**",
+)
+
+DESK_MAIL_VAULT_NAMES = (
+    "automation.desk.imap",
+    "automation.desk.smtp",
+    "automation.desk.token",
 )
 
 VAULT_AGENT_IDS = (
@@ -561,6 +571,50 @@ def verify_vault_surfaces() -> dict:
     }
 
 
+
+def verify_desk_mail_vault() -> dict:
+    """Soft-check automation.desk vault path files exist and are non-empty. Never read values into outbox."""
+    roots = [
+        Path.home() / ".config/stratagrok",
+        Path.home() / ".config/stratamesh",
+    ]
+    fog = _fog() / "data" / "secrets"
+    roots.append(fog)
+    present = []
+    missing = []
+    empty = []
+    for name in DESK_MAIL_VAULT_NAMES:
+        found = None
+        for root in roots:
+            cand = root / name
+            if cand.is_file():
+                found = cand
+                break
+        if found is None:
+            missing.append(name)
+            continue
+        try:
+            sz = found.stat().st_size
+        except OSError:
+            missing.append(name)
+            continue
+        if sz <= 0:
+            empty.append(name)
+        else:
+            present.append(name)
+    ok = not missing and not empty
+    return {
+        "ok": ok,
+        "present": present,
+        "missing": missing,
+        "empty": empty,
+        "human_gate": (not ok),
+        "address": "automation.desk@calhegasmorais.pt",
+        "contract": "ops/desk-collegium/DESK-MAIL-AUTOMATION.md",
+        "note": "paths only — values never copied to feed/outbox",
+    }
+
+
 def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bool = True) -> dict:
     """Idempotent cycle-owned refresh. Soft-fail if gh/discourse unavailable.
     Bot never required. Called from desk_ops cycle + desk-agent-run.
@@ -574,6 +628,27 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
         out["steps"]["vault"] = verify_vault_surfaces()
     except Exception as e:
         out["steps"]["vault"] = {"ok": False, "err": str(e)[:120]}
+    try:
+        mail_v = verify_desk_mail_vault()
+        out["steps"]["desk_mail_vault"] = mail_v
+        if mail_v.get("human_gate") and feed:
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("desk_bus", HERE / "desk_bus.py")
+                busmod = importlib.util.module_from_spec(spec)
+                assert spec.loader is not None
+                spec.loader.exec_module(busmod)
+                miss = ",".join((mail_v.get("missing") or []) + (mail_v.get("empty") or [])) or "unknown"
+                busmod.feed_append(
+                    "stratagrok",
+                    f"human_gate: automation.desk vault missing/empty ({miss}) — André materialize 0600",
+                    kind="escalate",
+                    specialty="lead",
+                )
+            except Exception:
+                pass
+    except Exception as e:
+        out["steps"]["desk_mail_vault"] = {"ok": False, "err": str(e)[:120]}
     try:
         out["steps"]["todo"] = str(write_todo_board(state=state))
     except Exception as e:
@@ -628,8 +703,8 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
             spec.loader.exec_module(busmod)
             busmod.feed_append(
                 "desk",
-                f"surfaces refreshed ok={int(out['ok'])} (TODO/CONTEXT/reports/journals)",
-                kind="say",
+                f"surfaces TODO+CONTEXT+reports+journals {'ok' if out.get('ok') else 'PARTIAL'}",
+                kind="act",
                 specialty="coord",
             )
         except Exception:
@@ -648,7 +723,7 @@ def ensure_outbox_pack(*, limit: int = 12, state: dict | None = None) -> dict:
         bus = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(bus)
-        bus.feed_append("desk", "reports synced + TODO/CONTEXT pack", kind="say", specialty="coord")
+        bus.feed_append("hermes", "reports + TODO/CONTEXT pack synced", kind="act", specialty="coord")
     except Exception:
         pass
     return {"todo": str(todo), "context": str(ctx), "reports": rep}

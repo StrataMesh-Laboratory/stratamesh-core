@@ -76,3 +76,19 @@ TODO.md · CONTEXT-CMN-STRATAMESH.md · reports/ · journals/ — Bot never requ
 5. Reports: `desk-outbox/reports/latest.md` (GH Actions + Discourse)
 6. Specialty self-audit + self-queue from board/projected — **Bot = escalate surface, not prompter**
 
+## Mail — automation.desk@ (shared client + per-agent pointers)
+
+Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenClaw) **and** external_assistant CMN standing:
+
+| What | Value / path (paths only — never passwords in git) |
+|------|------------------------------------------------------|
+| Address | `automation.desk@calhegasmorais.pt` |
+| Role | shared Maildir / desk client (not geral@eni; not personal) |
+| IMAP env file | `~/.config/stratagrok/automation.desk.imap` (0600) |
+| SMTP env file | `~/.config/stratagrok/automation.desk.smtp` (0600) |
+| Alias pointer | `~/.config/stratamesh/automation.desk.env` (optional materialize) |
+| Desk Bearer (sync) | `~/.config/stratagrok/desk-mail.token` (separate from IMAP pass) |
+
+Ollama / terminal agent setup: point Messaging→Email at **automation.desk@**; load IMAP/SMTP from the env files above (key=value, no commit). Shared Maildir **plus** each agent's own config.yaml / DESK.md pointers — not instead of shared.
+
+Deny: print credentials · workers.dev · ENI `geral@` mix · git of `*.imap` / `*.smtp` / `desk-mail.token`.

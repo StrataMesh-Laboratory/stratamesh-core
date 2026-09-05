@@ -97,14 +97,27 @@ def save_state(state: dict) -> None:
         pass
 
 
-def feed_append(agent: str, text: str, kind: str = "say") -> None:
+def feed_append(agent: str, text: str, kind: str = "act") -> None:
+    """Delegate to desk_feed (verbs + dedupe). kind=say coerced to act."""
+    try:
+        import importlib.util
+        fp = Path(__file__).resolve().parent / "desk_feed.py"
+        spec = importlib.util.spec_from_file_location("desk_feed", fp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        mod.append(agent, text, kind=kind, specialty="lead", fog=FOG)
+        return
+    except Exception:
+        pass
     path = FOG / "data/desk-feed.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
+    k = "act" if (kind or "") in ("say", "", None) else kind
     rec = {
         "ts": _now(),
         "t": time.strftime("%H:%M:%S"),
         "agent": agent[:32],
-        "kind": kind[:16],
+        "kind": (k or "act")[:16],
         "specialty": "lead",
         "text": text[:240],
     }
@@ -362,9 +375,9 @@ def tick() -> dict:
     mirrored = mirror_open_tasks_to_feed(state)
     save_state(state)
     if changes:
-        feed_append("stratagrok", "metabol " + "; ".join(changes), kind="say")
+        feed_append("stratagrok", "metabol " + "; ".join(changes), kind="revise")
     if mirrored:
-        feed_append("stratagrok", f"mirror {mirrored} open tasks → desk-feed", kind="say")
+        feed_append("stratagrok", f"mirror {mirrored} open tasks → desk-feed", kind="act")
     return {
         "ok": True,
         "lanes": {k: v.get("pace") for k, v in lanes.items()},

@@ -190,7 +190,7 @@ def append_feed_lines(rows: list[dict]) -> int:
                 "ts": str(rec.get("ts") or _now())[:40],
                 "t": str(rec.get("t") or time.strftime("%H:%M:%S"))[:8],
                 "agent": str(rec.get("agent") or "edge")[:32],
-                "kind": str(rec.get("kind") or "say")[:16],
+                "kind": str(rec.get("kind") or "act")[:16],
                 "specialty": str(rec.get("specialty") or "")[:16],
                 "text": str(rec.get("text") or "")[:240],
             }
@@ -394,7 +394,7 @@ def pull(url: str | None = None) -> dict:
     line = "pull /desk ok" + ((" · " + "; ".join(notes[:4])) if notes else "")
     append_feed_lines([{
         "ts": _now(), "t": time.strftime("%H:%M:%S"),
-        "agent": "stratagrok", "kind": "say", "specialty": "lead",
+        "agent": "stratagrok", "kind": "act", "specialty": "lead",
         "text": line[:240],
     }])
     return {"ok": True, "notes": notes, "remote_schema": remote.get("schema"), "url": url}
@@ -409,7 +409,7 @@ def push(url: str | None = None, git_sha: str = "") -> dict:
     remote = http_json("POST", url, token, payload)
     append_feed_lines([{
         "ts": _now(), "t": time.strftime("%H:%M:%S"),
-        "agent": "stratagrok", "kind": "say", "specialty": "lead",
+        "agent": "stratagrok", "kind": "act", "specialty": "lead",
         "text": f"push /desk ok tasks={len((payload.get('collegium') or {}).get('open_tasks') or [])}",
     }])
     return {"ok": True, "stored": bool(remote), "tasks": len((payload.get("collegium") or {}).get("open_tasks") or [])}

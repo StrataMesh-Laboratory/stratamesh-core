@@ -1,0 +1,18 @@
+# Example second aerc account — NO passwords in git.
+# Copy into ~/.config/aerc/accounts.conf on box/Mac.
+# Secrets: read from ~/.config/stratagrok/automation.desk.imap (and .smtp) — never paste here in-repo.
+
+[automation.desk]
+source = maildir:///home/box/mail/automation.desk
+# Mac alternate:
+# source = maildir://~/mail/automation.desk
+from = Automation Desk <automation.desk@calhegasmorais.pt>
+default = INBOX
+check-mail-cmd = bash /path/to/repo/deploy/mac-fog/desk-mail-sync.sh
+check-mail = 5m
+check-mail-timeout = 30s
+# If using Dovecot IMAP instead of raw Maildir:
+# source = imaps://automation.desk@127.0.0.1:143
+# source-cred-cmd = cat ~/.config/stratagrok/automation.desk.imap
+# outgoing = smtps://automation.desk@smtp.example:465
+# outgoing-cred-cmd = cat ~/.config/stratagrok/automation.desk.smtp

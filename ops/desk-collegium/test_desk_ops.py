@@ -154,5 +154,103 @@ class DeskOps(unittest.TestCase):
         self.assertIsNone(t1.get("hold_until"))
 
 
+    def test_metabol_pace_gates_handlers(self):
+        """HOLD skips non-lead; STASIS skips; ALLOW runs; lane-bot HOLD does not freeze claw."""
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        state = bus.load_state()
+        state["open_tasks"] = [{
+            "schema": "desk.task.v1",
+            "id": "dt-pace-claw",
+            "owner": "openclaw@fog",
+            "specialty": "claw",
+            "intent": "probe",
+            "status": "constrain",
+            "constraints": [],
+            "result": "",
+            "sha": "",
+        }]
+        state["lanes"] = {
+            "lane-openclaw": {"pace": "HOLD", "tokens_used": 28000, "tokens_limit": 33000,
+                              "sample_note": "session high"},
+            "lane-hermes": {"pace": "ALLOW"},
+            "lane-opencode": {"pace": "ALLOW"},
+            "lane-bot": {"pace": "HOLD"},
+            "lane-assistant": {"pace": "ALLOW"},
+        }
+        bus.save_state(state)
+
+        # HOLD on openclaw → claw not picked
+        picked = mod.pick_tasks(bus.load_state(), max_n=5)
+        self.assertNotIn("dt-pace-claw", {t["id"] for t in picked})
+
+        # Bot HOLD must not freeze code/coord if those lanes ALLOW
+        state = bus.load_state()
+        state["open_tasks"].append({
+            "schema": "desk.task.v1",
+            "id": "dt-pace-code",
+            "owner": "opencode@fog",
+            "specialty": "code",
+            "intent": "tests",
+            "status": "constrain",
+            "constraints": [],
+            "result": "",
+            "sha": "",
+        })
+        bus.save_state(state)
+        picked2 = mod.pick_tasks(bus.load_state(), max_n=5)
+        ids = {t["id"] for t in picked2}
+        self.assertIn("dt-pace-code", ids)
+        self.assertNotIn("dt-pace-claw", ids)
+
+        # STASIS blocks
+        state = bus.load_state()
+        state["lanes"]["lane-opencode"]["pace"] = "STASIS"
+        bus.save_state(state)
+        picked3 = mod.pick_tasks(bus.load_state(), max_n=5)
+        self.assertNotIn("dt-pace-code", {t["id"] for t in picked3})
+
+        # ALLOW runs handler (claw)
+        state = bus.load_state()
+        state["lanes"]["lane-openclaw"]["pace"] = "ALLOW"
+        state["open_tasks"] = [t for t in state["open_tasks"] if t["id"] == "dt-pace-claw"]
+        bus.save_state(state)
+        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        called = {"n": 0}
+        real = mod.handler_claw
+        def wrap(task, *, dry):
+            called["n"] += 1
+            return real(task, dry=dry)
+        mod.handler_claw = wrap  # type: ignore
+        mod.HANDLERS["claw"] = wrap
+        mod._push = lambda bus: None  # type: ignore
+        mod.record_taper_status = lambda dry=False: {"ok": True}  # type: ignore
+        mod.specialty_self_audit_tick = lambda dry=False, state=None: {"ok": True}  # type: ignore
+        ns = type("A", (), {"max": 1, "dry_run": False})()
+        rc = mod.cmd_cycle(ns)
+        self.assertEqual(rc, 0)
+        self.assertGreaterEqual(called["n"], 1)
+
+    def test_handler_claw_verb_audit(self):
+        mod = self.mod
+        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        out = mod.handler_claw({"id": "dt-x", "specialty": "claw"}, dry=True)
+        self.assertEqual(out.get("verb"), "audit")
+        self.assertIn("fog=", out.get("result", ""))
+
+    def test_fog_edge_briefs_nonempty(self):
+        mod = self.mod
+        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        out = mod.handler_fog({"id": "dt-fog", "intent": "origin", "specialty": "fog"}, dry=False)
+        brief = self.tmp / "data/desk-outbox/fog-assistant-next.md"
+        self.assertTrue(brief.is_file(), "fog brief missing")
+        self.assertGreater(brief.stat().st_size, 40)
+        self.assertIn("Execute", brief.read_text())
+        out2 = mod.handler_edge({"id": "dt-edge", "intent": "api", "specialty": "edge"}, dry=False)
+        ebrief = self.tmp / "data/desk-outbox/edge-assistant-next.md"
+        self.assertTrue(ebrief.is_file())
+        self.assertTrue("api-edge" in ebrief.read_text().lower() or "health" in ebrief.read_text().lower())
+
+
 if __name__ == "__main__":
     unittest.main()

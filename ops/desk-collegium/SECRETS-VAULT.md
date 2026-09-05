@@ -48,3 +48,17 @@ Peer constrain if another specialty's vault file is touched.
 ## Cycle check
 
 `ensure_desk_surfaces` verifies `.gitignore` needles + per-agent `VAULT.md` templates exist. It **never** copies secret values into outbox.
+
+## Shared desk mail — automation.desk@
+
+All Mac terminal agents (Hermes / OpenCode / OpenClaw) **and** assistants share one desk Maildir client:
+
+| File (0600) | Purpose |
+|-------------|---------|
+| `~/.config/stratagrok/automation.desk.imap` | IMAP host/user/pass env (KEY=value) |
+| `~/.config/stratagrok/automation.desk.smtp` | SMTP host/user/pass env |
+| `~/.config/stratamesh/automation.desk.env` | optional materialize alias |
+| `~/.config/stratagrok/automation.desk.token` | Worker/sync Bearer for desk-mail-sync |
+| `~/.config/stratagrok/desk-mail.token` | `/desk` Bearer (separate from IMAP) |
+
+Per-agent `config.yaml` / DESK.md / SOUL point at these **paths** (shared client **plus** per-agent pointers). Never put passwords in git.
