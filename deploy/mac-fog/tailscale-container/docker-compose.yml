@@ -1,0 +1,23 @@
+# Mac Docker Desktop — Tailscale sidecar for lab containers (trial bridge).
+# Secrets: ~/.config/stratagrok/tailscale-container-auth.key (0600). Never commit the key.
+# Taper: prefer WG 10.88.0.0/24 for operator; TS containers are bridge-only until TRIAL_ENDS_PT.
+#
+#   export TS_AUTHKEY="$(tr -d '\n' < ~/.config/stratagrok/tailscale-container-auth.key)"
+#   docker compose up -d
+#
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    hostname: lab-docker-sidecar
+    container_name: lab-tailscale
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_EXTRA_ARGS: --advertise-tags=tag:container --accept-routes=false --accept-dns=false --advertise-exit-node=false
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+    volumes:
+      - ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+volumes:
+  ts-state:

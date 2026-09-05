@@ -82,6 +82,13 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 4. Zero paid Tailscale invoice.
 5. After T3: `tailscale status` fails / logged out; `wg show` still has André peer.
 
+## Containers (Docker / K8s)
+- ACL `tag:container` owned by admin; vaulted ephemeral auth key `~/.config/stratagrok/tailscale-container-auth.key`.
+- Compose: `deploy/mac-fog/tailscale-container/` — **Mac Docker Desktop** (box Docker daemon blocked).
+- Userspace Tailscale sidecar; no exit-node / accept-routes / accept-dns.
+- **Kubernetes:** HOLD until a cluster exists.
+- Still taper: do not make Fog/desk depend on container `100.x`; WG remains T1 primary.
+
 ## Runbooks
 - Operator VPN: `OPERATOR-VPN.md` + `~/.local/bin/start-operator-vpn.sh`
 - Tailscale metabol: `TAILSCALE-METABOL.md`
