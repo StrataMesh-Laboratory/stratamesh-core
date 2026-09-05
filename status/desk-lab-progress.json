@@ -5,9 +5,9 @@
   "phase_name": "Adversarial LAB P1",
   "lab": true,
   "not_mainnet": true,
-  "updated_at": "2026-09-05T14:13:15Z",
-  "updated_at_pt": "2026-09-05T15:13:15+0100",
-  "git_sha": "c3ba405",
+  "updated_at": "2026-09-05T15:45:46Z",
+  "updated_at_pt": "2026-09-05T16:45:46+0100",
+  "git_sha": "7707601",
   "acts": {
     "delivered_total": 37,
     "open_count": 10,
@@ -84,7 +84,7 @@
   },
   "discourse": {
     "topic": "https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20",
-    "metrics_line": "desk lab P1 \u00b7 sha=c3ba405 \u00b7 acts_done=37 open=10 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
+    "metrics_line": "desk lab P1 \u00b7 sha=7707601 \u00b7 acts_done=37 open=10 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
     "draft_hold": false
   },
   "fund": {
@@ -92,6 +92,6 @@
     "section": "lab-progress",
     "note": "Fed from this JSON \u2014 no invented dollars"
   },
-  "source": "desk_metrics.update_lab_progress",
-  "note": "Objective lab metrics only \u2014 no EUR invented."
+  "source": "desk_metrics.stamp_sha_mac_offline",
+  "note": "Objective lab metrics only \u2014 no EUR invented. Mac Fog offline stamp (box)."
 }

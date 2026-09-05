@@ -35,6 +35,15 @@ Canonical shortlist: [`docs/ORACLE-OSS-ALTS.md`](../../docs/ORACLE-OSS-ALTS.md) 
 - MW mesh remains on Mac (:8788–:8792); this peer is Fog kernel + gossip peer.
 
 
+## Mac Fog offline (mbpv / hermes-desk)
+
+While Tailscale host `mbpv` / `hermes-desk` is asleep or unreachable:
+
+- **Do not** expect `gcloud` on the Mac desk path — signup card-verify / 2FA and local `gcloud` auth live on that machine.
+- Box / CF / `gh` work continues; this pack still targets operator identity **`automation.desk@calhegasmorais.pt`**.
+- Finish e2-micro create + IAP/Tailscale join on wake (or André browser verify). `oracle_live` stays **false** until the peer is INV/TX-proven.
+- See [`docs/FOG-MAC-OFFLINE.md`](../../docs/FOG-MAC-OFFLINE.md).
+
 ## Persistence / absence (standing)
 
 All of this must keep working and evolving when STRATAGROK (Bot) is away:
