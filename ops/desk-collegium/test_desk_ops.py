@@ -7,9 +7,19 @@ import tempfile
 import unittest
 from pathlib import Path
 import importlib.util
+import shutil
 
 ROOT = Path(__file__).resolve().parents[2]
 OPS = Path(__file__).resolve().parent / "desk_ops.py"
+PROJ = Path(__file__).resolve().parent / "projected.json"
+
+
+def _load_ops():
+    spec = importlib.util.spec_from_file_location("desk_ops", OPS)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class DeskOps(unittest.TestCase):
@@ -20,7 +30,7 @@ class DeskOps(unittest.TestCase):
         d.mkdir(parents=True)
         state = {
             "schema": "desk.collegium.state.v1",
-            "version": "0.3.1-lab",
+            "version": "0.3.5-lab",
             "members": [],
             "open_tasks": [{
                 "schema": "desk.task.v1",
@@ -43,21 +53,19 @@ class DeskOps(unittest.TestCase):
             },
         }
         (d / "state.json").write_text(json.dumps(state, indent=2) + "\n")
+        self.mod = _load_ops()
 
     def test_cycle_completes_claw(self):
-        spec = importlib.util.spec_from_file_location("desk_ops", OPS)
-        mod = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(mod)
+        mod = self.mod
         mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
         mod._push = lambda bus: None  # type: ignore
+        mod.record_taper_status = lambda dry=False: {"ok": True, "trial_ends_pt": "2026-09-16"}  # type: ignore
         ns = type("A", (), {"max": 1, "dry_run": False})()
         rc = mod.cmd_cycle(ns)
         self.assertEqual(rc, 0)
         state = json.loads((self.tmp / "data/desk-collegium/state.json").read_text())
         self.assertNotIn("dt-test-claw", {t["id"] for t in state.get("open_tasks") or []})
         self.assertIn("dt-test-claw", {t["id"] for t in state.get("done_tasks") or []})
-        # cycle must record last-cycle / metrics for Mac operative score
         metrics = self.tmp / "data" / "desk-metrics.jsonl"
         last = self.tmp / "data" / "last-cycle.jsonl"
         self.assertTrue(metrics.is_file(), "desk-metrics.jsonl missing after cycle")
@@ -65,6 +73,85 @@ class DeskOps(unittest.TestCase):
         row = json.loads(metrics.read_text().strip().splitlines()[-1])
         self.assertGreaterEqual(int(row.get("delivered") or 0), 1)
         self.assertTrue(row.get("protocol_ok"))
+
+    def test_ensure_projected_idempotent_and_holds(self):
+        """Catalog seed uses stable ids; second ensure is no-op; Oracle/T3 stay held."""
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        # empty open tasks so catalog can seed freely
+        state = bus.load_state()
+        state["open_tasks"] = []
+        bus.save_state(state)
+
+        first = mod.ensure_projected_catalog(bus, bus.load_state(), dry=False)
+        self.assertTrue(first, "expected at least one seed from projected catalog")
+        # stable ids
+        for tid in first:
+            self.assertTrue(str(tid).startswith("dt-proj-"), tid)
+        state1 = bus.load_state()
+        ids1 = sorted(t["id"] for t in state1["open_tasks"])
+        sources1 = sorted(t.get("source") or "" for t in state1["open_tasks"])
+
+        second = mod.ensure_projected_catalog(bus, bus.load_state(), dry=False)
+        self.assertEqual(second, [], "second ensure must be idempotent (no re-seed)")
+        state2 = bus.load_state()
+        self.assertEqual(sorted(t["id"] for t in state2["open_tasks"]), ids1)
+        self.assertEqual(sorted(t.get("source") or "" for t in state2["open_tasks"]), sources1)
+
+        # Oracle + T3 + T4 + headscale must remain in projected (_hold), not open
+        board = mod.classify(bus.load_state())
+        held_ids = {i["id"] for i in board["projected"] if i.get("_hold")}
+        self.assertIn("proj-oracle-260826", held_ids)
+        self.assertIn("proj-ts-taper-t3", held_ids)
+        self.assertIn("proj-ts-taper-t4", held_ids)
+        self.assertIn("proj-ts-headscale-spike", held_ids)
+        self.assertIn("proj-m2-twohost", held_ids)
+
+        # T1 must be seeded (Act NOW); Mac human_gate escalated
+        open_by_src = {t.get("source"): t for t in state2["open_tasks"]}
+        self.assertIn("projected:proj-ts-taper-t1", open_by_src)
+        self.assertEqual(open_by_src["projected:proj-ts-taper-t1"].get("eisenhower"), "act")
+        mac = open_by_src.get("projected:proj-mac-desk-operative")
+        self.assertIsNotNone(mac)
+        self.assertEqual(mac.get("status"), "escalate")
+        self.assertTrue(mac.get("human_gate"))
+
+        # T2 plan seeded as propose, not auto-picked
+        t2 = open_by_src.get("projected:proj-ts-taper-t2")
+        self.assertIsNotNone(t2)
+        self.assertEqual(t2.get("eisenhower"), "plan")
+        self.assertEqual(t2.get("status"), "propose")
+        picked = mod.pick_tasks(state2, max_n=10, include_human_gates=False)
+        picked_ids = {t["id"] for t in picked}
+        self.assertNotIn(t2["id"], picked_ids)
+        self.assertNotIn(mac["id"], picked_ids)
+
+    def test_hold_released_trial_clock(self):
+        mod = self.mod
+        data = {"trial_ends_pt": "2026-09-16", "t3_from_pt": "2026-09-14"}
+        self.assertTrue(mod.hold_released({"hold_until": None}, data))
+        self.assertFalse(mod.hold_released({"hold_until": "oracle_grok90"}, data))
+        self.assertFalse(mod.hold_released({"hold_until": "headscale_eval"}, data))
+        # today is 2026-09-05 PT → T3/T4 held
+        self.assertFalse(mod.hold_released({"hold_until": "trial_t3"}, data))
+        self.assertFalse(mod.hold_released({"hold_until": "trial_ended"}, data))
+        self.assertEqual(mod._trial_ends_pt(data), "2026-09-16")
+        self.assertEqual(mod._t3_from_pt(data), "2026-09-14")
+
+    def test_projected_catalog_has_taper_ids(self):
+        data = json.loads(PROJ.read_text(encoding="utf-8"))
+        ids = {i["id"] for i in data["items"]}
+        for need in (
+            "proj-ts-taper-t1", "proj-ts-taper-t2", "proj-ts-taper-t3", "proj-ts-taper-t4",
+            "proj-mac-desk-operative", "proj-oracle-260826",
+        ):
+            self.assertIn(need, ids)
+        self.assertEqual(data.get("trial_ends_pt"), "2026-09-16")
+        t3 = next(i for i in data["items"] if i["id"] == "proj-ts-taper-t3")
+        self.assertEqual(t3.get("hold_until"), "trial_t3")
+        t1 = next(i for i in data["items"] if i["id"] == "proj-ts-taper-t1")
+        self.assertEqual(t1.get("eisenhower"), "act")
+        self.assertIsNone(t1.get("hold_until"))
 
 
 if __name__ == "__main__":

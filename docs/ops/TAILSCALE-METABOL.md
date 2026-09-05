@@ -21,3 +21,10 @@
 
 ## Verify Billing (human)
 Admin console → Settings → Billing: trial days left, Personal vs trial vs paid. Screenshot or say the number — Bot never invents remaining days.
+
+## Trial clock (filled)
+- As of 2026-09-05 PT: **11 days left** → `TRIAL_ENDS_PT=2026-09-16`
+- T1 (WG/OVPN prove Mac+iPhone): **now** (≥5d left)
+- T3 revoke: from **2026-09-14** (last 48h)
+- T4 uninstall: after `2026-09-16`
+- **Do not buy seats.**

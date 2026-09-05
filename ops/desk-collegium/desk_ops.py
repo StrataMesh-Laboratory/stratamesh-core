@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Desk ops cycle — methodology-enforced real work (ongoing/pending/projected).
 
-Laws: ops/desk-collegium/protocol.json (incl. academy_teach).
+Laws: ops/desk-collegium/protocol.json (incl. academy_teach, eisenhower).
 Lifecycle: projected → pending(propose) → ongoing(constrain|revise|commit) → done|escalate.
+Catalog: projected.json re-seeded each cycle via ensure_projected_catalog (idempotent ids).
 
 Usage:
   python3 ops/desk-collegium/desk_ops.py cycle [--max 1] [--dry-run]
@@ -83,6 +84,100 @@ def _http_ok(url: str, timeout: float = 6.0) -> tuple[bool, str]:
             return False, f"{e}; fallback:{e2}"[:160]
 
 
+def load_projected() -> dict:
+    if not PROJECTED.is_file():
+        return {"items": []}
+    return json.loads(PROJECTED.read_text(encoding="utf-8"))
+
+
+def _stable_task_id(catalog_id: str) -> str:
+    """Deterministic open-task id from projected catalog id (idempotent)."""
+    raw = (catalog_id or "x").replace("_", "-")
+    if raw.startswith("proj-"):
+        raw = raw[5:]
+    # keep readable; prefix dt-proj-
+    slug = "".join(c if c.isalnum() or c == "-" else "-" for c in raw)[:40]
+    return f"dt-proj-{slug}"
+
+
+def _trial_ends_pt(data: dict | None = None) -> str | None:
+    """Return TRIAL_ENDS_PT YYYY-MM-DD if known (projected.json or TAPER doc). No secrets."""
+    data = data if data is not None else load_projected()
+    v = (data.get("trial_ends_pt") or "").strip()
+    if v and len(v) >= 10:
+        return v[:10]
+    taper = REPO_ROOT / "docs" / "ops" / "TAILSCALE-TAPER.md"
+    if taper.is_file():
+        import re
+        m = re.search(r"TRIAL_ENDS_PT\s*=\s*(\d{4}-\d{2}-\d{2})", taper.read_text(encoding="utf-8"))
+        if m:
+            return m.group(1)
+    meter = FOG / "data" / "desk-meters" / "tailscale-taper.json"
+    if meter.is_file():
+        try:
+            j = json.loads(meter.read_text(encoding="utf-8"))
+            t = str(j.get("trial_ends_pt") or "")[:10]
+            if len(t) == 10:
+                return t
+        except Exception:
+            pass
+    return None
+
+
+def _t3_from_pt(data: dict | None = None) -> str | None:
+    data = data if data is not None else load_projected()
+    v = (data.get("t3_from_pt") or "").strip()
+    if v and len(v) >= 10:
+        return v[:10]
+    ends = _trial_ends_pt(data)
+    if not ends:
+        return None
+    # default: 2 days before trial end
+    try:
+        from datetime import datetime, timedelta
+        d = datetime.strptime(ends, "%Y-%m-%d") - timedelta(days=2)
+        return d.strftime("%Y-%m-%d")
+    except Exception:
+        return None
+
+
+def _today_pt_ymd() -> str:
+    """Approximate Europe/Lisbon calendar day (UTC+0/+1); good enough for hold gates."""
+    try:
+        from datetime import datetime, timezone, timedelta
+        # Europe/Lisbon ≈ UTC+1 in Sep (WEST/WEST+1); use UTC+1 fixed for lab clock
+        return (datetime.now(timezone.utc) + timedelta(hours=1)).strftime("%Y-%m-%d")
+    except Exception:
+        return time.strftime("%Y-%m-%d")
+
+
+def hold_released(item: dict, data: dict | None = None) -> bool:
+    """True when projected item may be seeded into open_tasks."""
+    hold = item.get("hold_until")
+    if not hold:
+        return True
+    data = data if data is not None else load_projected()
+    today = _today_pt_ymd()
+    if hold == "oracle_grok90":
+        return False  # human vault gate — never auto-release
+    if hold == "headscale_eval":
+        return False  # explicit HOLD until André asks
+    if hold == "billing_trial_date":
+        return bool(_trial_ends_pt(data))
+    if hold == "trial_t3":
+        t3 = _t3_from_pt(data)
+        return bool(t3 and today >= t3)
+    if hold in ("trial_ended", "trial_le_2d"):
+        # trial_le_2d legacy alias → treat like trial_t3
+        if hold == "trial_le_2d":
+            t3 = _t3_from_pt(data)
+            return bool(t3 and today >= t3)
+        ends = _trial_ends_pt(data)
+        return bool(ends and today > ends)
+    # unknown hold key → keep held (safe default)
+    return False
+
+
 def classify(state: dict) -> dict:
     open_tasks = state.get("open_tasks") or []
     ongoing, pending, escalated = [], [], []
@@ -96,17 +191,18 @@ def classify(state: dict) -> dict:
             pending.append(t)
     projected = []
     if PROJECTED.is_file():
-        data = json.loads(PROJECTED.read_text(encoding="utf-8"))
+        data = load_projected()
         open_ids = {t.get("id") for t in open_tasks}
         done_ids = {t.get("id") for t in (state.get("done_tasks") or [])}
         sources = {t.get("source") for t in open_tasks + (state.get("done_tasks") or [])}
         for item in data.get("items") or []:
             pid = item.get("id")
             src = f"projected:{pid}"
-            if src in sources or pid in open_ids or pid in done_ids:
+            stable = _stable_task_id(pid)
+            if src in sources or pid in open_ids or stable in open_ids or pid in done_ids or stable in done_ids:
                 continue
-            if item.get("hold_until") == "oracle_grok90":
-                item = dict(item)
+            item = dict(item)
+            if not hold_released(item, data):
                 item["_hold"] = True
             projected.append(item)
     return {
@@ -189,6 +285,14 @@ def handler_code(task: dict, *, dry: bool) -> dict:
 
 def handler_lead(task: dict, *, dry: bool) -> dict:
     intent = (task.get("intent") or "").lower()
+    if task.get("human_gate") or _is_human_gate_task(task):
+        return {
+            "ok": True,
+            "result": "lead HOLD/escalate: human gate (Oracle/Mac token|gh|g / Billing / vault) — no fake progress",
+            "done": False,
+            "sha": "",
+            "escalate": True,
+        }
     if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
         return {
             "ok": True,
@@ -232,6 +336,46 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
         path.write_text(json.dumps({"ts": _now(), "academy_ok": ok, "duty": "academy_teach"}, indent=2) + "\n")
     return {"ok": True, "result": note, "done": ok, "sha": ""}
 
+
+
+def record_taper_status(*, dry: bool = False) -> dict:
+    """Optional soft probe — never prints secrets; writes desk-meters/tailscale-taper.json."""
+    out = {
+        "ts": _now(),
+        "trial_ends_pt": _trial_ends_pt(),
+        "t3_from_pt": _t3_from_pt(),
+        "helper": None,
+        "ok": False,
+        "summary": "",
+    }
+    helpers = [
+        Path.home() / ".local/bin/tailscale-taper-status.sh",
+        REPO_ROOT / "ops" / "bin" / "tailscale-taper-status.sh",
+    ]
+    script = next((p for p in helpers if p.is_file()), None)
+    if script and not dry:
+        try:
+            r = subprocess.run(
+                ["bash", str(script)],
+                capture_output=True, text=True, timeout=20,
+            )
+            tail = ((r.stdout or "") + (r.stderr or ""))[-500:].replace("\n", " | ")
+            out["helper"] = str(script)
+            out["ok"] = r.returncode == 0
+            out["summary"] = tail[:240]
+        except Exception as e:
+            out["summary"] = f"taper probe fail: {e}"[:160]
+    elif not script:
+        out["summary"] = "no taper-status helper (soft skip)"
+        out["ok"] = True
+    if not dry:
+        try:
+            meters = FOG / "data" / "desk-meters"
+            meters.mkdir(parents=True, exist_ok=True)
+            (meters / "tailscale-taper.json").write_text(json.dumps(out, indent=2) + "\n")
+        except Exception:
+            pass
+    return out
 
 
 def write_agent_outbox(agent: str, task: dict, out: dict) -> None:
@@ -332,11 +476,24 @@ HANDLERS = {
 
 
 def _is_human_gate_task(task: dict) -> bool:
+    if task.get("human_gate"):
+        return True
     intent = (task.get("intent") or "").lower()
     if (task.get("status") or "") == "escalate":
         return True
+    if any(
+        k in intent
+        for k in (
+            "oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major",
+            "desk-mail.token", "vault reset", "human gate", "billing",
+            "trial_ends", "fill trial", "g to recent",
+        )
+    ):
+        # Mac token/gh/g + Oracle + Billing are never auto-faked
+        if task.get("specialty") in ("lead", "coord", None, "") or "human" in intent:
+            return True
     if task.get("specialty") == "lead" and any(
-        k in intent for k in ("oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major")
+        k in intent for k in ("oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major", "mac desk", "revoke")
     ):
         return True
     return False
@@ -352,13 +509,16 @@ def _handler_for(task: dict) -> str | None:
 
 
 def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) -> list[dict]:
-    """Prefer claw/code/coord/edge/fog/teach. Skip Oracle/lead gates unless asked."""
+    """Prefer claw/code/coord/edge/fog/teach Act work. Skip Plan/Note + human gates unless asked."""
     board = classify(state)
     # specialty priority for real agent work (not stratagrok self-loop)
     prio = {"claw": 0, "code": 1, "teach": 2, "coord": 3, "edge": 4, "fog": 5, "lead": 9}
     ordered = board["ongoing"] + board["pending"]
     scored: list[tuple[int, dict]] = []
     for t in ordered:
+        eisen = (t.get("eisenhower") or "act").lower()
+        if eisen in ("plan", "note") and not include_human_gates:
+            continue
         if _is_human_gate_task(t) and not include_human_gates:
             continue
         use_spec = _handler_for(t)
@@ -377,39 +537,88 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
     return [t for _, t in scored[:max_n]]
 
 
-def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
-    """If no real-agent ALLOW work, promote one projected (anti-idle / anti self-loop)."""
-    board = classify(state)
-    actionable = pick_tasks(state, max_n=1, include_human_gates=False)
-    if actionable:
+def _seed_one_projected(bus, item: dict, *, dry: bool, as_escalate: bool = False) -> str | None:
+    """Propose one catalog item with stable id + source. Idempotent via find_task."""
+    pid = item.get("id")
+    if not pid:
         return None
-    for item in board["projected"]:
-        if item.get("_hold") or item.get("hold_until") == "oracle_grok90":
+    tid = _stable_task_id(pid)
+    state = bus.load_state()
+    if bus.find_task(state, tid):
+        return None
+    # also skip if source already present under another id
+    src = f"projected:{pid}"
+    for t in (state.get("open_tasks") or []) + (state.get("done_tasks") or []):
+        if t.get("source") == src:
+            return None
+    if dry:
+        return f"would seed {pid} → {tid}"
+    spec = item.get("specialty") or "coord"
+    ns = argparse.Namespace(
+        owner=item.get("owner") or "hermes",
+        specialty=spec,
+        intent=item.get("intent") or pid,
+        id=tid,
+        lanes=item.get("lanes") or [],
+    )
+    rc = bus.cmd_propose(ns)
+    if rc != 0:
+        return None
+    state = bus.load_state()
+    task = bus.find_task(state, tid)
+    if task:
+        task["source"] = src
+        if item.get("duty"):
+            task["duty"] = item["duty"]
+        if item.get("eisenhower"):
+            task["eisenhower"] = item["eisenhower"]
+        if item.get("human_gate"):
+            task["human_gate"] = True
+        if item.get("hold_until"):
+            task["hold_until"] = item["hold_until"]
+        task["updated"] = _now()
+        bus.save_state(state)
+    if as_escalate or item.get("human_gate"):
+        bus._mutate(tid, "escalate", by="stratagrok", note="protocol: human_gate from projected catalog")
+    return tid
+
+
+def ensure_projected_catalog(bus, state: dict, *, dry: bool) -> list[str]:
+    """BY DESIGN: re-seed all released projected catalog items (idempotent stable ids).
+
+    - hold_until not released → stay projected (_hold)
+    - human_gate → seed as escalate (visible Act gate, no fake progress)
+    - eisenhower plan/note → seed as propose (pending), not auto-picked
+    - eisenhower act → seed as propose (pending → cycle may auto-constrain)
+    """
+    data = load_projected()
+    seeded: list[str] = []
+    for item in data.get("items") or []:
+        if not hold_released(item, data):
             continue
-        spec = item.get("specialty") or "coord"
-        lane = _specialty_lane(spec)
-        if _lane_pace(state, lane) in ("STASIS", "HOLD") and spec != "lead":
+        # skip if already present
+        pid = item.get("id")
+        src = f"projected:{pid}"
+        tid = _stable_task_id(pid)
+        open_ids = {t.get("id") for t in (state.get("open_tasks") or [])}
+        done_ids = {t.get("id") for t in (state.get("done_tasks") or [])}
+        sources = {t.get("source") for t in (state.get("open_tasks") or []) + (state.get("done_tasks") or [])}
+        if src in sources or tid in open_ids or tid in done_ids or pid in open_ids or pid in done_ids:
             continue
-        if dry:
-            return f"would promote {item.get('id')}"
-        ns = argparse.Namespace(
-            owner=item.get("owner") or "hermes",
-            specialty=spec,
-            intent=item.get("intent") or item.get("id"),
-            id=f"dt-{str(item.get('id') or uuid.uuid4().hex)[:16].replace('_','')}",
-            lanes=item.get("lanes") or [],
-        )
-        rc = bus.cmd_propose(ns)
-        if rc == 0:
-            state = bus.load_state()
-            task = bus.find_task(state, ns.id)
-            if task:
-                task["source"] = f"projected:{item.get('id')}"
-                if item.get("duty"):
-                    task["duty"] = item["duty"]
-                task["updated"] = _now()
-                bus.save_state(state)
-            return ns.id
+        got = _seed_one_projected(bus, item, dry=dry, as_escalate=bool(item.get("human_gate")))
+        if got:
+            seeded.append(got if not str(got).startswith("would") else got)
+            if not dry:
+                state = bus.load_state()
+    return seeded
+
+
+def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
+    """Anti-idle: ensure catalog first; if still no Act work, seed was enough."""
+    seeded = ensure_projected_catalog(bus, state, dry=dry)
+    if seeded:
+        return seeded[0]
+    # fallback: if catalog empty of releasable, nothing to promote
     return None
 
 
@@ -526,13 +735,27 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     except Exception as e:
         chk = {"ok": False, "violations": [str(e)]}
 
+    # BY DESIGN: idempotent re-seed from projected catalog (taper/Mac/Oracle/academy)
+    seeded = ensure_projected_catalog(bus, state, dry=args.dry_run)
+    if seeded:
+        print(f"ops: ensure_projected seeded {len(seeded)} → {seeded[:6]}")
+        state = bus.load_state()
+
+    # soft taper status meter (optional helper)
+    try:
+        if not args.dry_run:
+            ts = record_taper_status(dry=False)
+            print(f"ops: taper_status trial_ends={ts.get('trial_ends_pt')} ok={ts.get('ok')}")
+    except Exception as e:
+        print(f"taper status warn: {e}", file=sys.stderr)
+
     # academy teach duty tick
     academy_teach_tick(bus, state, dry=args.dry_run)
     state = bus.load_state()
 
-    # anti-idle: promote projected if needed
+    # anti-idle: promote still available (ensure already ran; may no-op)
     promoted = promote_projected(bus, state, dry=args.dry_run)
-    if promoted:
+    if promoted and promoted not in seeded:
         print(f"ops: promoted projected → {promoted}")
         state = bus.load_state()
 

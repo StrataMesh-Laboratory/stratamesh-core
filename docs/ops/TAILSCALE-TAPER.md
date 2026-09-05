@@ -3,11 +3,11 @@
 **Goal:** use the **14-day business trial** only as a bridge. Before it ends, every Tailscale *service* the lab actually needs is carried by open-source or free-forever stand-ins already preferred in `OPERATOR-VPN.md`. **Do not buy seats.** Trial does **not** auto-renew (`TAILSCALE-METABOL.md`).
 
 **Tailnet:** `stratamesh-laboratory.org.github` (GitHub org SSO).  
-**T_end:** *unknown until Billing screenshot* — fill `TRIAL_ENDS_PT=` below when known.  
+**T_end:** `TRIAL_ENDS_PT=2026-09-16` (Billing: **11 days left** as of 2026-09-05 PT). T3 from **2026-09-14**. T4 after end. **Do not buy seats.**
 **Auth/API keys vaulted:** `~/.config/stratagrok/tailscale-auth.key`, `tailscale-api.key` (expire ~2026-12-04; revoke at T3).
 
 ```
-TRIAL_ENDS_PT=   # e.g. 2026-09-19 23:59 PT — André fills from Billing
+TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2026-09-14
 ```
 
 ## Service substitution map (what TS does → what we keep)
@@ -37,9 +37,9 @@ TRIAL_ENDS_PT=   # e.g. 2026-09-19 23:59 PT — André fills from Billing
 - Vault auth + API keys (done). Box joined as `stratagrok-box` with metabol-safe flags (`--accept-routes=false --accept-dns=false --advertise-exit-node=false`).
 - **Dual-run:** Tailscale may stay up for inventory/API only; **no** desk/Fog/path dependency on `100.x`.
 - Confirm WG `wg0`, OpenVPN `:1194`, Tor `:9050`, cloudflared untouched.
-- André: paste trial end from Billing → set `TRIAL_ENDS_PT`.
+- André: Billing filled 2026-09-05 PT → `TRIAL_ENDS_PT=2026-09-16` (11d left). T1 is **now**.
 
-### T1 — Substitute primary paths (when ≥5 days left, or immediately if fewer)
+### T1 — Substitute primary paths (**NOW** — ≥5 days left until 2026-09-16)
 - Mac (`MBPV`): install/verify **WireGuard client** with `wireguard-client.conf.example` → `10.88.0.2`; `AllowedIPs=10.88.0.0/24` only.
 - iPhone: prefer **OpenVPN** profile (TCP/onion) or WG app; prove `https://10.88.0.1/` and Fog health via overlay.
 - Document cutover one-pager in DESK feed: “operator = WG/OVPN, public = named tunnel”.
@@ -51,14 +51,14 @@ TRIAL_ENDS_PT=   # e.g. 2026-09-19 23:59 PT — André fills from Billing
 - Disable MagicDNS expectations; add Fog node inventory names → `10.88.0.x` in ops-monitor.
 - Keep `ts-api devices` as **read-only metabol meter** until T3.
 
-### T3 — Freeze & revoke (last 48h before `TRIAL_ENDS_PT`, or sooner if Billing says ≤2d)
+### T3 — Freeze & revoke (from **2026-09-14**, last 48h before `TRIAL_ENDS_PT=2026-09-16`)
 - `tailscale down` on box; stop userspace `tailscaled` (do not systemd-fight).
 - Revoke **auth keys** and **API tokens** in admin console (vault files stay until wiped).
 - Mac/iPhone: disconnect Tailscale app; leave installed until T4 uninstall.
 - Confirm operator still works: WG + OVPN + named tunnel + Tor only.
 - **Do not** convert trial → paid. Opt Personal only if André explicitly wants a dormant ≤6-user net for personal experiments — **not** for StrataMesh lab commercial paths.
 
-### T4 — After trial (phase-out complete)
+### T4 — After trial (phase-out complete — after **2026-09-16**)
 - Uninstall Tailscale clients (Mac human job; box `apt remove tailscale` when idle).
 - Wipe or rotate vaulted `tailscale-*.key` (0600 shred).
 - Leave `TAILSCALE-METABOL.md` + this taper as historical metabol law.
@@ -68,7 +68,7 @@ TRIAL_ENDS_PT=   # e.g. 2026-09-19 23:59 PT — André fills from Billing
 
 | Signal | Action |
 | --- | --- |
-| Trial days unknown | ALLOW vault+bridge; HOLD buy; ask Billing |
+| Trial days known (11→0 as of 2026-09-05) | ALLOW T1 now; HOLD buy; T3 from 2026-09-14 |
 | Trial days ≤ 5 | Force T1 if Mac WG not proven |
 | Trial days ≤ 2 | Force T3 revoke |
 | Seat / card prompt | STASIS — refuse upgrade |

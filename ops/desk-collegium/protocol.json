@@ -1,7 +1,7 @@
 {
   "schema": "desk.protocol.v1",
-  "version": "0.3.4-lab",
-  "title": "Fog automation desk \u2014 enforceable methodology",
+  "version": "0.3.5-lab",
+  "title": "Fog automation desk — enforceable methodology",
   "sources": [
     "docs/FOG-DESK-COLLEGIUM.md",
     "docs/FOG-DESK-SPECIALIZATION.md",
@@ -18,7 +18,7 @@
     {
       "id": "bus",
       "enforce": true,
-      "text": "propose \u2192 constrain \u2192 revise \u2192 commit|escalate \u2192 done|drop"
+      "text": "propose → constrain → revise → commit|escalate → done|drop"
     },
     {
       "id": "metabol_pace",
@@ -28,7 +28,7 @@
     {
       "id": "eisenhower",
       "enforce": true,
-      "text": "One Act ordinal; no juxtapositions; Delegate Fog|EDGE split; Plan/Note parked."
+      "text": "One Act ordinal; no juxtapositions; Delegate Fog|EDGE split; Plan/Note parked. projected.json eisenhower=act|plan|note drives ensure_projected_catalog + pick_tasks."
     },
     {
       "id": "anti_vapour",
@@ -43,7 +43,7 @@
     {
       "id": "human_gates",
       "enforce": true,
-      "text": "Escalate only: Fog g, 2FA, captcha, Oracle password, Renovate majors \u2014 never fake progress."
+      "text": "Escalate only: Fog g, 2FA, captcha, Oracle password, Mac desk-mail.token/gh, Billing trial date, Renovate majors — never fake progress; never git secrets."
     },
     {
       "id": "ship_majority",
@@ -53,7 +53,7 @@
     {
       "id": "no_sca",
       "enforce": true,
-      "text": "Hermes/OpenCode/OpenClaw/Assistants are external_agent|assistant \u2014 never SCA/ACB students."
+      "text": "Hermes/OpenCode/OpenClaw/Assistants are external_agent|assistant — never SCA/ACB students."
     },
     {
       "id": "secrets",
@@ -73,12 +73,12 @@
     {
       "id": "academy_teach",
       "enforce": true,
-      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on academy.calhegasmorais.pt and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant \u2014 never enrolled as students."
+      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on academy.calhegasmorais.pt and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant — never enrolled as students."
     },
     {
       "id": "apprenticeship",
       "enforce": true,
-      "text": "Desk agents are also mentors: apprenticeship = ACBs learn by doing what the desk is developing now (collegium bus, desk_ops, Fog hops, Actions, Atelier/catalog). Each real deliverable should leave a teachable trail (outbox lesson, formation note, feed line tagged apprentice) \u2014 not vapour lectures disconnected from live work."
+      "text": "Desk agents are also mentors: apprenticeship = ACBs learn by doing what the desk is developing now (collegium bus, desk_ops, Fog hops, Actions, Atelier/catalog). Each real deliverable should leave a teachable trail (outbox lesson, formation note, feed line tagged apprentice) — not vapour lectures disconnected from live work."
     }
   ],
   "lifecycle": {
@@ -86,12 +86,14 @@
     "pending": "open_tasks in propose (waiting constrain/start)",
     "ongoing": "open_tasks in constrain|revise|commit (in flight)",
     "done": "done_tasks with deliverable result",
-    "escalated": "status escalate \u2014 human gate"
+    "escalated": "status escalate — human gate"
   },
   "cycle": [
     "metabol.tick",
     "actions.sync",
     "protocol.check",
+    "ensure_projected_catalog",
+    "record_taper_status_soft",
     "promote_projected_if_slot",
     "pick_one_ALLOW_ongoing_else_pending",
     "auto_constrain_if_propose",
@@ -110,7 +112,7 @@
     "Bot origin-take FogRuntime.command"
   ],
   "academy": {
-    "students": "SCA (PT) / ACB (EN) \u2014 same subject, equal standing to users",
+    "students": "SCA (PT) / ACB (EN) — same subject, equal standing to users",
     "teachers_and_mentors": [
       "stratagrok",
       "hermes",
