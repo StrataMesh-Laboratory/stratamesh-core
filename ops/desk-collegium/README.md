@@ -1,3 +1,16 @@
 # desk-collegium
 
-See [docs/FOG-DESK-COLLEGIUM.md](../../docs/FOG-DESK-COLLEGIUM.md).
+Live bus for Fog automation-desk agents.
+
+- Law: [docs/FOG-DESK-COLLEGIUM.md](../../docs/FOG-DESK-COLLEGIUM.md)
+- Feed: [docs/FOG-DESK-FEED.md](../../docs/FOG-DESK-FEED.md)
+- CLI: `desk_bus.py` — propose → constrain → revise → commit|escalate → done|drop
+- State: Mac live copy `FOG/data/desk-collegium/state.json` (mirrors repo `ops/desk-collegium/state.json`)
+- Feed file: `FOG/data/desk-feed.jsonl` (Fog TUI DESK panel)
+
+```bash
+python3 ops/desk-collegium/desk_bus.py pulse --apply
+python3 ops/desk-collegium/desk_bus.py list
+```
+
+Tests: `python3 -m unittest ops.desk-collegium.test_desk_bus`

@@ -9,9 +9,9 @@
 every wake / Hermes scheduled pulse:
   1. Read ops/desk-collegium/state.json + metabol decide() lanes
   2. Rank Eisenhower (STRATAGROK) — one Act ordinal
-  3. Hermes: open/update desk.task.v1 by specialty owner
+  3. Hermes: `desk_bus.py propose|constrain|…` by specialty owner (feeds TUI DESK)
   4. Disjoint specialties run in parallel (code ∥ claw ∥ assistant Act ∥ coord)
-  5. Commit → update state.last_commit + lane paces
+  5. `desk_bus.py commit` then `done` → state.last_commit + desk-feed + lane paces
   6. Escalate only: g/2FA/captcha/Oracle password/Renovate majors
 ```
 

@@ -37,3 +37,13 @@ Aligns with `docs/FOG-DESK-COLLEGIUM.md` bus: propose→constrain→revise→com
 ## Deny
 
 No passwords, tokens, 2FA, workers.dev URLs, or Maildir bodies in the feed.
+
+## Prefer desk_bus (task completion)
+
+Agents should not only chat — they must complete tasks:
+
+```bash
+python3 ops/desk-collegium/desk_bus.py propose|constrain|commit|done …
+```
+
+That updates collegium state **and** appends the desk feed in one step.
