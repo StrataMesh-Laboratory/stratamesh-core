@@ -5,7 +5,7 @@
   "items": [
     {
       "id": "ch-desk-organ",
-      "title": "Desk as collegial organ — majority ship-live",
+      "title": "Desk as collegial organ \u2014 majority ship-live",
       "status": "open",
       "specialty": "coord",
       "intent": "Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
@@ -14,13 +14,13 @@
     },
     {
       "id": "ch-oracle-grok90",
-      "title": "Oracle grok90 before AWS hedge end",
+      "title": "Oracle grok90 (optional) before AWS hedge end",
       "status": "open",
       "specialty": "lead",
-      "intent": "Chase incident 260826-001576 after vault reset; M-II HOLD until live",
+      "intent": "OPTIONAL chase incident 260826-001576 after vault reset; M-II = distinct second host (not Oracle-only); see FOG-HOST-FALLBACK",
       "github_issue": 151,
       "html_url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/151"
     }
   ],
-  "updated": "2026-09-05T12:27:55+0000"
+  "updated": "2026-09-05T12:45:00+0000"
 }
