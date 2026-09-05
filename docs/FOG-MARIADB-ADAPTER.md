@@ -83,6 +83,49 @@ FOG_MYSQL_URL='mysql://grok@127.0.0.1:1/fog_cmn' python3 -c "import fog_db; s=fo
 
 Bogus host / closed port → SQLite fallback, process does not crash.
 
+
+
+## Mac Fog install path
+
+Optional local MariaDB for **Mac continuous Fog** (ladder rung 2 in [FOG-HOST-FALLBACK.md](./FOG-HOST-FALLBACK.md)).
+
+### brew (preferred on desk Mac)
+
+```bash
+brew install mariadb
+brew services start mariadb
+# create DB/user once as local root (operator) — not committed:
+#   CREATE DATABASE fog_cmn;
+#   CREATE USER grok@127.0.0.1 IDENTIFIED BY ...;
+#   GRANT ALL ON fog_cmn.* TO grok@127.0.0.1; FLUSH PRIVILEGES;
+bash deploy/mac-fog/mariadb/fog-mariadb-ensure.sh
+```
+
+### Docker (alternative)
+
+```bash
+docker run -d --name fog-mariadb --restart unless-stopped \
+  -p 127.0.0.1:3306:3306 \
+  -e MARIADB_DATABASE=fog_cmn \
+  -e MARIADB_USER=grok \
+  -e MARIADB_PASSWORD_FILE=/run/secrets/staff_grok \
+  mariadb:11
+# Prefer binding secrets via file/env outside git; never commit passwords.
+bash deploy/mac-fog/mariadb/fog-mariadb-ensure.sh
+```
+
+### Vault env names only (never commit values)
+
+| Name | Where (0600) | Purpose |
+|------|----------------|---------|
+| `FOG_MYSQL_URL` | `~/.config/stratamesh/FOG_MYSQL_URL` or `secrets.env` | DSN without password preferred: `mysql://grok@127.0.0.1:3306/fog_cmn` |
+| `STAFF_GROK_PASSWORD` | `~/.config/stratamesh/STAFF_GROK_PASSWORD` or `~/.config/stratagrok/secrets.env` | Password for `grok` when DSN has none |
+| `FOG_SQLITE_PATH` | optional env | SQLite fallback path |
+
+`fog-mariadb-ensure.sh` reads those files if present; soft-fails if brew/mysql missing; **never prints passwords**.
+
+Optional: `fog-auto-update.sh` may call the ensure script as a soft step (document-only if LaunchAgent change is risky — see script comment).
+
 ## Honesty
 
 - Lab single host (`FOG-NODE-PT-CM-001`). `n=1`.

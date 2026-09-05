@@ -9,6 +9,8 @@
 This page is the honesty gate for **≥2 real hosts** exchanging INV/TX.  
 [A1-PRIVATE-MESH.md](./A1-PRIVATE-MESH.md) is **one runner, three OS processes**. It does not close P0.
 
+> **2026-09-05 — M-II / P0 gate = distinct second host, not Oracle-only.** Mac Fog continuous + MariaDB exclusive-off + EDGE `:8788` progress without Oracle Support. Valid remote peers when ready: Raspberry Pi, AWS Always Free–shaped Fog, **or** Oracle grok90. MariaDB/same-Mac EDGE do not close this gate. `oracle_live=false` until a real remote Fog host. See [FOG-HOST-FALLBACK.md](./FOG-HOST-FALLBACK.md).
+
 ---
 
 ## 0. Honest lab state (snapshot 2026-08-28 — historical; see banner)
@@ -68,7 +70,7 @@ A third host is welcome later (roadmap ≥2–3 peers). Two is the P0 floor.
 | Pages origin / Project Space srcdoc mirror | Document surface. Not INV/TX. |
 | In-process I1–I6 or resource-proof CI green | Landed; not mesh. |
 
-**Rule:** grok90 Oracle Fog ≠ this box. If both processes share a hostname, a loopback, or a single hypervisor, P0 stays OPEN.
+**Rule:** second Fog host ≠ this box (Oracle grok90 **or** Pi **or** AWS-shaped Fog peer). If both processes share a hostname, a loopback, or a single hypervisor, P0 stays OPEN. Oracle is optional — see FOG-HOST-FALLBACK.md.
 
 ---
 
@@ -216,7 +218,7 @@ def may_probe_inv_tx(target: str, now) -> str:
 
 ## 4. What Bot does after grok90 provisions vs what stays HOLD
 
-Oracle chase remains incident `260826-001576`. Second host waits on that VM. Desk-ok gossip PRs merge only when they record the live Fog process, not when they spend Worker quota.
+Oracle chase remains incident `260826-001576` (**optional**). Second host waits on a **distinct machine** (Pi / AWS-shaped Fog / Oracle when account works) — not on MariaDB alone. Desk-ok gossip PRs merge only when they record the live Fog process, not when they spend Worker quota.
 
 ### 4.1 Bot — after grok90 is actually up
 
@@ -276,7 +278,8 @@ Assistant (Project Space) does not chase Oracle, mail, t/20, or Hub. One shot: t
 | `ops/STOP-PROBES.md` | What stays armed vs deferred |
 | `WIRE-PROTOCOL-v1.md` | INV/TX envelopes, I1–I6, genesis |
 | `A1-PRIVATE-MESH.md` | Local-process INV/TX (not this gate) |
-| `HYBRID-ORACLE-CF-TUNNEL.md` | grok90 Fog + tunnel once Oracle is back |
+| `FOG-HOST-FALLBACK.md` | Priority ladder — Oracle optional / non-blocking |
+| `HYBRID-ORACLE-CF-TUNNEL.md` | OPTIONAL grok90 Fog + tunnel once Oracle works |
 | `TEMP-GROK-MANAGED-FOG.md` | Local-process placeholder while Oracle is blocked |
 | `EDGE-GROK-LOCAL.md` | `:8788` on this box |
 | `HUB.md` | Catalog LIVE; inference HOLD |

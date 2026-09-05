@@ -1,3 +1,10 @@
+## 2026-09-05 — Fog host fallback ladder (Oracle optional)
+- **`docs/FOG-HOST-FALLBACK.md`:** priority ladder bypasses Oracle as hard gate — Mac Fog LIVE → MariaDB exclusive-off → EDGE `:8788` → sidecar/phpMyAdmin → AWS Free hedge → Pi later → Oracle optional.
+- Docs: HYBRID banner OPTIONAL/non-blocking; FOG-MARIADB-ADAPTER Mac brew/Docker + vault env names; FOG-DESK-OPS / P0 / ROADMAP M-II = **distinct second host**, not Oracle-only.
+- Ops: `deploy/mac-fog/mariadb/fog-mariadb-ensure.sh` idempotent schema ensure (soft-fail; no password echo).
+- Desk: `dt-act-fog-host-fallback` Act; M-II/Oracle chase revised optional. `oracle_live=false` honesty preserved.
+- LAB only. n=2 P1. No workers.dev. No mainnet/aBFT.
+
 ## 2026-09-05 — v0.6.0-lab (Fog desk collegium · packaged lab cut)
 - **Current lab cut `v0.6.0-lab`.** Spans **since v0.5.1-lab** (includes what **v0.5.2-dev** stabilized). 0.5.2 was not a tagged cut until the debug tag.
 - Desk collegium full stack: bus verbs, autonomy cycle, surfaces/journals/reports (GH+Discourse), metabol enforce, DESK feed explainability, TUI DESK geometry, `automation.desk@` mail shared+per-agent, Tailscale taper T0–T4, academy teach/apprenticeship, role packs, projected Eisenhower catalog, ship-majority, connectors soft-fail, metrics/last-cycle.

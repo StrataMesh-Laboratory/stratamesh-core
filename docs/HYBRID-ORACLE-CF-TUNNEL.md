@@ -1,3 +1,6 @@
+> **OPTIONAL / non-blocking** — Oracle Always Free + Tunnel is rung **7** of the host fallback ladder. Desk Acts must not wait on Oracle Support. See **[FOG-HOST-FALLBACK.md](./FOG-HOST-FALLBACK.md)** (Mac Fog primary · MariaDB offload · EDGE pair · AWS Free hedge · Pi later · Oracle optional).
+> `oracle_live` stays false until a real remote Fog host is provisioned.
+
 # Hybrid deployment — Oracle Always Free + Cloudflare Tunnel + OSS middleware
 
 **Goal:** Run StrataMesh Fog node 24/7 at **€0** (subject to Oracle Free eligibility), expose it safely via **Cloudflare Tunnel** (no open inbound ports), keep public site/status on **Cloudflare Workers**.
