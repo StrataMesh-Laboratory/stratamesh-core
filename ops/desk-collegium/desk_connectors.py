@@ -50,10 +50,37 @@ def _probe_repo_paths(paths: list[str]) -> str:
     return "present" if ok else "missing"
 
 
+def _resolve_gh() -> str | None:
+    """Find gh on PATH or common Mac Homebrew locations (soft)."""
+    import shutil
+    for cand in (
+        shutil.which("gh"),
+        "/opt/homebrew/bin/gh",
+        "/usr/local/bin/gh",
+        str(Path.home() / "bin/gh"),
+    ):
+        if cand and Path(cand).is_file() and os.access(cand, os.X_OK):
+            return cand
+    return None
+
+
 def _probe_gh(cmd: list[str]) -> str:
+    """Probe gh; soft-missing when binary absent (Mac PATH often lacks brew until kick)."""
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        argv = list(cmd or ["gh", "auth", "status"])
+        if argv and argv[0] == "gh":
+            gh = _resolve_gh()
+            if not gh:
+                return "missing"
+            argv = [gh, *argv[1:]]
+        env = {
+            **os.environ,
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", ""),
+        }
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=20, env=env)
         return "present" if r.returncode == 0 else "missing"
+    except FileNotFoundError:
+        return "missing"
     except Exception:
         return "error"
 

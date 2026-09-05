@@ -1,6 +1,6 @@
 {
   "schema": "desk.connectors.v1",
-  "version": "0.3.3-lab",
+  "version": "0.3.4-lab",
   "note": "Registry of operational surfaces. Values are paths/commands/URLs \u2014 never store PAT/token bytes here.",
   "surfaces": [
     {
@@ -50,7 +50,7 @@
     {
       "id": "desk-sdk-cli",
       "kind": "sdk",
-      "desc": "desk_bus / desk_sync / desk_metabol / desk_ship / desk_issues Python CLI",
+      "desc": "desk_bus / desk_sync / desk_ops / desk_metrics / desk_metabol / desk_ship / desk_issues Python CLI",
       "probe": {
         "type": "repo_paths",
         "paths": [
@@ -59,7 +59,11 @@
           "ops/desk-collegium/desk_metabol.py",
           "ops/desk-collegium/desk_ship.py",
           "ops/desk-collegium/desk_issues.py",
-          "ops/desk-collegium/desk_connectors.py"
+          "ops/desk-collegium/desk_connectors.py",
+          "ops/desk-collegium/desk_ops.py",
+          "ops/desk-collegium/desk_metrics.py",
+          "ops/desk-collegium/desk_actions.py",
+          "ops/desk-collegium/desk_protocol.py"
         ]
       },
       "ship_gate": true
