@@ -18,3 +18,16 @@
 - Prefer MagicDNS in all new code; no new `100.x` hardcodes.
 
 oracle_live=false. No secrets in git.
+
+## Tooling bootstrap (desk offline during Act)
+
+When `mbpv` is back:
+
+```bash
+cd /Users/andremorais/StrataMesh/fog/repo && git pull --ff-only
+bash deploy/mac-fog/desk-tooling-ensure.sh
+# marks: wrangler-ready.json / gcp-cli-missing.json|gcp-cli-status.json / ts-taper-t2-done.json
+python3 ops/desk-collegium/desk_ops.py done dt-proj-ts-taper-t2 || true
+```
+
+Sibling owns `wrangler deploy stratamesh-edge-api 1.5.0-wizard` — do not duplicate.
