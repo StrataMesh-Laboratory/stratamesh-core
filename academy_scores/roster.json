@@ -1,0 +1,25 @@
+{
+  "schema": "academy.roster.v0",
+  "updated": "2026-09-05T14:45:11+0100",
+  "teachers_note": "Desk external_assistants draft/score \u2014 not listed as students",
+  "students": [
+    {
+      "id": "SCA-ORCH-CMN-001",
+      "role": "orchestrator",
+      "kind": "acb",
+      "label": "Orchestrator"
+    },
+    {
+      "id": "ACB-AIOPS-LEAD",
+      "role": "aiops",
+      "kind": "acb",
+      "label": "AIOps lead (placeholder \u2014 replace with live roster)"
+    },
+    {
+      "id": "ACB-AIOPS-MEMBER-1",
+      "role": "aiops",
+      "kind": "acb",
+      "label": "AIOps member (placeholder)"
+    }
+  ]
+}
