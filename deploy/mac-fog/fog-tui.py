@@ -1003,7 +1003,17 @@ def kick_desk_refresh() -> None:
             if not sync:
                 return
             env = os.environ.copy()
-            # pull = live update from EDGE
+            # metabol tick + mirror open tasks into DESK chat (local)
+            metabol = sync.parent / "desk_metabol.py"
+            if metabol.is_file():
+                subprocess.run(
+                    [sys.executable, str(metabol), "tick"],
+                    cwd=str(sync.parent.parent.parent),
+                    env=env,
+                    timeout=15,
+                    capture_output=True,
+                )
+            # pull = live update from EDGE (r/60s — not g)
             subprocess.run(
                 [sys.executable, str(sync), "pull"],
                 cwd=str(sync.parent.parent.parent),
@@ -1088,17 +1098,58 @@ def desk_feed_tail(n: int = 10) -> list[dict]:
 
 
 def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
-    """Live chat-style desk feed below the instrument (operator monitor).
-
-    Pass _print=print from draw() so lines go to DEV_TTY like the rest of the panel.
-    """
+    """Live chat-style desk feed + open tasks + metabol lanes (operator monitor)."""
     out = _print or print
     out(boxline(" " + ACC + "DESK" + RST + MUT + "  automation feed · Hermes/OpenCode/OpenClaw/STRATAGROK" + RST, w))
-    feed = desk_feed_tail(rows)
-    if not feed:
-        out(boxline(" " + MUT + "(waiting for desk agents… append → FOG/data/desk-feed.jsonl)" + RST, w))
+    # metabol lane strip
+    lanes_line = ""
+    try:
+        st_path = FOG / "data/desk-collegium/state.json"
+        st = json.loads(st_path.read_text(encoding="utf-8")) if st_path.is_file() else {}
+        lanes = st.get("lanes") or {}
+        bits = []
+        for key, short in (
+            ("lane-hermes", "hermes"),
+            ("lane-opencode", "code"),
+            ("lane-openclaw", "claw"),
+            ("lane-bot", "bot"),
+            ("lane-assistant", "asst"),
+            ("lane-cf", "cf"),
+        ):
+            pace = (lanes.get(key) or {}).get("pace") or "—"
+            bits.append("%s:%s" % (short, pace))
+        if bits:
+            lanes_line = " ".join(bits)
+    except Exception:
+        st = {}
+        lanes = {}
+    if lanes_line:
+        out(boxline(" " + MUT + "metabol " + RST + lanes_line[: max(20, w - 12)], w))
+    feed = desk_feed_tail(max(4, rows - 2))
+    # sticky open tasks as chat lines when feed thin
+    open_tasks = st.get("open_tasks") or []
+    painted = 0
+    for tsk in open_tasks[-4:]:
+        if painted >= 4:
+            break
+        tid = str(tsk.get("id") or "")[:12]
+        own = str(tsk.get("owner") or "?")
+        ag = "hermes   "
+        if "opencode" in own:
+            ag = "opencode "
+        elif "openclaw" in own:
+            ag = "openclaw "
+        elif "grok" in own:
+            ag = "stratagrok"
+        stt = str(tsk.get("status") or "propose")[:7]
+        body = str(tsk.get("intent") or "")[: max(16, w - 32)]
+        col = ACC if "hermes" in ag else (OK if "code" in ag else (AMBER if "claw" in ag else BOLD))
+        out(boxline(" " + MUT + "task" + RST + " " + col + ag + RST + " " + MUT + stt + RST + " " + tid + " " + body, w))
+        painted += 1
+    if not feed and not open_tasks:
+        out(boxline(" " + MUT + "(waiting for desk agents… desk_bus list · metabol tick · append feed)" + RST, w))
         return
-    for rec in feed[-rows:]:
+    for rec in feed[-(rows - painted):] if painted else feed[-rows:]:
         ag = str(rec.get("agent") or "?")[:10].ljust(10)
         tm = str(rec.get("t") or "--:--:--")[:8]
         kind = str(rec.get("kind") or "say")[:7]

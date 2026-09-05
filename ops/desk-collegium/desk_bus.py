@@ -159,6 +159,22 @@ def agent_short(owner: str) -> str:
 
 
 def cmd_list(state: dict) -> int:
+    # Mirror open tasks into DESK feed so TUI chat is not empty
+    try:
+        from desk_metabol import mirror_open_tasks_to_feed, tick as metabol_tick
+        metabol_tick()
+    except Exception:
+        try:
+            import importlib.util
+            mp = Path(__file__).resolve().parent / "desk_metabol.py"
+            spec = importlib.util.spec_from_file_location("desk_metabol", mp)
+            mod = importlib.util.module_from_spec(spec)
+            assert spec.loader is not None
+            spec.loader.exec_module(mod)
+            mod.tick()
+            state = load_state()
+        except Exception:
+            pass
     tasks = state.get("open_tasks") or []
     print(f"state={state_path()} updated={state.get('updated')} open={len(tasks)}")
     for t in tasks:
@@ -166,6 +182,10 @@ def cmd_list(state: dict) -> int:
             f"  {t.get('id')}  [{t.get('status')}]  {t.get('specialty')}  "
             f"owner={agent_short(t.get('owner',''))}  {t.get('intent','')[:80]}"
         )
+    lanes = state.get("lanes") or {}
+    if lanes:
+        bits = [f"{k.replace('lane-','')}={(lanes[k] or {}).get('pace')}" for k in sorted(lanes)]
+        print("metabol " + " ".join(bits))
     if not tasks:
         print("  (no open tasks — run propose or pulse --apply)")
     return 0

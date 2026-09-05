@@ -106,3 +106,20 @@ Holders: automation-desk vault `~/.config/stratagrok/desk-mail.token` or `DESK_T
 
 - Live: TUI 60s `r` path pulls+pushes `desk.snapshot.v1` (mail + collegium + feed_tail).
 - CLI: `python3 ops/desk-collegium/desk_sync.py pull|push|sync|token-check`
+
+## Desk metabol tick (tokens + renewals)
+
+`ops/desk-collegium/desk_metabol.py tick` (also from TUI `r`/60s via `kick_desk_refresh`):
+
+| Lane | Meter | Renewal |
+|------|-------|---------|
+| lane-bot | grok-bot-included | weekly_unknown (HOLD if remaining unknown) |
+| lane-assistant | SuperGrok pool_frac | weekly Europe/Lisbon |
+| lane-hermes | Ollama context (≥65536) | host_cap |
+| lane-opencode | Ollama + GitHub 5000/h | github hour UTC + host_cap |
+| lane-openclaw | session tokens (e.g. 2.1k/33k) | session/model reload |
+| lane-cf | Workers 100k | 00:00 UTC |
+| lane-fog-hop | Mac MW ports | host_cap |
+
+Samples: `FOG/data/desk-meters/*.json` (see `ops/desk-collegium/meters/README.md`).
+`desk_bus.py list` runs tick + mirrors open tasks into `desk-feed.jsonl` (DESK chat).
