@@ -1,0 +1,436 @@
+{
+  "schema": "stratamesh.academy.daily_exam.v0",
+  "kind": "scores",
+  "date": "2026-09-05",
+  "tz": "Europe/Lisbon",
+  "scored_at": "2026-09-05T14:53:52+0100",
+  "scored_by_stub": true,
+  "note": "v0 stubs \u2014 desk teachers fill protocolar measurements + qualitative adjustments/recognitions. Not a desk KPI meter.",
+  "students": [
+    {
+      "acb_id": "ACB-ORCH-CMN-001",
+      "sca_id": "SCA-ORCH-CMN-001",
+      "name": "Vespera",
+      "role": "orchestrator",
+      "formation_id": "ORCH-C-03",
+      "objective_metrics": {
+        "fail_closed": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "bilateral_commit": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "named_handlers": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "no_workers_dev": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    },
+    {
+      "acb_id": "ACB-AIOPS-devops",
+      "sca_id": "SCA-AIOPS-devops",
+      "name": "Kael",
+      "role": "devops",
+      "formation_id": "DEVOPS-C-02",
+      "objective_metrics": {
+        "no_workers_dev": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "origin_custom_domain": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "residual_cmesh": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "named_handlers": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    },
+    {
+      "acb_id": "ACB-AIOPS-security",
+      "sca_id": "SCA-AIOPS-security",
+      "name": "Nyx",
+      "role": "security",
+      "formation_id": "SECURITY-C-02",
+      "objective_metrics": {
+        "secrets_hygiene": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "no_workers_dev": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "fail_closed": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    },
+    {
+      "acb_id": "ACB-AIOPS-analysis",
+      "sca_id": "SCA-AIOPS-analysis",
+      "name": "Solace",
+      "role": "analysis",
+      "formation_id": "ANALYSIS-C-02",
+      "objective_metrics": {
+        "named_handlers": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "fail_closed": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "honest_n": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    },
+    {
+      "acb_id": "ACB-AIOPS-mesh",
+      "sca_id": "SCA-AIOPS-mesh",
+      "name": "Reed",
+      "role": "mesh",
+      "formation_id": "MESH-C-02",
+      "objective_metrics": {
+        "honest_n": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "residual_cmesh": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "handler_complete": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    },
+    {
+      "acb_id": "ACB-AIOPS-economy",
+      "sca_id": "SCA-AIOPS-economy",
+      "name": "Mira",
+      "role": "economy",
+      "formation_id": "ECONOMY-C-03",
+      "objective_metrics": {
+        "economy_no_mint": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "handler_complete": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        },
+        "fail_closed": {
+          "score": null,
+          "scale": "0..1",
+          "status": "pending_teacher",
+          "evidence": null
+        }
+      },
+      "overall_objective": null,
+      "qualitative": {
+        "adjustments_needed": [],
+        "recognitions_of_excellence": [],
+        "teacher_notes": ""
+      },
+      "adjustments_needed": [],
+      "recognitions_of_excellence": [],
+      "teachers": [
+        {
+          "id": "hermes",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "opencode",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "openclaw",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "fog-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "edge-assistant",
+          "status": "pending",
+          "detail": null
+        },
+        {
+          "id": "stratagrok",
+          "status": "pending",
+          "detail": null
+        }
+      ],
+      "status": "draft_scored_stub"
+    }
+  ],
+  "summary": {
+    "n_students": 6,
+    "pending_teacher": 6,
+    "complete": 0
+  }
+}

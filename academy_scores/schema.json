@@ -1,0 +1,26 @@
+{
+  "schema": "stratamesh.academy.daily_exam.v0",
+  "description": "Daily general exams for SCA/ACB students. Desk teachers only.",
+  "layout": {
+    "roster.json": "Registered students from academy catalog (ACB ids); teachers listed separately",
+    "latest.json": "Pointer for grades page",
+    "YYYY-MM-DD/exam.json": "Drafted cumulative exam per student",
+    "YYYY-MM-DD/scores.json": "Protocolar objective metrics + qualitative stubs",
+    "YYYY-MM-DD/teachers.json": "Who drafted/scored"
+  },
+  "protocol_metrics": [
+    "fail_closed",
+    "no_workers_dev",
+    "named_handlers",
+    "bilateral_commit",
+    "secrets_hygiene",
+    "honest_n",
+    "economy_no_mint",
+    "residual_cmesh",
+    "origin_custom_domain",
+    "handler_complete"
+  ],
+  "qualitative": ["adjustments_needed", "recognitions_of_excellence", "teacher_notes"],
+  "primary_driver": "mac_fog_desk_ops_academy_teach_tick",
+  "bot_required": false
+}

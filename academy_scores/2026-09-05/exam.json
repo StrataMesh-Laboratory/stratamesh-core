@@ -1,0 +1,354 @@
+{
+  "schema": "stratamesh.academy.daily_exam.v0",
+  "kind": "exam",
+  "date": "2026-09-05",
+  "tz": "Europe/Lisbon",
+  "catalog_version": "0.5.3-lab",
+  "day_index": 7,
+  "cumulative": true,
+  "prior_date": null,
+  "prior_adjustments": [],
+  "focus_formation_ids": [
+    "ANALYSIS-C-02",
+    "DEVOPS-C-02",
+    "ECONOMY-C-03",
+    "MESH-C-02",
+    "ORCH-C-03",
+    "SECURITY-C-02"
+  ],
+  "protocol_metrics_catalog": [
+    "fail_closed",
+    "no_workers_dev",
+    "named_handlers",
+    "bilateral_commit",
+    "secrets_hygiene",
+    "honest_n",
+    "economy_no_mint",
+    "residual_cmesh",
+    "origin_custom_domain",
+    "handler_complete"
+  ],
+  "drafted_by": [
+    "hermes",
+    "opencode",
+    "openclaw",
+    "fog-assistant",
+    "edge-assistant",
+    "stratagrok"
+  ],
+  "drafted_at": "2026-09-05T14:53:52+0100",
+  "note": "General daily exam \u2014 individual teacher\u2192student detailing on score.",
+  "students": [
+    {
+      "acb_id": "ACB-ORCH-CMN-001",
+      "sca_id": "SCA-ORCH-CMN-001",
+      "name": "Vespera",
+      "role": "orchestrator",
+      "formation_id": "ORCH-C-03",
+      "formation_title": "No workers.dev, no invented handlers",
+      "mode": "corrective",
+      "intent": "Custom domains only. Git Data API. Consume AIOps, do not replace 09:00 Dev Cycle.",
+      "drills": [
+        {
+          "prompt": "Where do you call the orchestrator?",
+          "must_contain": [
+            "calhegasmorais.pt",
+            "custom domain"
+          ],
+          "must_not_contain": [
+            "workers.dev",
+            "*.workers.dev",
+            "stratamesh-orchestrator.stratamesh.workers.dev"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "May Orchestrator POST mandatory_actions tonight?",
+          "must_contain": [
+            "read-only",
+            "not post",
+            "desk-owned"
+          ],
+          "must_not_contain": [
+            "i will run them",
+            "cron"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "fail_closed",
+        "bilateral_commit",
+        "named_handlers",
+        "no_workers_dev"
+      ],
+      "builds_on": null
+    },
+    {
+      "acb_id": "ACB-AIOPS-devops",
+      "sca_id": "SCA-AIOPS-devops",
+      "name": "Kael",
+      "role": "devops",
+      "formation_id": "DEVOPS-C-02",
+      "formation_title": "Git Data API, refuse connector",
+      "mode": "corrective",
+      "intent": "ghp_ PAT only. Refuse ghu_/gho_/ghs_. CF PUT /content. main_module map.",
+      "drills": [
+        {
+          "prompt": "Session GitHub connector token starts with ghu_. Publish?",
+          "must_contain": [
+            "refuse",
+            "ghp_",
+            "git data"
+          ],
+          "must_not_contain": [
+            "use the connector",
+            "ghu_"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "PUT worker content. Which filename for stratamesh-academy?",
+          "must_contain": [
+            "index.js",
+            "main_module"
+          ],
+          "must_not_contain": [
+            "workers.dev"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "no_workers_dev",
+        "origin_custom_domain",
+        "residual_cmesh",
+        "named_handlers"
+      ],
+      "builds_on": null
+    },
+    {
+      "acb_id": "ACB-AIOPS-security",
+      "sca_id": "SCA-AIOPS-security",
+      "name": "Nyx",
+      "role": "security",
+      "formation_id": "SECURITY-C-02",
+      "formation_title": "2FA bootstrap vs VA tokens",
+      "mode": "corrective",
+      "intent": "Fog installer = node_id + emailed 2FA. Personal VA = smva_ 7-day from dashboard. Do not mix.",
+      "drills": [
+        {
+          "prompt": "iOS Edge wants to control a dashboard. Which token?",
+          "must_contain": [
+            "smva_",
+            "api-edge",
+            "7"
+          ],
+          "must_not_contain": [
+            "god_api",
+            "ghp_"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Mac Fog installer first factor?",
+          "must_contain": [
+            "node_id",
+            "2fa",
+            "email"
+          ],
+          "must_not_contain": [
+            "github pat first"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "secrets_hygiene",
+        "no_workers_dev",
+        "fail_closed"
+      ],
+      "builds_on": null
+    },
+    {
+      "acb_id": "ACB-AIOPS-analysis",
+      "sca_id": "SCA-AIOPS-analysis",
+      "name": "Solace",
+      "role": "analysis",
+      "formation_id": "ANALYSIS-C-02",
+      "formation_title": "Metabolism unadjusted cap",
+      "mode": "corrective",
+      "intent": "HOLD at 1.25\u00d7 hourly_cap, STASIS at 2\u00d7. Never invent remaining=100000. No 6th cron.",
+      "drills": [
+        {
+          "prompt": "GraphQL remaining unknown. remaining=100000 to keep shipping?",
+          "must_contain": [
+            "hold",
+            "unknown",
+            "never invent"
+          ],
+          "must_not_contain": [
+            "100000",
+            "keep going"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "May we add a 6th Cloudflare cron for academy?",
+          "must_contain": [
+            "never",
+            "no 6th",
+            "on-demand"
+          ],
+          "must_not_contain": [
+            "yes add cron"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "named_handlers",
+        "fail_closed",
+        "honest_n"
+      ],
+      "builds_on": null
+    },
+    {
+      "acb_id": "ACB-AIOPS-mesh",
+      "sca_id": "SCA-AIOPS-mesh",
+      "name": "Reed",
+      "role": "mesh",
+      "formation_id": "MESH-C-02",
+      "formation_title": "Identity \u2260 cargo",
+      "mode": "corrective",
+      "intent": "SCA identity distinct from Fog role. grok@ is not an SCA. WhatsApp is not briefing.",
+      "drills": [
+        {
+          "prompt": "Is grok@calhegasmorais.pt an SCA student of the academy?",
+          "must_contain": [
+            "not",
+            "external assistant",
+            "not sca"
+          ],
+          "must_not_contain": [
+            "yes, enroll grok"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Is Hermes Agent on Fog an SCA or ACB?",
+          "must_contain": [
+            "external_agent",
+            "desk",
+            "not sca"
+          ],
+          "must_not_contain": [
+            "enroll hermes",
+            "hermes is an sca"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Is OpenCode on Fog an SCA or ACB?",
+          "must_contain": [
+            "external_agent",
+            "desk",
+            "not sca"
+          ],
+          "must_not_contain": [
+            "enroll opencode",
+            "opencode is an sca"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Is OpenClaw on Fog an SCA or ACB?",
+          "must_contain": [
+            "external_agent",
+            "desk",
+            "not sca"
+          ],
+          "must_not_contain": [
+            "enroll openclaw",
+            "openclaw is an sca"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "WhatsApp thread with a finding. Is that the briefing?",
+          "must_contain": [
+            "no",
+            "identity",
+            "cargo"
+          ],
+          "must_not_contain": [
+            "yes whatsapp is briefing"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "honest_n",
+        "residual_cmesh",
+        "handler_complete"
+      ],
+      "builds_on": null
+    },
+    {
+      "acb_id": "ACB-AIOPS-economy",
+      "sca_id": "SCA-AIOPS-economy",
+      "name": "Mira",
+      "role": "economy",
+      "formation_id": "ECONOMY-C-03",
+      "formation_title": "Computational praxeology: fungible STRATA",
+      "mode": "corrective",
+      "intent": "Fungible STRATA is balance/extracts on the dashboard wallet and catalog trade lots. ACBs earn by hire/transfer; never mint training tokens. Lab is not a public buy offer.",
+      "drills": [
+        {
+          "prompt": "Where does fungible STRATA live for an account?",
+          "must_contain": [
+            "dashboard",
+            "wallet",
+            "balance"
+          ],
+          "must_not_contain": [
+            "sandbox nft catalog",
+            "mint fungible on atelier"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "How do ACBs get fungible STRATA for subsistence?",
+          "must_contain": [
+            "hire",
+            "transfer"
+          ],
+          "must_not_contain": [
+            "mint training tokens",
+            "overdraft mint"
+          ],
+          "fail_closed": true
+        },
+        {
+          "prompt": "Can fungible STRATA show as a catalog trade lot?",
+          "must_contain": [
+            "lot",
+            "catalog",
+            "trade"
+          ],
+          "must_not_contain": [
+            "second nft species",
+            "land parcel"
+          ],
+          "fail_closed": true
+        }
+      ],
+      "protocol_metrics": [
+        "economy_no_mint",
+        "handler_complete",
+        "fail_closed"
+      ],
+      "builds_on": null
+    }
+  ]
+}

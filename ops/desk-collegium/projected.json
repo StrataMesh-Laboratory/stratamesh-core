@@ -153,6 +153,23 @@
       "duty": "academy_teach"
     },
     {
+      "id": "proj-academy-daily-exams",
+      "specialty": "teach",
+      "owner": "hermes",
+      "intent": "Daily general exams for Orchestrator+AIOps SCA/ACB: draft from prior day, score with protocolar measurements, write academy_scores/YYYY-MM-DD, publish grades. Mac Fog desk cycle + LaunchAgent primary; Bot @daily contingency only.",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant",
+        "lane-opencode"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "duty": "academy_teach",
+      "resolve_as_representative": true,
+      "andre_gate": false,
+      "escalate_to_andre": false
+    },
+    {
       "id": "proj-academy-code-lesson",
       "specialty": "code",
       "owner": "opencode",
@@ -519,5 +536,5 @@
       "status": "pending"
     }
   ],
-  "updated": "2026-09-05T14:23:45+0100"
+  "updated": "2026-09-05T14:55:00+0100"
 }

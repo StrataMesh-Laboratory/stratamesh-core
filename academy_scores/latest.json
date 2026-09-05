@@ -1,0 +1,21 @@
+{
+  "schema": "stratamesh.academy.daily_exam.v0",
+  "kind": "latest",
+  "date": "2026-09-05",
+  "tz": "Europe/Lisbon",
+  "updated": "2026-09-05T14:53:52+0100",
+  "paths": {
+    "roster": "academy_scores/roster.json",
+    "day": "academy_scores/2026-09-05/",
+    "exam": "academy_scores/2026-09-05/exam.json",
+    "scores": "academy_scores/2026-09-05/scores.json",
+    "teachers": "academy_scores/2026-09-05/teachers.json"
+  },
+  "grades_url": "https://academy.calhegasmorais.pt/grades",
+  "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-05/scores.json",
+  "summary": {
+    "n_students": 6,
+    "pending_teacher": 6,
+    "complete": 0
+  }
+}

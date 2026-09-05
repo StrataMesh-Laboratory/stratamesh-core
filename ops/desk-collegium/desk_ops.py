@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Desk ops cycle — methodology-enforced real work (ongoing/pending/projected).
 
-Laws: ops/desk-collegium/protocol.json (academy_teach, agent_autonomy, bot_cap_contingency, ship auto-metrics).
+Laws: ops/desk-collegium/protocol.json (academy_teach, academy_daily_exam, agent_autonomy, bot_cap_contingency, ship auto-metrics).
 Lifecycle: projected → pending(propose) → ongoing(constrain|act|audit|amend|revise|vote|refer|dispute|commit) → done|escalate.
 Full verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done drop.
 Catalog: projected.json re-seeded each cycle via ensure_projected_catalog (idempotent ids).
@@ -670,19 +670,53 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
 
 
 def handler_teach(task: dict, *, dry: bool) -> dict:
-    """Academy teach — live check + real apprenticeship lesson trail in outbox."""
+    """Academy teach — live check + daily exam tick + apprenticeship trail.
+
+    Daily exams run on Mac Fog (Bot contingency only). See academy_exams.py.
+    """
     ok, detail = _http_ok("https://academy.calhegasmorais.pt/health")
     if not ok:
         ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
+    exam_bit = ""
+    intent = (task.get("intent") or "").lower()
+    force_exam = (
+        task.get("id") == "dt-proj-academy-daily-exams"
+        or "daily exam" in intent
+        or "academy_scores" in intent
+    )
+    if not dry:
+        try:
+            ae = _load("academy_exams")
+            if force_exam or ae.due_for_run():
+                er = ae.run_daily(dry=False, force=force_exam)
+                exam_bit = (
+                    f" daily_exam={er.get(date)} skipped={int(bool(er.get(skipped)))}"
+                    f" wrote={int(bool(er.get(ok) and not er.get(skipped)))}"
+                )
+                if er.get("ok") and not er.get("skipped") and (
+                    force_exam or "publish" in intent
+                ):
+                    try:
+                        ae.maybe_publish_grades(dry=False)
+                    except Exception:
+                        pass
+        except Exception as e:
+            exam_bit = f" daily_exam_err={str(e)[:60]}"
     note = (
         f"academy_teach live={int(ok)} students=SCA/ACB teachers=desk "
         f"— apprenticeship_by_doing (never enroll desk agents)"
+        f"{exam_bit}"
     )
     if not dry:
         path = FOG / "data" / "desk-meters" / "academy-teach.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"ts": _now(), "academy_ok": ok, "duty": "academy_teach"}, indent=2) + "\n")
-        # Always write lesson trail from this deliverable (even if academy soft-down)
+        path.write_text(
+            json.dumps(
+                {"ts": _now(), "academy_ok": ok, "duty": "academy_teach", "exam": exam_bit.strip()},
+                indent=2,
+            )
+            + "\n"
+        )
         write_apprenticeship_trail(task, {"result": note, "done": ok}, agent="hermes")
         try:
             _load("desk_bus").feed_append(
@@ -1443,7 +1477,22 @@ def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
 
 
 def academy_teach_tick(bus, state: dict, *, dry: bool) -> None:
-    """Standing duty: if no recent academy teach and lane ALLOW, ensure projected/teach work exists."""
+    """Standing duty: daily exam if due + ensure projected/teach work exists.
+
+    Mac Fog primary — does not require Bot wake. Bot @daily is contingency only.
+    """
+    # Daily general exams (Bot-independent)
+    if not dry:
+        try:
+            ae = _load("academy_exams")
+            if ae.due_for_run():
+                er = ae.run_daily(dry=False, force=False)
+                print(
+                    f"ops: academy_daily_exam date={er.get(date)} "
+                    f"skipped={er.get(skipped)} ok={er.get(ok)}"
+                )
+        except Exception as e:
+            print(f"academy_exams warn: {e}", file=sys.stderr)
     if _lane_pace(state, "lane-assistant") == "STASIS" and _lane_pace(state, "lane-hermes") == "STASIS":
         return
     # already have open teach duty?

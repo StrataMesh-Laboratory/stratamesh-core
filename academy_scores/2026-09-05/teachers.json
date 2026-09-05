@@ -1,0 +1,41 @@
+{
+  "schema": "stratamesh.academy.daily_exam.v0",
+  "kind": "teachers",
+  "date": "2026-09-05",
+  "teachers": [
+    {
+      "id": "hermes",
+      "role": "external_agent",
+      "label": "Hermes"
+    },
+    {
+      "id": "opencode",
+      "role": "external_agent",
+      "label": "OpenCode"
+    },
+    {
+      "id": "openclaw",
+      "role": "external_agent",
+      "label": "OpenClaw"
+    },
+    {
+      "id": "fog-assistant",
+      "role": "external_assistant",
+      "label": "CMN FOG ASSISTANT"
+    },
+    {
+      "id": "edge-assistant",
+      "role": "external_assistant",
+      "label": "CMN EDGE ASSISTANT"
+    },
+    {
+      "id": "stratagrok",
+      "role": "external_assistant",
+      "label": "STRATAGROK"
+    }
+  ],
+  "roles": "external_agent|external_assistant \u2014 never students",
+  "drafted_at": "2026-09-05T14:53:52+0100",
+  "scored_at": "2026-09-05T14:53:52+0100",
+  "duty": "Individual teacher\u2192student detailing; protocolar SCA/ACB measurements"
+}

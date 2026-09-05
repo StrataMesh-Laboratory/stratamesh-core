@@ -1,25 +1,116 @@
 {
   "schema": "academy.roster.v0",
-  "updated": "2026-09-05T14:45:11+0100",
-  "teachers_note": "Desk external_assistants draft/score \u2014 not listed as students",
+  "updated": "2026-09-05T14:53:52+0100",
+  "catalog_version": "0.5.3-lab",
+  "teachers_note": "Desk external_assistants draft/score \u2014 never enrolled as students",
+  "not_students": [
+    {
+      "id": "grok@calhegasmorais.pt",
+      "role": "external_assistant",
+      "reason": "Fog/EDGE desk means \u2014 not an SCA, not a student, no academy vote"
+    },
+    {
+      "id": "hermes@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "reason": "FOG Agent on the automation desk (Hermes Agent + local Ollama) \u2014 not an SCA, not a student, no academy vote; may teach/drill SCAs as desk tooling"
+    },
+    {
+      "id": "opencode@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "reason": "FOG Agent on the automation desk (OpenCode + local Ollama) \u2014 not an SCA, not a student, no academy vote; code/build desk tooling"
+    },
+    {
+      "id": "openclaw@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "reason": "FOG Agent on the automation desk (OpenClaw + local Ollama) \u2014 not an SCA, not a student, no academy vote; claw/automation desk tooling"
+    }
+  ],
+  "teachers": [
+    {
+      "id": "hermes",
+      "role": "external_agent",
+      "label": "Hermes"
+    },
+    {
+      "id": "opencode",
+      "role": "external_agent",
+      "label": "OpenCode"
+    },
+    {
+      "id": "openclaw",
+      "role": "external_agent",
+      "label": "OpenClaw"
+    },
+    {
+      "id": "fog-assistant",
+      "role": "external_assistant",
+      "label": "CMN FOG ASSISTANT"
+    },
+    {
+      "id": "edge-assistant",
+      "role": "external_assistant",
+      "label": "CMN EDGE ASSISTANT"
+    },
+    {
+      "id": "stratagrok",
+      "role": "external_assistant",
+      "label": "STRATAGROK"
+    }
+  ],
   "students": [
     {
-      "id": "SCA-ORCH-CMN-001",
+      "acb_id": "ACB-ORCH-CMN-001",
+      "sca_id": "SCA-ORCH-CMN-001",
+      "name": "Vespera",
       "role": "orchestrator",
-      "kind": "acb",
-      "label": "Orchestrator"
+      "labour": "orchestration",
+      "mandate": "Bilateral probabilistic+symbolic commit; consume AIOps; never invent handlers",
+      "kind": "acb"
     },
     {
-      "id": "ACB-AIOPS-LEAD",
-      "role": "aiops",
-      "kind": "acb",
-      "label": "AIOps lead (placeholder \u2014 replace with live roster)"
+      "acb_id": "ACB-AIOPS-devops",
+      "sca_id": "SCA-AIOPS-devops",
+      "name": "Kael",
+      "role": "devops",
+      "labour": "devops",
+      "mandate": "Fog runtime, workerd hop, Git Data API publish, no workers.dev",
+      "kind": "acb"
     },
     {
-      "id": "ACB-AIOPS-MEMBER-1",
-      "role": "aiops",
-      "kind": "acb",
-      "label": "AIOps member (placeholder)"
+      "acb_id": "ACB-AIOPS-security",
+      "sca_id": "SCA-AIOPS-security",
+      "name": "Nyx",
+      "role": "security",
+      "labour": "security",
+      "mandate": "Secrets stay on disk 0600; ghp_ not ghu_; cfat_ not cfut; 2FA vs VA tokens",
+      "kind": "acb"
+    },
+    {
+      "acb_id": "ACB-AIOPS-analysis",
+      "sca_id": "SCA-AIOPS-analysis",
+      "name": "Solace",
+      "role": "analysis",
+      "labour": "analysis",
+      "mandate": "Named next_actions; EDGE 530/429 session-expected; metabolism unadjusted cap",
+      "kind": "acb"
+    },
+    {
+      "acb_id": "ACB-AIOPS-mesh",
+      "sca_id": "SCA-AIOPS-mesh",
+      "name": "Reed",
+      "role": "mesh",
+      "labour": "mesh",
+      "mandate": "Honest n; f_max=0 until n\u22653; gossip peers not fabricated; identity \u2260 cargo",
+      "kind": "acb"
+    },
+    {
+      "acb_id": "ACB-AIOPS-economy",
+      "sca_id": "SCA-AIOPS-economy",
+      "name": "Mira",
+      "role": "economy",
+      "labour": "economy",
+      "mandate": "Hire is transfer never mint; fund unfunded honest; training cost is subsistence",
+      "kind": "acb"
     }
   ]
 }

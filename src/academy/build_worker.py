@@ -23,6 +23,19 @@ CSS = (
 
 CATALOG_JSON = json.dumps(dump(), ensure_ascii=False, separators=(",", ":"))
 
+_EMBED_PATH = Path(__file__).resolve().parent / "daily_scores_embed.json"
+try:
+    _EMBED = json.loads(_EMBED_PATH.read_text(encoding="utf-8")) if _EMBED_PATH.is_file() else {}
+except Exception:
+    _EMBED = {}
+DAILY_SCORES_JSON = json.dumps(_EMBED, ensure_ascii=False, separators=(",", ":"))
+GRADES_CSS = (
+    CSS
+    + "table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}"
+    + "th,td{border:1px solid var(--line);padding:.4rem .5rem;text-align:left}"
+    + "th{color:var(--fg)}td{color:var(--muted)}.muted{color:var(--muted);font-size:.8rem}"
+)
+
 
 def render() -> str:
     return f"""/**
@@ -33,6 +46,7 @@ def render() -> str:
 const VERSION = {json.dumps(VERSION)};
 const PRIMARY = {json.dumps(HOST)};
 const CATALOG = {CATALOG_JSON};
+const DAILY_SCORES = {DAILY_SCORES_JSON};
 
 const CORS = {{
   "Access-Control-Allow-Origin": "*",
@@ -224,6 +238,68 @@ async function pushAcbQiga(env, acbId, fitness) {{
     return {{ pushed: false, error: String(e.message || e).slice(0, 80) }};
   }}
 }}
+function pageGrades() {{
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>StrataMesh LAB · Academy grades</title><style>${{CSS}}table{{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}}th,td{{border:1px solid var(--line);padding:.4rem .5rem;text-align:left}}th{{color:var(--fg)}}td{{color:var(--muted)}}.muted{{color:var(--muted);font-size:.8rem}}</style></head><body><main>
+<p class="badge">STRATAMESH LAB · DAILY EXAMS</p>
+<h1>Academy grades</h1>
+<p class="muted">SCA/ACB daily general exams. Desk teachers score with protocolar measurements. No secrets. Bot not required.</p>
+<p id="meta" class="muted">Loading…</p>
+<div id="out"></div>
+<p><a href="/">Academy home</a> · <a href="/v1/daily-scores">JSON</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/tree/main/academy_scores">git academy_scores/</a></p>
+<script>
+async function load() {{
+  const meta = document.getElementById("meta");
+  const out = document.getElementById("out");
+  let data = null;
+  try {{
+    const r = await fetch("/v1/daily-scores", {{ headers: {{ Accept: "application/json" }} }});
+    if (r.ok) data = await r.json();
+  }} catch (e) {{}}
+  if (!data || !data.ok) {{
+    const urls = [
+      "https://cdn.jsdelivr.net/gh/StrataMesh-Laboratory/stratamesh-core@main/academy_scores/latest.json",
+      "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/latest.json"
+    ];
+    for (const u of urls) {{
+      try {{
+        const r = await fetch(u, {{ headers: {{ Accept: "application/json" }} }});
+        if (r.ok) {{ data = {{ ok: true, latest: await r.json(), source: u }}; break; }}
+      }} catch (e) {{}}
+    }}
+  }}
+  if (!data || !data.ok) {{
+    meta.textContent = "No daily scores yet — desk will write academy_scores/ on the next Mac Fog tick.";
+    return;
+  }}
+  const latest = data.latest || data;
+  const scores = data.scores || null;
+  meta.textContent = "Date " + (latest.date || "?") + " · source " + (data.source || "embed") + " · teachers desk (not students)";
+  let html = "";
+  if (scores && Array.isArray(scores.students)) {{
+    html += "<table><thead><tr><th>Student</th><th>Role</th><th>Formation</th><th>Status</th><th>Adjustments</th><th>Excellence</th></tr></thead><tbody>";
+    for (const s of scores.students) {{
+      const adj = (s.adjustments_needed || (s.qualitative && s.qualitative.adjustments_needed) || []).join("; ") || "—";
+      const exc = (s.recognitions_of_excellence || (s.qualitative && s.qualitative.recognitions_of_excellence) || []).join("; ") || "—";
+      html += "<tr><td>" + (s.name || s.acb_id) + "<br><code>" + (s.acb_id || "") + "</code></td><td>" + (s.role || "") + "</td><td>" + (s.formation_id || "") + "</td><td>" + (s.status || "") + "</td><td>" + adj + "</td><td>" + exc + "</td></tr>";
+    }}
+    html += "</tbody></table>";
+    html += "<p class=\\"muted\\">Objective protocol metrics stay pending_teacher until desk teachers fill them. Cumulative: each day builds on prior adjustments.</p>";
+  }} else if (latest.paths && latest.paths.scores) {{
+    html += "<p>Scores pointer: <code>" + latest.paths.scores + "</code></p>";
+    if (latest.git_raw_scores) {{
+      try {{
+        const r = await fetch(latest.git_raw_scores.replace("raw.githubusercontent.com", "cdn.jsdelivr.net/gh").replace("/main/", "@main/").replace("StrataMesh-Laboratory/stratamesh-core/", "StrataMesh-Laboratory/stratamesh-core@").replace("@main@main", "@main"));
+      }} catch (e) {{}}
+      html += "<p class=\\"muted\\">Fetch full scores from git after push: academy_scores/" + (latest.date || "") + "/scores.json</p>";
+    }}
+  }}
+  out.innerHTML = html || "<p class=\\"muted\\">Embed has latest pointer only.</p>";
+}}
+load();
+</script>
+</main></body></html>`;
+}}
 function pageIndex() {{
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>StrataMesh LAB · ACB Academy</title><style>${{CSS}}</style></head><body><main>
@@ -239,6 +315,8 @@ function pageIndex() {{
 <li><a href="/v1/syllabus">/v1/syllabus</a></li>
 <li><a href="/v1/models">/v1/models</a></li>
 <li><a href="/v1/flux">/v1/flux</a> dual-lobe QIGA</li>
+<li><a href="/grades">/grades</a> daily general exams</li>
+<li><a href="/v1/daily-scores">/v1/daily-scores</a></li>
 <li><a href="/SPEC.txt">/SPEC.txt</a></li>
 <li><a href="/openapi.json">/openapi.json</a></li>
 </ul>
@@ -258,6 +336,7 @@ Not a student: grok@calhegasmorais.pt
 ================================================================================
 GET  /health /v1/catalog /v1/formations /v1/formations/:id /v1/syllabus?role=&mode=
 GET  /v1/roster /v1/models /v1/cost /v1/progress?acb_id=
+GET  /grades  /v1/daily-scores
 POST /v1/enroll {{acb_id}}
 POST /v1/grade  {{formation_id, answers:[], acb_id?}}  — grader + QIGA flux tick
 POST /v1/flux   same payload; returns dual-lobe packet
@@ -281,6 +360,8 @@ function openapi() {{
       "/v1/formations": {{ get: {{ summary: "List formations" }} }},
       "/v1/grade": {{ post: {{ summary: "Fail-closed grader" }} }},
       "/v1/run": {{ post: {{ summary: "symbolic (Worker) or ollama (Fog)" }} }},
+      "/grades": {{ get: {{ summary: "Daily exam grades SPA" }} }},
+      "/v1/daily-scores": {{ get: {{ summary: "Latest daily exam scores embed" }} }},
     }},
     "x-not-present": ["OAuth", "workers.dev", "HF inference", "mint"],
   }};
@@ -307,6 +388,18 @@ export default {{
     const path = url.pathname.replace(/\\/+$/, "") || "/";
 
     if (path === "/" && wantsHtml(request)) return html(pageIndex());
+    if (path === "/grades") return html(pageGrades());
+    if (path === "/v1/daily-scores") {{
+      const body = {{
+        ok: !!(DAILY_SCORES && (DAILY_SCORES.latest || DAILY_SCORES.scores)),
+        source: "embed",
+        latest: (DAILY_SCORES && DAILY_SCORES.latest) || null,
+        scores: (DAILY_SCORES && DAILY_SCORES.scores) || null,
+        exam_focus: (DAILY_SCORES && DAILY_SCORES.exam_focus) || null,
+        note: "Mac Fog desk writes academy_scores/; Bot not required",
+      }};
+      return json(body, 200, "no-store");
+    }}
     if (path === "/" || path === "/health" || path === "/v1/meta") return json(meta(), 200, "no-store");
     if (path === "/v1/catalog") return json(CATALOG);
     if (path === "/v1/roster") return json({{ students: CATALOG.roster, not_students: CATALOG.not_students }});

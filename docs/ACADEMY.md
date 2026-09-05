@@ -62,3 +62,7 @@ Empty answers are **unready**. Silence is not a pass. Unready packets do not bre
 ## Locked
 
 No workers.dev · no 6th CF cron · no Worker HF inference · grok@ is not an SCA · identity ≠ cargo · academy answers never federate.
+
+## Daily general exams
+
+See `docs/ACADEMY-DAILY-EXAMS.md`. Mac Fog desk_ops / LaunchAgent primary; Bot contingency only. Grades: `/grades`.
