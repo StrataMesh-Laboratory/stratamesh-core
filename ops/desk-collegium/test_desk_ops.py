@@ -169,6 +169,27 @@ class DeskOps(unittest.TestCase):
         self.assertTrue(by_id["dt-vault-false-esc"].get("resolve_as_representative"))
         self.assertEqual(by_id["dt-true-2fa"]["status"], "escalate")
 
+    def test_pick_actable_fallback_not_idle_when_acts_open(self):
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        state = bus.load_state()
+        state["open_tasks"] = [{
+            "schema": "desk.task.v1",
+            "id": "dt-m1-claw-loop",
+            "owner": "openclaw@fog",
+            "specialty": "claw",
+            "intent": "recurring hop health",
+            "status": "propose",
+            "eisenhower": "act",
+            "constraints": [],
+            "result": "",
+            "sha": "",
+        }]
+        bus.save_state(state)
+        picked = mod.pick_actable_fallback(bus.load_state(), max_n=1)
+        self.assertEqual(picked[0]["id"], "dt-m1-claw-loop")
+        self.assertEqual(picked[0]["_handler"], "claw")
+
     def test_oracle_live_mention_is_not_andre_gate(self):
         mod = self.mod
         self.assertFalse(mod._is_andre_human_gate_task({

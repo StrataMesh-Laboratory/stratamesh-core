@@ -1171,6 +1171,33 @@ def _pick_rr_advance(chosen_spec: str) -> None:
         pass
 
 
+def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
+    """If RR pick is empty but open Act work remains, take the next representable task.
+
+    Skips only true André gates and eisenhower plan/note. Used so r/60s cannot
+    idle-skip while dt-* Acts are still open.
+    """
+    out: list[dict] = []
+    for t in state.get("open_tasks") or []:
+        if _is_andre_human_gate_task(t):
+            continue
+        eisen = (t.get("eisenhower") or "act").lower()
+        if eisen in ("plan", "note"):
+            continue
+        spec = _handler_for(t) or "coord"
+        allowed, pace, lane = _pace_allows(state, spec)
+        if not allowed:
+            continue
+        item = dict(t)
+        item["_handler"] = spec
+        item["_pace"] = pace
+        item["_lane"] = lane
+        out.append(item)
+        if len(out) >= max_n:
+            break
+    return out
+
+
 def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) -> list[dict]:
     """Fair RR across specialties so claw cannot starve code/coord at --max 1.
 
@@ -1623,10 +1650,11 @@ def cmd_cycle(args: argparse.Namespace) -> int:
             state = bus.load_state()
             picked = pick_tasks(state, max_n=args.max, include_human_gates=False)
         if not picked:
-            msg = f"ops: idle-skip (protocol_ok={chk.get('ok')}; only human-gate/HOLD left)"
+            picked = pick_actable_fallback(state, max_n=args.max)
+        if not picked:
+            msg = f"ops: idle-skip (protocol_ok={chk.get('ok')}; only human-gate/HOLD/plan left)"
             print(msg)
             if not args.dry_run:
-                # rate-limit feed spam: only note skip every 10 minutes
                 skip_flag = FOG / "data" / "desk-ops-idle-skip.ts"
                 now = time.time()
                 last = 0.0
@@ -1641,9 +1669,31 @@ def cmd_cycle(args: argparse.Namespace) -> int:
                         skip_flag.write_text(str(now))
                     except Exception:
                         pass
-                # do not push empty self-loop every 60s
                 _write_last({"delivered": 0, "picked": [], "protocol_ok": chk.get("ok"), "idle_skip": True})
             return 0
+        # Act work remained — feed must move on r/60s
+        if not args.dry_run:
+            bus.feed_append(
+                "desk",
+                f"r/60s cycle picked={picked[0].get('id')} spec={picked[0].get('_handler')} open={len(state.get('open_tasks') or [])}",
+                kind="act",
+                specialty=str(picked[0].get("_handler") or "coord"),
+                force=True,
+                dedupe=False,
+            )
+
+    if picked and not args.dry_run:
+        try:
+            bus.feed_append(
+                "desk",
+                f"r/60s cycle picked={picked[0].get('id')} spec={picked[0].get('_handler')} open={len(state.get('open_tasks') or [])}",
+                kind="act",
+                specialty=str(picked[0].get("_handler") or "coord"),
+                force=True,
+                dedupe=False,
+            )
+        except Exception:
+            pass
 
     delivered = 0
     for task in picked:

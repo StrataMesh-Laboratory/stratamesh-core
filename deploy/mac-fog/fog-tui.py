@@ -973,17 +973,18 @@ def boxline(inner: str, width: int) -> str:
 
 
 
-def kick_desk_refresh() -> None:
+def kick_desk_refresh(force: bool = False) -> None:
     """Live api-edge /desk pull(+push) on the 60s instrument / r path.
 
     Upgrades stay on g / auto-g. This never blocks draw(). Fail-open if no
     DESK_TOKEN vault file. Merge-safe: never clobbers constrain|revise|commit.
+    force=True on key r so a press is not swallowed by the 60s gate.
     """
     global _DESK_BUSY, _DESK_LAST_KICK, _DESK_CYCLE
-    if _DESK_BUSY:
+    if _DESK_BUSY and not force:
         return
     now = time.monotonic()
-    if _DESK_LAST_KICK and (now - _DESK_LAST_KICK) < DESK_PROBE_PERIOD:
+    if not force and _DESK_LAST_KICK and (now - _DESK_LAST_KICK) < DESK_PROBE_PERIOD:
         return
     _DESK_LAST_KICK = now
     _DESK_BUSY = True
@@ -2617,6 +2618,7 @@ def main() -> int:
             if ch in ("q", "Q", "\x1b"):
                 return 0
             if ch in ("r", "R"):
+                kick_desk_refresh(force=True)
                 continue
             if ch == "?":
                 HELP = not HELP
