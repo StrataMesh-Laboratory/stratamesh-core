@@ -4,7 +4,7 @@
     "kind": "latest",
     "date": "2026-09-05",
     "tz": "Europe/Lisbon",
-    "updated": "2026-09-05T14:53:52+0100",
+    "updated": "2026-09-05T15:07:53+0100",
     "paths": {
       "roster": "academy_scores/roster.json",
       "day": "academy_scores/2026-09-05/",
@@ -25,7 +25,7 @@
     "kind": "scores",
     "date": "2026-09-05",
     "tz": "Europe/Lisbon",
-    "scored_at": "2026-09-05T14:53:52+0100",
+    "scored_at": "2026-09-05T15:07:53+0100",
     "scored_by_stub": true,
     "note": "v0 stubs \u2014 desk teachers fill protocolar measurements + qualitative adjustments/recognitions. Not a desk KPI meter.",
     "students": [

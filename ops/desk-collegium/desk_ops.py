@@ -47,6 +47,30 @@ def _lane_pace(state: dict, lane: str) -> str:
     return str(((state.get("lanes") or {}).get(lane) or {}).get("pace") or "ALLOW")
 
 
+
+def _platforms(state: dict | None = None) -> dict:
+    try:
+        metabol = _load("desk_metabol")
+        st = state if state is not None else metabol.load_state()
+        plats = st.get("platforms")
+        if not plats:
+            lanes = st.get("lanes") or metabol.compute_lanes(st)
+            plats = metabol.compute_platforms(lanes)
+        return plats or {}
+    except Exception:
+        return {}
+
+
+def _platform_allows(state: dict, name: str, *, action: str | None = None) -> tuple[bool, str, str]:
+    """Platform typology gate (HOLD/STASIS skip/slow)."""
+    try:
+        metabol = _load("desk_metabol")
+        ok, pace, meta = metabol.platform_allows(_platforms(state), name, action=action)
+        return bool(ok), str(pace), str((meta or {}).get("reason") or "")
+    except Exception:
+        return True, "ALLOW", "metabol_unavailable"
+
+
 def _specialty_lane(spec: str) -> str:
     return {
         "claw": "lane-openclaw",
@@ -690,16 +714,26 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
             if force_exam or ae.due_for_run():
                 er = ae.run_daily(dry=False, force=force_exam)
                 exam_bit = (
-                    f" daily_exam={er.get(date)} skipped={int(bool(er.get(skipped)))}"
-                    f" wrote={int(bool(er.get(ok) and not er.get(skipped)))}"
+                    f" daily_exam={er.get('date')} skipped={int(bool(er.get('skipped')))}"
+                    f" wrote={int(bool(er.get('ok') and not er.get('skipped')))}"
                 )
                 if er.get("ok") and not er.get("skipped") and (
                     force_exam or "publish" in intent
                 ):
                     try:
-                        ae.maybe_publish_grades(dry=False)
+                        st = _load("desk_bus").load_state()
                     except Exception:
-                        pass
+                        st = {}
+                    allow_pub, pace_pub, why_pub = _platform_allows(
+                        st, "fund-origin-put", action="origin"
+                    )
+                    if allow_pub:
+                        try:
+                            ae.maybe_publish_grades(dry=False)
+                        except Exception:
+                            pass
+                    else:
+                        exam_bit += f" publish_skip={pace_pub}"
         except Exception as e:
             exam_bit = f" daily_exam_err={str(e)[:60]}"
     note = (
@@ -1088,7 +1122,10 @@ def _maybe_collegium_verbs(bus, task: dict, board: dict, ship_out: dict) -> None
 
 
 def _pace_allows(state: dict, spec: str) -> tuple[bool, str, str]:
-    """STASIS=block all; HOLD=block non-lead. lane-bot never freezes other specialties."""
+    """STASIS=block all; HOLD=block non-lead. lane-bot never freezes other specialties.
+
+    Platform typology (cf-workers/kv/pages/mw/…) is enforced separately via _platform_allows.
+    """
     lane = _specialty_lane(spec)
     pace = _lane_pace(state, lane)
     if pace == "STASIS":
@@ -1481,16 +1518,34 @@ def academy_teach_tick(bus, state: dict, *, dry: bool) -> None:
 
     Mac Fog primary — does not require Bot wake. Bot @daily is contingency only.
     """
-    # Daily general exams (Bot-independent)
+    # Daily general exams (Bot-independent; metabol academy-exams + fund-origin-put)
     if not dry:
         try:
-            ae = _load("academy_exams")
-            if ae.due_for_run():
-                er = ae.run_daily(dry=False, force=False)
-                print(
-                    f"ops: academy_daily_exam date={er.get(date)} "
-                    f"skipped={er.get(skipped)} ok={er.get(ok)}"
-                )
+            allow_ax, pace_ax, why_ax = _platform_allows(state, "academy-exams")
+            if not allow_ax:
+                print(f"ops: academy_daily_exam skip pace={pace_ax} {why_ax}")
+            else:
+                ae = _load("academy_exams")
+                if ae.due_for_run():
+                    er = ae.run_daily(dry=False, force=False)
+                    print(
+                        f"ops: academy_daily_exam date={er.get('date')} "
+                        f"skipped={er.get('skipped')} ok={er.get('ok')}"
+                    )
+                    # grades/worker publish respects fund-origin-put metabol
+                    if er.get("ok") and not er.get("skipped"):
+                        allow_pub, pace_pub, why_pub = _platform_allows(
+                            state, "fund-origin-put", action="origin"
+                        )
+                        if allow_pub:
+                            try:
+                                ae.maybe_publish_grades(dry=False)
+                            except Exception as pe:
+                                print(f"academy publish warn: {pe}", file=sys.stderr)
+                        else:
+                            print(
+                                f"ops: academy_grades_publish skip pace={pace_pub} {why_pub}"
+                            )
         except Exception as e:
             print(f"academy_exams warn: {e}", file=sys.stderr)
     if _lane_pace(state, "lane-assistant") == "STASIS" and _lane_pace(state, "lane-hermes") == "STASIS":

@@ -215,7 +215,9 @@
       "published_daily_limit": 100000,
       "published_worker_scripts": 100,
       "live_worker_scripts": 39,
-      "unknown_remaining": "hold"
+      "unknown_remaining": "hold",
+      "metabol_pace": true,
+      "usage_typology": "cf_workers_utc_daily"
     },
     "cf-d1-reads": {
       "layer": "node",
@@ -249,7 +251,9 @@
       "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
-      "debt_persists_across_renewal": true
+      "debt_persists_across_renewal": true,
+      "metabol_pace": true,
+      "usage_typology": "cf_kv_utc_daily"
     },
     "cf-kv-writes": {
       "layer": "node",
@@ -261,7 +265,9 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": true,
-      "note": "KV Free 1k writes/day \u2014 handoff persist is expensive. Do not write-loop."
+      "note": "KV Free 1k writes/day \u2014 handoff persist is expensive. Do not write-loop.",
+      "metabol_pace": true,
+      "usage_typology": "cf_kv_utc_daily"
     },
     "cf-r2-class-a": {
       "layer": "node",
@@ -302,7 +308,9 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "Europe/Lisbon",
       "debt_persists_across_renewal": true,
-      "note": "Cheap /health. Over-cycling tonight lengthens tomorrow's interval. Coalesce N worker health into 1 (density N)."
+      "note": "Cheap /health. Over-cycling tonight lengthens tomorrow's interval. Coalesce N worker health into 1 (density N).",
+      "metabol_pace": true,
+      "usage_typology": "local_host_cap"
     },
     "origin-archive": {
       "layer": "lab",
@@ -331,7 +339,9 @@
       "shares_pool": "cf-worker-req",
       "static_assets_free": true,
       "skip_meter": true,
-      "outside_worker_bucket": true
+      "outside_worker_bucket": true,
+      "metabol_pace": true,
+      "usage_typology": "cf_pages_alias_worker_pool"
     },
     "lockstep-probe": {
       "layer": "node",
@@ -372,7 +382,9 @@
       "phase": "day",
       "renewal_hhmm": "00:00",
       "renewal_tz": "Europe/Lisbon",
-      "note": "SuperGrok does not refill Bot included weekly; usage_limit pauses that routine once, no retry-loop, no Upgrade"
+      "note": "SuperGrok does not refill Bot included weekly; usage_limit pauses that routine once, no retry-loop, no Upgrade",
+      "metabol_pace": true,
+      "usage_typology": "desk_agent_token_lane"
     },
     "grok-assistant": {
       "layer": "lab",
@@ -386,7 +398,9 @@
       "note": "SuperGrok Plus weekly compute pool. Unit is remaining_frac (1.0 = full weekly pool), NOT a prompt or token count \u2014 grok.com Usage has no public token number. Live 2026-08-29 ~01:05 Lisbon: 4% used, remaining_frac=0.96. Reset text 'Resets August 31, 2026 at 2:55 PM' has no timezone; treated as Europe/Lisbon (session TZ) \u2192 reset_iso=2026-08-31T14:55:00+01:00. Prompt cost is unknown compute; snapshot cost=0 (is the pool alive); a fire is grok-auto. Gate on remaining_frac>0 + circuit. Do not invent a weekly token cap. SuperGrok does not refill grok-bot-included or CF.",
       "daily_limit": 1.0,
       "meter": "remaining_frac",
-      "unknown_cost": true
+      "unknown_cost": true,
+      "metabol_pace": true,
+      "usage_typology": "desk_agent_token_lane"
     },
     "aws-free": {
       "layer": "lab",
@@ -409,7 +423,9 @@
       "renewal_tz": "UTC",
       "min_interval_ms": 15000,
       "debt_persists_across_renewal": false,
-      "note": "Tailscale admin API api.tailscale.com. 429 + Retry-After is STASIS. Auth keys live only in ~/.config/stratamesh/tailscale.authkey and tailscale.api \u2014 never git."
+      "note": "Tailscale admin API api.tailscale.com. 429 + Retry-After is STASIS. Auth keys live only in ~/.config/stratamesh/tailscale.authkey and tailscale.api \u2014 never git.",
+      "metabol_pace": true,
+      "usage_typology": "tailscale_admin_api"
     },
     "cursor-api": {
       "layer": "desk",
@@ -433,7 +449,9 @@
       "skip_meter": true,
       "cf_daily": false,
       "unknown_remaining": "allow",
-      "note": "Local workerd :8788 isolate + metabol. MW not kernel. CF 100k is a different hop (cf-worker-req). metabol_pace per hop."
+      "note": "Local workerd :8788 isolate + metabol. MW not kernel. CF 100k is a different hop (cf-worker-req). metabol_pace per hop.",
+      "metabol_pace": true,
+      "usage_typology": "local_host_cap_plus_cf_rail"
     },
     "hop-python": {
       "layer": "fog",
@@ -444,7 +462,9 @@
       "skip_meter": true,
       "cf_daily": false,
       "unknown_remaining": "allow",
-      "note": "Local python :8790. No CF daily clock. host_cap only. Auth/wb first hop."
+      "note": "Local python :8790. No CF daily clock. host_cap only. Auth/wb first hop.",
+      "metabol_pace": true,
+      "usage_typology": "local_host_cap"
     },
     "hop-node": {
       "layer": "fog",
@@ -455,7 +475,9 @@
       "skip_meter": true,
       "cf_daily": false,
       "unknown_remaining": "allow",
-      "note": "Local node :8791. No CF daily clock. host_cap only. Compose/assemble/desk first hop."
+      "note": "Local node :8791. No CF daily clock. host_cap only. Compose/assemble/desk first hop.",
+      "metabol_pace": true,
+      "usage_typology": "local_host_cap"
     },
     "hop-deno-local": {
       "layer": "fog",
@@ -466,7 +488,9 @@
       "skip_meter": true,
       "cf_daily": false,
       "unknown_remaining": "allow",
-      "note": "Local Deno :8792. No CF daily clock. host_cap only. Object CID/mail first hop."
+      "note": "Local Deno :8792. No CF daily clock. host_cap only. Object CID/mail first hop.",
+      "metabol_pace": true,
+      "usage_typology": "local_host_cap"
     },
     "hop-deno-deploy": {
       "layer": "lab",
@@ -476,7 +500,27 @@
       "daily_limit": 0,
       "skip_meter": true,
       "unknown_remaining": "allow",
-      "note": "Deno Deploy Free is ALLOW fallback only. Never workers.dev. Local :8792 is the hop."
+      "note": "Deno Deploy Free is ALLOW fallback only. Never workers.dev. Local :8792 is the hop.",
+      "metabol_pace": true,
+      "usage_typology": "deno_deploy_free_allow_only"
+    },
+    "academy-tick": {
+      "daily_limit": 24,
+      "renewal_hhmm": "00:05",
+      "tz": "Europe/Lisbon",
+      "unit": "exam_tick",
+      "cost_default": 1,
+      "note": "Academy daily exams LaunchAgent/desk tick. metabol_pace=true; host Mac primary. Never Bot-only. HOLD/STASIS is pace not freeze.",
+      "metabol_pace": true,
+      "usage_typology": "lisbon_daily_tick"
+    },
+    "tailscale": {
+      "shares_pool": "tailscale-api",
+      "skip_meter": true,
+      "daily_limit": 0,
+      "note": "Alias of tailscale-api. Taper T1-T4 metabol-paced; 429+Retry-After is pace not freeze.",
+      "metabol_pace": true,
+      "usage_typology": "tailscale_admin_api"
     }
   }
 }

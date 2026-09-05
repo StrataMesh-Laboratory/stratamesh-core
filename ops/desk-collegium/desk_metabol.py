@@ -52,13 +52,116 @@ LANE_SPECS = {
     "lane-cf": {
         "meter": "cf_worker_req",
         "renewal": "00:00_UTC",
-        "renewal_note": "100k/day Workers; KV 1000/day; never workers.dev",
+        "renewal_note": "100k/day Workers decide HOLD/STASIS; KV 1000 writes/day; Pages HTML outside bucket; never workers.dev; auth never 503 on STASIS",
         "daily_limit": 100_000,
     },
     "lane-fog-hop": {
         "meter": "mac_mw_ports",
         "renewal": "host_cap",
-        "renewal_note": "local :8787–:8792; skip dead hop 8s",
+        "renewal_note": "local Fog :8787 workerd :8788; MW python:8790 node:8791 deno:8792 mutual fallback; host_cap; skip dead hop 8s",
+    },
+}
+
+
+# Platform typology: renewal / quota / burn_rate or host_cap (metabol_pace=true)
+# Usage notes drive handlers — HOLD/STASIS = pace (skip/slow), not freeze.
+# Auth on CF Workers must never 503 when STASIS (Retry-After / contingency hop).
+PLATFORM_SPECS = {
+    "cf-workers": {
+        "renewal": "00:00_UTC",
+        "quota": 100_000,
+        "unit": "req/day",
+        "burn_rate": "decide_frac + hourly pressure (HOLD≥1.25×, STASIS≥2× unadj hourly)",
+        "usage": "Worker invocations; never workers.dev; auth must not 503 when STASIS",
+        "lane": "lane-cf",
+        "auth_never_503": True,
+    },
+    "cf-kv": {
+        "renewal": "00:00_UTC",
+        "quota": 1000,
+        "unit": "writes/day",
+        "burn_rate": "pace writes; debt stretches interval",
+        "usage": "KV writes only (reads 100k/day separate); share day UTC with Workers clock",
+        "lane": "lane-cf",
+    },
+    "cf-pages-html": {
+        "renewal": "none",
+        "quota": None,
+        "unit": None,
+        "burn_rate": "outside Worker 100k bucket",
+        "usage": "static Pages HTML free; Functions share cf-workers pool — not this rail",
+        "pace_default": "ALLOW",
+        "outside_worker_bucket": True,
+    },
+    "local-mw": {
+        "renewal": "host_cap",
+        "quota": None,
+        "unit": "host RAM/CPU",
+        "burn_rate": "host_cap only",
+        "usage": "python :8790, node :8791, deno :8792; mutual fallback; skip dead hop 8s",
+        "ports": {"8790": "python", "8791": "node", "8792": "deno"},
+        "mutual_fallback": True,
+        "lane": "lane-fog-hop",
+    },
+    "fog-kernel": {
+        "renewal": "host_cap",
+        "quota": None,
+        "unit": "host RAM/CPU",
+        "burn_rate": "host_cap only",
+        "usage": "Fog kernel :8787 + workerd :8788; primary continuous Fog",
+        "ports": {"8787": "fog", "8788": "workerd"},
+        "lane": "lane-fog-hop",
+    },
+    "desk-agents": {
+        "renewal": "per_lane",
+        "quota": None,
+        "unit": "tokens/renewal clocks",
+        "burn_rate": "lane decide via desk_metabol LANE_SPECS",
+        "usage": "Hermes/OpenClaw/OpenCode/Fog/EDGE token+renewal lanes; bot_cap_contingency",
+        "lanes": [
+            "lane-hermes",
+            "lane-openclaw",
+            "lane-opencode",
+            "lane-assistant",
+            "lane-bot",
+        ],
+    },
+    "academy-exams": {
+        "renewal": "daily_lisbon",
+        "quota": 1,
+        "unit": "exam_run/day",
+        "burn_rate": "once/day when due",
+        "usage": "LaunchAgent + academy_teach_tick; bot_required=false; Mac Fog primary",
+        "bot_required": False,
+        "lane": "lane-hermes",
+    },
+    "tailscale": {
+        "renewal": "trial_or_personal",
+        "quota": None,
+        "unit": "trial days / seats",
+        "burn_rate": "metabol-paced; HOLD paid seats",
+        "usage": "trial notes; no default-route/exit-node on box; no MagicDNS steal",
+        "no_default_route": True,
+        "no_exit_node": True,
+        "docs": "docs/ops/TAILSCALE-METABOL.md",
+    },
+    "deno-deploy-free": {
+        "renewal": "vendor_free",
+        "quota": None,
+        "unit": None,
+        "burn_rate": "ALLOW fallback only — never primary burn rail",
+        "usage": "ALLOW fallback only when MW/Fog contingency needs Deno Deploy Free",
+        "pace_default": "ALLOW",
+        "fallback_only": True,
+    },
+    "fund-origin-put": {
+        "renewal": "00:00_UTC",
+        "quota": None,
+        "unit": "CF Worker PUTs / origin archive",
+        "burn_rate": "gated by cf-workers (+ cf-kv if write); Pages HTML outside bucket",
+        "usage": "fund worker + origin PUT respect metabol if gated; HTML/Pages always ALLOW",
+        "lane": "lane-cf",
+        "pages_always_allow": True,
     },
 }
 
@@ -195,6 +298,241 @@ def decide_frac(used: float, limit: float) -> str:
     return "ALLOW"
 
 
+
+def read_kv_sample() -> dict:
+    p = FOG / "data/desk-meters/cf-kv.json"
+    if p.is_file():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def read_tailscale_sample() -> dict:
+    for name in ("tailscale.json", "tailscale-taper.json"):
+        p = FOG / "data/desk-meters" / name
+        if p.is_file():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+    return {}
+
+
+def read_mw_sample() -> dict:
+    p = FOG / "data/desk-meters/local-mw.json"
+    if p.is_file():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def platform_pace(platforms: dict, name: str) -> str:
+    return str(((platforms or {}).get(name) or {}).get("pace") or "ALLOW")
+
+
+def platform_allows(
+    platforms: dict,
+    name: str,
+    *,
+    action: str | None = None,
+) -> tuple[bool, str, dict]:
+    """HOLD/STASIS skip or slow per typology.
+
+    Special cases:
+    - cf-pages-html / action=pages|html → always ALLOW
+    - cf-workers action=auth → ALLOW even in STASIS (never 503; contingency hop)
+    - deno-deploy-free → ALLOW only as fallback (action must be fallback|contingency)
+    - fund-origin-put action=pages|html → ALLOW; worker/fund gated by cf-workers
+    """
+    spec = (platforms or {}).get(name) or PLATFORM_SPECS.get(name) or {}
+    pace = str(spec.get("pace") or spec.get("pace_default") or "ALLOW")
+    act = (action or "").lower()
+
+    if name == "cf-pages-html" or act in ("pages", "html", "static"):
+        return True, "ALLOW", {**spec, "pace": "ALLOW", "reason": "outside_worker_bucket"}
+
+    if name == "cf-workers" and act == "auth":
+        # STASIS paces Worker spend; auth path must not 503
+        return True, pace, {**spec, "pace": pace, "reason": "auth_never_503"}
+
+    if name == "deno-deploy-free":
+        if act in ("fallback", "contingency", "allow_fallback"):
+            return True, "ALLOW", {**spec, "pace": "ALLOW", "reason": "fallback_only"}
+        return False, "HOLD", {**spec, "pace": "HOLD", "reason": "deno_deploy_not_primary"}
+
+    if name == "fund-origin-put":
+        if act in ("pages", "html", "static"):
+            return True, "ALLOW", {**spec, "pace": "ALLOW", "reason": "pages_always_allow"}
+        # worker/fund/origin inherit cf-workers pace when present
+        cf = (platforms or {}).get("cf-workers") or {}
+        pace = str(cf.get("pace") or pace)
+        if pace == "STASIS":
+            return False, pace, {**spec, "pace": pace, "reason": "cf_workers_stasis"}
+        if pace == "HOLD" and act in ("fund", "fund-worker", "worker_put"):
+            return False, pace, {**spec, "pace": pace, "reason": "cf_workers_hold_slow"}
+        if pace == "HOLD" and act in ("origin", "origin_put", "cf-put-origin"):
+            # HOLD = slow: skip auto origin PUT (operator/force can still call)
+            return False, pace, {**spec, "pace": pace, "reason": "cf_workers_hold_slow"}
+        return True, pace, {**spec, "pace": pace}
+
+    if pace == "STASIS":
+        return False, pace, spec
+    if pace == "HOLD":
+        # HOLD skips non-lead paced surfaces; host_cap platforms stay ALLOW unless meter says HOLD
+        if spec.get("renewal") == "host_cap" and not spec.get("meter_forced_hold"):
+            return True, "ALLOW", {**spec, "pace": "ALLOW"}
+        return False, pace, spec
+    return True, pace, spec
+
+
+def compute_platforms(lanes: dict) -> dict:
+    """Derive platform metabol_pace entries from meters + lane paces."""
+    platforms: dict = {}
+    cf_lane = (lanes or {}).get("lane-cf") or {}
+    cf_pace = str(cf_lane.get("pace") or "ALLOW")
+    hrs = hours_until_utc_midnight()
+
+    # 1) CF Workers
+    platforms["cf-workers"] = {
+        **PLATFORM_SPECS["cf-workers"],
+        "pace": cf_pace,
+        "hours_until_renewal": hrs,
+        "sample_note": cf_lane.get("sample_note")
+        or f"renew=00:00_UTC h_left={hrs:.1f}; never workers.dev; auth never 503",
+        "computed_at": _now(),
+    }
+
+    # 2) CF KV writes
+    kv = read_kv_sample()
+    kv_lim = float(kv.get("daily_limit") or PLATFORM_SPECS["cf-kv"]["quota"] or 1000)
+    if kv.get("writes_used") is not None or kv.get("used") is not None:
+        used = float(kv.get("writes_used") if kv.get("writes_used") is not None else kv.get("used") or 0)
+        kv_pace = decide_frac(used, kv_lim)
+        kv_note = f"writes={int(used)}/{int(kv_lim)} renew=00:00_UTC"
+    elif kv.get("remaining") is not None:
+        rem = float(kv["remaining"])
+        used = kv_lim - rem
+        kv_pace = decide_frac(used, kv_lim)
+        kv_note = f"remaining={int(rem)}/{int(kv_lim)} renew=00:00_UTC"
+    else:
+        # inherit Worker day clock conservatively only when CF STASIS; else ALLOW until sampled
+        kv_pace = "HOLD" if cf_pace == "STASIS" else "ALLOW"
+        kv_note = "no cf-kv sample — write FOG/data/desk-meters/cf-kv.json; quota=1000 writes/day"
+    platforms["cf-kv"] = {
+        **PLATFORM_SPECS["cf-kv"],
+        "pace": kv_pace,
+        "hours_until_renewal": hrs,
+        "sample_note": kv_note,
+        "computed_at": _now(),
+    }
+
+    # 3) CF Pages HTML — outside Worker bucket
+    platforms["cf-pages-html"] = {
+        **PLATFORM_SPECS["cf-pages-html"],
+        "pace": "ALLOW",
+        "sample_note": "static Pages outside Worker 100k; Functions share cf-workers",
+        "computed_at": _now(),
+    }
+
+    # 4) Local MW host_cap + mutual fallback
+    mw = read_mw_sample()
+    hop = (lanes or {}).get("lane-fog-hop") or {}
+    mw_pace = str(hop.get("pace") or "ALLOW")
+    if mw.get("dead_all"):
+        mw_pace = "STASIS"
+        mw_note = "all MW ports dead — host_cap exhausted / process down"
+    elif mw.get("ports"):
+        alive = [p for p, ok in (mw.get("ports") or {}).items() if ok]
+        mw_note = f"alive={alive or list((mw.get('ports') or {}).keys())} mutual_fallback renew=host_cap"
+    else:
+        mw_note = "python:8790 node:8791 deno:8792 mutual fallback; renew=host_cap"
+    platforms["local-mw"] = {
+        **PLATFORM_SPECS["local-mw"],
+        "pace": mw_pace,
+        "sample_note": mw_note,
+        "computed_at": _now(),
+    }
+
+    # 5) Fog kernel / workerd
+    platforms["fog-kernel"] = {
+        **PLATFORM_SPECS["fog-kernel"],
+        "pace": mw_pace if not mw.get("fog_down") else "STASIS",
+        "sample_note": "Fog :8787 + workerd :8788 renew=host_cap",
+        "computed_at": _now(),
+    }
+
+    # 6) Desk agents — summarize lane paces
+    agent_paces = {
+        k: str(((lanes or {}).get(k) or {}).get("pace") or "ALLOW")
+        for k in PLATFORM_SPECS["desk-agents"]["lanes"]
+    }
+    # worst non-bot pace for summary; bot HOLD must not freeze others
+    non_bot = [p for k, p in agent_paces.items() if k != "lane-bot"]
+    if "STASIS" in non_bot:
+        desk_pace = "STASIS"
+    elif "HOLD" in non_bot:
+        desk_pace = "HOLD"
+    else:
+        desk_pace = "ALLOW"
+    platforms["desk-agents"] = {
+        **PLATFORM_SPECS["desk-agents"],
+        "pace": desk_pace,
+        "lane_paces": agent_paces,
+        "sample_note": "bot_cap_contingency: lane-bot HOLD/STASIS never freezes Hermes/OpenCode/OpenClaw",
+        "computed_at": _now(),
+    }
+
+    # 7) Academy exams
+    platforms["academy-exams"] = {
+        **PLATFORM_SPECS["academy-exams"],
+        "pace": str(((lanes or {}).get("lane-hermes") or {}).get("pace") or "ALLOW"),
+        "bot_required": False,
+        "sample_note": "LaunchAgent pt.calhegasmorais.academy-daily-exams + academy_teach_tick; bot_required=false",
+        "computed_at": _now(),
+    }
+
+    # 8) Tailscale
+    ts = read_tailscale_sample()
+    if ts.get("pace") in ("ALLOW", "HOLD", "STASIS"):
+        ts_pace = str(ts["pace"])
+        ts_note = str(ts.get("summary") or ts.get("sample_note") or "meter pace")
+    elif ts.get("trial_ended") or ts.get("buy_seats"):
+        ts_pace = "STASIS" if ts.get("buy_seats") else "HOLD"
+        ts_note = "trial/billing gate — no paid seats; see TAILSCALE-METABOL"
+    else:
+        ts_pace = "ALLOW"
+        ts_note = "metabol-paced trial; no default-route/exit-node on box; docs/ops/TAILSCALE-METABOL.md"
+    platforms["tailscale"] = {
+        **PLATFORM_SPECS["tailscale"],
+        "pace": ts_pace,
+        "sample_note": ts_note,
+        "computed_at": _now(),
+    }
+
+    # 9) Deno Deploy Free — ALLOW fallback only
+    platforms["deno-deploy-free"] = {
+        **PLATFORM_SPECS["deno-deploy-free"],
+        "pace": "ALLOW",
+        "sample_note": "ALLOW fallback only — not a primary burn rail",
+        "computed_at": _now(),
+    }
+
+    # 10) Fund worker / origin PUT
+    fund_pace = cf_pace
+    if kv_pace == "STASIS" and cf_pace == "ALLOW":
+        fund_pace = "HOLD"  # slow KV-touching publishes
+    platforms["fund-origin-put"] = {
+        **PLATFORM_SPECS["fund-origin-put"],
+        "pace": fund_pace,
+        "sample_note": f"gated by cf-workers={cf_pace} cf-kv={kv_pace}; Pages HTML always ALLOW",
+        "computed_at": _now(),
+    }
+    return platforms
+
 def compute_lanes(state: dict) -> dict:
     lanes = {}
     # openclaw — session tokens (UI showed 2.1k/33k)
@@ -313,7 +651,7 @@ def compute_lanes(state: dict) -> dict:
     lanes["lane-fog-hop"] = {
         **LANE_SPECS["lane-fog-hop"],
         "pace": "ALLOW",
-        "sample_note": "local MW hops; renew=host_cap",
+        "sample_note": "Fog:8787 workerd:8788; MW 8790/8791/8792 mutual fallback; renew=host_cap",
         "computed_at": _now(),
     }
     return lanes
@@ -369,8 +707,11 @@ def mirror_open_tasks_to_feed(state: dict) -> int:
 def tick() -> dict:
     state = load_state()
     lanes = compute_lanes(state)
+    platforms = compute_platforms(lanes)
     changes = apply_to_members(state, lanes)
     state["lanes"] = lanes
+    state["platforms"] = platforms
+    state["metabol_pace"] = True
     state["metabol_tick"] = _now()
     mirrored = mirror_open_tasks_to_feed(state)
     save_state(state)
@@ -381,6 +722,7 @@ def tick() -> dict:
     return {
         "ok": True,
         "lanes": {k: v.get("pace") for k, v in lanes.items()},
+        "platforms": {k: v.get("pace") for k, v in platforms.items()},
         "changes": changes,
         "mirrored": mirrored,
     }
@@ -401,7 +743,9 @@ def main() -> int:
         return 0
     if args.cmd == "show":
         state = load_state()
-        print(json.dumps(state.get("lanes") or compute_lanes(state), indent=2))
+        lanes = state.get("lanes") or compute_lanes(state)
+        platforms = state.get("platforms") or compute_platforms(lanes)
+        print(json.dumps({"lanes": lanes, "platforms": platforms, "metabol_pace": True}, indent=2))
         return 0
     return 1
 

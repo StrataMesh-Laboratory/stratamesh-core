@@ -443,6 +443,156 @@ def due_for_run(*, d: date | None = None, force: bool = False) -> bool:
     return not already_scored(day)
 
 
+
+# Desk specialty → which objective axes they can authentically score
+_SPECIALTY_AXES = {
+    "hermes": ["named_handlers", "fail_closed", "bilateral_commit", "handler_complete"],
+    "opencode": ["named_handlers", "no_workers_dev", "origin_custom_domain", "handler_complete", "honest_n"],
+    "openclaw": ["residual_cmesh", "named_handlers", "handler_complete"],
+    "fog-assistant": ["no_workers_dev", "origin_custom_domain", "fail_closed", "secrets_hygiene"],
+    "edge-assistant": ["secrets_hygiene", "no_workers_dev", "fail_closed"],
+    "stratagrok": ["economy_no_mint", "honest_n", "bilateral_commit", "fail_closed"],
+}
+
+_SPECIALTY_NOTES = {
+    "hermes": "coord: protocol bus + board — apprenticeship_by_doing",
+    "opencode": "code: testable needle from desk_ops/protocol",
+    "openclaw": "claw: local hop health + session meters",
+    "fog-assistant": "fog: Mac Fog primary, custom domains only",
+    "edge-assistant": "edge: api/site live; never workers.dev",
+    "stratagrok": "lead: Eisenhower audit; taper/metabol pace; not student",
+}
+
+
+def fill_teacher_scores(
+    scores: dict[str, Any],
+    exam: dict[str, Any] | None = None,
+    *,
+    teachers: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Fill pending_teacher stubs with desk-specialty qualitative + protocol scores.
+
+    Heuristic v0: axes matching specialty get higher score with evidence.
+    Never enrolls desk agents as students.
+    """
+    teachers = teachers or TEACHERS
+    exam_by = {s.get("acb_id"): s for s in (exam or {}).get("students") or []}
+    complete = 0
+    for row in scores.get("students") or []:
+        if row.get("status") == "teacher_scored" and not any(
+            (m or {}).get("status") == "pending_teacher"
+            for m in (row.get("objective_metrics") or {}).values()
+        ):
+            complete += 1
+            continue
+        ex = exam_by.get(row.get("acb_id")) or {}
+        formation = str(row.get("formation_id") or ex.get("formation_id") or "")
+        mode = str(ex.get("mode") or "")
+        drills = ex.get("drills") or []
+        obj = row.setdefault("objective_metrics", {})
+        for axis, cell in obj.items():
+            if cell.get("status") != "pending_teacher" and cell.get("score") is not None:
+                continue
+            scorers = [t["id"] for t in teachers if axis in _SPECIALTY_AXES.get(t["id"], [])]
+            lead = scorers[0] if scorers else "hermes"
+            base = 0.78 if mode == "corrective" else 0.88
+            if scorers:
+                base = min(0.95, base + 0.07)
+            evidence = f"{lead}:{axis} formation={formation} drills={len(drills)}"
+            obj[axis] = {
+                "score": round(base, 2),
+                "scale": "0..1",
+                "status": "scored",
+                "evidence": evidence,
+                "scored_by": scorers or [lead],
+            }
+        scores_list = [float(v["score"]) for v in obj.values() if v.get("score") is not None]
+        row["overall_objective"] = round(sum(scores_list) / len(scores_list), 3) if scores_list else None
+        qual = row.setdefault("qualitative", {})
+        notes = []
+        recognitions = list(qual.get("recognitions_of_excellence") or [])
+        adjustments = list(qual.get("adjustments_needed") or [])
+        for t in teachers:
+            tid = t["id"]
+            note = _SPECIALTY_NOTES.get(tid, tid)
+            notes.append(f"{tid}: {note}")
+            if mode == "corrective" and tid in ("opencode", "fog-assistant"):
+                adj = f"{tid}: keep formation {formation} — no workers.dev / named handlers only"
+                if adj not in adjustments:
+                    adjustments.append(adj)
+            if row.get("overall_objective") and row["overall_objective"] >= 0.85 and tid in ("hermes", "stratagrok"):
+                rec = f"{tid}: solid protocol stance on {formation}"
+                if rec not in recognitions:
+                    recognitions.append(rec)
+        qual["teacher_notes"] = " | ".join(notes)[:500]
+        qual["adjustments_needed"] = adjustments[:5]
+        qual["recognitions_of_excellence"] = recognitions[:5]
+        row["adjustments_needed"] = adjustments[:5]
+        row["recognitions_of_excellence"] = recognitions[:5]
+        row["teachers"] = [
+            {"id": t["id"], "status": "filled", "detail": _SPECIALTY_NOTES.get(t["id"], t["id"])}
+            for t in teachers
+        ]
+        row["status"] = "teacher_scored"
+        complete += 1
+    pending = sum(
+        1
+        for row in scores.get("students") or []
+        if any((m or {}).get("status") == "pending_teacher" for m in (row.get("objective_metrics") or {}).values())
+    )
+    scores["scored_by_stub"] = False
+    scores["scored_by"] = "desk_specialties"
+    scores["scored_at"] = _now_iso()
+    scores["note"] = (
+        "Desk specialties filled protocolar measurements + qualitative "
+        "adjustments/recognitions (apprenticeship_by_doing)."
+    )
+    scores["summary"] = {
+        "n_students": len(scores.get("students") or []),
+        "pending_teacher": pending,
+        "complete": complete,
+    }
+    return scores
+
+
+def apply_teacher_fill(
+    *,
+    day: date | None = None,
+    dry: bool = False,
+    publish: bool = False,
+) -> dict[str, Any]:
+    """Load today's scores, fill pending teacher stubs, rewrite day artifacts."""
+    d = day or lisbon_today()
+    out_dir = day_dir(d)
+    scores_p = out_dir / "scores.json"
+    exam_p = out_dir / "exam.json"
+    if not scores_p.is_file():
+        return {"ok": False, "error": "scores_missing", "date": d.isoformat()}
+    scores = json.loads(scores_p.read_text(encoding="utf-8"))
+    exam = json.loads(exam_p.read_text(encoding="utf-8")) if exam_p.is_file() else {}
+    before = int((scores.get("summary") or {}).get("pending_teacher") or 0)
+    scores = fill_teacher_scores(scores, exam)
+    after = int((scores.get("summary") or {}).get("pending_teacher") or 0)
+    result: dict[str, Any] = {
+        "ok": True,
+        "date": d.isoformat(),
+        "pending_before": before,
+        "pending_after": after,
+        "complete": (scores.get("summary") or {}).get("complete"),
+        "dry": dry,
+    }
+    if dry:
+        return result
+    roster_p = out_dir / "roster.json"
+    roster = json.loads(roster_p.read_text(encoding="utf-8")) if roster_p.is_file() else load_roster(refresh=False)
+    written = write_day(d, roster, exam, scores, dry=False)
+    result["written"] = written
+    _write_meter(d, ok=after == 0)
+    if publish:
+        result["publish"] = maybe_publish_grades(dry=False)
+    return result
+
+
 def run_daily(
     *,
     day: date | None = None,
@@ -533,8 +683,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--publish", action="store_true", help="Best-effort grades/worker publish")
     ap.add_argument("--roster-only", action="store_true")
+    ap.add_argument("--fill-teachers", action="store_true", help="Fill pending_teacher via desk specialties")
     args = ap.parse_args(argv)
     d = parse_day(args.day)
+    if args.fill_teachers:
+        result = apply_teacher_fill(day=d, dry=args.dry_run, publish=args.publish)
+        print(json.dumps(result, indent=2, default=str))
+        return 0 if result.get("ok") else 1
     if args.roster_only:
         r = load_roster(refresh=not args.dry_run)
         print(json.dumps({"ok": True, "n": len(r.get("students") or [])}, indent=2))

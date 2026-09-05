@@ -104,5 +104,38 @@ class AcademyExams(unittest.TestCase):
             self.assertTrue(st["formation_id"])
 
 
+
+class TeacherFill(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="academy-fill-"))
+        self.fog = self.tmp / "fog"
+        self.fog.mkdir()
+        os.environ["FOG_HOME"] = str(self.fog)
+        self.mod = _load()
+        self.scores = self.tmp / "academy_scores"
+        self.scores.mkdir()
+        self.mod.SCORES_ROOT = self.scores
+        self.mod.FOG = self.fog
+
+    def test_fill_clears_pending(self):
+        exam = {
+            "date": "2026-09-05",
+            "students": [{
+                "acb_id": "ACB-X", "sca_id": "SCA-X", "name": "Test",
+                "role": "orchestrator", "formation_id": "ORCH-C-03",
+                "mode": "corrective", "drills": [{"prompt": "x"}],
+                "protocol_metrics": ["fail_closed", "no_workers_dev"],
+            }],
+        }
+        scores = self.mod.score_stubs(exam, {"students": exam["students"]})
+        self.assertEqual(scores["summary"]["pending_teacher"], 1)
+        filled = self.mod.fill_teacher_scores(scores, exam)
+        self.assertEqual(filled["summary"]["pending_teacher"], 0)
+        self.assertEqual(filled["summary"]["complete"], 1)
+        st = filled["students"][0]
+        self.assertEqual(st["status"], "teacher_scored")
+        self.assertIsNotNone(st["overall_objective"])
+        self.assertTrue(st["qualitative"]["teacher_notes"])
+
 if __name__ == "__main__":
     unittest.main()

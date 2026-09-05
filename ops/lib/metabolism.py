@@ -1123,6 +1123,15 @@ HOP_PACE = {
     },
     "cf-auth": {"kind": "cf-worker", "rail": "cf-worker-req", "p0": True, "note": "CF auth only if ALLOW"},
     "cf-deomail": {"kind": "cf-worker", "rail": "deomail", "note": "CF deomail only if ALLOW"},
+    "academy": {
+        "kind": "local", "rail": "academy-tick", "cf_daily": False,
+        "note": "Academy exam tick Mac Fog primary; metabol_pace; never Bot-only",
+    },
+    "tailscale": {
+        "kind": "cf-worker", "rail": "tailscale-api", "daily_limit": 2000,
+        "renewal_hhmm": "00:00", "renewal_tz": "UTC",
+        "note": "Tailscale admin API metabol-paced; 429+Retry-After is pace not freeze",
+    },
 }
 
 HOP_ALIASES = {
@@ -1136,6 +1145,8 @@ HOP_ALIASES = {
     "pages": "pages", "html": "pages", "cf-pages": "pages",
     "cf-auth": "cf-auth", "auth": "python",
     "cf-deomail": "cf-deomail", "deomail": "cf-deomail",
+    "academy": "academy", "academy-tick": "academy",
+    "tailscale": "tailscale", "tailscale-api": "tailscale", "ts": "tailscale",
 }
 
 COMPLEMENTARY_ROUTES = {

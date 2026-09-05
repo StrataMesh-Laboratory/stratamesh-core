@@ -77,3 +77,26 @@ Bot never required. Soft-ok if gh/discourse unavailable (bot_cap_contingency).
 python3 ops/desk-collegium/desk_ship.py auto
 python3 ops/desk-collegium/desk_ship.py metrics
 ```
+
+
+## metabol_pace platform typology
+
+`desk_metabol.py` writes `state.lanes` **and** `state.platforms` every tick (`metabol_pace=true`).
+HOLD/STASIS = **pace** (skip/slow), not freeze. Auth on CF Workers must **never** 503 in STASIS
+(Retry-After / contingency hop to local MW). Never `workers.dev`.
+
+| Platform | Renewal | Quota / cap | Usage typology |
+|----------|---------|-------------|----------------|
+| **CF Workers** | 00:00 UTC | 100k req/day | `decide()` HOLD/STASIS pace; auth never 503 when STASIS |
+| **CF KV** | 00:00 UTC | **1000 writes**/day | pace writes; debt stretches interval |
+| **CF Pages HTML** | none | outside Worker bucket | static free; Functions share Workers pool |
+| **Local MW** | host_cap | RAM/CPU | python `:8790`, node `:8791`, deno `:8792`; mutual fallback |
+| **Fog kernel / workerd** | host_cap | RAM/CPU | Fog `:8787` + workerd `:8788` |
+| **Desk agents** | per lane | token/renewal clocks | Hermes/OpenClaw/OpenCode/Fog/EDGE via `desk_metabol` lanes; bot_cap_contingency |
+| **Academy exams** | daily Lisbon | 1 run/day | LaunchAgent `pt.calhegasmorais.academy-daily-exams` + `academy_teach_tick`; `bot_required=false` |
+| **Tailscale** | trial/personal | seats/trial days | metabol-paced; **no** default-route / exit-node on box — see `docs/ops/TAILSCALE-METABOL.md` |
+| **Deno Deploy Free** | vendor free | — | **ALLOW fallback only** (not primary burn rail) |
+| **Fund worker / origin PUT** | 00:00 UTC | gated by CF Workers (+ KV) | `desk_origin_put` skips/slows on HOLD/STASIS; Pages HTML always ALLOW |
+
+Handlers: specialty `_pace_allows` + platform `_platform_allows` / `platform_allows()`.
+Also: `ops/METABOLISM.md`, `docs/ops/TAILSCALE-METABOL.md`.

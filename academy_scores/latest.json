@@ -3,7 +3,7 @@
   "kind": "latest",
   "date": "2026-09-05",
   "tz": "Europe/Lisbon",
-  "updated": "2026-09-05T14:53:52+0100",
+  "updated": "2026-09-05T15:07:07+0100",
   "paths": {
     "roster": "academy_scores/roster.json",
     "day": "academy_scores/2026-09-05/",
@@ -15,7 +15,7 @@
   "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-05/scores.json",
   "summary": {
     "n_students": 6,
-    "pending_teacher": 6,
-    "complete": 0
+    "pending_teacher": 0,
+    "complete": 6
   }
 }

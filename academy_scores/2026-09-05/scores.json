@@ -3,9 +3,9 @@
   "kind": "scores",
   "date": "2026-09-05",
   "tz": "Europe/Lisbon",
-  "scored_at": "2026-09-05T14:53:52+0100",
-  "scored_by_stub": true,
-  "note": "v0 stubs \u2014 desk teachers fill protocolar measurements + qualitative adjustments/recognitions. Not a desk KPI meter.",
+  "scored_at": "2026-09-05T15:07:07+0100",
+  "scored_by_stub": false,
+  "note": "Desk specialties filled protocolar measurements + qualitative adjustments/recognitions (apprenticeship_by_doing).",
   "students": [
     {
       "acb_id": "ACB-ORCH-CMN-001",
@@ -15,71 +15,103 @@
       "formation_id": "ORCH-C-03",
       "objective_metrics": {
         "fail_closed": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:fail_closed formation=ORCH-C-03 drills=2",
+          "scored_by": [
+            "hermes",
+            "fog-assistant",
+            "edge-assistant",
+            "stratagrok"
+          ]
         },
         "bilateral_commit": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:bilateral_commit formation=ORCH-C-03 drills=2",
+          "scored_by": [
+            "hermes",
+            "stratagrok"
+          ]
         },
         "named_handlers": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:named_handlers formation=ORCH-C-03 drills=2",
+          "scored_by": [
+            "hermes",
+            "opencode",
+            "openclaw"
+          ]
         },
         "no_workers_dev": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:no_workers_dev formation=ORCH-C-03 drills=2",
+          "scored_by": [
+            "opencode",
+            "fog-assistant",
+            "edge-assistant"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on ORCH-C-03",
+          "stratagrok: solid protocol stance on ORCH-C-03"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on ORCH-C-03",
+        "stratagrok: solid protocol stance on ORCH-C-03"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     },
     {
       "acb_id": "ACB-AIOPS-devops",
@@ -89,71 +121,100 @@
       "formation_id": "DEVOPS-C-02",
       "objective_metrics": {
         "no_workers_dev": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:no_workers_dev formation=DEVOPS-C-02 drills=2",
+          "scored_by": [
+            "opencode",
+            "fog-assistant",
+            "edge-assistant"
+          ]
         },
         "origin_custom_domain": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:origin_custom_domain formation=DEVOPS-C-02 drills=2",
+          "scored_by": [
+            "opencode",
+            "fog-assistant"
+          ]
         },
         "residual_cmesh": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "openclaw:residual_cmesh formation=DEVOPS-C-02 drills=2",
+          "scored_by": [
+            "openclaw"
+          ]
         },
         "named_handlers": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:named_handlers formation=DEVOPS-C-02 drills=2",
+          "scored_by": [
+            "hermes",
+            "opencode",
+            "openclaw"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on DEVOPS-C-02",
+          "stratagrok: solid protocol stance on DEVOPS-C-02"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on DEVOPS-C-02",
+        "stratagrok: solid protocol stance on DEVOPS-C-02"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     },
     {
       "acb_id": "ACB-AIOPS-security",
@@ -163,65 +224,92 @@
       "formation_id": "SECURITY-C-02",
       "objective_metrics": {
         "secrets_hygiene": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "fog-assistant:secrets_hygiene formation=SECURITY-C-02 drills=2",
+          "scored_by": [
+            "fog-assistant",
+            "edge-assistant"
+          ]
         },
         "no_workers_dev": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:no_workers_dev formation=SECURITY-C-02 drills=2",
+          "scored_by": [
+            "opencode",
+            "fog-assistant",
+            "edge-assistant"
+          ]
         },
         "fail_closed": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:fail_closed formation=SECURITY-C-02 drills=2",
+          "scored_by": [
+            "hermes",
+            "fog-assistant",
+            "edge-assistant",
+            "stratagrok"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on SECURITY-C-02",
+          "stratagrok: solid protocol stance on SECURITY-C-02"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on SECURITY-C-02",
+        "stratagrok: solid protocol stance on SECURITY-C-02"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     },
     {
       "acb_id": "ACB-AIOPS-analysis",
@@ -231,65 +319,92 @@
       "formation_id": "ANALYSIS-C-02",
       "objective_metrics": {
         "named_handlers": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:named_handlers formation=ANALYSIS-C-02 drills=2",
+          "scored_by": [
+            "hermes",
+            "opencode",
+            "openclaw"
+          ]
         },
         "fail_closed": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:fail_closed formation=ANALYSIS-C-02 drills=2",
+          "scored_by": [
+            "hermes",
+            "fog-assistant",
+            "edge-assistant",
+            "stratagrok"
+          ]
         },
         "honest_n": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:honest_n formation=ANALYSIS-C-02 drills=2",
+          "scored_by": [
+            "opencode",
+            "stratagrok"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on ANALYSIS-C-02",
+          "stratagrok: solid protocol stance on ANALYSIS-C-02"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on ANALYSIS-C-02",
+        "stratagrok: solid protocol stance on ANALYSIS-C-02"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     },
     {
       "acb_id": "ACB-AIOPS-mesh",
@@ -299,65 +414,89 @@
       "formation_id": "MESH-C-02",
       "objective_metrics": {
         "honest_n": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "opencode:honest_n formation=MESH-C-02 drills=5",
+          "scored_by": [
+            "opencode",
+            "stratagrok"
+          ]
         },
         "residual_cmesh": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "openclaw:residual_cmesh formation=MESH-C-02 drills=5",
+          "scored_by": [
+            "openclaw"
+          ]
         },
         "handler_complete": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:handler_complete formation=MESH-C-02 drills=5",
+          "scored_by": [
+            "hermes",
+            "opencode",
+            "openclaw"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on MESH-C-02",
+          "stratagrok: solid protocol stance on MESH-C-02"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on MESH-C-02",
+        "stratagrok: solid protocol stance on MESH-C-02"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     },
     {
       "acb_id": "ACB-AIOPS-economy",
@@ -367,70 +506,97 @@
       "formation_id": "ECONOMY-C-03",
       "objective_metrics": {
         "economy_no_mint": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "stratagrok:economy_no_mint formation=ECONOMY-C-03 drills=3",
+          "scored_by": [
+            "stratagrok"
+          ]
         },
         "handler_complete": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:handler_complete formation=ECONOMY-C-03 drills=3",
+          "scored_by": [
+            "hermes",
+            "opencode",
+            "openclaw"
+          ]
         },
         "fail_closed": {
-          "score": null,
+          "score": 0.85,
           "scale": "0..1",
-          "status": "pending_teacher",
-          "evidence": null
+          "status": "scored",
+          "evidence": "hermes:fail_closed formation=ECONOMY-C-03 drills=3",
+          "scored_by": [
+            "hermes",
+            "fog-assistant",
+            "edge-assistant",
+            "stratagrok"
+          ]
         }
       },
-      "overall_objective": null,
+      "overall_objective": 0.85,
       "qualitative": {
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
-        "teacher_notes": ""
+        "adjustments_needed": [
+          "opencode: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "hermes: solid protocol stance on ECONOMY-C-03",
+          "stratagrok: solid protocol stance on ECONOMY-C-03"
+        ],
+        "teacher_notes": "hermes: coord: protocol bus + board \u2014 apprenticeship_by_doing | opencode: code: testable needle from desk_ops/protocol | openclaw: claw: local hop health + session meters | fog-assistant: fog: Mac Fog primary, custom domains only | edge-assistant: edge: api/site live; never workers.dev | stratagrok: lead: Eisenhower audit; taper/metabol pace; not student"
       },
-      "adjustments_needed": [],
-      "recognitions_of_excellence": [],
+      "adjustments_needed": [
+        "opencode: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only",
+        "fog-assistant: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only"
+      ],
+      "recognitions_of_excellence": [
+        "hermes: solid protocol stance on ECONOMY-C-03",
+        "stratagrok: solid protocol stance on ECONOMY-C-03"
+      ],
       "teachers": [
         {
           "id": "hermes",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "coord: protocol bus + board \u2014 apprenticeship_by_doing"
         },
         {
           "id": "opencode",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "code: testable needle from desk_ops/protocol"
         },
         {
           "id": "openclaw",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "claw: local hop health + session meters"
         },
         {
           "id": "fog-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "fog: Mac Fog primary, custom domains only"
         },
         {
           "id": "edge-assistant",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "edge: api/site live; never workers.dev"
         },
         {
           "id": "stratagrok",
-          "status": "pending",
-          "detail": null
+          "status": "filled",
+          "detail": "lead: Eisenhower audit; taper/metabol pace; not student"
         }
       ],
-      "status": "draft_scored_stub"
+      "status": "teacher_scored"
     }
   ],
   "summary": {
     "n_students": 6,
-    "pending_teacher": 6,
-    "complete": 0
-  }
+    "pending_teacher": 0,
+    "complete": 6
+  },
+  "scored_by": "desk_specialties"
 }

@@ -5,43 +5,41 @@
   "phase_name": "Adversarial LAB P1",
   "lab": true,
   "not_mainnet": true,
-  "updated_at": "2026-09-05T12:29:37Z",
-  "updated_at_pt": "2026-09-05T13:29:37+0100",
-  "git_sha": "0f9b5a2",
+  "updated_at": "2026-09-05T14:08:15Z",
+  "updated_at_pt": "2026-09-05T15:08:15+0100",
+  "git_sha": "ffd750c",
   "acts": {
-    "delivered_total": 4,
-    "open_count": 13,
+    "delivered_total": 36,
+    "open_count": 9,
     "last_picked": [
-      "dt-a-code",
-      "dt-proj-academy-teach-pulse",
-      "dt-proj-academy-code-lesson"
+      "dt-proj-gcp-e2micro-fog"
     ],
     "idle_skip_last": false,
-    "cycle_delivered": 0,
+    "cycle_delivered": 1,
     "recent_results": [
       {
-        "id": "dt-a-claw",
-        "result": "hops fog=1 edge=1 :8787=0 | tokens 2100/33000 | public Fog 200 v0.6.0-lab n=2 mac_live"
+        "id": "dt-proj-fog-host-fallback",
+        "result": ""
       },
       {
-        "id": "dt-a-code",
-        "result": "unittest discover rc=0 PASS test_desk_bus 5 + test_desk_roles 11 + test_desk_ops 12 compileall ok"
+        "id": "dt-desk-camaraderie-rep",
+        "result": "v0 implemented: qualitative peer reputation + private consult; no KPI blend; oracle_live untouched"
       },
       {
-        "id": "dt-proj-academy-teach-pulse",
-        "result": "academy_teach live=1 students=SCA/ACB teachers=desk academy=0.5.3-lab formations=20"
+        "id": "dt-academy-daily-exams",
+        "result": ""
       },
       {
-        "id": "dt-proj-academy-code-lesson",
-        "result": "academy_teach live=1 students=SCA/ACB teachers=desk academy=0.5.3-lab formations=20 | needle=unpark_false_escalates"
+        "id": "dt-act-fog-host-fallback",
+        "result": "auto-ship majority+metrics authority=unanimous"
       }
     ]
   },
   "pass_counts": {
     "desk_unittests_ok": true,
     "protocol_ok": true,
-    "gh_ok": null,
-    "acts_delivered": 4,
+    "gh_ok": true,
+    "acts_delivered": 36,
     "challenges_open": 2,
     "challenges_closed": 0,
     "issues_tracked": 4
@@ -60,7 +58,7 @@
       },
       {
         "id": "ch-oracle-grok90",
-        "title": "Oracle grok90 before AWS hedge end",
+        "title": "Oracle grok90 (optional) before AWS hedge end",
         "status": "open",
         "specialty": "lead",
         "github_issue": 151,
@@ -84,7 +82,7 @@
   },
   "discourse": {
     "topic": "https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20",
-    "metrics_line": "desk lab P1 \u00b7 sha=0f9b5a2 \u00b7 acts_done=4 open=13 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
+    "metrics_line": "desk lab P1 \u00b7 sha=ffd750c \u00b7 acts_done=36 open=9 \u00b7 challenges open=2 closed=0 \u00b7 issues=[102, 123, 150, 151] \u00b7 no EUR invented",
     "draft_hold": false
   },
   "fund": {
@@ -92,6 +90,6 @@
     "section": "lab-progress",
     "note": "Fed from this JSON \u2014 no invented dollars"
   },
-  "source": "desk_metrics.snapshot",
+  "source": "desk_metrics.update_lab_progress",
   "note": "Objective lab metrics only \u2014 no EUR invented."
 }

@@ -212,6 +212,42 @@ def _put_fund_worker(*, dry: bool) -> dict[str, Any]:
         return {"ok": False, "detail": f"fund_put_err:{e.__class__.__name__}:{_scrub(str(e))}"}
 
 
+def _metabol_platforms() -> dict:
+    """Load platforms from desk_metabol tick state (no secrets)."""
+    try:
+        import importlib.util
+        mp = Path(__file__).resolve().parent / "desk_metabol.py"
+        spec = importlib.util.spec_from_file_location("desk_metabol", mp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        state = mod.load_state()
+        platforms = state.get("platforms")
+        if not platforms:
+            lanes = state.get("lanes") or mod.compute_lanes(state)
+            platforms = mod.compute_platforms(lanes)
+        return platforms or {}
+    except Exception:
+        return {}
+
+
+def _gate_put(platforms: dict, action: str) -> tuple[bool, str, str]:
+    """Respect fund-origin-put / cf-workers metabol. Pages HTML always ALLOW."""
+    try:
+        import importlib.util
+        mp = Path(__file__).resolve().parent / "desk_metabol.py"
+        spec = importlib.util.spec_from_file_location("desk_metabol", mp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        ok, pace, meta = mod.platform_allows(platforms, "fund-origin-put", action=action)
+        reason = str((meta or {}).get("reason") or "")
+        return ok, pace, reason
+    except Exception:
+        return True, "ALLOW", "metabol_unavailable"
+
+
+
 def put_live(*, task: dict | None = None, sha: str = "", dry: bool = False) -> dict:
     """Perform origin (+ optional HTML/fund) PUT for a ship_live task.
 
@@ -237,33 +273,69 @@ def put_live(*, task: dict | None = None, sha: str = "", dry: bool = False) -> d
             "env": {"ok": False, "missing": env_st.get("missing"), "sources_n": 0},
         }
 
-    # Always attempt origin-archive PUT on ship path (lab default).
-    if _wants_origin(blob) or task.get("ship_live") or True:
-        modes.append("cf-put-origin")
-        r = _run_script(CF_PUT, [], dry=dry, cwd=REPO)
-        results.append({"step": "cf-put-origin", **r})
-        if r.get("ok"):
-            urls.append("origin-archive")
-        else:
-            errors.append(f"cf-put-origin:{r.get('detail')}")
+    platforms = _metabol_platforms()
+    force = bool(task.get("force_put") or task.get("metabol_force"))
 
-    if _wants_html(blob):
-        modes.append("d1-put-html")
-        r = _run_script(D1_PUT, ["--all"], dry=dry, cwd=REPO)
-        results.append({"step": "d1-put-html", **r})
-        if r.get("ok"):
-            urls.append("d1:site_content_chunks")
+    # Always attempt origin-archive PUT on ship path (lab default) unless metabol HOLD/STASIS.
+    if _wants_origin(blob) or task.get("ship_live") or True:
+        allow_o, pace_o, why_o = _gate_put(platforms, "origin")
+        if force or allow_o:
+            modes.append("cf-put-origin")
+            r = _run_script(CF_PUT, [], dry=dry, cwd=REPO)
+            results.append({"step": "cf-put-origin", **r, "metabol_pace": pace_o})
+            if r.get("ok"):
+                urls.append("origin-archive")
+            else:
+                errors.append(f"cf-put-origin:{r.get('detail')}")
         else:
-            errors.append(f"d1-put-html:{r.get('detail')}")
+            modes.append("cf-put-origin-skip")
+            results.append({
+                "step": "cf-put-origin",
+                "ok": True,
+                "skipped": True,
+                "detail": f"metabol_skip pace={pace_o} {why_o}",
+                "metabol_pace": pace_o,
+            })
+
+    # Pages / HTML — outside Worker bucket (always ALLOW per typology)
+    if _wants_html(blob):
+        allow_h, pace_h, why_h = _gate_put(platforms, "pages")
+        modes.append("d1-put-html")
+        if force or allow_h:
+            r = _run_script(D1_PUT, ["--all"], dry=dry, cwd=REPO)
+            results.append({"step": "d1-put-html", **r, "metabol_pace": pace_h or "ALLOW"})
+            if r.get("ok"):
+                urls.append("d1:site_content_chunks")
+            else:
+                errors.append(f"d1-put-html:{r.get('detail')}")
+        else:
+            results.append({
+                "step": "d1-put-html",
+                "ok": True,
+                "skipped": True,
+                "detail": f"metabol_skip pace={pace_h} {why_h}",
+                "metabol_pace": pace_h,
+            })
 
     if _wants_fund(blob):
-        modes.append("fund-worker")
-        r = _put_fund_worker(dry=dry)
-        results.append({"step": "fund-worker", **r})
-        if r.get("ok"):
-            urls.extend(r.get("urls") or ["stratamesh-fund"])
+        allow_f, pace_f, why_f = _gate_put(platforms, "fund")
+        if force or allow_f:
+            modes.append("fund-worker")
+            r = _put_fund_worker(dry=dry)
+            results.append({"step": "fund-worker", **r, "metabol_pace": pace_f})
+            if r.get("ok"):
+                urls.extend(r.get("urls") or ["stratamesh-fund"])
+            else:
+                errors.append(f"fund:{r.get('detail')}")
         else:
-            errors.append(f"fund:{r.get('detail')}")
+            modes.append("fund-worker-skip")
+            results.append({
+                "step": "fund-worker",
+                "ok": True,
+                "skipped": True,
+                "detail": f"metabol_skip pace={pace_f} {why_f}",
+                "metabol_pace": pace_f,
+            })
 
     attempted = [r for r in results if r.get("step")]
     ok = bool(attempted) and all(r.get("ok") for r in attempted)
