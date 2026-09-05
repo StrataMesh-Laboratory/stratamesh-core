@@ -1003,6 +1003,7 @@ def kick_desk_refresh() -> None:
             if not sync:
                 return
             env = os.environ.copy()
+            env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + env.get("PATH", "")
             # metabol tick + mirror open tasks into DESK chat (local)
             metabol = sync.parent / "desk_metabol.py"
             if metabol.is_file():

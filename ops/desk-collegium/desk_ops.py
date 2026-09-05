@@ -606,9 +606,22 @@ def _write_last(obj: dict) -> None:
     try:
         LAST_LOG.parent.mkdir(parents=True, exist_ok=True)
         obj["ts"] = _now()
-        LAST_LOG.write_text(json.dumps(obj, indent=2) + "\n")
+        try:
+            obj["token"] = _load("desk_sync").desk_token_status()
+        except Exception:
+            obj.setdefault("token", "unknown")
+        try:
+            obj["gh_ok"] = bool(_load("desk_actions")._gh_bin())
+        except Exception:
+            obj["gh_ok"] = False
+        LAST_LOG.write_text(json.dumps(obj, indent=2) + chr(10))
+        try:
+            _load("desk_metrics").record(obj)
+        except Exception:
+            pass
     except Exception:
         pass
+
 
 
 def cmd_rca(_: argparse.Namespace) -> int:
@@ -625,6 +638,7 @@ def main() -> int:
     c.add_argument("--dry-run", action="store_true")
     sub.add_parser("board", help="ongoing / pending / projected / escalated")
     sub.add_parser("rca", help="print idle RCA")
+    sub.add_parser("token-check", help="alias → desk_sync.token-check")
     args = p.parse_args()
     if args.cmd == "cycle":
         return cmd_cycle(args)
@@ -632,6 +646,9 @@ def main() -> int:
         return cmd_board(args)
     if args.cmd == "rca":
         return cmd_rca(args)
+    if args.cmd == "token-check":
+        r = subprocess.run([sys.executable, str(HERE / "desk_sync.py"), "token-check"], cwd=str(REPO_ROOT))
+        return int(r.returncode)
     return 1
 
 

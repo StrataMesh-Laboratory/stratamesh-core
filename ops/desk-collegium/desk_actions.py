@@ -21,6 +21,22 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = "StrataMesh-Laboratory/stratamesh-core"
+
+def _gh_bin() -> str | None:
+    import shutil
+    import os
+    for cand in (
+        shutil.which("gh"),
+        "/opt/homebrew/bin/gh",
+        "/usr/local/bin/gh",
+        str(Path.home() / "bin/gh"),
+    ):
+        if cand and Path(cand).is_file() and os.access(cand, os.X_OK):
+            return cand
+    return None
+
+
+
 # Workflows that are desk-relevant
 DESK_WORKFLOWS = (
     "desk-tick",
@@ -48,12 +64,16 @@ def _now() -> str:
 
 
 def _gh_json(args: list[str]) -> list | dict | None:
+    gh = _gh_bin()
+    if not gh:
+        return None
     try:
         r = subprocess.run(
-            ["gh", *args],
+            [gh, *args],
             capture_output=True,
             text=True,
             timeout=45,
+            env={**__import__("os").environ, "PATH": "/opt/homebrew/bin:/usr/local/bin:" + __import__("os").environ.get("PATH", "")},
         )
         if r.returncode != 0:
             print(f"gh warn: {r.stderr.strip()[:200]}", file=sys.stderr)
@@ -94,8 +114,29 @@ def cmd_sync(args: argparse.Namespace) -> int:
     bus = _bus()
     runs = list_runs(args.limit)
     if not runs:
-        bus.feed_append("desk", "actions sync: gh unavailable", kind="escalate", specialty="code")
-        return 2
+        # Rate-limit feed noise (TUI r/60s); do not escalate every cycle
+        fog = Path((__import__("os").environ.get("FOG_HOME") or str(Path.home() / "StrataMesh/fog")))
+        flag = fog / "data" / "desk-actions-gh-miss.ts"
+        now = time.time()
+        last = 0.0
+        try:
+            last = float(flag.read_text().strip() or "0")
+        except Exception:
+            last = 0.0
+        if now - last >= 600:
+            bus.feed_append(
+                "desk",
+                "actions sync: gh unavailable — install/auth gh or PATH=/opt/homebrew/bin",
+                kind="say",
+                specialty="code",
+            )
+            try:
+                flag.parent.mkdir(parents=True, exist_ok=True)
+                flag.write_text(str(now))
+            except Exception:
+                pass
+        print(json.dumps({"ok": False, "reason": "gh_unavailable", "mirrored": 0}))
+        return 0  # soft — desk cycle continues
     mirrored = 0
     failed = 0
     state = bus.load_state()
@@ -164,7 +205,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
     }
     file = names.get(wf, wf)
     r = subprocess.run(
-        ["gh", "workflow", "run", file, "-R", REPO],
+        [_gh_bin() or "gh", "workflow", "run", file, "-R", REPO],
         capture_output=True,
         text=True,
         timeout=30,
