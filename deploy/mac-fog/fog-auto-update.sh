@@ -36,6 +36,21 @@ fi
 
 log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*" >> "$LOG"; }
 
+# Desk vault self-heal (non-fatal): KeePass or Tailscale pull — never blocks auto-g
+if [[ -x "$REPO/deploy/mac-fog/ensure-desk-vault.sh" ]]; then
+  set +e
+  "$REPO/deploy/mac-fog/ensure-desk-vault.sh" >>"$LOG" 2>&1
+  ev=$?
+  set -e
+  log "ensure-desk-vault rc=$ev"
+elif [[ -x "$FOG/repo/deploy/mac-fog/ensure-desk-vault.sh" ]]; then
+  set +e
+  "$FOG/repo/deploy/mac-fog/ensure-desk-vault.sh" >>"$LOG" 2>&1
+  ev=$?
+  set -e
+  log "ensure-desk-vault rc=$ev"
+fi
+
 hop_up() {
   local p
   for p in $HOP_PORTS; do

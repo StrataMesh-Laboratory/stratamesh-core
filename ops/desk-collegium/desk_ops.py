@@ -514,15 +514,15 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
                     "sha": "",
                     "verb": "act",
                 }
-            if mat.get("human_gate"):
+            if mat.get("missing_src") or mat.get("retry_pull"):
                 return {
                     "ok": True,
-                    "result": f"escalate_to_andre: vault missing entirely {mat.get('missing_src')}",
+                    "result": f"refer: vault still missing {mat.get('missing_src')} — retry ensure-desk-vault/Tailscale pull (not André gate)",
                     "done": False,
                     "sha": "",
-                    "escalate": True,
-                    "verb": "escalate",
-                    "next_action": "André: KeePass materialize secrets.env then re-run cycle",
+                    "escalate": False,
+                    "verb": "refer",
+                    "next_action": "Mac: ensure-desk-vault.sh or VAULT_PULL_TOKEN pull; desk keeps cycling other Acts",
                 }
         except Exception as e:
             return {

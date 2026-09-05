@@ -97,3 +97,13 @@ KeePass `lab.kdbx` may materialize the above — never paste master password.
 - Private gateway contract (box): `/home/box/ops-monitor/DESK-MAIL.md`
 - Vault doctrine: `ops/desk-collegium/SECRETS-VAULT.md`
 - Roles: `ops/desk-collegium/agent_roles.json`
+
+
+## Self-heal (no Bot babysit)
+
+Lab is Adversarial **P1**. Empty `~/.config/stratagrok/automation.desk.*` is **not** an André human gate.
+
+1. Every Fog auto-g / `fog-auto-update.sh` runs `deploy/mac-fog/ensure-desk-vault.sh` (non-fatal).
+2. Desk r/60s calls `try_materialize_desk_mail_vault` (KeePass → local twins → Tailscale pull from `stratagrok-box:8765` when `~/.config/stratagrok/vault-pull.token` exists).
+3. SMTP stays `maildir_drop` until CF Email Sending — inbound CF routing is separate and live.
+4. True André gates remain Fog `g` / 2FA / captcha / Oracle password / Renovate majors only.
