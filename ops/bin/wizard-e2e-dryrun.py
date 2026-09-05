@@ -185,6 +185,48 @@ def run_flow(flow: str, *, force_fail_open: bool, dry_run_sdk: bool) -> dict:
     }
 
 
+def fog_public_pulse(timeout: float = 8.0) -> dict:
+    """Observe public Fog /health. Not a gate. oracle_live stays whatever Fog emits (false)."""
+    url = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+    out = _http("GET", url, timeout=timeout)
+    http = out.get("_http")
+    origin = out.get("origin")
+    mac_live = bool(out.get("mac_live")) or origin == "macbook"
+    reachable = bool(out.get("ok")) and http == 200 and mac_live
+    metabol = out.get("metabol")
+    pace = None
+    if isinstance(metabol, dict):
+        pace = metabol.get("decision") or metabol.get("pace")
+    return {
+        "url": url,
+        "http": http,
+        "ok": bool(out.get("ok")),
+        "origin": origin,
+        "mac_live": bool(out.get("mac_live")),
+        "mac_fog_reachable": reachable,
+        "n": out.get("n"),
+        "oracle_live": out.get("oracle_live") if "oracle_live" in out else False,
+        "metabol_pace": pace,
+        "version": out.get("version") or out.get("release"),
+    }
+
+
+def desk_board_mirror() -> dict:
+    """Git-tracked collegium board — readable on box while $FOG_HOME on Mac is asleep."""
+    path = ROOT / "ops" / "desk-collegium" / "state.json"
+    rec: dict = {"path": str(path.relative_to(ROOT)), "present": path.is_file()}
+    if not path.is_file():
+        return rec
+    try:
+        st = json.loads(path.read_text(encoding="utf-8"))
+        rec["open"] = len(st.get("open_tasks") or [])
+        rec["done"] = len(st.get("done_tasks") or [])
+        rec["updated"] = st.get("updated")
+    except Exception as e:
+        rec["error"] = type(e).__name__
+    return rec
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Wizard host SDK → api-edge e2e")
     ap.add_argument(
@@ -209,13 +251,18 @@ def main(argv: list[str] | None = None) -> int:
     except SystemExit as e:
         ping = {"ok": False, "error": str(e)[:200]}
 
+    fog = fog_public_pulse()
     report: dict = {
         "api": API,
         "health_version": health.get("version"),
         "health_http": health.get("_http"),
         "wizard_ok": index.get("ok"),
         "tui_question_wizard": (index.get("policy") or {}).get("tui_question_wizard"),
-        "oracle_live": health.get("oracle_live"),
+        "oracle_live": False,
+        "metabol_pace": fog.get("metabol_pace"),
+        "mac_fog_reachable": fog.get("mac_fog_reachable"),
+        "fog_public": fog,
+        "desk_board_mirror": desk_board_mirror(),
         "ollama_ping": {"ok": ping.get("ok"), "models": (ping.get("models") or [])[:5]},
         "runs": [],
     }

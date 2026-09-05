@@ -82,8 +82,22 @@ Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → default `https://api-e
 
 ---
 
+## Observe (not gates)
+
+| Flag / surface | Meaning |
+|----------------|---------|
+| **`mac_live`** | Already on Fog workerd `/health` when `ORIGIN=macbook`. |
+| **`mac_fog_reachable`** | Same measurement from a public probe: `fog.calhegasmorais.pt/health` is 200 **and** `origin=macbook` / `mac_live`. Sleep → false. Not an André gate. Not `oracle_live`. |
+| **`metabol_pace`** | Pass-through of Fog metabol decision when the probe sees it. Offline Mac does not invent ALLOW/HOLD. |
+| **Desk board git mirror** | `ops/desk-collegium/state.json` on origin — box/EDGE can list open Acts while `$FOG_HOME` on mbpv is unreachable. Catch-up still happens on wake (`desk_bus` local). |
+
+`ops/bin/wizard-e2e-dryrun.py` prints `mac_fog_reachable`, `fog_public`, `desk_board_mirror`, and forces `oracle_live=false` unless the Worker already said otherwise (it must not). Fail-open e2e **must not fail** because Fog is asleep.
+
+---
+
 ## Honesty
 
 - Expected Mac sleep ≠ outage page ≠ André gate.
 - Public CF surfaces ≠ Fog host live.
 - Fail-open wizard on box ≠ local Ollama proved on Mac.
+- `mac_fog_reachable=false` ≠ mesh n=1. n=2 stays provisioned; the Mac hop is just dark.

@@ -68,6 +68,9 @@ def tick() -> dict:
     st["fallback_after"] = FALLBACK_AFTER
     st["public"] = {"ok": pub.get("ok"), "origin": pub.get("origin"), "error": pub.get("error")}
     st["local"] = {"ok": loc.get("ok"), "origin": loc.get("origin")}
+    # Observe-only alias for desk/e2e. Sleep is not an incident.
+    st["mac_fog_reachable"] = bool(st.get("mac_live"))
+    st["oracle_live"] = False
     st["plan"] = plan(st)
     save(st)
     return st
