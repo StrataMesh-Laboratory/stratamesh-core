@@ -362,5 +362,55 @@ class WizardFaqDocs(unittest.TestCase):
             self.assertEqual(_MOD.ollama_preferred_tag(), "phi3:mini")
 
 
+
+
+class DeskFeed(unittest.TestCase):
+    def setUp(self):
+        _MOD.FOG = _TMP
+        (_TMP / "data").mkdir(parents=True, exist_ok=True)
+        feed = _TMP / "data" / "desk-feed.jsonl"
+        if feed.exists():
+            feed.unlink()
+
+    def test_append_and_tail(self):
+        _MOD.desk_feed_append("hermes", "propose: patch feed", kind="propose", specialty="coord")
+        _MOD.desk_feed_append("opencode", "constrain: ok", kind="constrain", specialty="code")
+        rows = _MOD.desk_feed_tail(10)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["agent"], "hermes")
+        self.assertEqual(rows[1]["kind"], "constrain")
+        self.assertTrue((_TMP / "data" / "desk-feed.jsonl").is_file())
+
+    def test_draw_desk_feed_empty_and_filled(self):
+        _MOD.DEV_TTY = io.StringIO()
+        # empty
+        import sys
+        buf = io.StringIO()
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf.write(" ".join(str(x) for x in a) + "\n")):
+            _MOD.draw_desk_feed(72, rows=8)
+        out = buf.getvalue()
+        self.assertIn("DESK", out)
+        self.assertIn("waiting for desk agents", out)
+        _MOD.desk_feed_append("openclaw", "local ws up", kind="say")
+        buf2 = io.StringIO()
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf2.write(" ".join(str(x) for x in a) + "\n")):
+            _MOD.draw_desk_feed(72, rows=8)
+        out2 = buf2.getvalue()
+        self.assertIn("openclaw", out2.lower())
+        self.assertIn("local ws up", out2)
+
+    def test_draw_includes_desk_section(self):
+        _MOD.HELP = False
+        _MOD.desk_feed_append("stratagrok", "Act: desk feed live", kind="say")
+        _MOD.DEV_TTY = io.StringIO()
+        with mock.patch.object(_MOD, "get", side_effect=_fast_get), mock.patch.object(
+            _MOD, "sh", return_value=""
+        ), mock.patch.object(_MOD, "kick_public_refresh", lambda: None):
+            _MOD.draw("frame")
+        painted = _MOD.DEV_TTY.getvalue()
+        self.assertIn("DESK", painted)
+        self.assertIn("desk feed live", painted)
+
+
 if __name__ == "__main__":
     unittest.main()

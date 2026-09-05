@@ -14,3 +14,11 @@ First pulse: propose one code task (OpenCode) and one local claw task (OpenClaw)
 
 ## Runtime gate
 Agent model must have **≥65536** context. See CONTEXT-64K.md. Never init on llava alone.
+
+## Desk feed (Fog TUI)
+
+After each propose/constrain/revise/commit, append a short line so the Mac Fog TUI DESK panel updates:
+
+`python3 deploy/mac-fog/desk-feed-append.py hermes "…" --kind propose`
+
+See `docs/FOG-DESK-FEED.md`. No secrets.

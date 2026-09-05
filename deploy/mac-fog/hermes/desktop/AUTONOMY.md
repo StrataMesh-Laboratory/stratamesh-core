@@ -34,3 +34,11 @@ Paste into Hermes:
 ## Git human gate
 
 STRATAGROK pings André with one composite `g` block when origin SHAs need Mac pull. Auto-g may land if André skips.
+
+## Desk feed (Fog TUI)
+
+After each propose/constrain/revise/commit, append a short line so the Mac Fog TUI DESK panel updates:
+
+`python3 deploy/mac-fog/desk-feed-append.py hermes "…" --kind propose`
+
+See `docs/FOG-DESK-FEED.md`. No secrets.

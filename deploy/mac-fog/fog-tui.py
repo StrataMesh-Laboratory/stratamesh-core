@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """StrataMesh LAB Fog instrument v0.5.1-lab.
-Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard
+Cell-grid panels. q quit · s stop · b reboot · g update · r refresh · ? wizard · desk feed below
 TAB clears wizard chat only (not r / 60s redraw). Local Ollama :11434 — FOG Hermes external_agent (hermes3/llava), not an SCA. FAQ from public docs if generate is waking. Report via Orchestrator to AIOps (fail-open).
 
 macOS libmalloc may print MallocStackLogging on Python start. That is not a
@@ -964,6 +964,92 @@ def boxline(inner: str, width: int) -> str:
         inner = "".join(out)
         pad = max(0, width - vislen(inner))
     return DIM + "│" + RST + inner + (" " * pad) + DIM + "│" + RST
+
+
+
+
+def desk_feed_path() -> Path:
+    """Mac Fog live chat log for automation-desk agents (JSONL)."""
+    return FOG / "data" / "desk-feed.jsonl"
+
+
+def desk_feed_append(agent: str, text: str, *, kind: str = "say", specialty: str = "") -> None:
+    """Append one desk-feed line. Safe for concurrent agents (append + flush)."""
+    path = desk_feed_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return
+    rec = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "t": time.strftime("%H:%M:%S"),
+        "agent": (agent or "desk")[:32],
+        "kind": (kind or "say")[:16],
+        "specialty": (specialty or "")[:16],
+        "text": (text or "")[:240],
+    }
+    try:
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + chr(10))
+            f.flush()
+    except Exception:
+        return
+
+
+def desk_feed_tail(n: int = 10) -> list[dict]:
+    """Last n desk-feed records. Fail-open empty."""
+    path = desk_feed_path()
+    if not path.is_file():
+        return []
+    try:
+        data = path.read_bytes()
+        if len(data) > 256_000:
+            data = data[-256_000:]
+        lines = data.decode("utf-8", "replace").splitlines()
+        out: list[dict] = []
+        for line in lines[-max(1, int(n)):]:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(rec, dict) and rec.get("text"):
+                out.append(rec)
+        return out
+    except Exception:
+        return []
+
+
+def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
+    """Live chat-style desk feed below the instrument (operator monitor).
+
+    Pass _print=print from draw() so lines go to DEV_TTY like the rest of the panel.
+    """
+    out = _print or print
+    out(boxline(" " + ACC + "DESK" + RST + MUT + "  automation feed · Hermes/OpenCode/OpenClaw/STRATAGROK" + RST, w))
+    feed = desk_feed_tail(rows)
+    if not feed:
+        out(boxline(" " + MUT + "(waiting for desk agents… append → FOG/data/desk-feed.jsonl)" + RST, w))
+        return
+    for rec in feed[-rows:]:
+        ag = str(rec.get("agent") or "?")[:10].ljust(10)
+        tm = str(rec.get("t") or "--:--:--")[:8]
+        kind = str(rec.get("kind") or "say")[:7]
+        body = str(rec.get("text") or "").replace("\n", " ")[: max(20, w - 28)]
+        tag = ag.strip().lower()
+        if "hermes" in tag:
+            name = ACC + ag + RST
+        elif "opencode" in tag or "code" in tag:
+            name = OK + ag + RST
+        elif "openclaw" in tag or "claw" in tag:
+            name = AMBER + ag + RST
+        elif "stratagrok" in tag or "grok" in tag:
+            name = BOLD + ag + RST
+        else:
+            name = ag
+        out(boxline(" " + MUT + tm + RST + " " + name + " " + MUT + kind + RST + " " + body, w))
 
 
 def wizard_json_path() -> Path:
@@ -2033,6 +2119,8 @@ def draw(msg: str = "") -> None:
     if node_hint and not bool(ndh.get("ok")):
         git_extra = MUT + "  mw-node " + node_hint + RST
     print(boxline("  GIT " + sha_now + "  " + awake_line() + git_extra, w))
+    print(mid)
+    draw_desk_feed(w, rows=8, _print=print)
     print(bot)
     print(MUT + "  g update   b reboot   s stop   r refresh   ? wizard   q quit" + RST)
     instr = "  instrument · 60s · named-tunnel stays up"

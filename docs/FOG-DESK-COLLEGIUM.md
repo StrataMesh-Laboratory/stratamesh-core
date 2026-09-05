@@ -87,3 +87,9 @@ Each member has a **pace lane**. HOLD/STASIS = slow burn, not freeze of coordina
 3. Messaging: Email grok@, Discord lab, Slack lab only.
 4. Bots: OpenCode + OpenClaw peers.
 5. First session prompt: "Read COLLEGIUM.md; propose one desk.task.v1 for OpenCode and one for OpenClaw; wait for constrain."
+
+## Live desk feed (Fog TUI)
+
+Operators watch parallel agent work in the **DESK** panel under the instrument.
+Append-only JSONL: `FOG/data/desk-feed.jsonl`. CLI: `deploy/mac-fog/desk-feed-append.py`.
+Full spec: [FOG-DESK-FEED.md](./FOG-DESK-FEED.md).
