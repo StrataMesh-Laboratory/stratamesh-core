@@ -20,6 +20,34 @@ API_EDGE = os.environ.get("API_EDGE_ORIGIN") or "https://api-edge.calhegasmorais
 
 FLOWS = ("account", "join-mesh", "register-deps")
 
+FAIL_OPEN_TEMPLATES = {
+    "account": {
+        "flow": "account",
+        "email": "",
+        "display_name": "",
+        "locale": "pt",
+        "accept_lab_terms": True,
+        "notes": "fail-open template — fill manually; Ollama unavailable",
+    },
+    "join-mesh": {
+        "flow": "join-mesh",
+        "node_id": "",
+        "role": "edge",
+        "parent_fog": "FOG-NODE-PT-CM-001",
+        "health_url": "",
+        "spare_capacity_only": True,
+        "notes": "fail-open template — fill manually; Ollama unavailable",
+    },
+    "register-deps": {
+        "flow": "register-deps",
+        "dependencies": [
+            {"id": "", "name": "", "type": "contributor_edge", "node_id": "", "health_url": ""}
+        ],
+        "notes": "fail-open template — fill manually; Ollama unavailable",
+    },
+}
+
+
 
 def _host() -> str:
     h = (os.environ.get("OLLAMA_HOST") or DEFAULT_HOST).rstrip("/")
@@ -157,6 +185,18 @@ def wizard(flow: str, user_text: str = "", *, dry_run: bool = False) -> dict[str
     gen = chat(prompt, system=SYSTEM[flow])
     gen["flow"] = flow
     gen["api_edge"] = API_EDGE
+    if not gen.get("ok"):
+        return {
+            "ok": True,
+            "fail_open": True,
+            "flow": flow,
+            "api_edge": API_EDGE,
+            "ollama_error": gen.get("error"),
+            "json": dict(FAIL_OPEN_TEMPLATES[flow]),
+            "content": "",
+            "note": "local Ollama down/waking — template intent; POST api-edge /v1/wizard/commit/" + flow,
+            "next": f"POST {API_EDGE}/v1/wizard/parse then /v1/wizard/commit/{flow}",
+        }
     return gen
 
 

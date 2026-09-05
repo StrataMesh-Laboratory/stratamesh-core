@@ -2,7 +2,7 @@
  * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
-const VERSION = "1.4.2-desk";
+const VERSION = "1.5.0-wizard";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT = "grok@calhegasmorais.pt";
@@ -1385,6 +1385,7 @@ const WIZARD_POLICY = {
   ollama_host_default: "http://127.0.0.1:11434",
   never_remote_llm: true,
   worker_calls_ollama: false,
+  fail_open_if_ollama_down: true,
   executing_host_sdk: "ops/lib/ollama_local.py",
   tui_question_wizard: "PLAN_only_separate",
   metabol: "host_cap for Ollama; cf-worker-req for /v1/wizard/*",

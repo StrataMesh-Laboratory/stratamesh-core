@@ -32,5 +32,19 @@ class OllamaLocal(unittest.TestCase):
         self.assertIn("account", out["system"])
 
 
+    def test_fail_open_when_chat_down(self):
+        os.environ["OLLAMA_HOST"] = "http://127.0.0.1:11434"
+        real = _MOD.chat
+        def boom(*a, **k):
+            return {"ok": False, "error": "simulated_down"}
+        _MOD.chat = boom
+        try:
+            out = _MOD.wizard("join-mesh", "please join")
+        finally:
+            _MOD.chat = real
+        self.assertTrue(out["ok"])
+        self.assertTrue(out.get("fail_open"))
+        self.assertEqual(out["json"]["flow"], "join-mesh")
+
 if __name__ == "__main__":
     unittest.main()
