@@ -235,6 +235,24 @@
       "note": "Probe only if uptime allowance holds; spin-down unfit. Not live.",
       "oracle_fallback": true,
       "status": "note"
+    },
+    {
+      "id": "proj-migrate-desk-auth-automation",
+      "title": "Migrate general desk cloud auth to automation.desk@",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "Act: enforce grok@ KEEP (Bot/Fog/EDGE gateway) vs automation.desk@ MIGRATE (GCP/hyperscaler/new SaaS); docs DESK-AUTH-MIGRATION; GCP operator identity automation.desk@",
+      "lanes": [
+        "lane-bot",
+        "lane-hermes"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "andre_gate": false,
+      "escalate_to_andre": false,
+      "resolve_as_representative": true,
+      "note": "André halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud → automation.desk@",
+      "task_id_hint": "dt-migrate-desk-auth-automation"
     }
   ],
   "projected": [
@@ -474,7 +492,25 @@
       "note": "2026 honesty: free allowance legacy-only; trial!=always-on; paid needs André — not Oracle substitute",
       "oracle_fallback": true,
       "status": "note"
+    },
+    {
+      "id": "proj-migrate-desk-auth-automation",
+      "title": "Migrate general desk cloud auth to automation.desk@",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "Act: enforce grok@ KEEP (Bot/Fog/EDGE gateway) vs automation.desk@ MIGRATE (GCP/hyperscaler/new SaaS); docs DESK-AUTH-MIGRATION; GCP operator identity automation.desk@",
+      "lanes": [
+        "lane-bot",
+        "lane-hermes"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "andre_gate": false,
+      "escalate_to_andre": false,
+      "resolve_as_representative": true,
+      "note": "André halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud → automation.desk@",
+      "task_id_hint": "dt-migrate-desk-auth-automation"
     }
   ],
-  "updated": "2026-09-05T13:15:00+0000"
+  "updated": "2026-09-05T14:23:45+0100"
 }

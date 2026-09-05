@@ -1,8 +1,8 @@
 {
   "schema": "desk.agent_roles.v1",
   "version": "0.4.1-lab",
-  "title": "Fog automation desk \u2014 machine-readable roster",
-  "law": "All six are external_agent|assistant. Never SCA/ACB students. Bot=escalation surface; agents=self-initiative + self-audit.",
+  "title": "Fog automation desk — machine-readable roster",
+  "law": "All six are external_agent|assistant. Never SCA/ACB students. Bot=escalation surface; agents=self-initiative + self-audit. General desk cloud auth = automation.desk@ (not grok@; grok@ = private Bot/Fog/EDGE gateway).",
   "members": [
     {
       "id": "stratagrok",
@@ -21,13 +21,13 @@
         "ops/EDGE-GROK-DESK-CONTRACT.md",
         "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
       ],
-      "receive_work": "desk bus / projected / escalate surface \u2014 not routine prompter | MUST read desk-outbox/TODO.md before acting",
+      "receive_work": "desk bus / projected / escalate surface — not routine prompter | MUST read desk-outbox/TODO.md before acting",
       "self_audit": "protocol.check + meters + Eisenhower board; on wake pull outbox/meters",
       "must": [
         "Rank one Act",
         "resolve_as_representative on escalated vault materialize / gh PATH / edge 429 / OpenCode idle / vapour (desk owns routine vault fill)",
         "escalate_to_andre ONLY: Fog g, 2FA, captcha, Renovate majors",
-        "After dispute: stratagrok act before Andr\u00e9 ping",
+        "After dispute: stratagrok act before André ping",
         "Register facts multi-surface",
         "Git Data API lead when agents escalate"
       ],
@@ -87,7 +87,7 @@
         "discourse_with_prior_approval",
         "feed_handler_vapour_code_fix"
       ],
-      "note_gates": "Do not dump representable escalations on Andr\u00e9. Never invent secrets; materialize only from existing KeePass\u21920600 files."
+      "note_gates": "Do not dump representable escalations on André. Never invent secrets; materialize only from existing KeePass→0600 files."
     },
     {
       "id": "hermes",
@@ -182,7 +182,7 @@
       "must": [
         "Self-queue ALLOW code tasks",
         "Self-audit tests each cycle/agent-run",
-        "commit\u2192done with result"
+        "commit→done with result"
       ],
       "must_not": [
         "Channel fan-out",
@@ -309,7 +309,7 @@
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
-      "runtime": "grok.com N\u00f3 Calhegas Morais Fog thread (Archive Instructions)",
+      "runtime": "grok.com Nó Calhegas Morais Fog thread (Archive Instructions)",
       "soul": null,
       "docs": [
         "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
@@ -375,7 +375,7 @@
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; consume-origin only",
-      "runtime": "grok.com N\u00f3 Calhegas Morais EDGE thread (same Archive Instructions)",
+      "runtime": "grok.com Nó Calhegas Morais EDGE thread (same Archive Instructions)",
       "soul": null,
       "docs": [
         "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
@@ -457,7 +457,7 @@
       "Fog Assistant if lane-assistant ALLOW",
       "EDGE consume-only GETs"
     ],
-    "bot_on_wake": "pull meters/outbox; escalate only failures/gates \u2014 never re-prompt routine"
+    "bot_on_wake": "pull meters/outbox; escalate only failures/gates — never re-prompt routine"
   },
   "required_ids": [
     "stratagrok",
@@ -469,7 +469,7 @@
   ],
   "todo_board": {
     "path": "FOG/data/desk-outbox/TODO.md",
-    "source": "desk_ops cycle / desk-agent-run \u2192 snapshot open_tasks + projected + escalated",
+    "source": "desk_ops cycle / desk-agent-run → snapshot open_tasks + projected + escalated",
     "rule": "Agents pick only specialty-matching tasks from TODO.md; andre_human_gates escalate_to_andre; else stratagrok resolve_as_representative; diary cites task id"
   },
   "reports": {
@@ -569,13 +569,17 @@
       "gmail",
       "eni_geral_mix",
       "secrets_in_git"
-    ]
+    ],
+    "general_desk_cloud_auth": "automation.desk@calhegasmorais.pt",
+    "private_gateway": "grok@calhegasmorais.pt",
+    "auth_migration_doc": "docs/DESK-AUTH-MIGRATION.md"
   },
   "shared_desk_machine": {
     "alias": "hermes-desk",
     "host": "mbpv",
     "spec": "deploy/mac-fog/hermes/desktop/SSH.md",
     "install": "deploy/mac-fog/hermes/desktop/install-desk-ssh.sh",
-    "note": "Intel Mac: Tailscale SSH / Remote Login only \u2014 no Grok Bot app"
-  }
+    "note": "Intel Mac: Tailscale SSH / Remote Login only — no Grok Bot app"
+  },
+  "desk_cloud_auth": "automation.desk@calhegasmorais.pt"
 }

@@ -8,10 +8,23 @@
 
 | Mailbox | Who | Purpose |
 |---------|-----|---------|
-| `grok@calhegasmorais.pt` | STRATAGROK + Fog/EDGE Assistant **digest path only** | **Private** Bot gateway. Maildir `/home/box/mail/grok`. Keep as-is. |
-| `automation.desk@calhegasmorais.pt` | **All six:** stratagrok, hermes, opencode, openclaw, fog-assistant, edge-assistant | **General collegium** shared staff mail. Shared client + per-agent config pointers. |
+| `grok@calhegasmorais.pt` | STRATAGROK + Fog/EDGE Assistant **digest path only** | **Private** Bot/Fog/EDGE gateway. Maildir `/home/box/mail/grok` (grok-mail-sync). Keep as-is — **not** general desk cloud auth. |
+| `automation.desk@calhegasmorais.pt` | **All six:** stratagrok, hermes, opencode, openclaw, fog-assistant, edge-assistant | **General collegium** shared staff mail + **canonical general desk cloud auth**. Shared client + per-agent config pointers. |
 
 Fog/EDGE Assistants still get **sanitized digests** of `grok@` via STRATAGROK for the Assistant Act path. Collegium operational mail uses `automation.desk@`.
+
+## General desk cloud auth (2026-09-05)
+
+André HALTED `grok@` for **general desk cloud auth**. Canonical:
+
+| Identity | Scope |
+|----------|-------|
+| `automation.desk@calhegasmorais.pt` | **General desk** — GCP/hyperscaler Always Free, collegium SaaS (new), `external_assistant` mail, NEW cloud accounts |
+| `grok@calhegasmorais.pt` | **Private Bot/Fog/EDGE gateway** only — Maildir grok-mail-sync, SuperGrok/Assistants if tied, x.ai reset, staff grok gateway |
+
+Oracle chase OPTIONAL may stay on `grok@`; prefer `automation.desk@` for **NEW** cloud. Discourse: prefer `automation.desk@` when cutting over — live `stratamesh-grok` may stay `grok@` for now (do not break without care).
+
+Full table + redirect SOP: [`docs/DESK-AUTH-MIGRATION.md`](../../docs/DESK-AUTH-MIGRATION.md)
 
 ## Access model — both (not either/or)
 

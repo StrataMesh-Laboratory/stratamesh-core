@@ -2,6 +2,8 @@
 
 **Lab only.** Closest perpetual substitute for Oracle Always Free as a **distinct** Fog kernel host.
 
+**Operator identity:** `automation.desk@calhegasmorais.pt` (general desk cloud auth — **not** `grok@`). See [`docs/DESK-AUTH-MIGRATION.md`](../../docs/DESK-AUTH-MIGRATION.md).
+
 Canonical shortlist: [`docs/ORACLE-OSS-ALTS.md`](../../docs/ORACLE-OSS-ALTS.md) · prove: [`docs/FOG-PEER-PROVE.md`](../../docs/FOG-PEER-PROVE.md)
 
 ## Always Free hard traps (2026)
@@ -19,7 +21,7 @@ Canonical shortlist: [`docs/ORACLE-OSS-ALTS.md`](../../docs/ORACLE-OSS-ALTS.md) 
 
 ## Order of operations
 
-1. Create GCP project + billing (André: 2FA/captcha only).
+1. Create GCP project + billing with **operator identity `automation.desk@calhegasmorais.pt`** (André: 2FA/captcha only — never `grok@` for general desk cloud).
 2. Run `gcloud-create-example.sh` flags manually (edit project/zone).
 3. SSH via `gcloud compute ssh` (IAP) or Tailscale once joined.
 4. `bootstrap.sh` then install `stratamesh-fog.service`.
