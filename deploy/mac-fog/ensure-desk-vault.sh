@@ -75,7 +75,7 @@ EOF
 fi
 
 if ! _ok; then
-  BOX="${STRATAGROK_BOX_TS:-100.110.43.115}"
+  BOX="${STRATAGROK_BOX_TS:-stratagrok-box.taild31dc1.ts.net}"
   PULL_TOK="${VAULT_PULL_TOKEN:-}"
   if [ -z "$PULL_TOK" ] && [ -f "$DEST/vault-pull.token" ]; then
     PULL_TOK=$(tr -d '\n' <"$DEST/vault-pull.token")

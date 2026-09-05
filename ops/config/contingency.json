@@ -70,7 +70,7 @@
     "http://127.0.0.1:8790/api/auth",
     "https://auth.calhegasmorais.pt/api/auth",
     "http://127.0.0.1:8791/api/auth",
-    "http://100.108.35.26:8790/api/auth"
+    "http://mbpv.taild31dc1.ts.net:8790/api/auth"
   ],
   "last_layer": {
     "id": "maintenance",
@@ -220,7 +220,7 @@
   "cf_deno_fallback": {
     "ts_api": [
       "http://127.0.0.1:8792",
-      "http://100.108.35.26:8792",
+      "http://mbpv.taild31dc1.ts.net:8792",
       "http://mbpv.taild31dc1.ts.net:8792",
       "${DENO_DEPLOY_URL}",
       "http://127.0.0.1:8791"

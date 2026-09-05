@@ -5,6 +5,8 @@ MagicDNS suffix: **taild31dc1.ts.net**
 HTTPS certs: **on**. Regional routing: **on**. Split DNS: 1.1.1.1 / 1.0.0.1.  
 Funnel: **off** (Fog is not public origin).
 
+**T2 drain:** Prefer MagicDNS (`*.taild31dc1.ts.net` / short names) in scripts, connectors, workflows, and SSH HostName. IPv4 column below is inventory/residual only — do not hardcode 100.x in new code. Trial ends PT 2026-09-16; T3 from 2026-09-14.
+
 | hostname | MagicDNS | IPv4 | role |
 |---|---|---|---|
 | edge-grok-cmn-001 | edge-grok-cmn-001.taild31dc1.ts.net | 100.102.244.34 | EDGE hop |
@@ -13,4 +15,4 @@ Funnel: **off** (Fog is not public origin).
 
 Tags in ACL: `tag:fog` `tag:edge` `tag:gha` (owners: autogroup:admin).
 
-GHA: secret `TS_AUTHKEY` (org auth key, prefer tag:gha). Workflow `fog-tailnet-health.yml` hits Fog ports on 100.108.35.26.
+GHA: secret `TS_AUTHKEY` (org auth key, prefer tag:gha). Workflow `fog-tailnet-health.yml` hits Fog ports on `mbpv.taild31dc1.ts.net` (MagicDNS).

@@ -9,7 +9,8 @@
 | Field | Value |
 |-------|-------|
 | Host (Tailscale MagicDNS / status name) | `mbpv` |
-| Tailscale IPv4 | `100.108.35.26` (confirm with `tailscale ip -4` on Mac) |
+| MagicDNS | `mbpv.taild31dc1.ts.net` (preferred) |
+| Tailscale IPv4 | `100.108.35.26` (legacy/residual; confirm with `tailscale ip -4`) |
 | SSH alias | `hermes-desk` |
 | User | `andremorais` (Mac login) |
 | Workspace root | `/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop` |
@@ -44,7 +45,7 @@ Install snippet (no secrets):
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
 cat >> ~/.ssh/config <<'CFG'
 Host hermes-desk mbpv
-  HostName 100.108.35.26
+  HostName mbpv.taild31dc1.ts.net
   User andremorais
   IdentityFile ~/.ssh/desk_hermes_ed25519
   IdentitiesOnly yes

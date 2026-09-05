@@ -885,7 +885,7 @@ def try_materialize_desk_mail_vault() -> dict:
                 if tok_path.is_file() and tok_path.stat().st_size > 0:
                     tok = tok_path.read_text(encoding="utf-8").strip()
                 tok = os.environ.get("VAULT_PULL_TOKEN", tok).strip()
-                box = os.environ.get("STRATAGROK_BOX_TS", "100.110.43.115").strip()
+                box = os.environ.get("STRATAGROK_BOX_TS", "stratagrok-box.taild31dc1.ts.net").strip()
                 if tok:
                     url = f"http://{box}:8765/{tok}/{name}"
                     req = urllib.request.Request(url, method="GET")

@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 6
     env:
       TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
-      FOG_TS: "100.108.35.26"
+      FOG_TS: "mbpv.taild31dc1.ts.net"
     steps:
       - name: skip if no tailnet key
         id: gate

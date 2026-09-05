@@ -17,4 +17,4 @@ cd "$(dirname "$0")/../.."
 docker compose -f deploy/mac-fog/docker-compose.minio.yml up -d
 echo "S3  http://127.0.0.1:9000"
 echo "UI  http://127.0.0.1:9001"
-echo "TS  http://100.108.35.26:9001  (if published; default is localhost only)"
+echo "TS  http://mbpv.taild31dc1.ts.net:9001  (if published; default is localhost only)"

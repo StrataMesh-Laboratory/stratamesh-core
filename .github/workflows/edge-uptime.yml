@@ -89,6 +89,6 @@ jobs:
         if: env.TS_AUTHKEY != ''
         continue-on-error: true
         run: |
-          curl -sS -m 8 -A EDGE-GROK-CMN-001-gha http://100.108.35.26:8788/health | head -c 200 || true
+          curl -sS -m 8 -A EDGE-GROK-CMN-001-gha http://mbpv.taild31dc1.ts.net:8788/health | head -c 200 || true
           echo
           echo "Tailscale miss is not a lab fail"

@@ -17,7 +17,7 @@ Listen: `0.0.0.0:8792` (not 8000).
 ```
 curl -sS http://127.0.0.1:8792/health
 curl -sS http://127.0.0.1:8792/object/kinds
-curl -sS http://100.108.35.26:8792/health          # tailnet
+curl -sS http://mbpv.taild31dc1.ts.net:8792/health          # tailnet
 curl -sS http://mbpv.taild31dc1.ts.net:8792/status
 ```
 

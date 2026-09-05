@@ -19,7 +19,7 @@ This **Hermes desktop project** is the desk’s **shared desk machine** on Andr�
 
 ## Shared desk machine (SSH)
 
-| Alias | `hermes-desk` → Tailscale `mbpv` (`100.108.35.26`) |
+| Alias | `hermes-desk` → MagicDNS `mbpv.taild31dc1.ts.net` (IPv4 residual `100.108.35.26`) |
 |-------|-----------------------------------------------------|
 | Enable | `bash deploy/mac-fog/hermes/desktop/install-desk-ssh.sh` |
 | Spec | [SSH.md](./SSH.md) |

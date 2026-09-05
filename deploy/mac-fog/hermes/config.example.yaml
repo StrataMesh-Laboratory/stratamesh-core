@@ -73,7 +73,8 @@ mail:
 shared_desk_machine:
   alias: hermes-desk
   tailscale_host: mbpv
-  tailscale_ipv4: 100.108.35.26
+  tailscale_magicdns: mbpv.taild31dc1.ts.net
+  tailscale_ipv4: 100.108.35.26  # residual; prefer MagicDNS
   user: andremorais
   workspace: /Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop
   fog_src: /Users/andremorais/StrataMesh/fog/repo

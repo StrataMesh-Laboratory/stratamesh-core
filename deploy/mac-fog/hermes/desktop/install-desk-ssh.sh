@@ -29,7 +29,7 @@ CFG="${HOME}/.ssh/config"
 touch "$CFG"
 chmod 600 "$CFG"
 if ! grep -q 'Host hermes-desk' "$CFG" 2>/dev/null; then
-  TSIP=$(tailscale ip -4 2>/dev/null || echo 100.108.35.26)
+  TSIP=$(tailscale ip -4 2>/dev/null || echo mbpv.taild31dc1.ts.net)
   cat >> "$CFG" <<CFG
 
 # FOG-CMN-DESK shared machine (Hermes desktop)
