@@ -28,7 +28,7 @@ Object: **desk agents’ work only** (Hermes, OpenCode, OpenClaw, fog-assistant,
 
 1. **Edge 429/1015** — `_http_ok` backoff; `handler_edge` dispute + `next_action`; `apply_result` forces revise + call_vote (not feed-only).
 2. **OpenCode idle / vapour** — self-audit runs real unittest (nest-safe); fair RR pick; `desk-agent-run.sh --max 3` + consume `opencode-next.md`.
-3. **Vault gate** — try materialize from existing `secrets.env` / sibling 0600 files first; André only if missing entirely.
+3. **Vault gate** — desk cycle materializes from KeePass/`secrets.env`/sibling 0600 (never empty stubs). Bot representative only if escalated; André only if sources absent entirely.
 4. **Oracle** — remains `escalate_to_andre` (password/reset).
 5. **gh PATH** — representative act (connectors soft-fail); not André.
 6. **Protocol** — `human_gates` law + `agent_roles.stratagrok` split `escalate_to_andre` / `resolve_as_representative`.
@@ -39,7 +39,7 @@ Object: **desk agents’ work only** (Hermes, OpenCode, OpenClaw, fog-assistant,
 - **2FA** / **captcha**  
 - **Oracle** vault password/reset  
 - **Renovate majors** André must review  
-- automation.desk secrets **missing entirely** after representative materialize attempt  
+- automation.desk secrets **missing entirely** after desk-cycle materialize (Bot representative only if that gate escalates)  
 
 ## SHAs / next
 
