@@ -12,3 +12,8 @@ specialization · bus · metabol_pace · eisenhower · anti_vapour · anti_idle 
 
 ## Academy teaching duty
 All desk agents teach SCA (PT) / ACB (EN) students. Desk agents are never academy students.
+
+## Apprenticeship (mentor by doing)
+
+Desk agents teach **and** mentor: ACBs/SCAs learn by shadowing live StrataMesh/desk development
+(outbox `FOG/data/desk-outbox/apprentice/`). Surfaces: academy.calhegasmorais.pt + calhegasmorais.pt + stratamesh-core.

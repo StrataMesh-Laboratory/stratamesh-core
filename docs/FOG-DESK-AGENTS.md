@@ -13,3 +13,6 @@ Coordination: [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md) · `ops/desk-coll
 
 ## Academy
 All desk agents teach SCA/ACB students; none are students themselves. See COLLEGIUM § Academy teaching duty.
+
+## Apprenticeship
+Desk agents mentor SCA/ACB by doing live StrataMesh/desk work; trails in `desk-outbox/apprentice/`. Teachers ≠ students.

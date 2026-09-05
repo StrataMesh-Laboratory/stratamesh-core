@@ -177,3 +177,15 @@ Every automation-desk member **teaches** academy students:
 **Law:** desk agents are `external_agent` / `external_assistant` — **never** enrolled as academy students. Teacher path = academy formations, catalog, Worker lessons, desk tools + COLLEGIUM context — not Hermes-as-SCA.
 
 Enforced in `ops/desk-collegium/protocol.json` (`academy_teach`) and `desk_ops` academy teach tick each cycle when lanes ALLOW.
+
+## Teachers + mentors (apprenticeship)
+
+Desk agents are **teachers** at the academy and **mentors** on StrataMesh proper:
+
+| Role | Meaning |
+|------|---------|
+| Teacher | Formations / FAQ / protocol for SCA (PT) / ACB (EN) on academy.calhegasmorais.pt |
+| Mentor | Apprenticeship by doing — students learn from the desk’s current live work (Fog, Actions, collegium, Atelier) |
+
+Trail: `FOG/data/desk-outbox/apprentice/latest.md` after each real deliverable.
+Law ids: `academy_teach`, `apprenticeship` in `protocol.json`.

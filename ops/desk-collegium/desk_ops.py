@@ -224,7 +224,7 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
         ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
     note = (
         f"academy_teach students=SCA/ACB teachers=desk agents live={int(ok)} "
-        f"{detail[:50]} — never enroll Hermes/OpenCode/OpenClaw as students"
+        f"{detail[:50]} — never enroll Hermes/OpenCode/OpenClaw as students; mentor via apprenticeship_by_doing"
     )
     if not dry and ok:
         path = FOG / "data" / "desk-meters" / "academy-teach.json"
@@ -270,6 +270,52 @@ def write_agent_outbox(agent: str, task: dict, out: dict) -> None:
             (box / "openclaw-next.md").write_text(
                 f"# Claw task {task.get('id')}\n\n{task.get('intent')}\n"
             )
+    except Exception:
+        pass
+
+
+
+def write_apprenticeship_trail(task: dict, out: dict, *, agent: str) -> None:
+    """Mentor trail: what the desk just did becomes ACB/SCA apprenticeship material."""
+    try:
+        box = FOG / "data" / "desk-outbox" / "apprentice"
+        box.mkdir(parents=True, exist_ok=True)
+        tid = task.get("id") or "task"
+        lesson = {
+            "schema": "desk.apprentice.lesson.v1",
+            "ts": _now(),
+            "mentor": agent,
+            "students": "SCA/ACB",
+            "task_id": tid,
+            "intent": task.get("intent"),
+            "deliverable": out.get("result"),
+            "surfaces": {
+                "academy": "https://academy.calhegasmorais.pt",
+                "stratamesh_proper": "https://calhegasmorais.pt",
+                "repo": "StrataMesh-Laboratory/stratamesh-core",
+            },
+            "mode": "apprenticeship_by_doing",
+            "note": (
+                "Students learn by shadowing this live desk/dev deliverable — "
+                "not a vapour lecture. Mentors are desk agents; never enroll as students."
+            ),
+        }
+        (box / f"{tid}.json").write_text(json.dumps(lesson, indent=2) + "\n")
+        md = (
+            f"# Apprenticeship lesson — {tid}\n\n"
+            f"**Mentor:** {agent} (desk external_agent)\n"
+            f"**Students:** SCA (PT) / ACB (EN)\n\n"
+            f"**What we just did (learn by doing):**\n\n"
+            f"{task.get('intent')}\n\n"
+            f"**Deliverable:** {out.get('result')}\n\n"
+            f"**Link to StrataMesh proper:** https://calhegasmorais.pt · "
+            f"academy: https://academy.calhegasmorais.pt · "
+            f"repo: stratamesh-core\n\n"
+            f"Reflect: which specialty (claw/code/coord) owned this, which metabol lane, "
+            f"and how propose→constrain→done applied.\n"
+        )
+        (box / f"{tid}.md").write_text(md)
+        (box / "latest.md").write_text(md)
     except Exception:
         pass
 
@@ -539,10 +585,13 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         if args.dry_run:
             continue
         apply_result(bus, task, out, by=by)
-        write_agent_outbox(by if by in ("opencode", "hermes", "openclaw") else {
+        mentor = by if by in ("opencode", "hermes", "openclaw") else {
             "code": "opencode", "teach": "hermes", "coord": "hermes", "claw": "openclaw",
             "edge": "hermes", "fog": "hermes", "lead": "stratagrok",
-        }.get(hname, "hermes"), task, out)
+        }.get(hname, "hermes")
+        write_agent_outbox(mentor, task, out)
+        if out.get("ok") and (out.get("done") or out.get("escalate")):
+            write_apprenticeship_trail(task, out, agent=mentor)
         if out.get("ok"):
             delivered += 1
 

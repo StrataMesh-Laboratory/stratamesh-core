@@ -51,3 +51,13 @@ OpenClaw: `bash deploy/mac-fog/desk-agent-run.sh openclaw`.
 ## Deny
 
 secrets in chat · workers.dev · enroll as SCA · Fog `g` from Bot computer · pulse --apply while unfinished open work exists
+
+## Academy teachers + apprenticeship mentors
+
+Hermes (and peers) teach SCA/ACB on academy **and** mentor them via live desk/dev:
+
+- Academy: https://academy.calhegasmorais.pt
+- StrataMesh proper: https://calhegasmorais.pt · fog · sandbox · stratamesh-core
+- Trail after each deliverable: `$FOG_HOME/data/desk-outbox/apprentice/latest.md`
+
+Students learn what the desk is building **now** — not disconnected vapour lectures.
