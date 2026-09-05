@@ -1,0 +1,21 @@
+{
+  "schema": "desk.challenges.v1",
+  "version": "0.1.0-lab",
+  "source": "ops/desk-collegium/challenges.json + GitHub label:challenge|lab",
+  "items": [
+    {
+      "id": "ch-desk-organ",
+      "title": "Desk as collegial organ \u2014 majority ship-live",
+      "status": "open",
+      "specialty": "coord",
+      "intent": "Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus"
+    },
+    {
+      "id": "ch-oracle-grok90",
+      "title": "Oracle grok90 before AWS hedge end",
+      "status": "open",
+      "specialty": "lead",
+      "intent": "Chase incident 260826-001576 after vault reset; M-II HOLD until live"
+    }
+  ]
+}

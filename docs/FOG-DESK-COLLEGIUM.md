@@ -3,7 +3,13 @@
 **Mandate:** CMN Fog automation desk. Lab only.  
 **Extends:** `ops/EDGE-GROK-DESK-CONTRACT.md`, `ops/METABOLISM.md`, `docs/FOG-DESK-AGENTS.md`, `docs/COMMUNITY-CHANNELS.md`.
 
-## Organizing principle: specialization\n\nEach member acts **according to its best capabilities**. See [FOG-DESK-SPECIALIZATION.md](./FOG-DESK-SPECIALIZATION.md) for the exclusive specialty map and routing rule.\n\nHermes coordinates; OpenCode codes; OpenClaw claws locally; STRATAGROK leads/meters; Fog/EDGE Assistants take one scoped Act each; André holds human gates.\n\nDesk agents work **in parallel** but stay aligned through (1) a shared bus, (2) per-agent `metabol_pace`, (3) channel roles, (4) collegial handoffs — not a single serial queue and not free-for-all.
+## Organizing principle: specialization
+
+Each member acts **according to its best capabilities**. See [FOG-DESK-SPECIALIZATION.md](./FOG-DESK-SPECIALIZATION.md) for the exclusive specialty map and routing rule.
+
+Hermes coordinates; OpenCode codes; OpenClaw claws locally; STRATAGROK leads/meters; Fog/EDGE Assistants take one scoped Act each; André holds human gates.
+
+Desk agents work **in parallel** but stay aligned through (1) a shared bus, (2) per-agent `metabol_pace`, (3) channel roles, (4) collegial handoffs — not a single serial queue and not free-for-all.
 
 ## Members (none are SCA)
 
@@ -107,6 +113,38 @@ Holders: automation-desk vault `~/.config/stratagrok/desk-mail.token` or `DESK_T
 - Live: TUI 60s `r` path pulls+pushes `desk.snapshot.v1` (mail + collegium + feed_tail).
 - CLI: `python3 ops/desk-collegium/desk_sync.py pull|push|sync|token-check`
 
+## Ship-live (collegial organ)
+
+The desk ships **live** as a collegium, not a single agent:
+
+1. Mark a task: `python3 ops/desk-collegium/desk_ship.py mark TASK_ID`
+2. Members **ACK** or **NACK**: `desk_ship.py vote TASK_ID ack|nack --by hermes`
+3. **Strict majority** of voting members must ACK; any NACK blocks (revise or escalate to André).
+4. **Unanimous** ACK = full collegial authority to ship live.
+5. `desk_ship.py ship TASK_ID` records `last_ship` only when majority passes; also checks ship_gate connectors (Actions, scripts, SDK, `/desk` API, vault path, `gh` PAT). Human gates (`g`, 2FA, Oracle, Renovate majors) still escalate.
+
+Voters (default): stratagrok, hermes, opencode, openclaw, fog-assistant, edge-assistant.
+
+## Connectors (Actions / automations / scripts / SDK / API / vault / PAT)
+
+Registry: `ops/desk-collegium/connectors.json` (paths only — **never** secret bytes).
+
+```bash
+python3 ops/desk-collegium/desk_connectors.py status   # present|missing|empty
+python3 ops/desk-collegium/desk_connectors.py list
+```
+
+Ship gates include: GitHub Actions, Fog desk scripts, desk SDK CLIs, api-edge `/desk`, secrets vault materialize path, `gh` PAT.
+
+## Issues / Challenges → desk
+
+```bash
+python3 ops/desk-collegium/desk_issues.py sync [--dry-run]
+python3 ops/desk-collegium/desk_issues.py list
+```
+
+Open GitHub issues with labels `lab|bug|challenge|desk|aiops` and items in `ops/desk-collegium/challenges.json` become `desk.task.v1` proposes (`source=issue:#N` / `challenge:…`) and show on the DESK feed.
+
 ## Desk metabol tick (tokens + renewals)
 
 `ops/desk-collegium/desk_metabol.py tick` (also from TUI `r`/60s via `kick_desk_refresh`):
@@ -123,3 +161,7 @@ Holders: automation-desk vault `~/.config/stratagrok/desk-mail.token` or `DESK_T
 
 Samples: `FOG/data/desk-meters/*.json` (see `ops/desk-collegium/meters/README.md`).
 `desk_bus.py list` runs tick + mirrors open tasks into `desk-feed.jsonl` (DESK chat).
+
+## Ops cycle (no idle / no vapour)
+
+`python3 ops/desk-collegium/desk_ops.py cycle` — bound on TUI `r`/60s. Produces real probe/test/sync deliverables; human gates escalate honestly. See `RCA-DESK-IDLE.md`.

@@ -3,6 +3,12 @@
 **Principle:** specialization + collegium bus + metabol_pace.  
 **Agents:** STRATAGROK (lead) · Hermes (coord) · OpenCode (code) · OpenClaw (claw) · Fog/EDGE Assistants (one Act each).
 
+## Executor (anti-vapour)
+
+`ops/desk-collegium/desk_ops.py cycle` runs on Fog TUI `r`/60s via `kick_desk_refresh`:
+metabol → pick one ALLOW open task → specialty handler → done → `/desk` push.
+Never `pulse --apply` while unfinished open tasks exist. RCA: `ops/desk-collegium/RCA-DESK-IDLE.md`.
+
 ## Steady-state loop (no human unless gate)
 
 ```

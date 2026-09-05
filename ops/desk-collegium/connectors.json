@@ -1,0 +1,122 @@
+{
+  "schema": "desk.connectors.v1",
+  "version": "0.1.0-lab",
+  "note": "Registry of operational surfaces. Values are paths/commands/URLs \u2014 never store PAT/token bytes here.",
+  "surfaces": [
+    {
+      "id": "github-actions",
+      "kind": "actions",
+      "desc": "stratamesh-core GitHub Actions (CI / protocol-invariants / secrets-guard)",
+      "probe": {
+        "type": "gh",
+        "cmd": [
+          "gh",
+          "run",
+          "list",
+          "-R",
+          "StrataMesh-Laboratory/stratamesh-core",
+          "-L",
+          "1"
+        ]
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "bot-routines",
+      "kind": "automations",
+      "desc": "STRATAGROK Grok Bot routines (mail watch, Actions pulse, Oracle chase, \u2026)",
+      "probe": {
+        "type": "path",
+        "paths": [
+          "/home/box/agent-data/agents/c02df87b-0431-46b7-abfc-6f65d751af8e/automations"
+        ]
+      },
+      "ship_gate": false
+    },
+    {
+      "id": "fog-scripts",
+      "kind": "scripts",
+      "desc": "Mac Fog desk scripts (desk-claw-probe, desk-feed-append, FogRuntime)",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          "deploy/mac-fog/desk-claw-probe.sh",
+          "deploy/mac-fog/desk-feed-append.py",
+          "ops/desk-collegium/desk_bus.py"
+        ]
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "desk-sdk-cli",
+      "kind": "sdk",
+      "desc": "desk_bus / desk_sync / desk_metabol / desk_ship / desk_issues Python CLI",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          "ops/desk-collegium/desk_bus.py",
+          "ops/desk-collegium/desk_sync.py",
+          "ops/desk-collegium/desk_metabol.py",
+          "ops/desk-collegium/desk_ship.py",
+          "ops/desk-collegium/desk_issues.py",
+          "ops/desk-collegium/desk_connectors.py"
+        ]
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "desk-api-edge",
+      "kind": "api",
+      "desc": "api-edge /desk snapshot Bearer API (desk.snapshot.v1)",
+      "probe": {
+        "type": "http",
+        "url": "https://api-edge.calhegasmorais.pt/desk",
+        "auth": "desk_token"
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "secrets-vault-lab",
+      "kind": "secrets_vault",
+      "desc": "Lab KeePass materialize + stratagrok secrets.env (never commit)",
+      "probe": {
+        "type": "path",
+        "paths": [
+          "~/.config/stratagrok/desk-mail.token",
+          "~/.config/stratamesh/desk-mail.token",
+          "~/.config/stratagrok/secrets.env"
+        ],
+        "any": true
+      },
+      "ship_gate": true,
+      "never_print": true
+    },
+    {
+      "id": "github-pat",
+      "kind": "pat",
+      "desc": "gh auth / GITHUB_TOKEN for issues sync + Actions (never chat)",
+      "probe": {
+        "type": "gh",
+        "cmd": [
+          "gh",
+          "auth",
+          "status"
+        ]
+      },
+      "ship_gate": true,
+      "never_print": true
+    },
+    {
+      "id": "fog-tui",
+      "kind": "scripts",
+      "desc": "Fog TUI DESK panel + r/60s kick_desk_refresh",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          "deploy/mac-fog/fog-tui.py"
+        ]
+      },
+      "ship_gate": false
+    }
+  ]
+}

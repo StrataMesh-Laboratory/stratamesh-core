@@ -1,49 +1,72 @@
 {
   "schema": "desk.collegium.state.v1",
-  "version": "0.1.4-lab",
-  "updated": "2026-09-05T00:38:44+0000",
-  "members": [],
-  "channels": {},
-  "bus": "propose→constrain→revise→commit|escalate",
-  "open_tasks": [
+  "version": "0.2.1-lab",
+  "updated": "2026-09-05T00:56:08+0000",
+  "members": [
     {
-      "schema": "desk.task.v1",
-      "id": "dt-d08d38cb",
-      "owner": "openclaw@fog.calhegasmorais.pt",
-      "specialty": "claw",
-      "intent": "Probe :8787/health + :18789; write desk-meters/openclaw.json; run desk-claw-probe.sh",
-      "lanes": [
-        "lane-openclaw"
-      ],
-      "status": "constrain",
-      "constraints": [
-        "hermes: health only, no secrets"
-      ],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:38:44+0000",
-      "updated": "2026-09-05T00:38:44+0000",
-      "milestone": "M-I"
+      "id": "stratagrok",
+      "owner": "grok@calhegasmorais.pt",
+      "vote": true,
+      "role": "lead",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
     },
     {
-      "schema": "desk.task.v1",
-      "id": "dt-94fd0c6a",
+      "id": "hermes",
       "owner": "hermes@fog.calhegasmorais.pt",
-      "specialty": "coord",
-      "intent": "Collegium pulse: desk_metabol tick; constrain peers; ≥64k model",
-      "lanes": [
-        "lane-hermes"
-      ],
-      "status": "constrain",
-      "constraints": [
-        "stratagrok: qwen2.5:7b or better"
-      ],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:38:44+0000",
-      "updated": "2026-09-05T00:38:44+0000",
-      "milestone": "M-I"
+      "vote": true,
+      "role": "coord",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
     },
+    {
+      "id": "opencode",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "vote": true,
+      "role": "code",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
+    },
+    {
+      "id": "openclaw",
+      "owner": "openclaw@fog.calhegasmorais.pt",
+      "vote": true,
+      "role": "claw",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
+    },
+    {
+      "id": "fog-assistant",
+      "owner": "cmn-fog-assistant",
+      "vote": true,
+      "role": "fog",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
+    },
+    {
+      "id": "edge-assistant",
+      "owner": "cmn-edge-assistant",
+      "vote": true,
+      "role": "edge",
+      "pace": "ALLOW",
+      "meter": null,
+      "renewal": null,
+      "lane_note": null
+    }
+  ],
+  "channels": {},
+  "bus": "propose→constrain→revise→commit|escalate + ship-live majority + desk_ops cycle",
+  "open_tasks": [
     {
       "schema": "desk.task.v1",
       "id": "dt-a9d28c3e",
@@ -53,23 +76,6 @@
       "lanes": [
         "lane-openclaw",
         "lane-fog-hop"
-      ],
-      "status": "propose",
-      "constraints": [],
-      "result": "",
-      "sha": "",
-      "created": "2026-09-05T00:38:44+0000",
-      "updated": "2026-09-05T00:38:44+0000",
-      "milestone": "M-I"
-    },
-    {
-      "schema": "desk.task.v1",
-      "id": "dt-1c78b73a",
-      "owner": "hermes@fog.calhegasmorais.pt",
-      "specialty": "coord",
-      "intent": "M-I: Hermes first session on ≥64k; propose next OpenCode+OpenClaw from COLLEGIUM",
-      "lanes": [
-        "lane-hermes"
       ],
       "status": "propose",
       "constraints": [],
@@ -133,6 +139,134 @@
       "created": "2026-09-05T00:38:44+0000",
       "updated": "2026-09-05T00:38:44+0000",
       "milestone": "M-I"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss123",
+      "owner": "cmn-edge-assistant",
+      "specialty": "edge",
+      "intent": "issue:#123 [lab-desk] GHA observe + prepare ticks",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:55:19+0000",
+      "updated": "2026-09-05T00:55:19+0000",
+      "source": "issue:#123",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/123",
+      "labels": [
+        "bug",
+        "track:edge",
+        "lab"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss102",
+      "owner": "cmn-edge-assistant",
+      "specialty": "edge",
+      "intent": "issue:#102 lab: auth 530/1033 + sticky /api/auth stasis hop python:8790 after UTC (hops-off unknown, not host_cap)",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:55:19+0000",
+      "updated": "2026-09-05T00:55:19+0000",
+      "source": "issue:#102",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/102",
+      "labels": [
+        "bug",
+        "documentation",
+        "track:edge",
+        "domain:mesh",
+        "lab-stress",
+        "origin-ux"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss145",
+      "owner": "cmn-fog-assistant",
+      "specialty": "fog",
+      "intent": "issue:#145 [AIOps autonomous] ORCH-NEXT — SPA e DAG já no pulse — passar à qualidade da métrica (não nula, não seed-only) ",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:56:07+0000",
+      "updated": "2026-09-05T00:56:07+0000",
+      "source": "issue:#145",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/145",
+      "labels": [
+        "aiops",
+        "lab",
+        "autonomous",
+        "domain:mesh"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss144",
+      "owner": "cmn-edge-assistant",
+      "specialty": "edge",
+      "intent": "issue:#144 [AIOps autonomous] SG-GOSSIP — Keep fog+edge gossip peers listed and honest (no fabricated members)",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:56:07+0000",
+      "updated": "2026-09-05T00:56:07+0000",
+      "source": "issue:#144",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/144",
+      "labels": [
+        "track:edge",
+        "aiops",
+        "lab",
+        "autonomous",
+        "domain:mesh"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss107",
+      "owner": "cmn-fog-assistant",
+      "specialty": "fog",
+      "intent": "issue:#107 [AIOps autonomous] SG-DAG — Expose DAG transaction_count on status pulse used by AIOps",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:56:07+0000",
+      "updated": "2026-09-05T00:56:07+0000",
+      "source": "issue:#107",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/107",
+      "labels": [
+        "aiops",
+        "lab",
+        "autonomous",
+        "domain:mesh"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-ch-oracle-gr",
+      "owner": "grok@calhegasmorais.pt",
+      "specialty": "lead",
+      "intent": "challenge:ch-oracle-grok90 Oracle grok90 before AWS hedge end: Chase incident 260826-001576 after vault reset; M-II HOLD until live",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T00:56:07+0000",
+      "updated": "2026-09-05T00:56:07+0000",
+      "source": "challenge:ch-oracle-grok90",
+      "challenge": true
     }
   ],
   "done_tasks": [
@@ -159,14 +293,93 @@
       "sha": "0d4ede17116d",
       "updated": "2026-09-05T00:38:44+0000",
       "milestone": "M-I"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-desk-organ",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "challenge:ch-desk-organ Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK ship-live; Issues/Challenges feed; desk_ops real work",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "done",
+      "ship_live": true,
+      "source": "challenge:ch-desk-organ",
+      "challenge": true,
+      "constraints": [
+        "stratagrok: structural package landing"
+      ],
+      "votes": [],
+      "result": "coord: issues/challenges on bus≈22; connectors_gates=6/6; metabol tick ok",
+      "sha": "",
+      "updated": "2026-09-05T00:55:20+0000"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-94fd0c6a",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Collegium pulse: desk_metabol tick; constrain peers; ≥64k model",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "done",
+      "constraints": [
+        "stratagrok: qwen2.5:7b or better"
+      ],
+      "result": "coord: issues/challenges on bus≈21; connectors_gates=6/6; metabol tick ok",
+      "sha": "",
+      "created": "2026-09-05T00:38:44+0000",
+      "updated": "2026-09-05T00:55:22+0000",
+      "milestone": "M-I"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-d08d38cb",
+      "owner": "openclaw@fog.calhegasmorais.pt",
+      "specialty": "claw",
+      "intent": "Probe :8787/health + :18789; write desk-meters/openclaw.json; run desk-claw-probe.sh",
+      "lanes": [
+        "lane-openclaw"
+      ],
+      "status": "done",
+      "constraints": [
+        "hermes: health only, no secrets",
+        "openclaw: claw probe fog_public=0 edge=0 local8787=0",
+        "openclaw: claw probe fog_public=0 edge=0 local8787=0",
+        "openclaw: claw probe fog_public=0 edge=0 local8787=0"
+      ],
+      "result": "claw probe fog_public=1 edge=1 local8787=0",
+      "sha": "",
+      "created": "2026-09-05T00:38:44+0000",
+      "updated": "2026-09-05T00:56:06+0000",
+      "milestone": "M-I"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-1c78b73a",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "M-I: Hermes first session on ≥64k; propose next OpenCode+OpenClaw from COLLEGIUM",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "done",
+      "constraints": [],
+      "result": "coord: issues/challenges on bus≈6; connectors_gates=6/6; metabol tick ok",
+      "sha": "",
+      "created": "2026-09-05T00:38:44+0000",
+      "updated": "2026-09-05T00:56:08+0000",
+      "milestone": "M-I"
     }
   ],
   "last_commit": {
-    "id": "dt-0ac2477f",
-    "sha": "0d4ede17116d",
-    "result": "needles+ops",
-    "at": "2026-09-05T00:38:44+0000",
-    "owner": "opencode@fog.calhegasmorais.pt"
+    "id": "dt-1c78b73a",
+    "sha": "",
+    "result": "coord: issues/challenges on bus≈6; connectors_gates=6/6; metabol tick ok",
+    "at": "2026-09-05T00:56:08+0000",
+    "owner": "hermes@fog.calhegasmorais.pt"
   },
   "roadmap": {
     "spine": "docs/ROADMAP-VISION.md",
@@ -185,6 +398,90 @@
     ]
   },
   "bus_cli": "ops/desk-collegium/desk_bus.py",
-  "notes": "Specialization + metabol_pace + desk_bus. r/60s updates; g upgrades. Roadmap-tagged tasks.",
-  "organizing_principle": "specialization"
+  "notes": "desk_ops on r/60s; no vapour pulse while open work; ping André only for human gates",
+  "organizing_principle": "specialization + collegial majority for ship-live + desk_ops anti-vapour",
+  "ship_policy": {
+    "schema": "desk.ship_policy.v1",
+    "majority_frac": 0.5,
+    "require_no_nack": true,
+    "unanimous_authority": true,
+    "human_escalate": [
+      "fog_g",
+      "2fa",
+      "oracle",
+      "renovate_major"
+    ]
+  },
+  "connectors": "ops/desk-collegium/connectors.json",
+  "lanes": {
+    "lane-openclaw": {
+      "meter": "ollama_session_tokens",
+      "renewal": "session_or_model_reload",
+      "renewal_note": "session context window (e.g. 33k on llava); reload clears",
+      "pace": "ALLOW",
+      "tokens_used": 2100.0,
+      "tokens_limit": 33000.0,
+      "remaining_frac": 0.9363636363636364,
+      "sample_note": "session 2100/33000 renew=session_reload",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-hermes": {
+      "meter": "ollama_context",
+      "renewal": "host_cap",
+      "renewal_note": "no CF daily clock; need context≥65536; host RAM/CPU",
+      "context_min": 65536,
+      "pace": "ALLOW",
+      "context_length": null,
+      "sample_note": "no hermes meter — prefer ≥64k model; renew=host_cap",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-opencode": {
+      "meter": "ollama_plus_github",
+      "renewal": "github_hour_utc",
+      "renewal_note": "GitHub REST 5000/hour rolling; Ollama host_cap",
+      "github_hour_cap": 5000,
+      "pace": "ALLOW",
+      "hours_until_github_hour_roll": 1.0,
+      "sample_note": "github 5000/hour rolling UTC; Ollama host_cap; renew=github_hour+host",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-bot": {
+      "meter": "grok-bot-included",
+      "renewal": "weekly_unknown",
+      "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown",
+      "daily_limit": null,
+      "pace": "HOLD",
+      "sample_note": "bot-included remaining unknown — HOLD (SuperGrok does not refill)",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-assistant": {
+      "meter": "grok-assistant_pool_frac",
+      "renewal": "supergrok_weekly",
+      "renewal_note": "weekly pool_frac; reset Europe/Lisbon per grok.com Usage",
+      "daily_limit": 1.0,
+      "pace": "ALLOW",
+      "sample_note": "no assistant sample — gate on pool_frac when known; renew=supergrok_weekly Lisbon",
+      "hours_until_renewal": null,
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-cf": {
+      "meter": "cf_worker_req",
+      "renewal": "00:00_UTC",
+      "renewal_note": "100k/day Workers; KV 1000/day; never workers.dev",
+      "daily_limit": 100000,
+      "pace": "ALLOW",
+      "hours_until_renewal": 23.06469091611111,
+      "sample_note": "no cf sample — renew=00:00_UTC h_left=23.1; never workers.dev",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    },
+    "lane-fog-hop": {
+      "meter": "mac_mw_ports",
+      "renewal": "host_cap",
+      "renewal_note": "local :8787–:8792; skip dead hop 8s",
+      "pace": "ALLOW",
+      "sample_note": "local MW hops; renew=host_cap",
+      "computed_at": "2026-09-05T00:56:07+0000"
+    }
+  },
+  "metabol_tick": "2026-09-05T00:56:07+0000"
 }

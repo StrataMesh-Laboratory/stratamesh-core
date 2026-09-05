@@ -24,3 +24,18 @@ python3 ops/desk-collegium/desk_sync.py push --sha …  # push as Bearer vault h
 ```
 
 TUI calls pull+push on each 60s `r` / auto-r via `kick_desk_refresh`. `g` is upgrades only.
+
+## Ship-live majority
+
+```bash
+python3 ops/desk-collegium/desk_ship.py mark TASK
+python3 ops/desk-collegium/desk_ship.py vote TASK ack --by hermes
+python3 ops/desk-collegium/desk_ship.py ship TASK --by stratagrok
+```
+
+## Connectors + Issues/Challenges
+
+```bash
+python3 ops/desk-collegium/desk_connectors.py status
+python3 ops/desk-collegium/desk_issues.py sync
+```

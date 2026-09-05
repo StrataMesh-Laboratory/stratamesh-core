@@ -28,3 +28,18 @@ See `docs/ROADMAP-VISION.md`. Desk state `roadmap.current` = M-I. M-II HOLD unti
 
 ## Mac vault
 `~/.config/stratagrok/desk-mail.token` (0600) — never git/chat.
+
+## Collegium ship + connectors + issues
+
+```bash
+python3 ops/desk-collegium/desk_connectors.py status
+python3 ops/desk-collegium/desk_issues.py sync
+python3 ops/desk-collegium/desk_ship.py mark dt-desk-organ
+python3 ops/desk-collegium/desk_ship.py vote dt-desk-organ ack --by hermes
+python3 ops/desk-collegium/desk_ship.py vote dt-desk-organ ack --by opencode
+# … majority of 6 voters (need ≥4 ACK, 0 NACK)
+python3 ops/desk-collegium/desk_ship.py status dt-desk-organ
+python3 ops/desk-collegium/desk_ship.py ship dt-desk-organ --by stratagrok --sha <sha>
+```
+
+Unanimous ACK ⇒ full authority. Majority ACK ⇒ ship allowed. NACK ⇒ blocked.

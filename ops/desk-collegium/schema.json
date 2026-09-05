@@ -76,6 +76,53 @@
         },
         "sha": {
           "type": "string"
+        },
+        "ship_live": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "votes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "by": {
+                "type": "string"
+              },
+              "vote": {
+                "type": "string",
+                "enum": [
+                  "ack",
+                  "nack"
+                ]
+              },
+              "at": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ship_policy": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "desk.ship_policy.v1"
+        },
+        "majority_frac": {
+          "type": "number"
+        },
+        "require_no_nack": {
+          "type": "boolean"
+        },
+        "unanimous_authority": {
+          "type": "boolean"
         }
       }
     }
