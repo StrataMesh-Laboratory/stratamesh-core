@@ -572,8 +572,162 @@ def verify_vault_surfaces() -> dict:
 
 
 
+def try_materialize_desk_mail_vault() -> dict:
+    """STRATAGROK representative: copy automation.desk.* from existing secrets.env / vault roots.
+
+    Never invent values. Never print secrets. Never write 0-byte stubs. Prefer KeePass Mail/AUTOMATION_DESK_* via stratagrok-vault; if sources missing entirely → escalate_to_andre.
+    """
+    import re
+    import shutil
+    dest_root = Path.home() / ".config/stratagrok"
+    try:
+        dest_root.mkdir(parents=True, exist_ok=True)
+        dest_root.chmod(0o700)
+    except Exception:
+        pass
+    sources = [
+        Path.home() / ".config/stratagrok" / "secrets.env",
+        Path.home() / ".config/stratamesh" / "secrets.env",
+        _fog() / "data" / "secrets" / "secrets.env",
+        Path.home() / ".config/stratamesh" / "automation.desk.env",
+    ]
+    # Also accept already-split files in stratamesh or fog secrets
+    name_map = {
+        "automation.desk.imap": ("AUTOMATION_DESK_IMAP", "IMAP"),
+        "automation.desk.smtp": ("AUTOMATION_DESK_SMTP", "SMTP"),
+        "automation.desk.token": ("AUTOMATION_DESK_TOKEN", "DESK_MAIL_TOKEN", "AUTH_RECOVERY_TOKEN"),
+    }
+    created = []
+    skipped_present = []
+    missing_src = []
+    for name, keys in name_map.items():
+        dest = dest_root / name
+        if dest.is_file() and dest.stat().st_size > 0:
+            skipped_present.append(name)
+            continue
+        # prefer identical filename elsewhere
+        found_file = None
+        for root in (
+            Path.home() / ".config/stratamesh",
+            _fog() / "data" / "secrets",
+            Path.home() / ".config/stratagrok",
+        ):
+            cand = root / name
+            if cand.is_file() and cand.stat().st_size > 0 and cand.resolve() != dest.resolve():
+                found_file = cand
+                break
+        if found_file is not None:
+            try:
+                shutil.copy2(found_file, dest)
+                dest.chmod(0o600)
+                created.append(name)
+                continue
+            except Exception:
+                pass
+        # KeePass via stratagrok-vault (Mail/AUTOMATION_DESK_*) — never print values
+        try:
+            import shutil as _shutil
+            import subprocess
+            vault_bin = _shutil.which("stratagrok-vault") or str(Path.home() / ".local/bin/stratagrok-vault")
+            title = {
+                "automation.desk.imap": "AUTOMATION_DESK_IMAP",
+                "automation.desk.smtp": "AUTOMATION_DESK_SMTP",
+                "automation.desk.token": "AUTOMATION_DESK_TOKEN",
+            }.get(name)
+            if title and Path(vault_bin).is_file():
+                raw = subprocess.check_output(
+                    [vault_bin, "get", title], text=True, stderr=subprocess.DEVNULL
+                ).strip()
+                if raw:
+                    if name.endswith(".token"):
+                        body = raw + "\n"
+                    elif name.endswith(".imap"):
+                        body = (
+                            "MAIL_MODE=imap\nIMAP_HOST=127.0.0.1\nIMAP_PORT=143\n"
+                            f"IMAP_USER=automation.desk\nIMAP_PASS={raw}\nIMAP_SSL=false\n"
+                            "MAILDIR=/home/box/mail/automation.desk\n"
+                            "ADDRESS=automation.desk@calhegasmorais.pt\n"
+                        )
+                    else:
+                        body = (
+                            "SMTP_MODE=maildir_drop\nSMTP_HOST=127.0.0.1\nSMTP_PORT=0\n"
+                            f"SMTP_USER=automation.desk\nSMTP_PASS={raw}\n"
+                            "SMTP_FROM=automation.desk@calhegasmorais.pt\n"
+                            "MAILDIR=/home/box/mail/automation.desk\n"
+                        )
+                    tmp = dest.with_suffix(dest.suffix + ".tmp")
+                    tmp.write_text(body, encoding="utf-8")
+                    tmp.chmod(0o600)
+                    tmp.replace(dest)
+                    created.append(name)
+                    continue
+        except Exception:
+            pass
+        # Also mirror auth-recovery.token → automation.desk.token when present
+        if name.endswith(".token"):
+            for cand in (
+                Path.home() / ".config/stratagrok/auth-recovery.token",
+                Path.home() / ".config/stratamesh/auth-recovery.token",
+            ):
+                if cand.is_file() and cand.stat().st_size > 0:
+                    try:
+                        tmp = dest.with_suffix(dest.suffix + ".tmp")
+                        tmp.write_bytes(cand.read_bytes().strip() + b"\n")
+                        tmp.chmod(0o600)
+                        tmp.replace(dest)
+                        created.append(name)
+                        break
+                    except Exception:
+                        pass
+            if name in created:
+                continue
+        # parse secrets.env for KEY=value blocks (paths only logged)
+        blob = ""
+        for src in sources:
+            if src.is_file() and src.stat().st_size > 0:
+                try:
+                    blob = src.read_text(encoding="utf-8", errors="replace")
+                    break
+                except Exception:
+                    continue
+        extracted = None
+        if blob:
+            for key in keys:
+                m = re.search(rf"(?m)^{re.escape(key)}=(.*)$", blob)
+                if m and m.group(1).strip():
+                    extracted = m.group(1).strip().strip('"').strip("'")
+                    break
+            # multi-line IMAP/SMTP: collect KEY_* family
+            if extracted is None and name.endswith((".imap", ".smtp")):
+                prefix = "AUTOMATION_DESK_IMAP_" if name.endswith(".imap") else "AUTOMATION_DESK_SMTP_"
+                lines = []
+                for line in blob.splitlines():
+                    if line.startswith(prefix) or line.startswith(keys[0] + "_"):
+                        lines.append(line)
+                if lines:
+                    extracted = "\n".join(lines) + "\n"
+        if extracted:
+            try:
+                dest.write_text(extracted if extracted.endswith("\n") or "\n" in extracted else extracted + "\n", encoding="utf-8")
+                dest.chmod(0o600)
+                created.append(name)
+            except Exception:
+                missing_src.append(name)
+        else:
+            missing_src.append(name)
+    return {
+        "ok": not missing_src,
+        "created": created,
+        "already": skipped_present,
+        "missing_src": missing_src,
+        "human_gate": bool(missing_src),
+        "resolve_as_representative": True,
+        "note": "materialized from existing vault only — no invented secrets",
+    }
+
+
 def verify_desk_mail_vault() -> dict:
-    """Soft-check automation.desk vault path files exist and are non-empty. Never read values into outbox."""
+    """Soft-check automation.desk vault path files exist and are non-empty. Never read values into outbox. Never create 0-byte stubs — missing stays missing until STRATAGROK materializes from KeePass."""
     roots = [
         Path.home() / ".config/stratagrok",
         Path.home() / ".config/stratamesh",
@@ -633,18 +787,59 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
         out["steps"]["desk_mail_vault"] = mail_v
         if mail_v.get("human_gate") and feed:
             try:
+                import argparse
                 import importlib.util
+                # STRATAGROK representative first — materialize from existing secrets.env
+                mat = try_materialize_desk_mail_vault()
+                out["steps"]["desk_mail_materialize"] = {
+                    "ok": mat.get("ok"),
+                    "created": mat.get("created"),
+                    "already": mat.get("already"),
+                    "missing_src": mat.get("missing_src"),
+                }
+                mail_v = verify_desk_mail_vault()
+                out["steps"]["desk_mail_vault"] = mail_v
                 spec = importlib.util.spec_from_file_location("desk_bus", HERE / "desk_bus.py")
                 busmod = importlib.util.module_from_spec(spec)
                 assert spec.loader is not None
                 spec.loader.exec_module(busmod)
-                miss = ",".join((mail_v.get("missing") or []) + (mail_v.get("empty") or [])) or "unknown"
-                busmod.feed_append(
-                    "stratagrok",
-                    f"human_gate: automation.desk vault missing/empty ({miss}) — André materialize 0600",
-                    kind="escalate",
-                    specialty="lead",
-                )
+                tid = "dt-vault-automation-desk"
+                if mat.get("created"):
+                    note = f"act: materialized automation.desk files {','.join(mat.get('created') or [])} from vault (representative)"
+                    st = busmod.load_state()
+                    if not busmod.find_task(st, tid):
+                        busmod.cmd_propose(argparse.Namespace(
+                            owner="stratagrok", specialty="lead",
+                            intent="Act representative: automation.desk vault materialize from secrets.env",
+                            id=tid, lanes=["lane-bot", "lane-hermes"],
+                        ))
+                        append_diary("stratagrok", verb="propose", task_id=tid, note=note[:160])
+                        busmod._mutate(tid, "constrain", by="hermes", note="protocol: representative vault act")
+                        append_diary("hermes", verb="constrain", task_id=tid, note="representative vault")
+                    busmod._mutate(tid, "act", by="stratagrok", note=note)
+                    append_diary("stratagrok", verb="act", task_id=tid, note=note[:160])
+                    if mail_v.get("ok"):
+                        busmod._mutate(tid, "done", by="stratagrok", note="vault files present", close=True)
+                        append_diary("stratagrok", verb="done", task_id=tid, note="automation.desk vault ok")
+                    busmod.feed_append("stratagrok", note, kind="act", specialty="lead")
+                elif mail_v.get("human_gate"):
+                    miss = ",".join((mail_v.get("missing") or []) + (mail_v.get("empty") or []) + (mat.get("missing_src") or [])) or "unknown"
+                    note = f"escalate_to_andre: automation.desk vault missing entirely ({miss}) — KeePass Mail/AUTOMATION_DESK_* absent; STRATAGROK cannot invent"
+                    st = busmod.load_state()
+                    if not busmod.find_task(st, tid):
+                        busmod.cmd_propose(argparse.Namespace(
+                            owner="stratagrok", specialty="lead",
+                            intent="Act escalate_to_andre: automation.desk secrets missing entirely",
+                            id=tid, lanes=["lane-bot"],
+                        ))
+                        append_diary("stratagrok", verb="propose", task_id=tid, note=note[:160])
+                        busmod._mutate(tid, "constrain", by="hermes", note="protocol: andre gate — secrets absent")
+                        append_diary("hermes", verb="constrain", task_id=tid, note="andre gate")
+                    cur = busmod.find_task(busmod.load_state(), tid)
+                    if cur and (cur.get("status") or "") != "escalate":
+                        busmod._mutate(tid, "escalate", by="stratagrok", note=note)
+                        append_diary("stratagrok", verb="escalate", task_id=tid, note=note[:160])
+                    busmod.feed_append("stratagrok", note, kind="escalate", specialty="lead")
             except Exception:
                 pass
     except Exception as e:

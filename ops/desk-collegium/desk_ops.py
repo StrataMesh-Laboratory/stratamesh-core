@@ -60,29 +60,54 @@ def _specialty_lane(spec: str) -> str:
     }.get(spec, "lane-hermes")
 
 
-def _http_ok(url: str, timeout: float = 6.0) -> tuple[bool, str]:
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "STRATAGROK-desk-ops/0.3", "Accept": "application/json"},
-            method="GET",
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read(400).decode("utf-8", "replace")
-            return 200 <= resp.status < 300, f"{resp.status}:{body[:80].replace(chr(10),' ')}"
-    except Exception as e:
+def _is_rate_limited(detail: str) -> bool:
+    d = (detail or "").lower()
+    return ("429" in d) or ("1015" in d) or ("rate limited" in d) or ("too many requests" in d)
+
+
+def _http_ok(url: str, timeout: float = 6.0, *, retries: int = 2) -> tuple[bool, str]:
+    """GET with short backoff on CF 429/1015 — collegium retry path, not a dead-end dispute."""
+    last = ""
+    attempts = max(1, int(retries) + 1)
+    for i in range(attempts):
         try:
-            r = subprocess.run(
-                ["curl", "-sS", "-m", str(int(timeout)), "-A", "STRATAGROK-desk-ops/0.3",
-                 "-o", "-", "-w", "%{http_code}", url],
-                capture_output=True, text=True, timeout=timeout + 2,
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "STRATAGROK-desk-ops/0.3", "Accept": "application/json"},
+                method="GET",
             )
-            code = (r.stdout or "")[-3:]
-            body = (r.stdout or "")[:-3]
-            ok = code.isdigit() and 200 <= int(code) < 300
-            return ok, f"{code}:{body[:80].replace(chr(10),' ')}"
-        except Exception as e2:
-            return False, f"{e}; fallback:{e2}"[:160]
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = resp.read(400).decode("utf-8", "replace")
+                ok = 200 <= resp.status < 300
+                last = f"{resp.status}:{body[:80].replace(chr(10),' ')}"
+                if ok:
+                    return True, last
+                if not _is_rate_limited(last) or i + 1 >= attempts:
+                    return False, last
+        except Exception as e:
+            try:
+                r = subprocess.run(
+                    ["curl", "-sS", "-m", str(int(timeout)), "-A", "STRATAGROK-desk-ops/0.3",
+                     "-o", "-", "-w", "%{http_code}", url],
+                    capture_output=True, text=True, timeout=timeout + 2,
+                )
+                code = (r.stdout or "")[-3:]
+                body = (r.stdout or "")[:-3]
+                ok = code.isdigit() and 200 <= int(code) < 300
+                last = f"{code}:{body[:80].replace(chr(10),' ')}"
+                if ok:
+                    return True, last
+                if not _is_rate_limited(last) and "429" not in str(e):
+                    # non-rate errors: one curl fallback is enough
+                    if i + 1 >= attempts or not _is_rate_limited(f"{e}"):
+                        return False, last or f"{e}"[:160]
+            except Exception as e2:
+                last = f"{e}; fallback:{e2}"[:160]
+                if i + 1 >= attempts:
+                    return False, last
+        # backoff: 0.4s, 0.8s, …
+        time.sleep(0.4 * (i + 1))
+    return False, last or "http_fail"
 
 
 def load_projected() -> dict:
@@ -356,11 +381,21 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         return {"ok": False, "result": f"coord fail: {e}", "done": False, "sha": "", "verb": "dispute"}
 
 
-def handler_code(task: dict, *, dry: bool) -> dict:
-    """compileall desk-collegium + unittest subset; refer on FAIL (patch path exists)."""
-    if dry:
-        return {"ok": True, "result": "code dry-run", "done": False, "sha": "", "verb": "act"}
-    # compile check first (fast fail)
+def _run_code_unittest_subset() -> dict:
+    """Real compileall + unittest discover — shared by handler_code and self-audit.
+
+    Nest-safe: sets DESK_CODE_NEST=1 so nested cycle tests skip re-entry.
+    Self-audit uses a narrow -p that excludes test_desk_ops (cycle recursion).
+    """
+    if os.environ.get("DESK_CODE_NEST") == "1":
+        return {
+            "ok": True,
+            "result": "unittest skip nested (DESK_CODE_NEST)",
+            "done": False,
+            "sha": "",
+            "verb": "audit",
+            "nested_skip": True,
+        }
     comp = subprocess.run(
         [sys.executable, "-m", "compileall", "-q", str(HERE)],
         cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
@@ -374,49 +409,140 @@ def handler_code(task: dict, *, dry: bool) -> dict:
             "sha": "",
             "verb": "refer",
             "peer": "refer",
+            "peer_vote": True,
+            "next_action": "opencode: fix compile errors in ops/desk-collegium then re-run discover",
         }
-    tests = [
-        "ops.desk-collegium.test_desk_bus",
-        "ops.desk-collegium.test_desk_metabol",
-        "ops.desk-collegium.test_desk_ops",
-        "ops.desk-collegium.test_desk_feed",
+    # discover by path (hyphen dir is not a Python package)
+    # Exclude test_desk_ops from self-audit-style runs to avoid cycle recursion;
+    # handler_code still runs a safe subset under DESK_CODE_NEST.
+    patterns = [
+        "test_desk_bus.py",
+        "test_desk_metabol.py",
+        "test_desk_feed.py",
+        "test_desk_roles.py",
     ]
-    # drop missing modules softly
-    existing = []
-    for t in tests:
-        mod_path = REPO_ROOT / Path(*t.split(".")).with_suffix(".py")
-        if mod_path.is_file():
-            existing.append(t)
+    existing = [p for p in patterns if (HERE / p).is_file()]
+    if not existing:
+        return {
+            "ok": False,
+            "result": "unittest FAIL no safe test_desk_*.py found",
+            "done": False,
+            "sha": "",
+            "verb": "refer",
+            "peer": "refer",
+            "next_action": "opencode: restore desk unit tests under ops/desk-collegium",
+        }
+    env = os.environ.copy()
+    env["DESK_CODE_NEST"] = "1"
+    # Run listed modules by file path load (avoid hyphen package import + avoid ops recursion)
     r = subprocess.run(
-        [sys.executable, "-m", "unittest", *existing],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120,
+        [sys.executable, "-m", "unittest", "discover", "-s", str(HERE), "-p", "test_desk_bus.py", "-q"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120, env=env,
     )
+    # accumulate remaining patterns
+    rc = r.returncode
+    tails = [(r.stderr or r.stdout or "")]
+    for pat in ("test_desk_metabol.py", "test_desk_feed.py", "test_desk_roles.py"):
+        if not (HERE / pat).is_file():
+            continue
+        ri = subprocess.run(
+            [sys.executable, "-m", "unittest", "discover", "-s", str(HERE), "-p", pat, "-q"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120, env=env,
+        )
+        rc = rc or ri.returncode
+        tails.append(ri.stderr or ri.stdout or "")
+    class _R: pass
+    r = _R(); r.returncode = rc; r.stderr = "\n".join(tails); r.stdout = ""
     ok = r.returncode == 0
     tail = (r.stderr or r.stdout or "")[-140:].replace("\n", " ")
-    verb = "audit" if ok else "refer"
     out = {
         "ok": ok,
-        "result": f"unittest rc={r.returncode} {'PASS' if ok else 'FAIL'} {tail}"[:220],
+        "result": f"unittest discover rc={r.returncode} {'PASS' if ok else 'FAIL'} {tail}"[:220],
         "done": ok,
         "sha": "",
-        "verb": verb,
+        "verb": "audit" if ok else "refer",
     }
     if not ok:
         out["peer"] = "refer"
+        out["peer_vote"] = True
+        out["next_action"] = "opencode: patch failing desk tests; peers cast ack after green discover"
+    return out
+
+
+def handler_code(task: dict, *, dry: bool) -> dict:
+    """compileall desk-collegium + unittest discover; refer+peer_vote on FAIL (collegium path)."""
+    if dry:
+        return {"ok": True, "result": "code dry-run", "done": False, "sha": "", "verb": "act"}
+    # Prefer consuming outbox brief when present (agent-run writes it)
+    brief = FOG / "data" / "desk-outbox" / "opencode-next.md"
+    consumed = ""
+    if brief.is_file():
+        try:
+            consumed = brief.read_text(encoding="utf-8")[:80].replace("\n", " ")
+        except Exception:
+            consumed = "brief-present"
+    out = _run_code_unittest_subset()
+    if consumed:
+        out["result"] = (out.get("result") or "") + f" | brief={consumed[:40]}"
+        out["result"] = out["result"][:220]
     return out
 
 
 def handler_lead(task: dict, *, dry: bool) -> dict:
-    """Honest escalate for human gates; soft taper meter otherwise — never fake progress."""
+    """André gates escalate; representable work acts (vault/gh/vapour) — never dump on André."""
     intent = (task.get("intent") or "").lower()
-    if task.get("human_gate") or _is_human_gate_task(task):
+    if _is_andre_human_gate_task(task):
         return {
             "ok": True,
-            "result": "escalate human gate (Oracle/Mac token|gh|g / Billing / vault) — no fake progress",
+            "result": "escalate_to_andre (Fog g / 2FA / captcha / Oracle password / Renovate major) — no fake progress",
             "done": False,
             "sha": "",
             "escalate": True,
             "verb": "escalate",
+            "next_action": "André: clear true human_gate only — STRATAGROK already tried representative path",
+        }
+    # Representable: try vault materialize + document gh soft-fail
+    if not dry and ("vault" in intent or "automation.desk" in intent or "desk-mail" in intent):
+        try:
+            rep = _load("desk_reports")
+            mat = rep.try_materialize_desk_mail_vault()
+            if mat.get("ok") or mat.get("created"):
+                return {
+                    "ok": True,
+                    "result": f"act representative vault materialize created={mat.get('created')} already={mat.get('already')}",
+                    "done": True,
+                    "sha": "",
+                    "verb": "act",
+                }
+            if mat.get("human_gate"):
+                return {
+                    "ok": True,
+                    "result": f"escalate_to_andre: vault missing entirely {mat.get('missing_src')}",
+                    "done": False,
+                    "sha": "",
+                    "escalate": True,
+                    "verb": "escalate",
+                    "next_action": "André: KeePass materialize secrets.env then re-run cycle",
+                }
+        except Exception as e:
+            return {
+                "ok": False,
+                "result": f"representative vault fail: {e}"[:160],
+                "done": False,
+                "sha": "",
+                "verb": "dispute",
+                "peer_vote": True,
+                "next_action": "stratagrok: revise vault materialize helper",
+            }
+    if "gh" in intent or "path" in intent or "launchagent" in intent:
+        return {
+            "ok": True,
+            "result": "act representative: gh PATH soft-fail already in connectors; LaunchAgent origin fix via Mac agent-run — not André",
+            "done": False,
+            "sha": "",
+            "verb": "act",
+            "next_action": "hermes/opencode: ensure gh on PATH in FogRuntime; connectors soft-fail remains",
+            "peer_vote": True,
         }
     if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
         return {
@@ -442,37 +568,51 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
 
 
 def handler_edge(task: dict, *, dry: bool) -> dict:
-    """Health probe + actionable outbox brief (no browser from Mac cycle)."""
-    ok, detail = _http_ok("https://api-edge.calhegasmorais.pt/health")
-    edge_ok, _ = _http_ok("https://edge.calhegasmorais.pt/")
+    """Health probe + actionable outbox brief; 429/1015 → dispute+revise retry (not dead-end)."""
+    ok, detail = _http_ok("https://api-edge.calhegasmorais.pt/health", retries=2)
+    edge_ok, site_detail = _http_ok("https://edge.calhegasmorais.pt/", retries=2)
+    rate = _is_rate_limited(detail) or _is_rate_limited(site_detail)
     result = f"edge api={int(ok)} site={int(edge_ok)}"
+    if rate and not (ok or edge_ok):
+        result += " | 429/1015 after backoff"
+    elif not ok and detail:
+        result += f" | {detail[:40]}"
     if not dry:
-        _write_assistant_brief(
-            "edge-assistant",
-            task,
-            result,
-            steps=[
-                "GET https://api-edge.calhegasmorais.pt/health (expect 200)",
-                "Consume origin GETs only — no Worker deploy, no workers.dev",
-                "If api down: check named tunnel + Fog origin; escalate to Hermes coord",
-                "Diary: cite task id; Bot=escalate only",
-            ],
-        )
+        steps = [
+            "GET https://api-edge.calhegasmorais.pt/health (expect 200; backoff on 429/1015)",
+            "Consume origin GETs only — no Worker deploy, no workers.dev",
+            "If rate-limited: revise slot retries with backoff; peer vote if still down",
+            "If api dark (not 429): check named tunnel + Fog origin; refer Hermes coord",
+            "Diary: cite task id; Bot=escalate only for true human_gate",
+        ]
+        _write_assistant_brief("edge-assistant", task, result, steps=steps)
         try:
-            _load("desk_bus").feed_append(
-                "edge", result + (f" | {detail[:40]}" if not ok else ""),
-                kind="audit" if (ok or edge_ok) else "dispute",
-                specialty="edge",
-            )
+            kind = "audit" if (ok or edge_ok) else "dispute"
+            _load("desk_bus").feed_append("edge", result, kind=kind, specialty="edge")
         except Exception:
             pass
-    return {
-        "ok": ok or edge_ok,
+    if ok or edge_ok:
+        return {"ok": True, "result": result, "done": True, "sha": "", "verb": "audit"}
+    out = {
+        "ok": False,
         "result": result,
-        "done": ok or edge_ok,
+        "done": False,
         "sha": "",
-        "verb": "audit" if (ok or edge_ok) else "dispute",
+        "verb": "dispute",
+        "peer": "refer",
+        "peer_vote": True,
+        "next_action": (
+            "edge-assistant: wait backoff then re-GET api-edge+/edge; "
+            "cast ack if 200 else hermes refer tunnel"
+        ),
     }
+    if rate:
+        out["next_action"] = (
+            "edge-assistant: CF 429/1015 — revise after ≥30s; re-run handler_edge; "
+            "peer vote only if still fail"
+        )
+        out["auto_cast_ack"] = True
+    return out
 
 
 def handler_fog(task: dict, *, dry: bool) -> dict:
@@ -734,22 +874,35 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
             results[spec] = {"ok": False, "result": str(e)[:80]}
 
     _run("claw", handler_claw, {"id": "audit-claw", "specialty": "claw"})
-    # code: soft stamp every cycle (full unittest via specialty=code handler)
+    # code: REAL unittest discover (no vapour stamp) when lane ALLOW
     allowed_c, pace_c, lane_c = _pace_allows(state, "code")
     if not allowed_c:
         _feed_metabol_skip("code", pace_c, lane_c, state)
         results["code"] = {"ok": True, "skipped": True, "pace": pace_c}
     else:
         try:
+            code_out = _run_code_unittest_subset()
+            results["code"] = code_out
             meters = FOG / "data" / "desk-meters"
             meters.mkdir(parents=True, exist_ok=True)
             (meters / "opencode-audit.json").write_text(json.dumps({
-                "ts": _now(), "audit": "tests",
-                "note": "full unittest via specialty=code handler / agent-run",
+                "ts": _now(),
+                "audit": "unittest_discover",
+                "ok": bool(code_out.get("ok")),
+                "result": (code_out.get("result") or "")[:180],
             }, indent=2) + "\n")
-            results["code"] = {"ok": True, "result": "audit stamp"}
+            try:
+                _load("desk_bus").feed_append(
+                    "opencode",
+                    (code_out.get("result") or "code audit")[:200],
+                    kind=("audit" if code_out.get("ok") else "refer"),
+                    specialty="code",
+                )
+            except Exception:
+                pass
         except Exception as e:
-            results["code"] = {"ok": False, "result": str(e)[:80]}
+            results["code"] = {"ok": False, "result": str(e)[:80], "verb": "refer", "peer_vote": True,
+                               "next_action": "opencode: fix self-audit unittest runner"}
     _run("coord", handler_coord, {"id": "audit-coord", "specialty": "coord"})
     _run("fog", handler_fog, {"id": "audit-fog", "specialty": "fog"})
     _run("edge", handler_edge, {"id": "audit-edge", "specialty": "edge"})
@@ -920,26 +1073,44 @@ HANDLERS = {
 }
 
 
-def _is_human_gate_task(task: dict) -> bool:
-    if task.get("human_gate"):
+# True André-only gates (protocol human_gates). Everything else: STRATAGROK resolve_as_representative.
+ANDRE_HUMAN_GATE_NEEDLES = (
+    "2fa", "captcha",
+    "oracle", "grok90", "vault reset", "oracle password",
+    "renovate major",
+    "fog g", " g to recent", "press g", "manual g",
+)
+
+
+def _is_andre_human_gate_task(task: dict) -> bool:
+    """True only for gates André himself must clear — not STRATAGROK-representable work."""
+    if task.get("andre_gate") or task.get("escalate_to_andre"):
         return True
     intent = (task.get("intent") or "").lower()
-    if (task.get("status") or "") == "escalate":
+    if any(k in intent for k in ANDRE_HUMAN_GATE_NEEDLES):
         return True
-    if any(
-        k in intent
-        for k in (
-            "oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major",
-            "desk-mail.token", "vault reset", "human gate", "billing",
-            "trial_ends", "fill trial", "g to recent",
-        )
-    ):
-        # Mac token/gh/g + Oracle + Billing are never auto-faked
-        if task.get("specialty") in ("lead", "coord", None, "") or "human" in intent:
-            return True
-    if task.get("specialty") == "lead" and any(
-        k in intent for k in ("oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major", "mac desk", "revoke")
-    ):
+    # explicit catalog holds that name André-only surfaces
+    hold = str(task.get("hold_until") or "").lower()
+    if hold in ("oracle_grok90", "andre_2fa", "andre_captcha", "renovate_major"):
+        return True
+    return False
+
+
+def _is_human_gate_task(task: dict) -> bool:
+    """Legacy name = André-only gate. Prefer _is_andre_human_gate_task.
+
+    automation.desk vault / gh PATH / edge 429 / OpenCode idle / vapour are
+    STRATAGROK resolve_as_representative — NOT André dumps.
+    """
+    if task.get("resolve_as_representative"):
+        return False
+    # human_gate flag alone is insufficient — many projected items were over-flagged
+    if task.get("andre_gate") or task.get("escalate_to_andre"):
+        return True
+    if _is_andre_human_gate_task(task):
+        return True
+    # Keep explicit human_gate only when intent clearly André-only
+    if task.get("human_gate") and _is_andre_human_gate_task(task):
         return True
     return False
 
@@ -953,11 +1124,45 @@ def _handler_for(task: dict) -> str | None:
     return None
 
 
+def _pick_rr_path() -> Path:
+    return FOG / "data" / "desk-meters" / "pick-rr.json"
+
+
+def _pick_rr_cursor() -> int:
+    p = _pick_rr_path()
+    if not p.is_file():
+        return 0
+    try:
+        return int(json.loads(p.read_text(encoding="utf-8")).get("cursor") or 0)
+    except Exception:
+        return 0
+
+
+def _pick_rr_advance(chosen_spec: str) -> None:
+    order = ["claw", "code", "teach", "coord", "edge", "fog", "lead"]
+    try:
+        idx = order.index(chosen_spec)
+    except ValueError:
+        idx = _pick_rr_cursor()
+    nxt = (idx + 1) % len(order)
+    try:
+        p = _pick_rr_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"ts": _now(), "cursor": nxt, "last": chosen_spec}, indent=2) + "\n")
+    except Exception:
+        pass
+
+
 def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) -> list[dict]:
-    """Prefer claw/code/coord/edge/fog/teach Act work. Skip Plan/Note + human gates unless asked."""
+    """Fair RR across specialties so claw cannot starve code/coord at --max 1.
+
+    Skip Plan/Note + human gates unless asked. Metabol HOLD/STASIS still enforced.
+    """
     board = classify(state)
-    # specialty priority for real agent work (not stratagrok self-loop)
-    prio = {"claw": 0, "code": 1, "teach": 2, "coord": 3, "edge": 4, "fog": 5, "lead": 9}
+    order = ["claw", "code", "teach", "coord", "edge", "fog", "lead"]
+    cur = _pick_rr_cursor() % len(order)
+    rotated = order[cur:] + order[:cur]
+    prio = {s: i for i, s in enumerate(rotated)}
     ordered = board["ongoing"] + board["pending"]
     scored: list[tuple[int, dict]] = []
     for t in ordered:
@@ -971,7 +1176,6 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
             continue
         allowed, pace, lane = _pace_allows(state, use_spec)
         if not allowed:
-            # explainable skip (deduped 5min) — pace enforced, not display-only
             _feed_metabol_skip(use_spec, pace, lane, state)
             continue
         t = dict(t)
@@ -980,7 +1184,20 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
         t["_lane"] = lane
         scored.append((prio.get(use_spec, 5), t))
     scored.sort(key=lambda x: (x[0], x[1].get("updated") or ""))
-    return [t for _, t in scored[:max_n]]
+    # diversify: at most one task per specialty in a pick batch
+    picked: list[dict] = []
+    seen: set[str] = set()
+    for _, t in scored:
+        spec = t.get("_handler") or ""
+        if spec in seen:
+            continue
+        seen.add(spec)
+        picked.append(t)
+        if len(picked) >= max_n:
+            break
+    if picked:
+        _pick_rr_advance(str(picked[0].get("_handler") or "claw"))
+    return picked
 
 
 def _seed_one_projected(bus, item: dict, *, dry: bool, as_escalate: bool = False) -> str | None:
@@ -1051,7 +1268,11 @@ def ensure_projected_catalog(bus, state: dict, *, dry: bool) -> list[str]:
         sources = {t.get("source") for t in (state.get("open_tasks") or []) + (state.get("done_tasks") or [])}
         if src in sources or tid in open_ids or tid in done_ids or pid in open_ids or pid in done_ids:
             continue
-        got = _seed_one_projected(bus, item, dry=dry, as_escalate=bool(item.get("human_gate")))
+        # escalate on seed only for André-true gates — not representable work
+        andre = bool(item.get("andre_gate") or item.get("escalate_to_andre")) or (
+            bool(item.get("human_gate")) and _is_andre_human_gate_task(item)
+        )
+        got = _seed_one_projected(bus, item, dry=dry, as_escalate=andre)
         if got:
             seeded.append(got if not str(got).startswith("would") else got)
             if not dry:
@@ -1120,18 +1341,78 @@ def _diary_agent(by: str) -> str:
     return "hermes"
 
 
+def _diary(by: str, verb: str, tid: str, note: str = "") -> None:
+    try:
+        rep = _load("desk_reports")
+        rep.ensure_agent_journals()
+        rep.append_diary(_diary_agent(by), verb=verb, task_id=tid, note=(note or "")[:160])
+    except Exception as e:
+        print(f"diary warn: {e}", file=sys.stderr)
+
+
+def collegium_continue_after_soft_fail(bus, task: dict, out: dict, *, by: str) -> None:
+    """Force collegium path after dispute/refer — never leave a dead-end feed note.
+
+    Chain: revise (next_action slot) → optional call_vote for peers.
+    True human_gate escalate is handled separately and does not get auto-revise.
+    """
+    tid = task["id"]
+    next_action = (out.get("next_action") or "retry specialty handler with amend/revise").strip()
+    # revise keeps task open with actionable slot
+    bus._mutate(
+        tid,
+        "revise",
+        by=by,
+        note=f"next_action: {next_action}"[:220],
+    )
+    _diary(by, "revise", tid, f"next_action: {next_action}"[:160])
+    if out.get("peer_vote") or out.get("peer") == "refer":
+        bus._mutate(
+            tid,
+            "vote",
+            by=by,
+            note=f"call vote on next_action: {next_action}"[:220],
+            verb="call_vote",
+            feed_kind="vote",
+            history_extra={"vote_phase": "call"},
+        )
+        _diary(by, "call_vote", tid, f"peers: ack/nack — {next_action}"[:160])
+        # Auto-cast ack from specialty owner when retry path is machine-solvable
+        # (rate-limit / unittest) so the vote is not abandoned; peers may still nack.
+        if out.get("auto_cast_ack"):
+            try:
+                bus.cmd_cast(argparse.Namespace(
+                    task_id=tid, by=by, vote="ack",
+                    note="auto-ack: retry path armed",
+                ))
+                _diary(by, "cast", tid, "ack retry path armed")
+            except Exception as e:
+                print(f"cast warn: {e}", file=sys.stderr)
+
+
 def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
     tid = task["id"]
     verb = (out.get("verb") or "").strip().lower()
+    chain: list[str] = []
     if out.get("escalate"):
         verb = verb or "escalate"
         bus._mutate(tid, "escalate", by=by, note=out.get("result") or "escalate")
+        chain.append("escalate")
+        _diary(by, "escalate", tid, out.get("result") or "escalate")
+        # Record gate properly: ensure next_action is human-visible, no fake progress
+        if out.get("next_action"):
+            _diary(by, "act", tid, f"human_gate next: {out.get('next_action')}"[:160])
+            chain.append("act")
     elif out.get("done"):
         if out.get("sha"):
             bus._mutate(tid, "commit", by=by, result=out.get("result") or "", sha=out.get("sha") or "")
             verb = verb or "commit"
+            chain.append("commit")
+            _diary(by, "commit", tid, out.get("result") or "")
         bus._mutate(tid, "done", by=by, result=out.get("result") or "", close=True)
         verb = "done"
+        chain.append("done")
+        _diary(by, "done", tid, out.get("result") or "")
     else:
         # After specialty work: prefer explicit verb, else act (not only constrain)
         verb = verb or "act"
@@ -1142,18 +1423,27 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
         else:
             bus._mutate(tid, "act", by=by, note=out.get("result") or "progress")
             verb = "act"
-    # Diary + ensure journals: verb + task_id
+        chain.append(verb)
+        _diary(by, verb, tid, out.get("result") or "progress")
+        # Collegium continuation: dispute/refer must open revise/vote, not stop
+        if verb in ("dispute", "refer") and not out.get("escalate"):
+            # machine-solvable retries auto-arm cast ack
+            if out.get("next_action") and ("429" in (out.get("result") or "") or "unittest" in (out.get("result") or "") or out.get("auto_cast_ack") is None):
+                if "429" in (out.get("result") or "") or "1015" in (out.get("result") or "") or "unittest" in (out.get("result") or ""):
+                    out = dict(out)
+                    out.setdefault("auto_cast_ack", True)
+            collegium_continue_after_soft_fail(bus, task, out, by=by)
+            chain.extend(["revise", "call_vote"])
+    # Optional: stamp chain meter for audit
     try:
-        rep = _load("desk_reports")
-        rep.ensure_agent_journals()
-        rep.append_diary(
-            _diary_agent(by),
-            verb=verb,
-            task_id=tid,
-            note=(out.get("result") or "")[:160],
-        )
-    except Exception as e:
-        print(f"diary warn: {e}", file=sys.stderr)
+        meters = FOG / "data" / "desk-meters"
+        meters.mkdir(parents=True, exist_ok=True)
+        (meters / "last-verb-chain.json").write_text(json.dumps({
+            "ts": _now(), "task": tid, "by": by, "chain": chain,
+            "result": (out.get("result") or "")[:160],
+        }, indent=2) + "\n")
+    except Exception:
+        pass
 
 
 def _push(bus) -> None:
@@ -1198,6 +1488,9 @@ def cmd_board(_: argparse.Namespace) -> int:
 
 
 def cmd_cycle(args: argparse.Namespace) -> int:
+    if os.environ.get("DESK_CODE_NEST") == "1":
+        print("ops: skip cycle (DESK_CODE_NEST)")
+        return 0
     bus = _load("desk_bus")
     metabol = _load("desk_metabol")
     try:

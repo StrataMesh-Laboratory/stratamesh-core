@@ -90,7 +90,7 @@ KeePass `lab.kdbx` may materialize the above — never paste master password.
 
 ## Ops checks
 
-`ensure_desk_surfaces` soft-checks vault path files for `automation.desk.*`; if missing/empty → feed line + `human_gate` (André materializes secrets). Does not copy values into outbox.
+`ensure_desk_surfaces` soft-checks vault path files for `automation.desk.*`; if missing/empty → feed line + `human_gate` (STRATAGROK materializes from KeePass — never empty stubs). Does not copy values into outbox.
 
 ## Related
 

@@ -17,7 +17,7 @@ ensure_surfaces() {
 }
 
 run_ops() {
-  python3 ops/desk-collegium/desk_ops.py cycle --max 1 || true
+  python3 ops/desk-collegium/desk_ops.py cycle --max 3 || true
 }
 
 run_actions() {
@@ -27,14 +27,15 @@ run_actions() {
 run_opencode() {
   BRIEF="$FOG/data/desk-outbox/opencode-next.md"
   echo "OpenCode: CONTEXT + TODO.md + reports/ → specialty=code (unittest/compile)"
-  [[ -f "$BRIEF" ]] && echo "OpenCode brief: $BRIEF"
-  # Real work: compile + desk unittest subset (handler_code also runs in cycle)
+  if [[ -f "$BRIEF" ]]; then
+    echo "OpenCode consuming brief: $BRIEF"
+    head -40 "$BRIEF" || true
+  else
+    echo "OpenCode: no opencode-next.md yet — cycle will write one"
+  fi
+  # Real work: compile + unittest discover (hyphen dir is not a package)
   python3 -m compileall -q ops/desk-collegium || true
-  python3 -m unittest \
-    ops.desk-collegium.test_desk_bus \
-    ops.desk-collegium.test_desk_ops \
-    ops.desk-collegium.test_desk_feed \
-    -q || true
+  python3 -m unittest discover -s ops/desk-collegium -p 'test_desk_*.py' -q || true
   run_ops
   python3 - << PY
 import json, time

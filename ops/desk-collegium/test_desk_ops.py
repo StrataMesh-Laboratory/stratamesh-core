@@ -57,7 +57,7 @@ class DeskOps(unittest.TestCase):
 
     def test_cycle_completes_claw(self):
         mod = self.mod
-        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         mod._push = lambda bus: None  # type: ignore
         mod.record_taper_status = lambda dry=False: {"ok": True, "trial_ends_pt": "2026-09-16"}  # type: ignore
         ns = type("A", (), {"max": 1, "dry_run": False})()
@@ -215,7 +215,7 @@ class DeskOps(unittest.TestCase):
         state["lanes"]["lane-openclaw"]["pace"] = "ALLOW"
         state["open_tasks"] = [t for t in state["open_tasks"] if t["id"] == "dt-pace-claw"]
         bus.save_state(state)
-        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         called = {"n": 0}
         real = mod.handler_claw
         def wrap(task, *, dry):
@@ -233,14 +233,14 @@ class DeskOps(unittest.TestCase):
 
     def test_handler_claw_verb_audit(self):
         mod = self.mod
-        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         out = mod.handler_claw({"id": "dt-x", "specialty": "claw"}, dry=True)
         self.assertEqual(out.get("verb"), "audit")
         self.assertIn("fog=", out.get("result", ""))
 
     def test_fog_edge_briefs_nonempty(self):
         mod = self.mod
-        mod._http_ok = lambda url, timeout=6.0: (True, "200:ok")  # type: ignore
+        mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         out = mod.handler_fog({"id": "dt-fog", "intent": "origin", "specialty": "fog"}, dry=False)
         brief = self.tmp / "data/desk-outbox/fog-assistant-next.md"
         self.assertTrue(brief.is_file(), "fog brief missing")
@@ -250,6 +250,99 @@ class DeskOps(unittest.TestCase):
         ebrief = self.tmp / "data/desk-outbox/edge-assistant-next.md"
         self.assertTrue(ebrief.is_file())
         self.assertTrue("api-edge" in ebrief.read_text().lower() or "health" in ebrief.read_text().lower())
+
+
+    def test_collegium_after_dispute(self):
+        """dispute must open revise + call_vote — not a dead-end feed note."""
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        state = bus.load_state()
+        state["open_tasks"] = [{
+            "schema": "desk.task.v1",
+            "id": "dt-edge-rl",
+            "owner": "edge@fog",
+            "specialty": "edge",
+            "intent": "edge probe",
+            "status": "constrain",
+            "constraints": [],
+            "history": [],
+            "result": "",
+            "sha": "",
+        }]
+        bus.save_state(state)
+        out = {
+            "ok": False,
+            "result": "edge api=0 site=0 | 429/1015 after backoff",
+            "done": False,
+            "verb": "dispute",
+            "peer": "refer",
+            "peer_vote": True,
+            "auto_cast_ack": True,
+            "next_action": "edge-assistant: CF 429/1015 — revise after ≥30s",
+        }
+        mod.apply_result(bus, state["open_tasks"][0], out, by="edge")
+        st2 = bus.load_state()
+        task = bus.find_task(st2, "dt-edge-rl")
+        self.assertIsNotNone(task)
+        hist = [h.get("verb") for h in (task.get("history") or [])]
+        self.assertIn("dispute", hist)
+        self.assertIn("revise", hist)
+        self.assertIn("call_vote", hist)
+        diary = self.tmp / "data/desk-outbox/journals/hermes/diary.md"
+        # edge maps to hermes diary via _diary_agent("edge") → hermes? check mapping
+        # edge -> hermes in _diary_agent; also edge-assistant journals
+        found = False
+        for agent in ("hermes", "edge-assistant", "edge", "stratagrok"):
+            d = self.tmp / f"data/desk-outbox/journals/{agent}/diary.md"
+            if d.is_file() and "revise" in d.read_text():
+                found = True
+                break
+        chainp = self.tmp / "data/desk-meters/last-verb-chain.json"
+        if chainp.is_file():
+            import json as _json
+            ch = _json.loads(chainp.read_text()).get("chain") or []
+            if "revise" in ch and "call_vote" in ch:
+                found = True
+        self.assertTrue(found, "diary/chain must show revise+call_vote after dispute")
+
+    def test_pick_rr_does_not_starve_code(self):
+        mod = self.mod
+        bus = mod._load("desk_bus")
+        state = bus.load_state()
+        state["lanes"] = {
+            "lane-openclaw": {"pace": "ALLOW"},
+            "lane-hermes": {"pace": "ALLOW"},
+            "lane-opencode": {"pace": "ALLOW"},
+            "lane-bot": {"pace": "HOLD"},
+            "lane-assistant": {"pace": "ALLOW"},
+        }
+        state["open_tasks"] = [
+            {"schema": "desk.task.v1", "id": "dt-a-claw", "owner": "openclaw@fog",
+             "specialty": "claw", "intent": "probe", "status": "propose",
+             "constraints": [], "result": "", "sha": "", "eisenhower": "act"},
+            {"schema": "desk.task.v1", "id": "dt-a-code", "owner": "opencode@fog",
+             "specialty": "code", "intent": "tests", "status": "propose",
+             "constraints": [], "result": "", "sha": "", "eisenhower": "act"},
+        ]
+        bus.save_state(state)
+        # Force RR cursor onto claw so first pick is claw, second advances to code
+        rr = self.tmp / "data/desk-meters/pick-rr.json"
+        rr.parent.mkdir(parents=True, exist_ok=True)
+        rr.write_text(json.dumps({"cursor": 0, "last": "lead"}) + "\n")  # claw first in order
+        p1 = mod.pick_tasks(bus.load_state(), max_n=1)
+        self.assertEqual(p1[0]["id"], "dt-a-claw")
+        p2 = mod.pick_tasks(bus.load_state(), max_n=1)
+        self.assertEqual(p2[0]["id"], "dt-a-code", "RR must advance so code is not starved")
+
+    def test_handler_edge_rate_limit_next_action(self):
+        mod = self.mod
+        def fake(url, timeout=6.0, retries=2):
+            return False, "429:error code 1015"
+        mod._http_ok = fake  # type: ignore
+        out = mod.handler_edge({"id": "dt-e", "intent": "api", "specialty": "edge"}, dry=True)
+        self.assertEqual(out.get("verb"), "dispute")
+        self.assertTrue(out.get("next_action"))
+        self.assertTrue(out.get("peer_vote"))
 
 
 if __name__ == "__main__":
