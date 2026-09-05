@@ -5,15 +5,439 @@
   "open_tasks": [
     {
       "schema": "desk.task.v1",
+      "id": "dt-proj-mac-desk-operative",
+      "owner": "grok@calhegasmorais.pt",
+      "specialty": "lead",
+      "intent": "Act desk: materialize automation.desk.* from KeePass (Bot only if escalated) if present; fix gh PATH/LaunchAgent soft-fail; escalate_to_andre only if secrets missing entirely or Fog g required",
+      "lanes": [
+        "lane-bot",
+        "lane-hermes"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "grok@calhegasmorais.pt",
+          "note": "Act desk: materialize automation.desk.* from KeePass (Bot only if escalated) if present; fix gh PATH/LaunchAgent soft-fail; escalate_to_andre only if secrets missing entirely or Fog g required",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-mac-desk-operative",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-ts-taper-t1",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-ts-taper-t1",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-ts-taper-t2",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Plan T2: drain 100.x from scripts/connectors/notes; inventory via WG/Fog; ts-api read-only until T3",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "Plan T2: drain 100.x from scripts/connectors/notes; inventory via WG/Fog; ts-api read-only until T3",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-ts-taper-t2",
+      "eisenhower": "plan"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-m1-claw-loop",
+      "owner": "openclaw@fog.calhegasmorais.pt",
+      "specialty": "claw",
+      "intent": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
+      "lanes": [
+        "lane-openclaw"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "openclaw@fog.calhegasmorais.pt",
+          "note": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-m1-claw-loop",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-m1-code-needles",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "specialty": "code",
+      "intent": "M-I projected: run desk unit tests; patch only on FAIL (no vapour PASS claims)",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "opencode@fog.calhegasmorais.pt",
+          "note": "M-I projected: run desk unit tests; patch only on FAIL (no vapour PASS claims)",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-m1-code-needles",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-m1-coord-board",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "M-I projected: desk_ops board + protocol.check; sync strict issues/challenges only",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "M-I projected: desk_ops board + protocol.check; sync strict issues/challenges only",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-m1-coord-board",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-academy-teach-pulse",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Academy teach duty: ensure one live formation/FAQ/handoff lesson for SCA/ACB students; desk agents teach, never enroll as students",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "Academy teach duty: ensure one live formation/FAQ/handoff lesson for SCA/ACB students; desk agents teach, never enroll as students",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-academy-teach-pulse",
+      "duty": "academy_teach",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-academy-code-lesson",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "specialty": "code",
+      "intent": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "opencode@fog.calhegasmorais.pt",
+          "note": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-academy-code-lesson",
+      "duty": "academy_teach",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-apprentice-desk-ops",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-apprentice-desk-ops",
+      "duty": "apprenticeship",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-apprentice-code-fog",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "specialty": "code",
+      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "opencode@fog.calhegasmorais.pt",
+          "note": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-apprentice-code-fog",
+      "duty": "apprenticeship",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-hermes-64k",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+          "at": "2026-09-05T11:09:18+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:18+0000",
+      "updated": "2026-09-05T11:09:18+0000",
+      "source": "projected:proj-hermes-64k",
+      "duty": "hermes_context",
+      "eisenhower": "act"
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss123",
+      "owner": "cmn-edge-assistant",
+      "specialty": "edge",
+      "intent": "issue:#123 [lab-desk] GHA observe + prepare ticks",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "cmn-edge-assistant",
+          "note": "issue:#123 [lab-desk] GHA observe + prepare ticks",
+          "at": "2026-09-05T11:09:24+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T11:09:24+0000",
+      "source": "issue:#123",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/123",
+      "labels": [
+        "bug",
+        "track:edge",
+        "lab"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-iss102",
+      "owner": "cmn-edge-assistant",
+      "specialty": "edge",
+      "intent": "issue:#102 lab: auth 530/1033 + sticky /api/auth stasis hop python:8790 after UTC (hops-off unknown, not host_cap)",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "cmn-edge-assistant",
+          "note": "issue:#102 lab: auth 530/1033 + sticky /api/auth stasis hop python:8790 after UTC (hops-off unknown, not host_cap)",
+          "at": "2026-09-05T11:09:24+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T11:09:24+0000",
+      "source": "issue:#102",
+      "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core/issues/102",
+      "labels": [
+        "bug",
+        "documentation",
+        "track:edge",
+        "domain:mesh",
+        "lab-stress",
+        "origin-ux"
+      ]
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-ch-desk-orga",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "specialty": "coord",
+      "intent": "challenge:ch-desk-organ Desk as collegial organ — majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "hermes@fog.calhegasmorais.pt",
+          "note": "challenge:ch-desk-organ Desk as collegial organ — majority ship-live: Wire Actions/automations/scripts/SDK/API/vault/PAT; majority ACK to ship live; Issues/Challenges feed bus",
+          "at": "2026-09-05T11:09:24+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T11:09:24+0000",
+      "source": "challenge:ch-desk-organ",
+      "challenge": true
+    },
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-ch-oracle-gr",
+      "owner": "grok@calhegasmorais.pt",
+      "specialty": "lead",
+      "intent": "challenge:ch-oracle-grok90 Oracle grok90 before AWS hedge end: Chase incident 260826-001576 after vault reset; M-II HOLD until live",
+      "lanes": [],
+      "status": "propose",
+      "constraints": [],
+      "history": [
+        {
+          "verb": "propose",
+          "by": "grok@calhegasmorais.pt",
+          "note": "challenge:ch-oracle-grok90 Oracle grok90 before AWS hedge end: Chase incident 260826-001576 after vault reset; M-II HOLD until live",
+          "at": "2026-09-05T11:09:24+0000"
+        }
+      ],
+      "result": "",
+      "sha": "",
+      "created": "2026-09-05T11:09:24+0000",
+      "updated": "2026-09-05T11:09:24+0000",
+      "source": "challenge:ch-oracle-grok90",
+      "challenge": true
+    }
+  ],
+  "done_tasks": [
+    {
+      "schema": "desk.task.v1",
       "id": "dt-a-claw",
       "owner": "openclaw@fog",
       "specialty": "claw",
       "intent": "probe",
-      "status": "propose",
-      "constraints": [],
-      "result": "",
+      "status": "done",
+      "constraints": [
+        "hermes: protocol: auto-constrain on cycle start"
+      ],
+      "result": "hops fog=1 edge=1 :8787=0 | tokens 2100/33000",
       "sha": "",
-      "eisenhower": "act"
+      "eisenhower": "act",
+      "updated": "2026-09-05T11:09:27+0000",
+      "history": [
+        {
+          "verb": "constrain",
+          "by": "hermes",
+          "note": "protocol: auto-constrain on cycle start",
+          "at": "2026-09-05T11:09:26+0000"
+        },
+        {
+          "verb": "done",
+          "by": "openclaw",
+          "note": "hops fog=1 edge=1 :8787=0 | tokens 2100/33000",
+          "at": "2026-09-05T11:09:27+0000",
+          "result": "hops fog=1 edge=1 :8787=0 | tokens 2100/33000"
+        }
+      ]
     },
     {
       "schema": "desk.task.v1",
@@ -21,30 +445,108 @@
       "owner": "opencode@fog",
       "specialty": "code",
       "intent": "tests",
-      "status": "propose",
-      "constraints": [],
-      "result": "",
+      "status": "done",
+      "constraints": [
+        "hermes: protocol: auto-constrain on cycle start"
+      ],
+      "result": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea",
       "sha": "",
-      "eisenhower": "act"
+      "eisenhower": "act",
+      "updated": "2026-09-05T11:09:51+0000",
+      "history": [
+        {
+          "verb": "constrain",
+          "by": "hermes",
+          "note": "protocol: auto-constrain on cycle start",
+          "at": "2026-09-05T11:09:46+0000"
+        },
+        {
+          "verb": "done",
+          "by": "opencode",
+          "note": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea",
+          "at": "2026-09-05T11:09:51+0000",
+          "result": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea"
+        }
+      ]
     }
   ],
-  "done_tasks": [],
   "lanes": {
     "lane-openclaw": {
-      "pace": "ALLOW"
+      "meter": "ollama_session_tokens",
+      "renewal": "session_or_model_reload",
+      "renewal_note": "session context window (e.g. 33k on llava); reload clears",
+      "pace": "ALLOW",
+      "tokens_used": 2100.0,
+      "tokens_limit": 33000.0,
+      "remaining_frac": 0.9363636363636364,
+      "sample_note": "session 2100/33000 renew=session_reload",
+      "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-hermes": {
-      "pace": "ALLOW"
+      "meter": "ollama_context",
+      "renewal": "host_cap",
+      "renewal_note": "no CF daily clock; need context≥65536; host RAM/CPU",
+      "context_min": 65536,
+      "pace": "ALLOW",
+      "context_length": null,
+      "sample_note": "no hermes meter — prefer ≥64k model; renew=host_cap",
+      "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-opencode": {
-      "pace": "ALLOW"
+      "meter": "ollama_plus_github",
+      "renewal": "github_hour_utc",
+      "renewal_note": "GitHub REST 5000/hour rolling; Ollama host_cap",
+      "github_hour_cap": 5000,
+      "pace": "ALLOW",
+      "hours_until_github_hour_roll": 1.0,
+      "sample_note": "github 5000/hour rolling UTC; Ollama host_cap; renew=github_hour+host",
+      "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-bot": {
-      "pace": "HOLD"
+      "meter": "grok-bot-included",
+      "renewal": "weekly_unknown",
+      "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown; bot_cap_contingency: non-lead lanes keep working",
+      "daily_limit": null,
+      "pace": "HOLD",
+      "sample_note": "bot-included remaining unknown — HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)",
+      "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-assistant": {
-      "pace": "ALLOW"
+      "meter": "grok-assistant_pool_frac",
+      "renewal": "supergrok_weekly",
+      "renewal_note": "weekly pool_frac; reset Europe/Lisbon per grok.com Usage",
+      "daily_limit": 1.0,
+      "pace": "ALLOW",
+      "sample_note": "no assistant sample — gate on pool_frac when known; renew=supergrok_weekly Lisbon",
+      "hours_until_renewal": null,
+      "computed_at": "2026-09-05T11:09:45+0000"
+    },
+    "lane-cf": {
+      "meter": "cf_worker_req",
+      "renewal": "00:00_UTC",
+      "renewal_note": "100k/day Workers; KV 1000/day; never workers.dev",
+      "daily_limit": 100000,
+      "pace": "ALLOW",
+      "hours_until_renewal": 12.837444974166667,
+      "sample_note": "no cf sample — renew=00:00_UTC h_left=12.8; never workers.dev",
+      "computed_at": "2026-09-05T11:09:45+0000"
+    },
+    "lane-fog-hop": {
+      "meter": "mac_mw_ports",
+      "renewal": "host_cap",
+      "renewal_note": "local :8787–:8792; skip dead hop 8s",
+      "pace": "ALLOW",
+      "sample_note": "local MW hops; renew=host_cap",
+      "computed_at": "2026-09-05T11:09:45+0000"
     }
   },
-  "updated": "2026-09-05T09:43:32+0000"
+  "updated": "2026-09-05T11:09:51+0000",
+  "metabol_tick": "2026-09-05T11:09:45+0000",
+  "last_commit": {
+    "id": "dt-a-code",
+    "sha": "",
+    "result": "unittest discover rc=0 PASS -------------- Ran 5 tests in 0.004s  OK  ---------------------------------------------------------------------- Ran 11 tests in 3.707s  OK  | brief=# Desk brief — opencode  ## Reports (rea",
+    "at": "2026-09-05T11:09:51+0000",
+    "owner": "opencode@fog"
+  }
 }
