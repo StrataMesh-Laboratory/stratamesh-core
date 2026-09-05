@@ -107,14 +107,18 @@ class DeskOps(unittest.TestCase):
         self.assertIn("proj-ts-headscale-spike", held_ids)
         self.assertIn("proj-m2-twohost", held_ids)
 
-        # T1 must be seeded (Act NOW); Mac human_gate escalated
+        # T1 must be seeded (Act NOW); Mac is STRATAGROK representative (not André escalate)
         open_by_src = {t.get("source"): t for t in state2["open_tasks"]}
         self.assertIn("projected:proj-ts-taper-t1", open_by_src)
         self.assertEqual(open_by_src["projected:proj-ts-taper-t1"].get("eisenhower"), "act")
         mac = open_by_src.get("projected:proj-mac-desk-operative")
         self.assertIsNotNone(mac)
-        self.assertEqual(mac.get("status"), "escalate")
-        self.assertTrue(mac.get("human_gate"))
+        self.assertEqual(mac.get("status"), "propose")
+        self.assertTrue(mac.get("resolve_as_representative") or not mac.get("andre_gate"))
+        self.assertFalse(mac.get("andre_gate"))
+
+        # Oracle andre gate stays held (not open)
+        self.assertNotIn("projected:proj-oracle-260826", open_by_src)
 
         # T2 plan seeded as propose, not auto-picked
         t2 = open_by_src.get("projected:proj-ts-taper-t2")
@@ -124,7 +128,6 @@ class DeskOps(unittest.TestCase):
         picked = mod.pick_tasks(state2, max_n=10, include_human_gates=False)
         picked_ids = {t["id"] for t in picked}
         self.assertNotIn(t2["id"], picked_ids)
-        self.assertNotIn(mac["id"], picked_ids)
 
     def test_hold_released_trial_clock(self):
         mod = self.mod
@@ -210,11 +213,14 @@ class DeskOps(unittest.TestCase):
         picked3 = mod.pick_tasks(bus.load_state(), max_n=5)
         self.assertNotIn("dt-pace-code", {t["id"] for t in picked3})
 
-        # ALLOW runs handler (claw)
+        # ALLOW runs handler (claw) — isolate from catalog re-seed / RR diversion
         state = bus.load_state()
         state["lanes"]["lane-openclaw"]["pace"] = "ALLOW"
         state["open_tasks"] = [t for t in state["open_tasks"] if t["id"] == "dt-pace-claw"]
         bus.save_state(state)
+        rr = self.tmp / "data/desk-meters/pick-rr.json"
+        rr.parent.mkdir(parents=True, exist_ok=True)
+        rr.write_text(json.dumps({"cursor": 0}) + "\n")  # claw first
         mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         called = {"n": 0}
         real = mod.handler_claw
@@ -226,6 +232,10 @@ class DeskOps(unittest.TestCase):
         mod._push = lambda bus: None  # type: ignore
         mod.record_taper_status = lambda dry=False: {"ok": True}  # type: ignore
         mod.specialty_self_audit_tick = lambda dry=False, state=None: {"ok": True}  # type: ignore
+        mod.ensure_projected_catalog = lambda bus, state, dry=False: []  # type: ignore
+        mod.promote_projected = lambda bus, state, dry=False: None  # type: ignore
+        mod.academy_teach_tick = lambda bus, state, dry=False: None  # type: ignore
+        mod.ensure_desk_surfaces_tick = lambda bus, state, dry=False: {"ok": True}  # type: ignore
         ns = type("A", (), {"max": 1, "dry_run": False})()
         rc = mod.cmd_cycle(ns)
         self.assertEqual(rc, 0)
