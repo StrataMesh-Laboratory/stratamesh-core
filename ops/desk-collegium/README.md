@@ -39,3 +39,14 @@ python3 ops/desk-collegium/desk_ship.py ship TASK --by stratagrok
 python3 ops/desk-collegium/desk_connectors.py status
 python3 ops/desk-collegium/desk_issues.py sync
 ```
+
+
+## Protocol + board (methodology enforced)
+
+```bash
+python3 ops/desk-collegium/desk_protocol.py check
+python3 ops/desk-collegium/desk_ops.py board
+python3 ops/desk-collegium/desk_ops.py cycle --max 1
+```
+
+Laws include **academy_teach**: all desk agents teach SCA/ACB students; never enroll as students.

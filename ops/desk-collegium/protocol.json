@@ -1,0 +1,131 @@
+{
+  "schema": "desk.protocol.v1",
+  "version": "0.3.1-lab",
+  "title": "Fog automation desk \u2014 enforceable methodology",
+  "sources": [
+    "docs/FOG-DESK-COLLEGIUM.md",
+    "docs/FOG-DESK-SPECIALIZATION.md",
+    "docs/FOG-DESK-AUTONOMY.md",
+    "docs/FOG-DESK-OPS.md",
+    "ops/EDGE-GROK-DESK-CONTRACT.md"
+  ],
+  "laws": [
+    {
+      "id": "specialization",
+      "enforce": true,
+      "text": "Each member acts by best capability; specialty owner proposes; peers only constrain."
+    },
+    {
+      "id": "bus",
+      "enforce": true,
+      "text": "propose \u2192 constrain \u2192 revise \u2192 commit|escalate \u2192 done|drop"
+    },
+    {
+      "id": "metabol_pace",
+      "enforce": true,
+      "text": "HOLD/STASIS = pace not freeze; no work on STASIS lane; HOLD skips non-lead auto handlers."
+    },
+    {
+      "id": "eisenhower",
+      "enforce": true,
+      "text": "One Act ordinal; no juxtapositions; Delegate Fog|EDGE split; Plan/Note parked."
+    },
+    {
+      "id": "anti_vapour",
+      "enforce": true,
+      "text": "Never pulse --apply while unfinished open tasks exist; no mirror-only capacity fill."
+    },
+    {
+      "id": "anti_idle",
+      "enforce": true,
+      "text": "Every r/60s desk_ops cycle must attempt one ALLOW actionable task or seed one projected."
+    },
+    {
+      "id": "human_gates",
+      "enforce": true,
+      "text": "Escalate only: Fog g, 2FA, captcha, Oracle password, Renovate majors \u2014 never fake progress."
+    },
+    {
+      "id": "ship_majority",
+      "enforce": true,
+      "text": "Ship-live needs strict majority ACK; unanimous = full authority; NACK blocks."
+    },
+    {
+      "id": "no_sca",
+      "enforce": true,
+      "text": "Hermes/OpenCode/OpenClaw/Assistants are external_agent|assistant \u2014 never SCA/ACB students."
+    },
+    {
+      "id": "secrets",
+      "enforce": true,
+      "text": "Never git/chat secrets, workers.dev, ENI geral@ mix."
+    },
+    {
+      "id": "cadence",
+      "enforce": true,
+      "text": "r/auto-r 60s = live desk; g/auto-g = upgrades only."
+    },
+    {
+      "id": "g_ping",
+      "enforce": true,
+      "text": "Ping g when needed if prior g pressed; if no answer wait auto-g; do not stack unanswered g pings."
+    },
+    {
+      "id": "academy_teach",
+      "enforce": true,
+      "text": "Every automation-desk agent has a standing duty to teach academy students (PT SCA / EN ACB). Desk members remain external_agent|external_assistant \u2014 never enrolled as academy students. Teaching path = academy formations, catalog, Worker lessons, desk tools \u2014 not Hermes-as-SCA."
+    }
+  ],
+  "lifecycle": {
+    "projected": "roadmap/challenge backlog not yet open",
+    "pending": "open_tasks in propose (waiting constrain/start)",
+    "ongoing": "open_tasks in constrain|revise|commit (in flight)",
+    "done": "done_tasks with deliverable result",
+    "escalated": "status escalate \u2014 human gate"
+  },
+  "cycle": [
+    "metabol.tick",
+    "protocol.check",
+    "promote_projected_if_slot",
+    "pick_one_ALLOW_ongoing_else_pending",
+    "auto_constrain_if_propose",
+    "specialty_handler_deliverable",
+    "academy_teach_tick",
+    "done_or_escalate",
+    "desk_sync.push",
+    "feed_append"
+  ],
+  "deny": [
+    "workers.dev",
+    "pulse --apply with open unfinished",
+    "fake oracle/g/2fa results",
+    "enroll desk agents as SCA",
+    "Bot origin-take FogRuntime.command"
+  ],
+  "academy": {
+    "students": "SCA (PT) / ACB (EN) \u2014 same subject, equal standing to users",
+    "teachers": [
+      "stratagrok",
+      "hermes",
+      "opencode",
+      "openclaw",
+      "cmn-fog-assistant",
+      "cmn-edge-assistant"
+    ],
+    "not_students": [
+      "hermes@fog",
+      "opencode@fog",
+      "openclaw@fog",
+      "grok@",
+      "CMN FOG ASSISTANT",
+      "CMN EDGE ASSISTANT"
+    ],
+    "surfaces": [
+      "academy.calhegasmorais.pt",
+      "formations catalog",
+      "AIOps / Orchestrator academy modules",
+      "desk tools + COLLEGIUM docs as curriculum context"
+    ],
+    "duty": "Each desk cycle should leave or advance at least one teachable artifact when lane-assistant/academy ALLOW (formation, needle, FAQ, handoff.v1 lesson) \u2014 never idle the academy rail while desk is live."
+  }
+}

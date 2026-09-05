@@ -1016,13 +1016,20 @@ def kick_desk_refresh() -> None:
             # Real work cycle (anti-vapour): one ALLOW specialty handler → done
             ops = sync.parent / "desk_ops.py"
             if ops.is_file():
-                subprocess.run(
+                r_ops = subprocess.run(
                     [sys.executable, str(ops), "cycle", "--max", "1"],
                     cwd=str(sync.parent.parent.parent),
                     env=env,
-                    timeout=45,
+                    timeout=55,
                     capture_output=True,
+                    text=True,
                 )
+                try:
+                    logp = FOG / "data" / "desk-ops-last.log"
+                    logp.parent.mkdir(parents=True, exist_ok=True)
+                    logp.write_text((r_ops.stdout or "")[-4000:] + "\n" + (r_ops.stderr or "")[-2000:])
+                except Exception:
+                    pass
             # pull = live update from EDGE (r/60s — not g)
             subprocess.run(
                 [sys.executable, str(sync), "pull"],

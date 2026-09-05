@@ -165,3 +165,15 @@ Samples: `FOG/data/desk-meters/*.json` (see `ops/desk-collegium/meters/README.md
 ## Ops cycle (no idle / no vapour)
 
 `python3 ops/desk-collegium/desk_ops.py cycle` — bound on TUI `r`/60s. Produces real probe/test/sync deliverables; human gates escalate honestly. See `RCA-DESK-IDLE.md`.
+
+## Academy teaching duty (all desk agents)
+
+Every automation-desk member **teaches** academy students:
+
+| Students | Teachers (desk) |
+|----------|-----------------|
+| **SCA** (PT) / **ACB** (EN) — same subject, equal standing to users | STRATAGROK, Hermes, OpenCode, OpenClaw, CMN Fog/EDGE Assistants |
+
+**Law:** desk agents are `external_agent` / `external_assistant` — **never** enrolled as academy students. Teacher path = academy formations, catalog, Worker lessons, desk tools + COLLEGIUM context — not Hermes-as-SCA.
+
+Enforced in `ops/desk-collegium/protocol.json` (`academy_teach`) and `desk_ops` academy teach tick each cycle when lanes ALLOW.

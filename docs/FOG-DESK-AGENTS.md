@@ -10,3 +10,6 @@
 None are SCA/ACB.
 
 Coordination: [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md) · `ops/desk-collegium/`.
+
+## Academy
+All desk agents teach SCA/ACB students; none are students themselves. See COLLEGIUM § Academy teaching duty.

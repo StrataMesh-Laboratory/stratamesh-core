@@ -1,0 +1,71 @@
+{
+  "schema": "desk.projected.v1",
+  "version": "0.3.1-lab",
+  "spine": "docs/ROADMAP-VISION.md",
+  "current_milestone": "M-I",
+  "items": [
+    {
+      "id": "proj-m1-claw-loop",
+      "specialty": "claw",
+      "owner": "openclaw",
+      "intent": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
+      "lanes": [
+        "lane-openclaw"
+      ],
+      "hold_until": null
+    },
+    {
+      "id": "proj-m1-code-needles",
+      "specialty": "code",
+      "owner": "opencode",
+      "intent": "M-I projected: run desk unit tests; patch only on FAIL (no vapour PASS claims)",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "hold_until": null
+    },
+    {
+      "id": "proj-m1-coord-board",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "M-I projected: desk_ops board + protocol.check; sync strict issues/challenges only",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "hold_until": null
+    },
+    {
+      "id": "proj-m2-twohost",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "M-II HOLD projected: two-host INV/TX only after Oracle grok90 live",
+      "lanes": [
+        "lane-bot"
+      ],
+      "hold_until": "oracle_grok90"
+    },
+    {
+      "id": "proj-academy-teach-pulse",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "Academy teach duty: ensure one live formation/FAQ/handoff lesson for SCA/ACB students; desk agents teach, never enroll as students",
+      "lanes": [
+        "lane-hermes",
+        "lane-assistant"
+      ],
+      "hold_until": null,
+      "duty": "academy_teach"
+    },
+    {
+      "id": "proj-academy-code-lesson",
+      "specialty": "code",
+      "owner": "opencode",
+      "intent": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "hold_until": null,
+      "duty": "academy_teach"
+    }
+  ]
+}

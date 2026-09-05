@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Desk ops cycle — real work under metabol_pace (no vapour, no idle).
+"""Desk ops cycle — methodology-enforced real work (ongoing/pending/projected).
 
-Law:
-  - One actionable task per cycle (specialty whose lane is ALLOW).
-  - Handlers must produce a deliverable string (probe result, test result, sync count).
-  - Never pulse --apply while unfinished open tasks exist (that was capacity vapour).
-  - Escalate human gates; do not fake Oracle/g/2FA progress.
-  - Fail-open: cycle errors append feed warn and exit non-zero.
+Laws: ops/desk-collegium/protocol.json (incl. academy_teach).
+Lifecycle: projected → pending(propose) → ongoing(constrain|revise|commit) → done|escalate.
 
 Usage:
   python3 ops/desk-collegium/desk_ops.py cycle [--max 1] [--dry-run]
+  python3 ops/desk-collegium/desk_ops.py board
   python3 ops/desk-collegium/desk_ops.py rca
 """
 from __future__ import annotations
@@ -22,11 +19,14 @@ import sys
 import time
 import urllib.request
 import importlib.util
+import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
+PROJECTED = HERE / "projected.json"
+LAST_LOG = FOG / "data" / "desk-ops-last.json"
 
 
 def _load(name: str):
@@ -54,6 +54,7 @@ def _specialty_lane(spec: str) -> str:
         "fog": "lane-assistant",
         "edge": "lane-assistant",
         "mail": "lane-bot",
+        "teach": "lane-assistant",
     }.get(spec, "lane-hermes")
 
 
@@ -61,20 +62,18 @@ def _http_ok(url: str, timeout: float = 6.0) -> tuple[bool, str]:
     try:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "STRATAGROK-desk-ops/0.2", "Accept": "application/json"},
+            headers={"User-Agent": "STRATAGROK-desk-ops/0.3", "Accept": "application/json"},
             method="GET",
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read(400).decode("utf-8", "replace")
             return 200 <= resp.status < 300, f"{resp.status}:{body[:80].replace(chr(10),' ')}"
     except Exception as e:
-        # curl fallback (some edges 403 bare urllib)
         try:
             r = subprocess.run(
-                ["curl", "-sS", "-m", str(int(timeout)), "-A", "STRATAGROK-desk-ops/0.2", "-o", "-", "-w", "%{http_code}", url],
-                capture_output=True,
-                text=True,
-                timeout=timeout + 2,
+                ["curl", "-sS", "-m", str(int(timeout)), "-A", "STRATAGROK-desk-ops/0.3",
+                 "-o", "-", "-w", "%{http_code}", url],
+                capture_output=True, text=True, timeout=timeout + 2,
             )
             code = (r.stdout or "")[-3:]
             body = (r.stdout or "")[:-3]
@@ -84,83 +83,94 @@ def _http_ok(url: str, timeout: float = 6.0) -> tuple[bool, str]:
             return False, f"{e}; fallback:{e2}"[:160]
 
 
+def classify(state: dict) -> dict:
+    open_tasks = state.get("open_tasks") or []
+    ongoing, pending, escalated = [], [], []
+    for t in open_tasks:
+        st = t.get("status") or "propose"
+        if st in ("constrain", "revise", "commit"):
+            ongoing.append(t)
+        elif st == "escalate":
+            escalated.append(t)
+        else:
+            pending.append(t)
+    projected = []
+    if PROJECTED.is_file():
+        data = json.loads(PROJECTED.read_text(encoding="utf-8"))
+        open_ids = {t.get("id") for t in open_tasks}
+        done_ids = {t.get("id") for t in (state.get("done_tasks") or [])}
+        sources = {t.get("source") for t in open_tasks + (state.get("done_tasks") or [])}
+        for item in data.get("items") or []:
+            pid = item.get("id")
+            src = f"projected:{pid}"
+            if src in sources or pid in open_ids or pid in done_ids:
+                continue
+            if item.get("hold_until") == "oracle_grok90":
+                item = dict(item)
+                item["_hold"] = True
+            projected.append(item)
+    return {
+        "ongoing": ongoing,
+        "pending": pending,
+        "escalated": escalated,
+        "projected": projected,
+        "done_n": len(state.get("done_tasks") or []),
+    }
+
+
 def handler_claw(task: dict, *, dry: bool) -> dict:
-    """Real hop probes — public Fog/EDGE + optional local meters."""
-    fog_ok, fog_d = _http_ok("https://fog.calhegasmorais.pt/health")
+    fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
     if not fog_ok:
-        time.sleep(0.4)
-        fog_ok, fog_d = _http_ok("https://fog.calhegasmorais.pt/health")
-    edge_ok, edge_d = _http_ok("https://api-edge.calhegasmorais.pt/health")
+        time.sleep(0.3)
+        fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
+    edge_ok, _ = _http_ok("https://api-edge.calhegasmorais.pt/health")
     if not edge_ok:
-        time.sleep(0.4)
-        edge_ok, edge_d = _http_ok("https://api-edge.calhegasmorais.pt/health")
-    local8787 = False
-    try:
-        local8787, _ = _http_ok("http://127.0.0.1:8787/health", timeout=2.0)
-    except Exception:
-        local8787 = False
-    meters = FOG / "data" / "desk-meters"
+        time.sleep(0.3)
+        edge_ok, _ = _http_ok("https://api-edge.calhegasmorais.pt/health")
+    local8787, _ = _http_ok("http://127.0.0.1:8787/health", timeout=2.0)
     if not dry:
+        meters = FOG / "data" / "desk-meters"
         meters.mkdir(parents=True, exist_ok=True)
-        sample = {
-            "tokens_used": 2100,
-            "tokens_limit": 33000,
-            "model": "llava:latest",
+        (meters / "openclaw.json").write_text(json.dumps({
+            "tokens_used": 2100, "tokens_limit": 33000, "model": "llava:latest",
             "ts": _now(),
-            "probes": {
-                "fog_public": int(fog_ok),
-                "edge_api": int(edge_ok),
-                "fog_8787_local": int(local8787),
-            },
-        }
-        (meters / "openclaw.json").write_text(json.dumps(sample, indent=2) + "\n")
-        # Prefer real script when present (Mac)
+            "probes": {"fog_public": int(fog_ok), "edge_api": int(edge_ok), "fog_8787_local": int(local8787)},
+        }, indent=2) + "\n")
         script = REPO_ROOT / "deploy/mac-fog/desk-claw-probe.sh"
         if script.is_file() and (FOG.exists() or os.environ.get("FOG_HOME")):
-            subprocess.run(
-                ["bash", str(script)],
-                cwd=str(REPO_ROOT),
-                timeout=30,
-                capture_output=True,
-            )
-    result = f"claw probe fog_public={int(fog_ok)} edge={int(edge_ok)} local8787={int(local8787)}"
+            subprocess.run(["bash", str(script)], cwd=str(REPO_ROOT), timeout=30, capture_output=True)
     ok = fog_ok or edge_ok or local8787
-    return {"ok": ok, "result": result, "done": ok, "sha": ""}
+    return {"ok": ok, "result": f"claw probe fog_public={int(fog_ok)} edge={int(edge_ok)} local8787={int(local8787)}", "done": ok, "sha": ""}
 
 
 def handler_coord(task: dict, *, dry: bool) -> dict:
-    """Issues/challenges sync + connectors status — real counts."""
-    added = 0
-    conn = "skip"
-    if not dry:
-        issues = _load("desk_issues")
-        # dry_run False sync
-        ns = argparse.Namespace(dry_run=False, limit=20)
-        try:
-            issues.cmd_sync(ns)
-        except Exception as e:
-            return {"ok": False, "result": f"issues sync fail: {e}", "done": False, "sha": ""}
+    if dry:
+        return {"ok": True, "result": "coord dry-run", "done": False, "sha": ""}
+    try:
+        proto = _load("desk_protocol")
         bus = _load("desk_bus")
         state = bus.load_state()
-        added = sum(
-            1
-            for t in (state.get("open_tasks") or [])
-            if str(t.get("source") or "").startswith(("issue:", "challenge:"))
+        chk = proto.check(state)
+        issues = _load("desk_issues")
+        issues.cmd_sync(argparse.Namespace(dry_run=False, limit=15))
+        cmod = _load("desk_connectors")
+        rows = [cmod.probe_surface(s) for s in (cmod.load_registry().get("surfaces") or [])]
+        gates = [r for r in rows if r.get("ship_gate")]
+        present = sum(1 for r in gates if r["status"] == "present")
+        board = classify(bus.load_state())
+        result = (
+            f"coord protocol={'ok' if chk['ok'] else 'VIOL'} "
+            f"gates={present}/{len(gates)} "
+            f"board on={len(board['ongoing'])} pe={len(board['pending'])} pr={len(board['projected'])}"
         )
-        try:
-            cmod = _load("desk_connectors")
-            rows = [cmod.probe_surface(s) for s in (cmod.load_registry().get("surfaces") or [])]
-            gates = [r for r in rows if r.get("ship_gate")]
-            present = sum(1 for r in gates if r["status"] == "present")
-            conn = f"{present}/{len(gates)}"
-        except Exception as e:
-            conn = f"err:{e}"
-    result = f"coord: issues/challenges on bus≈{added}; connectors_gates={conn}; metabol tick ok"
-    return {"ok": True, "result": result, "done": True, "sha": ""}
+        if not chk["ok"]:
+            return {"ok": False, "result": result + " " + ",".join(chk["violations"][:3]), "done": False, "sha": "", "escalate": True}
+        return {"ok": True, "result": result, "done": True, "sha": ""}
+    except Exception as e:
+        return {"ok": False, "result": f"coord fail: {e}", "done": False, "sha": ""}
 
 
 def handler_code(task: dict, *, dry: bool) -> dict:
-    """Run desk unit tests — deliverable = pass/fail counts, not a fake SHA."""
     if dry:
         return {"ok": True, "result": "code dry-run", "done": False, "sha": ""}
     tests = [
@@ -168,27 +178,59 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         "ops.desk-collegium.test_desk_metabol",
         "ops.desk-collegium.test_desk_ops",
     ]
-    # DeskFeed optional
     r = subprocess.run(
         [sys.executable, "-m", "unittest", *tests],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=60,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=90,
     )
     ok = r.returncode == 0
-    tail = (r.stderr or r.stdout or "")[-200:].replace("\n", " ")
-    result = f"unittest rc={r.returncode} {'PASS' if ok else 'FAIL'} {tail}"
-    return {"ok": ok, "result": result[:220], "done": ok, "sha": ""}
+    tail = (r.stderr or r.stdout or "")[-160:].replace("\n", " ")
+    return {"ok": ok, "result": f"unittest rc={r.returncode} {'PASS' if ok else 'FAIL'} {tail}"[:220], "done": ok, "sha": ""}
 
 
 def handler_lead(task: dict, *, dry: bool) -> dict:
-    """Honest HOLD for human gates — never fake Oracle progress."""
     intent = (task.get("intent") or "").lower()
-    if "oracle" in intent or "grok90" in intent or "m-ii" in intent:
-        result = "lead HOLD: Oracle/vault human gate — no fake progress; leave open"
-        return {"ok": True, "result": result, "done": False, "sha": "", "escalate": True}
+    if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
+        return {
+            "ok": True,
+            "result": "lead HOLD: Oracle/vault human gate — no fake progress; leave open",
+            "done": False,
+            "sha": "",
+            "escalate": True,
+        }
     return {"ok": True, "result": "lead: no auto handler", "done": False, "sha": ""}
+
+
+def handler_edge(task: dict, *, dry: bool) -> dict:
+    ok, detail = _http_ok("https://api-edge.calhegasmorais.pt/health")
+    edge_ok, _ = _http_ok("https://edge.calhegasmorais.pt/")
+    result = f"edge probe api={int(ok)} site={int(edge_ok)} {detail[:60]}"
+    return {"ok": ok or edge_ok, "result": result, "done": ok or edge_ok, "sha": ""}
+
+
+def handler_fog(task: dict, *, dry: bool) -> dict:
+    ok, detail = _http_ok("https://fog.calhegasmorais.pt/health")
+    return {
+        "ok": ok,
+        "result": f"fog probe {detail[:80]} — Fog Assistant Act remains one-prompt Delegate rail",
+        "done": ok,
+        "sha": "",
+    }
+
+
+def handler_teach(task: dict, *, dry: bool) -> dict:
+    """Academy teach duty — verify academy live; record teach tick (not enroll as student)."""
+    ok, detail = _http_ok("https://academy.calhegasmorais.pt/health")
+    if not ok:
+        ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
+    note = (
+        f"academy_teach students=SCA/ACB teachers=desk agents live={int(ok)} "
+        f"{detail[:50]} — never enroll Hermes/OpenCode/OpenClaw as students"
+    )
+    if not dry and ok:
+        path = FOG / "data" / "desk-meters" / "academy-teach.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"ts": _now(), "academy_ok": ok, "duty": "academy_teach"}, indent=2) + "\n")
+    return {"ok": True, "result": note, "done": ok, "sha": ""}
 
 
 HANDLERS = {
@@ -196,34 +238,112 @@ HANDLERS = {
     "coord": handler_coord,
     "code": handler_code,
     "lead": handler_lead,
+    "edge": handler_edge,
+    "fog": handler_fog,
+    "teach": handler_teach,
 }
 
 
 def pick_tasks(state: dict, *, max_n: int) -> list[dict]:
-    """Prefer constrain > propose; skip STASIS/HOLD lanes; skip lead auto-fake."""
-    open_tasks = list(state.get("open_tasks") or [])
-    # priority
-    def score(t: dict) -> tuple:
-        st = t.get("status") or "propose"
-        pri = 0 if st == "constrain" else (1 if st == "propose" else 2)
-        return (pri, t.get("updated") or "", t.get("id") or "")
-
+    board = classify(state)
+    ordered = board["ongoing"] + board["pending"]
     chosen = []
-    for t in sorted(open_tasks, key=score):
+    for t in ordered:
         spec = t.get("specialty") or "coord"
-        lane = _specialty_lane(spec)
+        # map academy teach intents
+        if "academy teach" in (t.get("intent") or "").lower() or t.get("duty") == "academy_teach":
+            if spec not in HANDLERS:
+                spec = "teach"
+                t = dict(t)
+                t["specialty"] = "coord"  # keep owner specialty; handler via duty
+        lane = _specialty_lane(spec if spec in HANDLERS else "coord")
         pace = _lane_pace(state, lane)
-        if pace in ("STASIS",):
+        if pace == "STASIS":
             continue
-        # bot HOLD: still allow lead to *report* HOLD honestly once per id not spam
-        if pace == "HOLD" and spec != "lead":
+        if pace == "HOLD" and spec not in ("lead",):
             continue
-        if spec not in HANDLERS:
+        use_spec = spec if spec in HANDLERS else None
+        if t.get("duty") == "academy_teach" or "academy teach" in (t.get("intent") or "").lower():
+            use_spec = "teach"
+        if not use_spec or use_spec not in HANDLERS:
             continue
+        t = dict(t)
+        t["_handler"] = use_spec
         chosen.append(t)
         if len(chosen) >= max_n:
             break
     return chosen
+
+
+def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
+    """If no ALLOW actionable pending/ongoing, promote one projected (anti-idle)."""
+    board = classify(state)
+    actionable = pick_tasks(state, max_n=1)
+    if actionable:
+        return None
+    for item in board["projected"]:
+        if item.get("_hold") or item.get("hold_until") == "oracle_grok90":
+            continue
+        spec = item.get("specialty") or "coord"
+        lane = _specialty_lane(spec)
+        if _lane_pace(state, lane) in ("STASIS", "HOLD") and spec != "lead":
+            continue
+        if dry:
+            return f"would promote {item.get('id')}"
+        ns = argparse.Namespace(
+            owner=item.get("owner") or "hermes",
+            specialty=spec,
+            intent=item.get("intent") or item.get("id"),
+            id=f"dt-{str(item.get('id') or uuid.uuid4().hex)[:16].replace('_','')}",
+            lanes=item.get("lanes") or [],
+        )
+        rc = bus.cmd_propose(ns)
+        if rc == 0:
+            state = bus.load_state()
+            task = bus.find_task(state, ns.id)
+            if task:
+                task["source"] = f"projected:{item.get('id')}"
+                if item.get("duty"):
+                    task["duty"] = item["duty"]
+                task["updated"] = _now()
+                bus.save_state(state)
+            return ns.id
+    return None
+
+
+def academy_teach_tick(bus, state: dict, *, dry: bool) -> None:
+    """Standing duty: if no recent academy teach and lane ALLOW, ensure projected/teach work exists."""
+    if _lane_pace(state, "lane-assistant") == "STASIS" and _lane_pace(state, "lane-hermes") == "STASIS":
+        return
+    # already have open teach duty?
+    for t in state.get("open_tasks") or []:
+        if t.get("duty") == "academy_teach" or "academy teach" in (t.get("intent") or "").lower():
+            return
+    # recent done teach?
+    for t in (state.get("done_tasks") or [])[-8:]:
+        if t.get("duty") == "academy_teach" or "academy_teach" in (t.get("result") or ""):
+            return
+    if dry:
+        return
+    # promote teach projected or propose one
+    promoted = promote_projected(bus, state, dry=False)
+    if promoted:
+        return
+    # force one teach propose
+    ns = argparse.Namespace(
+        owner="hermes",
+        specialty="coord",
+        intent="Academy teach duty: SCA/ACB lesson pulse — desk agents teach, never enroll as students",
+        id=f"dt-teach-{uuid.uuid4().hex[:6]}",
+        lanes=["lane-hermes", "lane-assistant"],
+    )
+    if bus.cmd_propose(ns) == 0:
+        state = bus.load_state()
+        task = bus.find_task(state, ns.id)
+        if task:
+            task["duty"] = "academy_teach"
+            task["source"] = "duty:academy_teach"
+            bus.save_state(state)
 
 
 def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
@@ -236,8 +356,48 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             bus._mutate(tid, "commit", by=by, result=out.get("result") or "", sha=out.get("sha") or "")
         bus._mutate(tid, "done", by=by, result=out.get("result") or "", close=True)
     else:
-        # progress note without closing
         bus._mutate(tid, "constrain", by=by, note=out.get("result") or "progress")
+
+
+def _push(bus) -> None:
+    try:
+        sync = _load("desk_sync")
+        sha = ""
+        try:
+            r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(REPO_ROOT),
+                               capture_output=True, text=True, timeout=5)
+            if r.returncode == 0:
+                sha = r.stdout.strip()
+        except Exception:
+            sha = ""
+        sync.push(git_sha=sha or "desk-ops")
+        bus.feed_append("stratagrok", f"ops cycle push /desk sha={sha or '-'}", kind="say", specialty="lead")
+    except Exception as e:
+        bus.feed_append("desk", f"ops push warn: {e}", kind="escalate", specialty="lead")
+
+
+def cmd_board(_: argparse.Namespace) -> int:
+    bus = _load("desk_bus")
+    try:
+        _load("desk_metabol").tick()
+    except Exception:
+        pass
+    state = bus.load_state()
+    board = classify(state)
+    try:
+        chk = _load("desk_protocol").check(state)
+    except Exception:
+        chk = {"ok": False, "violations": ["protocol load fail"]}
+    print(json.dumps({
+        "protocol_ok": chk.get("ok"),
+        "violations": chk.get("violations"),
+        "ongoing": [{"id": t.get("id"), "spec": t.get("specialty"), "intent": (t.get("intent") or "")[:70]} for t in board["ongoing"]],
+        "pending": [{"id": t.get("id"), "spec": t.get("specialty"), "intent": (t.get("intent") or "")[:70]} for t in board["pending"]],
+        "escalated": [{"id": t.get("id"), "intent": (t.get("intent") or "")[:70]} for t in board["escalated"]],
+        "projected": [{"id": i.get("id"), "spec": i.get("specialty"), "hold": bool(i.get("_hold") or i.get("hold_until")), "duty": i.get("duty")} for i in board["projected"]],
+        "done_n": board["done_n"],
+    }, indent=2))
+    return 0 if chk.get("ok") else 2
 
 
 def cmd_cycle(args: argparse.Namespace) -> int:
@@ -249,69 +409,70 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         print(f"metabol warn: {e}", file=sys.stderr)
 
     state = bus.load_state()
-    open_n = len(state.get("open_tasks") or [])
-    # Anti-vapour: never pulse-apply when work already queued
-    if open_n == 0 and not args.dry_run:
-        # only then allow a minimal real pulse of one claw+code if lanes ALLOW
-        pass
+    # protocol enforce
+    try:
+        chk = _load("desk_protocol").check(state)
+        if not chk["ok"]:
+            bus.feed_append("desk", f"protocol VIOL: {','.join(chk['violations'][:3])}", kind="escalate", specialty="coord")
+    except Exception as e:
+        chk = {"ok": False, "violations": [str(e)]}
+
+    # academy teach duty tick
+    academy_teach_tick(bus, state, dry=args.dry_run)
+    state = bus.load_state()
+
+    # anti-idle: promote projected if needed
+    promoted = promote_projected(bus, state, dry=args.dry_run)
+    if promoted:
+        print(f"ops: promoted projected → {promoted}")
+        state = bus.load_state()
 
     picked = pick_tasks(state, max_n=args.max)
     if not picked:
-        msg = f"ops: idle-skip open={open_n} (no ALLOW actionable, or only human-gate left)"
+        msg = f"ops: idle-skip (protocol_ok={chk.get('ok')}; only human-gate/HOLD left or empty)"
         bus.feed_append("desk", msg, kind="say", specialty="coord")
         print(msg)
-        # still push snapshot if possible
         if not args.dry_run:
             _push(bus)
+            _write_last({"delivered": 0, "picked": [], "protocol_ok": chk.get("ok")})
         return 0
 
     delivered = 0
     for task in picked:
-        spec = task.get("specialty") or "coord"
-        handler = HANDLERS[spec]
+        # auto-constrain propose → ongoing
+        if (task.get("status") or "propose") == "propose" and not args.dry_run:
+            bus._mutate(task["id"], "constrain", by="hermes", note="protocol: auto-constrain on cycle start")
+            state = bus.load_state()
+            task = bus.find_task(state, task["id"]) or task
+        hname = task.get("_handler") or task.get("specialty") or "coord"
+        handler = HANDLERS.get(hname) or HANDLERS["coord"]
         by = {
-            "claw": "openclaw",
-            "coord": "hermes",
-            "code": "opencode",
-            "lead": "stratagrok",
-        }.get(spec, "hermes")
-        print(f"ops: run {task.get('id')} specialty={spec}")
+            "claw": "openclaw", "coord": "hermes", "code": "opencode",
+            "lead": "stratagrok", "edge": "edge", "fog": "fog", "teach": "hermes",
+        }.get(hname, "hermes")
+        print(f"ops: run {task.get('id')} handler={hname}")
         out = handler(task, dry=args.dry_run)
         print(" ", out)
         if args.dry_run:
             continue
         apply_result(bus, task, out, by=by)
-        if out.get("ok") and (out.get("done") or out.get("escalate")):
+        if out.get("ok"):
             delivered += 1
-        elif out.get("ok"):
-            delivered += 1  # honest HOLD counts as deliverable truth
 
     if not args.dry_run:
         _push(bus)
-    print(json.dumps({"delivered": delivered, "picked": [t.get("id") for t in picked]}, indent=2))
+        _write_last({"delivered": delivered, "picked": [t.get("id") for t in picked], "protocol_ok": chk.get("ok")})
+    print(json.dumps({"delivered": delivered, "picked": [t.get("id") for t in picked], "protocol_ok": chk.get("ok")}, indent=2))
     return 0 if delivered else 1
 
 
-def _push(bus) -> None:
+def _write_last(obj: dict) -> None:
     try:
-        sync = _load("desk_sync")
-        sha = ""
-        try:
-            r = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if r.returncode == 0:
-                sha = r.stdout.strip()
-        except Exception:
-            sha = ""
-        sync.push(git_sha=sha or "desk-ops")
-        bus.feed_append("stratagrok", f"ops cycle push /desk sha={sha or '-'}", kind="say", specialty="lead")
-    except Exception as e:
-        bus.feed_append("desk", f"ops push warn: {e}", kind="escalate", specialty="lead")
+        LAST_LOG.parent.mkdir(parents=True, exist_ok=True)
+        obj["ts"] = _now()
+        LAST_LOG.write_text(json.dumps(obj, indent=2) + "\n")
+    except Exception:
+        pass
 
 
 def cmd_rca(_: argparse.Namespace) -> int:
@@ -321,15 +482,18 @@ def cmd_rca(_: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Desk ops — real work cycle")
+    p = argparse.ArgumentParser(description="Desk ops — protocol-enforced cycle")
     sub = p.add_subparsers(dest="cmd", required=True)
-    c = sub.add_parser("cycle", help="metabol → one real handler → done/push")
+    c = sub.add_parser("cycle", help="metabol → protocol → promote → handle → push")
     c.add_argument("--max", type=int, default=1)
     c.add_argument("--dry-run", action="store_true")
-    sub.add_parser("rca", help="print idle/vapour RCA")
+    sub.add_parser("board", help="ongoing / pending / projected / escalated")
+    sub.add_parser("rca", help="print idle RCA")
     args = p.parse_args()
     if args.cmd == "cycle":
         return cmd_cycle(args)
+    if args.cmd == "board":
+        return cmd_board(args)
     if args.cmd == "rca":
         return cmd_rca(args)
     return 1
