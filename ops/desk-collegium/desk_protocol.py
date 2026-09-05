@@ -44,12 +44,36 @@ def check(state: dict | None = None) -> dict:
             res = str(t.get("result") or "").lower()
             if "oracle" in res and "fake" in res:
                 violations.append(f"human_gates: suspicious result on {t.get('id')}")
+    # Required autonomy / contingency laws
+    law_ids = {str(l.get("id") or "") for l in laws}
+    for need in ("agent_autonomy", "bot_cap_contingency", "ship_majority", "academy_teach"):
+        if need not in law_ids:
+            violations.append(f"missing_law:{need}")
+    # agent_roles roster covers six members
+    roles_path = HERE / "agent_roles.json"
+    if not roles_path.is_file():
+        violations.append("missing agent_roles.json")
+    else:
+        try:
+            roles = json.loads(roles_path.read_text(encoding="utf-8"))
+            ids = {m.get("id") for m in (roles.get("members") or [])}
+            required = set(roles.get("required_ids") or [
+                "stratagrok", "hermes", "opencode", "openclaw", "fog-assistant", "edge-assistant"
+            ])
+            missing = sorted(required - ids)
+            if missing:
+                violations.append("agent_roles_missing:" + ",".join(missing))
+            if not all(m.get("reads_todo_board") for m in (roles.get("members") or [])):
+                violations.append("agent_roles:reads_todo_board_required")
+        except Exception as e:
+            violations.append(f"agent_roles_err:{e.__class__.__name__}")
     ok = not violations
     return {
         "ok": ok,
         "schema": proto.get("schema"),
         "version": proto.get("version"),
         "laws": len(laws),
+        "law_ids": sorted(law_ids),
         "violations": violations,
     }
 

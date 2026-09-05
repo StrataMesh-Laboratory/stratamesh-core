@@ -30,3 +30,19 @@ lab.kdbx
 .cursor/mcp.local.json
 
 **/cursor.api
+# desk agent vault / secrets — never publish
+**/secrets.env
+**/.config/stratagrok/**
+**/.config/stratamesh/**
+**/desk-mail.token
+**/desk-mail.token.*
+**/tailscale-*.key
+**/tailscale.*.key
+FOG/data/secrets/
+**/desk-outbox/**/secrets*
+**/desk-outbox/agents/**/secrets*
+**/desk-outbox/journals/**/secrets*
+**/journals/**/*secret*
+ops/desk-collegium/meters/*token*
+ops/desk-collegium/meters/*secret*
+data/desk-outbox/**/secrets*

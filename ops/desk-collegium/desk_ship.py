@@ -6,6 +6,8 @@ Law:
   - If all voters ACK (unanimous), the organ has full authority to ship.
   - Any NACK blocks ship (revise or escalate to André).
   - Human gates (Fog g, 2FA, Oracle, Renovate majors) still escalate.
+  - Auto-ship when majority ACK AND metric bands in-band (no Bot prompt).
+  - NACK or out-of-band metrics → escalate to STRATAGROK.
 
 Votes live on the task: task["votes"] = [{"by": "...", "vote": "ack"|"nack", "at": "...", "note": "..."}]
 """
@@ -127,6 +129,134 @@ def tally(task: dict, state: dict) -> dict:
         "by_map": by_map,
     }
 
+
+
+
+def load_ship_auto_bands() -> dict:
+    """Metric bands from agent_roles.json / protocol.json (defaults safe)."""
+    bands = {
+        "desk_score_min": 70,
+        "protocol_ok": True,
+        "claw_fog_public": 1,
+        "tests_green_soft": True,
+        "enabled": True,
+    }
+    for path in (HERE / "agent_roles.json", HERE / "protocol.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            src = data.get("ship_auto") or {}
+            mb = src.get("metric_bands") or {}
+            bands.update({k: mb[k] for k in mb})
+            if "enabled" in src:
+                bands["enabled"] = bool(src["enabled"])
+        except Exception:
+            pass
+    return bands
+
+
+def metrics_in_band(task: dict | None = None) -> dict:
+    """Return {ok, reasons[], bands, samples} — never prints secrets."""
+    bands = load_ship_auto_bands()
+    reasons = []
+    samples: dict = {}
+    if task and (task.get("human_gate") or (task.get("status") or "") == "escalate"):
+        reasons.append("human_gate")
+    # protocol
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("desk_protocol", HERE / "desk_protocol.py")
+        proto = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(proto)
+        chk = proto.check(bus.load_state())
+        samples["protocol_ok"] = bool(chk.get("ok"))
+        if bands.get("protocol_ok") and not chk.get("ok"):
+            reasons.append("protocol_not_ok")
+    except Exception as e:
+        samples["protocol_ok"] = False
+        reasons.append(f"protocol_err:{e.__class__.__name__}")
+    # desk score
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("desk_metrics", HERE / "desk_metrics.py")
+        m = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(m)
+        sc = m.score_recent(20)
+        samples["desk_score"] = sc.get("score", 0)
+        samples["desk_score_ok"] = bool(sc.get("ok")) or sc.get("reason") in ("no_samples", "empty")
+        # no_samples = soft allow (first boot)
+        if sc.get("reason") in ("no_samples", "empty"):
+            samples["desk_score_soft"] = True
+        elif int(sc.get("score") or 0) < int(bands.get("desk_score_min") or 70):
+            reasons.append(f"desk_score<{bands.get('desk_score_min')}")
+    except Exception as e:
+        samples["desk_score"] = None
+        samples["desk_score_soft"] = True  # soft
+    # claw fog_public soft
+    try:
+        fog = Path((__import__("os").environ.get("FOG_HOME") or str(Path.home() / "StrataMesh/fog")))
+        claw = fog / "data" / "desk-meters" / "openclaw.json"
+        if claw.is_file():
+            cj = json.loads(claw.read_text(encoding="utf-8"))
+            fp = (cj.get("probes") or {}).get("fog_public")
+            samples["claw_fog_public"] = fp
+            want = bands.get("claw_fog_public")
+            if want is not None and fp is not None and int(fp) < int(want):
+                reasons.append("claw_fog_public_oob")
+        else:
+            samples["claw_fog_public"] = None  # soft skip
+    except Exception:
+        samples["claw_fog_public"] = None
+    ok = len(reasons) == 0 and bool(bands.get("enabled", True))
+    return {"ok": ok, "reasons": reasons, "bands": bands, "samples": samples}
+
+
+def maybe_auto_ship(*, by: str = "hermes", dry: bool = False) -> dict:
+    """If ship_live task has majority ACK + metrics in-band → ship without Bot prompt.
+    NACK or OOB → escalate note to STRATAGROK.
+    """
+    state = bus.load_state()
+    ensure_ship_policy(state)
+    results = []
+    for task in list(state.get("open_tasks") or []):
+        if not task.get("ship_live"):
+            continue
+        if task.get("shipped"):
+            continue
+        tid = task.get("id")
+        t = tally(task, state)
+        if t["nacks"] > 0:
+            note = f"auto-ship blocked NACK on {tid} — escalate to STRATAGROK"
+            if not dry:
+                bus._mutate(tid, "escalate", by=by, note=note)
+                bus.feed_append("desk", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
+            results.append({"id": tid, "action": "escalate_nack", "tally": {k: t[k] for k in ("acks", "nacks", "need", "authority")}})
+            continue
+        if not t["majority"]:
+            results.append({"id": tid, "action": "wait_majority", "acks": t["acks"], "need": t["need"]})
+            continue
+        band = metrics_in_band(task)
+        if not band["ok"]:
+            note = f"auto-ship OOB metrics {tid}: {','.join(band['reasons'][:4])} — escalate to STRATAGROK"
+            if not dry:
+                bus.feed_append("desk", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
+            results.append({"id": tid, "action": "escalate_oob", "reasons": band["reasons"], "samples": band["samples"]})
+            continue
+        if dry:
+            results.append({"id": tid, "action": "would_ship", "authority": t["authority"]})
+            continue
+        # ship
+        ns = argparse.Namespace(
+            task_id=tid,
+            by=by,
+            result=f"auto-ship majority+metrics authority={t['authority']}",
+            sha=task.get("sha") or "",
+            force_connectors=False,
+        )
+        rc = cmd_ship(ns)
+        results.append({"id": tid, "action": "shipped" if rc == 0 else "ship_rc", "rc": rc, "authority": t["authority"]})
+    return {"ok": True, "results": results}
 
 def cmd_vote(args: argparse.Namespace) -> int:
     state = bus.load_state()

@@ -56,3 +56,20 @@ bash deploy/mac-fog/desk-agent-run.sh all   # opencode|hermes|openclaw
 Workflows: `desk-collegium.yml` (protocol+actions), `desk-tick.yml`, `desk-prepare.yml`.
 TUI `r`/60s runs `desk_ops` then `desk-agent-run.sh all`.
 Outbox: `FOG/data/desk-outbox/{opencode,hermes,openclaw}-next.md`.
+
+
+## Cycle-owned surfaces (auto)
+
+```bash
+python3 ops/desk-collegium/desk_reports.py ensure-surfaces
+# or via cycle / desk-agent-run — refreshes TODO.md, CONTEXT pack, reports/, journals/
+```
+
+Bot never required. Soft-ok if gh/discourse unavailable (bot_cap_contingency).
+
+## Auto-ship
+
+```bash
+python3 ops/desk-collegium/desk_ship.py auto
+python3 ops/desk-collegium/desk_ship.py metrics
+```

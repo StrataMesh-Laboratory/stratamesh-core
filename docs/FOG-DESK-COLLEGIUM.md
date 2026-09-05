@@ -7,7 +7,7 @@
 
 Each member acts **according to its best capabilities**. See [FOG-DESK-SPECIALIZATION.md](./FOG-DESK-SPECIALIZATION.md) for the exclusive specialty map and routing rule.
 
-Hermes coordinates; OpenCode codes; OpenClaw claws locally; STRATAGROK leads/meters; Fog/EDGE Assistants take one scoped Act each; André holds human gates.
+Hermes coordinates; OpenCode codes; OpenClaw claws locally; STRATAGROK is **escalation surface** (not routine prompter); Fog/EDGE Assistants take one scoped Act each (self-queue when idle); André holds human gates. Law: `agent_autonomy` + `bot_cap_contingency` — see FOG-DESK-AUTONOMY.md.
 
 Desk agents work **in parallel** but stay aligned through (1) a shared bus, (2) per-agent `metabol_pace`, (3) channel roles, (4) collegial handoffs — not a single serial queue and not free-for-all.
 

@@ -10,9 +10,9 @@ Canonical paste for grok.com **Nó Calhegas Morais → Archive → Instructions*
 
 | Surface | Role |
 |---------|------|
-| **STRATAGROK** (Grok Bot, lead) | Multitask operator. Eisenhower rank, idle-rule, Git Data API, meters, desk-scope PRs. Registers the same fact on every live surface. Does not boot Fog from this computer. Does not origin-take. |
-| **CMN FOG ASSISTANT** | grok.com Project **Nó Calhegas Morais**. Fog/core: Mac `FOG-NODE-PT-CM-001`, hops, origin, auth/mw, Pages HTML. One scoped prompt per turn. |
-| **CMN EDGE ASSISTANT** | Same project, **same Archive Instructions**. EDGE-GROK local `EDGE-GROK-CMN-001`, edge origin, consume-origin bind. One scoped prompt per turn. |
+| **STRATAGROK** (Grok Bot, lead) | **Escalation surface** (not routine prompter). Eisenhower rank, Git Data API, meters, desk PRs. Agents self-queue; Bot escalates gates/NACK/OOB only. Does not boot Fog from this computer. Does not origin-take. |
+| **CMN FOG ASSISTANT** | Archive role: Fog **git+live**. Mac Fog hops/origin/auth/mw/Pages. One Act; self-queue when idle. |
+| **CMN EDGE ASSISTANT** | Archive role: EDGE **GET consume-only**. `EDGE-GROK-CMN-001` consume-origin. No Fog origin write. One Act; self-queue GETs when idle. |
 
 All three are Fog **staff** `role=external_assistant`, identity `grok@calhegasmorais.pt`, node `FOG-NODE-PT-CM-001`. **Not SCA.** Orchestrator `SCA-ORCH-CMN-001` / AIOps do not own this desk until handlers + `next_actions` + objective tests pass.
 
@@ -91,3 +91,9 @@ Fog TUI `g` (update / stop / reboot) is **André on the MacBook**. Ping him in t
 - This revision is **docs only**.
 
 See [METABOLISM.md](./METABOLISM.md), [docs/HUB.md](../docs/HUB.md), [docs/COMMUNITY-CHANNELS.md](../docs/COMMUNITY-CHANNELS.md), [docs/EDGE-GROK-ACTIONS-PACKAGE.md](../docs/EDGE-GROK-ACTIONS-PACKAGE.md), [docs/HOP-STASIS.md](../docs/HOP-STASIS.md). GitHub Actions is the Bot body; Grok stays Fog/tunnel + judgment.
+
+
+## Desk autonomy (2026-09-05)
+
+Laws in `ops/desk-collegium/protocol.json`: `agent_autonomy`, `bot_cap_contingency`, refined `ship_majority` (auto-ship on majority+metrics).
+Mac cycle owns TODO/CONTEXT/reports/journals via `ensure_desk_surfaces` — Bot tokens not required.

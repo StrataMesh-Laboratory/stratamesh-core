@@ -23,7 +23,7 @@ LANE_SPECS = {
     "lane-bot": {
         "meter": "grok-bot-included",
         "renewal": "weekly_unknown",
-        "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown",
+        "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown; bot_cap_contingency: non-lead lanes keep working",
         "daily_limit": None,
     },
     "lane-assistant": {
@@ -240,7 +240,7 @@ def compute_lanes(state: dict) -> dict:
     bot = read_bot_sample()
     if bot.get("unknown_remaining") or bot.get("remaining") is None:
         bot_pace = "HOLD"
-        bot_note = "bot-included remaining unknown — HOLD (SuperGrok does not refill)"
+        bot_note = "bot-included remaining unknown — HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)"
     else:
         rem = float(bot.get("remaining_frac") if bot.get("remaining_frac") is not None else bot.get("remaining") or 0)
         bot_pace = "STASIS" if rem <= 0 else ("HOLD" if rem < 0.15 else "ALLOW")

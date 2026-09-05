@@ -1,0 +1,352 @@
+{
+  "schema": "desk.agent_roles.v1",
+  "version": "0.4.0-lab",
+  "title": "Fog automation desk \u2014 machine-readable roster",
+  "law": "All six are external_agent|assistant. Never SCA/ACB students. Bot=escalation surface; agents=self-initiative + self-audit.",
+  "members": [
+    {
+      "id": "stratagrok",
+      "label": "STRATAGROK",
+      "owner": "grok@calhegasmorais.pt",
+      "role": "external_assistant",
+      "specialty": "lead",
+      "lane": "lane-bot",
+      "metabol_pace_lane": "lane-bot",
+      "eisenhower": "one Act ordinal; human_gates only to Andr\u00e9",
+      "runtime": "Grok Bot / STRATAGROK",
+      "soul": null,
+      "docs": [
+        "docs/FOG-DESK-AGENTS.md",
+        "docs/FOG-DESK-SPECIALIZATION.md",
+        "ops/EDGE-GROK-DESK-CONTRACT.md"
+      ],
+      "receive_work": "desk bus / projected / escalate surface \u2014 not routine prompter | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "protocol.check + meters + Eisenhower board; on wake pull outbox/meters",
+      "must": [
+        "Rank one Act",
+        "Escalate human_gates only",
+        "Register facts multi-surface",
+        "Git Data API lead when agents escalate"
+      ],
+      "must_not": [
+        "Prompt agents for routine next-steps",
+        "Origin-take FogRuntime.command",
+        "Fog TUI g from Bot computer",
+        "workers.dev",
+        "secrets in chat/git",
+        "Enroll as SCA/ACB"
+      ],
+      "peer_constrain_only": true,
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/stratagrok/VAULT.md"
+    },
+    {
+      "id": "hermes",
+      "label": "Hermes",
+      "owner": "hermes@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "specialty": "coord",
+      "lane": "lane-hermes",
+      "metabol_pace_lane": "lane-hermes",
+      "eisenhower": "Act via bus; human_gates escalate to STRATAGROK",
+      "runtime": "Hermes Agent CLI + Ollama (native Mac FOG-CMN-DESK)",
+      "soul": "deploy/mac-fog/hermes/desktop/SOUL.md",
+      "desk": "deploy/mac-fog/hermes/desktop/DESK.md",
+      "docs": [
+        "docs/HERMES-FOG-AGENT.md",
+        "docs/FOG-DESK-COLLEGIUM.md"
+      ],
+      "receive_work": "TUI r / desk-agent-run hermes / outbox hermes-next.md / bus specialty=coord | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "protocol.check + desk_ops board + connectors/gates",
+      "must": [
+        "Self-queue ALLOW coord work from bus/projected",
+        "Run specialty audit each agent-run",
+        "Native Mac desk UI (not Bot desktop)",
+        "academy_teach + apprenticeship trails"
+      ],
+      "must_not": [
+        "Large code patches (OpenCode owns)",
+        "CF Worker deploy",
+        "workers.dev",
+        "secrets in chat/git",
+        "Enroll as SCA/ACB",
+        "Wait for Bot prompt for routine coord"
+      ],
+      "peer_constrain_only": true,
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/hermes/VAULT.md"
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "specialty": "code",
+      "lane": "lane-opencode",
+      "metabol_pace_lane": "lane-opencode",
+      "eisenhower": "Act on specialty=code; escalate gates to Bot",
+      "runtime": "OpenCode CLI + Ollama",
+      "soul": "deploy/mac-fog/opencode/SOUL.md",
+      "desk": "deploy/mac-fog/opencode/DESK.md",
+      "docs": [
+        "docs/OPENCODE-FOG-AGENT.md"
+      ],
+      "receive_work": "desk-agent-run opencode / outbox opencode-next.md / bus specialty=code | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "unittest desk-collegium suite + failing-test scan",
+      "must": [
+        "Self-queue ALLOW code tasks",
+        "Self-audit tests each cycle/agent-run",
+        "commit\u2192done with result"
+      ],
+      "must_not": [
+        "Channel fan-out",
+        "metabol decide()",
+        "Mac g",
+        "workers.dev",
+        "secrets",
+        "Wait for Bot for routine patches"
+      ],
+      "peer_constrain_only": true,
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/opencode/VAULT.md"
+    },
+    {
+      "id": "openclaw",
+      "label": "OpenClaw",
+      "owner": "openclaw@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "specialty": "claw",
+      "lane": "lane-openclaw",
+      "metabol_pace_lane": "lane-openclaw",
+      "eisenhower": "Act on specialty=claw probes",
+      "runtime": "OpenClaw + Ollama (local ws often :18789)",
+      "soul": "deploy/mac-fog/openclaw/SOUL.md",
+      "desk": "deploy/mac-fog/openclaw/DESK.md",
+      "docs": [
+        "docs/OPENCLAW-FOG-AGENT.md"
+      ],
+      "receive_work": "desk-agent-run openclaw / outbox openclaw-next.md / bus specialty=claw | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "hops health: fog public + :8787 local + edge api",
+      "must": [
+        "Self-queue ALLOW claw tasks",
+        "Self-audit hops each agent-run",
+        "Write meters/openclaw.json"
+      ],
+      "must_not": [
+        "Protocol design ownership",
+        "Assistant prompts",
+        "workers.dev",
+        "secrets",
+        "Wait for Bot for routine probes"
+      ],
+      "peer_constrain_only": true,
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/openclaw/VAULT.md"
+    },
+    {
+      "id": "fog-assistant",
+      "label": "CMN FOG ASSISTANT",
+      "owner": "cmn-fog-assistant",
+      "role": "external_assistant",
+      "specialty": "fog",
+      "lane": "lane-assistant",
+      "metabol_pace_lane": "lane-assistant",
+      "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
+      "runtime": "grok.com N\u00f3 Calhegas Morais Fog thread (Archive Instructions)",
+      "soul": null,
+      "docs": [
+        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
+        "ops/EDGE-GROK-DESK-CONTRACT.md"
+      ],
+      "receive_work": "Fog thread one-prompt; self-queue from projected/bus when idle; Bot feeds only if empty AND no self-queue | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "origin health: fog.calhegasmorais.pt/health + hops",
+      "must": [
+        "Fog/core git+live (origin Pages, fog hops, auth/mw)",
+        "Land in-scope git+live without waiting for Bot",
+        "Propose next Act when idle if lane ALLOW"
+      ],
+      "must_not": [
+        "EDGE thread work",
+        "workers.dev",
+        "secrets",
+        "origin-take from Bot computer",
+        "Mixed Fog+EDGE prompts",
+        "Enroll as SCA"
+      ],
+      "peer_constrain_only": true,
+      "archive_role": "Fog git+live",
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/fog-assistant/VAULT.md"
+    },
+    {
+      "id": "edge-assistant",
+      "label": "CMN EDGE ASSISTANT",
+      "owner": "cmn-edge-assistant",
+      "role": "external_assistant",
+      "specialty": "edge",
+      "lane": "lane-assistant",
+      "metabol_pace_lane": "lane-assistant",
+      "eisenhower": "one Act per prompt; consume-origin only",
+      "runtime": "grok.com N\u00f3 Calhegas Morais EDGE thread (same Archive Instructions)",
+      "soul": null,
+      "docs": [
+        "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
+        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
+        "ops/EDGE-GROK-DESK-CONTRACT.md"
+      ],
+      "receive_work": "EDGE thread one-prompt; self-queue consume-origin GETs from projected/bus | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "consume-origin GETs: api-edge + edge site health",
+      "must": [
+        "EDGE consume-origin GET-only audits",
+        "Keep EDGE session process healthy",
+        "Self-queue when idle if lane ALLOW"
+      ],
+      "must_not": [
+        "Origin write / Fog bind / origin-take Fog",
+        "pkill cloudflared",
+        "workers.dev",
+        "secrets",
+        "Mixed Fog+EDGE prompts",
+        "Enroll as SCA"
+      ],
+      "peer_constrain_only": true,
+      "archive_role": "EDGE GET consume-only",
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/edge-assistant/VAULT.md"
+    }
+  ],
+  "ship_auto": {
+    "enabled": true,
+    "require_majority": true,
+    "require_no_nack": true,
+    "require_no_human_gate": true,
+    "metric_bands": {
+      "desk_score_min": 70,
+      "protocol_ok": true,
+      "claw_fog_public": 1,
+      "tests_green_soft": true
+    },
+    "on_nack_or_oob": "escalate_to_stratagrok",
+    "by": "hermes"
+  },
+  "bot_cap_contingency": {
+    "when": "lane-bot HOLD|STASIS (grok-bot-included cap)",
+    "continue": [
+      "Mac TUI r/60s",
+      "desk_ops cycle",
+      "desk-agent-run hermes|opencode|openclaw",
+      "Fog Assistant if lane-assistant ALLOW",
+      "EDGE consume-only GETs"
+    ],
+    "bot_on_wake": "pull meters/outbox; escalate only failures/gates \u2014 never re-prompt routine"
+  },
+  "required_ids": [
+    "stratagrok",
+    "hermes",
+    "opencode",
+    "openclaw",
+    "fog-assistant",
+    "edge-assistant"
+  ],
+  "todo_board": {
+    "path": "FOG/data/desk-outbox/TODO.md",
+    "source": "desk_ops cycle / desk-agent-run \u2192 snapshot open_tasks + projected + escalated",
+    "rule": "Agents pick only specialty-matching tasks from TODO.md; human_gates escalate; diary cites task id"
+  },
+  "reports": {
+    "dir": "FOG/data/desk-outbox/reports/",
+    "gh": "gh-daily.md",
+    "discourse": "discourse-daily.md",
+    "latest": "latest.md",
+    "sync": "ops/desk-collegium/desk_reports.py sync",
+    "bot_cap_ok": true
+  },
+  "secrets_vault": {
+    "doc": "ops/desk-collegium/SECRETS-VAULT.md",
+    "roots": [
+      "~/.config/stratagrok/",
+      "~/.config/stratamesh/",
+      "$FOG_HOME/data/secrets/"
+    ],
+    "access": "full_read_write_owned_tokens",
+    "never": [
+      "print_to_diary",
+      "feed",
+      "git",
+      "chat",
+      "pages",
+      "discourse"
+    ],
+    "escalate_bot_only_if": [
+      "vault_missing",
+      "corrupt",
+      "2fa"
+    ]
+  }
+}

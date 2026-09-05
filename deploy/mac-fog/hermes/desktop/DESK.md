@@ -61,3 +61,18 @@ Hermes (and peers) teach SCA/ACB on academy **and** mentor them via live desk/de
 - Trail after each deliverable: `$FOG_HOME/data/desk-outbox/apprentice/latest.md`
 
 Students learn what the desk is building **now** — not disconnected vapour lectures.
+
+
+## Cycle-owned surfaces (auto)
+
+Every TUI `r`/60s / `desk_ops cycle` / `desk-agent-run` runs `ensure_desk_surfaces()`:
+TODO.md · CONTEXT-CMN-STRATAMESH.md · reports/ · journals/ — Bot never required.
+
+## Mandatory wake order
+1. `$FOG_HOME/data/desk-outbox/CONTEXT-CMN-STRATAMESH.md` (shared CMN+StrataMesh pack)
+2. `ops/desk-collegium/protocol.json` (laws incl. agent_autonomy, bot_cap_contingency)
+3. Eisenhower: `docs/FOG-DESK-PROTOCOL.md` + `docs/FOG-DESK-OPS.md` — **one Act**; Plan/Note parked
+4. Live TODO board: `desk-outbox/TODO.md` (pick only your specialty; human_gates escalate)
+5. Reports: `desk-outbox/reports/latest.md` (GH Actions + Discourse)
+6. Specialty self-audit + self-queue from board/projected — **Bot = escalate surface, not prompter**
+

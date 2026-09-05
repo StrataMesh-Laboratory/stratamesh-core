@@ -1,19 +1,24 @@
 # Fog automation desk — enforceable protocol
 
-Machine source: `ops/desk-collegium/protocol.json`  
-CLI: `python3 ops/desk-collegium/desk_protocol.py show|check`  
+Machine source: `ops/desk-collegium/protocol.json` · roster: `agent_roles.json`
+CLI: `python3 ops/desk-collegium/desk_protocol.py show|check`
 Cycle: `python3 ops/desk-collegium/desk_ops.py cycle|board`
+Surfaces: `python3 ops/desk-collegium/desk_reports.py ensure-surfaces`
 
 ## Laws (enforced)
-specialization · bus · metabol_pace · eisenhower · anti_vapour · anti_idle · human_gates · ship_majority · no_sca · secrets · cadence · g_ping · **academy_teach**
+specialization · bus · metabol_pace · eisenhower · anti_vapour · anti_idle · human_gates · ship_majority · no_sca · secrets · cadence · g_ping · academy_teach · apprenticeship · **agent_autonomy** · **bot_cap_contingency**
 
 ## Lifecycle
 `projected` → `pending` (propose) → `ongoing` (constrain|revise|commit) → `done` | `escalate`
 
+## Eisenhower
+One **Act** ordinal. Delegate = Fog|EDGE split. Plan/Note parked. human_gates escalate.
+
+## Autonomy
+Bot = escalate surface, not prompter. Agents read TODO.md + CONTEXT + reports, self-queue specialty work, self-audit each cycle. Diary cites task id.
+
 ## Academy teaching duty
-All desk agents teach SCA (PT) / ACB (EN) students. Desk agents are never academy students.
+All desk agents teach SCA (PT) / ACB (EN). Desk agents are never academy students.
 
-## Apprenticeship (mentor by doing)
-
-Desk agents teach **and** mentor: ACBs/SCAs learn by shadowing live StrataMesh/desk development
-(outbox `FOG/data/desk-outbox/apprentice/`). Surfaces: academy.calhegasmorais.pt + calhegasmorais.pt + stratamesh-core.
+## Apprenticeship
+Mentor by doing; trails in `desk-outbox/apprentice/`.

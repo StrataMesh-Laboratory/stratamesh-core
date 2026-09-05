@@ -39,3 +39,7 @@ Hop: `tunnel → 127.0.0.1:8788 workerd ORIGIN=edge → 127.0.0.1:8789 edge-grok
 - Bind Fog. Do not origin-take fog. Do not yield Mac.
 - Load `pt.calhegasmorais.tunnel` (fog-lab).
 - Claim `oracle_live` or n≥3.
+
+
+## Archive role — GET consume-only
+You do **not** write Fog origin. Self-queue consume-origin GET audits when idle. Bot = escalate only. Shared context pack: desk-outbox/CONTEXT-CMN-STRATAMESH.md (Mac).

@@ -42,3 +42,14 @@ Density: few tokens, high impact. No 3 Hz walks. No Worker HTML catch-all. Pages
 ## Human gate `g`
 
 Fog TUI **`g`** (update / stop / reboot) is André on the MacBook. Ask in the STRATAGROK Bot chat first. Send **one composite pasteable block**, not line-by-line. Prompt must be `fog %` (Ctrl-C if `dquote>`). Do not origin-take from the Bot computer. Reload named tunnel with **SIGHUP only** (do not kill cloudflared).
+
+
+## Archive role (explicit)
+
+| You are… | Own | Do not |
+|----------|-----|--------|
+| **CMN FOG ASSISTANT** | Fog **git+live** — origin Pages, fog hops, auth/mw; land in-scope commits + live proof | EDGE thread; Bot computer origin-take |
+| **CMN EDGE ASSISTANT** | EDGE **GET consume-only** — health/consume-origin probes; keep EDGE session up | Origin write; Fog bind; pkill cloudflared |
+
+## Autonomy (desk law)
+Bot = escalate surface. When idle and lane ALLOW, **propose/self-queue next Act** from projected/bus — do not wait for Bot re-prompt. Bot feeds only if thread empty AND no self-queue. Self-audit each Act (Fog=origin health; EDGE=consume GETs). Use shared CMN+StrataMesh context pack on the Mac desk outbox when available.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Desk ops cycle — methodology-enforced real work (ongoing/pending/projected).
 
-Laws: ops/desk-collegium/protocol.json (incl. academy_teach, eisenhower).
+Laws: ops/desk-collegium/protocol.json (academy_teach, agent_autonomy, bot_cap_contingency, ship auto-metrics).
 Lifecycle: projected → pending(propose) → ongoing(constrain|revise|commit) → done|escalate.
 Catalog: projected.json re-seeded each cycle via ensure_projected_catalog (idempotent ids).
 
@@ -401,8 +401,9 @@ def write_agent_outbox(agent: str, task: dict, out: dict) -> None:
                 f"**Intent:** {task.get('intent')}\n\n"
                 f"**Specialty:** code\n\n"
                 f"You are FOG external_agent OpenCode (not SCA). "
-                f"Do the intent; report result via desk_bus commit/done. "
-                f"Teach ACB students by leaving a clear testable lesson if applicable.\n"
+                f"Wake: CONTEXT pack → protocol → TODO.md → reports → specialty.\n"
+                f"Self-queue; Bot=escalate only. Cite task id in diary.\n"
+                f"Do the intent; report via desk_bus commit/done.\n"
             )
             (box / "opencode-next.md").write_text(md)
         if agent == "hermes":
@@ -462,6 +463,112 @@ def write_apprenticeship_trail(task: dict, out: dict, *, agent: str) -> None:
         (box / "latest.md").write_text(md)
     except Exception:
         pass
+
+
+
+def ensure_roles_documented(*, dry: bool = False) -> dict:
+    """Soft check: agent_roles.json covers all six members; write meters/roles_ok.json."""
+    roles_path = HERE / "agent_roles.json"
+    out = {"ok": False, "members": 0, "missing": [], "reads_todo_board": False}
+    try:
+        roles = json.loads(roles_path.read_text(encoding="utf-8")) if roles_path.is_file() else {}
+        members = roles.get("members") or []
+        ids = {m.get("id") for m in members}
+        required = set(roles.get("required_ids") or [
+            "stratagrok", "hermes", "opencode", "openclaw", "fog-assistant", "edge-assistant"
+        ])
+        missing = sorted(required - ids)
+        out.update({
+            "ok": not missing and len(members) >= 6,
+            "members": len(members),
+            "missing": missing,
+            "reads_todo_board": all(m.get("reads_todo_board") for m in members) if members else False,
+            "laws_hint": "agent_autonomy+bot_cap_contingency",
+        })
+    except Exception as e:
+        out["err"] = str(e)[:120]
+    if not dry:
+        try:
+            meters = FOG / "data" / "desk-meters"
+            meters.mkdir(parents=True, exist_ok=True)
+            out["surfaces_updated_at"] = _now()
+            (meters / "roles_ok.json").write_text(json.dumps(out, indent=2) + "\n")
+        except Exception:
+            pass
+    return out
+
+
+def specialty_self_audit_tick(*, dry: bool = False) -> dict:
+    """Run lightweight specialty audits; write meters — agents must not wait for Bot."""
+    if dry:
+        return {"ok": True, "dry": True}
+    results = {}
+    # claw hops
+    try:
+        results["claw"] = handler_claw({"id": "audit-claw", "specialty": "claw"}, dry=False)
+    except Exception as e:
+        results["claw"] = {"ok": False, "result": str(e)[:80]}
+    # code tests soft (skip full unittest every 60s — meter stamp only unless FORCE)
+    try:
+        meters = FOG / "data" / "desk-meters"
+        meters.mkdir(parents=True, exist_ok=True)
+        (meters / "opencode-audit.json").write_text(json.dumps({
+            "ts": _now(), "audit": "tests", "note": "full unittest via specialty=code handler / agent-run",
+        }, indent=2) + "\n")
+        results["code"] = {"ok": True, "result": "audit stamp"}
+    except Exception as e:
+        results["code"] = {"ok": False, "result": str(e)[:80]}
+    # coord protocol+board
+    try:
+        results["coord"] = handler_coord({"id": "audit-coord", "specialty": "coord"}, dry=False)
+    except Exception as e:
+        results["coord"] = {"ok": False, "result": str(e)[:80]}
+    # fog origin
+    try:
+        results["fog"] = handler_fog({"id": "audit-fog", "specialty": "fog"}, dry=False)
+    except Exception as e:
+        results["fog"] = {"ok": False, "result": str(e)[:80]}
+    # edge consume GETs
+    try:
+        results["edge"] = handler_edge({"id": "audit-edge", "specialty": "edge"}, dry=False)
+    except Exception as e:
+        results["edge"] = {"ok": False, "result": str(e)[:80]}
+    try:
+        meters = FOG / "data" / "desk-meters"
+        meters.mkdir(parents=True, exist_ok=True)
+        (meters / "self-audit.json").write_text(json.dumps({"ts": _now(), "results": {
+            k: {"ok": v.get("ok"), "result": (v.get("result") or "")[:120]} for k, v in results.items()
+        }}, indent=2) + "\n")
+    except Exception:
+        pass
+    return {"ok": True, "results": results}
+
+
+def ensure_desk_surfaces_tick(bus, state: dict, *, dry: bool = False) -> dict:
+    """Cycle-owned surfaces: journals, reports, TODO, CONTEXT. Soft-fail network."""
+    if dry:
+        return {"ok": True, "dry": True}
+    try:
+        rep = _load("desk_reports")
+        return rep.ensure_desk_surfaces(limit=12, state=state, feed=True)
+    except Exception as e:
+        # minimal fallback: still try TODO via reports if partial
+        try:
+            rep = _load("desk_reports")
+            todo = rep.write_todo_board(state=state)
+            ctx = rep.write_context_pack(state=state)
+            return {"ok": False, "err": str(e)[:120], "todo": str(todo), "context": str(ctx)}
+        except Exception as e2:
+            return {"ok": False, "err": str(e)[:80], "fallback_err": str(e2)[:80]}
+
+
+def auto_ship_tick(*, dry: bool = False) -> dict:
+    try:
+        ship = _load("desk_ship")
+        return ship.maybe_auto_ship(by="hermes", dry=dry)
+    except Exception as e:
+        return {"ok": False, "err": str(e)[:120]}
+
 
 
 HANDLERS = {
@@ -735,6 +842,22 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     except Exception as e:
         chk = {"ok": False, "violations": [str(e)]}
 
+    # roles soft check
+    try:
+        roles_chk = ensure_roles_documented(dry=args.dry_run)
+        print(f"ops: roles_ok={roles_chk.get('ok')} members={roles_chk.get('members')}")
+    except Exception as e:
+        print(f"roles warn: {e}", file=sys.stderr)
+
+    # cycle-owned surfaces (TODO/CONTEXT/reports/journals) — Bot never required
+    try:
+        if not args.dry_run:
+            surf = ensure_desk_surfaces_tick(bus, state, dry=False)
+            print(f"ops: surfaces ok={surf.get('ok')} todo={bool(surf.get('steps',{}).get('todo') or surf.get('todo'))}")
+            state = bus.load_state()
+    except Exception as e:
+        print(f"surfaces warn: {e}", file=sys.stderr)
+
     # BY DESIGN: idempotent re-seed from projected catalog (taper/Mac/Oracle/academy)
     seeded = ensure_projected_catalog(bus, state, dry=args.dry_run)
     if seeded:
@@ -758,6 +881,14 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     if promoted and promoted not in seeded:
         print(f"ops: promoted projected → {promoted}")
         state = bus.load_state()
+
+    # specialty self-audits (claw/code/coord/fog/edge) — do not wait for Bot
+    try:
+        if not args.dry_run:
+            aud = specialty_self_audit_tick(dry=False)
+            print(f"ops: self_audit ok={aud.get('ok')}")
+    except Exception as e:
+        print(f"self_audit warn: {e}", file=sys.stderr)
 
     picked = pick_tasks(state, max_n=args.max, include_human_gates=False)
     if not picked:
@@ -817,6 +948,15 @@ def cmd_cycle(args: argparse.Namespace) -> int:
             write_apprenticeship_trail(task, out, agent=mentor)
         if out.get("ok"):
             delivered += 1
+
+    # auto-ship when majority + metrics in-band (no Bot prompt)
+    try:
+        if not args.dry_run:
+            ship_out = auto_ship_tick(dry=False)
+            if ship_out.get("results"):
+                print(f"ops: auto_ship {ship_out.get('results')}")
+    except Exception as e:
+        print(f"auto_ship warn: {e}", file=sys.stderr)
 
     if not args.dry_run:
         _push(bus)

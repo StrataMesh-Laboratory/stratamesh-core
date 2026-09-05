@@ -1,44 +1,48 @@
 # Autonomous Fog automation desk — operational loop
 
-**Principle:** specialization + collegium bus + metabol_pace.  
-**Agents:** STRATAGROK (lead) · Hermes (coord) · OpenCode (code) · OpenClaw (claw) · Fog/EDGE Assistants (one Act each).
+**Principle:** specialization + collegium bus + metabol_pace + **agent_autonomy**.
+**Bot = escalate surface, not prompter.** Agents = self-initiative + self-audit.
 
-## Steady-state loop (no human unless gate)
+## Agents
+STRATAGROK (lead/escalate) · Hermes (coord) · OpenCode (code) · OpenClaw (claw) · Fog/EDGE Assistants (one Act; self-queue when idle).
 
+## Executor (anti-vapour)
+`desk_ops.py cycle` on Fog TUI `r`/60s:
+metabol → **ensure_desk_surfaces** (journals/reports/TODO/CONTEXT) → roles_ok → projected → self_audit → pick ALLOW → handler → **auto_ship if majority+metrics** → academy_teach → /desk push.
+
+## Self-initiative
+- Hermes/OpenCode/OpenClaw: driven by TUI r / desk-agent-run / outbox — pull from TODO.md + bus
+- Fog Assistant: may propose next Act in-thread when idle; Bot feeds only if empty AND no self-queue
+- EDGE: consume-origin GET self-queue; no origin write
+
+## Self-audits (each cycle)
+| Agent | Audit |
+|-------|-------|
+| OpenClaw | hops (fog_public, :8787, edge) |
+| OpenCode | tests / unittest stamp |
+| Hermes | protocol.check + board |
+| Fog | origin health |
+| EDGE | consume-origin GETs |
+
+## Escalate ONLY to STRATAGROK
+human_gates (g/2FA/captcha/Oracle/Renovate majors) · ship NACK or OOB metrics · metabol STASIS (own lane) · secrets · protocol violations — **never routine next-steps**.
+
+## Bot token-cap contingency (`bot_cap_contingency`)
+When `lane-bot` HOLD/STASIS: Mac TUI + desk_ops + desk-agent-run **continue**; Fog Assistant if lane-assistant ALLOW; EDGE consume-only. On Bot wake: pull meters/outbox; escalate failures only.
+
+## Ship auto-metrics
+Majority ACK + in-band (desk_score≥70, protocol_ok, claw fog_public soft, no human_gate) → **auto-ship** without Bot. NACK/OOB → escalate Bot.
+
+## Steady-state loop
 ```
-every wake / Hermes scheduled pulse:
-  1. Read ops/desk-collegium/state.json + metabol decide() lanes
-  2. Rank Eisenhower (STRATAGROK) — one Act ordinal
-  3. Hermes: `desk_bus.py propose|constrain|…` by specialty owner (feeds TUI DESK)
-  4. Disjoint specialties run in parallel (code ∥ claw ∥ assistant Act ∥ coord)
-  5. `desk_bus.py commit` then `done` → state.last_commit + desk-feed + lane paces
-  6. Escalate only: g/2FA/captcha/Oracle password/Renovate majors
+every wake / Hermes pulse / TUI r:
+  1. ensure_desk_surfaces (TODO/CONTEXT/reports/journals)
+  2. Read CONTEXT → protocol → Eisenhower → TODO board → reports
+  3. Self-audit specialty; self-queue ALLOW from board
+  4. Disjoint specialties parallel
+  5. auto_ship if majority+metrics
+  6. Escalate only gates/NACK/OOB/secrets/violations
 ```
 
-## Hermes scheduled jobs (desktop)
-
-| Job | When (Europe/Lisbon) | Action |
-|-----|----------------------|--------|
-| collegium-pulse | @hourly (or :00) | Read COLLEGIUM+state; propose idle specialty tasks if ALLOW |
-| fog-health | every 30m | GET :8787/health; ACK Discord/Slack only on change |
-| mail-hint | weekdays 10:00/18:00 | Remind grok@ sync — no bodies/secrets |
-
-Skip all jobs when lane-hermes or lane-bot is STASIS.
-
-## First session after 64K fix
-
-Paste into Hermes:
-
-> You are FOG external_agent (not SCA). Load SOUL.md + COLLEGIUM.md + FOG-DESK-SPECIALIZATION.md. Fix complete: agent model ≥64K. Propose desk.task.v1 for OpenCode (one failing/test or desk doc needle) and OpenClaw (local :8787 health probe). Wait for constrain. Do not tap Fog `g`.
-
-## Git human gate
-
-STRATAGROK pings André with one composite `g` block when origin SHAs need Mac pull. Auto-g may land if André skips.
-
-## Desk feed (Fog TUI)
-
-After each propose/constrain/revise/commit, append a short line so the Mac Fog TUI DESK panel updates:
-
-`python3 deploy/mac-fog/desk-feed-append.py hermes "…" --kind propose`
-
-See `docs/FOG-DESK-FEED.md`. No secrets.
+## Secrets vault
+Full read+write to owned vault tokens per `ops/desk-collegium/SECRETS-VAULT.md`. Never print values. Bot escalate only if vault missing/corrupt/2FA.
