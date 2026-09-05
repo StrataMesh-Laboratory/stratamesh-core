@@ -1097,16 +1097,104 @@ def desk_feed_tail(n: int = 10) -> list[dict]:
         return []
 
 
+
+def _ansi_strip(s: str) -> str:
+    return re.sub(r"\033\[[0-9;]*m", "", s or "")
+
+
+def _fit_plain(s: str, width: int) -> str:
+    """Truncate plain text to visible width (no ANSI)."""
+    s = (s or "").replace("\n", " ").replace("\r", " ")
+    if width <= 0:
+        return ""
+    out = []
+    n = 0
+    for ch in s:
+        if unicodedata.combining(ch):
+            out.append(ch)
+            continue
+        wch = 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+        if n + wch > width:
+            break
+        out.append(ch)
+        n += wch
+    return "".join(out)
+
+
+def _wrap_plain(s: str, width: int) -> list[str]:
+    """Word-wrap plain text into lines ≤ width."""
+    s = re.sub(r"\s+", " ", (s or "").replace("\n", " ")).strip()
+    if width < 8:
+        width = 8
+    if not s:
+        return [""]
+    words = s.split(" ")
+    lines: list[str] = []
+    cur = ""
+    for w in words:
+        cand = (cur + " " + w).strip() if cur else w
+        if vislen(cand) <= width:
+            cur = cand
+            continue
+        if cur:
+            lines.append(cur)
+        # hard-break oversized token
+        while vislen(w) > width:
+            piece = _fit_plain(w, width)
+            lines.append(piece)
+            w = w[len(piece):]
+        cur = w
+    if cur:
+        lines.append(cur)
+    return lines or [""]
+
+
+def _desk_agent_style(tag: str) -> tuple[str, str]:
+    tag = (tag or "").strip().lower()
+    if "hermes" in tag:
+        return ACC, "hermes"
+    if "opencode" in tag or tag == "code":
+        return OK, "opencode"
+    if "openclaw" in tag or tag == "claw":
+        return AMBER, "openclaw"
+    if "stratagrok" in tag or "grok" in tag:
+        return BOLD, "stratagrok"
+    return MUT, (tag or "?")[:10]
+
+
 def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
-    """Live chat-style desk feed + open tasks + metabol lanes (operator monitor)."""
+    """Live DESK chat: clean wrapped paragraphs (no ghost/truncated ANSI lines)."""
     out = _print or print
-    out(boxline(" " + ACC + "DESK" + RST + MUT + "  automation feed · Hermes/OpenCode/OpenClaw/STRATAGROK" + RST, w))
-    # metabol lane strip
-    lanes_line = ""
+    # Inner content width inside │…│ (boxline adds borders)
+    inner = max(24, int(w) - 2)
+    budget = max(4, int(rows))
+    used = 0
+
+    def emit(plain_inner: str, *, colored: str | None = None) -> None:
+        nonlocal used
+        if used >= budget:
+            return
+        # Prefer pre-colored line only if it fits; else plain fit
+        if colored is not None and vislen(_ansi_strip(colored)) <= inner:
+            out(boxline(colored, w))
+        else:
+            out(boxline(_fit_plain(plain_inner, inner), w))
+        used += 1
+
+    out(boxline(" " + ACC + "DESK" + RST + MUT + "  feed · paced agents" + RST, w))
+    used += 1
+
+    st: dict = {}
+    lanes: dict = {}
     try:
         st_path = FOG / "data/desk-collegium/state.json"
-        st = json.loads(st_path.read_text(encoding="utf-8")) if st_path.is_file() else {}
-        lanes = st.get("lanes") or {}
+        if st_path.is_file():
+            st = json.loads(st_path.read_text(encoding="utf-8"))
+            lanes = st.get("lanes") or {}
+    except Exception:
+        st, lanes = {}, {}
+
+    if lanes:
         bits = []
         for key, short in (
             ("lane-hermes", "hermes"),
@@ -1116,56 +1204,76 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
             ("lane-assistant", "asst"),
             ("lane-cf", "cf"),
         ):
-            pace = (lanes.get(key) or {}).get("pace") or "—"
+            pace = str((lanes.get(key) or {}).get("pace") or "—")
             bits.append("%s:%s" % (short, pace))
-        if bits:
-            lanes_line = " ".join(bits)
-    except Exception:
-        st = {}
-        lanes = {}
-    if lanes_line:
-        out(boxline(" " + MUT + "metabol " + RST + lanes_line[: max(20, w - 12)], w))
-    feed = desk_feed_tail(max(4, rows - 2))
-    # sticky open tasks as chat lines when feed thin
+        meta_plain = " metabol " + " ".join(bits)
+        for i, part in enumerate(_wrap_plain(meta_plain, inner - 1)):
+            prefix = " " if i == 0 else "   "
+            emit(prefix + part, colored=(" " + MUT + part + RST) if i == 0 else None)
+            if used >= budget:
+                break
+
+    feed = desk_feed_tail(max(6, budget))
+    feed_ids = " ".join(str(r.get("text") or "") for r in feed)
     open_tasks = st.get("open_tasks") or []
-    painted = 0
-    for tsk in open_tasks[-4:]:
-        if painted >= 4:
+
+    # Sticky tasks only if not already mirrored into feed (avoids ghost duplicates)
+    for tsk in open_tasks[-3:]:
+        if used >= budget - 1:
             break
-        tid = str(tsk.get("id") or "")[:12]
-        own = str(tsk.get("owner") or "?")
-        ag = "hermes   "
-        if "opencode" in own:
-            ag = "opencode "
-        elif "openclaw" in own:
-            ag = "openclaw "
-        elif "grok" in own:
-            ag = "stratagrok"
-        stt = str(tsk.get("status") or "propose")[:7]
-        body = str(tsk.get("intent") or "")[: max(16, w - 32)]
-        col = ACC if "hermes" in ag else (OK if "code" in ag else (AMBER if "claw" in ag else BOLD))
-        out(boxline(" " + MUT + "task" + RST + " " + col + ag + RST + " " + MUT + stt + RST + " " + tid + " " + body, w))
-        painted += 1
+        tid = str(tsk.get("id") or "")
+        if tid and tid in feed_ids:
+            continue
+        own = str(tsk.get("owner") or "")
+        col, ag = _desk_agent_style(
+            "opencode" if "opencode" in own else (
+                "openclaw" if "openclaw" in own else (
+                    "stratagrok" if "grok" in own else "hermes"
+                )
+            )
+        )
+        stt = str(tsk.get("status") or "propose")
+        body = "%s %s %s" % (stt, tid, str(tsk.get("intent") or ""))
+        head = " task %s " % ag
+        wrap_w = max(12, inner - len(head))
+        parts = _wrap_plain(body, wrap_w)
+        for i, part in enumerate(parts[:2]):  # max 2 lines per task
+            if used >= budget:
+                break
+            if i == 0:
+                colored = " " + MUT + "task" + RST + " " + col + ag + RST + " " + part
+                emit(" task %s %s" % (ag, part), colored=colored)
+            else:
+                emit("      " + part)
+
     if not feed and not open_tasks:
-        out(boxline(" " + MUT + "(waiting for desk agents… desk_bus list · metabol tick · append feed)" + RST, w))
+        emit(" (waiting for desk agents…)", colored=" " + MUT + "(waiting for desk agents…)" + RST)
         return
-    for rec in feed[-(rows - painted):] if painted else feed[-rows:]:
-        ag = str(rec.get("agent") or "?")[:10].ljust(10)
+
+    # Feed lines: timestamp + agent + wrapped paragraph body
+    remain = max(1, budget - used)
+    for rec in feed[-remain:]:
+        if used >= budget:
+            break
+        ag_raw = str(rec.get("agent") or "?")
+        col, ag = _desk_agent_style(ag_raw)
         tm = str(rec.get("t") or "--:--:--")[:8]
         kind = str(rec.get("kind") or "say")[:7]
-        body = str(rec.get("text") or "").replace("\n", " ")[: max(20, w - 28)]
-        tag = ag.strip().lower()
-        if "hermes" in tag:
-            name = ACC + ag + RST
-        elif "opencode" in tag or "code" in tag:
-            name = OK + ag + RST
-        elif "openclaw" in tag or "claw" in tag:
-            name = AMBER + ag + RST
-        elif "stratagrok" in tag or "grok" in tag:
-            name = BOLD + ag + RST
-        else:
-            name = ag
-        out(boxline(" " + MUT + tm + RST + " " + name + " " + MUT + kind + RST + " " + body, w))
+        body = str(rec.get("text") or "").replace("\n", " ")
+        head_plain = "%s %s %s " % (tm, ag.ljust(8)[:8], kind)
+        wrap_w = max(12, inner - len(head_plain) - 1)
+        parts = _wrap_plain(body, wrap_w)
+        for i, part in enumerate(parts[:3]):  # up to 3 wrapped rows
+            if used >= budget:
+                break
+            if i == 0:
+                colored = (
+                    " " + MUT + tm + RST + " " + col + (ag.ljust(8)[:8]) + RST
+                    + " " + MUT + kind + RST + " " + part
+                )
+                emit(" " + head_plain + part, colored=colored)
+            else:
+                emit(" " + (" " * len(head_plain)) + part)
 
 
 def wizard_json_path() -> Path:

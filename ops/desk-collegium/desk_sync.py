@@ -29,16 +29,30 @@ TOKEN_CANDIDATES = [
     Path.home() / ".config/stratamesh/desk-mail.token",
     Path.home() / ".config/stratamesh/DESK_TOKEN",
     FOG / "data/secrets/desk-mail.token",
+    FOG / "data/desk-mail.token",
     Path.home() / ".config/stratagrok/secrets.env",
+    Path.home() / ".config/stratamesh/secrets.env",
 ]
 
+_PLACEHOLDER_TOKENS = frozenset({
+    "", "token", "changeme", "DESK_TOKEN", "YOUR_TOKEN", "xxx", "TODO", "placeholder",
+})
 
-def _now() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+def _normalize_token(val: str) -> str:
+    val = (val or "").strip().strip("'\"").strip()
+    if not val or val.startswith("#"):
+        return ""
+    if val.lower() in {x.lower() for x in _PLACEHOLDER_TOKENS}:
+        return ""
+    # reject obviously broken KeePass dumps
+    if " " in val and len(val) < 12:
+        return ""
+    return val
 
 
 def load_desk_token() -> str:
-    env = (os.environ.get("DESK_TOKEN") or "").strip()
+    env = _normalize_token(os.environ.get("DESK_TOKEN") or "")
     if env:
         return env
     for path in TOKEN_CANDIDATES:
@@ -46,22 +60,44 @@ def load_desk_token() -> str:
             if not path.is_file():
                 continue
             raw = path.read_text(encoding="utf-8")
-            if path.name == "secrets.env":
+            if path.name.endswith(".env") or path.name == "secrets.env":
                 for line in raw.splitlines():
                     line = line.strip()
                     if not line or line.startswith("#"):
                         continue
                     if line.startswith("DESK_TOKEN="):
-                        val = line.split("=", 1)[1].strip().strip("'\"")
+                        val = _normalize_token(line.split("=", 1)[1])
                         if val:
                             return val
             else:
-                val = raw.strip().splitlines()[0].strip() if raw.strip() else ""
-                if val and not val.startswith("#"):
-                    return val
+                # first non-empty line
+                for line in raw.splitlines():
+                    val = _normalize_token(line)
+                    if val:
+                        return val
         except Exception:
             continue
     return ""
+
+
+def desk_token_status() -> str:
+    """present | missing | empty — never prints the secret."""
+    # distinguish empty file vs absent
+    for path in TOKEN_CANDIDATES:
+        try:
+            if not path.is_file():
+                continue
+            if path.name.endswith(".env") or path.name == "secrets.env":
+                continue
+            raw = path.read_text(encoding="utf-8").strip()
+            if not raw:
+                return "empty"
+            if load_desk_token():
+                return "present"
+            return "empty"
+        except Exception:
+            continue
+    return "present" if load_desk_token() else "missing"
 
 
 def _state_paths() -> tuple[Path, Path]:
@@ -407,8 +443,9 @@ def main() -> int:
     sub.add_parser("token-check")  # prints only yes/no, never the token
     args = p.parse_args()
     if args.cmd == "token-check":
-        print("present" if load_desk_token() else "missing")
-        return 0 if load_desk_token() else 2
+        st = desk_token_status()
+        print(st)
+        return 0 if st == "present" else 2
     if args.cmd == "pull":
         print(json.dumps(pull(), indent=2))
         return 0
