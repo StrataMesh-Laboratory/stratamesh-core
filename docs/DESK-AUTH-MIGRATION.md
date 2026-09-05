@@ -67,3 +67,14 @@ Private gateway (KEEP — do not redirect to automation.desk):
 - Mail split: `ops/desk-collegium/DESK-MAIL-AUTOMATION.md` · `docs/ops/DESK-MAIL-AUTOMATION.md`
 - Roles: `ops/desk-collegium/agent_roles.json` · `ops/desk-collegium/protocol.json`
 - Task: `dt-migrate-desk-auth-automation` / projected `proj-migrate-desk-auth-automation`
+
+
+## Persistence / absence (standing)
+
+All of this must keep working and evolving when STRATAGROK (Bot) is away:
+
+- **Mac Fog desk collegium** owns the 60s cycle (`desk_ops` / TUI `r`) — not Bot prompts.
+- **Vault paths** (`~/.config/stratamesh/automation.desk.*`) are the source of truth; agents materialize themselves.
+- **Runbooks** in `deploy/gcp-free/` and `docs/FOG-PEER-PROVE.md` are executable without chat.
+- **Routines** (mail watch, night diagnostic, 24h cycle) cover watches; human gates only: 2FA/captcha/Fog `g`/Renovate majors.
+- Prefer **shipped docs + systemd + Tailscale** over Bot-attended browser one-shots for anything that must survive absence.

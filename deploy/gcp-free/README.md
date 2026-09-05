@@ -33,3 +33,14 @@ Canonical shortlist: [`docs/ORACLE-OSS-ALTS.md`](../../docs/ORACLE-OSS-ALTS.md) 
 - UFW: SSH/Tailscale only; **no public 8787**.
 - NODE_ID=`FOG-NODE-GCP-001` · SQLite under `/var/lib/stratamesh/`.
 - MW mesh remains on Mac (:8788–:8792); this peer is Fog kernel + gossip peer.
+
+
+## Persistence / absence (standing)
+
+All of this must keep working and evolving when STRATAGROK (Bot) is away:
+
+- **Mac Fog desk collegium** owns the 60s cycle (`desk_ops` / TUI `r`) — not Bot prompts.
+- **Vault paths** (`~/.config/stratamesh/automation.desk.*`) are the source of truth; agents materialize themselves.
+- **Runbooks** in `deploy/gcp-free/` and `docs/FOG-PEER-PROVE.md` are executable without chat.
+- **Routines** (mail watch, night diagnostic, 24h cycle) cover watches; human gates only: 2FA/captcha/Fog `g`/Renovate majors.
+- Prefer **shipped docs + systemd + Tailscale** over Bot-attended browser one-shots for anything that must survive absence.
