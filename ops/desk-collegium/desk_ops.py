@@ -233,6 +233,47 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
     return {"ok": True, "result": note, "done": ok, "sha": ""}
 
 
+
+def write_agent_outbox(agent: str, task: dict, out: dict) -> None:
+    """Hand real work to desk agents (OpenCode/Hermes/OpenClaw) — not stratagrok-only feed."""
+    try:
+        box = FOG / "data" / "desk-outbox"
+        box.mkdir(parents=True, exist_ok=True)
+        rec = {
+            "ts": _now(),
+            "agent": agent,
+            "task_id": task.get("id"),
+            "specialty": task.get("specialty"),
+            "intent": task.get("intent"),
+            "result": out.get("result"),
+            "done": out.get("done"),
+            "duty": task.get("duty"),
+        }
+        (box / f"{agent}-latest.json").write_text(json.dumps(rec, indent=2) + "\n")
+        # OpenCode-friendly markdown brief
+        if agent == "opencode":
+            md = (
+                f"# Desk task {task.get('id')}\n\n"
+                f"**Intent:** {task.get('intent')}\n\n"
+                f"**Specialty:** code\n\n"
+                f"You are FOG external_agent OpenCode (not SCA). "
+                f"Do the intent; report result via desk_bus commit/done. "
+                f"Teach ACB students by leaving a clear testable lesson if applicable.\n"
+            )
+            (box / "opencode-next.md").write_text(md)
+        if agent == "hermes":
+            (box / "hermes-next.md").write_text(
+                f"# Collegium / teach\n\n{task.get('intent')}\n\n"
+                f"Duty: academy_teach for SCA/ACB; you are teacher not student.\n"
+            )
+        if agent == "openclaw":
+            (box / "openclaw-next.md").write_text(
+                f"# Claw task {task.get('id')}\n\n{task.get('intent')}\n"
+            )
+    except Exception:
+        pass
+
+
 HANDLERS = {
     "claw": handler_claw,
     "coord": handler_coord,
@@ -244,41 +285,56 @@ HANDLERS = {
 }
 
 
-def pick_tasks(state: dict, *, max_n: int) -> list[dict]:
+def _is_human_gate_task(task: dict) -> bool:
+    intent = (task.get("intent") or "").lower()
+    if (task.get("status") or "") == "escalate":
+        return True
+    if task.get("specialty") == "lead" and any(
+        k in intent for k in ("oracle", "grok90", "m-ii", "m-2", "2fa", "captcha", "renovate major")
+    ):
+        return True
+    return False
+
+
+def _handler_for(task: dict) -> str | None:
+    spec = task.get("specialty") or "coord"
+    if task.get("duty") == "academy_teach" or "academy teach" in (task.get("intent") or "").lower():
+        return "teach"
+    if spec in HANDLERS:
+        return spec
+    return None
+
+
+def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) -> list[dict]:
+    """Prefer claw/code/coord/edge/fog/teach. Skip Oracle/lead gates unless asked."""
     board = classify(state)
+    # specialty priority for real agent work (not stratagrok self-loop)
+    prio = {"claw": 0, "code": 1, "teach": 2, "coord": 3, "edge": 4, "fog": 5, "lead": 9}
     ordered = board["ongoing"] + board["pending"]
-    chosen = []
+    scored: list[tuple[int, dict]] = []
     for t in ordered:
-        spec = t.get("specialty") or "coord"
-        # map academy teach intents
-        if "academy teach" in (t.get("intent") or "").lower() or t.get("duty") == "academy_teach":
-            if spec not in HANDLERS:
-                spec = "teach"
-                t = dict(t)
-                t["specialty"] = "coord"  # keep owner specialty; handler via duty
-        lane = _specialty_lane(spec if spec in HANDLERS else "coord")
+        if _is_human_gate_task(t) and not include_human_gates:
+            continue
+        use_spec = _handler_for(t)
+        if not use_spec:
+            continue
+        lane = _specialty_lane(use_spec)
         pace = _lane_pace(state, lane)
         if pace == "STASIS":
             continue
-        if pace == "HOLD" and spec not in ("lead",):
-            continue
-        use_spec = spec if spec in HANDLERS else None
-        if t.get("duty") == "academy_teach" or "academy teach" in (t.get("intent") or "").lower():
-            use_spec = "teach"
-        if not use_spec or use_spec not in HANDLERS:
+        if pace == "HOLD" and use_spec not in ("lead",):
             continue
         t = dict(t)
         t["_handler"] = use_spec
-        chosen.append(t)
-        if len(chosen) >= max_n:
-            break
-    return chosen
+        scored.append((prio.get(use_spec, 5), t))
+    scored.sort(key=lambda x: (x[0], x[1].get("updated") or ""))
+    return [t for _, t in scored[:max_n]]
 
 
 def promote_projected(bus, state: dict, *, dry: bool) -> str | None:
-    """If no ALLOW actionable pending/ongoing, promote one projected (anti-idle)."""
+    """If no real-agent ALLOW work, promote one projected (anti-idle / anti self-loop)."""
     board = classify(state)
-    actionable = pick_tasks(state, max_n=1)
+    actionable = pick_tasks(state, max_n=1, include_human_gates=False)
     if actionable:
         return None
     for item in board["projected"]:
@@ -427,15 +483,35 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         print(f"ops: promoted projected → {promoted}")
         state = bus.load_state()
 
-    picked = pick_tasks(state, max_n=args.max)
+    picked = pick_tasks(state, max_n=args.max, include_human_gates=False)
     if not picked:
-        msg = f"ops: idle-skip (protocol_ok={chk.get('ok')}; only human-gate/HOLD left or empty)"
-        bus.feed_append("desk", msg, kind="say", specialty="coord")
-        print(msg)
-        if not args.dry_run:
-            _push(bus)
-            _write_last({"delivered": 0, "picked": [], "protocol_ok": chk.get("ok")})
-        return 0
+        # last chance promote (projected may have been blocked earlier)
+        promoted2 = promote_projected(bus, state, dry=args.dry_run)
+        if promoted2 and not args.dry_run:
+            state = bus.load_state()
+            picked = pick_tasks(state, max_n=args.max, include_human_gates=False)
+        if not picked:
+            msg = f"ops: idle-skip (protocol_ok={chk.get('ok')}; only human-gate/HOLD left)"
+            print(msg)
+            if not args.dry_run:
+                # rate-limit feed spam: only note skip every 10 minutes
+                skip_flag = FOG / "data" / "desk-ops-idle-skip.ts"
+                now = time.time()
+                last = 0.0
+                try:
+                    last = float(skip_flag.read_text().strip() or "0")
+                except Exception:
+                    last = 0.0
+                if now - last >= 600:
+                    bus.feed_append("desk", msg, kind="say", specialty="coord")
+                    try:
+                        skip_flag.parent.mkdir(parents=True, exist_ok=True)
+                        skip_flag.write_text(str(now))
+                    except Exception:
+                        pass
+                # do not push empty self-loop every 60s
+                _write_last({"delivered": 0, "picked": [], "protocol_ok": chk.get("ok"), "idle_skip": True})
+            return 0
 
     delivered = 0
     for task in picked:
@@ -456,6 +532,10 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         if args.dry_run:
             continue
         apply_result(bus, task, out, by=by)
+        write_agent_outbox(by if by in ("opencode", "hermes", "openclaw") else {
+            "code": "opencode", "teach": "hermes", "coord": "hermes", "claw": "openclaw",
+            "edge": "hermes", "fog": "hermes", "lead": "stratagrok",
+        }.get(hname, "hermes"), task, out)
         if out.get("ok"):
             delivered += 1
 
