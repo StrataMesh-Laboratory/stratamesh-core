@@ -40,3 +40,14 @@ Agent model must have **≥65536** context. See CONTEXT-64K.md. Never init on ll
 ## Desk feed (Fog TUI)
 Prefer `desk_bus.py` (auto-feeds). Manual: `python3 deploy/mac-fog/desk-feed-append.py hermes "…" --kind propose`.
 See `docs/FOG-DESK-FEED.md`. No secrets.
+
+## Native desktop + ops plug-in
+
+See [DESK.md](./DESK.md). Hermes runs collegium on this Mac desktop; STRATAGROK Bot computer is separate.
+
+```bash
+cd "$FOG_SRC"   # /Users/andremorais/StrataMesh/fog/repo
+python3 ops/desk-collegium/desk_ops.py cycle --max 1
+bash deploy/mac-fog/desk-agent-run.sh all
+python3 ops/desk-collegium/desk_actions.py sync
+```

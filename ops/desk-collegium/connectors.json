@@ -1,6 +1,6 @@
 {
   "schema": "desk.connectors.v1",
-  "version": "0.3.2-lab",
+  "version": "0.3.3-lab",
   "note": "Registry of operational surfaces. Values are paths/commands/URLs \u2014 never store PAT/token bytes here.",
   "surfaces": [
     {
@@ -141,6 +141,20 @@
           ".github/workflows/desk-tick.yml",
           "ops/bin/desk-collegium-cycle.py",
           "ops/desk-collegium/desk_actions.py"
+        ]
+      },
+      "ship_gate": true
+    },
+    {
+      "id": "hermes-desktop",
+      "kind": "sdk",
+      "desc": "Hermes FOG-CMN-DESK native desktop (DESK.md, pulse script)",
+      "probe": {
+        "type": "repo_paths",
+        "paths": [
+          "deploy/mac-fog/hermes/desktop/DESK.md",
+          "deploy/mac-fog/hermes/desk-hermes-pulse.sh",
+          "deploy/mac-fog/desk-agent-run.sh"
         ]
       },
       "ship_gate": true

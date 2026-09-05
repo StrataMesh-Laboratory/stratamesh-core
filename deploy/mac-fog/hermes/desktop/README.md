@@ -17,3 +17,5 @@ Preferred path after Fog pull:
 6. Scheduled jobs: align with desk (09:00 Dev Cycle watch, mail pulse) — no new CF crons
 
 Gateway ready on local desktop is expected; Fog TUI  still uses Ollama  preference chain.
+
+**Start here for live desk:** [DESK.md](./DESK.md) — native environment (Actions, scripts, outbox, academy teach).
