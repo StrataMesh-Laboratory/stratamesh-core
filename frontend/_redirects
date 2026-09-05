@@ -1,18 +1,15 @@
-# Pages fail-open. Never SPA-rewrite hop-owned paths to index HTML.
-# Do NOT add /* /index.html 200.
-# Do NOT 200-rewrite /path → /path.html — fights CF Pages pretty-URL (308 loops).
-# /atelier remains 404 on apex (renderer is /gnu-atelier.html).
-# Functions: _routes.json include only /api/*.
+# Pages fail-open (1027). Never SPA-rewrite hop-owned paths to index HTML.
+# Live 2026-09-02 PT: /atelier and /api/health were 200 same HTML as /;
+# Do NOT add /* /index.html 200. Do not SPA-rewrite /chat.
+# /sandbox is the sandbox document (sandbox.html: chrome + #atelierFrame → same-origin /gnu-atelier.html).
+# /dashboard is the workbench (dashboard.html). They are not the same HTML.
+# /atelier remains 404 on apex Pages (renderer lives on same-origin /gnu-atelier.html).
+# Functions under functions/api remain in-tree; _routes.json excludes /api/*
+# so Pages does not serve landing HTML (or fake JSON) on /api/health.
+# /chat is a real static page (chat.html) — rewrite 200, not 404, not SPA.
 /manutencao /maintenance-1xxx.html 200
 /atelier /404.html 404
 /atelier/* /404.html 404
-
-# Lang homes
-/pt /pt/ 302
-/pt/index /pt/ 302
-
-# EN aliases → PT fog docs (same HTML)
-/en/fog-appliance /fog-appliance 302
-/en/fog-infrastructure /fog-infrastructure 302
-/en/fog-stack /fog-stack 302
-/mapa /roadmap 302
+/api/* /404.html 404
+/chat /chat.html 200
+/chat/* /chat.html 200
