@@ -117,6 +117,15 @@
       "id": "desk_cloud_auth",
       "enforce": true,
       "text": "General desk cloud auth = automation.desk@calhegasmorais.pt (not grok@). grok@ = private Bot/Fog/EDGE gateway only."
+    },
+    {
+      "id": "camaraderie",
+      "enforce": true,
+      "text": "Peers help before André escalate; reputation is peer-local qualitative notes (skill_tags + free text) — never a 0–100 score and never blended into KPI/delivered/ship_live/fund JSON. Private peer dialogue uses consult (feed gets opaque pointer only, not chat body)."
+    },
+    {
+      "id": "consult",
+      "text": "Inter-agent consult is private chat; feed stays opaque; not a KPI surface."
     }
   ],
   "lifecycle": {
@@ -232,7 +241,11 @@
     "commit",
     "escalate",
     "done",
-    "drop"
+    "drop",
+    "ask_help",
+    "commend",
+    "consult",
+    "consult_close"
   ],
   "agent_autonomy": {
     "escalate_only": [

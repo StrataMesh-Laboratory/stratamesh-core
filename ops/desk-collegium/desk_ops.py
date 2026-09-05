@@ -1214,10 +1214,72 @@ def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
     return out
 
 
+
+def _task_tags(task: dict) -> list[str]:
+    """Light tag extraction for camaraderie soft prior (intent/specialty only)."""
+    tags: list[str] = []
+    spec = (task.get("specialty") or "").strip().lower()
+    if spec:
+        tags.append(f"craft:{spec}")
+    intent = (task.get("intent") or "").lower()
+    for key in ("fog-tui", "origin-put", "mail-sync", "hops", "code", "coord", "claw", "edge", "teach"):
+        if key in intent.replace("_", "-") or key in intent:
+            tags.append(f"craft:{key.replace('-', '-')}")
+    # de-dupe
+    out: list[str] = []
+    seen: set[str] = set()
+    for t in tags:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out[:8]
+
+
+def _reputation_soft_prior(task: dict) -> float:
+    """Soft prior only — never starves RR. KPI-wall: reputation store, not metrics."""
+    try:
+        import importlib.util
+        fp = Path(__file__).resolve().parent / "reputation" / "store.py"
+        spec = importlib.util.spec_from_file_location("desk_reputation_store_ops", fp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        return float(
+            mod.soft_prior_score_for_specialty(
+                str(task.get("specialty") or ""),
+                task_tags=_task_tags(task),
+            )
+        )
+    except Exception:
+        return 0.0
+
+
+def suggest_refer_helpers(task: dict, *, limit: int = 3) -> list[str]:
+    """Refer-path soft prior: specialty → will_help∩tags → recent notes → RR."""
+    try:
+        import importlib.util
+        fp = Path(__file__).resolve().parent / "reputation" / "store.py"
+        spec = importlib.util.spec_from_file_location("desk_reputation_store_ops2", fp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        ranked = mod.rank_helpers(
+            task_tags=_task_tags(task),
+            specialty=str(task.get("specialty") or ""),
+        )
+        return [r["id"] for r in ranked[:limit]]
+    except Exception:
+        return []
+
+
 def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) -> list[dict]:
     """Fair RR across specialties so claw cannot starve code/coord at --max 1.
 
     Skip Plan/Note + human gates unless asked. Metabol HOLD/STASIS still enforced.
+
+    Soft prior (camaraderie): after RR specialty rotation, a tiny qualitative
+    reputation / will_help boost may re-order within the same RR bucket — never
+    a hard gate, never KPI blend, never starves juniors or teach lane.
     """
     board = classify(state)
     order = ["claw", "code", "teach", "coord", "edge", "fog", "lead"]
@@ -1243,12 +1305,15 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
         t["_handler"] = use_spec
         t["_pace"] = pace
         t["_lane"] = lane
-        scored.append((prio.get(use_spec, 5), t))
-    scored.sort(key=lambda x: (x[0], x[1].get("updated") or ""))
+        soft = _reputation_soft_prior(t)
+        t["_rep_soft"] = soft
+        # RR prio primary; soft prior secondary (negate soft so higher fit sorts first); updated tertiary
+        scored.append((prio.get(use_spec, 5), -soft, t))
+    scored.sort(key=lambda x: (x[0], x[1], (x[2].get("updated") or "")))
     # diversify: at most one task per specialty in a pick batch
     picked: list[dict] = []
     seen: set[str] = set()
-    for _, t in scored:
+    for _, __, t in scored:
         spec = t.get("_handler") or ""
         if spec in seen:
             continue
@@ -1446,6 +1511,16 @@ def collegium_continue_after_soft_fail(bus, task: dict, out: dict, *, by: str) -
     """
     tid = task["id"]
     next_action = (out.get("next_action") or "retry specialty handler with amend/revise").strip()
+    # Soft camaraderie prior for refer targets (specialty → will_help → notes → RR)
+    try:
+        helpers = suggest_refer_helpers(task, limit=3)
+        if helpers and (out.get("peer") == "refer" or out.get("peer_vote") or out.get("verb") == "refer"):
+            out = dict(out)
+            out["soft_helpers"] = helpers
+            if "soft_helpers" not in next_action:
+                next_action = f"{next_action} | soft_helpers={','.join(helpers)}"
+    except Exception:
+        pass
     # revise keeps task open with actionable slot
     bus._mutate(
         tid,

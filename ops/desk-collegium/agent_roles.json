@@ -68,9 +68,13 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
       "collegium_mail": "automation.desk@calhegasmorais.pt",
       "escalate_to_andre": [
         "fog_g",
@@ -87,7 +91,19 @@
         "discourse_with_prior_approval",
         "feed_handler_vapour_code_fix"
       ],
-      "note_gates": "Do not dump representable escalations on André. Never invent secrets; materialize only from existing KeePass→0600 files."
+      "note_gates": "Do not dump representable escalations on André. Never invent secrets; materialize only from existing KeePass→0600 files.",
+      "skills": [
+        "craft:lead",
+        "craft:protocol",
+        "trust:ship_review",
+        "stance:calm-hold"
+      ],
+      "will_help": [
+        "craft:lead",
+        "craft:protocol",
+        "trust:ship_review",
+        "stance:owns-blocker"
+      ]
     },
     {
       "id": "hermes",
@@ -151,15 +167,31 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
       "collegium_mail": "automation.desk@calhegasmorais.pt",
       "mail_config": "deploy/mac-fog/hermes/desktop/config.yaml",
       "capabilities": [
         "shared_desk_ssh_hermes"
       ],
-      "shared_desk_machine": "hermes-desk"
+      "shared_desk_machine": "hermes-desk",
+      "skills": [
+        "craft:coord",
+        "craft:mail-sync",
+        "craft:protocol",
+        "stance:teaches"
+      ],
+      "will_help": [
+        "craft:coord",
+        "craft:mail-sync",
+        "craft:protocol",
+        "craft:fog-tui"
+      ]
     },
     {
       "id": "opencode",
@@ -221,15 +253,31 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
       "collegium_mail": "automation.desk@calhegasmorais.pt",
       "mail_config": "deploy/mac-fog/opencode/config.example.yaml",
       "capabilities": [
         "shared_desk_ssh_hermes"
       ],
-      "shared_desk_machine": "hermes-desk"
+      "shared_desk_machine": "hermes-desk",
+      "skills": [
+        "craft:code",
+        "craft:fog-tui",
+        "craft:origin-put",
+        "stance:owns-blocker"
+      ],
+      "will_help": [
+        "craft:code",
+        "craft:fog-tui",
+        "craft:origin-put",
+        "stance:teaches"
+      ]
     },
     {
       "id": "openclaw",
@@ -290,15 +338,29 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
       "collegium_mail": "automation.desk@calhegasmorais.pt",
       "mail_config": "deploy/mac-fog/openclaw/config.example.yaml",
       "capabilities": [
         "shared_desk_ssh_hermes"
       ],
-      "shared_desk_machine": "hermes-desk"
+      "shared_desk_machine": "hermes-desk",
+      "skills": [
+        "craft:claw",
+        "craft:hops",
+        "craft:probes"
+      ],
+      "will_help": [
+        "craft:claw",
+        "craft:hops",
+        "craft:probes"
+      ]
     },
     {
       "id": "fog-assistant",
@@ -361,10 +423,24 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
-      "collegium_mail": "automation.desk@calhegasmorais.pt"
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
+      "collegium_mail": "automation.desk@calhegasmorais.pt",
+      "skills": [
+        "craft:fog",
+        "craft:origin-put",
+        "craft:fog-tui"
+      ],
+      "will_help": [
+        "craft:fog",
+        "craft:origin-put",
+        "craft:fog-tui"
+      ]
     },
     {
       "id": "edge-assistant",
@@ -428,10 +504,22 @@
         "commit",
         "escalate",
         "done",
-        "drop"
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
       ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move).",
-      "collegium_mail": "automation.desk@calhegasmorais.pt"
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
+      "collegium_mail": "automation.desk@calhegasmorais.pt",
+      "skills": [
+        "craft:edge",
+        "craft:consume-origin"
+      ],
+      "will_help": [
+        "craft:edge",
+        "craft:consume-origin"
+      ]
     }
   ],
   "ship_auto": {

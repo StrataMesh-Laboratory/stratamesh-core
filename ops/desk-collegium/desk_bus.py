@@ -2,7 +2,9 @@
 """Fog desk collegium bus — full verb set (propose is not the only move).
 
 Core lifecycle: propose → constrain → revise → commit|escalate → done|drop
-Peer verbs: act, audit, amend, revise, vote (call-vote + cast), refer, dispute
+Peer verbs: act, audit, amend, revise, vote (call-vote + cast), refer, dispute,
+  ask_help, commend (camaraderie / qualitative reputation),
+  consult / consult_reply / consult_close (private inter-agent chat)
 Plus: constrain, commit, escalate, done.
 
 Each verb appends structured task history and a DESK feed line
@@ -17,6 +19,10 @@ Usage (Mac, from FOG_SRC or PATH):
   python3 ops/desk-collegium/desk_bus.py cast TASK_ID --by opencode --vote ack --note "ok"
   python3 ops/desk-collegium/desk_bus.py constrain|commit|escalate|done|drop TASK_ID …
   python3 ops/desk-collegium/desk_bus.py pulse   # idle specialties → draft proposes (dry print + optional --apply)
+  python3 ops/desk-collegium/desk_bus.py ask_help --by opencode --to hermes --tags craft:coord --note "…"
+  python3 ops/desk-collegium/desk_bus.py commend --by hermes --to opencode --tags craft:code --note "…"
+  python3 ops/desk-collegium/desk_bus.py consult --by hermes --to opencode --topic fog-tui --note "…"
+  python3 ops/desk-collegium/desk_bus.py consult_reply --by opencode --thread c-… --note "…"
 """
 from __future__ import annotations
 
@@ -53,7 +59,7 @@ VALID_STATUS = (
     "dispute",
 )
 # Feed/history kinds include vote call/cast aliases
-VALID_VERBS = VALID_STATUS + ("call_vote", "cast")
+VALID_VERBS = VALID_STATUS + ("call_vote", "cast", "ask_help", "commend", "consult", "consult_reply", "consult_close")
 ALLOWED_VERBS = list(VALID_VERBS)
 OWNER_ALIASES = {
     "hermes": "hermes@fog.calhegasmorais.pt",
@@ -440,6 +446,195 @@ def cmd_pulse(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def _load_reputation():
+    """Lazy-load qualitative reputation store (KPI-wall: no metrics import)."""
+    import importlib.util
+    fp = Path(__file__).resolve().parent / "reputation" / "store.py"
+    spec = importlib.util.spec_from_file_location("desk_reputation_store", fp)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def cmd_ask_help(args: argparse.Namespace) -> int:
+    """Camaraderie: ask a peer for help (feed + soft seek; no self-rep write)."""
+    mod = _load_reputation()
+    tags = list(getattr(args, "tags", None) or [])
+    out = mod.ask_help(frm=args.by, to=getattr(args, "to", "") or "", skill_tags=tags, note=args.note or "")
+    who = agent_short(resolve_owner(args.by))
+    to = (getattr(args, "to", "") or "").strip() or "collegium"
+    tag_s = ",".join(tags) if tags else "-"
+    payload = f"ask_help → {to} tags={tag_s} {(args.note or '')[:160]}".strip()
+    feed_append(who, payload, kind="ask_help", specialty="")
+    # optional ranking hint on stdout
+    consult_thread = None
+    if getattr(args, "consult", False) and to and to != "collegium":
+        try:
+            cmod = _load_consult()
+            c_out = cmod.open_thread(
+                frm=args.by,
+                to=to,
+                topic=f"ask_help:{tag_s}",
+                text=args.note or f"ask_help tags={tag_s}",
+            )
+            if c_out.get("ok"):
+                consult_thread = (c_out.get("thread") or {}).get("id")
+                ptr = cmod.opaque_feed_pointer(
+                    verb="open",
+                    thread_id=consult_thread or "",
+                    participants=list((c_out.get("thread") or {}).get("participants") or []),
+                )
+                feed_append(who, ptr, kind="consult", specialty="")
+        except Exception as e:
+            consult_thread = f"err:{e}"[:80]
+    payload_obj = {"ok": True, "verb": "ask_help", "out": out}
+    if tags or to:
+        ranked = mod.rank_helpers(task_tags=tags, specialty="", candidates=None)
+        payload_obj["soft_helpers"] = ",".join(r["id"] for r in ranked[:3])
+    if consult_thread:
+        payload_obj["consult_thread"] = consult_thread
+    print(json.dumps(payload_obj, ensure_ascii=False))
+    return 0
+
+
+def cmd_commend(args: argparse.Namespace) -> int:
+    """Camaraderie: commend a peer (feed + qualitative reputation note; ignore self)."""
+    mod = _load_reputation()
+    tags = list(getattr(args, "tags", None) or [])
+    to = (getattr(args, "to", "") or "").strip()
+    if not to:
+        print("commend: --to required", file=sys.stderr)
+        return 2
+    out = mod.commend(frm=args.by, to=to, skill_tags=tags, note=args.note or "")
+    who = agent_short(resolve_owner(args.by))
+    tag_s = ",".join(tags) if tags else "-"
+    payload = f"commend → {to} tags={tag_s} {(args.note or '')[:160]}".strip()
+    feed_append(who, payload, kind="commend", specialty="")
+    print(json.dumps({"ok": True, "verb": "commend", "out": out}, ensure_ascii=False))
+    return 0 if out.get("ok") else 1
+
+
+def _load_consult():
+    """Lazy-load private consult threads (bodies never hit public feed)."""
+    import importlib.util
+    fp = Path(__file__).resolve().parent / "consult" / "store.py"
+    spec = importlib.util.spec_from_file_location("desk_consult_store", fp)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def cmd_consult(args: argparse.Namespace) -> int:
+    """Private peer consult: open (--to) or reply (--thread). Feed = opaque pointer only."""
+    mod = _load_consult()
+    who = agent_short(resolve_owner(args.by))
+    thread = (getattr(args, "thread", "") or "").strip()
+    to_raw = getattr(args, "to", "") or ""
+    if getattr(args, "list", False):
+        rows = mod.list_threads(for_agent=args.by, status=getattr(args, "status", "open") or "open")
+        print(json.dumps({"ok": True, "threads": rows}, ensure_ascii=False, indent=2))
+        return 0
+    if getattr(args, "read", False):
+        if not thread:
+            print("consult --read requires --thread", file=sys.stderr)
+            return 2
+        out = mod.read_thread(thread_id=thread, frm=args.by)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0 if out.get("ok") else 1
+    if thread:
+        out = mod.reply(thread_id=thread, frm=args.by, text=args.note or "")
+        if not out.get("ok"):
+            print(json.dumps(out, ensure_ascii=False), file=sys.stderr)
+            return 1
+        ptr = mod.opaque_feed_pointer(verb="reply", thread_id=thread)
+        feed_append(who, ptr, kind="consult", specialty="")
+        print(json.dumps({"ok": True, "verb": "consult", "mode": "reply", "out": out}, ensure_ascii=False))
+        return 0
+    peers = []
+    if isinstance(to_raw, list):
+        peers = list(to_raw)
+    elif to_raw:
+        peers = [x for x in str(to_raw).replace(",", " ").split() if x]
+    if not peers:
+        print("consult open: --to peer required (or --thread to reply)", file=sys.stderr)
+        return 2
+    out = mod.open_thread(
+        frm=args.by,
+        to=peers,
+        topic=getattr(args, "topic", "") or "",
+        text=args.note or "",
+        related_task=getattr(args, "task", "") or "",
+    )
+    if not out.get("ok"):
+        print(json.dumps(out, ensure_ascii=False), file=sys.stderr)
+        return 1
+    meta = out.get("thread") or {}
+    tid = meta.get("id") or ""
+    ptr = mod.opaque_feed_pointer(
+        verb="open",
+        thread_id=tid,
+        participants=list(meta.get("participants") or []),
+    )
+    feed_append(who, ptr, kind="consult", specialty="")
+    print(json.dumps({"ok": True, "verb": "consult", "mode": "open", "out": out}, ensure_ascii=False))
+    return 0
+
+
+def cmd_consult_reply(args: argparse.Namespace) -> int:
+    """Alias: reply on an existing consult thread."""
+    ns = argparse.Namespace(
+        by=args.by,
+        thread=getattr(args, "thread", "") or "",
+        to="",
+        topic="",
+        task="",
+        note=args.note or "",
+        list=False,
+        read=False,
+        status="open",
+    )
+    return cmd_consult(ns)
+
+
+def cmd_consult_close(args: argparse.Namespace) -> int:
+    mod = _load_consult()
+    thread = (getattr(args, "thread", "") or "").strip()
+    if not thread:
+        print("consult_close: --thread required", file=sys.stderr)
+        return 2
+    out = mod.close_thread(thread_id=thread, frm=args.by, note=args.note or "")
+    if not out.get("ok"):
+        print(json.dumps(out, ensure_ascii=False), file=sys.stderr)
+        return 1
+    who = agent_short(resolve_owner(args.by))
+    ptr = mod.opaque_feed_pointer(verb="close", thread_id=thread)
+    feed_append(who, ptr, kind="consult_close", specialty="")
+    print(json.dumps({"ok": True, "verb": "consult_close", "out": out}, ensure_ascii=False))
+    return 0
+
+
+def cmd_consult_inbox(args: argparse.Namespace) -> int:
+    mod = _load_consult()
+    rows = mod.list_threads(for_agent=args.by, status=getattr(args, "status", "open") or "open")
+    print(json.dumps({"ok": True, "threads": rows}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_consult_read(args: argparse.Namespace) -> int:
+    mod = _load_consult()
+    tid = (getattr(args, "thread", "") or "").strip()
+    if not tid:
+        print("consult_read: --thread required", file=sys.stderr)
+        return 2
+    out = mod.read_thread(thread_id=tid, frm=args.by, limit=int(getattr(args, "limit", 50) or 50))
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if out.get("ok") else 1
+
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Fog desk collegium bus")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -488,6 +683,49 @@ def main() -> int:
     vv.add_argument("--call", action="store_true")
     vv.add_argument("--cast", choices=("ack", "nack"), default="")
 
+    co = sub.add_parser("consult", help="private peer consult open/reply/list/read")
+    co.add_argument("--by", default="hermes")
+    co.add_argument("--to", default="", help="peer id(s) for open (space/comma)")
+    co.add_argument("--thread", default="", help="thread id for reply/read")
+    co.add_argument("--topic", default="")
+    co.add_argument("--task", default="", help="optional related task id")
+    co.add_argument("--note", default="", help="message body (private)")
+    co.add_argument("--list", action="store_true")
+    co.add_argument("--read", action="store_true")
+    co.add_argument("--status", default="open")
+
+    cr = sub.add_parser("consult_reply", help="alias: reply on consult thread")
+    cr.add_argument("--by", default="hermes")
+    cr.add_argument("--thread", required=True)
+    cr.add_argument("--note", default="")
+
+    ci = sub.add_parser("consult_inbox", help="list consult threads for --by")
+    ci.add_argument("--by", default="hermes")
+    ci.add_argument("--status", default="open")
+
+    cd = sub.add_parser("consult_read", help="read private consult thread (participants only)")
+    cd.add_argument("--by", default="hermes")
+    cd.add_argument("--thread", required=True)
+    cd.add_argument("--limit", type=int, default=50)
+
+    cc = sub.add_parser("consult_close", help="close a private consult thread")
+    cc.add_argument("--by", default="hermes")
+    cc.add_argument("--thread", required=True)
+    cc.add_argument("--note", default="")
+
+    ah = sub.add_parser("ask_help", help="camaraderie: ask peer help (feed; soft seek)")
+    ah.add_argument("--by", default="hermes")
+    ah.add_argument("--to", default="", help="optional peer id")
+    ah.add_argument("--tags", nargs="*", default=[], help="skill tags")
+    ah.add_argument("--note", default="")
+    ah.add_argument("--consult", action="store_true", help="also open private consult thread with --to")
+
+    cm = sub.add_parser("commend", help="camaraderie: qualitative peer commend")
+    cm.add_argument("--by", default="hermes")
+    cm.add_argument("--to", required=True, help="peer id")
+    cm.add_argument("--tags", nargs="*", default=[], help="skill tags")
+    cm.add_argument("--note", default="")
+
     pu = sub.add_parser("pulse", help="draft missing specialty proposes")
     pu.add_argument("--apply", action="store_true")
 
@@ -510,6 +748,20 @@ def main() -> int:
             ns = argparse.Namespace(task_id=args.task_id, by=args.by, vote=args.cast, note=args.note)
             return cmd_cast(ns)
         return cmd_call_vote(args)
+    if args.cmd == "ask_help":
+        return cmd_ask_help(args)
+    if args.cmd == "commend":
+        return cmd_commend(args)
+    if args.cmd == "consult":
+        return cmd_consult(args)
+    if args.cmd == "consult_reply":
+        return cmd_consult_reply(args)
+    if args.cmd == "consult_close":
+        return cmd_consult_close(args)
+    if args.cmd == "consult_inbox":
+        return cmd_consult_inbox(args)
+    if args.cmd == "consult_read":
+        return cmd_consult_read(args)
     if args.cmd == "constrain":
         return _mutate(args.task_id, "constrain", by=args.by, note=args.note)
     if args.cmd == "revise":

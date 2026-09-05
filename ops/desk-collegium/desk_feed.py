@@ -17,6 +17,7 @@ COLLEGIUM_KINDS = frozenset({
     "propose", "constrain", "act", "audit", "amend", "revise",
     "vote", "refer", "dispute", "commit", "escalate", "done", "drop",
     "call_vote", "cast",
+    "ask_help", "commend", "consult", "consult_reply", "consult_close",
 })
 
 # Opaque legacy → default Act (still technical; never invent fake progress)
