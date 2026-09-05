@@ -122,3 +122,16 @@
 
 **Next human gate:** André GCP billing/2FA **or** plug in spare Pi/NUC and run `deploy/homelab-peer/bootstrap.sh`.
 
+### Peer rehearsal results (2026-09-05 PT, hermes-desk)
+
+Same-machine dialect via `ops/bin/fog-peer-rehearsal.sh start` against live `:8787`. **Not M-II.**
+
+| Port | node_id | /health | /gossip | /inv | oracle_live |
+|------|---------|---------|---------|------|-------------|
+| 8787 | FOG-NODE-PT-CM-001 | ok | 200 | 200 | false |
+| 8887 | FOG-NODE-REHEARSAL-001 | ok | 200 | 200 | false |
+
+Health snippets: both return `"ok": true`, `"version": "0.6.0-lab"`, `"oracle_live": false`. Rehearsal uses `$FOG_HOME/data/rehearsal/fog.db` + pidfile. Banner: same machine ≠ M-II.
+
+Packs also include: `deploy/homelab-peer/cloudflared.config.example.yml` (ARM64 note) + `publish.env.example`.
+
