@@ -215,11 +215,16 @@ class SPARegistry:
                     "grace_until": until,
                     "reason": getattr(r, "_opt_out_reason", ""),
                 })
+        total = len(self.spas)
+        active = len(self.all_active())
         return {
-            "total": len(self.spas),
-            "active": len(self.all_active()),
+            "total": int(total),
+            "active": int(active),
             "by_role": _count_roles(self.all_active()),
             "opt_out_pending": pending,
+            "source": "registry" if total else "empty",
+            "measured": True,
+            "seed_only": False,
         }
 
 

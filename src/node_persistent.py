@@ -444,19 +444,8 @@ code {{ color:var(--fg); }}
             stats = self.dag.stats()
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
-            if not getattr(self.spas, "spas", None):
-                for roles in (
-                    ["atelier"],
-                    ["agora"],
-                    ["tesouraria"],
-                    ["malha"],
-                    ["camaras"],
-                    ["workbench"],
-                ):
-                    try:
-                        self.spas.register(self.node_id, roles)
-                    except Exception:
-                        pass
+            # Do not seed six lab roles on GET /status — that is seed-only noise for AIOps.
+            # Empty registry stays total=0 source=empty. Live Fog already persisted roles.
             agora_book = self.agora.book()
             log = getattr(self.agora, "settlement_log", None) or []
             trades = agora_book.get("trades")

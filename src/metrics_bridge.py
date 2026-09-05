@@ -14,6 +14,65 @@ from host_fingerprint import fingerprint as host_fingerprint
 
 OPERATOR_NAME = "André Manuel Calhegas Morais"
 
+
+def _honest_dag(dag_stats: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Always emit numeric transaction_count. Empty ledger is 0 + source=empty, not null."""
+    d = dag_stats if isinstance(dag_stats, dict) else {}
+    tx = d.get("transaction_count", d.get("tx_count", 0))
+    try:
+        tx_n = int(tx)
+    except (TypeError, ValueError):
+        tx_n = 0
+    tips = d.get("tip_count", d.get("tips"))
+    if isinstance(tips, list):
+        tip_n = len(tips)
+        sample = tips[:8]
+    else:
+        try:
+            tip_n = int(tips or 0)
+        except (TypeError, ValueError):
+            tip_n = 0
+        sample = list(d.get("tips_sample") or d.get("tips") or [])[:8]
+    height = d.get("height", d.get("max_height", 0))
+    try:
+        height_n = int(height or 0)
+    except (TypeError, ValueError):
+        height_n = 0
+    return {
+        "transaction_count": tx_n,
+        "tip_count": tip_n,
+        "height": height_n,
+        "max_height": int(d.get("max_height") or height_n or 0),
+        "tips_sample": sample if isinstance(sample, list) else [],
+        "source": "ledger" if tx_n else "empty",
+        "measured": True,
+        "seed_only": False,
+    }
+
+
+def _honest_spa(spa_summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Always emit numeric spa.total. Missing registry is 0 + source=empty, not null."""
+    s = spa_summary if isinstance(spa_summary, dict) else {}
+    try:
+        total = int(s.get("total") if s.get("total") is not None else 0)
+    except (TypeError, ValueError):
+        total = 0
+    try:
+        active = int(s.get("active") if s.get("active") is not None else 0)
+    except (TypeError, ValueError):
+        active = 0
+    roles = s.get("by_role") if isinstance(s.get("by_role"), dict) else {}
+    return {
+        "total": total,
+        "active": active,
+        "by_role": {str(k): int(v or 0) for k, v in roles.items()},
+        "opt_out_pending": list(s.get("opt_out_pending") or []),
+        "source": str(s.get("source") or ("registry" if total else "empty")),
+        "measured": True,
+        "seed_only": False,
+    }
+
+
 def build_status_payload(
     *,
     node_id: str = "FOG-NODE-PT-CM-001",
@@ -38,14 +97,8 @@ def build_status_payload(
         "phase_name": phase_name,
         "status": "operational",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "dag": {
-            "transaction_count": dag_stats.get("tx_count", 0),
-            "tip_count": dag_stats.get("tip_count", 0),
-            "height": dag_stats.get("height", dag_stats.get("max_height", 0)),
-            "max_height": dag_stats.get("max_height", dag_stats.get("height", 0)),
-            "tips_sample": dag_stats.get("tips", [])[:8],
-        },
-        "spa": spa_summary or {"total": 0, "active": 0},
+        "dag": _honest_dag(dag_stats),
+        "spa": _honest_spa(spa_summary),
         "subsistence": subsistence or {},
         "ipfs": {
             "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
@@ -53,7 +106,7 @@ def build_status_payload(
         },
         "links": {
             "repo": "https://github.com/StrataMesh-Laboratory/stratamesh-core",
-            "status_worker": "https://stratamesh-status.stratamesh.workers.dev/status",
+            "status_worker": "https://status.calhegasmorais.pt/status",
             "portal": "https://calhegasmorais.pt/dashboard",
         },
         "progress": {
