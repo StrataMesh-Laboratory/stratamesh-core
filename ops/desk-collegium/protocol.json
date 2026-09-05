@@ -1,7 +1,7 @@
 {
   "schema": "desk.protocol.v1",
-  "version": "0.4.0-lab",
-  "title": "Fog automation desk \u2014 enforceable methodology",
+  "version": "0.4.1-lab",
+  "title": "Fog automation desk — enforceable methodology",
   "sources": [
     "docs/FOG-DESK-COLLEGIUM.md",
     "docs/FOG-DESK-SPECIALIZATION.md",
@@ -15,12 +15,12 @@
     {
       "id": "specialization",
       "enforce": true,
-      "text": "Each member acts by best capability; specialty owner proposes; peers only constrain."
+      "text": "Each member acts by best capability; specialty owner proposes and commits; peers may use the full verb set (act, audit, amend, revise, vote, refer, dispute, constrain) — propose is not the only move; peers do not take over another specialty's commit ownership."
     },
     {
       "id": "bus",
       "enforce": true,
-      "text": "propose \u2192 constrain \u2192 revise \u2192 commit|escalate \u2192 done|drop"
+      "text": "Full collegium verb set (propose is not the only move): propose → constrain → act|audit|amend|revise → vote(call+cast)|refer|dispute → commit|escalate → done|drop. Peers may act/audit/amend/revise/vote/refer/dispute; specialty owner still owns commit/done on their core."
     },
     {
       "id": "metabol_pace",
@@ -45,17 +45,17 @@
     {
       "id": "human_gates",
       "enforce": true,
-      "text": "Escalate only: Fog g, 2FA, captcha, Oracle password, Mac desk-mail.token/gh, Billing trial date, Renovate majors \u2014 never fake progress; never git secrets."
+      "text": "Escalate only: Fog g, 2FA, captcha, Oracle password, Mac desk-mail.token/gh, Billing trial date, Renovate majors — never fake progress; never git secrets."
     },
     {
       "id": "ship_majority",
       "enforce": true,
-      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. Auto-ship when majority ACK AND metric bands in-band (desk_score\u226570, protocol_ok, claw fog_public=1 soft, no human_gate) \u2014 no Bot prompt required. NACK or out-of-band metrics \u2192 escalate to STRATAGROK."
+      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. Auto-ship when majority ACK AND metric bands in-band (desk_score≥70, protocol_ok, claw fog_public=1 soft, no human_gate) — no Bot prompt required. NACK or out-of-band metrics → escalate to STRATAGROK."
     },
     {
       "id": "no_sca",
       "enforce": true,
-      "text": "Hermes/OpenCode/OpenClaw/Assistants are external_agent|assistant \u2014 never SCA/ACB students."
+      "text": "Hermes/OpenCode/OpenClaw/Assistants are external_agent|assistant — never SCA/ACB students."
     },
     {
       "id": "secrets",
@@ -75,30 +75,30 @@
     {
       "id": "academy_teach",
       "enforce": true,
-      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on academy.calhegasmorais.pt and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant \u2014 never enrolled as students."
+      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on academy.calhegasmorais.pt and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant — never enrolled as students."
     },
     {
       "id": "apprenticeship",
       "enforce": true,
-      "text": "Desk agents are also mentors: apprenticeship = ACBs learn by doing what the desk is developing now (collegium bus, desk_ops, Fog hops, Actions, Atelier/catalog). Each real deliverable should leave a teachable trail (outbox lesson, formation note, feed line tagged apprentice) \u2014 not vapour lectures disconnected from live work."
+      "text": "Desk agents are also mentors: apprenticeship = ACBs learn by doing what the desk is developing now (collegium bus, desk_ops, Fog hops, Actions, Atelier/catalog). Each real deliverable should leave a teachable trail (outbox lesson, formation note, feed line tagged apprentice) — not vapour lectures disconnected from live work."
     },
     {
       "id": "agent_autonomy",
       "enforce": true,
-      "text": "Bot = escalate surface, not routine prompter. Each desk agent self-initiates ALLOW work from bus/projected on its specialty; self-audits each cycle/agent-run (claw=hops, code=tests, coord=protocol+board, fog=origin health, edge=consume-origin GETs) and writes outbox/meters. Escalate to STRATAGROK only for human_gates, ship_majority NACK/OOB metrics, metabol STASIS (own lane), secrets, protocol violations \u2014 never for routine next-steps. Fog/EDGE: one-Act rails; Fog may propose next Act in-thread when idle; Bot feeds only if empty AND no self-queue. At wake: read protocol.json + FOG-DESK-PROTOCOL/OPS + desk-outbox/TODO.md (bus board) + reports/; pick only specialty tasks; diary cites task id."
+      "text": "Bot = escalate surface, not routine prompter. Each desk agent self-initiates ALLOW work from bus/projected on its specialty; self-audits each cycle/agent-run (claw=hops, code=tests, coord=protocol+board, fog=origin health, edge=consume-origin GETs) and writes outbox/meters. Escalate to STRATAGROK only for human_gates, ship_majority NACK/OOB metrics, metabol STASIS (own lane), secrets, protocol violations — never for routine next-steps. Fog/EDGE: one-Act rails; Fog may propose next Act in-thread when idle; Bot feeds only if empty AND no self-queue. At wake: read protocol.json + FOG-DESK-PROTOCOL/OPS + desk-outbox/TODO.md (bus board) + reports/; pick only specialty tasks; diary cites task id."
     },
     {
       "id": "bot_cap_contingency",
       "enforce": true,
-      "text": "When lane-bot HOLD/STASIS (grok-bot-included token cap), desk MUST keep working offline of Bot: Mac TUI r/60s + desk_ops + desk-agent-run (Hermes/OpenCode/OpenClaw) continue; Fog Assistant may run if lane-assistant ALLOW; EDGE consume-only. Non-lead specialty handlers still run. On Bot wake after renewal: pull meters/outbox; escalate only failures/gates \u2014 do not re-prompt routine work."
+      "text": "When lane-bot HOLD/STASIS (grok-bot-included token cap), desk MUST keep working offline of Bot: Mac TUI r/60s + desk_ops + desk-agent-run (Hermes/OpenCode/OpenClaw) continue; Fog Assistant may run if lane-assistant ALLOW; EDGE consume-only. Non-lead specialty handlers still run. On Bot wake after renewal: pull meters/outbox; escalate only failures/gates — do not re-prompt routine work."
     }
   ],
   "lifecycle": {
     "projected": "roadmap/challenge backlog not yet open",
     "pending": "open_tasks in propose (waiting constrain/start)",
-    "ongoing": "open_tasks in constrain|revise|commit (in flight)",
+    "ongoing": "open_tasks in constrain|act|audit|amend|revise|vote|refer|dispute|commit (in flight)",
     "done": "done_tasks with deliverable result",
-    "escalated": "status escalate \u2014 human gate"
+    "escalated": "status escalate — human gate"
   },
   "cycle": [
     "metabol.tick",
@@ -132,7 +132,7 @@
     "Wait for Bot to ship when majority+metrics in-band"
   ],
   "academy": {
-    "students": "SCA (PT) / ACB (EN) \u2014 same subject, equal standing to users",
+    "students": "SCA (PT) / ACB (EN) — same subject, equal standing to users",
     "teachers_and_mentors": [
       "stratagrok",
       "hermes",
@@ -190,5 +190,22 @@
       "claw_fog_public": 1,
       "tests_green_soft": true
     }
-  }
+  },
+  "verbs": [
+    "propose",
+    "constrain",
+    "act",
+    "audit",
+    "amend",
+    "revise",
+    "vote",
+    "call_vote",
+    "cast",
+    "refer",
+    "dispute",
+    "commit",
+    "escalate",
+    "done",
+    "drop"
+  ]
 }

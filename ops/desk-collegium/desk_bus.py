@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Fog desk collegium bus — propose→constrain→revise→commit|escalate→done.
+"""Fog desk collegium bus — full verb set (propose is not the only move).
 
-Updates ops/desk-collegium/state.json (or FOG copy) and appends Fog TUI desk-feed.
+Core lifecycle: propose → constrain → revise → commit|escalate → done|drop
+Peer verbs: act, audit, amend, revise, vote (call-vote + cast), refer, dispute
+Plus: constrain, commit, escalate, done.
+
+Each verb appends structured task history and a DESK feed line
+(e.g. "hermes vote: …" / "opencode amend: …").
 
 Usage (Mac, from FOG_SRC or PATH):
   python3 ops/desk-collegium/desk_bus.py list
   python3 ops/desk-collegium/desk_bus.py propose --owner opencode --specialty code \\
       --intent "needle: desk_bus in protocol tests"
-  python3 ops/desk-collegium/desk_bus.py constrain TASK_ID --by hermes --note "ok if no Worker PUT"
-  python3 ops/desk-collegium/desk_bus.py revise TASK_ID --intent "narrowed intent"
-  python3 ops/desk-collegium/desk_bus.py commit TASK_ID --result "landed" --sha abc1234
-  python3 ops/desk-collegium/desk_bus.py done TASK_ID --result "verified"
-  python3 ops/desk-collegium/desk_bus.py escalate TASK_ID --note "needs Fog g"
-  python3 ops/desk-collegium/desk_bus.py drop TASK_ID --note "superseded"
+  python3 ops/desk-collegium/desk_bus.py act|audit|amend|revise|refer|dispute TASK_ID --by hermes --note "…"
+  python3 ops/desk-collegium/desk_bus.py call-vote TASK_ID --by hermes --note "ship?"
+  python3 ops/desk-collegium/desk_bus.py cast TASK_ID --by opencode --vote ack --note "ok"
+  python3 ops/desk-collegium/desk_bus.py constrain|commit|escalate|done|drop TASK_ID …
   python3 ops/desk-collegium/desk_bus.py pulse   # idle specialties → draft proposes (dry print + optional --apply)
 """
 from __future__ import annotations
@@ -34,7 +37,24 @@ STATE_CANDIDATES = [
 ]
 FEED = FOG / "data" / "desk-feed.jsonl"
 
-VALID_STATUS = ("propose", "constrain", "revise", "commit", "escalate", "done", "drop")
+VALID_STATUS = (
+    "propose",
+    "constrain",
+    "revise",
+    "commit",
+    "escalate",
+    "done",
+    "drop",
+    "act",
+    "audit",
+    "amend",
+    "vote",
+    "refer",
+    "dispute",
+)
+# Feed/history kinds include vote call/cast aliases
+VALID_VERBS = VALID_STATUS + ("call_vote", "cast")
+ALLOWED_VERBS = list(VALID_VERBS)
 OWNER_ALIASES = {
     "hermes": "hermes@fog.calhegasmorais.pt",
     "opencode": "opencode@fog.calhegasmorais.pt",
@@ -158,6 +178,24 @@ def agent_short(owner: str) -> str:
     return owner.split("@")[0][:12]
 
 
+def append_history(task: dict, verb: str, *, by: str = "", note: str = "", **extra) -> dict:
+    """Append structured history on the task (capped). Returns the record."""
+    rec = {
+        "verb": verb,
+        "by": by or "",
+        "note": (note or "")[:240],
+        "at": _now(),
+    }
+    for k, v in extra.items():
+        if v is None or v == "":
+            continue
+        rec[k] = v
+    hist = task.setdefault("history", [])
+    hist.append(rec)
+    task["history"] = hist[-100:]
+    return rec
+
+
 def cmd_list(state: dict) -> int:
     # Mirror open tasks into DESK feed so TUI chat is not empty
     try:
@@ -208,11 +246,13 @@ def cmd_propose(args: argparse.Namespace) -> int:
         "lanes": args.lanes or [],
         "status": "propose",
         "constraints": [],
+        "history": [],
         "result": "",
         "sha": "",
         "created": _now(),
         "updated": _now(),
     }
+    append_history(task, "propose", by=owner, note=args.intent)
     state.setdefault("open_tasks", []).append(task)
     save_state(state)
     feed_append(
@@ -226,7 +266,9 @@ def cmd_propose(args: argparse.Namespace) -> int:
 
 
 def _mutate(task_id: str, status: str, *, by: str, note: str = "", intent: str | None = None,
-            result: str = "", sha: str = "", close: bool = False) -> int:
+            result: str = "", sha: str = "", close: bool = False,
+            verb: str | None = None, feed_kind: str | None = None,
+            history_extra: dict | None = None) -> int:
     state = load_state()
     task = find_task(state, task_id)
     if not task:
@@ -234,7 +276,7 @@ def _mutate(task_id: str, status: str, *, by: str, note: str = "", intent: str |
         return 2
     if intent is not None:
         task["intent"] = intent
-    if note:
+    if note and status in ("constrain", "escalate", "refer", "dispute", "amend", "audit", "act"):
         task.setdefault("constraints", []).append(f"{by}: {note}" if by else note)
     if result:
         task["result"] = result
@@ -242,6 +284,13 @@ def _mutate(task_id: str, status: str, *, by: str, note: str = "", intent: str |
         task["sha"] = sha
     task["status"] = status
     task["updated"] = _now()
+    v = verb or status
+    extra = dict(history_extra or {})
+    if sha:
+        extra.setdefault("sha", sha)
+    if result and not note:
+        extra.setdefault("result", result)
+    append_history(task, v, by=by or "", note=note or result or "", **extra)
     if close or status in ("done", "drop"):
         open_tasks = [t for t in state.get("open_tasks") or [] if t.get("id") != task_id]
         state["open_tasks"] = open_tasks
@@ -264,15 +313,70 @@ def _mutate(task_id: str, status: str, *, by: str, note: str = "", intent: str |
     save_state(state)
     specialty = str(task.get("specialty") or "")
     who = agent_short(by or task.get("owner") or "desk")
-    body = f"{status} {task_id}"
+    kind = feed_kind or (status if status in VALID_STATUS else (v if v in VALID_VERBS else "say"))
+    body = f"{kind} {task_id}"
     if note:
         body += f": {note}"
     elif result:
         body += f": {result}"
     if sha:
         body += f" sha={sha}"
-    feed_append(who, body, kind=status if status in VALID_STATUS else "say", specialty=specialty)
-    print(task_id, status)
+    feed_kind_out = kind if (kind in VALID_VERBS or kind in VALID_STATUS) else "say"
+    feed_append(who, body, kind=feed_kind_out, specialty=specialty)
+    print(task_id, kind)
+    return 0
+
+
+def cmd_call_vote(args: argparse.Namespace) -> int:
+    """Open / refresh a collegium vote on a task."""
+    return _mutate(
+        args.task_id,
+        "vote",
+        by=args.by,
+        note=args.note or "call vote",
+        verb="call_vote",
+        feed_kind="vote",
+        history_extra={"vote_phase": "call"},
+    )
+
+
+def cmd_cast(args: argparse.Namespace) -> int:
+    """Cast ack|nack on a task vote; keeps status=vote and records votes[]."""
+    state = load_state()
+    task = find_task(state, args.task_id)
+    if not task:
+        print(f"unknown task: {args.task_id}", file=sys.stderr)
+        return 2
+    ballot = (args.vote or "").strip().lower()
+    if ballot not in ("ack", "nack"):
+        print("cast requires --vote ack|nack", file=sys.stderr)
+        return 2
+    by_short = agent_short(args.by or "desk")
+    votes = task.setdefault("votes", [])
+    # one live ballot per agent (replace prior)
+    votes = [v for v in votes if agent_short(str(v.get("by") or "")) != by_short]
+    votes.append({"by": by_short, "vote": ballot, "at": _now(), "note": args.note or ""})
+    task["votes"] = votes[-32:]
+    task["status"] = "vote"
+    task["updated"] = _now()
+    append_history(
+        task,
+        "cast",
+        by=args.by,
+        note=args.note or ballot,
+        vote=ballot,
+        vote_phase="cast",
+    )
+    ids = {t.get("id") for t in state.get("open_tasks") or []}
+    if args.task_id not in ids:
+        state.setdefault("open_tasks", []).append(task)
+    save_state(state)
+    specialty = str(task.get("specialty") or "")
+    body = f"vote {args.task_id}: cast {ballot}"
+    if args.note:
+        body += f" ({args.note})"
+    feed_append(by_short, body, kind="vote", specialty=specialty)
+    print(args.task_id, "vote", ballot)
     return 0
 
 
@@ -320,18 +424,40 @@ def main() -> int:
     pp.add_argument("--id", default="")
     pp.add_argument("--lanes", nargs="*", default=[])
 
-    for name in ("constrain", "revise", "commit", "escalate", "done", "drop"):
-        sp = sub.add_parser(name)
+    for name in ("constrain", "revise", "commit", "escalate", "done", "drop",
+                 "act", "audit", "amend", "refer", "dispute"):
+        sp = sub.add_parser(name, help=f"collegium verb: {name}")
         sp.add_argument("task_id")
         sp.add_argument("--by", default="hermes")
         sp.add_argument("--note", default="")
-        if name == "revise":
+        if name in ("revise", "amend"):
             sp.add_argument("--intent", default="")
         if name == "commit":
             sp.add_argument("--result", default="")
             sp.add_argument("--sha", default="")
         if name == "done":
             sp.add_argument("--result", default="")
+        if name == "act":
+            sp.add_argument("--result", default="")
+
+    cv = sub.add_parser("call-vote", help="call a collegium vote on a task")
+    cv.add_argument("task_id")
+    cv.add_argument("--by", default="hermes")
+    cv.add_argument("--note", default="")
+
+    cs = sub.add_parser("cast", help="cast ack|nack on a task vote")
+    cs.add_argument("task_id")
+    cs.add_argument("--by", default="hermes")
+    cs.add_argument("--vote", required=True, choices=("ack", "nack"))
+    cs.add_argument("--note", default="")
+
+    # Alias: vote --call | vote --cast
+    vv = sub.add_parser("vote", help="alias: --call or --cast ack|nack")
+    vv.add_argument("task_id")
+    vv.add_argument("--by", default="hermes")
+    vv.add_argument("--note", default="")
+    vv.add_argument("--call", action="store_true")
+    vv.add_argument("--cast", choices=("ack", "nack"), default="")
 
     pu = sub.add_parser("pulse", help="draft missing specialty proposes")
     pu.add_argument("--apply", action="store_true")
@@ -343,11 +469,35 @@ def main() -> int:
         return cmd_propose(args)
     if args.cmd == "pulse":
         return cmd_pulse(args)
+    if args.cmd == "call-vote":
+        return cmd_call_vote(args)
+    if args.cmd == "cast":
+        return cmd_cast(args)
+    if args.cmd == "vote":
+        if args.cast:
+            if args.call:
+                print("vote: pass either --call or --cast, not both", file=sys.stderr)
+                return 2
+            ns = argparse.Namespace(task_id=args.task_id, by=args.by, vote=args.cast, note=args.note)
+            return cmd_cast(ns)
+        return cmd_call_vote(args)
     if args.cmd == "constrain":
         return _mutate(args.task_id, "constrain", by=args.by, note=args.note)
     if args.cmd == "revise":
         return _mutate(args.task_id, "revise", by=args.by, note=args.note,
                        intent=args.intent or None)
+    if args.cmd == "amend":
+        return _mutate(args.task_id, "amend", by=args.by, note=args.note,
+                       intent=getattr(args, "intent", None) or None)
+    if args.cmd == "act":
+        return _mutate(args.task_id, "act", by=args.by, note=args.note,
+                       result=getattr(args, "result", "") or "")
+    if args.cmd == "audit":
+        return _mutate(args.task_id, "audit", by=args.by, note=args.note)
+    if args.cmd == "refer":
+        return _mutate(args.task_id, "refer", by=args.by, note=args.note)
+    if args.cmd == "dispute":
+        return _mutate(args.task_id, "dispute", by=args.by, note=args.note)
     if args.cmd == "commit":
         return _mutate(args.task_id, "commit", by=args.by, note=args.note,
                        result=args.result, sha=args.sha)

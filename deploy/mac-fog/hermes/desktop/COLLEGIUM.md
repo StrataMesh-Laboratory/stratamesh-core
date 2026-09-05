@@ -15,12 +15,16 @@ All task moves go through:
 ```bash
 python3 ops/desk-collegium/desk_bus.py list
 python3 ops/desk-collegium/desk_bus.py propose --owner opencode --specialty code --intent "…"
+python3 ops/desk-collegium/desk_bus.py act|audit|amend|revise|refer|dispute TASK_ID --by hermes --note "…"
+python3 ops/desk-collegium/desk_bus.py call-vote TASK_ID --by hermes --note "ship?"
+python3 ops/desk-collegium/desk_bus.py cast TASK_ID --by opencode --vote ack
 python3 ops/desk-collegium/desk_bus.py constrain TASK_ID --by hermes --note "…"
 python3 ops/desk-collegium/desk_bus.py commit TASK_ID --by opencode --result "…" --sha SHA
 python3 ops/desk-collegium/desk_bus.py done TASK_ID --by opencode --result "verified"
 python3 ops/desk-collegium/desk_bus.py escalate TASK_ID --by hermes --note "needs Fog g"
 python3 ops/desk-collegium/desk_bus.py pulse --apply   # fill idle specialties
 ```
+Full verb set (propose is not the only move): propose act audit amend revise vote refer dispute constrain commit escalate done drop.
 
 Each call updates `FOG/data/desk-collegium/state.json` and appends `FOG/data/desk-feed.jsonl` (Fog TUI **DESK** panel).
 

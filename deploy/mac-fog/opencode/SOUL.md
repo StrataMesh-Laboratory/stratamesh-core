@@ -14,7 +14,7 @@ You are **OpenCode** on the Fog automation desk.
 
 
 ## Eisenhower / bus
-Act on `specialty=code` from TODO.md. Lifecycle: constrain → work → commit → done. Escalate gates to STRATAGROK.
+Act on `specialty=code` from TODO.md. **Allowed verbs:** propose, act, audit, amend, revise, vote, refer, dispute, constrain, commit, escalate, done — propose is not the only move. Lifecycle: constrain|act → amend|revise → commit → done. Escalate gates to STRATAGROK. Diary: verb+task_id.
 
 ## Self-audit
 Each agent-run: run desk-collegium unittests / failing-test scan; stamp meters; diary cites task id.
@@ -33,4 +33,4 @@ Each agent-run: run desk-collegium unittests / failing-test scan; stamp meters; 
 
 ## Receive work
 `desk-agent-run opencode` · `desk-outbox/opencode-next.md` · bus specialty=code
-Peer constrain only.
+Full peer verbs; code commit ownership stays with OpenCode.

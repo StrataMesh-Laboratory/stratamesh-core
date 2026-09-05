@@ -1207,12 +1207,42 @@ def _desk_agent_style(tag: str) -> tuple[str, str]:
     return MUT, (tag or "?")[:10]
 
 
+# DESK panel geometry: menu/instr (and optional HELP hint) sit after the feed.
+# Invariant: desk_start + feed_rows + DESK_CHROME_AFTER - 1 <= term_rows when possible.
+DESK_CHROME_AFTER = 3  # bot border + menu + instr
+
+
+def desk_feed_rows_for(term_rows: int, desk_start_row: int, *, chrome_after: int = DESK_CHROME_AFTER) -> int:
+    """Compute DESK feed height from terminal rows minus header/hops/host/menu chrome.
+
+    Fills down to the last usable terminal row (not clipped below, no large empty
+    band above the menu). Clamp to at least 4 when space allows, else >=2.
+    """
+    try:
+        rows = int(term_rows)
+        start = int(desk_start_row)
+        after = int(chrome_after)
+    except Exception:
+        return 8
+    usable_last = max(1, rows - after)
+    avail = usable_last - start + 1
+    if avail >= 4:
+        return avail
+    return max(2, avail)
+
+
 def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
-    """Live DESK chat: clean wrapped paragraphs (no ghost/truncated ANSI lines)."""
+    """Live DESK chat: clean wrapped paragraphs (no ghost/truncated ANSI lines).
+
+    `rows` is the total panel budget (title + content). Caller should pass
+    desk_feed_rows_for(term_rows, DRAW_ROW) so the panel fills to screen end.
+    Pads blank lines so the bottom border/menu land on the last usable rows.
+    Priority when budget is tight: title → feed → sticky tasks → metabol.
+    """
     out = _print or print
     # Inner content width inside │…│ (boxline adds borders)
     inner = max(24, int(w) - 2)
-    budget = max(4, int(rows))
+    budget = max(2, int(rows))
     used = 0
 
     def emit(plain_inner: str, *, colored: str | None = None) -> None:
@@ -1239,7 +1269,70 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
     except Exception:
         st, lanes = {}, {}
 
-    if lanes:
+    feed = desk_feed_tail(max(6, budget))
+    feed_ids = " ".join(str(r.get("text") or "") for r in feed)
+    open_tasks = st.get("open_tasks") or []
+
+    # Feed first (scroll within region) — do not let metabol starve content on short budgets
+    if not feed and not open_tasks:
+        emit(" (waiting for desk agents…)", colored=" " + MUT + "(waiting for desk agents…)" + RST)
+    else:
+        remain = max(1, budget - used)
+        # leave 1 row for metabol if room after a few feed lines
+        for rec in feed[-remain:]:
+            if used >= budget:
+                break
+            ag_raw = str(rec.get("agent") or "?")
+            col, ag = _desk_agent_style(ag_raw)
+            tm = str(rec.get("t") or "--:--:--")[:8]
+            kind = str(rec.get("kind") or "say")[:7]
+            body = str(rec.get("text") or "").replace("\n", " ")
+            head_plain = "%s %s %s " % (tm, ag.ljust(8)[:8], kind)
+            wrap_w = max(12, inner - len(head_plain) - 1)
+            parts = _wrap_plain(body, wrap_w)
+            for i, part in enumerate(parts[:3]):  # up to 3 wrapped rows
+                if used >= budget:
+                    break
+                if i == 0:
+                    colored = (
+                        " " + MUT + tm + RST + " " + col + (ag.ljust(8)[:8]) + RST
+                        + " " + MUT + kind + RST + " " + part
+                    )
+                    emit(" " + head_plain + part, colored=colored)
+                else:
+                    emit(" " + (" " * len(head_plain)) + part)
+
+        # Sticky tasks only if not already mirrored into feed (avoids ghost duplicates)
+        for tsk in open_tasks[-3:]:
+            if used >= budget:
+                break
+            tid = str(tsk.get("id") or "")
+            if tid and tid in feed_ids:
+                continue
+            own = str(tsk.get("owner") or "")
+            col, ag = _desk_agent_style(
+                "opencode" if "opencode" in own else (
+                    "openclaw" if "openclaw" in own else (
+                        "stratagrok" if "grok" in own else "hermes"
+                    )
+                )
+            )
+            stt = str(tsk.get("status") or "propose")
+            body = "%s %s %s" % (stt, tid, str(tsk.get("intent") or ""))
+            head = " task %s " % ag
+            wrap_w = max(12, inner - len(head))
+            parts = _wrap_plain(body, wrap_w)
+            for i, part in enumerate(parts[:2]):  # max 2 lines per task
+                if used >= budget:
+                    break
+                if i == 0:
+                    colored = " " + MUT + "task" + RST + " " + col + ag + RST + " " + part
+                    emit(" task %s %s" % (ag, part), colored=colored)
+                else:
+                    emit("      " + part)
+
+    # Metabol last (optional chrome) when budget remains
+    if lanes and used < budget:
         bits = []
         for key, short in (
             ("lane-hermes", "hermes"),
@@ -1258,67 +1351,10 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
             if used >= budget:
                 break
 
-    feed = desk_feed_tail(max(6, budget))
-    feed_ids = " ".join(str(r.get("text") or "") for r in feed)
-    open_tasks = st.get("open_tasks") or []
-
-    # Sticky tasks only if not already mirrored into feed (avoids ghost duplicates)
-    for tsk in open_tasks[-3:]:
-        if used >= budget - 1:
-            break
-        tid = str(tsk.get("id") or "")
-        if tid and tid in feed_ids:
-            continue
-        own = str(tsk.get("owner") or "")
-        col, ag = _desk_agent_style(
-            "opencode" if "opencode" in own else (
-                "openclaw" if "openclaw" in own else (
-                    "stratagrok" if "grok" in own else "hermes"
-                )
-            )
-        )
-        stt = str(tsk.get("status") or "propose")
-        body = "%s %s %s" % (stt, tid, str(tsk.get("intent") or ""))
-        head = " task %s " % ag
-        wrap_w = max(12, inner - len(head))
-        parts = _wrap_plain(body, wrap_w)
-        for i, part in enumerate(parts[:2]):  # max 2 lines per task
-            if used >= budget:
-                break
-            if i == 0:
-                colored = " " + MUT + "task" + RST + " " + col + ag + RST + " " + part
-                emit(" task %s %s" % (ag, part), colored=colored)
-            else:
-                emit("      " + part)
-
-    if not feed and not open_tasks:
-        emit(" (waiting for desk agents…)", colored=" " + MUT + "(waiting for desk agents…)" + RST)
-        return
-
-    # Feed lines: timestamp + agent + wrapped paragraph body
-    remain = max(1, budget - used)
-    for rec in feed[-remain:]:
-        if used >= budget:
-            break
-        ag_raw = str(rec.get("agent") or "?")
-        col, ag = _desk_agent_style(ag_raw)
-        tm = str(rec.get("t") or "--:--:--")[:8]
-        kind = str(rec.get("kind") or "say")[:7]
-        body = str(rec.get("text") or "").replace("\n", " ")
-        head_plain = "%s %s %s " % (tm, ag.ljust(8)[:8], kind)
-        wrap_w = max(12, inner - len(head_plain) - 1)
-        parts = _wrap_plain(body, wrap_w)
-        for i, part in enumerate(parts[:3]):  # up to 3 wrapped rows
-            if used >= budget:
-                break
-            if i == 0:
-                colored = (
-                    " " + MUT + tm + RST + " " + col + (ag.ljust(8)[:8]) + RST
-                    + " " + MUT + kind + RST + " " + part
-                )
-                emit(" " + head_plain + part, colored=colored)
-            else:
-                emit(" " + (" " * len(head_plain)) + part)
+    # Fill remaining budget so DESK extends to last usable row (no empty band above menu)
+    while used < budget:
+        out(boxline(" ", w))
+        used += 1
 
 
 def wizard_json_path() -> Path:
@@ -2390,7 +2426,10 @@ def draw(msg: str = "") -> None:
         git_extra = MUT + "  mw-node " + node_hint + RST
     print(boxline("  GIT " + sha_now + "  " + awake_line() + git_extra, w))
     print(mid)
-    draw_desk_feed(w, rows=8, _print=print)
+    # DESK fills from current DRAW_ROW down to last usable row (menu/instr below)
+    desk_start = DRAW_ROW if DRAW_ROW else 1
+    feed_rows = desk_feed_rows_for(rows, desk_start, chrome_after=DESK_CHROME_AFTER)
+    draw_desk_feed(w, rows=feed_rows, _print=print)
     print(bot)
     print(MUT + "  g update   b reboot   s stop   r refresh   ? wizard   q quit" + RST)
     instr = "  instrument · 60s · desk /desk on r · named-tunnel stays up"

@@ -62,7 +62,13 @@
             "commit",
             "escalate",
             "done",
-            "drop"
+            "drop",
+            "act",
+            "audit",
+            "amend",
+            "vote",
+            "refer",
+            "dispute"
           ]
         },
         "constraints": {
@@ -102,6 +108,50 @@
                 "type": "string"
               },
               "note": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "verb",
+              "at"
+            ],
+            "properties": {
+              "verb": {
+                "type": "string"
+              },
+              "by": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string"
+              },
+              "vote": {
+                "type": "string",
+                "enum": [
+                  "ack",
+                  "nack"
+                ]
+              },
+              "vote_phase": {
+                "type": "string",
+                "enum": [
+                  "call",
+                  "cast"
+                ]
+              },
+              "sha": {
+                "type": "string"
+              },
+              "result": {
                 "type": "string"
               }
             }

@@ -401,11 +401,14 @@ class DeskFeed(unittest.TestCase):
 
     def test_draw_includes_desk_section(self):
         _MOD.HELP = False
+        # tall terminal so DESK budget can show feed (chrome ~30 + menu 3)
         _MOD.desk_feed_append("stratagrok", "Act: desk feed live", kind="say")
         _MOD.DEV_TTY = io.StringIO()
         with mock.patch.object(_MOD, "get", side_effect=_fast_get), mock.patch.object(
             _MOD, "sh", return_value=""
-        ), mock.patch.object(_MOD, "kick_public_refresh", lambda: None):
+        ), mock.patch.object(_MOD, "kick_public_refresh", lambda: None), mock.patch.object(
+            _MOD.shutil, "get_terminal_size", return_value=os.terminal_size((88, 48))
+        ):
             _MOD.draw("frame")
         painted = _MOD.DEV_TTY.getvalue()
         self.assertIn("DESK", painted)
@@ -415,6 +418,29 @@ class DeskFeed(unittest.TestCase):
     def test_kick_desk_refresh_defined(self):
         self.assertTrue(callable(getattr(_MOD, "kick_desk_refresh", None)))
         self.assertGreaterEqual(getattr(_MOD, "DESK_PROBE_PERIOD", 0), 60.0)
+
+
+    def test_desk_feed_rows_for_fills_to_usable(self):
+        """DESK height = term_rows - chrome_before - chrome_after (fills to screen end)."""
+        # chrome_before ≈ 30 on a full instrument; desk_start=31 → avail = rows - 3 - 31 + 1
+        self.assertEqual(_MOD.desk_feed_rows_for(40, 31, chrome_after=3), 7)
+        self.assertEqual(_MOD.desk_feed_rows_for(28, 31, chrome_after=3), 2)  # tight clamp
+        self.assertGreaterEqual(_MOD.desk_feed_rows_for(50, 31, chrome_after=3), 17)
+        # tall terminal: no fixed-8 leftover empty band above menu
+        self.assertGreater(_MOD.desk_feed_rows_for(60, 31, chrome_after=3), 8)
+
+    def test_draw_desk_feed_pads_to_budget(self):
+        _MOD.FOG = _TMP
+        # clear leftover collegium state so metabol does not confuse counts
+        st = _TMP / "data" / "desk-collegium" / "state.json"
+        if st.is_file():
+            st.unlink()
+        buf = io.StringIO()
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: buf.write(" ".join(str(x) for x in a) + chr(10))):
+            _MOD.draw_desk_feed(72, rows=12)
+        # title + waiting + pads → exactly 12 box lines (incl. blank pads)
+        lines = buf.getvalue().splitlines()
+        self.assertEqual(len(lines), 12)
 
     def test_draw_desk_feed_shows_open_tasks(self):
         st = _TMP / "data" / "desk-collegium"

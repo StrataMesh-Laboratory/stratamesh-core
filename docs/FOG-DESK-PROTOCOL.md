@@ -9,7 +9,7 @@ Surfaces: `python3 ops/desk-collegium/desk_reports.py ensure-surfaces`
 specialization · bus · metabol_pace · eisenhower · anti_vapour · anti_idle · human_gates · ship_majority · no_sca · secrets · cadence · g_ping · academy_teach · apprenticeship · **agent_autonomy** · **bot_cap_contingency**
 
 ## Lifecycle
-`projected` → `pending` (propose) → `ongoing` (constrain|revise|commit) → `done` | `escalate`
+`projected` → `pending` (propose) → `ongoing` (constrain|act|audit|amend|revise|vote|refer|dispute|commit) → `done` | `escalate` — full verbs; propose is not the only move
 
 ## Eisenhower
 One **Act** ordinal. Delegate = Fog|EDGE split. Plan/Note parked. human_gates escalate.

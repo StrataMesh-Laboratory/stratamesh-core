@@ -453,6 +453,27 @@ JOURNAL_AGENTS = (
 )
 
 
+def append_diary(agent_id: str, *, verb: str, task_id: str, note: str = "") -> Path | None:
+    """Append one diary line: verb + task_id (and optional note). Creates journal if missing."""
+    ensure_agent_journals()
+    root = _fog() / "data" / "desk-outbox" / "journals" / agent_id
+    root.mkdir(parents=True, exist_ok=True)
+    diary = root / "diary.md"
+    if not diary.is_file():
+        diary.write_text(
+            f"# Diary — {agent_id}\n\n## Entries\n\n",
+            encoding="utf-8",
+        )
+    ts = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    line = f"- {ts} **{verb}** `{task_id}`"
+    if note:
+        line += f" — {note.replace(chr(10), ' ')[:160]}"
+    line += "\n"
+    with diary.open("a", encoding="utf-8") as f:
+        f.write(line)
+    return diary
+
+
 def ensure_agent_journals() -> dict:
     """Create 6× diary+notebook seeds if missing — never wipe existing diary."""
     root = _fog() / "data" / "desk-outbox" / "journals"

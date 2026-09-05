@@ -24,13 +24,16 @@ Desk agents work **in parallel** but stay aligned through (1) a shared bus, (2) 
 
 ## Bus protocol (collegial)
 
-Same spirit as academy flux: **propose → constrain → revise → commit | escalate**.
+Same spirit as academy flux — **full verb set** (propose is not the only move):
+**propose → constrain → act | audit | amend | revise → vote (call + cast) | refer | dispute → commit | escalate → done | drop**.
 
-1. **Propose** — any member may open a `desk.task.v1` (JSON) on the bus file or Hermes session.
-2. **Constrain** — peers with overlapping specialty reply with constraints (metabol, ownership, deny-list).
-3. **Revise** — proposer updates; others ACK or NACK.
-4. **Commit** — owner lands work (git / local / Assistant Act); posts `result` + SHA.
-5. **Escalate** — to André (human gate: `g`, 2FA, Oracle, Renovate majors) or STRATAGROK lead.
+1. **Propose** — specialty owner (or any member) may open a `desk.task.v1` on the bus.
+2. **Constrain** — peers reply with constraints (metabol, ownership, deny-list).
+3. **Act / Audit / Amend / Revise** — peers and owner move work forward; amend/revise may narrow intent; audit records a specialty check; act stamps progress. Propose is **not** the only move.
+4. **Vote** — `call-vote` opens a collegium ballot; `cast ack|nack` records votes (ship-live / contested acts).
+5. **Refer / Dispute** — hand off specialty or contest a constraint without silent drop.
+6. **Commit** — specialty owner lands work (git / local / Assistant Act); posts `result` + SHA.
+7. **Escalate / Done / Drop** — human gate, verify close, or supersede.
 
 Never mix Fog+EDGE Assistant prompts. Never enroll desk agents as SCA.
 

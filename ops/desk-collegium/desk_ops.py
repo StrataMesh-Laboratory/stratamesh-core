@@ -2,7 +2,8 @@
 """Desk ops cycle — methodology-enforced real work (ongoing/pending/projected).
 
 Laws: ops/desk-collegium/protocol.json (academy_teach, agent_autonomy, bot_cap_contingency, ship auto-metrics).
-Lifecycle: projected → pending(propose) → ongoing(constrain|revise|commit) → done|escalate.
+Lifecycle: projected → pending(propose) → ongoing(constrain|act|audit|amend|revise|vote|refer|dispute|commit) → done|escalate.
+Full verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done drop.
 Catalog: projected.json re-seeded each cycle via ensure_projected_catalog (idempotent ids).
 
 Usage:
@@ -183,7 +184,10 @@ def classify(state: dict) -> dict:
     ongoing, pending, escalated = [], [], []
     for t in open_tasks:
         st = t.get("status") or "propose"
-        if st in ("constrain", "revise", "commit"):
+        if st in (
+            "constrain", "revise", "commit",
+            "act", "audit", "amend", "vote", "refer", "dispute",
+        ):
             ongoing.append(t)
         elif st == "escalate":
             escalated.append(t)
@@ -764,17 +768,55 @@ def academy_teach_tick(bus, state: dict, *, dry: bool) -> None:
             bus.save_state(state)
 
 
+def _diary_agent(by: str) -> str:
+    b = (by or "").lower()
+    if "opencode" in b:
+        return "opencode"
+    if "openclaw" in b:
+        return "openclaw"
+    if "grok" in b or "stratagrok" in b:
+        return "stratagrok"
+    if "edge" in b:
+        return "edge-assistant"
+    if "fog" in b and "hermes" not in b:
+        return "fog-assistant"
+    if "hermes" in b or b in ("coord", "desk"):
+        return "hermes"
+    return "hermes"
+
+
 def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
     tid = task["id"]
+    verb = (out.get("verb") or "").strip().lower()
     if out.get("escalate"):
+        verb = verb or "escalate"
         bus._mutate(tid, "escalate", by=by, note=out.get("result") or "escalate")
-        return
-    if out.get("done"):
+    elif out.get("done"):
         if out.get("sha"):
             bus._mutate(tid, "commit", by=by, result=out.get("result") or "", sha=out.get("sha") or "")
+            verb = verb or "commit"
         bus._mutate(tid, "done", by=by, result=out.get("result") or "", close=True)
+        verb = "done"
     else:
-        bus._mutate(tid, "constrain", by=by, note=out.get("result") or "progress")
+        # After specialty work: prefer explicit verb, else act (not only constrain)
+        verb = verb or "act"
+        if verb in ("constrain", "act", "audit", "amend", "revise", "refer", "dispute", "vote"):
+            bus._mutate(tid, verb, by=by, note=out.get("result") or "progress")
+        else:
+            bus._mutate(tid, "act", by=by, note=out.get("result") or "progress")
+            verb = "act"
+    # Diary + ensure journals: verb + task_id
+    try:
+        rep = _load("desk_reports")
+        rep.ensure_agent_journals()
+        rep.append_diary(
+            _diary_agent(by),
+            verb=verb,
+            task_id=tid,
+            note=(out.get("result") or "")[:160],
+        )
+    except Exception as e:
+        print(f"diary warn: {e}", file=sys.stderr)
 
 
 def _push(bus) -> None:

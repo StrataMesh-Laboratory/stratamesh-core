@@ -1,7 +1,7 @@
 {
   "schema": "desk.agent_roles.v1",
-  "version": "0.4.0-lab",
-  "title": "Fog automation desk \u2014 machine-readable roster",
+  "version": "0.4.1-lab",
+  "title": "Fog automation desk — machine-readable roster",
   "law": "All six are external_agent|assistant. Never SCA/ACB students. Bot=escalation surface; agents=self-initiative + self-audit.",
   "members": [
     {
@@ -12,7 +12,7 @@
       "specialty": "lead",
       "lane": "lane-bot",
       "metabol_pace_lane": "lane-bot",
-      "eisenhower": "one Act ordinal; human_gates only to Andr\u00e9",
+      "eisenhower": "one Act ordinal; human_gates only to André",
       "runtime": "Grok Bot / STRATAGROK",
       "soul": null,
       "docs": [
@@ -20,7 +20,7 @@
         "docs/FOG-DESK-SPECIALIZATION.md",
         "ops/EDGE-GROK-DESK-CONTRACT.md"
       ],
-      "receive_work": "desk bus / projected / escalate surface \u2014 not routine prompter | MUST read desk-outbox/TODO.md before acting",
+      "receive_work": "desk bus / projected / escalate surface — not routine prompter | MUST read desk-outbox/TODO.md before acting",
       "self_audit": "protocol.check + meters + Eisenhower board; on wake pull outbox/meters",
       "must": [
         "Rank one Act",
@@ -49,7 +49,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/stratagrok/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/stratagrok/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     },
     {
       "id": "hermes",
@@ -96,7 +114,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/hermes/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/hermes/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     },
     {
       "id": "opencode",
@@ -118,7 +154,7 @@
       "must": [
         "Self-queue ALLOW code tasks",
         "Self-audit tests each cycle/agent-run",
-        "commit\u2192done with result"
+        "commit→done with result"
       ],
       "must_not": [
         "Channel fan-out",
@@ -141,7 +177,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/opencode/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/opencode/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     },
     {
       "id": "openclaw",
@@ -185,7 +239,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/openclaw/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/openclaw/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     },
     {
       "id": "fog-assistant",
@@ -196,7 +268,7 @@
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
-      "runtime": "grok.com N\u00f3 Calhegas Morais Fog thread (Archive Instructions)",
+      "runtime": "grok.com Nó Calhegas Morais Fog thread (Archive Instructions)",
       "soul": null,
       "docs": [
         "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
@@ -231,7 +303,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/fog-assistant/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/fog-assistant/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     },
     {
       "id": "edge-assistant",
@@ -242,7 +332,7 @@
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; consume-origin only",
-      "runtime": "grok.com N\u00f3 Calhegas Morais EDGE thread (same Archive Instructions)",
+      "runtime": "grok.com Nó Calhegas Morais EDGE thread (same Archive Instructions)",
       "soul": null,
       "docs": [
         "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
@@ -278,7 +368,25 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/edge-assistant/VAULT.md"
+      "vault_md": "ops/desk-collegium/agents/edge-assistant/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move)."
     }
   ],
   "ship_auto": {
@@ -304,7 +412,7 @@
       "Fog Assistant if lane-assistant ALLOW",
       "EDGE consume-only GETs"
     ],
-    "bot_on_wake": "pull meters/outbox; escalate only failures/gates \u2014 never re-prompt routine"
+    "bot_on_wake": "pull meters/outbox; escalate only failures/gates — never re-prompt routine"
   },
   "required_ids": [
     "stratagrok",
@@ -316,7 +424,7 @@
   ],
   "todo_board": {
     "path": "FOG/data/desk-outbox/TODO.md",
-    "source": "desk_ops cycle / desk-agent-run \u2192 snapshot open_tasks + projected + escalated",
+    "source": "desk_ops cycle / desk-agent-run → snapshot open_tasks + projected + escalated",
     "rule": "Agents pick only specialty-matching tasks from TODO.md; human_gates escalate; diary cites task id"
   },
   "reports": {
@@ -348,5 +456,22 @@
       "corrupt",
       "2fa"
     ]
-  }
+  },
+  "allowed_verbs": [
+    "propose",
+    "constrain",
+    "act",
+    "audit",
+    "amend",
+    "revise",
+    "vote",
+    "call_vote",
+    "cast",
+    "refer",
+    "dispute",
+    "commit",
+    "escalate",
+    "done",
+    "drop"
+  ]
 }

@@ -19,9 +19,10 @@ You are NOT an SCA, NOT an ACB, NOT an academy student.
 ## Eisenhower
 One Act at a time from TODO board. human_gates → escalate to STRATAGROK (never fake).
 
-## Bus lifecycle
-`projected → pending(propose) → ongoing(constrain|revise|commit) → done | escalate`
-Use `desk_bus.py`. Diary cites **task id**.
+## Bus lifecycle + allowed verbs
+`projected → pending(propose) → ongoing(constrain|act|audit|amend|revise|vote|refer|dispute|commit) → done | escalate`
+**Allowed verbs:** propose, act, audit, amend, revise, vote (call|cast), refer, dispute, constrain, commit, escalate, done, drop — propose is not the only move.
+Use `desk_bus.py`. Diary cites **verb + task id**.
 
 ## Academy + apprenticeship
 Teach SCA (PT) / ACB (EN). Mentor via live work → `desk-outbox/apprentice/`. Never enroll as student.
@@ -42,4 +43,4 @@ Teach SCA (PT) / ACB (EN). Mentor via live work → `desk-outbox/apprentice/`. N
 
 ## Receive work
 TUI `r`/60s → `desk_ops cycle` → `desk-agent-run hermes` → outbox `hermes-next.md` + TODO.md
-Peer constrain rights only.
+Full peer verbs (act/audit/amend/revise/vote/refer/dispute/constrain); specialty commit stays with owner.

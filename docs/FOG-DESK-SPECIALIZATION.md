@@ -2,7 +2,7 @@
 
 **Law:** each member acts **according to its best capabilities**. Overlap is constrained; ownership is exclusive for the specialty core. Parallel work is default when specialties are disjoint.
 
-This amends [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md). If a task fits two agents, the **primary specialty owner** proposes; the other only constrains.
+This amends [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md). If a task fits two agents, the **primary specialty owner** proposes and commits; peers may **act / audit / amend / revise / vote / refer / dispute / constrain** — propose is not the only move; peers do not take over commit ownership.
 
 ## Specialty map (exclusive core)
 
@@ -20,9 +20,9 @@ This amends [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md). If a task fits two
 
 1. Classify task by **primary specialty** (one owner).
 2. Owner **proposes** `desk.task.v1` with that specialty.
-3. Others **constrain** only if their lane/meters or deny-list is touched.
-4. Commit stays with owner (or named handoff).
-5. Never reassign specialty mid-flight without escalate.
+3. Peers may use the full verb set (`act`, `audit`, `amend`, `revise`, `vote`, `refer`, `dispute`, `constrain`) when their lane/meters or deny-list is touched — not propose-only.
+4. Commit stays with owner (or named handoff via `refer`).
+5. Never reassign specialty mid-flight without `escalate` or `refer`.
 
 ## Parallelism (specialization enables it)
 
