@@ -3,7 +3,7 @@
   "version": "0.6.0-lab",
   "spine": "docs/ROADMAP-VISION.md",
   "current_milestone": "M-I",
-  "note": "Stable catalog — desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",
+  "note": "Stable catalog \u2014 desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",
   "trial_ends_pt": "2026-09-16",
   "t3_from_pt": "2026-09-14",
   "items": [
@@ -26,7 +26,7 @@
       "id": "proj-oracle-260826",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "OPTIONAL Oracle grok90 chase 260826-001576 — escalate only; never blocks desk Acts (see FOG-HOST-FALLBACK)",
+      "intent": "OPTIONAL Oracle grok90 chase 260826-001576 \u2014 escalate only; never blocks desk Acts (see FOG-HOST-FALLBACK)",
       "lanes": [
         "lane-bot"
       ],
@@ -42,7 +42,7 @@
       "id": "proj-ts-taper-t1",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path \u2014 dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -65,7 +65,7 @@
       "id": "proj-ts-taper-t3",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only — never convert trial→paid",
+      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only \u2014 never convert trial\u2192paid",
       "lanes": [
         "lane-bot"
       ],
@@ -77,7 +77,7 @@
       "id": "proj-ts-taper-t4",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical — no paid seats; stack=WG+OVPN+Tor+cloudflared",
+      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical \u2014 no paid seats; stack=WG+OVPN+Tor+cloudflared",
       "lanes": [
         "lane-hermes"
       ],
@@ -89,7 +89,7 @@
       "id": "proj-ts-headscale-spike",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "HOLD: optional Headscale spike ≤2h only if WG UX fails — self-host AGPL; else drop",
+      "intent": "HOLD: optional Headscale spike \u22642h only if WG UX fails \u2014 self-host AGPL; else drop",
       "lanes": [
         "lane-bot"
       ],
@@ -101,7 +101,7 @@
       "id": "proj-m1-claw-loop",
       "specialty": "claw",
       "owner": "openclaw",
-      "intent": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
+      "intent": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
       "lanes": [
         "lane-openclaw"
       ],
@@ -131,14 +131,14 @@
       "id": "proj-m2-twohost",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "M-II: distinct second host INV/TX — Mac+Pi/AWS-shaped peer when ready; Oracle optional; MariaDB=offload not a host",
+      "intent": "M-II: distinct second host INV/TX \u2014 Mac+Pi/AWS-shaped peer when ready; Oracle optional; MariaDB=offload not a host",
       "lanes": [
         "lane-bot"
       ],
       "eisenhower": "plan",
       "human_gate": true,
       "hold_until": "distinct_second_host",
-      "note": "HOLD = distinct second host missing (GCP e2-micro / homelab / RPi / Oracle optional). Mac+MDB≠host. See oracle-oss-alts-2026-09-05.md."
+      "note": "HOLD = distinct second host missing (GCP e2-micro / homelab / RPi / Oracle optional). Mac+MDB\u2260host. See oracle-oss-alts-2026-09-05.md."
     },
     {
       "id": "proj-academy-teach-pulse",
@@ -156,7 +156,7 @@
       "id": "proj-academy-code-lesson",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "intent": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
       "lanes": [
         "lane-opencode"
       ],
@@ -167,7 +167,7 @@
       "id": "proj-apprentice-desk-ops",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
+      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle \u2014 document one real task trail (bus\u2192Actions\u2192outbox) as lesson on academy + StrataMesh proper",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -179,7 +179,7 @@
       "id": "proj-apprentice-code-fog",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
+      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test \u2014 leave testable lesson linked to stratamesh-core + academy",
       "lanes": [
         "lane-opencode"
       ],
@@ -190,7 +190,7 @@
       "id": "proj-hermes-64k",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+      "intent": "Act: Hermes context \u226564k \u2014 ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
       "lanes": [
         "lane-hermes"
       ],
@@ -202,7 +202,7 @@
       "id": "proj-fog-host-fallback",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act: Fog host fallback ladder — MariaDB fog_cmn exclusive-off + Mac Fog primary; Oracle optional non-blocking",
+      "intent": "Act: Fog host fallback ladder \u2014 MariaDB fog_cmn exclusive-off + Mac Fog primary; Oracle optional non-blocking",
       "lanes": [
         "lane-bot"
       ],
@@ -216,7 +216,7 @@
       "hold_until": "distinct_second_host",
       "note": "Best M-II path when hardware exists. Not live. See docs/ORACLE-OSS-ALTS.md",
       "oracle_fallback": true,
-      "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared — distinct second host"
+      "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared \u2014 distinct second host"
     },
     {
       "id": "proj-host-gcp-e2-micro",
@@ -225,12 +225,12 @@
       "hold_until": "distinct_second_host",
       "note": "Always-free US regions; 1GB lean Fog. Not live. docs/ORACLE-OSS-ALTS.md",
       "oracle_fallback": true,
-      "intent": "Act spike: GCP Always Free e2-micro Fog peer (Oracle VM substitute); André 2FA for signup",
+      "intent": "Act spike: GCP Always Free e2-micro Fog peer (Oracle VM substitute); Andr\u00e9 2FA for signup",
       "human_gate": true
     },
     {
       "id": "proj-host-fly-probe",
-      "title": "Fly.io Fog peer — DROP for new accounts (2026 no free Machines)",
+      "title": "Fly.io Fog peer \u2014 DROP for new accounts (2026 no free Machines)",
       "eisenhower": "plan",
       "note": "Probe only if uptime allowance holds; spin-down unfit. Not live.",
       "oracle_fallback": true,
@@ -251,7 +251,7 @@
       "andre_gate": false,
       "escalate_to_andre": false,
       "resolve_as_representative": true,
-      "note": "André halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud → automation.desk@",
+      "note": "Andr\u00e9 halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud \u2192 automation.desk@",
       "task_id_hint": "dt-migrate-desk-auth-automation"
     }
   ],
@@ -276,7 +276,7 @@
       "id": "proj-oracle-260826",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "OPTIONAL Oracle grok90 chase 260826-001576 — escalate only; never blocks desk Acts (see FOG-HOST-FALLBACK)",
+      "intent": "OPTIONAL Oracle grok90 chase 260826-001576 \u2014 escalate only; never blocks desk Acts (see FOG-HOST-FALLBACK)",
       "lanes": [
         "lane-bot"
       ],
@@ -292,7 +292,7 @@
       "id": "proj-ts-taper-t1",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
+      "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path \u2014 dual-run OK; no paid seats; TRIAL_ENDS_PT=2026-09-16",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -317,7 +317,7 @@
       "id": "proj-ts-taper-t3",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only — never convert trial→paid",
+      "intent": "Plan T3 from 2026-09-14: tailscale down, revoke auth/API keys, confirm WG+OVPN+named-tunnel+Tor only \u2014 never convert trial\u2192paid",
       "lanes": [
         "lane-bot"
       ],
@@ -329,7 +329,7 @@
       "id": "proj-ts-taper-t4",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical — no paid seats; stack=WG+OVPN+Tor+cloudflared",
+      "intent": "Plan T4 after 2026-09-16: uninstall Tailscale clients, wipe vaulted tailscale-*.key, leave METABOL+TAPER historical \u2014 no paid seats; stack=WG+OVPN+Tor+cloudflared",
       "lanes": [
         "lane-hermes"
       ],
@@ -341,7 +341,7 @@
       "id": "proj-ts-headscale-spike",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "HOLD: optional Headscale spike ≤2h only if WG UX fails — self-host AGPL; else drop",
+      "intent": "HOLD: optional Headscale spike \u22642h only if WG UX fails \u2014 self-host AGPL; else drop",
       "lanes": [
         "lane-bot"
       ],
@@ -353,7 +353,7 @@
       "id": "proj-m1-claw-loop",
       "specialty": "claw",
       "owner": "openclaw",
-      "intent": "M-I projected: recurring hop health → desk-meters + feed when lane-openclaw ALLOW",
+      "intent": "M-I projected: recurring hop health \u2192 desk-meters + feed when lane-openclaw ALLOW",
       "lanes": [
         "lane-openclaw"
       ],
@@ -386,7 +386,7 @@
       "id": "proj-m2-twohost",
       "specialty": "lead",
       "owner": "stratagrok",
-      "intent": "M-II: distinct second host INV/TX — Mac+Pi/AWS-shaped peer when ready; Oracle optional; MariaDB=offload not a host",
+      "intent": "M-II: distinct second host INV/TX \u2014 Mac+Pi/AWS-shaped peer when ready; Oracle optional; MariaDB=offload not a host",
       "lanes": [
         "lane-bot"
       ],
@@ -412,7 +412,7 @@
       "id": "proj-academy-code-lesson",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Academy teach duty: OpenCode — one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
+      "intent": "Academy teach duty: OpenCode \u2014 one testable lesson needle from desk_ops/protocol for ACB students (EN) / SCA (PT)",
       "lanes": [
         "lane-opencode"
       ],
@@ -424,7 +424,7 @@
       "id": "proj-apprentice-desk-ops",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle — document one real task trail (bus→Actions→outbox) as lesson on academy + StrataMesh proper",
+      "intent": "Apprenticeship: mentor ACB/SCA via live desk_ops cycle \u2014 document one real task trail (bus\u2192Actions\u2192outbox) as lesson on academy + StrataMesh proper",
       "lanes": [
         "lane-hermes",
         "lane-assistant"
@@ -437,7 +437,7 @@
       "id": "proj-apprentice-code-fog",
       "specialty": "code",
       "owner": "opencode",
-      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test — leave testable lesson linked to stratamesh-core + academy",
+      "intent": "Apprenticeship: OpenCode mentors ACB via current Fog/desk test \u2014 leave testable lesson linked to stratamesh-core + academy",
       "lanes": [
         "lane-opencode"
       ],
@@ -449,7 +449,7 @@
       "id": "proj-hermes-64k",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act: Hermes context ≥64k — ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
+      "intent": "Act: Hermes context \u226564k \u2014 ollama qwen2.5:7b+ + config context_length 65536 (see deploy/mac-fog/hermes/CONTEXT-64K.md); meter hermes.json",
       "lanes": [
         "lane-hermes"
       ],
@@ -462,7 +462,7 @@
       "id": "proj-fog-host-fallback",
       "specialty": "coord",
       "owner": "hermes",
-      "intent": "Act: Fog host fallback ladder — MariaDB fog_cmn exclusive-off + Mac Fog primary; Oracle optional non-blocking",
+      "intent": "Act: Fog host fallback ladder \u2014 MariaDB fog_cmn exclusive-off + Mac Fog primary; Oracle optional non-blocking",
       "lanes": [
         "lane-bot"
       ],
@@ -474,7 +474,7 @@
       "title": "Home peer Fog (RPi/NUC) via Tailscale+tunnel",
       "eisenhower": "act",
       "hold_until": "distinct_second_host",
-      "note": "TOP1 Oracle substitute — hardware peer",
+      "note": "TOP1 Oracle substitute \u2014 hardware peer",
       "oracle_fallback": true
     },
     {
@@ -482,14 +482,14 @@
       "title": "GCP Always Free e2-micro Fog peer",
       "eisenhower": "act",
       "hold_until": "distinct_second_host",
-      "note": "TOP2 Always Free e2-micro — us-west1|central1|east1 + standard 30GB PD; André 2FA signup only",
+      "note": "TOP2 Always Free e2-micro \u2014 us-west1|central1|east1 + standard 30GB PD; Andr\u00e9 2FA signup only",
       "oracle_fallback": true
     },
     {
       "id": "proj-host-fly-probe",
-      "title": "Fly.io Fog peer — DROP for new accounts (2026 no free Machines)",
+      "title": "Fly.io Fog peer \u2014 DROP for new accounts (2026 no free Machines)",
       "eisenhower": "note",
-      "note": "2026 honesty: free allowance legacy-only; trial!=always-on; paid needs André — not Oracle substitute",
+      "note": "2026 honesty: free allowance legacy-only; trial!=always-on; paid needs Andr\u00e9 \u2014 not Oracle substitute",
       "oracle_fallback": true,
       "status": "note"
     },
@@ -508,8 +508,15 @@
       "andre_gate": false,
       "escalate_to_andre": false,
       "resolve_as_representative": true,
-      "note": "André halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud → automation.desk@",
+      "note": "Andr\u00e9 halted grok@ for general desk cloud auth. Discourse may stay grok@ for now; Oracle optional may stay grok@; NEW cloud \u2192 automation.desk@",
       "task_id_hint": "dt-migrate-desk-auth-automation"
+    },
+    {
+      "id": "proj-desk-camaraderie-reputation",
+      "title": "Desk camaraderie + qualitative peer reputation (\u2260 KPI)",
+      "eisenhower": "act",
+      "note": "Peer help/delegate by skill+qualitative rep; independent of objective meters",
+      "status": "pending"
     }
   ],
   "updated": "2026-09-05T14:23:45+0100"
