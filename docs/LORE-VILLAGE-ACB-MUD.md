@@ -241,9 +241,9 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 ## Phase 3 — decide → validate → execute (landed)
 
 - Module: [`src/olissippo_decide.py`](../src/olissippo_decide.py)
-- Flow: perception → JSON decision (Ollama or mock) → `validate_decision` → `execute_decision`
+- Flow: perception → JSON decision (Ollama or routine policy) → `validate_decision` → `execute_decision`
 - **ACB ≠ NFT** enforced: decisions carrying `object_id` / mint self are rejected
-- CI uses `mock_decide`; Mac may set `prefer_ollama=True` when `:11434` is up
+- Default prefers Ollama when `:11434` is up; else real `routine_decide` policy. Rite effects from `rite_effects`.
 - On reject/exception: fall back to Phase 2 deterministic routine
 - Next: Phase 7 continuity eval
 

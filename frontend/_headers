@@ -21,3 +21,6 @@
   Cache-Control: public, max-age=120
 /olissippo-world.json
   Cache-Control: public, max-age=120
+
+/olissippo-runtime.json
+  Cache-Control: public, max-age=60

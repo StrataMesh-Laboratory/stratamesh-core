@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var CACHE = '20260907c';
+  var CACHE = '20260907d';
   var lang = (function () {
     try {
       var q = new URLSearchParams(location.search).get('lang');
@@ -254,7 +254,30 @@
         noteEl.textContent = (isPt ? world.subtitle_pt : world.subtitle_en) +
           ' · ' + L('Pessoas ≠ objectos NFT · papel CMN ≠ identidade', 'People ≠ NFT objects · CMN role ≠ identity');
       }
-      bootThree(world);
+      var runtimeUrl = (world.runtime_url || '/olissippo-runtime.json') + '?v=' + CACHE;
+      fetch(runtimeUrl, { cache: 'no-cache' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rt) {
+          if (rt && rt.people && rt.people.length) {
+            state.runtime = rt;
+            // live positions replace home-only pins for HUD "here"
+            state.world.people = rt.people.map(function (p) {
+              return {
+                name: p.name,
+                role_pt: p.role_pt,
+                role_en: p.role_en,
+                home: p.location_id || p.home,
+                kind: 'person',
+                subject_ref: p.subject_ref,
+                world_role_ref: p.world_role_ref,
+                identity_registry: 'stratamesh',
+                world_role_registry: 'cmn',
+              };
+            });
+          }
+          bootThree(state.world);
+        })
+        .catch(function () { bootThree(world); });
     })
     .catch(function () {
       fail(L('Não foi possível carregar a aldeia.', 'Could not load the village.'));

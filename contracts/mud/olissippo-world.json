@@ -285,9 +285,12 @@
       "name": "Grain offering",
       "name_pt": "Oferta de cereal",
       "location_id": "shrine_niche",
-      "template": "object",
+      "template": "offering",
       "qty": 1,
-      "notes": "Valid offering Object for rite_offer"
+      "notes": "Valid offering Object for rite_offer",
+      "usable_for": [
+        "rite_offer"
+      ]
     },
     {
       "object_id": "obj-oli-forge-shed",
@@ -335,5 +338,48 @@
   "same_mechanics_as_main": true,
   "realm_class": "lore",
   "cmn_main_realm": "cmn-main-sandbox-host",
-  "mechanics_note": "Lore world separate from CMN main (where sandboxes are hosted). Uses the same Subject/Object, world-role, decide/validate/execute mechanics."
+  "mechanics_note": "Lore world separate from CMN main (where sandboxes are hosted). Uses the same Subject/Object, world-role, decide/validate/execute mechanics.",
+  "rite_effects": {
+    "rite_offer": {
+      "requires_object_template": "offering",
+      "clears_flags": [
+        "taboo_breach"
+      ],
+      "sets_flags": [
+        "offering_made"
+      ],
+      "energy_delta": 0.05
+    },
+    "rite_heal": {
+      "requires_numen": "endovelicus",
+      "clears_flags": [
+        "wounded"
+      ],
+      "sets_flags": [
+        "endovelicus_favour"
+      ],
+      "energy_delta": 0.25,
+      "hunger_delta": -0.05
+    },
+    "rite_dream": {
+      "requires_numen": "endovelicus",
+      "sets_flags": [
+        "endovelicus_dream"
+      ],
+      "energy_delta": 0.1
+    },
+    "oath_bandua": {
+      "requires_numen": "bandua",
+      "sets_flags": [
+        "bandua_oath"
+      ],
+      "energy_delta": 0.05
+    },
+    "consult_omen": {
+      "sets_flags": [
+        "omen_consulted"
+      ],
+      "energy_delta": -0.02
+    }
+  }
 }

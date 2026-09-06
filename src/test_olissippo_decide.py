@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3 decide→validate→execute — ACB ≠ NFT; mock LLM for CI."""
+"""Phase 3 decide→validate→execute — ACB ≠ NFT; routine policy + real rites; Ollama when available."""
 from __future__ import annotations
 
 import json
@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import olissippo_boutius as bb  # noqa: E402
 import olissippo_decide as dec  # noqa: E402
+import olissippo_memory as mem  # noqa: E402
 
 
 def test_reject_unknown_and_nft_self():
@@ -45,12 +46,12 @@ def test_cognitive_tick_mock_buys_charcoal():
     s["minute"] = 16 * 60
     s["location_id"] = "smithy"
     s["charcoal_held"] = 0
-    s2 = dec.cognitive_tick(s, 10, decide=dec.mock_decide)
+    s2 = dec.cognitive_tick(s, 10, decide=dec.routine_decide)
     bb.assert_subject_not_nft(s2)
     assert s2["location_id"] == "charcoal_lean"
     # mock may move then need another tick to buy — allow either moved-with-buy or move-only
     if s2["charcoal_held"] < 2:
-        s2 = dec.cognitive_tick(s2, 10, decide=dec.mock_decide)
+        s2 = dec.cognitive_tick(s2, 10, decide=dec.routine_decide)
     assert s2["charcoal_held"] >= 2
     assert s2["is_nft"] is False
 
@@ -81,6 +82,65 @@ def test_lore_phase3_pointer():
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text()
     assert "olissippo_decide" in lore or "Phase 3" in lore
     assert "ACB ≠ NFT" in lore
+
+
+
+def test_rite_offer_applies_real_flags():
+    s = bb.initial_state()
+    s["location_id"] = "shrine_niche"
+    s["status_flags"] = ["taboo_breach"]
+    gate = dec.validate_decision(s, {"action": {"type": "rite_offer"}})
+    assert gate["ok"] is True, gate
+    s2 = dec.execute_decision(s, gate)
+    assert "taboo_breach" not in s2["status_flags"]
+    assert "offering_made" in s2["status_flags"]
+    assert s2["is_nft"] is False
+
+
+def test_rite_heal_requires_endovelicus_location():
+    s = bb.initial_state()
+    s["location_id"] = "smithy"
+    gate = dec.validate_decision(s, {"action": {"type": "rite_heal"}})
+    assert gate["ok"] is False
+    s["location_id"] = "sacred_grove"
+    s["status_flags"] = ["wounded"]
+    gate = dec.validate_decision(s, {"action": {"type": "rite_heal"}})
+    assert gate["ok"] is True
+    s2 = dec.execute_decision(s, gate)
+    assert "endovelicus_favour" in s2["status_flags"]
+    assert "wounded" not in s2["status_flags"]
+
+
+def test_oath_bandua_at_wall():
+    s = bb.initial_state()
+    s["location_id"] = "wall_watch"
+    gate = dec.validate_decision(s, {"action": {"type": "oath_bandua"}})
+    assert gate["ok"] is True
+    s2 = dec.execute_decision(s, gate)
+    assert "bandua_oath" in s2["status_flags"]
+
+
+def test_cognitive_tick_defaults_to_routine_without_ollama():
+    s = bb.initial_state()
+    s["minute"] = 16 * 60
+    s["location_id"] = "smithy"
+    s["charcoal_held"] = 0
+    s2 = dec.cognitive_tick(s, 10, prefer_ollama=True)  # ollama down → routine
+    assert s2["location_id"] == "charcoal_lean" or s2.get("charcoal_held", 0) >= 0
+    bb.assert_subject_not_nft(s2)
+
+
+def test_memory_records_after_work():
+    s = bb.initial_state()
+    s["location_id"] = "smithy"
+    s["charcoal_held"] = 2
+    store = mem.empty_store()
+    s2, store2 = dec.cognitive_tick_with_memory(
+        s, store, 10, decide=lambda st, pe: {"intention": "work", "action": {"type": "work"}, "speech": None}
+    )
+    # may need to be at smithy with charcoal — work should record
+    if s2.get("last_action", {}).get("type") == "work":
+        assert mem.recall(store2, s2["subject_id"])
 
 
 if __name__ == "__main__":

@@ -80,6 +80,7 @@ def initial_state(persona: dict[str, Any] | None = None) -> dict[str, Any]:
         "is_subject": True,
         "is_object": False,
         "is_nft": False,
+        "status_flags": [],
     }
 
 

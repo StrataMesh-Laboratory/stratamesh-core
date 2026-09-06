@@ -15,6 +15,7 @@ def test_files_exist():
     assert (FE / "olissippo.html").is_file()
     assert (FE / "olissippo-stage.js").is_file()
     assert (FE / "olissippo-world.json").is_file()
+    assert (FE / "olissippo-runtime.json").is_file()
 
 
 def test_snapshot_not_main_and_people_are_subjects():
@@ -72,6 +73,18 @@ def test_lore_phase6_pointer():
     assert "ACB ≠ NFT" in lore
 
 
+def test_runtime_is_live_ticks_not_mock():
+    rt = json.loads((FE / "olissippo-runtime.json").read_text())
+    assert rt["not_main"] is True
+    assert rt["hosts_sandboxes"] is False
+    assert "tick" in (rt.get("generated_by") or "").lower() or "gen-olissippo" in (rt.get("generated_by") or "")
+    assert len(rt["people"]) == 5
+    for person in rt["people"]:
+        assert person["subject_ref"].startswith("acb-")
+        assert person["is_nft"] is False
+        assert person.get("location_id")
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):
@@ -85,3 +98,5 @@ if __name__ == "__main__":
     if failed:
         sys.exit(1)
     print("olissippo-atelier phase6 ok")
+
+

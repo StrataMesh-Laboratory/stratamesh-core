@@ -6,7 +6,7 @@
   "label_en": "Olissippo village",
   "subtitle_pt": "Pré-romana · lore (não é o mundo principal CMN onde vivem as sandboxes) · mesmas mecânicas",
   "subtitle_en": "Pre-Roman · lore (not CMN main where sandboxes host) · same mechanics",
-  "cache": "20260907c",
+  "cache": "20260907d",
   "locations": [
     {
       "id": "hill_enclosure",
@@ -294,5 +294,6 @@
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
   "realm_class": "lore",
-  "cmn_main_realm": "cmn-main-sandbox-host"
+  "cmn_main_realm": "cmn-main-sandbox-host",
+  "runtime_url": "/olissippo-runtime.json"
 }
