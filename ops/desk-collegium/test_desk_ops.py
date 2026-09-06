@@ -530,3 +530,17 @@ class TestHasToolEvidence(unittest.TestCase):
         )
         self.assertTrue(fn(blob), "real exit-code output must be accepted as tool evidence")
 
+
+def test_cmd_cycle_respects_desk_cycle_hold(tmp_path, monkeypatch):
+    """HOLD file must short-circuit cycle before flock/agent spawn."""
+    import desk_ops as d
+
+    fog = tmp_path / "fog"
+    (fog / "data").mkdir(parents=True)
+    (fog / "data" / "DESK-CYCLE-HOLD").write_text("")
+    monkeypatch.setenv("FOG_HOME", str(fog))
+    if hasattr(d, "FOG"):
+        monkeypatch.setattr(d, "FOG", fog)
+    ns = type("A", (), {"max": 1})()
+    assert d.cmd_cycle(ns) == 0
+

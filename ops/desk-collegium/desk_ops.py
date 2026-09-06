@@ -2606,6 +2606,12 @@ def cmd_board(_: argparse.Namespace) -> int:
 
 
 def cmd_cycle(args: argparse.Namespace) -> int:
+    import os as _os
+    _fog_home = Path(_os.environ["FOG_HOME"]) if _os.environ.get("FOG_HOME") else FOG
+    _hold = _fog_home / "data" / "DESK-CYCLE-HOLD"
+    if _hold.exists():
+        print(f"desk_ops cycle skip: HOLD {_hold}")
+        return 0
     # 8GB: one cycle at a time (stacked Hermes/OpenClaw thrash)
     import fcntl
     _lock_f = None
