@@ -16,7 +16,7 @@ import olissippo_world as ow  # noqa: E402
 def test_persona_is_acb_subject_not_object():
     p = bb.load_persona()
     assert p["kind"] == "acb"
-    assert p["subject_id"] == "acb-oli-boutius-001"
+    assert p["subject_id"] == "acb-boutius-001"
     assert "object_id" not in p
     world = ow.load_world()
     seeds = world.get("subject_seeds") or []

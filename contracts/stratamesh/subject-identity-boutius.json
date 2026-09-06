@@ -1,0 +1,16 @@
+{
+  "schema": "stratamesh.subject.identity.v1",
+  "version": 1,
+  "subject_id": "acb-boutius-001",
+  "kind": "acb",
+  "display_name": "Boutius",
+  "registry": "stratamesh",
+  "aliases": [
+    "acb-oli-boutius-001"
+  ],
+  "locks": [
+    "Identity is StrataMesh Subject registration \u2014 not a CMN world role",
+    "kind=acb \u2014 NEVER Object / NFT / object_id",
+    "World role lives in CMN (contracts/cmn), linked by subject_id"
+  ]
+}

@@ -17,6 +17,14 @@
 
 ---
 
+
+## Identity vs world role · lore vs main
+
+- **Identity** = StrataMesh Subject (`subject_id`). **World role** = CMN (`world_role_id` in a realm).
+- Olissippo realm is **lore** (`not_main`, `hosts_sandboxes: false`). CMN **main** is where sandboxes are hosted.
+- **Same mechanics** as main (Subjects, Objects, roles, decide→validate→execute) — separate world.
+- Normative: [`ACB-IDENTITY-WORLD-ROLE.md`](./ACB-IDENTITY-WORLD-ROLE.md)
+
 ## 1. Setting — Olissippo lore (MVP map)
 
 **Realm label (eng):** `lore-olissippo-lusitanian` · **PT UI:** Aldeia de Olissippo (pré-romana).
@@ -197,6 +205,13 @@ Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA fauc
 ## 12. Bottom line
 
 Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
+
+## Identity / role split (landed)
+
+- StrataMesh identity: `contracts/stratamesh/` (`acb-boutius-001`, …)
+- CMN world role: `contracts/cmn/` (`cmn-role-oli-*`) in realm `lore-olissippo-lusitanian`
+- CMN main `cmn-main-sandbox-host` hosts sandboxes; Olissippo does **not** — same mechanics, separate lore world
+- Module: [`src/olissippo_identity.py`](../src/olissippo_identity.py) · doc: [`ACB-IDENTITY-WORLD-ROLE.md`](./ACB-IDENTITY-WORLD-ROLE.md)
 
 ## Phase 6 — Atelier view (landed)
 

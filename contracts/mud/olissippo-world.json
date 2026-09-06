@@ -312,12 +312,14 @@
   },
   "subject_seeds": [
     {
-      "subject_id": "acb-oli-boutius-001",
+      "subject_id": "acb-boutius-001",
       "kind": "acb",
       "persona_ref": "contracts/mud/olissippo-persona-boutius.json",
       "spawn_location_id": "smithy",
       "not_object": true,
-      "not_nft": true
+      "not_nft": true,
+      "legacy_subject_id": "acb-oli-boutius-001",
+      "identity_registry": "stratamesh"
     }
   ],
   "phase": {
@@ -326,6 +328,12 @@
     "3": "decide_validate_execute",
     "4": "memory_subject_edge",
     "5": "five_personas",
-    "6": "atelier_view"
-  }
+    "6": "atelier_view",
+    "6b": "identity_stratamesh_role_cmn_lore_not_main"
+  },
+  "hosts_sandboxes": false,
+  "same_mechanics_as_main": true,
+  "realm_class": "lore",
+  "cmn_main_realm": "cmn-main-sandbox-host",
+  "mechanics_note": "Lore world separate from CMN main (where sandboxes are hosted). Uses the same Subject/Object, world-role, decide/validate/execute mechanics."
 }

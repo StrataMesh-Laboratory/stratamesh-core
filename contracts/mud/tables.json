@@ -16,7 +16,10 @@
     "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
     "deed": "Ownership deed NFT (still Object.kind=object|\u2026) for virtual|financial|physical underlyings. Tokenised into Subject account via international legal custodianship; cold storage may bind token validity. Generalises parcel ownership_title off-world. Not a closed macro-category ceiling. See docs/NFT-MACRO-CATEGORIES.md.",
     "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation.",
-    "lore_olissippo": "Not-main lore-olissippo-lusitanian. Five ACB Subjects. Phase 6: /olissippo Atelier lore stage; people\u2260NFT; not Bancada main."
+    "lore_olissippo": "Lore realm lore-olissippo-lusitanian \u2014 NOT CMN main sandbox host. Same mechanics. Identity=StrataMesh; world role=CMN. ACB \u2260 NFT. Phase 6 /olissippo stage.",
+    "subject_identity": "StrataMesh Subject identity (subject_id, kind). Not a CMN world role. ACB \u2260 NFT.",
+    "cmn_world_role": "CMN world role (world_role_id \u2192 subject_id + realm + role). Not StrataMesh identity.",
+    "cmn_realm": "CMN main (cmn-main-sandbox-host) hosts sandboxes. Lore realms (lore-olissippo-lusitanian) are not_main, hosts_sandboxes=false, same mechanics."
   },
   "tables": {
     "Subject": {
@@ -261,6 +264,43 @@
       "rules": [
         "Both ends are subject_ids (sorted a_id < b_id)",
         "Never mint Object / NFT from an edge"
+      ]
+    },
+    "CmnWorldRole": {
+      "key": [
+        "role_id"
+      ],
+      "value": {
+        "role_id": "string",
+        "subject_id": "string",
+        "realm": "string",
+        "role": "string",
+        "home_location": "string?",
+        "not_main": "bool?",
+        "hosts_sandboxes": "bool",
+        "same_mechanics_as_main": "bool?"
+      },
+      "rules": [
+        "Registered in CMN \u2014 not StrataMesh identity",
+        "subject_id must exist in StrataMesh identity registry",
+        "Lore roles: hosts_sandboxes=false; never treat as main",
+        "ACB \u2260 NFT"
+      ]
+    },
+    "SubjectIdentity": {
+      "key": [
+        "subject_id"
+      ],
+      "value": {
+        "subject_id": "string",
+        "kind": "enum:user|sca|acb",
+        "display_name": "string",
+        "registry": "const:stratamesh",
+        "aliases": "string[]?"
+      },
+      "rules": [
+        "Registered in StrataMesh \u2014 must not embed CMN world role fields as identity",
+        "ACB/SCA never Object / object_id"
       ]
     }
   }

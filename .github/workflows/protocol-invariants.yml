@@ -66,6 +66,9 @@ jobs:
       - name: Olissippo lore Atelier Phase 6 (lore stage, ACB ≠ NFT, not main)
         working-directory: src
         run: python3 test_olissippo_atelier.py
+      - name: Olissippo identity≠role + lore≠main sandbox host
+        working-directory: src
+        run: python3 test_olissippo_identity.py
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py

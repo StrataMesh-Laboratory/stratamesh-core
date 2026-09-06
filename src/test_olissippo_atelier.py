@@ -20,6 +20,9 @@ def test_files_exist():
 def test_snapshot_not_main_and_people_are_subjects():
     snap = json.loads((FE / "olissippo-world.json").read_text())
     assert snap.get("not_main") is True
+    assert snap.get("hosts_sandboxes") is False
+    assert snap.get("same_mechanics_as_main") is True
+    assert snap.get("realm_class") == "lore"
     assert snap.get("realm") == "lore-olissippo-lusitanian"
     assert len(snap.get("locations") or []) >= 13
     assert len(snap.get("people") or []) == 5
@@ -37,7 +40,7 @@ def test_html_chrome_has_no_object_id_jargon():
     assert "object_id" not in html
     assert "subject_id" not in html
     assert "Aldeia de Olissippo" in html or "Olissippo" in html
-    assert "não principal" in html or "not main" in html.lower() or "não principal" in html
+    assert ("não principal" in html or "não CMN principal" in html or "not main" in html.lower() or "not cmn main" in html.lower())
     assert "Pessoas aqui" in html
     # must not call people NFTs in chrome
     assert "NFT" not in html.split("aside")[0]  # header free of NFT pitch

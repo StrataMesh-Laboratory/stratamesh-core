@@ -1,37 +1,52 @@
 {
-  "schema": "stratamesh.lore.olissippo.personas.index.v1",
+  "schema": "stratamesh.lore.olissippo.personas.index.v2",
   "realm": "lore-olissippo-lusitanian",
-  "note": "Phase 5 \u2014 five opening ACB Subjects. ACB \u2260 NFT. Boutius remains canonical smith.",
+  "note": "Phase 5+ identity/role split. Persona joins StrataMesh subject_id with CMN world_role_id. ACB \u2260 NFT. Realm not_main.",
   "personas": [
     {
       "slug": "boutius",
       "file": "olissippo-persona-boutius.json",
-      "subject_id": "acb-oli-boutius-001",
-      "role": "smith"
+      "subject_id": "acb-boutius-001",
+      "role": "smith",
+      "world_role_id": "cmn-role-oli-smith-boutius",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "slug": "camala",
       "file": "olissippo-persona-camala.json",
-      "subject_id": "acb-oli-camala-001",
-      "role": "guest_house_keeper"
+      "subject_id": "acb-camala-001",
+      "role": "guest_house_keeper",
+      "world_role_id": "cmn-role-oli-guest-camala",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "slug": "apana",
       "file": "olissippo-persona-apana.json",
-      "subject_id": "acb-oli-apana-001",
-      "role": "forge_apprentice"
+      "subject_id": "acb-apana-001",
+      "role": "forge_apprentice",
+      "world_role_id": "cmn-role-oli-apprentice-apana",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "slug": "tongius",
       "file": "olissippo-persona-tongius.json",
-      "subject_id": "acb-oli-tongius-001",
-      "role": "wall_watch"
+      "subject_id": "acb-tongius-001",
+      "role": "wall_watch",
+      "world_role_id": "cmn-role-oli-watch-tongius",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "slug": "navia",
       "file": "olissippo-persona-navia.json",
-      "subject_id": "acb-oli-navia-001",
-      "role": "river_trader"
+      "subject_id": "acb-navia-001",
+      "role": "river_trader",
+      "world_role_id": "cmn-role-oli-trader-navia",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     }
   ]
 }

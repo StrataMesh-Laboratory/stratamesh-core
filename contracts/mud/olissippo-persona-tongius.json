@@ -1,7 +1,7 @@
 {
-  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "schema": "stratamesh.lore.olissippo.persona.v2",
   "version": 1,
-  "subject_id": "acb-oli-tongius-001",
+  "subject_id": "acb-tongius-001",
   "kind": "acb",
   "display_name": "Tongius",
   "role": "wall_watch",
@@ -27,12 +27,18 @@
   ],
   "locks": [
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
-    "oath_bandua is a rite verb \u2014 not free PvP win"
+    "oath_bandua is a rite verb \u2014 not free PvP win",
+    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
+    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "State your business before the gate.",
     "patrol": "Circuit. Wall holds.",
     "oath": "Bandua hears the watch.",
     "sleep": "Relief comes. Wall still stands."
-  }
+  },
+  "identity_registry": "stratamesh",
+  "world_role_id": "cmn-role-oli-watch-tongius",
+  "world_role_registry": "cmn",
+  "legacy_subject_id": "acb-oli-tongius-001"
 }

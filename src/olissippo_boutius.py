@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import olissippo_world as ow
+import olissippo_identity as oid
 
 ROOT = Path(__file__).resolve().parents[1]
 PERSONA_PATH = ROOT / "contracts" / "mud" / "olissippo-persona-boutius.json"
@@ -38,6 +39,11 @@ def load_persona() -> dict[str, Any]:
     assert data["kind"] == "acb"
     assert data["subject_id"].startswith("acb-")
     assert "object_id" not in data
+    # Identity (StrataMesh) ≠ world role (CMN)
+    data["subject_id"] = oid.resolve_subject_id(data["subject_id"])
+    assert data.get("identity_registry") == "stratamesh"
+    assert data.get("world_role_registry") == "cmn"
+    assert data.get("world_role_id", "").startswith("cmn-role-")
     return data
 
 

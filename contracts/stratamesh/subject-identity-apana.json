@@ -1,0 +1,15 @@
+{
+  "schema": "stratamesh.subject.identity.v1",
+  "version": 1,
+  "subject_id": "acb-apana-001",
+  "kind": "acb",
+  "display_name": "Apana",
+  "registry": "stratamesh",
+  "aliases": [
+    "acb-oli-apana-001"
+  ],
+  "locks": [
+    "Identity is StrataMesh Subject registration \u2014 not a CMN world role",
+    "kind=acb \u2014 NEVER Object / NFT / object_id"
+  ]
+}

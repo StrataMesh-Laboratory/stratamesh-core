@@ -1,0 +1,27 @@
+{
+  "schema": "cmn.world.role.v1",
+  "version": 1,
+  "role_id": "cmn-role-oli-guest-camala",
+  "subject_id": "acb-camala-001",
+  "registry": "cmn",
+  "realm": "lore-olissippo-lusitanian",
+  "not_main": true,
+  "role": "guest_house_keeper",
+  "role_pt": "hospedeira",
+  "home_location": "guest_house",
+  "primary_goal": "keep_hearth_solvent",
+  "culture_tag": "lusitanian_olissippo",
+  "persona_file": "olissippo-persona-camala.json",
+  "locks": [
+    "World role is CMN registration \u2014 not StrataMesh identity",
+    "subject_id must resolve in contracts/stratamesh",
+    "ACB \u2260 NFT \u2014 role never mints object_id for the Subject",
+    "Realm lore-olissippo-lusitanian is not_main",
+    "Realm is lore \u2014 NOT CMN main sandbox-host world",
+    "Same mechanics as main (Subject/Object, roles, validate/execute) \u2014 separate world",
+    "Must not host sandboxes"
+  ],
+  "hosts_sandboxes": false,
+  "same_mechanics_as_main": true,
+  "realm_class": "lore"
+}

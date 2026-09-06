@@ -1,7 +1,7 @@
 {
-  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "schema": "stratamesh.lore.olissippo.persona.v2",
   "version": 1,
-  "subject_id": "acb-oli-boutius-001",
+  "subject_id": "acb-boutius-001",
   "kind": "acb",
   "display_name": "Boutius",
   "role": "smith",
@@ -29,7 +29,9 @@
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
     "Persona chrome is not Subject.kind",
     "Fog node and desk external_assistant are not this Subject",
-    "No LLM in Phase 2 \u2014 deterministic routine only"
+    "No LLM in Phase 2 \u2014 deterministic routine only",
+    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
+    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "Speak your need. The forge is hot.",
@@ -37,5 +39,9 @@
     "thanks_charcoal": "The charcoal helps. The chefe still waits on spears.",
     "working": "The iron waits. Leave me to it.",
     "sleep": "Night takes the forge."
-  }
+  },
+  "identity_registry": "stratamesh",
+  "world_role_id": "cmn-role-oli-smith-boutius",
+  "world_role_registry": "cmn",
+  "legacy_subject_id": "acb-oli-boutius-001"
 }

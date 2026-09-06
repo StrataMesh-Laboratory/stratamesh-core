@@ -1,7 +1,7 @@
 {
-  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "schema": "stratamesh.lore.olissippo.persona.v2",
   "version": 1,
-  "subject_id": "acb-oli-camala-001",
+  "subject_id": "acb-camala-001",
   "kind": "acb",
   "display_name": "Camala",
   "role": "guest_house_keeper",
@@ -27,12 +27,18 @@
   ],
   "locks": [
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
-    "Persona chrome is not Subject.kind"
+    "Persona chrome is not Subject.kind",
+    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
+    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "Bread and roof if you pay fair.",
     "need_supplies": "The hearth runs thin. Market, then back.",
     "working": "Bowls first. Stories later.",
     "sleep": "Embers low. Rest while you can."
-  }
+  },
+  "identity_registry": "stratamesh",
+  "world_role_id": "cmn-role-oli-guest-camala",
+  "world_role_registry": "cmn",
+  "legacy_subject_id": "acb-oli-camala-001"
 }

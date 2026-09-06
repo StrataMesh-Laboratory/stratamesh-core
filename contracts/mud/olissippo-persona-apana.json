@@ -1,7 +1,7 @@
 {
-  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "schema": "stratamesh.lore.olissippo.persona.v2",
   "version": 1,
-  "subject_id": "acb-oli-apana-001",
+  "subject_id": "acb-apana-001",
   "kind": "acb",
   "display_name": "Apana",
   "role": "forge_apprentice",
@@ -27,12 +27,18 @@
   ],
   "locks": [
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
-    "Mentored by Boutius Subject \u2014 not owned as Object"
+    "Mentored by Boutius Subject \u2014 not owned as Object",
+    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
+    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "Master Boutius is at the forge. I fetch what he needs.",
     "need_charcoal": "Charcoal for the forge \u2014 I go to the lean-to.",
     "working": "I watch the iron. Still learning.",
     "sleep": "Yard rest. Dawn hammer soon."
-  }
+  },
+  "identity_registry": "stratamesh",
+  "world_role_id": "cmn-role-oli-apprentice-apana",
+  "world_role_registry": "cmn",
+  "legacy_subject_id": "acb-oli-apana-001"
 }

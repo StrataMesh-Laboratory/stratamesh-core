@@ -1,0 +1,25 @@
+{
+  "schema": "cmn.realm.index.v1",
+  "registry": "cmn",
+  "note": "CMN hosts multiple realms. Main = sandbox-hosting world (Bancada/open-world sandboxes). Lore realms (e.g. lore-olissippo-lusitanian) are separate worlds with the SAME mechanics (Subject/Object, world roles, validate/execute) but are NOT main and do NOT host sandboxes.",
+  "realms": [
+    {
+      "realm_id": "cmn-main-sandbox-host",
+      "class": "main",
+      "hosts_sandboxes": true,
+      "label_en": "CMN main (sandbox host)",
+      "label_pt": "CMN principal (anfitri\u00e3o de sandboxes)",
+      "notes": "Bancada / open-world sandboxes live here. Primary CMN world."
+    },
+    {
+      "realm_id": "lore-olissippo-lusitanian",
+      "class": "lore",
+      "hosts_sandboxes": false,
+      "not_main": true,
+      "same_mechanics_as_main": true,
+      "label_en": "Olissippo (pre-Roman Lusitanian lore village)",
+      "label_pt": "Aldeia de Olissippo (pr\u00e9-romana, lore)",
+      "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, CMN world roles \u2014 same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main."
+    }
+  ]
+}

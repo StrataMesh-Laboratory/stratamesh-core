@@ -15,11 +15,11 @@ import olissippo_world as ow  # noqa: E402
 
 
 EXPECTED = {
-    "boutius": "acb-oli-boutius-001",
-    "camala": "acb-oli-camala-001",
-    "apana": "acb-oli-apana-001",
-    "tongius": "acb-oli-tongius-001",
-    "navia": "acb-oli-navia-001",
+    "boutius": "acb-boutius-001",
+    "camala": "acb-camala-001",
+    "apana": "acb-apana-001",
+    "tongius": "acb-tongius-001",
+    "navia": "acb-navia-001",
 }
 
 
@@ -60,7 +60,7 @@ def test_routines_move_without_becoming_nft():
 def test_boutius_still_matches_phase2_file():
     p = op.load_persona("boutius")
     raw = json.loads((ROOT / "contracts/mud/olissippo-persona-boutius.json").read_text())
-    assert p["subject_id"] == raw["subject_id"] == "acb-oli-boutius-001"
+    assert p["subject_id"] == raw["subject_id"] == "acb-boutius-001"
 
 
 def test_apana_fetches_toward_charcoal():

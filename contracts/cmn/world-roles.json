@@ -1,0 +1,47 @@
+{
+  "schema": "cmn.world.role.index.v1",
+  "registry": "cmn",
+  "note": "World roles are CMN-registered and reference StrataMesh subject_id. Olissippo roles are lore realm (not_main, hosts_sandboxes=false) with same mechanics as main.",
+  "roles": [
+    {
+      "role_id": "cmn-role-oli-smith-boutius",
+      "subject_id": "acb-boutius-001",
+      "realm": "lore-olissippo-lusitanian",
+      "role": "smith",
+      "file": "world-role-oli-boutius.json"
+    },
+    {
+      "role_id": "cmn-role-oli-guest-camala",
+      "subject_id": "acb-camala-001",
+      "realm": "lore-olissippo-lusitanian",
+      "role": "guest_house_keeper",
+      "file": "world-role-oli-camala.json"
+    },
+    {
+      "role_id": "cmn-role-oli-apprentice-apana",
+      "subject_id": "acb-apana-001",
+      "realm": "lore-olissippo-lusitanian",
+      "role": "forge_apprentice",
+      "file": "world-role-oli-apana.json"
+    },
+    {
+      "role_id": "cmn-role-oli-watch-tongius",
+      "subject_id": "acb-tongius-001",
+      "realm": "lore-olissippo-lusitanian",
+      "role": "wall_watch",
+      "file": "world-role-oli-tongius.json"
+    },
+    {
+      "role_id": "cmn-role-oli-trader-navia",
+      "subject_id": "acb-navia-001",
+      "realm": "lore-olissippo-lusitanian",
+      "role": "river_trader",
+      "file": "world-role-oli-navia.json"
+    }
+  ],
+  "realm_policy": {
+    "main_hosts_sandboxes": "cmn-main-sandbox-host",
+    "lore_olissippo": "lore-olissippo-lusitanian",
+    "lore_must_not_be_treated_as_main": true
+  }
+}

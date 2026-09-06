@@ -128,3 +128,7 @@ This ontology is **normative for description and design**. The network remains *
 ---
 
 *StrataMesh Laboratory · under AMCM ENI operational umbrella · reference node FOG-NODE-PT-CM-001*
+
+## Identity vs CMN world role
+
+See [`ACB-IDENTITY-WORLD-ROLE.md`](./ACB-IDENTITY-WORLD-ROLE.md): StrataMesh registers **identity**; CMN registers **world role**. Lore realms (Olissippo) share mechanics with CMN main but do **not** host sandboxes.

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import olissippo_boutius as bb
+import olissippo_identity as oid
 import olissippo_world as ow
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,9 +78,18 @@ def load_persona(slug: str) -> dict[str, Any]:
         raise KeyError(f"unknown_persona:{slug}")
     data = json.loads((MUD / entry["file"]).read_text())
     assert data["kind"] == "acb"
-    assert data["subject_id"].startswith("acb-")
     assert "object_id" not in data
+    data["subject_id"] = oid.resolve_subject_id(data["subject_id"])
     assert data["subject_id"] == entry["subject_id"]
+    assert data.get("identity_registry") == "stratamesh"
+    assert data.get("world_role_registry") == "cmn"
+    assert data.get("world_role_id") == entry.get("world_role_id")
+    # role fields come from CMN world role; identity does not own them
+    role = oid.load_world_role(data["world_role_id"])
+    assert role["subject_id"] == data["subject_id"]
+    data["role"] = role["role"]
+    data["home_location"] = role["home_location"]
+    data["primary_goal"] = role["primary_goal"]
     return data
 
 

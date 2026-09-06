@@ -1,0 +1,52 @@
+{
+  "schema": "stratamesh.subject.identity.index.v1",
+  "registry": "stratamesh",
+  "note": "ACB/User identity lives here. World roles are CMN-registered and reference subject_id.",
+  "identities": [
+    {
+      "subject_id": "acb-boutius-001",
+      "kind": "acb",
+      "display_name": "Boutius",
+      "file": "subject-identity-boutius.json",
+      "aliases": [
+        "acb-oli-boutius-001"
+      ]
+    },
+    {
+      "subject_id": "acb-camala-001",
+      "kind": "acb",
+      "display_name": "Camala",
+      "file": "subject-identity-camala.json",
+      "aliases": [
+        "acb-oli-camala-001"
+      ]
+    },
+    {
+      "subject_id": "acb-apana-001",
+      "kind": "acb",
+      "display_name": "Apana",
+      "file": "subject-identity-apana.json",
+      "aliases": [
+        "acb-oli-apana-001"
+      ]
+    },
+    {
+      "subject_id": "acb-tongius-001",
+      "kind": "acb",
+      "display_name": "Tongius",
+      "file": "subject-identity-tongius.json",
+      "aliases": [
+        "acb-oli-tongius-001"
+      ]
+    },
+    {
+      "subject_id": "acb-navia-001",
+      "kind": "acb",
+      "display_name": "Navia",
+      "file": "subject-identity-navia.json",
+      "aliases": [
+        "acb-oli-navia-001"
+      ]
+    }
+  ]
+}

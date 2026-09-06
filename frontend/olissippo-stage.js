@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var CACHE = '20260907a';
+  var CACHE = '20260907c';
   var lang = (function () {
     try {
       var q = new URLSearchParams(location.search).get('lang');
@@ -81,7 +81,7 @@
         var li = document.createElement('li');
         var role = isPt ? p.role_pt : p.role_en;
         // Person / ACB Subject — never "NFT"
-        li.textContent = p.name + ' · ' + role + ' · ' + L('pessoa', 'person');
+        li.textContent = p.name + ' · ' + role + ' · ' + L('pessoa (identidade StrataMesh)', 'person (StrataMesh identity)');
         peopleEl.appendChild(li);
       });
     }
@@ -245,12 +245,14 @@
     .then(function (r) { if (!r.ok) throw new Error('world'); return r.json(); })
     .then(function (world) {
       if (!world.not_main) throw new Error('realm_must_not_be_main');
+      if (world.hosts_sandboxes) throw new Error('lore_must_not_host_sandboxes');
+      if (world.realm_class && world.realm_class !== 'lore') throw new Error('expected_lore_realm');
       state.world = world;
       state.here = (world.spawn && world.spawn.location_id) || 'hill_enclosure';
       if (titleEl) titleEl.textContent = isPt ? world.label_pt : world.label_en;
       if (noteEl) {
         noteEl.textContent = (isPt ? world.subtitle_pt : world.subtitle_en) +
-          ' · ' + L('Pessoas ≠ objectos NFT', 'People ≠ NFT objects');
+          ' · ' + L('Pessoas ≠ objectos NFT · papel CMN ≠ identidade', 'People ≠ NFT objects · CMN role ≠ identity');
       }
       bootThree(world);
     })

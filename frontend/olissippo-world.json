@@ -4,9 +4,9 @@
   "not_main": true,
   "label_pt": "Aldeia de Olissippo",
   "label_en": "Olissippo village",
-  "subtitle_pt": "Pré-romana · lore (não é o mundo principal)",
-  "subtitle_en": "Pre-Roman · lore (not the main world)",
-  "cache": "20260907a",
+  "subtitle_pt": "Pré-romana · lore (não é o mundo principal CMN onde vivem as sandboxes) · mesmas mecânicas",
+  "subtitle_en": "Pre-Roman · lore (not CMN main where sandboxes host) · same mechanics",
+  "cache": "20260907c",
   "locations": [
     {
       "id": "hill_enclosure",
@@ -235,7 +235,10 @@
       "role_en": "smith",
       "home": "smithy",
       "kind": "person",
-      "subject_ref": "acb-oli-boutius-001"
+      "subject_ref": "acb-boutius-001",
+      "world_role_ref": "cmn-role-oli-smith-boutius",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "name": "Camala",
@@ -243,7 +246,10 @@
       "role_en": "guest house keeper",
       "home": "guest_house",
       "kind": "person",
-      "subject_ref": "acb-oli-camala-001"
+      "subject_ref": "acb-camala-001",
+      "world_role_ref": "cmn-role-oli-guest-camala",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "name": "Apana",
@@ -251,7 +257,10 @@
       "role_en": "forge apprentice",
       "home": "apprentice_yard",
       "kind": "person",
-      "subject_ref": "acb-oli-apana-001"
+      "subject_ref": "acb-apana-001",
+      "world_role_ref": "cmn-role-oli-apprentice-apana",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "name": "Tongius",
@@ -259,7 +268,10 @@
       "role_en": "wall watch",
       "home": "wall_watch",
       "kind": "person",
-      "subject_ref": "acb-oli-tongius-001"
+      "subject_ref": "acb-tongius-001",
+      "world_role_ref": "cmn-role-oli-watch-tongius",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     },
     {
       "name": "Navia",
@@ -267,12 +279,20 @@
       "role_en": "river trader",
       "home": "quay",
       "kind": "person",
-      "subject_ref": "acb-oli-navia-001"
+      "subject_ref": "acb-navia-001",
+      "world_role_ref": "cmn-role-oli-trader-navia",
+      "identity_registry": "stratamesh",
+      "world_role_registry": "cmn"
     }
   ],
   "spawn": {
     "default_location_id": "hill_enclosure",
     "note": "Human or ACB Subject enters here; Subjects not seeded as Object rows"
   },
-  "acb_note": "People here are Subjects (ACB) — never NFTs / objects."
+  "acb_note": "People here are Subjects (ACB) — never NFTs / objects.",
+  "identity_note": "Identity = StrataMesh Subject; world role = CMN. People ≠ NFT objects.",
+  "hosts_sandboxes": false,
+  "same_mechanics_as_main": true,
+  "realm_class": "lore",
+  "cmn_main_realm": "cmn-main-sandbox-host"
 }
