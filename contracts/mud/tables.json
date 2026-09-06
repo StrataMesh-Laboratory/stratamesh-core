@@ -1,0 +1,47 @@
+{
+  "schema": "stratamesh.mud.tables.v1",
+  "note": "Lattice-MUD shaped tables mapped onto STRATA objects. Not an EVM world. No USDC. No STRATA mint on-chain.",
+  "oracle_live": false,
+  "tables": {
+    "Object": {
+      "key": ["object_id"],
+      "value": {
+        "object_id": "bytes16",
+        "cid": "string",
+        "owner": "string",
+        "kind": "enum:object|lot",
+        "movable": "bool"
+      },
+      "rules": [
+        "object_id is the NFT identity",
+        "CID-only persist is allowed without object_id",
+        "SCA/ACB must not appear in this table"
+      ]
+    },
+    "Parcel": {
+      "key": ["object_id"],
+      "value": {
+        "object_id": "bytes16",
+        "title": "string",
+        "bundle_owner": "string"
+      },
+      "rules": [
+        "land parcels stay unmovable",
+        "bundle title is operator email / Fog wallet, not a subject account"
+      ]
+    },
+    "Subject": {
+      "key": ["subject_id"],
+      "value": {
+        "subject_id": "string",
+        "role": "enum:user|sca|acb|operator",
+        "painel": "bool",
+        "bancada": "bool"
+      },
+      "rules": [
+        "SCA/ACB are subjects not objects",
+        "Fog node is infrastructure — no Subject row for the Node"
+      ]
+    }
+  }
+}

@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""oss-pass-atelier-mud-oz: MUD tables + OZ scaffold exist and stay honest."""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_mud_tables():
+    data = json.loads((ROOT / "contracts/mud/tables.json").read_text())
+    assert data["oracle_live"] is False
+    for name in ("Object", "Parcel", "Subject"):
+        assert name in data["tables"]
+        assert "key" in data["tables"][name]
+    obj = data["tables"]["Object"]
+    assert "object_id" in obj["key"]
+    rules = " ".join(obj["rules"]).lower()
+    assert "sca" in rules or "subject" in " ".join(data["tables"]["Subject"]["rules"]).lower()
+
+
+def test_oz_scaffold_no_strata_mint():
+    sol = (ROOT / "contracts/openzeppelin/ObjectRegistry.sol").read_text()
+    assert "NoStrataMint" in sol
+    assert "ParcelImmovable" in sol
+    assert "mintStrata" in sol
+
+
+def test_atelier_vendor_three():
+    assert (ROOT / "frontend/vendor/three.min.js").is_file()
+    html = (ROOT / "frontend/gnu-atelier.html").read_text(errors="replace")
+    assert "/vendor/three.min.js" in html
+    assert "paintBancadaNow" in html
+    assert "unpkg.com/three" not in html
+
+
+if __name__ == "__main__":
+    failed = 0
+    for name, fn in list(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            try:
+                fn()
+                print("ok", name)
+            except Exception as e:
+                failed += 1
+                print("FAIL", name, type(e).__name__, e)
+    if failed:
+        sys.exit(1)
+    print("oss-pass-atelier-mud-oz ok")

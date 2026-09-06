@@ -13,3 +13,5 @@
 /api/* /404.html 404
 /chat /chat.html 200
 /chat/* /chat.html 200
+/oss-pass /oss-pass.html 200
+/oss-pass-atelier-mud-oz /oss-pass.html 200
