@@ -2451,8 +2451,20 @@ window.showPanel = function(name, btn){
       if (ch === B.root || ch === B.avatar || ch === B.camera) return;
       drop.push(ch);
     });
-    drop.forEach(function (ch) { B.scene.remove(ch); });
-    if (B.door) { B.scene.remove(B.door); B.door = null; }
+    drop.forEach(function (ch) {
+      B.scene.remove(ch);
+      if (window.AtelierInstances && AtelierInstances.disposeTree) AtelierInstances.disposeTree(ch);
+    });
+    if (B.door) {
+      B.scene.remove(B.door);
+      if (window.AtelierInstances && AtelierInstances.disposeTree) AtelierInstances.disposeTree(B.door);
+      B.door = null;
+    }
+    if (B._unixDashes) {
+      B.scene.remove(B._unixDashes);
+      if (window.AtelierInstances && AtelierInstances.disposeTree) AtelierInstances.disposeTree(B._unixDashes);
+      B._unixDashes = null;
+    }
 
     B.scene.background = new THREE.Color(0x2a140c);
     B.scene.fog = new THREE.FogExp2(0xc45a28, 0.046);
@@ -2478,11 +2490,15 @@ window.showPanel = function(name, btn){
     lane.position.y = 0.01;
     B.scene.add(lane);
     var dashMat = toon(0xd4a017);
-    for (var i = -8; i <= 8; i++) {
-      var d = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.55), dashMat);
-      d.rotation.x = -Math.PI / 2;
-      d.position.set(0, 0.02, i * 1.05);
-      B.scene.add(d);
+    if (window.AtelierInstances && AtelierInstances.streetDashes) {
+      B._unixDashes = AtelierInstances.streetDashes(B.scene, { material: dashMat, from: -8, to: 8, step: 1.05, y: 0.02 });
+    } else {
+      for (var i = -8; i <= 8; i++) {
+        var d = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.55), dashMat);
+        d.rotation.x = -Math.PI / 2;
+        d.position.set(0, 0.02, i * 1.05);
+        B.scene.add(d);
+      }
     }
 
     function shop(x, z, rotY, w, h, col, sign) {

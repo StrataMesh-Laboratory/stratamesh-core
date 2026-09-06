@@ -55,6 +55,14 @@ def test_atelier_vendor_three():
     unix = (ROOT / "frontend/atelier-unix.js").read_text()
     assert "streetDashes" in unix
     assert "disposeTree" in unix
+    portal = (ROOT / "frontend/portal-pt.html").read_text(errors="replace")
+    assert "/vendor/three.r128.min.js" in portal
+    assert "cdnjs.cloudflare.com/ajax/libs/three" not in portal
+    assert "streetDashes" in portal
+    assert (ROOT / "frontend/vendor/three.r128.min.js").is_file()
+    assert (ROOT / "frontend/vendor/OrbitControls.js").is_file()
+    assert (ROOT / "frontend/vendor/PointerLockControls.js").is_file()
+    assert (ROOT / "frontend/vendor/nipplejs.min.js").is_file()
 
 
 if __name__ == "__main__":

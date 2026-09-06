@@ -32,6 +32,9 @@ Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 | Enter-card off after play | `#enter` `display:none` | PASS |
 | Catalog / tokenise chrome off the stage | tokenise is Rest catalog; atelier is Bancada | PASS |
 | Renderer note | `docs/ATELIER-RENDERER.md` | PASS |
+| Portal/dashboard vendor Three r128 classic | `frontend/vendor/three.r128.min.js` + Orbit/PointerLock/nipple — no cdnjs | PASS |
+| InstancedMesh street dashes | `atelier-instances.js` + `restyleLot` disposeTree | PASS |
+| AtelierQuality before renderer | `atelier-quality.js` → `window.AtelierQuality` | PASS |
 
 ## 3. MUD × STRATA tables — ALL PASS (this ship)
 

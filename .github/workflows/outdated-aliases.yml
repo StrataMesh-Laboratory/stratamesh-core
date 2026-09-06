@@ -92,6 +92,10 @@ jobs:
           cp frontend/atelier-quality.js dist/atelier-quality.js
           cp frontend/atelier-instances.js dist/atelier-instances.js
           cp frontend/vendor/three.min.js dist/vendor/three.min.js
+          cp frontend/vendor/three.r128.min.js dist/vendor/three.r128.min.js
+          cp frontend/vendor/OrbitControls.js dist/vendor/OrbitControls.js
+          cp frontend/vendor/PointerLockControls.js dist/vendor/PointerLockControls.js
+          cp frontend/vendor/nipplejs.min.js dist/vendor/nipplejs.min.js
           cp frontend/vendor/stats.min.js dist/vendor/stats.min.js
           printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' '/fog-infrastructure /fog-infrastructure.html 200' '/en/fog-infrastructure /fog-infrastructure.html 200' '/fog-stack /fog-stack.html 200' '/en/fog-stack /fog-stack.html 200' '/oss-pass /oss-pass.html 200' '/oss-pass-atelier-mud-oz /oss-pass.html 200' '/gnu-atelier.html /gnu-atelier.html 200' > dist/_redirects
           cp frontend/video/stratamesh-lab.mp4 dist/video/stratamesh-lab.mp4
