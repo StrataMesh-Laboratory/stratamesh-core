@@ -77,10 +77,10 @@
       "constraints": [
         "stratagrok: propose\u2192constrain inventory only; no buy; no oracle_live"
       ],
-      "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
+      "result": "Mac inventory: MacBookPro15,2 8GB Intel = FOG-NODE-PT-CM-001 primary. spare peer TBD. rehearsal :8887 same Mac \u2260 M-II. source=desk-outbox/hermes-homelab-inventory.md m2_hold=true oracle_live=false",
       "sha": "",
       "created": "2026-09-06T11:36:38+0000",
-      "updated": "2026-09-06T11:36:38+0000",
+      "updated": "2026-09-06T11:37:48+0000",
       "history": [
         {
           "verb": "propose",
@@ -107,6 +107,13 @@
           "note": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
           "at": "2026-09-06T11:36:38+0000",
           "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False"
+        },
+        {
+          "verb": "amend",
+          "by": "hermes",
+          "at": "2026-09-06T11:37:48+0000",
+          "note": "prefer Mac-authored outbox over EDGE probe",
+          "result": "Mac inventory: MacBookPro15,2 8GB Intel = FOG-NODE-PT-CM-001 primary. spare peer TBD. rehearsal :8887 same Mac \u2260 M-II. source=desk-outbox/hermes-homelab-inventory.md m2_hold=true oracle_live=false"
         }
       ]
     }
@@ -181,13 +188,13 @@
       "computed_at": "2026-09-05T11:09:45+0000"
     }
   },
-  "updated": "2026-09-06T11:36:38+0000",
+  "updated": "2026-09-06T11:37:48+0000",
   "metabol_tick": "2026-09-05T11:09:45+0000",
   "last_commit": {
     "id": "dt-proj-homelab-second-host",
     "sha": "",
-    "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
-    "at": "2026-09-06T11:36:38+0000",
-    "owner": "fog@desk"
+    "result": "Mac inventory: MacBookPro15,2 8GB Intel = FOG-NODE-PT-CM-001 primary. spare peer TBD. rehearsal :8887 same Mac \u2260 M-II. source=desk-outbox/hermes-homelab-inventory.md m2_hold=true o",
+    "at": "2026-09-06T11:37:48+0000",
+    "owner": "hermes@fog"
   }
 }
