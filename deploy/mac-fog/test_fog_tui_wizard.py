@@ -460,5 +460,61 @@ class DeskFeed(unittest.TestCase):
         self.assertIn("metabol", out)
 
 
+
+class AutomationDeskOpsCircles(unittest.TestCase):
+    """Status ●/○ under AUTOMATION DESK header — STRATAGROK + Ollama trio only."""
+
+    def setUp(self):
+        meters = _TMP / "data" / "desk-meters"
+        meters.mkdir(parents=True, exist_ok=True)
+        _MOD.FOG = _TMP
+        feed = _TMP / "data" / "desk-feed.jsonl"
+        if feed.is_file():
+            feed.unlink()
+
+    def test_ops_status_keys_exclude_assistants(self):
+        st = _MOD.desk_agent_ops_status()
+        self.assertEqual(
+            set(st.keys()),
+            {"stratagrok", "hermes", "openclaw", "opencode"},
+        )
+        self.assertNotIn("fog", st)
+        self.assertNotIn("edge", st)
+
+    def test_circles_line_marks(self):
+        meters = _TMP / "data" / "desk-meters"
+        (meters / "hermes-workspace.json").write_text(
+            '{"ok": true, "project_id": "fog-cmn-desk"}', encoding="utf-8"
+        )
+        (meters / "opencode.json").write_text(
+            '{"status": "ran_unittest_subset", "ts": "now"}', encoding="utf-8"
+        )
+        (meters / "openclaw.json").write_text(
+            '{"probes": {"openclaw_18789": 0}, "ts": "now"}', encoding="utf-8"
+        )
+        plain, colored = _MOD.desk_ops_circles_line()
+        self.assertIn("● Hermes", plain)
+        self.assertIn("● OpenCode", plain)
+        self.assertIn("STRATAGROK", plain)
+        self.assertIn("OpenClaw", plain)
+        self.assertNotIn("Fog Assistant", plain)
+        self.assertNotIn("EDGE Assistant", plain)
+        self.assertIn("●", colored)
+
+    def test_draw_desk_feed_shows_automation_header_and_circles(self):
+        meters = _TMP / "data" / "desk-meters"
+        (meters / "hermes-workspace.json").write_text('{"ok": true}', encoding="utf-8")
+        lines = []
+        _MOD.draw_desk_feed(72, rows=10, _print=lines.append)
+        blob = "\n".join(lines)
+        self.assertIn("AUTOMATION DESK", blob)
+        self.assertTrue("●" in blob or "○" in blob)
+        self.assertIn("STRATAGROK", blob)
+        self.assertIn("Hermes", blob)
+        self.assertIn("OpenClaw", blob)
+        self.assertIn("OpenCode", blob)
+        self.assertNotIn("Fog Assistant", blob)
+        self.assertNotIn("EDGE Assistant", blob)
+
 if __name__ == "__main__":
     unittest.main()

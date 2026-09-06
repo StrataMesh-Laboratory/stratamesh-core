@@ -1232,6 +1232,132 @@ def desk_feed_rows_for(term_rows: int, desk_start_row: int, *, chrome_after: int
     return max(2, avail)
 
 
+
+# Automation Desk ops lamps (● active / ○ offline). Roster excludes Fog/EDGE Assistants.
+DESK_OPS_STALE_SEC = 7200.0
+
+
+def _meter_path(name: str) -> Path:
+    return FOG / "data" / "desk-meters" / name
+
+
+def _meter_fresh(name: str, max_age: float = DESK_OPS_STALE_SEC) -> bool:
+    path = _meter_path(name)
+    if not path.is_file():
+        return False
+    try:
+        return (time.time() - path.stat().st_mtime) <= max_age
+    except Exception:
+        return False
+
+
+def _meter_json(name: str) -> dict:
+    path = _meter_path(name)
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except Exception:
+        return {}
+
+
+def _proc_alive(needle: str) -> bool:
+    """Cheap process name probe (no shell). Fail-open False."""
+    try:
+        import subprocess
+
+        out = subprocess.run(
+            ["pgrep", "-fl", needle],
+            capture_output=True,
+            text=True,
+            timeout=1.5,
+        )
+        return out.returncode == 0 and bool((out.stdout or "").strip())
+    except Exception:
+        return False
+
+
+def _port_open(port: int, host: str = "127.0.0.1") -> bool:
+    try:
+        import socket
+
+        with socket.create_connection((host, int(port)), timeout=0.4):
+            return True
+    except Exception:
+        return False
+
+
+def desk_agent_ops_status() -> dict:
+    """Operational active map for Automation Desk status circles.
+
+    xAI: STRATAGROK only. Ollama: Hermes, OpenClaw, OpenCode.
+    Fog Assistant / EDGE Assistant are session-bound — never shown here.
+    """
+    hermes = False
+    hw = _meter_json("hermes-workspace.json")
+    if hw.get("ok") is True:
+        hermes = True
+    if not hermes:
+        hermes = _meter_fresh("hermes.json") or _proc_alive("Hermes") or _proc_alive("hermes serve")
+
+    oc = _meter_json("openclaw.json")
+    probes = oc.get("probes") if isinstance(oc.get("probes"), dict) else {}
+    openclaw = bool(probes.get("openclaw_18789")) or _port_open(18789) or _meter_fresh("openclaw.json")
+
+    opencode = _meter_fresh("opencode.json") or bool(_meter_json("opencode.json").get("status"))
+
+    # STRATAGROK lead: recent bot meter or recent desk-feed from stratagrok/grok
+    stratagrok = _meter_fresh("bot.json", max_age=DESK_OPS_STALE_SEC * 2)
+    if not stratagrok:
+        try:
+            for rec in desk_feed_tail(20):
+                ag = str(rec.get("agent") or "").lower()
+                if "stratagrok" in ag or ag in ("grok", "bot"):
+                    stratagrok = True
+                    break
+        except Exception:
+            pass
+
+    return {
+        "stratagrok": bool(stratagrok),
+        "hermes": bool(hermes),
+        "openclaw": bool(openclaw),
+        "opencode": bool(opencode),
+    }
+
+
+def desk_ops_circles_line() -> tuple[str, str]:
+    """Return (plain, colored) status row under AUTOMATION DESK header."""
+    st = desk_agent_ops_status()
+    order = (
+        ("stratagrok", "STRATAGROK", "xAI"),
+        ("hermes", "Hermes", "Ollama"),
+        ("openclaw", "OpenClaw", "Ollama"),
+        ("opencode", "OpenCode", "Ollama"),
+    )
+    plain_bits = []
+    colored_bits = []
+    for key, label, _prov in order:
+        on = bool(st.get(key))
+        mark = "●" if on else "○"
+        plain_bits.append("%s %s" % (mark, label))
+        col = OK if on else MUT
+        colored_bits.append(col + mark + RST + " " + (BOLD + label + RST if on else MUT + label + RST))
+    plain = " " + " · ".join(plain_bits)
+    colored = " " + (" " + MUT + "·" + RST + " ").join(colored_bits)
+    # Simpler join for colored: rebuild
+    parts = []
+    for key, label, _prov in order:
+        on = bool(st.get(key))
+        mark = "●" if on else "○"
+        col = OK if on else MUT
+        lab = (BOLD if on else MUT) + label + RST
+        parts.append(col + mark + RST + " " + lab)
+    colored = " " + (MUT + " · " + RST).join(parts)
+    return plain, colored
+
+
 def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
     """Live DESK chat: clean wrapped paragraphs (no ghost/truncated ANSI lines).
 
@@ -1257,8 +1383,14 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
             out(boxline(_fit_plain(plain_inner, inner), w))
         used += 1
 
-    out(boxline(" " + ACC + "DESK" + RST + MUT + "  feed · paced agents" + RST, w))
+    out(boxline(" " + ACC + "AUTOMATION DESK" + RST + MUT + "  feed · paced agents" + RST, w))
     used += 1
+    # Status circles immediately under Automation Desk header (not top LIVE/HOLD).
+    try:
+        plain_c, colored_c = desk_ops_circles_line()
+        emit(plain_c, colored=colored_c)
+    except Exception:
+        emit(" ○ STRATAGROK · ○ Hermes · ○ OpenClaw · ○ OpenCode")
 
     st: dict = {}
     lanes: dict = {}
