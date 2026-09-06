@@ -322,6 +322,7 @@
   ],
   "phase": {
     "1": "landed",
-    "2": "deterministic_boutius"
+    "2": "deterministic_boutius",
+    "3": "decide_validate_execute"
   }
 }
