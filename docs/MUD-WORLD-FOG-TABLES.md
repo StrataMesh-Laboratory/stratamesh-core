@@ -103,9 +103,19 @@ ERC-1155 scaffolds may mirror lots; they still must not mint land or Subjects.
 
 ---
 
-## AspectoEdge
+## AspectoEdge (bundle — all categories)
 
-Parent → child object edges only. Child remains a full Object (own tank/Still/Live if present).
+Parent → child **object_id** edges. Applies to **all** object kinds (desk→drawers, room→fixtures, land-bundle→parcels, generic object→parts).
+
+| Rule | Detail |
+|------|--------|
+| Child identity | Child is its **own** STRATA NFT (`object_id`) — not a mere mesh slot |
+| Aspectos | Contained objects only — never contracts |
+| Tree | No cycles; attach/detach via bundle primitives |
+| Economy | Parent C / ownership fractions ≠ child C / fractions unless product rule links them |
+| Parcels | May be aspectos of a land-bundle; remain unmovable dirt |
+| Example | Composite desk NFT bundles drawer NFTs as parts of the table NFT |
+
 
 ---
 

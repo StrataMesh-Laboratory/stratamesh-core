@@ -11,7 +11,8 @@
     "fungible": "STRATA balance on Account \u2014 dashboard wallet. Not an NFT.",
     "lots": "Catalog trade-lot rows for fungible STRATA bundles \u2014 NOT object_id / NOT NFT.",
     "ownership_fraction": "Subject claim on NFT collateral C (strata_units). Sold on Agora at P_market in fungible STRATA; P_market \u2260 C\u00d7fraction.",
-    "collateral": "Fungible STRATA inside the NFT. static=reserve (floor); dynamic=burn above floor for execution; \u2260 dashboard Balance; \u2260 P_market."
+    "collateral": "Fungible STRATA inside the NFT. static=reserve (floor); dynamic=burn above floor for execution; \u2260 dashboard Balance; \u2260 P_market.",
+    "bundle": "Optional: any STRATA NFT may contain child STRATA NFTs as aspectos (desk\u2192drawers). Children keep object_id; tree no cycles; all object categories; parcels unmovable even as bundle parts."
   },
   "tables": {
     "Subject": {
@@ -57,7 +58,8 @@
         "kind=parcel => unmovable=true (dirt/aspect of open-world land); trade title, not the parcel row",
         "kind=room => actual rooms only (e.g. Bancada) \u2014 not every parcel",
         "kind=bundle => objects-inside-object tree (aspectos); no cycles",
-        "SCA/ACB must not appear in this table"
+        "SCA/ACB must not appear in this table",
+        "Optional Bundle: may contain child object_ids as aspectos (e.g. desk\u2192drawers); all categories; children stay full NFTs"
       ]
     },
     "Parcel": {
@@ -125,8 +127,11 @@
       },
       "rules": [
         "Aspectos = contained objects (children). Tree, no cycles.",
-        "Child remains its own object_id (own tank/Still/Live if it has that block)",
-        "Not a contract; not a pipeline step; not DAG parents"
+        "Child remains its own object_id / STRATA NFT (own tank/Still/Live/contrato if present)",
+        "Allowed across all Object kinds: object, room, parcel (as land-bundle parts), bundle",
+        "Example: composite desk NFT bundles drawer NFTs as parts of the table NFT",
+        "Not a contract; not a pipeline step; not DAG parents",
+        "Parent ownership/C does not silently absorb child ownership/C"
       ]
     },
     "Balance": {

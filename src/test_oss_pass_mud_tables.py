@@ -41,6 +41,11 @@ def test_mud_tables():
     assert "static" in col and "dynamic" in col and "burn" in col
     ont = (ROOT / "docs/STRATA_NFT_ONTOLOGY.md").read_text()
     assert "P_market" in ont and "Collateral" in ont
+    assert "Bundle" in ont or "aspecto" in ont.lower()
+    ae_rules = " ".join(tables["AspectoEdge"]["rules"]).lower()
+    assert "own object_id" in ae_rules or "own object_id / strata nft" in ae_rules
+    assert "desk" in ae_rules and "drawer" in ae_rules
+    assert "all object kinds" in ae_rules or "all object" in ae_rules
     assert "P_market ≠" in ont or "P_market !=" in ont or "not equal" in ont.lower()
 
 
