@@ -60,6 +60,25 @@ class DeskOps(unittest.TestCase):
         mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         mod._push = lambda bus: None  # type: ignore
         mod.record_taper_status = lambda dry=False: {"ok": True, "trial_ends_pt": "2026-09-16"}  # type: ignore
+        # Unit test must not live-run openclaw agent exec (600s) or stop the Mac gateway.
+        def stub_claw(task, *, dry):
+            if dry:
+                return {
+                    "ok": True,
+                    "result": "hops fog=1 edge=1 :8787=1 | claw dry-run (no openclaw)",
+                    "done": False,
+                    "sha": "",
+                    "verb": "audit",
+                }
+            return {
+                "ok": True,
+                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-stub tool=read",
+                "done": True,
+                "sha": "",
+                "verb": "audit",
+            }
+        mod.handler_claw = stub_claw  # type: ignore
+        mod.HANDLERS["claw"] = stub_claw
         ns = type("A", (), {"max": 1, "dry_run": False})()
         rc = mod.cmd_cycle(ns)
         self.assertEqual(rc, 0)
@@ -305,10 +324,24 @@ class DeskOps(unittest.TestCase):
         rr.write_text(json.dumps({"cursor": 0}) + "\n")  # claw first
         mod._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
         called = {"n": 0}
-        real = mod.handler_claw
         def wrap(task, *, dry):
             called["n"] += 1
-            return real(task, dry=dry)
+            # Do not call live handler_claw (agent exec) inside unit tests.
+            if dry:
+                return {
+                    "ok": True,
+                    "result": "hops fog=1 edge=1 :8787=1 | claw dry-run (no openclaw)",
+                    "done": False,
+                    "sha": "",
+                    "verb": "audit",
+                }
+            return {
+                "ok": True,
+                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-pace tool=read",
+                "done": True,
+                "sha": "",
+                "verb": "audit",
+            }
         mod.handler_claw = wrap  # type: ignore
         mod.HANDLERS["claw"] = wrap
         mod._push = lambda bus: None  # type: ignore

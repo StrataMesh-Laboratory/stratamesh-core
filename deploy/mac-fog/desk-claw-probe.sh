@@ -7,7 +7,7 @@ REPO="${FOG_SRC:-$FOG/repo}"
 mkdir -p "$FOG/data/desk-meters" "$FOG/data"
 USED="${OPENCLAW_TOKENS_USED:-}"
 LIM="${OPENCLAW_TOKENS_LIMIT:-33000}"
-MODEL="${OPENCLAW_MODEL:-llava:latest}"
+MODEL="${OPENCLAW_MODEL:-ollama/qwen2.5:3b-desk8k}"
 # Prefer live sample file if agent wrote one
 if [[ -z "$USED" && -f "$FOG/data/desk-meters/openclaw.json" ]]; then
   USED=$(python3 -c "import json;print(json.load(open('$FOG/data/desk-meters/openclaw.json')).get('tokens_used',2100))" 2>/dev/null || echo 2100)
@@ -17,11 +17,8 @@ TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 ok8787=0; curl -sf -m 2 http://127.0.0.1:8787/health >/dev/null && ok8787=1 || true
 ok8788=0; curl -sf -m 2 http://127.0.0.1:8788/health >/dev/null && ok8788=1 || true
 ok18789=0
-if command -v nc >/dev/null 2>&1; then
-  nc -z 127.0.0.1 18789 2>/dev/null && ok18789=1 || true
-else
-  curl -sf -m 1 http://127.0.0.1:18789/ >/dev/null 2>&1 && ok18789=1 || true
-fi
+# Prefer curl HTTP — nc -z can miss a healthy loopback listener on some macOS builds.
+curl -sf -m 2 http://127.0.0.1:18789/ >/dev/null 2>&1 && ok18789=1 || true
 python3 - << PY
 import json
 from pathlib import Path

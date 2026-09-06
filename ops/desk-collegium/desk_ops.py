@@ -650,18 +650,11 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
     blob = ""
     rc = 1
     try:
-        # gateway stop --force if needed so embedded exec is not blocked
-        try:
-            subprocess.run(
-                [oc, "gateway", "stop", "--force"],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                timeout=20,
-                env=env,
-            )
-        except Exception:
-            pass
+        # Docs (openclaw agent exec): default creates a temporary state dir and does NOT
+        # need gateway stop. Only --state-dir retained ownership requires exclusive lock.
+        # Never `gateway stop --force` here — on macOS that launchctl-bootouts the desk
+        # LaunchAgent and leaves OpenClaw DOWN for the whole Fog desk.
+        # https://docs.openclaw.ai/cli/agent#agent-exec
         r = _run_exec(model)
         blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
         rc = r.returncode
