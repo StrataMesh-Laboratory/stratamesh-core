@@ -59,7 +59,7 @@
     </div>
   </header>
   <main class="stage">
-    <iframe id="atelierFrame" title="Ateliê GNU" src="about:blank" data-atelier="/gnu-atelier.html?v=20260903g&lang=pt-PT" allow="fullscreen; pointer-lock"></iframe>
+    <iframe id="atelierFrame" title="Ateliê GNU" src="about:blank" data-atelier="/gnu-atelier.html?v=20260906n&lang=pt-PT" allow="fullscreen; pointer-lock"></iframe>
     
   </main>
   <script>
@@ -83,7 +83,7 @@
         catch (e) { return ""; }
       }
 
-      var labels = { still: 'Repouso', live: 'A correr', ended: 'Terminado', containsEmpty: 'Nenhum objecto dentro. Um NFT pode conter outros; a profundidade é regra deste objecto.', sessionEmpty: 'sem conta · bancada' };
+      var labels = { still: 'Repouso', live: 'A correr', ended: 'Terminado', containsEmpty: 'Nenhum objecto dentro. Um NFT pode conter outros (aspectos); a profundidade é regra deste objecto.', sessionEmpty: 'sem conta · bancada' };
       function paintSession() {
         var el = document.getElementById("sessionChip");
         if (!el) return;
@@ -207,6 +207,30 @@
           }
         }).catch(function () {});
       }
+
+
+      window.addEventListener("message", function (ev) {
+        try {
+          var d = ev && ev.data;
+          if (!d || d.type !== "cmn-atelier-focus") return;
+          var pl = d.payload || {};
+          contains = Array.isArray(pl.aspects) ? pl.aspects : [];
+          strataUnits = Number(pl.collateral) || 0;
+          if (pl.mood === "live" || pl.mood === "still" || pl.mood === "ended") {
+            mood = pl.mood === "live" ? "live" : (pl.mood === "ended" ? "still" : pl.mood);
+            ended = pl.mood === "ended";
+          }
+          // tank fill: collateral readout only (lab); not market price
+          var fill = document.getElementById("tankFill");
+          if (fill) {
+            var pct = Math.max(0, Math.min(100, strataUnits <= 0 ? 0 : Math.min(100, strataUnits * 10)));
+            fill.style.width = pct + "%";
+          }
+          paintChrome();
+          var h2 = document.querySelector(".on-stage h2");
+          if (h2 && pl.name) h2.textContent = pl.name;
+        } catch (e) {}
+      });
 
       paintChrome();
       requireAccount();

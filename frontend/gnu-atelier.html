@@ -1,7 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=Math.max(64,document.documentElement.clientWidth||innerWidth||0);var h=Math.max(64,document.documentElement.clientHeight||innerHeight||0);if(window.renderer){window.renderer.setSize(Math.max(w,64),Math.max(h,64),false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);if(typeof paintBancadaNow==="function")paintBancadaNow();}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
+<script>window.__gnuPlay=function(e){try{if(e){e.preventDefault();e.stopPropagation();}}catch(x){}var n=document.getElementById("enter");if(n)n.style.display="none";window.playing=true;setTimeout(function(){try{var st=document.getElementById("stage");if(st){st.style.inset="0";st.style.width="100%";st.style.height="100%";}var w=Math.max(64,document.documentElement.clientWidth||innerWidth||0);var h=Math.max(64,document.documentElement.clientHeight||innerHeight||0);if(window.renderer){window.renderer.setSize(Math.max(w,64),Math.max(h,64),false);if(window.camera){window.camera.aspect=w/Math.max(h,1);window.camera.updateProjectionMatrix();}if(window.scene&&window.camera)window.renderer.render(window.scene,window.camera);}if(typeof applyCam==="function")applyCam(0);if(typeof paintBancadaNow==="function")
+function publishFocusNft(nft) {
+  try {
+    if (!nft || !window.parent || window.parent === window) return;
+    var payload = window.AtelierCatalog
+      ? AtelierCatalog.focusPayload(nft, ADDR.owner || "")
+      : { object_id: nft.object_id || nft.id, name: nft.name || "", aspects: [], collateral: nft.collateral || 0, mood: nft.mood || "still", contract: nft.contract || null };
+    window.parent.postMessage({ type: "cmn-atelier-focus", payload: payload }, "*");
+  } catch (e) {}
+}
+
+
+try {
+  window.addEventListener("storage", function (ev) {
+    if (!ev || !ev.key) return;
+    if (String(ev.key).indexOf("sm_catalog_") !== 0) return;
+    try { seed(); rebuild(); } catch (eS) {}
+  });
+  window.addEventListener("message", function (ev) {
+    try {
+      var d = ev && ev.data;
+      if (!d || d.type !== "cmn-catalog-changed") return;
+      seed(); rebuild();
+    } catch (eM) {}
+  });
+} catch (eL) {}
+
+paintBancadaNow();}catch(z){}},50);};document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});</script>
 <script>
 (function(){try{
   var c=matchMedia("(pointer: coarse)").matches;
@@ -234,6 +261,7 @@ h1{font-size:13px}
 <script src="/atelier-quality.js?v=20260906q"></script>
 <script src="/vendor/three.min.js?v=20260903g"></script>
 <script src="/atelier-instances.js?v=20260906i"></script>
+<script src="/atelier-catalog.js?v=20260906n"></script>
 <script>
 (function () {
   try {
@@ -448,7 +476,9 @@ const LAB_LAND = (function () {
       id: LAB_BUNDLE_ID,
       kind: "bundle",
       name: "CMN Open World #1",
+      aspects: parcelIds,
       aspectos: parcelIds,
+      contract: { type: "ownership", holder: LAB_HOLDER, covers: parcelIds },
       contrato: { type: "ownership", holder: LAB_HOLDER, covers: parcelIds },
     },
     parcels,
@@ -656,6 +686,11 @@ function seed() {
   nfts.length = 0;
   equippedAvatar = null;
   if (ADDR.owner && ADDR.owner !== "pending") loadAccountNfts();
+  try {
+    if (window.AtelierCatalog && ADDR.owner && ADDR.owner !== "pending") {
+      AtelierCatalog.mergeDeployed(nfts, ADDR.owner, null);
+    }
+  } catch (eCat) {}
 }
 function rebuild() {
   clear(nftRoot); groups.length = 0;
@@ -699,7 +734,31 @@ function rebuild() {
       const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.22, metalness: 0.5, roughness: 0.3 }));
       g.add(core);
     }
-    g.userData = { nft, vy: 0, kind: "nft" };
+    g.userData = { nft, object_id: nft.object_id || nft.id, vy: 0, kind: "nft" };
+    // Aspects = child NFTs bundled inside this object (desk → drawers)
+    try {
+      if (window.AtelierCatalog && nft.aspects && nft.aspects.length) {
+        var kids = AtelierCatalog.resolveAspectNfts(nft, ADDR.owner || "");
+        kids.forEach(function (child, ci) {
+          var cg = new THREE.Group();
+          var ang = ci * GOLDEN;
+          cg.position.set(Math.cos(ang) * 0.55, 0.35 + (ci % 3) * 0.12, Math.sin(ang) * 0.55);
+          var cc = new THREE.Mesh(
+            new THREE.OctahedronGeometry(0.14, 0),
+            new THREE.MeshStandardMaterial({
+              color: 0x6b8f71,
+              emissive: 0x6b8f71,
+              emissiveIntensity: 0.18,
+              metalness: 0.4,
+              roughness: 0.35
+            })
+          );
+          cg.add(cc);
+          cg.userData = { nft: child, object_id: child.object_id || child.id, vy: 0, kind: "nft", aspectOf: nft.id };
+          g.add(cg);
+        });
+      }
+    } catch (eAsp) {}
     nftRoot.add(g); groups.push(g);
   });
 }
@@ -717,6 +776,33 @@ function paintBancadaNow() {
   if (typeof applyCam === "function") applyCam();
   try { if (renderer && scene && camera) renderer.render(scene, camera); } catch (e3) {}
 }
+
+function publishFocusNft(nft) {
+  try {
+    if (!nft || !window.parent || window.parent === window) return;
+    var payload = window.AtelierCatalog
+      ? AtelierCatalog.focusPayload(nft, ADDR.owner || "")
+      : { object_id: nft.object_id || nft.id, name: nft.name || "", aspects: [], collateral: nft.collateral || 0, mood: nft.mood || "still", contract: nft.contract || null };
+    window.parent.postMessage({ type: "cmn-atelier-focus", payload: payload }, "*");
+  } catch (e) {}
+}
+
+
+try {
+  window.addEventListener("storage", function (ev) {
+    if (!ev || !ev.key) return;
+    if (String(ev.key).indexOf("sm_catalog_") !== 0) return;
+    try { seed(); rebuild(); } catch (eS) {}
+  });
+  window.addEventListener("message", function (ev) {
+    try {
+      var d = ev && ev.data;
+      if (!d || d.type !== "cmn-catalog-changed") return;
+      seed(); rebuild();
+    } catch (eM) {}
+  });
+} catch (eL) {}
+
 paintBancadaNow();
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function applyCam(bob = 0) {
@@ -785,7 +871,7 @@ function applyTool(target) {
     }
     if (!n || n.userData.nft.role === "exit" || n.userData.nft.role === "building" || n.userData.nft.role === "node" || n.userData.nft.role === "avatar") { log("get", "nothing"); return; }
     if (frozen[n.userData.nft.id]) { log("get", "frozen"); return; }
-    carry = n.userData.nft.id; log("get", n.userData.nft.name); return;
+    carry = n.userData.nft.id; log("get", n.userData.nft.name); try { publishFocusNft(n.userData.nft); } catch (eF) {} return;
   }
   if (!n) { log(tool, "nothing"); return; }
   const id = n.userData.nft.id;
@@ -1220,7 +1306,34 @@ if (window.visualViewport) {
 try { new ResizeObserver(function(){ fitFrame(); }).observe(document.documentElement); } catch (e) {}
 setTimeout(fitFrame, 0);
 setTimeout(fitFrame, 250);
-setTimeout(function(){ fitFrame(); paintBancadaNow(); }, 50);
+setTimeout(function(){ fitFrame(); 
+function publishFocusNft(nft) {
+  try {
+    if (!nft || !window.parent || window.parent === window) return;
+    var payload = window.AtelierCatalog
+      ? AtelierCatalog.focusPayload(nft, ADDR.owner || "")
+      : { object_id: nft.object_id || nft.id, name: nft.name || "", aspects: [], collateral: nft.collateral || 0, mood: nft.mood || "still", contract: nft.contract || null };
+    window.parent.postMessage({ type: "cmn-atelier-focus", payload: payload }, "*");
+  } catch (e) {}
+}
+
+
+try {
+  window.addEventListener("storage", function (ev) {
+    if (!ev || !ev.key) return;
+    if (String(ev.key).indexOf("sm_catalog_") !== 0) return;
+    try { seed(); rebuild(); } catch (eS) {}
+  });
+  window.addEventListener("message", function (ev) {
+    try {
+      var d = ev && ev.data;
+      if (!d || d.type !== "cmn-catalog-changed") return;
+      seed(); rebuild();
+    } catch (eM) {}
+  });
+} catch (eL) {}
+
+paintBancadaNow(); }, 50);
 setTimeout(fitFrame, 1000);
 
 const TOOL_SHORT = { phys: "1 Phys", freeze: "2 Freeze", dupe: "3 Dupe", remove: "4 Remove", rotate: "5 Rotate" };
@@ -1525,6 +1638,33 @@ window.addEventListener("message", (e) => {
   return;
 
 });
+
+function publishFocusNft(nft) {
+  try {
+    if (!nft || !window.parent || window.parent === window) return;
+    var payload = window.AtelierCatalog
+      ? AtelierCatalog.focusPayload(nft, ADDR.owner || "")
+      : { object_id: nft.object_id || nft.id, name: nft.name || "", aspects: [], collateral: nft.collateral || 0, mood: nft.mood || "still", contract: nft.contract || null };
+    window.parent.postMessage({ type: "cmn-atelier-focus", payload: payload }, "*");
+  } catch (e) {}
+}
+
+
+try {
+  window.addEventListener("storage", function (ev) {
+    if (!ev || !ev.key) return;
+    if (String(ev.key).indexOf("sm_catalog_") !== 0) return;
+    try { seed(); rebuild(); } catch (eS) {}
+  });
+  window.addEventListener("message", function (ev) {
+    try {
+      var d = ev && ev.data;
+      if (!d || d.type !== "cmn-catalog-changed") return;
+      seed(); rebuild();
+    } catch (eM) {}
+  });
+} catch (eL) {}
+
 paintBancadaNow();
 bootSession();
 const AVATAR_PALETTE = [0xe8c4a0, 0x1a4a52, 0x2a1c14, 0xd4a017, 0xc45c4a, 0x2f9e8a, 0x8a7cff, 0x6fbf73];
@@ -1578,6 +1718,33 @@ function toggleAvatarSheet(on) {
   busyHud();
 }
 layoutHud(); applyCam();
+
+function publishFocusNft(nft) {
+  try {
+    if (!nft || !window.parent || window.parent === window) return;
+    var payload = window.AtelierCatalog
+      ? AtelierCatalog.focusPayload(nft, ADDR.owner || "")
+      : { object_id: nft.object_id || nft.id, name: nft.name || "", aspects: [], collateral: nft.collateral || 0, mood: nft.mood || "still", contract: nft.contract || null };
+    window.parent.postMessage({ type: "cmn-atelier-focus", payload: payload }, "*");
+  } catch (e) {}
+}
+
+
+try {
+  window.addEventListener("storage", function (ev) {
+    if (!ev || !ev.key) return;
+    if (String(ev.key).indexOf("sm_catalog_") !== 0) return;
+    try { seed(); rebuild(); } catch (eS) {}
+  });
+  window.addEventListener("message", function (ev) {
+    try {
+      var d = ev && ev.data;
+      if (!d || d.type !== "cmn-catalog-changed") return;
+      seed(); rebuild();
+    } catch (eM) {}
+  });
+} catch (eL) {}
+
 paintBancadaNow();
 try { renderer.render(scene, camera); } catch (e) { console.error(e); }
 requestAnimationFrame(tick);
