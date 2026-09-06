@@ -613,10 +613,11 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
         "Do real work with tools in the Fog repo. Report concrete evidence.\n"
         f"Repo: {REPO_ROOT}\n"
     )
-    model = "ollama/qwen2.5:3b"
-    # Prefer qwen2.5:3b; fall back to a small llama if pull missing (openclaw may still error honestly).
-    fallback = "ollama/llama3.2:1b"
-    timeout_s = 180 if str(tid).startswith("audit-") else 300
+    # 8GB Fog: one Ollama slot — prefer llama3.2:1b (tools); qwen as fallback only when llama missing
+    model = "ollama/llama3.2:1b"
+    fallback = "ollama/qwen2.5:3b"
+    # CLI default 600; lean 8GB Mac needs headroom (was 300 → embedded hang/timeout spam)
+    timeout_s = 180 if str(tid).startswith("audit-") else 600
     env = _agent_path_env()
 
     def _run_exec(mdl: str) -> subprocess.CompletedProcess:
@@ -640,6 +641,7 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
             text=True,
             timeout=timeout_s + 30,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
 
     blob = ""
@@ -685,12 +687,23 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
             "next_action": "retry openclaw agent exec when ollama free",
         }
     except Exception as e:
+        try:
+            _load("desk_bus").feed_append(
+                "openclaw",
+                f"fail {tid}: {_trunc_ev(str(e))}",
+                kind="dispute",
+                specialty="claw",
+                force=True,
+            )
+        except Exception:
+            pass
         return {
             "ok": False,
             "result": f"{hop} | openclaw fail: {e}"[:220],
             "done": False,
             "sha": "",
             "verb": "dispute",
+            "next_action": "retry openclaw when Ollama slot free; check memory.search provider/enabled",
         }
 
     evidence = _has_tool_evidence(blob, prompt=prompt) and len(blob) >= 32
@@ -773,7 +786,7 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         "(paths touched, command output, exit codes).\n"
         f"Working directory: {REPO_ROOT}\n"
     )
-    timeout_s = 180 if str(tid).startswith("audit-") else 300
+    timeout_s = 180 if str(tid).startswith("audit-") else 600
     cmd = [
         hermes,
         "chat",
@@ -791,6 +804,9 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         prompt,
     ]
     env = _agent_path_env()
+    # hermes-agent#25629 / Ollama#2805: stream+tools hang — force streaming off for oneshot
+    env["HERMES_STREAMING"] = "0"
+    env.setdefault("HERMES_API_TIMEOUT", "1800")
     try:
         r = subprocess.run(
             cmd,
@@ -799,6 +815,7 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
             text=True,
             timeout=timeout_s,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
         rc = r.returncode
@@ -826,12 +843,23 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
             "next_action": "retry hermes when ollama free; do not ship",
         }
     except Exception as e:
+        try:
+            _load("desk_bus").feed_append(
+                "hermes",
+                f"fail {tid}: {_trunc_ev(str(e))}",
+                kind="dispute",
+                specialty="coord",
+                force=True,
+            )
+        except Exception:
+            pass
         return {
             "ok": False,
             "result": f"hermes fail: {e}"[:220],
             "done": False,
             "sha": "",
             "verb": "dispute",
+            "next_action": "retry hermes oneshot with llama3.2:1b only; check Ollama MAX_LOADED=1",
         }
 
     evidence = _has_tool_evidence(blob, prompt=prompt)
@@ -1014,9 +1042,10 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         f"Intent: {intent}\n"
         f"Work in {REPO_ROOT}. Make real edits/tests; report evidence.\n"
     )
-    timeout_s = 300
+    timeout_s = 600
     env = _agent_path_env()
     try:
+        # anomalyco/opencode#22132: inherited stdin can hang when spawned from desk_ops
         r = subprocess.run(
             [oc_bin, "run", "--dir", str(REPO_ROOT), "--auto", prompt],
             cwd=str(REPO_ROOT),
@@ -1024,6 +1053,7 @@ def handler_code(task: dict, *, dry: bool) -> dict:
             text=True,
             timeout=timeout_s,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
         rc = r.returncode
@@ -1050,12 +1080,23 @@ def handler_code(task: dict, *, dry: bool) -> dict:
             "verb": "dispute",
         }
     except Exception as e:
+        try:
+            _load("desk_bus").feed_append(
+                "opencode",
+                f"fail {tid}: {_trunc_ev(str(e))}",
+                kind="dispute",
+                specialty="code",
+                force=True,
+            )
+        except Exception:
+            pass
         return {
             "ok": False,
             "result": f"opencode fail: {e}"[:220],
             "done": False,
             "sha": "",
             "verb": "dispute",
+            "next_action": "retry opencode with stdin=/dev/null; serialize vs hermes/openclaw",
         }
 
     evidence = _has_tool_evidence(blob, prompt=prompt)

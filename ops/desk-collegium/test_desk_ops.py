@@ -494,6 +494,8 @@ class TestHasToolEvidence(unittest.TestCase):
         # prefix is stripped and the echoed prompt body is matched
         self.assertFalse(fn("response: " + prompt.strip(), prompt=prompt),
                          "response-prefixed prompt-echo must be rejected")
+        self.assertFalse(fn("query: " + prompt.strip(), prompt=prompt),
+                         "query:-prefixed prompt-echo must be rejected")
         exact_100 = prompt[:100]
         self.assertFalse(fn(exact_100, prompt=prompt),
                          "prompt-echo (exactly first 100 chars, boundary of [:100] guard) "
