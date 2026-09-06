@@ -90,7 +90,7 @@ Honesty preserved:
 | MariaDB up | Durable offload OK; still `oracle_live=false` if no remote Fog |
 | grok90 required for all progress | **False** — see this ladder |
 
-Desk projected: `proj-fog-host-fallback` (Act) · `proj-m2-twohost` (distinct host) · `proj-oracle-260826` / `ch-oracle-grok90` (optional chase).
+Desk projected: `proj-fog-host-fallback` (Act) · `proj-homelab-second-host` (inventory + Tailscale prove, not M-II exit) · `proj-m2-twohost` (distinct host HOLD) · `proj-oracle-260826` / `ch-oracle-grok90` (optional chase).
 
 ---
 

@@ -63,7 +63,54 @@
       ]
     }
   ],
-  "done_tasks": [],
+  "done_tasks": [
+    {
+      "schema": "desk.task.v1",
+      "id": "dt-proj-homelab-second-host",
+      "owner": "fog@desk",
+      "specialty": "fog",
+      "intent": "Act inventory+Tailscale prove if spare device exists",
+      "status": "done",
+      "eisenhower": "act",
+      "source": "projected:proj-homelab-second-host",
+      "resolve_as_representative": true,
+      "constraints": [
+        "stratagrok: propose\u2192constrain inventory only; no buy; no oracle_live"
+      ],
+      "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
+      "sha": "",
+      "created": "2026-09-06T11:36:38+0000",
+      "updated": "2026-09-06T11:36:38+0000",
+      "history": [
+        {
+          "verb": "propose",
+          "by": "stratagrok",
+          "note": "seed proj-homelab-second-host",
+          "at": "2026-09-06T11:36:38+0000"
+        },
+        {
+          "verb": "constrain",
+          "by": "fog",
+          "note": "inventory only; M-II hold stays",
+          "at": "2026-09-06T11:36:38+0000"
+        },
+        {
+          "verb": "act",
+          "by": "fog",
+          "note": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
+          "at": "2026-09-06T11:36:38+0000",
+          "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False"
+        },
+        {
+          "verb": "done",
+          "by": "fog",
+          "note": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
+          "at": "2026-09-06T11:36:38+0000",
+          "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False"
+        }
+      ]
+    }
+  ],
   "lanes": {
     "lane-openclaw": {
       "meter": "ollama_session_tokens",
@@ -79,11 +126,11 @@
     "lane-hermes": {
       "meter": "ollama_context",
       "renewal": "host_cap",
-      "renewal_note": "no CF daily clock; need context≥65536; host RAM/CPU",
+      "renewal_note": "no CF daily clock; need context\u226565536; host RAM/CPU",
       "context_min": 65536,
       "pace": "ALLOW",
       "context_length": null,
-      "sample_note": "no hermes meter — prefer ≥64k model; renew=host_cap",
+      "sample_note": "no hermes meter \u2014 prefer \u226564k model; renew=host_cap",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-opencode": {
@@ -102,7 +149,7 @@
       "renewal_note": "SuperGrok does not refill bot-included; HOLD if remaining unknown; bot_cap_contingency: non-lead lanes keep working",
       "daily_limit": null,
       "pace": "HOLD",
-      "sample_note": "bot-included remaining unknown — HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)",
+      "sample_note": "bot-included remaining unknown \u2014 HOLD (bot_cap_contingency: Hermes/OpenCode/OpenClaw continue)",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-assistant": {
@@ -111,7 +158,7 @@
       "renewal_note": "weekly pool_frac; reset Europe/Lisbon per grok.com Usage",
       "daily_limit": 1.0,
       "pace": "ALLOW",
-      "sample_note": "no assistant sample — gate on pool_frac when known; renew=supergrok_weekly Lisbon",
+      "sample_note": "no assistant sample \u2014 gate on pool_frac when known; renew=supergrok_weekly Lisbon",
       "hours_until_renewal": null,
       "computed_at": "2026-09-05T11:09:45+0000"
     },
@@ -122,19 +169,25 @@
       "daily_limit": 100000,
       "pace": "ALLOW",
       "hours_until_renewal": 12.837444974166667,
-      "sample_note": "no cf sample — renew=00:00_UTC h_left=12.8; never workers.dev",
+      "sample_note": "no cf sample \u2014 renew=00:00_UTC h_left=12.8; never workers.dev",
       "computed_at": "2026-09-05T11:09:45+0000"
     },
     "lane-fog-hop": {
       "meter": "mac_mw_ports",
       "renewal": "host_cap",
-      "renewal_note": "local :8787–:8792; skip dead hop 8s",
+      "renewal_note": "local :8787\u2013:8792; skip dead hop 8s",
       "pace": "ALLOW",
       "sample_note": "local MW hops; renew=host_cap",
       "computed_at": "2026-09-05T11:09:45+0000"
     }
   },
-  "updated": "2026-09-05T15:12:06+0100",
+  "updated": "2026-09-06T11:36:38+0000",
   "metabol_tick": "2026-09-05T11:09:45+0000",
-  "last_commit": null
+  "last_commit": {
+    "id": "dt-proj-homelab-second-host",
+    "sha": "",
+    "result": "inventory second_fog_host=False spare_device_seen=False fog_ok=True origin=macbook host_id=f0e63ca24985c864 n=2 m2_hold=true oracle_live=false tailscale=False",
+    "at": "2026-09-06T11:36:38+0000",
+    "owner": "fog@desk"
+  }
 }

@@ -236,6 +236,18 @@
       "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared \u2014 distinct second host"
     },
     {
+      "id": "proj-homelab-second-host",
+      "title": "Homelab second-host inventory + Tailscale prove",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "Act inventory+Tailscale prove if spare device exists \u2014 do not claim second Fog live; M-II stays hold_until=distinct_second_host",
+      "lanes": ["lane-fog-hop", "lane-hermes"],
+      "eisenhower": "act",
+      "human_gate": false,
+      "resolve_as_representative": true,
+      "note": "Inventory only. See ops/bin/homelab-second-host-inventory.py + FOG-HOST-FALLBACK.md"
+    },
+    {
       "id": "proj-host-gcp-e2-micro",
       "title": "GCP Always Free e2-micro Fog peer",
       "eisenhower": "act",
