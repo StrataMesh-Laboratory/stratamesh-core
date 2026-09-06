@@ -113,12 +113,32 @@ class TestEnsureWorkspaceLive(unittest.TestCase):
         if val.startswith("model.default"):
             val = val.split(":", 1)[-1].strip().strip("\"'")
         self.assertIn(val, tags, f"model.default={val!r} not in ollama tags {tags}")
+        avoid = {"mistral:latest", "mistral", "llava:latest", "llava", "phi3:latest", "phi3"}
+        self.assertNotIn(val, avoid, f"model.default={val!r} is <64k-class; prefer llama3.2/qwen")
+
+    def test_context_length_ge_64k(self):
+        p = hermes("config", "get", "model.context_length")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        raw = p.stdout.strip().splitlines()[-1].strip().strip("\'\"")
+        if "context_length" in raw and ":" in raw:
+            raw = raw.split(":", 1)[-1].strip()
+        ctx = int(raw.split()[0])
+        self.assertGreaterEqual(ctx, 65536, f"context_length={ctx} < Hermes minimum 64k")
 
     def test_cli_workspace_list(self):
         p = hermes("sessions", "list", "--workspace", "fog")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertNotIn("No sessions found", p.stdout)
 
+
+    def test_fallback_chain_declared(self):
+        import yaml
+        from pathlib import Path
+        raw = yaml.safe_load((Path.home() / ".hermes" / "config.yaml").read_text())
+        fb = raw.get("fallback_providers") or []
+        models = [e.get("model") for e in fb if isinstance(e, dict)]
+        self.assertIn("qwen2.5:3b", models)
+        self.assertIn("qwen2.5:7b", models)
 
 class TestEnsureWorkspaceUnit(unittest.TestCase):
     """Fixture-style: roots [] must fail helper logic."""

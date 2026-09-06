@@ -28,13 +28,27 @@ FOLDERS: List[Tuple[Path, str, bool]] = [
 ]
 SCAN_ROOTS = [str(STRATAMESH), str(FOG_REPO)]
 SEED_PROMPT = "FOG-CMN-DESK desk seed. Reply exactly: ACK"
+# Prefer installed open-source tags with Hermes-usable context (>=64k).
+# mistral/llava often report 32k and fail agent init; qwen only if pulled.
 PREFERRED_MODELS = (
-    "mistral:latest",
-    "phi3:latest",
+    "llama3.2:1b",      # primary: 131072 + tools (desk smoke OK)
+    "qwen2.5:3b",       # fallback medium metabol
+    "qwen2.5:7b",       # fallback heavy metabol
+    "qwen2.5:14b",
+    "hermes3:8b",
     "llama3:latest",
-    "llama3.2:1b",
-    "llava:latest",
 )
+MIN_CONTEXT = 65536
+DEFAULT_CONTEXT = 131072
+FALLBACK_MODELS = ("qwen2.5:3b", "qwen2.5:7b")
+AVOID_AS_DEFAULT = {
+    "mistral:latest",
+    "mistral",
+    "llava:latest",
+    "llava",
+    "phi3:latest",      # no tools on this desk
+    "phi3",
+}
 
 
 def _env() -> dict:
@@ -164,14 +178,55 @@ def ensure_model() -> None:
     cur_val = _parse_config_value(
         hermes("config", "get", "model.default", check=False).stdout
     )
-    if tags and cur_val not in tags:
-        pick = next((m for m in PREFERRED_MODELS if m in tags), tags[0])
+    pick = None
+    if tags:
+        for m in PREFERRED_MODELS:
+            if m in tags and m not in AVOID_AS_DEFAULT:
+                pick = m
+                break
+        if pick is None:
+            for t in tags:
+                if t not in AVOID_AS_DEFAULT:
+                    pick = t
+                    break
+            pick = pick or tags[0]
+    need_switch = bool(tags and cur_val not in tags) or (cur_val in AVOID_AS_DEFAULT)
+    if need_switch and pick:
         hermes("config", "set", "model.default", pick)
         print(f"model.default repaired: {cur_val!r} -> {pick}")
+        cur_val = pick
     else:
-        empty = "(empty)"
-        shown = cur_val if cur_val else empty
+        shown = cur_val if cur_val else "(empty)"
         print(f"model.default ok: {shown} tags={len(tags)}")
+    hermes("config", "set", "model.context_length", str(DEFAULT_CONTEXT), check=False)
+    ctx_raw = _parse_config_value(
+        hermes("config", "get", "model.context_length", check=False).stdout
+    )
+    try:
+        ctx = int(str(ctx_raw).split()[0])
+    except Exception:
+        ctx = 0
+    if ctx < MIN_CONTEXT:
+        hermes("config", "set", "model.context_length", str(DEFAULT_CONTEXT))
+        ctx = DEFAULT_CONTEXT
+        print(f"model.context_length raised to {DEFAULT_CONTEXT}")
+    else:
+        print(f"model.context_length ok: {ctx}")
+    if cur_val:
+        try:
+            db = _session_db()
+            try:
+                for row in db.search_sessions(limit=100) or []:
+                    if int(row.get("message_count") or 0) < 1:
+                        continue
+                    sid = row.get("id")
+                    if sid and (row.get("model") or "") != cur_val:
+                        db.update_session_model(sid, cur_val, provider="ollama-launch")
+                        print(f"session_model {sid} -> {cur_val}")
+            finally:
+                db.close()
+        except Exception as exc:
+            print(f"session_model stamp warn: {exc}")
 
 
 def _session_db():
@@ -323,6 +378,54 @@ def ensure_listable_session() -> None:
             pass
 
 
+
+
+def ensure_fallback_providers(tags: list) -> None:
+    """Keep official fallback_providers chain: qwen2.5:3b then 7b.
+
+    Docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers
+    Interactive `hermes fallback add` is a picker — write YAML list via PyYAML.
+    """
+    import yaml
+
+    cfg_path = Path.home() / ".hermes" / "config.yaml"
+    raw = yaml.safe_load(cfg_path.read_text()) if cfg_path.is_file() else {}
+    if not isinstance(raw, dict):
+        raw = {}
+    wanted = []
+    for model in FALLBACK_MODELS:
+        if model in tags:
+            wanted.append(
+                {
+                    "provider": "ollama-launch",
+                    "model": model,
+                    "base_url": "http://127.0.0.1:11434/v1",
+                    "api_key": "ollama",
+                }
+            )
+        else:
+            print(f"fallback skip (not installed yet): {model}")
+    if not wanted:
+        wanted = [
+            {
+                "provider": "ollama-launch",
+                "model": m,
+                "base_url": "http://127.0.0.1:11434/v1",
+                "api_key": "ollama",
+            }
+            for m in FALLBACK_MODELS
+        ]
+    cur = raw.get("fallback_providers") or []
+    cur_models = [e.get("model") for e in cur if isinstance(e, dict)]
+    want_models = [e["model"] for e in wanted]
+    if cur_models != want_models:
+        raw["fallback_providers"] = wanted
+        cfg_path.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
+        print(f"fallback_providers set: {want_models}")
+    else:
+        print(f"fallback_providers ok: {cur_models}")
+
+
 def write_meter(ok: bool, extra: Optional[Dict[str, Any]] = None) -> None:
     meter_dir = FOG_HOME / "data" / "desk-meters"
     meter_dir.mkdir(parents=True, exist_ok=True)
@@ -344,6 +447,7 @@ def main() -> int:
     ensure_project()
     ensure_desktop_cwd_env()
     ensure_model()
+    ensure_fallback_providers(ollama_tags())
     prune_empty_orphans()
     ensure_listable_session()
     n = len(listable_fog_sessions())

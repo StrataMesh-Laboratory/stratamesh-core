@@ -72,9 +72,18 @@ hermes sessions list --workspace fog
 
 Prune empty orphans (0 messages / ws_orphan_reap) via ensure — do not leave them as the only desktop rows.
 
-## Model ↔ Ollama
+## Model ↔ Ollama (≥64K + tools)
 
-`model.default` must be a tag present in `ollama list` (local provider). Ensure fails or repairs if default is missing (e.g. qwen without a pull). Preferred on this desk: `mistral:latest` when present.
+Hermes agent init requires **context ≥ 65536** (see CONTEXT-64K.md). Prefer installed OSS tags that also expose **tools**:
+
+1. `llama3.2:1b` — desk smoke OK (131072 + tools)
+2. `qwen2.5:*` after pull
+3. Avoid as agent default: `mistral` / `llava` (~32k), `phi3` (no tools on this desk)
+
+```bash
+hermes config set model.default llama3.2:1b
+hermes config set model.context_length 131072
+```
 
 ## Desk integration
 
@@ -95,3 +104,5 @@ Prune empty orphans (0 messages / ws_orphan_reap) via ensure — do not leave th
 4. Confirm sidebar shows ≥1 FOG-CMN-DESK session — if welcome only, one New session **with** fog/repo cwd, then re-run ensure so recycle keeps it.
 
 Do **not** rely on one-shot chat seeds alone; ensure owns project + discovery + cwd-stamped session + model check.
+
+See also [MODELS-METABOL.md](./MODELS-METABOL.md) for primary/fallback metabol_pace.
