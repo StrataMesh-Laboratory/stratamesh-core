@@ -581,7 +581,7 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
             {
                 "tokens_used": tokens_used,
                 "tokens_limit": tokens_limit,
-                "model": "ollama/qwen2.5:3b",
+                "model": "ollama/qwen2.5:3b-desk8k",
                 "ts": _now(),
                 "probes": {
                     "fog_public": int(fog_ok),
@@ -613,8 +613,8 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
         "Do real work with tools in the Fog repo. Report concrete evidence.\n"
         f"Repo: {REPO_ROOT}\n"
     )
-    # 8GB Fog: one Ollama slot — prefer llama3.2:1b (tools); qwen as fallback only when llama missing
-    model = "ollama/llama3.2:1b"
+    # 8GB Fog: one Ollama slot — claw tools use qwen desk8k; llama1b light-only (RCA 2026-09-06)
+    model = "ollama/qwen2.5:3b-desk8k"
     fallback = "ollama/qwen2.5:3b"
     # CLI default 600; lean 8GB Mac needs headroom (was 300 → embedded hang/timeout spam)
     timeout_s = 180 if str(tid).startswith("audit-") else 600
@@ -629,6 +629,9 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
             str(REPO_ROOT),
             "--model",
             mdl,
+            "--local-model-lean",
+            "--code-mode",
+            "direct",
             "--timeout",
             str(timeout_s),
             "--json",
