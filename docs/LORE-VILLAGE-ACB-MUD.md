@@ -1,181 +1,193 @@
-# Lore village ACB MUD — ontology-filtered prospectus
+# Lore village ACB MUD — Olissippo (pre-Roman Lusitanian)
 
 **Status:** Lab design note for a **lore Virtual Domain / Open World** (not main / not TRD mainnet).  
-**Source:** external “Minimal ACB MUD” prospectus (continuity MVP).  
-**Filter:** StrataMesh Subject–Object economy + live stack.  
-**Parents:** [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`OSS-PASS-ATELIER-MUD-OZ.md`](./OSS-PASS-ATELIER-MUD-OZ.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md)
+**Setting:** Pre-Roman **Lusitanian village on the Tagus** — **Olissippo** (Olisipo) lore, centuries before Roman municipal Lisbon.  
+**Source:** external “Minimal ACB MUD” prospectus (continuity MVP), ontology-filtered.  
+**Parents:** [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`OSS-PASS-ATELIER-MUD-OZ.md`](./OSS-PASS-ATELIER-MUD-OZ.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md) · [`UI-LOCALE-CPLP.md`](./UI-LOCALE-CPLP.md)
+
+**Honesty:** This is **lab lore** inspired by the Tagus estuary settlement later called Olisipo — not a claim of archaeological reconstruction, not fantasy dwarves/elves, not Roman forum Lisbon.
 
 ---
 
 ## 0. Verdict in one line
 
 **Keep** the continuity proof (same ACB across days, memory, autonomous life while the human is away, server-authoritative world, LLM-advisory).  
-**Recast** the cast, economy, client, and schema so humans and ACBs are **equal Subjects / players** in a lore world — not “NPCs with gold stats,” and not a second ontology beside Fog/Bancada.
+**World chrome:** one hill-and-quay Lusitanian village at **Olissippo**, where **human and ACB Subjects play as equals** — not NPCs, not Fog nodes.
 
 ---
 
-## 1. What the suggestor gets right (adopt)
+## 1. Setting — Olissippo lore (MVP map)
+
+**Realm label (eng):** `lore-olissippo-lusitanian` · **PT UI:** Aldeia de Olissippo (pré-romana).
+
+One village, 8–12 locations (enough to walk and remember):
+
+| Location (eng docs) | PT UI sense | Role |
+|---------------------|-------------|------|
+| Hill enclosure | Cerca do outeiro | Homes, chefe’s hall |
+| Smithy / forge | Oficina do ferro | Boutius’s work |
+| Charcoal lean-to | Carvoeira | Fuel for the forge |
+| Quay / landing | Cais do Tejo | Fish, salt, arrivals |
+| Guest house | Casa de hóspedes | Camala’s hearth |
+| Open market | Feira | Barter / soft coin |
+| Cattle pens | Currais | Herd wealth |
+| Watch on the wall | Posto da muralha | Tongius’s beat |
+| Sacred grove (edge) | Bosque limiar | Quiet / taboo — no combat MVP |
+| East track to scrub | Caminho do mato | Navia’s supply route |
+| Spring / well | Fonte | Daily water |
+| Apprentice yard | Pátio da aprendiz | Apana’s practice |
+
+**Time:** accelerated day/night; routines tied to light, heat of the forge, tide at the quay (flavour only in MVP — clock is still a simple integer day+minute).
+
+**Do not begin with:** Roman legion arcs, full Lusitanian wars, Viriathus biography as playable canon, procedural Iberia, or temple combat.
+
+---
+
+## 2. What the suggestor gets right (adopt)
 
 | Idea | Why it fits |
 |------|-------------|
-| Continuity test (Day 1 coal → Day 2 recall) | Proves **Subject** persistence, not chat theatre |
+| Continuity test (Day 1 fuel → Day 2 recall) | Proves **Subject** persistence, not chat theatre |
 | Server-authoritative world; LLM proposes actions | Matches Fog: rules execute; model advises |
 | Finite action vocabulary + JSON decisions | Debuggable; safe on 8GB Ollama |
-| Event memory validated by server (not free DB writes) | Same honesty as catalog/object mutations |
-| Hybrid scheduler (routine deterministic + LLM for social/choice) | Aligns with metabol_pace — don’t burn tokens on “walk north” |
-| Phased build: world → deterministic NPC → LLM → memory → many → client → eval | Same RCA/prove discipline as desk |
+| Event memory validated by server | Same honesty as catalog/object mutations |
+| Hybrid scheduler | metabol_pace — don’t burn tokens on “walk to the quay” |
+| Phased build | Same RCA/prove discipline as desk |
 | LLM ≠ world ≠ entire identity | Persona + DB + scheduler + engine |
-| Small world (one village, ~5 ACBs) | Lab honesty; not a thousand-agent sim |
+| Small world (~5 ACB Subjects) | Lab honesty |
 | No combat / continents / quest factory in MVP | Correct scope |
 
 ---
 
-## 2. Ontology corrections (must change)
+## 3. Ontology corrections (must change)
 
-### 2.1 Players are Subjects — both kinds
+### 3.1 Players are Subjects — both kinds
 
-| Suggestor | StrataMesh |
-|-----------|------------|
-| “Human players” vs “ACBs” as NPC cast | **Human users and ACBs are the same Subject class** (`Subject.kind` ∈ {`user`, `sca`, `acb`}). In this lore world both are **players**. |
-| ACB as dwarven species row | **Lore persona / role** (biography, appearance, craft) ≠ Subject kind. “Dwarf blacksmith” is persona chrome in the Virtual Domain — standing remains Subject. |
-| `species` column as ontology | Drop as Subject field. Optional `persona.species` or lore tags only. |
-| Fog node / desk Hermes as village ACB | **Forbidden.** Fog = infrastructure. Desk `external_assistant` ≠ SCA/ACB ([`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md)). |
+| Suggestor | StrataMesh · Olissippo |
+|-----------|------------------------|
+| Humans vs ACBs as NPC cast | **Equal Subject players** (`user` \| `sca` \| `acb`) |
+| Dwarven / fantasy species row | **Lore persona** only — Lusitanian villager, craft, kin ties. No `Subject.species` |
+| Fog / desk Hermes as villager | **Forbidden** — infrastructure / `external_assistant` ≠ SCA/ACB |
 
-**Rule:** An ACB player can run a forge *character* (Hroth) the way a human player can. The forge’s coal and swords are **Objects**. Hroth-the-player is not inventory.
+**Rule:** An ACB Subject may wear the persona **Boutius the smith**; charcoal and spearheads are **Objects**. Boutius is not inventory.
 
-### 2.2 Objects vs Subjects vs Lots vs Institutions
+### 3.2 Objects vs Subjects vs Lots vs Institutions
 
 | Village thing | Layer |
 |---------------|-------|
-| Coal, tools, food, swords | **Objects** (`object_id`) — may be stage props / catalog items; optional contract block |
-| “Gold” as wallet cash | Prefer **fungible Balance** (lab L-STRATA or a **lore-only** soft currency on Subject Balance with `oracle_live=false`) — **not** an NFT, not a Subject |
-| Shop lots / trade offers | **Lot** rows if fungible bundles — never `Object.kind=lot` |
-| Forge title / deed of the smithy building | Optional **ownership_title** / deed on an Object (building) — Subject holds title |
-| SPA “finish mayor’s order” | Optional **execution contract** (`spa_aps`) on an Object — static/dynamic C rules if collateralised; lore MVP may use soft commitments first |
-| Custodianship / cold storage | Out of scope for village MVP unless a deed Object is introduced ([`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md)) |
-| Mayor’s office, market rules | **Institutions** / world rules — not Subjects |
-| Eastforge map, day clock | **Environment** (Virtual Domain / Open World lore instance) — not main |
+| Charcoal, iron blooms, spearheads, fish, salt, tools | **Objects** |
+| Soft pay (silver bits, cattle-count, lore aes) | **Balance** (lore soft currency and/or lab L-STRATA) — not NFT, not Subject. No faucet |
+| Market trade lots | **Lot** if fungible bundles |
+| Title to forge shed / guest house | Optional **ownership_title** / deed Object |
+| Chefe’s spear order | Soft commitment first; optional later `spa_aps` execution Object |
+| Chefe’s hall, market custom, grove taboo | **Institutions** / world rules |
+| Olissippo map + clock | **Environment** (Virtual Domain) — **not main** |
 
-### 2.3 Relationships
+### 3.3–3.5 Relationships, memory, holonic
 
-Suggestor `relationships(trust, familiarity)` = **Subject ↔ Subject** edges (social).  
-Do **not** overload with ownership fractions. Ownership of Objects uses `OwnershipFraction` / catalog title — different table.
-
-### 2.4 Memory
-
-Episodic + semantic memory attached to **`subject_id`**, not to an “NPC id” parallel species.  
-Chat history ≠ autobiographical memory (agree with suggestor).
-
-### 2.5 Holonic placement
-
-This village is a **lore Open World inside a Virtual Domain** ([`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md)) — sandbox → open_world ⊂ virtual_realm.  
-**Not** TRD main, **not** production Agora, **not** replacing Bancada account ontology.
+- Social trust = **Subject ↔ Subject** (not OwnershipFraction).  
+- Memory on **`subject_id`**.  
+- Holonic: sandbox → open_world ⊂ virtual_realm — lore only.
 
 ---
 
-## 3. Stack recast (use ours, not a parallel product)
+## 4. Stack recast
 
 | Suggestor | StrataMesh lab path |
 |-----------|---------------------|
-| Custom Python MUD + Godot 2D | **Fog python hop + Lattice-shaped tables** already; **GNU Atelier / Bancada Three** (or a simple top-down Atelier camera mode) as graphical window — **do not** fork a second Godot product for MVP unless André explicitly wants a separate lore client |
-| Fresh SQLite schema `acbs` | Extend Fog sqlite / subject store: `Subject` + `persona` + `memories` + `subject_edges` + world_events — align names with [`contracts/mud/tables.json`](../contracts/mud/tables.json) |
-| Ollama local | Mac Fog Ollama under **metabol_pace** (lean model, scheduled ticks) — five concurrent full prompts may need stagger |
-| WebSocket client | Prefer existing bancada/sandbox session + Fog events; lore world as invited sandbox/open-world, not anonymous walk-on |
-| Gold economy | Lab: soft lore coin **or** L-STRATA transfer (hire/trade patterns from ACB labour — transfer, zero mint). No faucet. |
+| Godot 2D MUD | Fog python + mud tables; **Bancada / GNU Atelier** as window |
+| `acbs` + species | `Subject` + versioned `PersonaLore` (Olissippo) |
+| Ollama | Mac Fog, metabol_pace, staggered ticks |
+| Gold | Lore soft coin / barter / L-STRATA transfer — zero mint |
 
 ---
 
-## 4. Continuity scenario — filtered
+## 5. Continuity scenario — Olissippo
 
-**Same demo, corrected cast:**
+**Day 1.** A human Subject walks the hill enclosure and meets an ACB Subject whose persona is **Boutius**, smith of Olissippo. Boutius is short of **charcoal** for the chefe’s spear order. The player sells charcoal (Object). Server stores transaction, episodic memory, SubjectEdge delta.
 
-- **Day 1:** Human Subject (player) meets ACB Subject whose **persona** is Hroth the blacksmith (lore). Hroth’s **goal** (Subject commitment) needs coal. Player sells coal **Object** (or lore item). Server records transaction + episodic memory + Subject↔Subject relationship delta.
-- **Day 2:** Same `subject_id` for Hroth. Autonomous ticks ran while human was away (work/sleep/buy coal via validated actions). On return, speech cites **stored** memory — not inventing unexecuted actions.
+**Day 2.** Same `subject_id`. While the human was away, Boutius’s ticks: opened the forge, worked metal, bought more charcoal, remembered the visitor. He might say (PT UI later; eng docs for now):
 
-Success line still holds: *“This is the same individual. It has been living in this world, and what happened before matters now.”* — read as **same Subject**, not same doll.
+> “You again. The charcoal you brought saved yesterday’s work. The chefe still waits on spears.”
 
-Optional later: human *or* ACB can play any persona; multiple human Subjects; ACB-ACB trade without a human present.
+That proves: identity → memory → time → autonomy → world consequences → continuity — as **Subject**, in **Olissippo lore**.
 
 ---
 
-## 5. Minimal schema (ontology-aligned)
-
-Do **not** ship the suggestor’s `acbs.species` as canonical.
+## 6. Minimal schema (unchanged shape)
 
 ```
 Subject          subject_id, kind(user|sca|acb), …
 PersonaLore      subject_id, display_name, biography, personality, beliefs,
-                 home_location, version  -- versioned lore docs
+                 home_location, culture_tag='lusitanian_olissippo', version
 SubjectRuntime   subject_id, location, energy, hunger, current_goal, …
-MemoryEvent      id, subject_id, ts, type, summary, importance  -- server-validated
-SubjectEdge      a_id, b_id, trust, familiarity                 -- social only
+MemoryEvent      id, subject_id, ts, type, summary, importance
+SubjectEdge      a_id, b_id, trust, familiarity
 WorldEvent       id, ts, type, data
-Object / Lot / Contract / Collateral / OwnershipFraction
-                 -- existing mud tables when economy hardens
+Object / Lot / Contract / …   -- mud tables when economy hardens
 ```
 
-Action vocabulary (adopt): `wait|move|say|buy|sell|work|eat|sleep|inspect|follow` — server validates against location/inventory/Balance.
+Actions: `wait|move|say|buy|sell|work|eat|sleep|inspect|follow`.
 
 ---
 
-## 6. Five opening personas (Subjects, not species)
+## 7. Five opening personas (Olissippo)
 
-Keep the *roles* for social texture; each row is an **ACB Subject** (or mix of user + ACB players) with a lore persona:
+Each row = **ACB Subject** (or human Subject) + **Lusitanian lore persona** — not a fantasy race table.
 
 | Persona | Role | Primary goal | Demonstrates |
 |---------|------|--------------|--------------|
-| Hroth | Blacksmith | Complete sword order | Work, trade, memory |
-| Elara | Innkeeper | Keep inn solvent | Economy, social |
-| Tessa | Apprentice | Learn craft | Mentorship (Subject↔Subject) |
-| Bram | Guard | Keep village safe | Patrol, events |
-| Nia | Merchant | Supply routes | Travel, trade |
+| **Boutius** | Smith (oficina do ferro) | Finish the chefe’s spear order | Work, trade, memory |
+| **Camala** | Guest-house keeper (cais) | Keep the hearth fed and solvent | Economy, social |
+| **Apana** | Smith’s apprentice | Learn the forge | Mentorship (Subject↔Subject) |
+| **Tongius** | Wall watch | Keep the enclosure safe | Patrol, events |
+| **Navia** | River trader | Keep Tagus supply routes | Travel, trade, relationships |
 
-Human Subjects enter as players with equal standing — no “guest NPC” tier ([sandbox invite rules](./SUBJECT-OBJECT-ECONOMY.md)).
+**Persona lock (Boutius example — versioned lore doc, not casual prompt drift):**
 
----
+- You live in Olissippo, a Lusitanian hill-and-quay village on the Tagus, before Roman rule.  
+- You are a smith; you are not a Roman magistrate, not a medieval knight, not a dwarf.  
+- Good ironwork is duty; strangers earn trust slowly; the grove at the edge is not for idle talk.  
+- Current life: forge, apprentice Apana, spear debt to the chefe, need charcoal.  
+- Rules: no invented physical actions; no knowing what the server did not show; speak as Boutius.
 
-## 7. Phased plan — mapped to Bancada / Fog
-
-| Phase | Suggestor | Our deliverable |
-|-------|-----------|-----------------|
-| 1 | World engine | Lore map locations on Fog + Object items; walk as Subject |
-| 2 | Deterministic Hroth | ACB Subject + routine scheduler, no LLM |
-| 3 | LLM layer | Ollama decide JSON → validate → execute |
-| 4 | Memory | MemoryEvent + SubjectEdge persistence across restart |
-| 5 | Five personas | Staggered scheduler under metabol_pace |
-| 6 | Graphical | Atelier/Bancada view (top-down or stage) — boring client OK |
-| 7 | Eval | Continuity checklist §8 |
-
-Skip Godot unless explicitly chartered as a second client.
+Product UI (CPLP): PT-PT names and place labels; eng docs stay international English.
 
 ---
 
-## 8. Success criteria (kept + ontology addenda)
+## 8. Phased plan
 
-Adopt suggestor checklist, plus:
-
-- [ ] Hroth’s `subject_id` is `kind=acb` (or sca) — never an Object row  
-- [ ] Coal/sword mutations only via server-validated Object/inventory paths  
-- [ ] No invented “I took the sword” without execute  
-- [ ] Desk assistants and Fog NODE_WALLET never appear as village Subjects  
-- [ ] Lore world flagged **not main** (Virtual Domain id / lab realm)  
-- [ ] UI copy non-technical; eng docs international English  
-
----
-
-## 9. Explicitly out of MVP (agree + add)
-
-Agree with suggestor’s “what not to build,” and also:
-
-- Do not mint STRATA for village gold  
-- Do not treat land parcels as backpack items  
-- Do not collapse deed/execution NFT macros into “quest items” without Contract table  
-- Do not run five full-context LLM ticks every second on 8GB — hybrid scheduler required  
-- Do not publish lore village as production Agora  
+| Phase | Deliverable |
+|-------|-------------|
+| 1 | Olissippo location graph + Object items; Subject can walk |
+| 2 | Deterministic Boutius (routine, no LLM) |
+| 3 | Ollama JSON decide → validate → execute |
+| 4 | MemoryEvent + SubjectEdge across restart |
+| 5 | Five personas, staggered scheduler |
+| 6 | Atelier/Bancada view of the village |
+| 7 | Continuity eval (§9) |
 
 ---
 
-## 10. Bottom line
+## 9. Success criteria
 
-The prospectus is **architecturally sound** as a continuity MVP for autonomous Subjects.  
-Filtered into StrataMesh, it becomes: **a small lore Open World where user and ACB Subjects play together**, Fog/Bancada remain authoritative reality, Ollama is the advisory lobe, and coal/memory/time prove personhood-as-Subject — not a prettier chatbot tied to a dwarf mesh.
+- [ ] Boutius `subject_id` is `kind=acb` (or sca) — never an Object  
+- [ ] Charcoal / spear mutations only via validated Object paths  
+- [ ] No “I took the spear” without server execute  
+- [ ] Desk assistants / Fog NODE never village Subjects  
+- [ ] Realm flagged **not main** (`lore-olissippo-lusitanian`)  
+- [ ] Setting stays pre-Roman Lusitanian Olissippo — no accidental Eastforge/dwarf chrome  
+- [ ] UI non-technical; eng docs international English  
+
+---
+
+## 10. Out of MVP
+
+Suggestor’s list, plus: no STRATA faucet-as-gold; no backpack land parcels; no Roman conquest campaign; no Godot fork unless André charters it; no five full LLM ticks per second on 8GB.
+
+---
+
+## 11. Bottom line
+
+Architecturally: continuity MVP for autonomous **Subjects**.  
+Narratively: **pre-Roman Lusitanian Olissippo** — hill, quay, forge, and memory — where users and ACBs play the same world, Fog supplies reality, Ollama advises, and charcoal brought yesterday still matters tomorrow.

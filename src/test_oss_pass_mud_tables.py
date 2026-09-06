@@ -65,6 +65,12 @@ def test_mud_tables():
     assert (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").is_file()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text().lower()
     assert "subject" in lore and "not main" in lore
+    assert "olissippo" in lore and "lusitan" in lore
+    assert "boutius" in lore and "charcoal" in lore
+    assert "pre-roman" in lore
+    assert "godot" in lore and ("atelier" in lore or "bancada" in lore)
+    assert "hroth" not in lore and "eastforge" not in lore
+    assert "subject" in lore and "not main" in lore
     assert "godot" in lore and ("atelier" in lore or "bancada" in lore)
     assert "external_assistant" in lore or "fog" in lore
     assert "cold_storage_binds_validity" in json.dumps(tables["Contract"])
