@@ -6,16 +6,15 @@
 # /atelier remains 404 on apex Pages (renderer lives on same-origin /gnu-atelier.html).
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
-# /chat is a real static page (chat.html) — rewrite 200, not 404, not SPA.
+# /chat is chat.html via Pages clean URL (no /chat → /chat.html 200 rewrite — that 308-loops).
 /manutencao /maintenance-1xxx.html 200
 /atelier /404.html 404
 /atelier/* /404.html 404
 /api/* /404.html 404
-/chat /chat.html 200
-/chat/* /chat.html 200
-/oss-pass /oss-pass.html 200
+# Pages auto-serves foo.html at /foo (clean URL) and 308s /foo.html → /foo.
+# NEVER add /foo /foo.html 200 — that fights the 308 and loops (308 Location: /foo).
+# Keep only true aliases / intentional 404s below.
 /oss-pass-atelier-mud-oz /oss-pass.html 200
 
-# Olissippo lore stage (Phase 6) — not main Bancada world
-/olissippo /olissippo.html 200
-/olissippo/ /olissippo.html 200
+# Olissippo lore stage (Phase 6) — served as frontend/olissippo.html via Pages clean URL.
+# No /olissippo rewrite. Trailing slash: let Pages 308 /olissippo/ → /olissippo.

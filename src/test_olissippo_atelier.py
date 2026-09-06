@@ -57,8 +57,17 @@ def test_stage_js_acb_not_nft():
 
 
 def test_redirects_olissippo():
+    """Pages clean-URLs olissippo.html at /olissippo; a 200 rewrite fights the 308 and loops."""
     rd = (FE / "_redirects").read_text()
-    assert "/olissippo" in rd and "olissippo.html" in rd
+    assert "olissippo.html" in rd  # documented in comments
+    # must NOT have the loop-causing rewrite
+    for line in rd.splitlines():
+        s = line.strip()
+        if s.startswith("#") or not s:
+            continue
+        assert not s.startswith("/olissippo "), f"looping rewrite forbidden: {s}"
+        assert not s.startswith("/olissippo/"), f"looping rewrite forbidden: {s}"
+        assert "/olissippo.html 200" not in s
 
 
 def test_world_phase_stamp():
