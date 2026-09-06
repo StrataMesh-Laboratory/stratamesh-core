@@ -49,6 +49,12 @@ def test_atelier_vendor_three():
     assert (ROOT / "frontend/vendor/stats.min.js").is_file()
     assert "stats.min.js" in html
     assert "debug=1" in html
+    inst = (ROOT / "frontend/atelier-instances.js").read_text()
+    assert "InstancedMesh" in inst
+    assert "disposeTree" in inst
+    unix = (ROOT / "frontend/atelier-unix.js").read_text()
+    assert "streetDashes" in unix
+    assert "disposeTree" in unix
 
 
 if __name__ == "__main__":
