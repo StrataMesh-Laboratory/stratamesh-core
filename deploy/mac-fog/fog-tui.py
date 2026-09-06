@@ -2763,13 +2763,14 @@ def main() -> int:
             elif ch in ("b", "B"):
                 msg = reboot_fog() if confirm("reboot fog+workerd?") else "reboot cancelled"
             elif ch in ("g", "G"):
-                # No blocking y/n — that prompt sat on the last row and looked like a dead key.
-                # r already refreshes with no confirm; g must answer on the same press.
-                msg = "g running…"
-                def _g():
-                    global G_MSG
-                    G_MSG = git_pull_reboot()
-                threading.Thread(target=_g, name="fog-tui-g", daemon=True).start()
+                if confirm("g update (pull+brew+recycle)?"):
+                    msg = "g running…"
+                    def _g():
+                        global G_MSG
+                        G_MSG = git_pull_reboot()
+                    threading.Thread(target=_g, name="fog-tui-g", daemon=True).start()
+                else:
+                    msg = "g cancelled"
     except KeyboardInterrupt:
         return 0
     finally:
