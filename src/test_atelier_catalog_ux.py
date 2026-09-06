@@ -35,6 +35,14 @@ def test_tokenize_wizard_nontechnical():
     assert "object_id ·" not in html
     assert "<code>object_id</code>" not in html
     assert "btnWizNext2" in html
+    assert 'data-tpl="exec_contract"' in html
+    assert 'data-tpl="deed_physical"' in html
+    assert 'data-tpl="other"' in html
+    assert "var wizTpl" in html
+    assert "function wizShow" in html
+    assert "international_legal_custodianship" in html
+    assert (ROOT / "docs/NFT-MACRO-CATEGORIES.md").is_file()
+    assert "Macro-categories (not a closed set)" in (ROOT / "docs/STRATA_NFT_ONTOLOGY.md").read_text()
     assert "Mais pormenores (opcional)" in html
     # list rows should not dump raw id divs as primary
     assert '<div class="id">" + it.id + "</div>' not in html

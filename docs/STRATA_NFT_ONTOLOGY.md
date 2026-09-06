@@ -113,3 +113,14 @@ desk_object_id
   └─ optional contract block / C on desk
 ```
 
+## Macro-categories (not a closed set)
+
+Stage templates (object, furniture, room, land, trade lot) are **entry points**, not a ceiling.
+
+A STRATA NFT may also be:
+
+1. **Execution contract** — SPA/APS-style: static reserves collateral; dynamic burns above floor for the NFT’s own execution.
+2. **Ownership deed** — title over a **virtual**, **financial**, or **physical** asset, tokenised into a StrataMesh **user account** via an **international legal custodianship** agreement. When the underlying is held as **cold storage**, that custodianship **binds the validity of the token**.
+
+Deeds and execution contracts remain **objects** owned by **subjects**. They are not Subjects, not Fog nodes, and not fungible STRATA balances.
+

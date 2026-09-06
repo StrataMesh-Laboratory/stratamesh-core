@@ -13,7 +13,9 @@
     "bundle": "Optional: any STRATA NFT may contain child STRATA NFTs as aspects (desk\u2192drawers). Children keep object_id; tree no cycles; all object categories; parcels unmovable even as bundle parts.",
     "aspects": "Contained child objects (tree, no cycles). Ordinary aspects. Code: aspects. UI PT-PT (CPLP): aspectos; UI EN-GB (non-CPLP): aspects.",
     "contracts": "Rules block, ownership title, or SPA/APS. Ordinary contracts \u2014 not aspects. Code: contracts. UI PT-PT (CPLP): contratos; UI EN-GB (non-CPLP): contracts.",
-    "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English."
+    "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
+    "deed": "Ownership deed NFT for virtual|financial|physical assets. Tokenised into Subject account via international legal custodianship; cold storage binds token validity. Not a closed macro-category ceiling.",
+    "execution_contract": "SPA/APS-style execution NFT: static reserves C; dynamic burns above floor. Macro template, not the only contract form."
   },
   "tables": {
     "Subject": {
@@ -60,7 +62,8 @@
         "kind=room => actual rooms only (e.g. Bancada) \u2014 not every parcel",
         "kind=bundle => objects-inside-object tree (aspects); no cycles",
         "SCA/ACB must not appear in this table",
-        "Optional Bundle: may contain child object_ids as aspects (e.g. desk\u2192drawers); all categories; children stay full NFTs"
+        "Optional Bundle: may contain child object_ids as aspects (e.g. desk\u2192drawers); all categories; children stay full NFTs",
+        "Macro templates are open: beyond stage props, object may be execution contract or ownership deed (virtual/financial/physical) under international custodianship; cold storage may bind token validity"
       ]
     },
     "Parcel": {
@@ -180,7 +183,9 @@
         "state": "enum:static|dynamic|terminated|n/a",
         "holder_subject_id": "string?",
         "floor_strata": "decimal?",
-        "contract_id": "string"
+        "contract_id": "string",
+        "custody": "string?",
+        "asset_class": "enum:virtual|financial|physical|n/a?"
       },
       "rules": [
         "Contracts are ordinary rules/title/SPA records \u2014 not a special ontology species",
@@ -188,7 +193,8 @@
         "spa_aps: service agreement on a STRATA NFT (static/dynamic/terminated)",
         "Optional interior contract block on an object is rules/collateral \u2014 object can exist without one",
         "Do not call a contract an aspect",
-        "SPA/APS static reserves collateral; dynamic burns above floor; ownership fractions trade on Agora at P_market \u2260 C"
+        "SPA/APS static reserves collateral; dynamic burns above floor; ownership fractions trade on Agora at P_market \u2260 C",
+        "Deed contracts may carry asset_class + international custodianship; cold_storage_binds_validity when applicable"
       ],
       "aliases": [
         "Contrato"

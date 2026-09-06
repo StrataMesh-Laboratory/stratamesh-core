@@ -66,9 +66,14 @@
       <button type="button" class="ghost tpl" data-tpl="furniture" data-kind="object">Mobiliário</button>
       <button type="button" class="ghost tpl" data-tpl="room" data-kind="room">Sala</button>
       <button type="button" class="ghost tpl" data-tpl="parcel" data-kind="parcel">Terreno</button>
+      <button type="button" class="ghost tpl" data-tpl="exec_contract" data-kind="object">Contrato de execução</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_virtual" data-kind="object">Escritura · virtual</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_financial" data-kind="object">Escritura · financeira</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_physical" data-kind="object">Escritura · física</button>
       <button type="button" class="ghost tpl" data-tpl="lot" data-kind="lot">Lote de troca</button>
+      <button type="button" class="ghost tpl" data-tpl="other" data-kind="object">Outro</button>
     </div>
-    <p class="note" id="tplHint">Comece pelo tipo. O resto vem a seguir.</p>
+    <p class="note" id="tplHint">Comece pelo tipo amplo. Depois personaliza — as categorias não esgotam o que um NFT pode ser.</p>
 
     <div id="wizStep2" style="display:none">
       <p class="note">2 · Nome</p>
@@ -314,7 +319,8 @@
       if (it.kind === "bundle" || id === "obj-lab-land-bundle") return "world";
       if (id.indexOf("par-lab-") === 0 || it.kind === "parcel") return "hide";
       if (id !== "obj-lab-room-bancada" && (it.kind === "room" || it.id === "obj-lab-room-acb")) return "hide"; if (it.kind === "room" || (it.catalog_class === "room" && it.kind !== "parcel")) return "room";
-      if (it.contrato && it.kind !== "bundle") return "contrato";
+      if (it.deed || it.template === "exec_contract" || (it.role === "spa")) return "contrato";
+      if ((it.contrato || it.contract) && it.kind !== "bundle") return "contrato";
       return "other";
     }
     function kindLabel(it) {
@@ -323,7 +329,13 @@
       if (it.kind === "room") return "sala";
       if (it.kind === "bundle") return "mundo aberto";
       if (it.template === "furniture") return "mobiliário";
-      if (it.contract || it.contrato) return "em curso";
+      if (it.template === "exec_contract") return "contrato de execução";
+      if (it.template === "deed_virtual") return "escritura · virtual";
+      if (it.template === "deed_financial") return "escritura · financeira";
+      if (it.template === "deed_physical") return "escritura · física";
+      if (it.deed) return "escritura";
+      if (it.role === "spa" || (it.contract && it.contract.kind === "spa_aps")) return "contrato de execução";
+      if (it.contract || it.contrato) return "com acordo";
       return "objecto";
     }
     function stateChip(it) {
@@ -382,6 +394,12 @@
       else if (it.kind === "parcel") simple.push("Terreno no mundo — não se recolhe.");
       else if (it.kind === "room") simple.push("Sala.");
       else if (it.template === "furniture") simple.push("Mobiliário.");
+      else if (it.template === "exec_contract" || it.role === "spa") simple.push("Contrato de execução — em repouso guarda; a correr gasta o reservado.");
+      else if (it.deed || (it.template && String(it.template).indexOf("deed_") === 0)) {
+        var ac = (it.deed && it.deed.asset_class) || String(it.template || "").replace("deed_", "");
+        var map = { virtual: "virtual", financial: "financeiro", physical: "físico" };
+        simple.push("Escritura de um bem " + (map[ac] || ac) + " — propriedade na sua conta; a custódia internacional liga a validade do título (incl. cold storage).");
+      } else if (it.template === "other") simple.push("Categoria aberta — personalize nos pormenores.");
       else simple.push("Objecto da conta.");
       if (it.deployed) simple.push("Visível no sandbox.");
       else simple.push("Só no catálogo.");
@@ -413,6 +431,54 @@
       document.getElementById("btnDonate").disabled = lockLand;
       document.getElementById("btnTrade").disabled = lockLand;
     }
+    var wizTpl = "object";
+    var wizKind = "object";
+    var TPL_HINTS = {
+      object: "Um objecto seu — pode ser o que quiser.",
+      furniture: "Mesa, cadeira, gaveta… depois pode pôr peças dentro.",
+      room: "Uma sala da conta.",
+      parcel: "Chão no mundo aberto (não se mete no bolso).",
+      exec_contract: "Um acordo que corre: em repouso guarda; a correr gasta o que estiver reservado.",
+      deed_virtual: "Título de algo virtual — a propriedade fica na sua conta StrataMesh.",
+      deed_financial: "Título de um activo financeiro — custódia internacional liga a validade do título.",
+      deed_physical: "Título de um bem físico — a custódia liga o título ao que está em cofre / cold storage.",
+      lot: "Quantidade para oferecer ou trocar — não é um objecto.",
+      other: "Comece amplo; no passo seguinte afina o que é."
+    };
+    function wizShow(step) {
+      var s2 = document.getElementById("wizStep2");
+      var s3 = document.getElementById("wizStep3");
+      var lab = document.getElementById("wizStepLabel");
+      var lotNote = document.getElementById("wizLotNote");
+      if (s2) s2.style.display = step >= 2 ? "block" : "none";
+      if (s3) s3.style.display = step >= 3 ? "block" : "none";
+      if (lab) {
+        if (step <= 1) lab.textContent = "1 · Categoria";
+        else if (step === 2) lab.textContent = "2 · Nome";
+        else lab.textContent = "3 · Onde fica (opcional)";
+      }
+      if (lotNote) lotNote.style.display = (step >= 3 && wizKind === "lot") ? "block" : "none";
+      document.getElementById("wiz").setAttribute("data-step", String(step));
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".tpl"), function (btn) {
+      btn.onclick = function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".tpl"), function (b) { b.classList.remove("on"); });
+        btn.classList.add("on");
+        wizTpl = btn.getAttribute("data-tpl") || "object";
+        wizKind = btn.getAttribute("data-kind") || "object";
+        var hint = document.getElementById("tplHint");
+        if (hint) hint.textContent = TPL_HINTS[wizTpl] || TPL_HINTS.other;
+        wizShow(2);
+      };
+    });
+    var btnNext2 = document.getElementById("btnWizNext2");
+    if (btnNext2) btnNext2.onclick = function () { wizShow(3); };
+    var btnBack2 = document.getElementById("btnWizBack2");
+    if (btnBack2) btnBack2.onclick = function () { wizShow(1); };
+    var btnBack3 = document.getElementById("btnWizBack3");
+    if (btnBack3) btnBack3.onclick = function () { wizShow(2); };
+    wizShow(1);
+
     document.getElementById("btnMint").onclick = function () {
       var n = (document.getElementById("nameIn").value || "").trim() || (wizKind === "lot" ? "lote" : "objecto");
       var place = (document.getElementById("wizPlace") || {}).value || "catalog";
@@ -426,6 +492,21 @@
         it = { id: nid("obj"), kind: "room", catalog_class: "room", name: n, deployed: false, dest: "room", rules: "owner", contains: [], aspects: [], trade: "", template: wizTpl };
       } else {
         it = { id: nid("obj"), kind: "object", name: n, deployed: false, dest: "", rules: "owner", contains: [], aspects: [], trade: "", template: wizTpl };
+        if (wizTpl === "exec_contract") {
+          it.role = "spa";
+          it.contract = { kind: "spa_aps", state: "static", floor_strata: 0.1 };
+          it.contrato = it.contract;
+        }
+        if (String(wizTpl || "").indexOf("deed_") === 0) {
+          it.deed = {
+            asset_class: String(wizTpl).replace("deed_", ""),
+            custody: "international_legal_custodianship",
+            cold_storage_binds_validity: true,
+            holder_account: (who() || "")
+          };
+          it.contract = { kind: "ownership_title", state: "static", custody: it.deed.custody, asset_class: it.deed.asset_class };
+          it.contrato = it.contract;
+        }
       }
       if (place !== "catalog" && it.kind !== "lot") {
         it.deployed = true;
