@@ -97,7 +97,7 @@ ERC-1155 scaffolds may mirror lots; they still must not mint land or Subjects.
 | `spa_aps` | Specialized service NFT agreement (`static` / `dynamic` / `terminated`) |
 | `other` | Future charters — still not an aspect |
 
-**Words:** aspects = contained child objects; contracts = rules, ownership title, or SPA/APS. Plain English (PT UI only: aspectos / contratos).
+**Words:** aspects / contracts are ordinary terms (not branded primitives). **Code & eng docs:** international English (`aspects`, `contracts`). **Product UI:** PT-PT is canonical (`aspectos`, `contratos`); EN-GB is the mirrored translation.
 
 `Account` is an alias of **Subject**. `Holon` composition in older copy maps to **bundle** objects + AspectEdge — not a Subject, not a Lot.
 

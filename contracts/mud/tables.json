@@ -11,8 +11,9 @@
     "ownership_fraction": "Subject claim on NFT collateral C (strata_units). Sold on Agora at P_market in fungible STRATA; P_market \u2260 C\u00d7fraction.",
     "collateral": "Fungible STRATA inside the NFT. static=reserve (floor); dynamic=burn above floor for execution; \u2260 dashboard Balance; \u2260 P_market.",
     "bundle": "Optional: any STRATA NFT may contain child STRATA NFTs as aspects (desk\u2192drawers). Children keep object_id; tree no cycles; all object categories; parcels unmovable even as bundle parts.",
-    "aspects": "Contained child objects (tree, no cycles). Ordinary aspects. PT UI may label aspectos.",
-    "contracts": "Optional rules block on an object (state machine / actions / collateral) or a catalog ownership title. Ordinary contracts \u2014 not aspects."
+    "aspects": "Contained child objects (tree, no cycles). Ordinary aspects. Code: aspects. Product UI PT-PT: aspectos; EN-GB mirror: aspects.",
+    "contracts": "Rules block, ownership title, or SPA/APS. Ordinary contracts \u2014 not aspects. Code: contracts. Product UI PT-PT: contratos; EN-GB mirror: contracts.",
+    "locale": "Product UI main = PT-PT; EN-GB = mirrored translation. Identifiers/APIs/eng docs = international English."
   },
   "tables": {
     "Subject": {
