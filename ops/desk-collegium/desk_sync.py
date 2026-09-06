@@ -12,6 +12,7 @@ Merge rule (never compromise ongoing tasks):
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import sys
 import time
@@ -186,10 +187,14 @@ def append_feed_lines(rows: list[dict]) -> int:
         for rec in rows:
             if not isinstance(rec, dict) or not rec.get("text"):
                 continue
+            ag = str(rec.get("agent") or "stratagrok").strip()[:32]
+            # Reality: never feed as bare "desk" / agent desk — use stratagrok
+            if ag.lower() in ("desk", "agent desk", "agent-desk", "agent_desk"):
+                ag = "stratagrok"
             clean = {
                 "ts": str(rec.get("ts") or _now())[:40],
                 "t": str(rec.get("t") or time.strftime("%H:%M:%S"))[:8],
-                "agent": str(rec.get("agent") or "edge")[:32],
+                "agent": ag or "stratagrok",
                 "kind": str(rec.get("kind") or "act")[:16],
                 "specialty": str(rec.get("specialty") or "")[:16],
                 "text": str(rec.get("text") or "")[:240],
@@ -407,12 +412,33 @@ def push(url: str | None = None, git_sha: str = "") -> dict:
     url = url or DEFAULT_URL
     payload = build_push_payload(git_sha=git_sha)
     remote = http_json("POST", url, token, payload)
-    append_feed_lines([{
-        "ts": _now(), "t": time.strftime("%H:%M:%S"),
-        "agent": "stratagrok", "kind": "act", "specialty": "lead",
-        "text": f"push /desk ok tasks={len((payload.get('collegium') or {}).get('open_tasks') or [])}",
-    }])
-    return {"ok": True, "stored": bool(remote), "tasks": len((payload.get("collegium") or {}).get("open_tasks") or [])}
+    # Feed only when collegium payload actually changed (hash/sha delta), never every cycle.
+    col = payload.get("collegium") or {}
+    n_tasks = len(col.get("open_tasks") or [])
+    digest = hashlib.sha256(
+        json.dumps(col, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
+    ).hexdigest()[:16]
+    meter = FOG / "data" / "desk-meters" / "last-desk-push-collegium.json"
+    last = ""
+    try:
+        if meter.is_file():
+            last = str(json.loads(meter.read_text(encoding="utf-8")).get("digest") or "")
+    except Exception:
+        last = ""
+    if digest != last:
+        append_feed_lines([{
+            "ts": _now(), "t": time.strftime("%H:%M:%S"),
+            "agent": "stratagrok", "kind": "act", "specialty": "lead",
+            "text": f"push /desk ok tasks={n_tasks} sha={(git_sha or '-')[:12]} dig={digest}",
+        }])
+        try:
+            meter.parent.mkdir(parents=True, exist_ok=True)
+            meter.write_text(json.dumps({
+                "digest": digest, "git_sha": (git_sha or "")[:40], "tasks": n_tasks, "ts": _now(),
+            }, indent=2) + "\n")
+        except Exception:
+            pass
+    return {"ok": True, "stored": bool(remote), "tasks": n_tasks, "digest": digest, "changed": digest != last}
 
 
 def sync_on_g(git_sha: str = "") -> str:

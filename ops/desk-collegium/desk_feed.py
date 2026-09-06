@@ -63,7 +63,7 @@ def digest_key(agent: str, kind: str, text: str) -> str:
     """Stable key: agent|kind|normalized body (metrics kept so fog=0→1 is a delta)."""
     body = re.sub(r"\s+", " ", (text or "").strip().lower())
     body = body[:180]
-    return f"{(agent or 'desk').lower()}|{normalize_kind(kind)}|{body}"
+    return f"{(agent or 'stratagrok').lower()}|{normalize_kind(kind)}|{body}"
 
 
 def load_dedupe(fog: Path | None = None) -> dict:
@@ -125,7 +125,7 @@ def mark_emitted(digest: str, fog: Path | None = None) -> None:
 def format_line(agent: str, kind: str, text: str, *, t: str | None = None) -> str:
     """Human/TUI-facing one-liner (no JSON)."""
     tm = (t or time.strftime("%H:%M:%S"))[:8]
-    ag = (agent or "desk")[:12]
+    ag = (agent or "stratagrok")[:12]
     verb = normalize_kind(kind)
     body = re.sub(r"\s+", " ", (text or "").strip())[:200]
     return f"{tm} {ag} {verb} {body}".strip()
@@ -146,7 +146,9 @@ def append(
     fog = fog or fog_home()
     verb = normalize_kind(kind)
     body = (text or "")[:240]
-    ag = (agent or "desk")[:32]
+    ag = (agent or "stratagrok")[:32]
+    if ag.lower().strip() in ("desk", "agent desk", "agent-desk", "agent_desk"):
+        ag = "stratagrok"
     emit, dig = should_emit(
         ag, verb, body, fog=fog, dedupe_sec=dedupe_sec if dedupe else 0, force=force,
     )

@@ -268,7 +268,7 @@ def maybe_auto_ship(*, by: str = "hermes", dry: bool = False) -> dict:
             note = f"auto-ship blocked NACK on {tid} — escalate to STRATAGROK"
             if not dry:
                 bus._mutate(tid, "escalate", by=by, note=note)
-                bus.feed_append("desk", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
+                bus.feed_append("stratagrok", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
             results.append({"id": tid, "action": "escalate_nack", "tally": {k: t[k] for k in ("acks", "nacks", "need", "authority")}})
             continue
         if not t["majority"]:
@@ -278,7 +278,7 @@ def maybe_auto_ship(*, by: str = "hermes", dry: bool = False) -> dict:
         if not band["ok"]:
             note = f"auto-ship OOB metrics {tid}: {','.join(band['reasons'][:4])} — escalate to STRATAGROK"
             if not dry:
-                bus.feed_append("desk", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
+                bus.feed_append("stratagrok", note, kind="escalate", specialty=str(task.get("specialty") or "coord"))
             results.append({"id": tid, "action": "escalate_oob", "reasons": band["reasons"], "samples": band["samples"]})
             continue
         if dry:
@@ -399,8 +399,7 @@ def cmd_ship(args: argparse.Namespace) -> int:
             f"REFUSED ship: need majority ACK ({t['acks']}/{t['voters']}, need>={t['need']}, nacks={t['nacks']})",
             file=sys.stderr,
         )
-        bus.feed_append(
-            "desk",
+        bus.feed_append("stratagrok",
             f"ship-refused {args.task_id} acks={t['acks']}/{t['voters']} nacks={t['nacks']}",
             kind="escalate",
             specialty=str(task.get("specialty") or "coord"),
@@ -450,8 +449,7 @@ def cmd_ship(args: argparse.Namespace) -> int:
             reason = (put_result or {}).get("detail") or "origin PUT failed"
             if not force:
                 print(f"REFUSED ship: origin PUT failed — {reason}", file=sys.stderr)
-                bus.feed_append(
-                    "desk",
+                bus.feed_append("stratagrok",
                     f"ship-refused {args.task_id} put=FAIL {reason}"[:240],
                     kind="escalate",
                     specialty=str(task.get("specialty") or "coord"),

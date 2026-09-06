@@ -35,9 +35,9 @@ p.write_text(json.dumps({
 }, indent=2) + chr(10))
 print(p)
 PY
-MSG="claw probe fog=$ok8787 workerd=$ok8788 ws=$ok18789 tokens=${USED}/${LIM}"
-python3 "$REPO/deploy/mac-fog/desk-feed-append.py" openclaw "hops fog=$ok8787 workerd=$ok8788 ws=$ok18789 | tokens=${USED}/${LIM}" --kind audit --specialty claw 2>/dev/null || \
-  python3 "$REPO/ops/desk-collegium/desk_bus.py" list >/dev/null || true
+# Reality: hop curls update meters only — NEVER openclaw feed byline (Mac curl theatre).
+# openclaw byline only after real `openclaw agent exec` evidence (desk_ops.handler_claw).
+MSG="claw probe fog=$ok8787 workerd=$ok8788 ws=$ok18789 tokens=${USED}/${LIM} (meters-only)"
 python3 "$REPO/ops/desk-collegium/desk_metabol.py" tick >/dev/null || true
 echo "$MSG"
 if [[ "${1:-}" == "done" ]]; then

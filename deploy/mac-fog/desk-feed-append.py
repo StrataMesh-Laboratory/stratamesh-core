@@ -5,8 +5,9 @@ Uses desk_feed: collegium verbs + 5min digest dedupe.
 Prefer audit|act|revise|dispute over opaque say.
 
 Usage:
-  desk-feed-append.py openclaw "hops fog=1 edge=1 :8787=1 | tokens 2100/33000" --kind audit --specialty claw
-  desk-feed-append.py desk "surfaces TODO+CONTEXT+reports+journals ok" --kind act --specialty coord
+  desk-feed-append.py stratagrok "probe hops fog=1 edge=1 :8787=1 | tokens 2100/33000" --kind audit --specialty claw
+  # NOTE: hop probes must NOT use agent=openclaw (Mac curl theatre). Prefer meters-only.
+  desk-feed-append.py stratagrok "surfaces TODO+CONTEXT+reports+journals ok" --kind act --specialty coord
   desk-feed-append.py openclaw "actions: gh unavailable (PATH/auth)" --kind dispute --specialty claw
 """
 from __future__ import annotations
@@ -38,7 +39,10 @@ def _load_feed():
 def append(agent: str, text: str, *, kind: str = "act", specialty: str = "") -> Path:
     mod = _load_feed()
     if mod:
-        out = mod.append(agent, text, kind=kind, specialty=specialty, fog=FOG)
+        ag = agent
+        if (ag or "").lower().strip() in ("desk", "agent desk", "agent-desk", "agent_desk"):
+            ag = "stratagrok"
+        out = mod.append(ag, text, kind=kind, specialty=specialty, fog=FOG)
         return FOG / "data" / "desk-feed.jsonl"
     # fallback raw
     import json, time
@@ -48,7 +52,7 @@ def append(agent: str, text: str, *, kind: str = "act", specialty: str = "") -> 
     rec = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "t": time.strftime("%H:%M:%S"),
-        "agent": (agent or "desk")[:32],
+        "agent": (agent or "stratagrok")[:32],
         "kind": (k or "act")[:16],
         "specialty": (specialty or "")[:16],
         "text": (text or "")[:240],
@@ -61,7 +65,7 @@ def append(agent: str, text: str, *, kind: str = "act", specialty: str = "") -> 
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Append to Fog TUI desk-feed.jsonl")
-    p.add_argument("agent", help="hermes|opencode|openclaw|stratagrok|desk|…")
+    p.add_argument("agent", help="hermes|opencode|openclaw|stratagrok|… (desk banned→stratagrok)")
     p.add_argument("text", help="compact tech payload (≤240 chars)")
     p.add_argument("--kind", default="act",
                    help="audit|act|revise|dispute|propose|… (say→act)")

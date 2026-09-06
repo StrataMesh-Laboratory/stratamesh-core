@@ -176,7 +176,7 @@ def feed_append(
             rec = {
                 "ts": _now(),
                 "t": _clock(),
-                "agent": (agent or "desk")[:32],
+                "agent": (agent or "stratagrok")[:32],
                 "kind": (kind or "act")[:16],
                 "specialty": (specialty or "")[:16],
                 "text": (text or "")[:240],

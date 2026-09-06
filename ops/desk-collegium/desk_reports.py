@@ -401,7 +401,7 @@ def sync(*, limit: int = 12, prepend: bool = True, feed: bool = True) -> dict:
             assert spec.loader is not None
             spec.loader.exec_module(bus)
             bus.feed_append(
-                "hermes",
+                "stratagrok",
                 f"reports gh_ok={int(bool(gh.get('ok')))} discourse_ok={int(bool(disc.get('ok')))}",
                 kind="audit",
                 specialty="coord",
@@ -1121,8 +1121,7 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
             busmod = importlib.util.module_from_spec(spec)
             assert spec.loader is not None
             spec.loader.exec_module(busmod)
-            busmod.feed_append(
-                "desk",
+            busmod.feed_append("stratagrok",
                 f"surfaces TODO+CONTEXT+reports+journals {'ok' if out.get('ok') else 'PARTIAL'}",
                 kind="act",
                 specialty="coord",
@@ -1143,7 +1142,7 @@ def ensure_outbox_pack(*, limit: int = 12, state: dict | None = None) -> dict:
         bus = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(bus)
-        bus.feed_append("hermes", "reports + TODO/CONTEXT pack synced", kind="act", specialty="coord")
+        bus.feed_append("stratagrok", "reports + TODO/CONTEXT pack synced", kind="act", specialty="coord")
     except Exception:
         pass
     return {"todo": str(todo), "context": str(ctx), "reports": rep}

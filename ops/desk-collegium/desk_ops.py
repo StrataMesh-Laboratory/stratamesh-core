@@ -27,8 +27,269 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 FOG = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
+
 PROJECTED = HERE / "projected.json"
 LAST_LOG = FOG / "data" / "desk-ops-last.json"
+
+
+def _agent_path_env() -> dict:
+    """PATH must include ~/.local/bin (hermes/openclaw) and ~/.opencode/bin."""
+    env = os.environ.copy()
+    extras = [
+        str(Path.home() / ".local/bin"),
+        str(Path.home() / ".opencode/bin"),
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+    ]
+    path = env.get("PATH") or ""
+    parts = path.split(":") if path else []
+    for p in extras:
+        if p and p not in parts:
+            parts.insert(0, p)
+    env["PATH"] = ":".join(parts)
+    return env
+
+
+def _which_bin(name: str) -> str | None:
+    env = _agent_path_env()
+    for d in (env.get("PATH") or "").split(":"):
+        if not d:
+            continue
+        cand = Path(d) / name
+        try:
+            if cand.is_file() and os.access(cand, os.X_OK):
+                return str(cand)
+        except Exception:
+            continue
+    return None
+
+
+def _trunc_ev(s: str, n: int = 220) -> str:
+    return (s or "").replace(chr(10), " ").strip()[:n]
+
+
+
+
+def _has_tool_evidence(blob: str, *, prompt: str = "") -> bool:
+    """True only for real tool results — reject advice, invent, prompt echo.
+
+    Require concrete tool residue (exit codes, short SHAs, ls names, writes).
+    Path strings alone (esp. from echoed prompts) are NOT evidence.
+    """
+    import re as _re
+
+    t = (blob or "").strip()
+    if len(t) < 48:
+        return False
+    low = t.lower()
+    prompt_l = (prompt or "").strip().lower()
+
+    echo_needles = (
+        "desk collegium coord task",
+        "desk collegium claw task",
+        "desk collegium code task",
+        "you must use terminal and/or file tools",
+        "do not invent results. run concrete commands",
+        "working directory:",
+        "query: desk collegium",
+    )
+    if prompt_l and len(prompt_l) >= 40:
+        body = low
+        for prefix in ("query:", "answer:", "response:"):
+            if body.startswith(prefix):
+                body = body[len(prefix):].strip()
+        if prompt_l[:180] and prompt_l[:180] in body:
+            return False
+        if prompt_l[:100] and prompt_l[:100] in body:
+            return False
+    tool_residue = (
+        "exit code", "returncode", "rc=", "wrote ", "created file", "diff --",
+        "ran command", "terminal:",
+    )
+    if any(n in low for n in echo_needles) and not any(x in low for x in tool_residue):
+        return False
+
+    fluff = (
+        "here's an example",
+        "here is an example",
+        "here's a simple",
+        "here is a simple",
+        "you can use the",
+        "you will need to use",
+        "to perform a simple",
+        "to perform this task",
+        "this code snippet is a combination",
+        "let's an",
+        "let us an",
+        "dry-run",
+        "act representative:",
+        "quiet:",
+        "health=ok — one-act",
+        "def find_tools(",
+        "tool_search",
+        "from ripgrep",
+        "```python",
+        "```bash",
+        "replace `.txt.gz`",
+    )
+    if any(f in low for f in fluff):
+        return False
+    # Invented python tutorial blocks
+    if "import os" in low and "import json" in low and "import subprocess" in low:
+        if not any(x in low for x in tool_residue):
+            return False
+
+    advice = (
+        "you should",
+        "i recommend",
+        "try running",
+        "you could",
+        "feel free to",
+        "as an ai",
+        "i'm happy to help",
+        "hope this helps",
+    )
+    hard_tool = (
+        "exit code", "returncode", "rc=0", "rc=1", "rc=2",
+        "ran command", "terminal:", "tool call", "tool_call", "[tool",
+        "wrote ", "created file", "edited ", "diff --git", "diff --",
+        "git status", "git rev-parse", "git log",
+        "sha=",
+    )
+    has_hard = any(h in low for h in hard_tool)
+    sha_hits = _re.findall(r"(?<![0-9a-f])[0-9a-f]{7,40}(?![0-9a-f])", low)
+    sha_ok = any(len(s) in (7, 8, 9, 10, 11, 12, 40) for s in sha_hits)
+    ls_names = (
+        "desk-outbox", "pending-act.md", "hermes-next.md", "openclaw-next.md",
+        "opencode-next.md", "fog-assistant-pending", "edge-assistant-pending",
+        "desk-meters", "projected.json", "state.json",
+    )
+    ls_hits = sum(1 for n in ls_names if n in low)
+    if any(a in low for a in advice) and not (has_hard or sha_ok or ls_hits >= 2):
+        return False
+
+    if has_hard:
+        return True
+    if sha_ok and any(
+        p in low
+        for p in (
+            "fog/repo",
+            "desk-outbox",
+            "desk-meters",
+            "ops/desk",
+            "/users/andremorais/stratamesh",
+        )
+    ):
+        if any(
+            v in low
+            for v in (
+                "wrote", "updated", "created", "ran ", "executed",
+                "exit", "rc=", "inventory", "listed", "sha=",
+            )
+        ):
+            return True
+    if ls_hits >= 2 and any(
+        v in low for v in ("wrote", "updated", "created", "ran ", "listed", "ls ", "inventory")
+    ):
+        return True
+    if '"ok": true' in low and '"evidence"' in low:
+        return True
+    if "openclaw agent" in low and ("session_id" in low or "rc=" in low) and "hops fog=" not in low:
+        return True
+    return False
+
+
+def _real_agent_evidence(blob: str, *, prompt: str = "") -> bool:
+    """Back-compat alias — prefer _has_tool_evidence."""
+    return _has_tool_evidence(blob, prompt=prompt)
+
+
+def _assistant_result_file(agent: str, task_id: str) -> Path | None:
+    """Later wake: real Assistant result from grok.com Act (not Mac curl)."""
+    box = FOG / "data" / "desk-outbox"
+    for name in (
+        f"{agent}-result.json",
+        f"{agent}-act-result.json",
+        f"{agent}-latest-result.json",
+    ):
+        p = box / name
+        if not p.is_file():
+            continue
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            tid = str(d.get("task_id") or "")
+            if tid and tid != str(task_id):
+                continue
+            if d.get("ok") or d.get("evidence"):
+                return p
+        except Exception:
+            continue
+    return None
+
+
+def _write_pending_assistant_act(agent: str, task: dict, *, health_note: str) -> Path:
+    """Concrete Act for grok.com — never claim Assistant completed from Mac HTTP."""
+    box = FOG / "data" / "desk-outbox"
+    box.mkdir(parents=True, exist_ok=True)
+    tid = task.get("id") or "task"
+    intent = task.get("intent") or task.get("title") or tid
+    nl = chr(10)
+    md = (
+        f"# Pending Act — {agent} — {tid}" + nl + nl
+        + f"**For:** grok.com Assistant ({agent})" + nl + nl
+        + f"**Intent:** {intent}" + nl + nl
+        + f"**Mac probe (NOT completion):** {health_note}" + nl + nl
+        + "## Act (do on grok.com — real work)" + nl + nl
+        + f"1. Open the matching Custom GPT / Assistant for {agent}." + nl
+        + "2. Execute the intent above against live Fog/EDGE surfaces." + nl
+        + f"3. Write evidence to `desk-outbox/{agent}-result.json` with "
+        + "`task_id`, `ok`, `evidence` (commands/URLs/results)." + nl
+        + "4. Desk wake will mark done only after that file exists." + nl + nl
+        + f"Bot=escalate only for true human_gate. Cite task id {tid}." + nl
+    )
+    pending = box / f"{agent}-pending-act.md"
+    pending.write_text(md)
+    next_md = (
+        f"# Desk brief — {agent} — {tid}" + nl + nl
+        + f"**Intent:** {intent}" + nl + nl
+        + f"**Probe:** {health_note}" + nl + nl
+        + "## Execute (real work — not vapour)" + nl + nl
+        + f"1. Run the Pending Act in `{agent}-pending-act.md` on grok.com" + nl
+        + f"2. Persist `{agent}-result.json` with task_id={tid}" + nl
+        + "3. Do not treat Mac HTTP health alone as done" + nl
+    )
+    (box / f"{agent}-next.md").write_text(next_md)
+    latest = box / f"{agent}-latest.json"
+    latest.write_text(
+        json.dumps(
+            {
+                "ts": _now(),
+                "agent": agent,
+                "task_id": tid,
+                "intent": intent,
+                "status": "pending_act",
+                "probe": health_note,
+                "pending_act": pending.name,
+                "next": f"{agent}-next.md",
+            },
+            indent=2,
+        )
+        + nl
+    )
+    # Reality: ensure pending-act files actually landed under FOG/data/desk-outbox/
+    for p in (pending, box / f"{agent}-next.md", latest):
+        if not p.is_file():
+            raise RuntimeError(f"pending-act write failed: {p}")
+    listed = sorted(x.name for x in box.glob(f"{agent}-*") if x.is_file())
+    try:
+        _load("desk_bus").feed_append("stratagrok",
+            f"outbox {agent}: " + ",".join(listed[:8]),
+            kind="audit",
+            specialty="coord",
+        )
+    except Exception:
+        pass
+    return pending
 
 
 def _load(name: str):
@@ -284,7 +545,7 @@ def classify(state: dict) -> dict:
 
 
 def handler_claw(task: dict, *, dry: bool) -> dict:
-    """Real hop health: HTTP probes + desk-claw-probe.sh; verb=audit."""
+    """Real openclaw agent exec. Hop curls may update meters; feed openclaw only on agent output."""
     fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
     if not fog_ok:
         time.sleep(0.3)
@@ -294,67 +555,181 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
         time.sleep(0.3)
         edge_ok, _ = _http_ok("https://api-edge.calhegasmorais.pt/health")
     local8787, _ = _http_ok("http://127.0.0.1:8787/health", timeout=2.0)
+    hop = f"hops fog={int(fog_ok)} edge={int(edge_ok)} :8787={int(local8787)}"
+    if dry:
+        return {
+            "ok": True,
+            "result": hop + " | claw dry-run (no openclaw)",
+            "done": False,
+            "sha": "",
+            "verb": "audit",
+        }
+
     tokens_used, tokens_limit = 2100, 33000
-    if not dry:
-        meters = FOG / "data" / "desk-meters"
-        meters.mkdir(parents=True, exist_ok=True)
-        prev = meters / "openclaw.json"
-        if prev.is_file():
-            try:
-                pj = json.loads(prev.read_text(encoding="utf-8"))
-                tokens_used = int(pj.get("tokens_used") or tokens_used)
-                tokens_limit = int(pj.get("tokens_limit") or tokens_limit)
-            except Exception:
-                pass
-        (meters / "openclaw.json").write_text(json.dumps({
-            "tokens_used": tokens_used, "tokens_limit": tokens_limit, "model": "llava:latest",
-            "ts": _now(),
-            "probes": {"fog_public": int(fog_ok), "edge_api": int(edge_ok), "fog_8787_local": int(local8787)},
-        }, indent=2) + "\n")
-        for script in (
-            REPO_ROOT / "deploy/mac-fog/desk-claw-probe.sh",
-            REPO_ROOT / "deploy/mac-fog/openclaw/desk-claw-probe.sh",
-        ):
-            if script.is_file() and (FOG.exists() or os.environ.get("FOG_HOME")):
-                subprocess.run(["bash", str(script)], cwd=str(REPO_ROOT), timeout=30, capture_output=True)
-                break
+    meters = FOG / "data" / "desk-meters"
+    meters.mkdir(parents=True, exist_ok=True)
+    prev = meters / "openclaw.json"
+    if prev.is_file():
         try:
-            feed = _load("desk_feed")
-            payload = feed.claw_payload(
-                fog_public=int(fog_ok), edge=int(edge_ok), local8787=int(local8787),
-                tokens_used=tokens_used, tokens_limit=tokens_limit,
-            )
-            _load("desk_bus").feed_append("openclaw", payload, kind="audit", specialty="claw")
+            pj = json.loads(prev.read_text(encoding="utf-8"))
+            tokens_used = int(pj.get("tokens_used") or tokens_used)
+            tokens_limit = int(pj.get("tokens_limit") or tokens_limit)
         except Exception:
             pass
-    ok = fog_ok or edge_ok or local8787
-    payload = (
-        f"hops fog={int(fog_ok)} edge={int(edge_ok)} :8787={int(local8787)} "
-        f"| tokens {tokens_used}/{tokens_limit}"
+    (meters / "openclaw.json").write_text(
+        json.dumps(
+            {
+                "tokens_used": tokens_used,
+                "tokens_limit": tokens_limit,
+                "model": "ollama/qwen2.5:3b",
+                "ts": _now(),
+                "probes": {
+                    "fog_public": int(fog_ok),
+                    "edge_api": int(edge_ok),
+                    "fog_8787_local": int(local8787),
+                },
+            },
+            indent=2,
+        )
+        + "\n"
     )
-    out = {
-        "ok": ok,
-        "result": payload,
-        "done": ok,
+    # Hop curls update meters only — silent (no feed byline). openclaw byline only after agent exec.
+
+    oc = _which_bin("openclaw")
+    if not oc:
+        return {
+            "ok": False,
+            "result": hop + " | openclaw binary missing",
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+            "next_action": "install/open PATH for openclaw (~/.local/bin)",
+        }
+
+    intent = (task.get("intent") or task.get("title") or task.get("id") or "claw audit").strip()
+    tid = task.get("id") or "task"
+    prompt = (
+        f"Desk collegium claw task {tid}. Intent: {intent}\n"
+        "Do real work with tools in the Fog repo. Report concrete evidence.\n"
+        f"Repo: {REPO_ROOT}\n"
+    )
+    model = "ollama/qwen2.5:3b"
+    # Prefer qwen2.5:3b; fall back to a small llama if pull missing (openclaw may still error honestly).
+    fallback = "ollama/llama3.2:1b"
+    timeout_s = 180 if str(tid).startswith("audit-") else 300
+    env = _agent_path_env()
+
+    def _run_exec(mdl: str) -> subprocess.CompletedProcess:
+        cmd = [
+            oc,
+            "agent",
+            "exec",
+            "--cwd",
+            str(REPO_ROOT),
+            "--model",
+            mdl,
+            "--timeout",
+            str(timeout_s),
+            "--json",
+            prompt,
+        ]
+        return subprocess.run(
+            cmd,
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s + 30,
+            env=env,
+        )
+
+    blob = ""
+    rc = 1
+    try:
+        # gateway stop --force if needed so embedded exec is not blocked
+        try:
+            subprocess.run(
+                [oc, "gateway", "stop", "--force"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=20,
+                env=env,
+            )
+        except Exception:
+            pass
+        r = _run_exec(model)
+        blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
+        rc = r.returncode
+        if rc != 0 and ("model" in blob.lower() or "not found" in blob.lower() or "pull" in blob.lower()):
+            r2 = _run_exec(fallback)
+            blob = ((r2.stdout or "") + "\n" + (r2.stderr or "")).strip()
+            rc = r2.returncode
+            model = fallback
+    except subprocess.TimeoutExpired as e:
+        blob = (((e.stdout or "") if isinstance(e.stdout, str) else "") + "\n" + ((e.stderr or "") if isinstance(e.stderr, str) else "")).strip()
+        try:
+            _load("desk_bus").feed_append(
+                "openclaw",
+                f"timeout {tid}: {_trunc_ev(blob or f'{timeout_s}s')}",
+                kind="dispute",
+                specialty="claw",
+            )
+        except Exception:
+            pass
+        return {
+            "ok": False,
+            "result": f"{hop} | openclaw timeout {timeout_s}s",
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+            "next_action": "retry openclaw agent exec when ollama free",
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "result": f"{hop} | openclaw fail: {e}"[:220],
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+        }
+
+    evidence = _has_tool_evidence(blob, prompt=prompt) and len(blob) >= 32
+    try:
+        _load("desk_bus").feed_append(
+            "openclaw",
+            _trunc_ev(f"{model} rc={rc} {blob}" if evidence else f"openclaw rc={rc} no evidence"),
+            kind="audit" if (evidence and rc == 0) else "dispute",
+            specialty="claw",
+            force=not evidence,
+            dedupe=bool(evidence),
+        )
+    except Exception:
+        pass
+    done = bool(evidence and rc == 0)
+    return {
+        "ok": bool(evidence and rc == 0),
+        "result": _trunc_ev(blob or f"openclaw rc={rc} no evidence") if evidence else _trunc_ev(f"{hop} | openclaw rc={rc} no evidence"),
+        "done": done,
         "sha": "",
-        "verb": "audit" if ok else "dispute",
+        "verb": "audit" if done else "dispute",
+        "next_action": "" if done else "openclaw: retry agent exec with real tool evidence",
     }
-    if not ok:
-        out["escalate"] = False
-        out["peer"] = "refer"  # specialty path may refer to coord
-    return out
 
 
 def handler_coord(task: dict, *, dry: bool) -> dict:
-    """protocol.check + board + reports sync + maybe_auto_ship; T1 writes WG brief."""
+    """Real Hermes oneshot for task intent; done only on real agent evidence."""
     if dry:
         return {"ok": True, "result": "coord dry-run", "done": False, "sha": "", "verb": "act"}
+
+    tid = task.get("id") or "task"
+    intent = (task.get("intent") or task.get("title") or tid).strip()
+
+    # Soft protocol/surfaces (real desk work) — never alone marks done.
     try:
         proto = _load("desk_protocol")
         bus = _load("desk_bus")
         state = bus.load_state()
         chk = proto.check(state)
-        # reports sync + TODO board (real surface work)
         try:
             rep = _load("desk_reports")
             rep.sync(limit=12, prepend=True, feed=True)
@@ -367,59 +742,130 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
             issues.cmd_sync(argparse.Namespace(dry_run=False, limit=15))
         except Exception as e:
             print(f"coord issues warn: {e}", file=sys.stderr)
-        cmod = _load("desk_connectors")
-        rows = [cmod.probe_surface(s) for s in (cmod.load_registry().get("surfaces") or [])]
-        gates = [r for r in rows if r.get("ship_gate")]
-        present = sum(1 for r in gates if r["status"] == "present")
-        board = classify(bus.load_state())
-        ship_out = {}
+        if not chk.get("ok"):
+            # still attempt Hermes, but surface protocol dispute
+            print(f"coord protocol VIOL: {chk.get('violations')}", file=sys.stderr)
+    except Exception as e:
+        print(f"coord prep warn: {e}", file=sys.stderr)
+        chk = {"ok": True, "violations": []}
+
+    intent_l = intent.lower()
+    if "wg" in intent_l or "10.88" in intent_l or "taper-t1" in (task.get("source") or "") or "t1" in intent_l:
+        _write_wg_t1_brief(task)
+
+    hermes = _which_bin("hermes")
+    if not hermes:
+        return {
+            "ok": False,
+            "result": "hermes binary missing on PATH",
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+            "escalate": False,
+            "next_action": "ensure ~/.local/bin/hermes on PATH",
+        }
+
+    prompt = (
+        f"Desk collegium coord task {tid}.\n"
+        f"Intent: {intent}\n\n"
+        "You MUST use terminal and/or file tools to do real work in this repo. "
+        "Do not invent results. Run concrete commands and report evidence "
+        "(paths touched, command output, exit codes).\n"
+        f"Working directory: {REPO_ROOT}\n"
+    )
+    timeout_s = 180 if str(tid).startswith("audit-") else 300
+    cmd = [
+        hermes,
+        "chat",
+        "--oneshot",
+        "--yolo",
+        "-m",
+        "llama3.2:1b",
+        "--provider",
+        "ollama-launch",
+        "-t",
+        "terminal,file",
+        "--in",
+        str(REPO_ROOT),
+        "-q",
+        prompt,
+    ]
+    env = _agent_path_env()
+    try:
+        r = subprocess.run(
+            cmd,
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            env=env,
+        )
+        blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
+        rc = r.returncode
+    except subprocess.TimeoutExpired as e:
+        blob = (
+            ((e.stdout or "") if isinstance(e.stdout, str) else "")
+            + "\n"
+            + ((e.stderr or "") if isinstance(e.stderr, str) else "")
+        ).strip()
         try:
-            ship_out = auto_ship_tick(dry=False)
-        except Exception as e:
-            ship_out = {"err": str(e)[:80]}
-        # Hermes ≥64k soft meter
-        try:
-            hm = FOG / "data" / "desk-meters" / "hermes.json"
-            ctx = 0
-            if hm.is_file():
-                ctx = int(json.loads(hm.read_text(encoding="utf-8")).get("context_length") or 0)
-            if ctx and ctx < 65536:
-                bus.feed_append(
-                    "hermes",
-                    f"context {ctx}<65536 — use qwen2.5:7b+ (see hermes/CONTEXT-64K.md)",
-                    kind="dispute",
-                    specialty="coord",
-                )
+            _load("desk_bus").feed_append(
+                "hermes",
+                f"timeout {tid}: {_trunc_ev(blob or f'{timeout_s}s')}",
+                kind="dispute",
+                specialty="coord",
+            )
         except Exception:
             pass
-        intent = (task.get("intent") or "").lower()
-        # T1 / WG prove — actionable outbox brief (Mac executes; box documents)
-        if "wg" in intent or "10.88" in intent or "taper-t1" in (task.get("source") or "") or "t1" in intent:
-            _write_wg_t1_brief(task)
-        result = (
-            f"protocol={'ok' if chk['ok'] else 'VIOL'} "
-            f"gates={present}/{len(gates)} "
-            f"board on={len(board['ongoing'])} pe={len(board['pending'])} "
-            f"pr={len(board['projected'])} es={len(board['escalated'])} "
-            f"ship={len(ship_out.get('results') or [])}"
-        )
-        if not chk["ok"]:
-            return {
-                "ok": False,
-                "result": result + " " + ",".join(chk["violations"][:3]),
-                "done": False,
-                "sha": "",
-                "escalate": True,
-                "verb": "dispute",
-            }
-        # peer vote when ship candidates wait majority
-        try:
-            _maybe_collegium_verbs(bus, task, board, ship_out)
-        except Exception as e:
-            print(f"collegium verbs warn: {e}", file=sys.stderr)
-        return {"ok": True, "result": result, "done": True, "sha": "", "verb": "act"}
+        return {
+            "ok": False,
+            "result": f"hermes timeout {timeout_s}s — no auto-ack/ship",
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+            "next_action": "retry hermes when ollama free; do not ship",
+        }
     except Exception as e:
-        return {"ok": False, "result": f"coord fail: {e}", "done": False, "sha": "", "verb": "dispute"}
+        return {
+            "ok": False,
+            "result": f"hermes fail: {e}"[:220],
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+        }
+
+    evidence = _has_tool_evidence(blob, prompt=prompt)
+    try:
+        _load("desk_bus").feed_append(
+            "hermes",
+            _trunc_ev(blob or f"hermes rc={rc}"),
+            kind="act" if evidence else "dispute",
+            specialty="coord",
+            # Reality: disputes must always show (dedupe hid fluff→dispute)
+            force=not evidence,
+            dedupe=bool(evidence),
+        )
+    except Exception:
+        pass
+
+    if evidence and rc == 0:
+        return {
+            "ok": True,
+            "result": _trunc_ev(blob),
+            "done": True,
+            "sha": "",
+            "verb": "act",
+            "evidence": True,
+        }
+    return {
+        "ok": False,
+        "result": _trunc_ev(blob or f"hermes rc={rc} no evidence"),
+        "done": False,
+        "sha": "",
+        "verb": "dispute",
+        "evidence": False,
+        "next_action": "hermes: retry with terminal,file tools; no auto-ack/ship",
+    }
 
 
 def _run_code_unittest_subset() -> dict:
@@ -511,26 +957,132 @@ def _run_code_unittest_subset() -> dict:
 
 
 def handler_code(task: dict, *, dry: bool) -> dict:
-    """compileall desk-collegium + unittest discover; refer+peer_vote on FAIL (collegium path)."""
+    """Prefer real OpenCode on the task. Unittest subset is desk CI — not opencode."""
     if dry:
         return {"ok": True, "result": "code dry-run", "done": False, "sha": "", "verb": "act"}
-    # Prefer consuming outbox brief when present (agent-run writes it)
+
+    tid = task.get("id") or "task"
+    intent = (task.get("intent") or task.get("title") or tid).strip()
+    intent_l = intent.lower()
+    is_self_audit = (
+        str(tid).startswith("audit-")
+        or "self-audit" in intent_l
+        or "self audit" in intent_l
+        or intent_l.strip() in ("self-audit", "unittest", "desk ci")
+    )
+
     brief = FOG / "data" / "desk-outbox" / "opencode-next.md"
-    consumed = ""
     if brief.is_file():
         try:
-            consumed = brief.read_text(encoding="utf-8")[:80].replace("\n", " ")
+            _ = brief.read_text(encoding="utf-8")[:80]
         except Exception:
-            consumed = "brief-present"
-    out = _run_code_unittest_subset()
-    if consumed:
-        out["result"] = (out.get("result") or "") + f" | brief={consumed[:40]}"
-        out["result"] = out["result"][:220]
-    return out
+            pass
+
+    # Desk CI path: unittest only — feed as desk, done only for literal self-audit
+    if is_self_audit:
+        out = _run_code_unittest_subset()
+        out["done"] = bool(out.get("ok") and is_self_audit)
+        try:
+            _load("desk_bus").feed_append("stratagrok",
+                _trunc_ev(out.get("result") or "unittest"),
+                kind="audit" if out.get("ok") else "refer",
+                specialty="code",
+            )
+        except Exception:
+            pass
+        return out
+
+    oc_bin = _which_bin("opencode") or str(Path.home() / ".opencode/bin/opencode")
+    if not Path(oc_bin).is_file():
+        # Honest: cannot claim opencode; desk CI only, not done
+        out = _run_code_unittest_subset()
+        out["done"] = False
+        out["verb"] = "dispute"
+        out["result"] = _trunc_ev(f"opencode missing; desk CI: {out.get('result')}")
+        try:
+            _load("desk_bus").feed_append("stratagrok",
+                out["result"],
+                kind="dispute",
+                specialty="code",
+            )
+        except Exception:
+            pass
+        return out
+
+    prompt = (
+        f"Desk collegium code task {tid}.\n"
+        f"Intent: {intent}\n"
+        f"Work in {REPO_ROOT}. Make real edits/tests; report evidence.\n"
+    )
+    timeout_s = 300
+    env = _agent_path_env()
+    try:
+        r = subprocess.run(
+            [oc_bin, "run", "--dir", str(REPO_ROOT), "--auto", prompt],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            env=env,
+        )
+        blob = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
+        rc = r.returncode
+    except subprocess.TimeoutExpired as e:
+        blob = (
+            ((e.stdout or "") if isinstance(e.stdout, str) else "")
+            + "\n"
+            + ((e.stderr or "") if isinstance(e.stderr, str) else "")
+        ).strip()
+        try:
+            _load("desk_bus").feed_append(
+                "opencode",
+                f"timeout {tid}: {_trunc_ev(blob or f'{timeout_s}s')}",
+                kind="dispute",
+                specialty="code",
+            )
+        except Exception:
+            pass
+        return {
+            "ok": False,
+            "result": f"opencode timeout {timeout_s}s",
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "result": f"opencode fail: {e}"[:220],
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+        }
+
+    evidence = _has_tool_evidence(blob, prompt=prompt)
+    try:
+        _load("desk_bus").feed_append(
+            "opencode",
+            _trunc_ev(blob or f"opencode rc={rc}"),
+            kind="act" if evidence else "dispute",
+            specialty="code",
+            force=not evidence,
+            dedupe=bool(evidence),
+        )
+    except Exception:
+        pass
+    done = bool(evidence and rc == 0)
+    return {
+        "ok": done,
+        "result": _trunc_ev(blob or f"opencode rc={rc}"),
+        "done": done,
+        "sha": "",
+        "verb": "act" if done else "dispute",
+        "next_action": "" if done else "opencode: retry run with real edit/test evidence",
+    }
 
 
 def handler_lead(task: dict, *, dry: bool) -> dict:
-    """André gates escalate; representable work acts (vault/gh/vapour) — never dump on André."""
+    """André gates escalate; representable work does real vault/gh or stays undone — no theatre."""
     intent = (task.get("intent") or "").lower()
     if _is_andre_human_gate_task(task):
         return {
@@ -542,7 +1094,7 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             "verb": "escalate",
             "next_action": "André: clear true human_gate only — STRATAGROK already tried representative path",
         }
-    # Representable: try vault materialize + document gh soft-fail
+    # Representable: try vault materialize (real action)
     if not dry and ("vault" in intent or "automation.desk" in intent or "desk-mail" in intent):
         try:
             rep = _load("desk_reports")
@@ -550,7 +1102,7 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             if mat.get("ok") or mat.get("created"):
                 return {
                     "ok": True,
-                    "result": f"act representative vault materialize created={mat.get('created')} already={mat.get('already')}",
+                    "result": f"vault materialize created={mat.get('created')} already={mat.get('already')}",
                     "done": True,
                     "sha": "",
                     "verb": "act",
@@ -558,7 +1110,7 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             if mat.get("missing_src") or mat.get("retry_pull"):
                 return {
                     "ok": True,
-                    "result": f"refer: vault still missing {mat.get('missing_src')} — retry ensure-desk-vault/Tailscale pull (not André gate)",
+                    "result": f"vault still missing {mat.get('missing_src')} — retry ensure-desk-vault/Tailscale pull",
                     "done": False,
                     "sha": "",
                     "escalate": False,
@@ -568,7 +1120,7 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
         except Exception as e:
             return {
                 "ok": False,
-                "result": f"representative vault fail: {e}"[:160],
+                "result": f"vault materialize fail: {e}"[:160],
                 "done": False,
                 "sha": "",
                 "verb": "dispute",
@@ -576,28 +1128,58 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
                 "next_action": "stratagrok: revise vault materialize helper",
             }
     if "gh" in intent or "path" in intent or "launchagent" in intent:
+        # Attempt real gh presence check — no canned success theatre
+        gh = _which_bin("gh")
+        if gh and not dry:
+            try:
+                r = subprocess.run(
+                    [gh, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    env=_agent_path_env(),
+                )
+                if r.returncode == 0:
+                    return {
+                        "ok": True,
+                        "result": _trunc_ev(f"gh present: {(r.stdout or r.stderr or '')}"),
+                        "done": False,
+                        "sha": "",
+                        "verb": "act",
+                        "next_action": "hermes/opencode: wire gh into FogRuntime PATH if still missing in connectors",
+                        "peer_vote": True,
+                    }
+            except Exception as e:
+                return {
+                    "ok": False,
+                    "result": f"gh check fail: {e}"[:160],
+                    "done": False,
+                    "sha": "",
+                    "verb": "dispute",
+                    "next_action": "install gh or fix PATH",
+                }
         return {
-            "ok": True,
-            "result": "act representative: gh PATH soft-fail already in connectors; LaunchAgent origin fix via Mac agent-run — not André",
+            "ok": False,
+            "result": "gh not on PATH — cannot complete representable PATH/LaunchAgent work",
             "done": False,
             "sha": "",
-            "verb": "act",
-            "next_action": "hermes/opencode: ensure gh on PATH in FogRuntime; connectors soft-fail remains",
+            "verb": "dispute",
+            "next_action": "hermes/opencode: ensure gh on PATH in FogRuntime",
             "peer_vote": True,
         }
     if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
+        # No canned "act representative: Oracle…" success theatre
         return {
             "ok": True,
-            "result": "act representative: Oracle/grok@ is STRATAGROK+vaulted (2FA/captcha only to André)",
+            "result": "oracle/grok@ still open — needs vaulted session or André 2FA/captcha; no fake done",
             "done": False,
             "sha": "",
             "escalate": False,
-            "verb": "act",
+            "verb": "refer",
             "resolve_as_representative": True,
             "next_action": "stratagrok: use vaulted grok@; escalate only on 2FA/captcha",
             "peer_vote": True,
         }
-    # Soft: record taper status + board gap note (real meter, not vapour done)
     if not dry:
         try:
             ts = record_taper_status(dry=False)
@@ -607,12 +1189,18 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             )
             return {"ok": True, "result": note, "done": False, "sha": "", "verb": "audit"}
         except Exception as e:
-            return {"ok": False, "result": f"lead taper fail: {e}"[:160], "done": False, "sha": "", "verb": "dispute"}
+            return {
+                "ok": False,
+                "result": f"lead taper fail: {e}"[:160],
+                "done": False,
+                "sha": "",
+                "verb": "dispute",
+            }
     return {"ok": True, "result": "lead dry-run", "done": False, "sha": "", "verb": "audit"}
 
 
 def handler_edge(task: dict, *, dry: bool) -> dict:
-    """Health probe + actionable outbox brief; 429/1015 → dispute+revise retry (not dead-end)."""
+    """Queue EDGE Assistant Act — NEVER done on Mac HTTP health alone."""
     ok, detail = _http_ok("https://api-edge.calhegasmorais.pt/health", retries=2)
     edge_ok, site_detail = _http_ok("https://edge.calhegasmorais.pt/", retries=2)
     rate = _is_rate_limited(detail) or _is_rate_limited(site_detail)
@@ -621,75 +1209,128 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
         result += " | 429/1015 after backoff"
     elif not ok and detail:
         result += f" | {detail[:40]}"
-    if not dry:
-        steps = [
-            "GET https://api-edge.calhegasmorais.pt/health (expect 200; backoff on 429/1015)",
-            "Consume origin GETs only — no Worker deploy, no workers.dev",
-            "If rate-limited: revise slot retries with backoff; peer vote if still down",
-            "If api dark (not 429): check named tunnel + Fog origin; refer Hermes coord",
-            "Diary: cite task id; Bot=escalate only for true human_gate",
-        ]
-        _write_assistant_brief("edge-assistant", task, result, steps=steps)
+
+    tid = task.get("id") or "task"
+    if dry:
+        out = {
+            "ok": False,
+            "result": result,
+            "done": False,
+            "sha": "",
+            "verb": "dispute" if not (ok or edge_ok) else "audit",
+            "peer": "refer",
+            "peer_vote": True,
+            "next_action": "edge-assistant: pending Act on grok.com (Mac health ≠ done)",
+        }
+        if rate:
+            out["next_action"] = (
+                "edge-assistant: CF 429/1015 — revise after ≥30s; re-run handler_edge; "
+                "peer vote only if still fail"
+            )
+            out["auto_cast_ack"] = True
+        return out
+
+    # Later wake: real Assistant result file?
+    got = _assistant_result_file("edge-assistant", tid)
+    if got:
         try:
-            kind = "audit" if (ok or edge_ok) else "dispute"
-            _load("desk_bus").feed_append("edge", result, kind=kind, specialty="edge")
+            ev = json.loads(got.read_text(encoding="utf-8"))
+            evidence = str(ev.get("evidence") or ev.get("result") or got.name)
+        except Exception:
+            evidence = got.name
+        try:
+            _load("desk_bus").feed_append(
+                "edge-assistant",
+                _trunc_ev(f"assistant result {tid}: {evidence}"),
+                kind="act",
+                specialty="edge",
+            )
         except Exception:
             pass
-    if ok or edge_ok:
-        return {"ok": True, "result": result, "done": True, "sha": "", "verb": "audit"}
-    out = {
-        "ok": False,
-        "result": result,
+        return {
+            "ok": True,
+            "result": _trunc_ev(f"edge-assistant result: {evidence}"),
+            "done": True,
+            "sha": "",
+            "verb": "act",
+        }
+
+    _write_pending_assistant_act("edge-assistant", task, health_note=result)
+    try:
+        _load("desk_bus").feed_append("stratagrok",
+            f"queued Act for edge-assistant: {tid}",
+            kind="act",
+            specialty="edge",
+        )
+    except Exception:
+        pass
+    return {
+        "ok": True,
+        "result": f"queued Act for edge-assistant: {tid} | probe {result}",
         "done": False,
         "sha": "",
-        "verb": "dispute",
-        "peer": "refer",
-        "peer_vote": True,
-        "next_action": (
-            "edge-assistant: wait backoff then re-GET api-edge+/edge; "
-            "cast ack if 200 else hermes refer tunnel"
-        ),
+        "verb": "act",
+        "next_action": f"edge-assistant on grok.com: execute pending-act; write edge-assistant-result.json for {tid}",
     }
-    if rate:
-        out["next_action"] = (
-            "edge-assistant: CF 429/1015 — revise after ≥30s; re-run handler_edge; "
-            "peer vote only if still fail"
-        )
-        out["auto_cast_ack"] = True
-    return out
 
 
 def handler_fog(task: dict, *, dry: bool) -> dict:
-    """Origin health + actionable outbox brief for Fog Assistant / Hermes."""
+    """Queue Fog Assistant Act — NEVER done on Mac HTTP health alone."""
     ok, detail = _http_ok("https://fog.calhegasmorais.pt/health")
     result = f"fog origin health={'ok' if ok else 'DOWN'}"
-    if not dry:
-        _write_assistant_brief(
-            "fog-assistant",
-            task,
-            result,
-            steps=[
-                "Confirm https://fog.calhegasmorais.pt/health",
-                "Mac: FogRuntime / :8787 local; dual-run WG 10.88.0.0/24 when T1 Act",
-                "One-Act Delegate rail — propose next Act in-thread when idle",
-                "Never browser-automate from Bot box; write brief for Mac agent-run",
-            ],
-        )
+    if not ok and detail:
+        result += f" | {detail[:50]}"
+
+    tid = task.get("id") or "task"
+    if dry:
+        return {
+            "ok": ok,
+            "result": result + " | fog dry-run (no assistant claim)",
+            "done": False,
+            "sha": "",
+            "verb": "audit" if ok else "dispute",
+        }
+
+    got = _assistant_result_file("fog-assistant", tid)
+    if got:
+        try:
+            ev = json.loads(got.read_text(encoding="utf-8"))
+            evidence = str(ev.get("evidence") or ev.get("result") or got.name)
+        except Exception:
+            evidence = got.name
         try:
             _load("desk_bus").feed_append(
-                "fog",
-                result + ("" if ok else f" | {detail[:50]}"),
-                kind="audit" if ok else "dispute",
+                "fog-assistant",
+                _trunc_ev(f"assistant result {tid}: {evidence}"),
+                kind="act",
                 specialty="fog",
             )
         except Exception:
             pass
+        return {
+            "ok": True,
+            "result": _trunc_ev(f"fog-assistant result: {evidence}"),
+            "done": True,
+            "sha": "",
+            "verb": "act",
+        }
+
+    _write_pending_assistant_act("fog-assistant", task, health_note=result)
+    try:
+        _load("desk_bus").feed_append("stratagrok",
+            f"queued Act for fog-assistant: {tid}",
+            kind="act",
+            specialty="fog",
+        )
+    except Exception:
+        pass
     return {
-        "ok": ok,
-        "result": result + (" — one-Act Delegate rail" if ok else f" — {detail[:60]}"),
-        "done": ok,
+        "ok": True,
+        "result": f"queued Act for fog-assistant: {tid} | probe {result}",
+        "done": False,
         "sha": "",
-        "verb": "audit" if ok else "dispute",
+        "verb": "act",
+        "next_action": f"fog-assistant on grok.com: execute pending-act; write fog-assistant-result.json for {tid}",
     }
 
 
@@ -847,15 +1488,14 @@ def write_agent_outbox(agent: str, task: dict, out: dict) -> None:
                 f"Mail: automation.desk@ shared — ~/.config/stratagrok/automation.desk.imap|.smtp\n"
             )
         if agent in ("fog-assistant", "fog"):
-            _write_assistant_brief("fog-assistant", task, str(out.get("result") or ""), steps=[
-                "Confirm fog origin /health",
-                "One-Act Delegate; propose next when idle",
-            ])
+            # Never claim Assistants completed from Mac — queue pending Act only.
+            _write_pending_assistant_act(
+                "fog-assistant", task, health_note=str(out.get("result") or "")[:120]
+            )
         if agent in ("edge-assistant", "edge"):
-            _write_assistant_brief("edge-assistant", task, str(out.get("result") or ""), steps=[
-                "GET api-edge /health",
-                "Consume-origin only",
-            ])
+            _write_pending_assistant_act(
+                "edge-assistant", task, health_note=str(out.get("result") or "")[:120]
+            )
     except Exception:
         pass
 
@@ -961,8 +1601,13 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
         except Exception as e:
             results[spec] = {"ok": False, "result": str(e)[:80]}
 
-    _run("claw", handler_claw, {"id": "audit-claw", "specialty": "claw"})
-    # code: REAL unittest discover (no vapour stamp) when lane ALLOW
+    # Board picks run full openclaw/hermes; self-audit stays meters + pending Acts.
+    results["claw"] = {
+        "ok": True,
+        "skipped": True,
+        "result": "self-audit: openclaw deferred to board claw tasks",
+    }
+    # code: desk CI unittest — feed as desk NEVER as opencode
     allowed_c, pace_c, lane_c = _pace_allows(state, "code")
     if not allowed_c:
         _feed_metabol_skip("code", pace_c, lane_c, state)
@@ -970,19 +1615,20 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
     else:
         try:
             code_out = _run_code_unittest_subset()
+            code_out["done"] = False  # self-audit CI ≠ board code done
             results["code"] = code_out
             meters = FOG / "data" / "desk-meters"
             meters.mkdir(parents=True, exist_ok=True)
             (meters / "opencode-audit.json").write_text(json.dumps({
                 "ts": _now(),
                 "audit": "unittest_discover",
+                "agent": "stratagrok",
                 "ok": bool(code_out.get("ok")),
                 "result": (code_out.get("result") or "")[:180],
             }, indent=2) + "\n")
             try:
-                _load("desk_bus").feed_append(
-                    "opencode",
-                    (code_out.get("result") or "code audit")[:200],
+                _load("desk_bus").feed_append("stratagrok",
+                    (code_out.get("result") or "desk CI unittest")[:200],
                     kind=("audit" if code_out.get("ok") else "refer"),
                     specialty="code",
                 )
@@ -990,10 +1636,14 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
                 pass
         except Exception as e:
             results["code"] = {"ok": False, "result": str(e)[:80], "verb": "refer", "peer_vote": True,
-                               "next_action": "opencode: fix self-audit unittest runner"}
-    _run("coord", handler_coord, {"id": "audit-coord", "specialty": "coord"})
-    _run("fog", handler_fog, {"id": "audit-fog", "specialty": "fog"})
-    _run("edge", handler_edge, {"id": "audit-edge", "specialty": "edge"})
+                               "next_action": "desk: fix self-audit unittest runner"}
+    results["coord"] = {
+        "ok": True,
+        "skipped": True,
+        "result": "self-audit: hermes deferred to board coord tasks",
+    }
+    _run("fog", handler_fog, {"id": "audit-fog", "specialty": "fog", "intent": "self-audit fog pending Act"})
+    _run("edge", handler_edge, {"id": "audit-edge", "specialty": "edge", "intent": "self-audit edge pending Act"})
     try:
         meters = FOG / "data" / "desk-meters"
         meters.mkdir(parents=True, exist_ok=True)
@@ -1147,7 +1797,7 @@ def _feed_metabol_skip(spec: str, pace: str, lane: str, state: dict) -> None:
         payload = f"metabol: skip {short} {pace}{tokens}"
         if extra and pace in ("HOLD", "STASIS"):
             payload += f" | {str(extra)[:60]}"
-        _load("desk_bus").feed_append("desk", payload, kind="audit", specialty=spec or "coord")
+        _load("desk_bus").feed_append("stratagrok", payload, kind="audit", specialty=spec or "coord")
     except Exception:
         pass
 
@@ -1593,7 +2243,9 @@ def _diary_agent(by: str) -> str:
         return "edge-assistant"
     if "fog" in b and "hermes" not in b:
         return "fog-assistant"
-    if "hermes" in b or b in ("coord", "desk"):
+    if b in ("desk", "agent desk", "agent-desk"):
+        return "stratagrok"
+    if "hermes" in b or b == "coord":
         return "hermes"
     return "hermes"
 
@@ -1658,15 +2310,30 @@ def collegium_continue_after_soft_fail(bus, task: dict, out: dict, *, by: str) -
 
 
 _LIVE_ORIGIN_NEEDLES = (
-    "origin", "pages", "worker", "spa", "dag", "pulse", "fund", "html",
-    "put", "ship_live", "atelier", "frontend", "landing",
+    # Whole-token needles only — NEVER bare "spa"/"put" (match spare/input).
+    "ship_live", "atelier", "frontend", "landing page", "landing-page",
+    "cf pages", "cloudflare pages", "origin put", "origin-put",
+    "fund-origin", "worker deploy", "spa deploy", "dag pulse",
 )
 
 
 def _task_looks_live_origin(task: dict, out: dict | None = None) -> bool:
-    """True when result should go ship_live (majority+PUT) instead of done."""
+    """True when result should go ship_live (majority+PUT) instead of done.
+
+    Never ship on dispute / missing tool evidence. Short needles like spa/put
+    are banned (they matched spare/input and forged unanimous ship).
+    """
     out = out or {}
+    if out.get("verb") in ("dispute", "escalate", "refer"):
+        return False
+    if out.get("done") and not out.get("ok"):
+        return False
+    if out.get("evidence") is False:
+        return False
     if out.get("ship_live") or task.get("ship_live"):
+        # Explicit flag still requires ok/evidence when provided
+        if out.get("ok") is False or out.get("evidence") is False:
+            return False
         return True
     blob = f"{task.get('intent') or ''} {task.get('title') or ''} {out.get('result') or ''}".lower()
     return any(k in blob for k in _LIVE_ORIGIN_NEEDLES)
@@ -1676,6 +2343,18 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
     tid = task["id"]
     verb = (out.get("verb") or "").strip().lower()
     chain: list[str] = []
+    # Reality: fluff/dispute never ships or auto-acks (evidence gate required)
+    if (
+        verb in ("dispute", "escalate", "refer")
+        or out.get("ok") is False
+        or out.get("evidence") is False
+        or (out.get("done") and out.get("evidence") is not True and out.get("ok") is not True)
+    ):
+        out = dict(out)
+        out["done"] = False
+        out.pop("ship_live", None)
+        if "hermes" in (by or "").lower() and out.get("evidence") is not True:
+            out["auto_cast_ack"] = False
     if out.get("escalate"):
         verb = verb or "escalate"
         bus._mutate(tid, "escalate", by=by, note=out.get("result") or "escalate")
@@ -1701,7 +2380,7 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             chain.append("oracle_open")
             _diary(by, "act", tid, "oracle keep-open")
             verb = "act"
-        elif _task_looks_live_origin(task, out):
+        elif out.get("ok") and out.get("evidence", True) and _task_looks_live_origin(task, out):
             st = bus.load_state()
             t = bus.find_task(st, tid)
             if t:
@@ -1717,12 +2396,26 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             bus.feed_append(by, f"mark ship_live {tid}", kind="act", specialty=str(task.get("specialty") or "coord"))
             chain.append("ship_live")
             _diary(by, "act", tid, "mark ship_live")
+            # Reality: do NOT auto-cast stub ack — only cast when real peer votes already exist.
             try:
-                ship = _load("desk_ship")
-                ship.cmd_vote(__import__("argparse").Namespace(
-                    task_id=tid, vote="ack", by=by,
-                    note="auto-ack after mark ship_live",
-                ))
+                st_v = bus.load_state()
+                t_v = bus.find_task(st_v, tid) or {}
+                votes = t_v.get("votes") or t_v.get("ship_votes") or []
+                real_peers = [
+                    v for v in votes
+                    if isinstance(v, dict)
+                    and str(v.get("by") or "") not in ("", by)
+                    and str(v.get("vote") or "")
+                    and "auto-ack" not in str(v.get("note") or "").lower()
+                ]
+                if real_peers:
+                    ship = _load("desk_ship")
+                    ship.cmd_vote(__import__("argparse").Namespace(
+                        task_id=tid, vote="ack", by=by,
+                        note="ack after mark ship_live (peers already voted)",
+                    ))
+                else:
+                    print(f"ship_live: skip stub auto-ack {tid} (no real peer votes)", file=sys.stderr)
             except Exception as e:
                 print(f"ship_live vote warn: {e}", file=sys.stderr)
             verb = "act"
@@ -1752,7 +2445,7 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             _diary(by, "commit" if rc == 0 else "escalate", tid, f"ship_now rc={rc}")
             verb = "commit" if rc == 0 else "escalate"
         except Exception as e:
-            bus.feed_append("desk", f"ship_now fail {tid}: {e}", kind="escalate", specialty="coord")
+            bus.feed_append("stratagrok", f"ship_now fail {tid}: {e}", kind="escalate", specialty="coord")
             chain.append("ship_err")
     else:
         # After specialty work: prefer explicit verb, else act (not only constrain)
@@ -1787,6 +2480,30 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
         pass
 
 
+def _feed_r60_pick(bus, task: dict, state: dict) -> None:
+    """Normal-dedupe pick log; only when picked id changes vs last meter."""
+    tid = str(task.get("id") or "")
+    meter = FOG / "data" / "desk-meters" / "last-r60-pick.json"
+    last = ""
+    try:
+        if meter.is_file():
+            last = str(json.loads(meter.read_text(encoding="utf-8")).get("id") or "")
+    except Exception:
+        last = ""
+    if tid and tid == last:
+        return
+    bus.feed_append("stratagrok",
+        f"r/60s cycle picked={tid} spec={task.get('_handler')} open={len(state.get('open_tasks') or [])}",
+        kind="act",
+        specialty=str(task.get("_handler") or "coord"),
+    )
+    try:
+        meter.parent.mkdir(parents=True, exist_ok=True)
+        meter.write_text(json.dumps({"id": tid, "ts": _now()}, indent=2) + "\n")
+    except Exception:
+        pass
+
+
 def _push(bus) -> None:
     try:
         sync = _load("desk_sync")
@@ -1799,9 +2516,28 @@ def _push(bus) -> None:
         except Exception:
             sha = ""
         sync.push(git_sha=sha or "desk-ops")
-        bus.feed_append("stratagrok", f"ops cycle push /desk sha={sha or '-'}", kind="act", specialty="lead")
+        # Feed stratagrok push line only when git SHA changed vs last meter.
+        meter = FOG / "data" / "desk-meters" / "last-push-sha.json"
+        last = ""
+        try:
+            if meter.is_file():
+                last = str(json.loads(meter.read_text(encoding="utf-8")).get("sha") or "")
+        except Exception:
+            last = ""
+        if sha and sha != last:
+            bus.feed_append(
+                "stratagrok",
+                f"ops cycle push /desk sha={sha}",
+                kind="act",
+                specialty="lead",
+            )
+            try:
+                meter.parent.mkdir(parents=True, exist_ok=True)
+                meter.write_text(json.dumps({"sha": sha, "ts": _now()}, indent=2) + "\n")
+            except Exception:
+                pass
     except Exception as e:
-        bus.feed_append("desk", f"ops push warn: {e}", kind="escalate", specialty="lead")
+        bus.feed_append("stratagrok", f"ops push warn: {e}", kind="escalate", specialty="lead")
 
 
 def cmd_board(_: argparse.Namespace) -> int:
@@ -1859,7 +2595,7 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     try:
         chk = _load("desk_protocol").check(state)
         if not chk["ok"]:
-            bus.feed_append("desk", f"protocol VIOL: {','.join(chk['violations'][:3])}", kind="escalate", specialty="coord")
+            bus.feed_append("stratagrok", f"protocol VIOL: {','.join(chk['violations'][:3])}", kind="escalate", specialty="coord")
     except Exception as e:
         chk = {"ok": False, "violations": [str(e)]}
 
@@ -1932,7 +2668,7 @@ def cmd_cycle(args: argparse.Namespace) -> int:
                 except Exception:
                     last = 0.0
                 if now - last >= 600:
-                    bus.feed_append("desk", msg, kind="audit", specialty="coord")
+                    bus.feed_append("stratagrok", msg, kind="audit", specialty="coord")
                     try:
                         skip_flag.parent.mkdir(parents=True, exist_ok=True)
                         skip_flag.write_text(str(now))
@@ -1942,25 +2678,11 @@ def cmd_cycle(args: argparse.Namespace) -> int:
             return 0
         # Act work remained — feed must move on r/60s
         if not args.dry_run:
-            bus.feed_append(
-                "desk",
-                f"r/60s cycle picked={picked[0].get('id')} spec={picked[0].get('_handler')} open={len(state.get('open_tasks') or [])}",
-                kind="act",
-                specialty=str(picked[0].get("_handler") or "coord"),
-                force=True,
-                dedupe=False,
-            )
+            _feed_r60_pick(bus, picked[0], state)
 
     if picked and not args.dry_run:
         try:
-            bus.feed_append(
-                "desk",
-                f"r/60s cycle picked={picked[0].get('id')} spec={picked[0].get('_handler')} open={len(state.get('open_tasks') or [])}",
-                kind="act",
-                specialty=str(picked[0].get("_handler") or "coord"),
-                force=True,
-                dedupe=False,
-            )
+            _feed_r60_pick(bus, picked[0], state)
         except Exception:
             pass
 

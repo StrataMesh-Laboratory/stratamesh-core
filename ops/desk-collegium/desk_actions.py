@@ -124,11 +124,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
         except Exception:
             last = 0.0
         if now - last >= 600:
-            bus.feed_append(
-                "openclaw",
+            bus.feed_append("stratagrok",
                 "actions: gh unavailable (PATH/auth)",
                 kind="dispute",
-                specialty="claw",
+                specialty="coord",
             )
             try:
                 flag.parent.mkdir(parents=True, exist_ok=True)
@@ -156,7 +155,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
             continue
         line = f"GHA {wf}: {conc or status} #{rid}"
         if not args.dry_run:
-            bus.feed_append("opencode", line[:200], kind="audit" if conc != "failure" else "dispute", specialty="code")
+            bus.feed_append("stratagrok", line[:200], kind="audit" if conc != "failure" else "dispute", specialty="actions")
         mirrored += 1
         if conc == "failure" and source not in known and not args.dry_run:
             failed += 1
@@ -212,11 +211,10 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
     )
     print(r.stdout or r.stderr)
     bus = _bus()
-    bus.feed_append(
-        "opencode",
+    bus.feed_append("stratagrok",
         f"actions dispatch {file} rc={r.returncode}",
         kind="propose" if r.returncode == 0 else "escalate",
-        specialty="code",
+        specialty="actions",
     )
     return r.returncode
 

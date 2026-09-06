@@ -449,3 +449,82 @@ class DeskOps(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+class TestHasToolEvidence(unittest.TestCase):
+    """Reality: fluff / prompt-echo must never count as tool evidence."""
+
+    def setUp(self):
+        self.ops = _load_ops()
+
+    def test_rejects_prompt_echo(self):
+        fn = self.ops._has_tool_evidence
+        prompt = (
+            "Desk collegium code task dt-act-opencode-desk-test.\n"
+            "Intent: OpenCode: add or fix ONE small assertion in "
+            "ops/desk-collegium/test_desk_ops.py for _has_tool_evidence "
+            "rejecting prompt-echo; run unittest discover for that module; "
+            "report exit code + path.\n"
+            "Work in /Users/andremorais/StrataMesh/fog/repo. "
+            "Make real edits/tests; report evidence.\n"
+        )
+        self.assertFalse(fn(prompt, prompt=prompt),
+                         "prompt-echo (blob == prompt) must be rejected as tool evidence")
+        self.assertFalse(fn("Sure: " + prompt.strip(), prompt=prompt),
+                         "prompt-echo wrapped in thin shell must still be rejected")
+        # blob that contains first 100 chars of the prompt is also an echo
+        echo_blob = prompt[:120] + " — extra tail"
+        self.assertFalse(fn(echo_blob, prompt=prompt),
+                         "prompt-echo (first 100+ chars of prompt) must be rejected")
+        # a prompt-echo <looks> like tool residue because the prompt itself
+        # mentions "exit code"/"ran command" — but it is still an echo of the
+        # prompt and must be rejected, not mistaken for a real tool run
+        echoed_toolish = (
+            prompt.strip() + "\n"
+            "ran command: run unittest discover; exit code: 0"
+        )
+        self.assertFalse(fn(echoed_toolish, prompt=prompt),
+                         "prompt-echo padded with residue wording (that came from the prompt) "
+                         "must still be rejected as prompt-echo")
+        # an echo of only the prompt's leading segment (100 < n < 180 chars)
+        # hits the [:100] guard, not just the dominant [:180] one
+        seg_echo = prompt[:150] + " — truncated prompt echo"
+        self.assertFalse(fn(seg_echo, prompt=prompt),
+                         "truncated prompt-echo (mid segment) must still be rejected")
+        # a "response:"-wrapped full prompt echo must be rejected after the
+        # prefix is stripped and the echoed prompt body is matched
+        self.assertFalse(fn("response: " + prompt.strip(), prompt=prompt),
+                         "response-prefixed prompt-echo must be rejected")
+        exact_100 = prompt[:100]
+        self.assertFalse(fn(exact_100, prompt=prompt),
+                         "prompt-echo (exactly first 100 chars, boundary of [:100] guard) "
+                         "must be rejected")
+
+    def test_rejects_echo_needles_without_tool_residue(self):
+        fn = self.ops._has_tool_evidence
+        echo_needle_blob = (
+            "Desk collegium code task dt-act-opencode-desk-test.\n"
+            "Intent: OpenCode: run the test\n"
+            "Working directory: /Users/andremorais/StrataMesh/fog/repo"
+        )
+        self.assertFalse(fn(echo_needle_blob),
+                         "blob with echo_needles and no tool_residue must be rejected even without prompt param")
+
+    def test_rejects_advice_fluff(self):
+        fn = self.ops._has_tool_evidence
+        blob = (
+            "This code snippet is a combination of Bash shell commands and custom "
+            "functions for Git repository management. Here is an example."
+        )
+        self.assertFalse(fn(blob), "advice/fluff must not count as tool evidence")
+
+    def test_accepts_exit_code_evidence(self):
+        fn = self.ops._has_tool_evidence
+        blob = (
+            "ran command: ls /Users/andremorais/StrataMesh/fog/data/desk-outbox\n"
+            "exit code: 0\n"
+            "fog-assistant-pending-act.md\n"
+            "edge-assistant-pending-act.md\n"
+            "inventory listed"
+        )
+        self.assertTrue(fn(blob), "real exit-code output must be accepted as tool evidence")
+
