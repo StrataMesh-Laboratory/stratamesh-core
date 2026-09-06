@@ -109,7 +109,13 @@ case "$CMD" in
       coord|hermes) run_coord ;;
       claw|openclaw) run_claw ;;
       code|opencode) run_code ;;
-      all) run_coord; run_claw; run_code; status_all ;;
+      all)
+        echo "contingency: serialize — running coord then claw then code (one at a time)"
+        run_coord
+        run_claw
+        run_code
+        status_all
+        ;;
       *) echo "unknown spec"; exit 2 ;;
     esac ;;
   *) echo "usage: $0 status|ensure|run <coord|claw|code|all>"; exit 2 ;;

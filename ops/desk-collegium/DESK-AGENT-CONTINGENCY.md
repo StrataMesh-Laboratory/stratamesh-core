@@ -38,6 +38,16 @@ Probe: `bash deploy/mac-fog/desk-agent-contingency.sh status`
 4. Fog desk_ops + local tests
 5. STRATAGROK
 
+## Serialize (8GB Fog Mac)
+
+**Law:** one specialty at a time. Never stack Hermes + OpenClaw agent-exec + OpenCode.
+
+- `desk-agent-run.sh` takes **exactly one** of `opencode|hermes|openclaw|fog|edge` (refuses `all`)
+- Exclusive mkdir lock on `FOG/data/desk-agent-run.lock.d` (macOS-portable)
+- Specialty runners do **not** call `desk_ops.py cycle` — that is TUI `r` / explicit cycle only (cycle was pulling live Hermes under OpenCode)
+- Contingency `run all` walks ladders **sequentially** and skips a step if the lock is held
+- OpenClaw: never `gateway stop --force` before `agent exec` (macOS bootout); see docs.openclaw.ai/cli/agent
+
 ## Anti-rules
 - No ACK-only smoke as a pass
 - No fake meters without a real command that ran
