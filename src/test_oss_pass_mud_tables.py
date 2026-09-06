@@ -42,6 +42,10 @@ def test_atelier_vendor_three():
     oz = (ROOT / "contracts/openzeppelin/ObjectRegistry.sol").read_text()
     assert "workers.dev" not in oz
     assert "NoStrataMint" in oz
+    q = (ROOT / "frontend/atelier-quality.js").read_text()
+    assert "AtelierQuality" in q
+    assert "import " not in q
+    assert "/atelier-quality.js" in html
 
 
 if __name__ == "__main__":
