@@ -2,8 +2,9 @@
 pragma solidity ^0.8.20;
 
 /// @title ObjectRegistry — lab scaffold (OpenZeppelin Ownable mechanics)
-/// @notice Maps object_id → CID. Does not mint STRATA. Does not take USDC.
-/// Fog operator is owner. SCA/ACB are subjects off-chain (MUD Subject table).
+/// @notice Maps object_id → CID. object_id ≠ cid. Does not mint STRATA. Does not take USDC.
+/// Fog operator is registry owner (infrastructure). SCA/ACB are Subjects off-chain (MUD Subject).
+/// `movable=false` => ParcelImmovable on transfer of **dirt identity**; title is not this registry.
 /// Compatible with @openzeppelin/contracts/access/Ownable.sol when installed.
 
 contract ObjectRegistry {

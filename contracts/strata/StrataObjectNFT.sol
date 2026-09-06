@@ -5,7 +5,9 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @title StrataObjectNFT — lab object identity (object_id maps to tokenId)
-/// @notice Parcels / lots remain immovable via movable flag.
+/// @notice Ontology: STRATA NFT = the object; optional contrato block is separate.
+/// `movable=false` = unmovable world parcel/dirt — not "lot" (lots are not NFTs).
+/// Title trade ≠ moving dirt; see docs/MUD-WORLD-FOG-TABLES.md. Subjects never minted here.
 contract StrataObjectNFT is ERC721, AccessControl {
     bytes32 public constant POC_MINTER_ROLE = keccak256("POC_MINTER_ROLE");
 

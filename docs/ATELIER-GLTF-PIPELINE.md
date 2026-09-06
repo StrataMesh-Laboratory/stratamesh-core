@@ -1,24 +1,48 @@
 # Atelier glTF pipeline (lab)
 
-Vendor-local assets under `frontend/vendor/gltf/`. Classic Three only — no R3F, no ESM Three on Safari.
+Classic scripts only. No R3F. No ESM `GLTFLoader` from unpkg. `oracle_live=false`.
 
-## Flow
+## Place files
 
-1. Author / export glTF or GLB (Blender, etc.). Keep meshes lean; bake lights when possible.
-2. Drop files into `frontend/vendor/gltf/` (see that README). Prefer `.glb` for Pages.
-3. Load with `THREE.GLTFLoader` after `three.min.js` (and optional DRACO later). Do **not** importmap Three.
-4. Attach to Bancada / lot groups; dispose with `AtelierInstances.disposeObject3D` on restyle.
-5. Quality gate: `AtelierQuality.tier` may skip outlines / lower pixel ratio on weak GPUs.
+Drop `.glb` (preferred) or `.gltf` + bins under [`frontend/vendor/gltf/`](../frontend/vendor/gltf/README.md).
 
-## Locks
+| Rule | Why |
+|------|-----|
+| One object = one `.glb` | CID is the content identity |
+| No textures from CDN | Safari / metabol |
+| Scale 1 unit ≈ 1 m | Bancada CGU grid |
+| Origin at feet / lot base | `paintBancadaNow` spawn |
+| Land parcels are **not** glTF you move | Unmovable title — Rest catalog |
 
-- No secrets in glTF extras.
-- Parcels stay unmovable (trade title, not dirt).
-- PoC mint only — no faucet, no workers.dev registry.
-- Cache-bust query on HTML scripts when swapping assets (`v=YYYYMMDDoss`).
+## Load (when a classic GLTFLoader is vendored)
 
-## Related
+```html
+<script src="/vendor/three.min.js"></script>
+<script src="/vendor/GLTFLoader.js"></script>
+```
 
-- `docs/ATELIER-RENDERER.md` — classic Three boot
-- `frontend/atelier-quality.js` — tier / fog / pixelRatio
-- `frontend/atelier-instances.js` — InstancedMesh + dispose
+```js
+var loader = new THREE.GLTFLoader();
+loader.load("/vendor/gltf/" + name + ".glb", function (g) {
+  var root = g.scene;
+  root.userData.object_id = objectId; // NFT identity, if minted
+  root.userData.cid = cid;            // CID-only persist is allowed
+  scene.add(root);
+  if (typeof paintBancadaNow === "function") paintBancadaNow();
+});
+```
+
+Do **not** ship GLTFLoader as ESM. If the r15x examples/js build is missing, keep the object as a Box/Toon stand-in until a classic loader is vendored.
+
+## Ledger
+
+1. Pin bytes → CID (`src/cid_store.py` — no NFT required).
+2. Optional object mint → `object_id` (`src/nft.py`). Illegal: NFT without CID.
+3. MUD `Object` row: `object_id`, `cid`, `movable`. Parcels: `movable=false`.
+4. SCA/ACB stay in `Subject`, never in the glTF scene as objects.
+
+## Out of scope
+
+- Draco/meshopt CDN
+- Auto-faucet STRATA when a model loads
+- `workers.dev` as the mesh CDN

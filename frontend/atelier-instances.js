@@ -1,36 +1,68 @@
-/* InstancedMesh helper for repeated procedural props. */
-(function (global) {
-  'use strict';
-  function makeInstanced(geometry, material, matrices) {
-    if (typeof THREE === 'undefined' || !matrices || !matrices.length) return null;
-    var mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
-    var m = new THREE.Matrix4();
-    for (var i = 0; i < matrices.length; i++) {
-      if (matrices[i].isMatrix4) mesh.setMatrixAt(i, matrices[i]);
-      else {
-        m.identity();
-        var p = matrices[i].position || matrices[i];
-        m.setPosition(p.x || 0, p.y || 0, p.z || 0);
-        mesh.setMatrixAt(i, m);
-      }
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.frustumCulled = true;
-    return mesh;
-  }
-  function disposeObject3D(obj) {
+/* Atelier InstancedMesh helpers — classic script, no ESM, no R3F.
+ * Street lane dashes are the first repeated prop migrated off Mesh-per-dash.
+ */
+(function (root) {
+  "use strict";
+
+  function disposeTree(obj) {
     if (!obj) return;
-    obj.traverse(function (ch) {
-      if (ch.geometry && ch.geometry.dispose) ch.geometry.dispose();
-      if (ch.material) {
-        var mats = Array.isArray(ch.material) ? ch.material : [ch.material];
-        mats.forEach(function (mat) {
-          if (!mat) return;
-          if (mat.map && mat.map.dispose) mat.map.dispose();
-          if (mat.dispose) mat.dispose();
-        });
+    var walk = obj.traverse ? [obj] : [];
+    if (obj.traverse) {
+      obj.traverse(function (n) { walk.push(n); });
+    }
+    var seen = {};
+    walk.forEach(function (n) {
+      if (n.geometry && n.geometry.dispose && !seen[n.geometry.uuid]) {
+        seen[n.geometry.uuid] = 1;
+        try { n.geometry.dispose(); } catch (e) {}
       }
+      var mats = n.material;
+      if (!mats) return;
+      (Array.isArray(mats) ? mats : [mats]).forEach(function (mat) {
+        if (!mat) return;
+        ["map", "emissiveMap", "normalMap"].forEach(function (k) {
+          if (mat[k] && mat[k].dispose) {
+            try { mat[k].dispose(); } catch (e2) {}
+          }
+        });
+        if (mat.dispose && !seen[mat.uuid || mat]) {
+          seen[mat.uuid || String(mat)] = 1;
+          try { mat.dispose(); } catch (e3) {}
+        }
+      });
     });
   }
-  global.AtelierInstances = { makeInstanced: makeInstanced, disposeObject3D: disposeObject3D };
-})(typeof window !== 'undefined' ? window : this);
+
+  function streetDashes(scene, opts) {
+    opts = opts || {};
+    var THREE = root.THREE;
+    if (!THREE || !scene || !THREE.InstancedMesh) return null;
+    var from = opts.from != null ? opts.from : -8;
+    var to = opts.to != null ? opts.to : 8;
+    var step = opts.step || 1.05;
+    var count = 0;
+    for (var z = from; z <= to; z++) count++;
+    if (count < 1) return null;
+    var geo = new THREE.PlaneGeometry(opts.w || 0.12, opts.h || 0.55);
+    var mat = opts.material || new THREE.MeshLambertMaterial({ color: 0xd4a017 });
+    var mesh = new THREE.InstancedMesh(geo, mat, count);
+    var dummy = new THREE.Object3D();
+    dummy.rotation.x = -Math.PI / 2;
+    var i = 0;
+    for (var zz = from; zz <= to; zz++) {
+      dummy.position.set(opts.x || 0, opts.y != null ? opts.y : 0.02, zz * step);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i++, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
+    mesh.name = "atelier-street-dashes";
+    scene.add(mesh);
+    return mesh;
+  }
+
+  root.AtelierInstances = {
+    disposeTree: disposeTree,
+    streetDashes: streetDashes,
+  };
+})(typeof window !== "undefined" ? window : this);

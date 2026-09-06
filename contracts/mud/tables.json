@@ -1,46 +1,146 @@
 {
   "schema": "stratamesh.mud.tables.v1",
-  "note": "Lattice-MUD shaped tables mapped onto STRATA objects. Not an EVM world. No USDC. No STRATA mint on-chain.",
+  "note": "Lattice-MUD shaped Fog tables. Normative ontology: docs/SUBJECT-OBJECT-ECONOMY.md, docs/STRATA_NFT_ONTOLOGY.md, docs/DIGITAL-OBJECTS.md. Not an EVM world. No USDC. No on-chain STRATA emission except PoC-gated stubs.",
   "oracle_live": false,
+  "layers": {
+    "subjects": "Account/Subject \u2014 User | SCA/ACB (same being). Never inventory.",
+    "objects": "object_id STRATA NFT \u2014 bytes/cid/name can stand without ever running a contrato block.",
+    "aspectos": "Contained child objects (tree, no cycles). Not the word for contracts.",
+    "contrato": "Optional rules block on an object (StateMachine/Actions/collateral) OR a catalog ownership title. Never named aspecto.",
+    "infrastructure": "Fog node / hops \u2014 never Subject, never Object.",
+    "fungible": "STRATA balance on Account \u2014 dashboard wallet. Not an NFT.",
+    "lots": "Catalog trade-lot rows for fungible STRATA bundles \u2014 NOT object_id / NOT NFT."
+  },
   "tables": {
-    "Object": {
-      "key": ["object_id"],
+    "Subject": {
+      "key": [
+        "subject_id"
+      ],
       "value": {
-        "object_id": "bytes16",
-        "cid": "string",
-        "owner": "string",
-        "kind": "enum:object|lot",
-        "movable": "bool"
+        "subject_id": "string",
+        "kind": "enum:user|sca|acb",
+        "painel": "bool",
+        "bancada": "bool",
+        "clearance": "string?"
       },
       "rules": [
-        "object_id is the NFT identity",
-        "CID-only persist is allowed without object_id",
+        "SCA (PT) and ACB (EN) are the same subject class \u2014 equal standing to users",
+        "SCA/ACB are subjects not objects",
+        "Subjects own/operate objects; subjects are never rows in Object",
+        "Fog node is infrastructure \u2014 no Subject row for the Node",
+        "Desk external_assistant agents are not SCA/ACB"
+      ],
+      "aliases": [
+        "Account"
+      ]
+    },
+    "Object": {
+      "key": [
+        "object_id"
+      ],
+      "value": {
+        "object_id": "bytes16|string",
+        "cid": "string?",
+        "owner_subject_id": "string?",
+        "kind": "enum:object|room|parcel|bundle",
+        "unmovable": "bool",
+        "renderer": "enum:atelier|none|...",
+        "has_contrato_block": "bool"
+      },
+      "rules": [
+        "object_id is the STRATA NFT identity (network id) \u2014 never equal to cid",
+        "CID-only persist allowed without minting object_id",
+        "STRATA NFT = object; optional contrato block does not exhaust the object",
+        "kind=lot is FORBIDDEN here \u2014 lots are not NFTs (see Lot)",
+        "kind=parcel => unmovable=true (dirt/aspect of open-world land); trade title, not the parcel row",
+        "kind=room => actual rooms only (e.g. Bancada) \u2014 not every parcel",
+        "kind=bundle => objects-inside-object tree (aspectos); no cycles",
         "SCA/ACB must not appear in this table"
       ]
     },
     "Parcel": {
-      "key": ["object_id"],
+      "key": [
+        "object_id"
+      ],
       "value": {
-        "object_id": "bytes16",
-        "title": "string",
-        "bundle_owner": "string"
+        "object_id": "bytes16|string",
+        "zone": "string?",
+        "bundle_object_id": "string?",
+        "title_contrato_id": "string?"
       },
       "rules": [
-        "land parcels stay unmovable",
-        "bundle title is operator email / Fog wallet, not a subject account"
+        "Parcel object_id is unmovable land identity in the open-world bundle",
+        "Renderer shows ownership contrato of that parcel \u2014 not a drop of the land NFT itself",
+        "Trading land = trade title (contrato / title instrument), never move parcel object_id into inventory",
+        "bundle_object_id points at the land-bundle object; title held by a Subject (e.g. account email), not by Fog NODE_WALLET as citizen"
       ]
     },
-    "Subject": {
-      "key": ["subject_id"],
+    "Lot": {
+      "key": [
+        "lot_id"
+      ],
       "value": {
-        "subject_id": "string",
-        "role": "enum:user|sca|acb|operator",
-        "painel": "bool",
-        "bancada": "bool"
+        "lot_id": "string",
+        "account_id": "string",
+        "asset": "enum:L-STRATA|app-token",
+        "amount": "decimal",
+        "cid": "string?"
       },
       "rules": [
-        "SCA/ACB are subjects not objects",
-        "Fog node is infrastructure — no Subject row for the Node"
+        "Catalog trade lot \u2014 fungible bundle representation",
+        "lot_id is NOT object_id and NOT an NFT",
+        "ERC-1155 scaffold may mirror lots; still not land and not Subject"
+      ]
+    },
+    "Contrato": {
+      "key": [
+        "contrato_id"
+      ],
+      "value": {
+        "contrato_id": "string",
+        "binds_object_id": "string?",
+        "kind": "enum:ownership_title|spa_aps|other",
+        "state": "enum:static|dynamic|terminated|n/a",
+        "holder_subject_id": "string?",
+        "floor_strata": "decimal?"
+      },
+      "rules": [
+        "Never call a contrato an aspecto",
+        "ownership_title: tradable title over unmovable parcel/bundle objects",
+        "spa_aps: specialized STRATA NFT service agreement (static/dynamic/terminated) \u2014 competes with EVM mechanics without importing ETH ontology",
+        "Optional interior contrato block on an object is rules/collateral \u2014 object can exist with has_contrato_block=false"
+      ]
+    },
+    "AspectoEdge": {
+      "key": [
+        "parent_object_id",
+        "child_object_id"
+      ],
+      "value": {
+        "parent_object_id": "string",
+        "child_object_id": "string"
+      },
+      "rules": [
+        "Aspectos = contained objects (children). Tree, no cycles.",
+        "Child remains its own object_id (own tank/Still/Live if it has that block)",
+        "Not a contract; not a pipeline step; not DAG parents"
+      ]
+    },
+    "Balance": {
+      "key": [
+        "subject_id",
+        "asset"
+      ],
+      "value": {
+        "subject_id": "string",
+        "asset": "enum:L-STRATA",
+        "amount": "decimal",
+        "pole": "enum:#mint|#0|?"
+      },
+      "rules": [
+        "Fungible STRATA lives on the subject dashboard wallet \u2014 not in the NFT catalog",
+        "Mint only PdC / PoC-gated; no faucet",
+        "Hire/labour moves STRATA by transfer \u2014 zero mint"
       ]
     }
   }

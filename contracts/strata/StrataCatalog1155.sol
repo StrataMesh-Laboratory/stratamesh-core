@@ -4,8 +4,9 @@ pragma solidity ^0.8.20;
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-/// @title StrataCatalog1155 lab multi-token catalog
-/// @notice PoC mint only. No workers.dev registry.
+/// @title StrataCatalog1155 — lab catalog lots (ERC-1155 shape)
+/// @notice Mirrors catalog **lots** (not STRATA NFT object_id, not land, not Subjects).
+/// PoC mint role only. No workers.dev registry. No faucet.
 contract StrataCatalog1155 is ERC1155, AccessControl {
     bytes32 public constant POC_MINTER_ROLE = keccak256("POC_MINTER_ROLE");
 

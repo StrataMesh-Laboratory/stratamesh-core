@@ -1,37 +1,118 @@
-/* GNU Atelier quality gate — lean WebGL/Safari tier (vendor-local; no CDN). */
-(function (global) {
-  'use strict';
-  function tierFromGl() {
-    var tier = 2;
-    try {
-      var c = document.createElement('canvas');
-      var gl = c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl');
-      if (!gl) return 0;
-      var dbg = gl.getExtension('WEBGL_debug_renderer_info');
-      var renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : '';
-      var touch = false;
-      try { touch = document.documentElement.dataset.screenTouch === 'yes'; } catch (_) {}
-      var cores = (navigator.hardwareConcurrency || 4) | 0;
-      var mem = navigator.deviceMemory || 0;
-      var low = /SwiftShader|llvmpipe|Software/i.test(renderer);
-      if (low) tier = 0;
-      else if (touch || (mem && mem <= 2) || cores <= 4) tier = 1;
-      else if (mem && mem >= 8 && cores >= 8) tier = 3;
+/* AtelierQuality — lean WebGL tier (classic script, no ESM, no R3F).
+ * Optional later: vendor detect-gpu. This file must stay sync + local.
+ * Sets window.AtelierQuality before Three boots.
+ */
+(function (root) {
+  "use strict";
+  function probe() {
+    var canvas = document.createElement("canvas");
+    var gl =
+      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
+      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }) ||
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl");
+    var webgl2 = false;
+    var renderer = "";
+    var vendor = "";
+    var maxTex = 0;
+    var debug = null;
+    if (gl) {
+      webgl2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
       try {
-        var lose = gl.getExtension('WEBGL_lose_context');
-        if (lose) lose.loseContext();
-      } catch (_) {}
-    } catch (_) { tier = 1; }
-    return tier;
+        debug = gl.getExtension("WEBGL_debug_renderer_info");
+        if (debug) {
+          renderer = String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) || "");
+          vendor = String(gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) || "");
+        }
+      } catch (e) {}
+      try {
+        maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 0;
+      } catch (e2) {}
+    }
+    var mem = 0;
+    try {
+      mem = Number(navigator.deviceMemory) || 0;
+    } catch (e3) {}
+    var cores = 0;
+    try {
+      cores = Number(navigator.hardwareConcurrency) || 0;
+    } catch (e4) {}
+    var dpr = 1;
+    try {
+      dpr = Number(root.devicePixelRatio) || 1;
+    } catch (e5) {}
+    var lowHint = false;
+    try {
+      lowHint = !!(root.matchMedia && root.matchMedia("(pointer: coarse)").matches && mem && mem <= 4);
+    } catch (e6) {}
+    var gpu = (renderer + " " + vendor).toLowerCase();
+    var integrated =
+      /intel|uhd|iris|hd graphics|apple m[1-3]|adreno|mali|powervr|llvmpipe|swiftshader/.test(gpu);
+    var discrete = /nvidia|geforce|radeon|amd radeon|apple m[2-4] (pro|max|ultra)/.test(gpu);
+
+    var score = 0;
+    if (gl) score += 2;
+    if (webgl2) score += 2;
+    if (maxTex >= 8192) score += 2;
+    else if (maxTex >= 4096) score += 1;
+    if (mem >= 8) score += 2;
+    else if (mem >= 4) score += 1;
+    if (cores >= 8) score += 1;
+    if (discrete) score += 2;
+    if (integrated) score -= 1;
+    if (lowHint) score -= 2;
+    if (!gl) score = 0;
+
+    var tier = "low";
+    if (score >= 8) tier = "high";
+    else if (score >= 4) tier = "mid";
+
+    var pixelRatio = 1;
+    if (tier === "high" || tier === "mid") {
+      var cap = 1.5;
+      var floor = 1.25;
+      pixelRatio = dpr;
+      if (pixelRatio > cap) pixelRatio = cap;
+      if (pixelRatio < floor) pixelRatio = floor;
+      if (lowHint) pixelRatio = floor;
+    } else {
+      pixelRatio = 1;
+    }
+
+    return {
+      schema: "stratamesh.atelier.quality.v1",
+      tier: tier,
+      score: score,
+      webgl: !!gl,
+      webgl2: webgl2,
+      renderer: renderer.slice(0, 80),
+      vendor: vendor.slice(0, 80),
+      maxTextureSize: maxTex,
+      deviceMemory: mem,
+      hardwareConcurrency: cores,
+      pixelRatio: pixelRatio,
+      antialias: tier === "high",
+      shadows: tier === "high",
+      maxDpr: pixelRatio,
+    };
   }
-  var tier = tierFromGl();
-  var touch = false;
-  try { touch = document.documentElement.dataset.screenTouch === 'yes'; } catch (_) {}
-  var pixelRatioCap = touch ? 1.35 : (tier <= 1 ? 1.25 : 2);
-  global.AtelierQuality = {
-    tier: tier,
-    pixelRatio: Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, pixelRatioCap),
-    fogDensity: tier <= 1 ? 0.028 : tier === 2 ? 0.046 : 0.055,
-    outlines: tier >= 2
-  };
-})(typeof window !== 'undefined' ? window : this);
+
+  var q;
+  try {
+    q = probe();
+  } catch (err) {
+    q = {
+      schema: "stratamesh.atelier.quality.v1",
+      tier: "low",
+      score: 0,
+      webgl: false,
+      webgl2: false,
+      pixelRatio: 1,
+      antialias: false,
+      shadows: false,
+      error: String(err && err.message ? err.message : err).slice(0, 120),
+    };
+  }
+  root.AtelierQuality = q;
+})(typeof window !== "undefined" ? window : this);

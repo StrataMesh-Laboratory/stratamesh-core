@@ -231,27 +231,29 @@ h1{font-size:13px}
     </div>
   </div>
 </div>
-<script src="/vendor/three.min.js?v=20260906oss"></script>
-<script src="/atelier-quality.js?v=20260906oss"></script>
-<script src="/atelier-instances.js?v=20260906oss"></script>
+<script src="/atelier-quality.js?v=20260906q"></script>
+<script src="/vendor/three.min.js?v=20260903g"></script>
+<script src="/atelier-instances.js?v=20260906i"></script>
 <script>
 (function () {
   try {
-    if (new URLSearchParams(location.search).get('debug') !== '1') return;
-    var s = document.createElement('script');
-    s.src = '/vendor/stats.min.js?v=20260906oss';
+    if (!/[?&]debug=1(?:&|$)/.test(String(location.search || ""))) return;
+    var s = document.createElement("script");
+    s.src = "/vendor/stats.min.js?v=20260906s";
     s.onload = function () {
-      if (typeof Stats === 'undefined') return;
+      if (typeof Stats !== "function") return;
       var st = new Stats();
       st.showPanel(0);
-      st.dom.style.zIndex = '10001';
+      st.dom.style.cssText = "position:fixed;top:0;left:0;z-index:80";
       document.body.appendChild(st.dom);
       window.__atelierStats = st;
+      (function loop() { st.update(); requestAnimationFrame(loop); })();
     };
     document.head.appendChild(s);
-  } catch (_) {}
+  } catch (e) {}
 })();
 </script>
+
 <script>
 
 const CORE = "v0.5.1-session";
@@ -493,8 +495,9 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(78, 1, 0.08, 120);
 camera.up.set(0, 1, 0);
 camera.rotation.order = "YXZ";
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false }); window.renderer = renderer; window.camera = camera; window.scene = scene;
-renderer.setPixelRatio((typeof AtelierQuality !== "undefined" && AtelierQuality.pixelRatio) || Math.min(devicePixelRatio || 1, 2));
+const AQ = window.AtelierQuality || { tier: "mid", pixelRatio: Math.min(devicePixelRatio || 1, 1.5), antialias: false };
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !!AQ.antialias, alpha: false }); window.renderer = renderer; window.camera = camera; window.scene = scene; window.AtelierQuality = AQ;
+renderer.setPixelRatio(AQ.pixelRatio || 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1314,7 +1317,6 @@ function play(ev) {
 let last = performance.now(), gait = 0;
 function tick(now) {
   requestAnimationFrame(tick);
-  if (window.__atelierStats) window.__atelierStats.update();
   const dt = Math.min((now - last) / 1000, 0.1); last = now;
   const held = injected || [...keys];
   const has = (c) => held.includes(c);

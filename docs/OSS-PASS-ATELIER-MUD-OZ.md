@@ -32,6 +32,9 @@ Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 | Enter-card off after play | `#enter` `display:none` | PASS |
 | Catalog / tokenise chrome off the stage | tokenise is Rest catalog; atelier is Bancada | PASS |
 | Renderer note | `docs/ATELIER-RENDERER.md` | PASS |
+| Portal/dashboard vendor Three r128 classic | `frontend/vendor/three.r128.min.js` + Orbit/PointerLock/nipple — no cdnjs | PASS |
+| InstancedMesh street dashes | `atelier-instances.js` + `restyleLot` disposeTree | PASS |
+| AtelierQuality before renderer | `atelier-quality.js` → `window.AtelierQuality` | PASS |
 
 ## 3. MUD × STRATA tables — ALL PASS (this ship)
 
@@ -53,5 +56,17 @@ Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 | Parcel transfer blocked | `ParcelImmovable` | PASS |
 | Lab README, no node_modules in git | `contracts/openzeppelin/README.md` | PASS |
 | Optional OZ 5.0.2 install | documented, not vendored | PASS |
+
+## 5. STRATA OZ tokens (this ship)
+
+| Check | Evidence | PASS |
+|-------|----------|------|
+| ERC-20 PoC minter-only | `contracts/strata/StrataPoc20.sol` `onlyMinter` + `faucet` reverts | PASS |
+| ERC-721 object_id | `Object721.sol` ParcelImmovable | PASS |
+| ERC-1155 editions | `Object1155.sol` no STRATA mint / no faucet | PASS |
+| glTF pipeline | `docs/ATELIER-GLTF-PIPELINE.md` + `frontend/vendor/gltf/` | PASS |
+| MUD × Fog tables doc | `docs/MUD-WORLD-FOG-TABLES.md` | PASS |
+| DPR band 1.25–1.5 | `atelier-quality.js` | PASS |
+
 
 Pages: `/oss-pass` → `frontend/oss-pass.html`.
