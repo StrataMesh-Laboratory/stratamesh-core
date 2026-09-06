@@ -1163,8 +1163,9 @@ def main() -> int:
     s.add_argument("--no-prepend", action="store_true")
     s.add_argument("--no-feed", action="store_true")
     e = sub.add_parser("ensure-pack", help="TODO + CONTEXT + reports + journals (alias ensure-surfaces)")
-    sub.add_parser("ensure-surfaces", help="idempotent cycle surfaces refresh")
-    e.add_argument("--limit", type=int, default=12)
+    es = sub.add_parser("ensure-surfaces", help="idempotent cycle surfaces refresh")
+    for _p in (e, es):
+        _p.add_argument("--limit", type=int, default=12)
     args = p.parse_args()
     if args.cmd == "sync":
         return cmd_sync(args)
