@@ -13,7 +13,7 @@ def test_mud_tables():
     data = json.loads((ROOT / "contracts/mud/tables.json").read_text())
     assert data["oracle_live"] is False
     tables = data["tables"]
-    for name in ("Object", "Parcel", "Subject", "Lot", "Contrato", "AspectoEdge", "Balance"):
+    for name in ("Object", "Parcel", "Subject", "Lot", "Contract", "AspectEdge", "Balance"):
         assert name in tables, name
     obj = tables["Object"]
     assert "object_id" in obj["key"]
@@ -27,10 +27,11 @@ def test_mud_tables():
     parcel_rules = " ".join(tables["Parcel"]["rules"]).lower()
     assert "title" in parcel_rules and "unmovable" in parcel_rules
     mud = (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").read_text()
-    for name in ("Subject", "Object", "Parcel", "Lot", "Contrato", "Aspecto", "Balance"):
+    for name in ("Subject", "Object", "Parcel", "Lot", "Contract", "Aspect", "Balance"):
         assert name in mud, name
     assert "NOT object_id" in mud or "lot_id ≠ object_id" in mud or "lot_id != object_id" in mud
-    assert "never call a contrato an aspecto" in mud.lower()
+    assert "aspects" in mud.lower() and "contracts" in mud.lower()
+    assert "plain english" in mud.lower() or "ordinary" in mud.lower() or "plain word" in mud.lower()
     # collateral vs Agora ownership price
     for name in ("OwnershipFraction", "Collateral"):
         assert name in tables, name
@@ -41,8 +42,8 @@ def test_mud_tables():
     assert "static" in col and "dynamic" in col and "burn" in col
     ont = (ROOT / "docs/STRATA_NFT_ONTOLOGY.md").read_text()
     assert "P_market" in ont and "Collateral" in ont
-    assert "Bundle" in ont or "aspecto" in ont.lower()
-    ae_rules = " ".join(tables["AspectoEdge"]["rules"]).lower()
+    assert "Bundle" in ont or "aspect" in ont.lower()
+    ae_rules = " ".join(tables["AspectEdge"]["rules"]).lower()
     assert "own object_id" in ae_rules or "own object_id / strata nft" in ae_rules
     assert "desk" in ae_rules and "drawer" in ae_rules
     assert "all object kinds" in ae_rules or "all object" in ae_rules
@@ -138,7 +139,7 @@ def test_strata_poc_contracts():
     assert (ROOT / "docs/ATELIER-GLTF-PIPELINE.md").is_file()
     assert (ROOT / "frontend/vendor/gltf/README.md").is_file()
     mud = (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").read_text()
-    for name in ("Subject", "Object", "Parcel", "Lot", "Contrato", "Balance"):
+    for name in ("Subject", "Object", "Parcel", "Lot", "Contract", "Balance"):
         assert name in mud, name
 
 

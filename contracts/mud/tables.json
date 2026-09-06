@@ -4,15 +4,15 @@
   "oracle_live": false,
   "layers": {
     "subjects": "Account/Subject \u2014 User | SCA/ACB (same being). Never inventory.",
-    "objects": "object_id STRATA NFT \u2014 bytes/cid/name can stand without ever running a contrato block.",
-    "aspectos": "Contained child objects (tree, no cycles). Not the word for contracts.",
-    "contrato": "Optional rules block on an object (StateMachine/Actions/collateral) OR a catalog ownership title. Never named aspecto.",
+    "objects": "object_id STRATA NFT \u2014 bytes/cid/name can stand without ever running a contract block.",
     "infrastructure": "Fog node / hops \u2014 never Subject, never Object.",
     "fungible": "STRATA balance on Account \u2014 dashboard wallet. Not an NFT.",
     "lots": "Catalog trade-lot rows for fungible STRATA bundles \u2014 NOT object_id / NOT NFT.",
     "ownership_fraction": "Subject claim on NFT collateral C (strata_units). Sold on Agora at P_market in fungible STRATA; P_market \u2260 C\u00d7fraction.",
     "collateral": "Fungible STRATA inside the NFT. static=reserve (floor); dynamic=burn above floor for execution; \u2260 dashboard Balance; \u2260 P_market.",
-    "bundle": "Optional: any STRATA NFT may contain child STRATA NFTs as aspectos (desk\u2192drawers). Children keep object_id; tree no cycles; all object categories; parcels unmovable even as bundle parts."
+    "bundle": "Optional: any STRATA NFT may contain child STRATA NFTs as aspects (desk\u2192drawers). Children keep object_id; tree no cycles; all object categories; parcels unmovable even as bundle parts.",
+    "aspects": "Contained child objects (tree, no cycles). Ordinary aspects. PT UI may label aspectos.",
+    "contracts": "Optional rules block on an object (state machine / actions / collateral) or a catalog ownership title. Ordinary contracts \u2014 not aspects."
   },
   "tables": {
     "Subject": {
@@ -48,18 +48,18 @@
         "kind": "enum:object|room|parcel|bundle",
         "unmovable": "bool",
         "renderer": "enum:atelier|none|...",
-        "has_contrato_block": "bool"
+        "has_contract_block": "bool"
       },
       "rules": [
         "object_id is the STRATA NFT identity (network id) \u2014 never equal to cid",
         "CID-only persist allowed without minting object_id",
-        "STRATA NFT = object; optional contrato block does not exhaust the object",
+        "STRATA NFT = object; optional contract block does not exhaust the object",
         "kind=lot is FORBIDDEN here \u2014 lots are not NFTs (see Lot)",
         "kind=parcel => unmovable=true (dirt/aspect of open-world land); trade title, not the parcel row",
         "kind=room => actual rooms only (e.g. Bancada) \u2014 not every parcel",
-        "kind=bundle => objects-inside-object tree (aspectos); no cycles",
+        "kind=bundle => objects-inside-object tree (aspects); no cycles",
         "SCA/ACB must not appear in this table",
-        "Optional Bundle: may contain child object_ids as aspectos (e.g. desk\u2192drawers); all categories; children stay full NFTs"
+        "Optional Bundle: may contain child object_ids as aspects (e.g. desk\u2192drawers); all categories; children stay full NFTs"
       ]
     },
     "Parcel": {
@@ -70,12 +70,12 @@
         "object_id": "bytes16|string",
         "zone": "string?",
         "bundle_object_id": "string?",
-        "title_contrato_id": "string?"
+        "title_contract_id": "string?"
       },
       "rules": [
         "Parcel object_id is unmovable land identity in the open-world bundle",
-        "Renderer shows ownership contrato of that parcel \u2014 not a drop of the land NFT itself",
-        "Trading land = trade title (contrato / title instrument), never move parcel object_id into inventory",
+        "Renderer shows ownership contract of that parcel \u2014 not a drop of the land NFT itself",
+        "Trading land = trade title (contract / title instrument), never move parcel object_id into inventory",
         "bundle_object_id points at the land-bundle object; title held by a Subject (e.g. account email), not by Fog NODE_WALLET as citizen"
       ]
     },
@@ -94,44 +94,6 @@
         "Catalog trade lot \u2014 fungible bundle representation",
         "lot_id is NOT object_id and NOT an NFT",
         "ERC-1155 scaffold may mirror lots; still not land and not Subject"
-      ]
-    },
-    "Contrato": {
-      "key": [
-        "contrato_id"
-      ],
-      "value": {
-        "contrato_id": "string",
-        "binds_object_id": "string?",
-        "kind": "enum:ownership_title|spa_aps|other",
-        "state": "enum:static|dynamic|terminated|n/a",
-        "holder_subject_id": "string?",
-        "floor_strata": "decimal?"
-      },
-      "rules": [
-        "Never call a contrato an aspecto",
-        "ownership_title: tradable title over unmovable parcel/bundle objects",
-        "spa_aps: specialized STRATA NFT service agreement (static/dynamic/terminated) \u2014 competes with EVM mechanics without importing ETH ontology",
-        "Optional interior contrato block on an object is rules/collateral \u2014 object can exist with has_contrato_block=false",
-        "SPA/APS static reserves collateral; dynamic burns above floor; ownership fractions trade on Agora at P_market \u2260 C"
-      ]
-    },
-    "AspectoEdge": {
-      "key": [
-        "parent_object_id",
-        "child_object_id"
-      ],
-      "value": {
-        "parent_object_id": "string",
-        "child_object_id": "string"
-      },
-      "rules": [
-        "Aspectos = contained objects (children). Tree, no cycles.",
-        "Child remains its own object_id / STRATA NFT (own tank/Still/Live/contrato if present)",
-        "Allowed across all Object kinds: object, room, parcel (as land-bundle parts), bundle",
-        "Example: composite desk NFT bundles drawer NFTs as parts of the table NFT",
-        "Not a contract; not a pipeline step; not DAG parents",
-        "Parent ownership/C does not silently absorb child ownership/C"
       ]
     },
     "Balance": {
@@ -184,6 +146,51 @@
         "dynamic: NFT burns its own mechanisms \u2014 burn C above floor for execution",
         "terminated: residual to titulares",
         "C is inside the NFT \u2014 not subject dashboard Balance and not Agora P_market"
+      ]
+    },
+    "AspectEdge": {
+      "key": [
+        "parent_object_id",
+        "child_object_id"
+      ],
+      "value": {
+        "parent_object_id": "string",
+        "child_object_id": "string"
+      },
+      "rules": [
+        "Aspects = contained child objects. Tree, no cycles.",
+        "Child remains its own object_id / STRATA NFT (own tank/Still/Live/contract block if present)",
+        "Allowed across all Object kinds: object, room, parcel (as land-bundle parts), bundle",
+        "Example: composite desk NFT bundles drawer NFTs as parts of the table NFT",
+        "Not a contract; not a pipeline step; not DAG parents",
+        "Parent ownership/C does not silently absorb child ownership/C"
+      ],
+      "aliases": [
+        "AspectoEdge"
+      ]
+    },
+    "Contract": {
+      "key": [
+        "contract_id"
+      ],
+      "value": {
+        "binds_object_id": "string?",
+        "kind": "enum:ownership_title|spa_aps|other",
+        "state": "enum:static|dynamic|terminated|n/a",
+        "holder_subject_id": "string?",
+        "floor_strata": "decimal?",
+        "contract_id": "string"
+      },
+      "rules": [
+        "Contracts are ordinary rules/title/SPA records \u2014 not a special ontology species",
+        "ownership_title: tradable title over unmovable parcel/bundle objects",
+        "spa_aps: service agreement on a STRATA NFT (static/dynamic/terminated)",
+        "Optional interior contract block on an object is rules/collateral \u2014 object can exist without one",
+        "Do not call a contract an aspect",
+        "SPA/APS static reserves collateral; dynamic burns above floor; ownership fractions trade on Agora at P_market \u2260 C"
+      ],
+      "aliases": [
+        "Contrato"
       ]
     }
   }

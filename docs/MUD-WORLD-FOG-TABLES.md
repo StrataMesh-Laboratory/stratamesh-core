@@ -18,16 +18,16 @@ Machine schema: [`contracts/mud/tables.json`](../contracts/mud/tables.json).
 |-------|------|-----|
 | **Subject** (`Subject` / Account) | User · SCA/ACB (same class) | Inventory item, Fog node, NFT |
 | **Object** (`object_id`) | STRATA NFT / network object | CID, fungible STRATA, lot id |
-| **Aspectos** | Child objects inside an object (tree) | Contracts |
-| **Contrato** | Ownership title **or** optional rules/SPA block | Aspecto; “the whole NFT” |
+| **Aspects** | Child objects inside an object (tree) | Contracts |
+| **Contract** | Ownership title **or** optional rules/SPA block | an aspect; “the whole NFT” |
 | **Lot** | Catalog fungible trade-lot row | NFT / object_id / land |
 | **Infrastructure** | Fog node, hops, wallets as treasury | Citizen / Subject |
 
 ```
 Subject ──owns/operates──► Object (object_id)
                               │
-                              ├─ optional contrato block (Still/Live, floor STRATA, …)
-                              ├─ aspectos → child Object*
+                              ├─ optional contract block (Still/Live, floor STRATA, …)
+                              ├─ aspects → child Object*
                               └─ if parcel: unmovable dirt; title trades separately
 Subject ──Balance──► fungible L-STRATA (dashboard)
 Subject ──catalog Lot──► trade-lot rows (not NFTs)
@@ -55,27 +55,27 @@ Subject ──catalog Lot──► trade-lot rows (not NFTs)
 | `cid` | Content identity; CID-only persist may omit `object_id` |
 | `kind` | `object` \| `room` \| `parcel` \| `bundle` — **never `lot`** |
 | `unmovable` | Required `true` for parcels; rooms/bundles as product rules say |
-| `has_contrato_block` | Optional; object can exist with no running contract |
+| `has_contract_block` | Optional; object can exist with no running contract |
 
 **Rules:**
 
-1. STRATA NFT **is** the object; a contrato block does not exhaust it.
+1. STRATA NFT **is** the object; a contract block does not exhaust it.
 2. GNU Atelier is an optional **renderer**, not an object type.
 3. Parcels: trade **title**, never pick up dirt into inventory / Atelier stage as a movable NFT drop.
 4. Rooms: actual rooms only (e.g. Bancada) — not every parcel.
-5. Bundles: objects-inside-object (aspectos); no cycles; children keep their own `object_id`.
+5. Bundles: objects-inside-object (aspects); no cycles; children keep their own `object_id`.
 
 ---
 
 ## Parcel (specialization of Object)
 
-Unmovable open-world land identity. Renderer shows the **ownership contrato** of that parcel (or its bundle), not a drop of the land.
+Unmovable open-world land identity. Renderer shows the **ownership contract** of that parcel (or its bundle), not a drop of the land.
 
 | Field | Notes |
 |-------|--------|
 | `object_id` | Same as Object row (`kind=parcel`, `unmovable=true`) |
 | `bundle_object_id` | Land-bundle object that groups parcels |
-| `title_contrato_id` | Tradable ownership title — held by a **Subject** |
+| `title_contract_id` | Tradable ownership title — held by a **Subject** |
 
 **Anti-rule:** do not treat “bundle title holder” as non-subject infrastructure. NODE_WALLET is treasury/infrastructure; title holders are Subjects.
 
@@ -89,31 +89,31 @@ ERC-1155 scaffolds may mirror lots; they still must not mint land or Subjects.
 
 ---
 
-## Contrato
+## Contract
 
 | `kind` | Meaning |
 |--------|---------|
 | `ownership_title` | Tradable title over unmovable parcel/bundle |
 | `spa_aps` | Specialized service NFT agreement (`static` / `dynamic` / `terminated`) |
-| `other` | Future charters — still not “aspecto” |
+| `other` | Future charters — still not an aspect |
 
-**Naming lock:** **Aspectos** = contained objects. **Contrato** = rules/title/SPA. Never call a contrato an aspecto. Never swap those words.
+**Words:** aspects = contained child objects; contracts = rules, ownership title, or SPA/APS. Plain English (PT UI only: aspectos / contratos).
 
-`Account` is an alias of **Subject**. `Holon` composition in older copy maps to **bundle** objects + AspectoEdge — not a Subject, not a Lot.
+`Account` is an alias of **Subject**. `Holon` composition in older copy maps to **bundle** objects + AspectEdge — not a Subject, not a Lot.
 
 ---
 
-## AspectoEdge (bundle — all categories)
+## AspectEdge (bundle — all categories)
 
 Parent → child **object_id** edges. Applies to **all** object kinds (desk→drawers, room→fixtures, land-bundle→parcels, generic object→parts).
 
 | Rule | Detail |
 |------|--------|
 | Child identity | Child is its **own** STRATA NFT (`object_id`) — not a mere mesh slot |
-| Aspectos | Contained objects only — never contracts |
+| Aspects | Contained objects only — never contracts |
 | Tree | No cycles; attach/detach via bundle primitives |
 | Economy | Parent C / ownership fractions ≠ child C / fractions unless product rule links them |
-| Parcels | May be aspectos of a land-bundle; remain unmovable dirt |
+| Parcels | May be aspects of a land-bundle; remain unmovable dirt |
 | Example | Composite desk NFT bundles drawer NFTs as parts of the table NFT |
 
 
@@ -139,7 +139,7 @@ Subjects own the NFT by owning **fractions of its collateralised STRATA** (not b
 
 **Agora:** listing sells this ownership portion at **P_market** (fungible STRATA). **P_market ≠ C × fraction.** Redeem when P_market < C is a different primitive.
 
-## Collateral (on Object / contrato tank)
+## Collateral (on Object / contract tank)
 
 | State | Collateral behaviour |
 |-------|----------------------|
@@ -159,7 +159,7 @@ C lives **in** the NFT. Subject dashboard Balance is separate fungible STRATA.
 | ERC-1155 (`Object1155` / `StrataCatalog1155`) | **Lots** / editions | Land parcels; Subjects |
 | `ObjectRegistry` | object_id → cid | `mintStrata` |
 
-**Immovable flag:** means the **world parcel identity** does not move into a backpack. Title trade is a **contrato / title instrument** change of `holder_subject_id`, not `ParcelImmovable` forbidding all ownership change forever. Scaffolds that revert every ERC-721 transfer when `movable=false` must document that they model **dirt**, while **title** uses `Contrato.ownership_title` (or a dedicated title token) — refine before any non-lab deploy.
+**Immovable flag:** means the **world parcel identity** does not move into a backpack. Title trade is a **contract / title instrument** change of `holder_subject_id`, not `ParcelImmovable` forbidding all ownership change forever. Scaffolds that revert every ERC-721 transfer when `movable=false` must document that they model **dirt**, while **title** uses `Contract.ownership_title` (or a dedicated title token) — refine before any non-lab deploy.
 
 ---
 

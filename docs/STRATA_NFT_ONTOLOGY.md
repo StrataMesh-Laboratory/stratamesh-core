@@ -63,7 +63,7 @@ Three quantities — **never collapse**:
 
 | Symbol | What | Where |
 |--------|------|--------|
-| **C** | Collateral fungible STRATA **inside** the NFT | Object / contrato tank |
+| **C** | Collateral fungible STRATA **inside** the NFT | Object / contract tank |
 | **ownership fraction** | Subject’s claim on that collateralised NFT | FractionalEconomicOwnership |
 | **P_market** | Agora market price of that ownership portion, quoted in **fungible STRATA** | Agora listing — **not** equal to C × fraction |
 
@@ -85,31 +85,31 @@ Subject ──fraction──► STRATA NFT
                          │
                          ├─ C  collateral (static: reserve · dynamic: burn above floor)
                          ├─ optional StateMachine (static|dynamic|terminated)
-                         └─ Actions / Bundle / Aspectos
+                         └─ Actions / Bundle / aspects
 Subject ──sells fraction on Agora──► P_market (fungible STRATA)
          P_market  confuses-not-with  (fraction · C)
 ```
 
-## Bundle / aspectos (normative refinement 2026-09-06)
+## Bundle / aspects (normative refinement 2026-09-06)
 
 Any STRATA NFT may **bundle other STRATA NFTs inside it** (optional Bundle term in the equation).
 
-Example: a **composite desk** NFT has **drawers** bundled inside — each drawer is its **own** NFT (`object_id`), represented as a **part** (aspecto) of the table/desk NFT.
+Example: a **composite desk** NFT has **drawers** bundled inside — each drawer is its **own** NFT (`object_id`), represented as a **part** (aspect) of the table/desk NFT.
 
 ### Rules (all object categories)
 
-1. **Aspectos** = contained child objects — never the word for contracts.
-2. Child remains a full STRATA NFT: own `object_id`, own CID/bytes, and — if present — own collateral tank / Still·Live / contrato block.
+1. **Aspects** = contained child objects. Do not use “aspect” to mean a contract.
+2. Child remains a full STRATA NFT: own `object_id`, own CID/bytes, and — if present — own collateral tank / Still·Live / contract block.
 3. **Tree, no cycles.** Bundle attach refuses cycles (`POST /nft/bundle/attach`).
 4. Bundling is allowed on **every** object kind that is an Object (`object`, `room`, `parcel`, `bundle`, …): composition is category-aligned, not a special species.
-5. **Parcel caveat:** open-world parcels stay **unmovable dirt** identities; they may sit as aspectos of a **land-bundle** object / title contrato — that does **not** make the parcel inventory-movable.
+5. **Parcel caveat:** open-world parcels stay **unmovable dirt** identities; they may sit as aspects of a **land-bundle** object / title contract — that does **not** make the parcel inventory-movable.
 6. **Ownership / collateral:** parent and child each keep their own C and ownership fractions unless a defined product rule says otherwise. Selling the desk’s ownership fraction on Agora is not automatically selling each drawer’s fractions (and the reverse) — edges are structural; economic linkage is explicit.
 7. Renderer (Atelier) may show children inside the parent; absence of a renderer does not dissolve the bundle.
 
 ```
 desk_object_id
-  ├─ aspecto → drawer_1_object_id  (own NFT)
-  ├─ aspecto → drawer_2_object_id  (own NFT)
-  └─ optional contrato block / C on desk
+  ├─ aspect → drawer_1_object_id  (own NFT)
+  ├─ aspect → drawer_2_object_id  (own NFT)
+  └─ optional contract block / C on desk
 ```
 
