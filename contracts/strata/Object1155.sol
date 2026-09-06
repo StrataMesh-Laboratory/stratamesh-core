@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title Object1155 — editions / lots that are not land and not STRATA value
-/// @notice Compatible with OZ ERC1155. No faucet. Land stays on Object721 unmovable.
+/// @title Object1155 — catalog lots / editions (NOT object_id NFTs)
+/// @notice Compatible with OZ ERC1155 shape. lot_id ≠ object_id; lots are not land and not Subjects.
+/// Fungible STRATA value mint stays on ERC-20 PoC / PdC — `mintStrata` always reverts.
+/// No faucet. Land parcels stay Object/Parcel rows + title contratos.
 
 contract Object1155 {
     address public owner;

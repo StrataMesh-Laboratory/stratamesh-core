@@ -1,17 +1,34 @@
-# STRATA OpenZeppelin scaffold (lab)
+# STRATA OpenZeppelin scaffolds (lab)
 
-PoC **only**. Absorb OZ ERC-20 / 721 / 1155 **mechanics**. Not mainnet. `oracle_live=false`.
+PoC **only**. `oracle_live=false`. Absorb OZ ERC-20 / 721 / 1155 **mechanics** — do not import ETH ontology into Fog subjects/objects.
 
-| contract | role |
-|----------|------|
-| `StrataPoc20.sol` | Fungible STRATA — **minter-only**. No faucet. No public `mint`. |
-| `Object721.sol` | NFT = `object_id`. Parcels cannot transfer. |
-| `Object1155.sol` | Editions / lots that are **not** land and **not** STRATA value. |
+## Ontology (normative)
 
-Install (local, optional):
+See `docs/SUBJECT-OBJECT-ECONOMY.md`, `docs/STRATA_NFT_ONTOLOGY.md`, `docs/MUD-WORLD-FOG-TABLES.md`.
 
-```bash
-npm i @openzeppelin/contracts@5.0.2 --save-exact
-```
+| Thing | Is | Is not |
+|-------|----|--------|
+| Subject (User / SCA / ACB) | Actor | Token, lot, Fog node |
+| `object_id` (STRATA NFT) | The object | CID, fungible STRATA, lot |
+| Aspectos | Child objects | Contracts |
+| Contrato | Title or optional rules/SPA block | Aspecto; “the whole NFT” |
+| Parcel | Unmovable land `object_id` | Something you put in inventory |
+| Lot | Catalog fungible trade row | NFT / `object_id` |
+| Fungible STRATA | Subject dashboard Balance | Catalog NFT |
 
-Do not commit `node_modules`. Do not wire a faucet. Do not use workers.dev.
+## Files
+
+| File | May represent |
+|------|----------------|
+| `StrataPoc20.sol` / `StrataERC20.sol` | Fungible L-STRATA PoC minter |
+| `Object721.sol` / `StrataObjectNFT.sol` | `object_id` (dirt immovable ≠ title freeze) |
+| `Object1155.sol` / `StrataCatalog1155.sol` | **Lots** / editions |
+| `../openzeppelin/ObjectRegistry.sol` | object_id → cid registry |
+
+Prefer **one** family per deploy experiment; dual files exist from parallel PASS ships — do not treat both as live mainnet.
+
+## Locks
+
+- No public faucet. No secrets in git.
+- Never mint Subjects. Never encode SCA as ERC-721.
+- Never put `kind=lot` on the Object table.

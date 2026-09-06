@@ -19,6 +19,10 @@
     button{font:600 .68rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a1712;background:#1a1712;color:var(--cream);padding:.48rem .55rem;cursor:pointer}
     button.ghost{background:transparent;color:var(--ink)}
     button[disabled]{opacity:.38;cursor:not-allowed}
+    .tpl.on{background:#1a1712;color:var(--cream);border-color:#1a1712}
+    #wizStepLabel{margin-top:.2rem}
+    details summary{list-style:none}
+    details summary::-webkit-details-marker{display:none}
     .row{display:flex;gap:.4rem;flex-wrap:wrap;margin:.35rem 0}
     .row button{flex:1}
     ul.cat{list-style:none;border:1px solid var(--line);border-radius:3px;min-height:4.5rem;background:#fff}
@@ -37,7 +41,7 @@
 <body>
   <p class="who" id="who">sem conta · bancada</p>
   <h1>Catálogo privado</h1>
-  <p class="lede">Tokenizar escreve neste catálogo da conta. Só depois, se a conta ou um SCA quiser, se desdobra no sandbox (mundo aberto, sala partilhada, ou sandbox pessoal com visitantes convidados). Sem prateleira pública, sem avatar de visita.</p>
+  <p class="lede">Crie objectos para a sua conta. Começam no catálogo privado. Se quiser, mostra-os depois no sandbox — com convidados, nunca com visitas anónimas.</p>
 
   <h3>Desta conta</h3>
     <p class="note" id="labNote" style="display:none">LAB land título held by amcmorais@icloud.com (bundled parcels, not merged). Read-only — not copied into this account.</p>
@@ -45,54 +49,98 @@
   <ul id="listRooms" class="cat"><li class="empty">Nenhuma sala.</li></ul>
   <h3>Mundo aberto #1</h3>
   <ul id="listWorld" class="cat"><li class="empty">Sem mundo aberto.</li></ul>
-  <h3>Contratos NFT em curso</h3>
+  <h3>Em curso</h3>
   <ul id="listContratos" class="cat"><li class="empty">Nenhum contrato em curso.</li></ul>
-  <h3>Outros objectos NFT</h3>
+  <h3>Outros objectos</h3>
   <ul id="listOther" class="cat"><li class="empty">Nenhum outro objecto.</li></ul>
-  <h3>LOT STRATA</h3>
-  <ul id="listLots" class="cat"><li class="empty">Nenhum lot STRATA.</li></ul>
+  <h3>Lotes para troca</h3>
+  <ul id="listLots" class="cat"><li class="empty">Nenhum lote de troca.</li></ul>
 
-  <h3>Tokenizar</h3>
-  <p>O <code>object_id</code> é o NFT. Entra no catálogo em Repouso, não no Ateliê GNU.</p>
-  <input id="nameIn" maxlength="80" placeholder="nome do objecto" autocomplete="off">
-  <div class="row">
-    <button type="button" id="btnMint">Tokenizar → catálogo</button>
-    <button type="button" id="btnParcel" class="ghost">Parcela (mundo aberto)</button>
-    <button type="button" id="btnLot" class="ghost">Lot STRATA (troca)</button>
-  </div>
-  <p class="note">Um lot STRATA é representação para troca. O livro de saldo fica na bancada; isto não mina STRATA.</p>
+  <h3>Criar</h3>
+  <p class="lede" style="margin-bottom:.45rem">Escolha uma categoria ampla. Depois personalize — do geral ao particular.</p>
+
+  <section id="wiz" data-step="1">
+    <p class="note" id="wizStepLabel">1 · Categoria</p>
+    <div class="row" id="tplRow" style="margin:.35rem 0 .55rem">
+      <button type="button" class="ghost tpl" data-tpl="object" data-kind="object">Objecto</button>
+      <button type="button" class="ghost tpl" data-tpl="furniture" data-kind="object">Mobiliário</button>
+      <button type="button" class="ghost tpl" data-tpl="room" data-kind="room">Sala</button>
+      <button type="button" class="ghost tpl" data-tpl="parcel" data-kind="parcel">Terreno</button>
+      <button type="button" class="ghost tpl" data-tpl="exec_contract" data-kind="object">Contrato de execução</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_virtual" data-kind="object">Escritura · virtual</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_financial" data-kind="object">Escritura · financeira</button>
+      <button type="button" class="ghost tpl" data-tpl="deed_physical" data-kind="object">Escritura · física</button>
+      <button type="button" class="ghost tpl" data-tpl="lot" data-kind="lot">Lote de troca</button>
+      <button type="button" class="ghost tpl" data-tpl="other" data-kind="object">Outro</button>
+    </div>
+    <p class="note" id="tplHint">Comece pelo tipo amplo. Depois personaliza — as categorias não esgotam o que um NFT pode ser.</p>
+
+    <div id="wizStep2" style="display:none">
+      <p class="note">2 · Nome</p>
+      <input id="nameIn" maxlength="80" placeholder="como se chama?" autocomplete="off">
+      <div class="row">
+        <button type="button" id="btnWizBack2" class="ghost">Voltar</button>
+        <button type="button" id="btnWizNext2">Continuar</button>
+      </div>
+    </div>
+
+    <div id="wizStep3" style="display:none">
+      <p class="note">3 · Onde fica (opcional)</p>
+      <select id="wizPlace">
+        <option value="catalog" selected>Só no catálogo por agora</option>
+        <option value="world">Mostrar no mundo aberto</option>
+        <option value="personal">Mostrar no meu sandbox (convidados)</option>
+        <option value="room">Mostrar numa sala partilhada</option>
+      </select>
+      <div class="row">
+        <button type="button" id="btnWizBack3" class="ghost">Voltar</button>
+        <button type="button" id="btnMint">Criar no catálogo</button>
+      </div>
+      <p class="note" id="wizLotNote" style="display:none">Um lote de troca é só para oferecer ou trocar. O saldo fica na bancada — isto não cria dinheiro novo.</p>
+    </div>
+  </section>
+
+  <!-- hidden legacy hooks kept for script compatibility -->
+  <button type="button" id="btnParcel" style="display:none" aria-hidden="true"></button>
+  <button type="button" id="btnLot" style="display:none" aria-hidden="true"></button>
 
   <section id="detail">
     <h3 id="detTitle">objecto</h3>
-    <p class="id" id="detId"></p>
     <p id="detState"></p>
-    <p>Aspectos: o que este objecto contém. Contrato (Repouso/A correr, tanque) só se esse bloco existir — não é o objecto.</p>
+    <p class="note" id="detSimple"></p>
+    <details id="detMore" style="margin:.4rem 0">
+      <summary style="cursor:pointer;font:600 .68rem/1.4 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)">Mais pormenores (opcional)</summary>
+      <p class="id" id="detId" style="margin-top:.35rem"></p>
+      <p class="note">O que contém · estado (repouso / a correr) · só se fizer sentido para este objecto.</p>
+    </details>
 
-    <h3>Desdobrar (opcional)</h3>
+    <h3>Mostrar no sandbox (opcional)</h3>
     <select id="dest">
       <option value="world" selected>Mundo aberto</option>
-      <option value="personal">Sandbox pessoal (com visitantes convidados)</option>
+      <option value="personal">O meu sandbox (convidados)</option>
       <option value="room">Sala partilhada</option>
     </select>
     <select id="rules">
-      <option value="owner">Interacção: só a conta dona</option>
-      <option value="invited">Interacção: visitantes convidados</option>
-      <option value="counterpart">Interacção: contraparte na troca</option>
+      <option value="owner">Só eu interajo</option>
+      <option value="invited">Convidados podem interagir</option>
+      <option value="counterpart">Só a outra parte na troca</option>
     </select>
     <div class="row">
-      <button type="button" id="btnDeploy">Desdobrar</button>
-      <button type="button" id="btnUndeploy" class="ghost">Recolher ao catálogo</button>
+      <button type="button" id="btnDeploy">Mostrar</button>
+      <button type="button" id="btnUndeploy" class="ghost">Guardar no catálogo</button>
     </div>
-    <p class="note">O Ateliê GNU só renderiza depois do desdobrar. Visitante é convidado, nunca walk-on anónimo.</p>
+    <p class="note">No atelier só aparece depois de «Mostrar». Convidados, nunca visitas anónimas.</p>
 
-    <h3>Troca</h3>
-    <p>Doação = drop deste catálogo. Directo = cada lado larga um item do seu catálogo (objecto ou lot STRATA).</p>
-    <input id="peer" placeholder="contraparte (conta)" autocomplete="off">
-    <div class="row">
-      <button type="button" id="btnDonate">Doação · drop</button>
-      <button type="button" id="btnTrade" class="ghost">Troca directa · drop</button>
-    </div>
-    <p class="note" id="tradeNote"></p>
+    <details style="margin-top:.55rem">
+      <summary style="cursor:pointer;font:600 .68rem/1.4 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)">Oferecer ou trocar (opcional)</summary>
+      <p class="note" style="margin-top:.35rem">Oferecer = largar deste catálogo. Trocar = cada lado larga uma coisa.</p>
+      <input id="peer" placeholder="a outra conta" autocomplete="off">
+      <div class="row">
+        <button type="button" id="btnDonate">Oferecer</button>
+        <button type="button" id="btnTrade" class="ghost">Trocar</button>
+      </div>
+      <p class="note" id="tradeNote"></p>
+    </details>
   </section>
 
   <p style="margin-top:1.1rem;font:600 .65rem/1.4 ui-monospace,Menlo,monospace"><a href="/sandbox">← Sandbox</a> · <a href="https://dashboard.calhegasmorais.pt/dashboard">Bancada</a></p>
@@ -195,6 +243,10 @@
             cur.kind = "bundle";
             cur.catalog_class = "open_world";
             if (it.aspectos) cur.aspectos = it.aspectos;
+            if (it.aspectos && !cur.aspects) cur.aspects = it.aspectos.slice();
+            if (it.aspects) cur.aspects = it.aspects;
+            if (it.contrato && !cur.contract) cur.contract = it.contrato;
+            if (it.contract) cur.contract = it.contract;
             if (it.contrato && !cur.contrato) cur.contrato = it.contrato;
           }
           if (it.kind === "room" && (cur.name === ("LAB land · " + String(it.sitsOn || "").replace("par-lab-", "")) || !cur.name)) {
@@ -267,20 +319,29 @@
       if (it.kind === "bundle" || id === "obj-lab-land-bundle") return "world";
       if (id.indexOf("par-lab-") === 0 || it.kind === "parcel") return "hide";
       if (id !== "obj-lab-room-bancada" && (it.kind === "room" || it.id === "obj-lab-room-acb")) return "hide"; if (it.kind === "room" || (it.catalog_class === "room" && it.kind !== "parcel")) return "room";
-      if (it.contrato && it.kind !== "bundle") return "contrato";
+      if (it.deed || it.template === "exec_contract" || (it.role === "spa")) return "contrato";
+      if ((it.contrato || it.contract) && it.kind !== "bundle") return "contrato";
       return "other";
     }
     function kindLabel(it) {
-      if (it.kind === "lot") return "lot STRATA";
+      if (it.kind === "lot") return "lote de troca";
+      if (it.kind === "parcel") return "terreno";
       if (it.kind === "room") return "sala";
       if (it.kind === "bundle") return "mundo aberto";
-      if (it.contrato) return "contrato";
+      if (it.template === "furniture") return "mobiliário";
+      if (it.template === "exec_contract") return "contrato de execução";
+      if (it.template === "deed_virtual") return "escritura · virtual";
+      if (it.template === "deed_financial") return "escritura · financeira";
+      if (it.template === "deed_physical") return "escritura · física";
+      if (it.deed) return "escritura";
+      if (it.role === "spa" || (it.contract && it.contract.kind === "spa_aps")) return "contrato de execução";
+      if (it.contract || it.contrato) return "com acordo";
       return "objecto";
     }
     function stateChip(it) {
-      if (it.kind === "lot") return "lot";
-      if (it.contrato) return it.deployed ? "A correr" : "Repouso";
-      return it.deployed ? ("desdobrado · " + it.dest) : "no catálogo";
+      if (it.kind === "lot") return "para troca";
+      if (it.contract || it.contrato) return it.deployed ? "A correr" : "Repouso";
+      return it.deployed ? "no sandbox" : "no catálogo";
     }
     function fillUl(ul, arr, emptyTxt) {
       ul.innerHTML = "";
@@ -296,8 +357,7 @@
         var title = it.name || kind;
         if (it.id === "obj-lab-land-bundle") title = "CMN Open World #1";
         li.innerHTML = "<strong>" + title + "</strong> <span class=\"chip\">" + kind + "</span>" +
-          (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
-          "<div class=\"id\">" + it.id + "</div>";
+          (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") ;
         li.onclick = function () { sel = it.id; paintList(); paintDet(); };
         ul.appendChild(li);
       });
@@ -316,7 +376,7 @@
       fillUl(document.getElementById("listWorld"), world, "Sem mundo aberto.");
       fillUl(document.getElementById("listContratos"), contratos, "Nenhum contrato em curso.");
       fillUl(document.getElementById("listOther"), other, "Nenhum outro objecto.");
-      fillUl(document.getElementById("listLots"), lots, "Nenhum lot STRATA.");
+      fillUl(document.getElementById("listLots"), lots, "Nenhum lote de troca.");
     }
     function cur() {
       for (var i = 0; i < items.length; i++) if (items[i].id === sel) return items[i];
@@ -328,7 +388,24 @@
       if (!it) { box.style.display = "none"; return; }
       box.style.display = "block";
       document.getElementById("detTitle").textContent = it.name || it.id;
-      document.getElementById("detId").textContent = (it.kind === "lot" ? "lot (não é NFT) · " : "object_id · ") + it.id;
+      document.getElementById("detId").textContent = it.id;
+      var simple = [];
+      if (it.kind === "lot") simple.push("Lote para troca — não é um objecto.");
+      else if (it.kind === "parcel") simple.push("Terreno no mundo — não se recolhe.");
+      else if (it.kind === "room") simple.push("Sala.");
+      else if (it.template === "furniture") simple.push("Mobiliário.");
+      else if (it.template === "exec_contract" || it.role === "spa") simple.push("Contrato de execução — em repouso guarda; a correr gasta o reservado.");
+      else if (it.deed || (it.template && String(it.template).indexOf("deed_") === 0)) {
+        var ac = (it.deed && it.deed.asset_class) || String(it.template || "").replace("deed_", "");
+        var map = { virtual: "virtual", financial: "financeiro", physical: "físico" };
+        simple.push("Escritura de um bem " + (map[ac] || ac) + " — propriedade na sua conta; a custódia internacional liga a validade do título (incl. cold storage).");
+      } else if (it.template === "other") simple.push("Categoria aberta — personalize nos pormenores.");
+      else simple.push("Objecto da conta.");
+      if (it.deployed) simple.push("Visível no sandbox.");
+      else simple.push("Só no catálogo.");
+      var insides = (it.aspects || it.aspectos || it.contains || []);
+      if (insides && insides.length) simple.push("Contém " + insides.length + " peça(s).");
+      document.getElementById("detSimple").textContent = simple.join(" ");
       var line = it.kind === "lot"
         ? (it.amount || "0") + " STRATA representados para troca. Livro na bancada."
         : (it.deployed
@@ -354,14 +431,102 @@
       document.getElementById("btnDonate").disabled = lockLand;
       document.getElementById("btnTrade").disabled = lockLand;
     }
+    var wizTpl = "object";
+    var wizKind = "object";
+    var TPL_HINTS = {
+      object: "Um objecto seu — pode ser o que quiser.",
+      furniture: "Mesa, cadeira, gaveta… depois pode pôr peças dentro.",
+      room: "Uma sala da conta.",
+      parcel: "Chão no mundo aberto (não se mete no bolso).",
+      exec_contract: "Um acordo que corre: em repouso guarda; a correr gasta o que estiver reservado.",
+      deed_virtual: "Título de algo virtual — a propriedade fica na sua conta StrataMesh.",
+      deed_financial: "Título de um activo financeiro — custódia internacional liga a validade do título.",
+      deed_physical: "Título de um bem físico — a custódia liga o título ao que está em cofre / cold storage.",
+      lot: "Quantidade para oferecer ou trocar — não é um objecto.",
+      other: "Comece amplo; no passo seguinte afina o que é."
+    };
+    function wizShow(step) {
+      var s2 = document.getElementById("wizStep2");
+      var s3 = document.getElementById("wizStep3");
+      var lab = document.getElementById("wizStepLabel");
+      var lotNote = document.getElementById("wizLotNote");
+      if (s2) s2.style.display = step >= 2 ? "block" : "none";
+      if (s3) s3.style.display = step >= 3 ? "block" : "none";
+      if (lab) {
+        if (step <= 1) lab.textContent = "1 · Categoria";
+        else if (step === 2) lab.textContent = "2 · Nome";
+        else lab.textContent = "3 · Onde fica (opcional)";
+      }
+      if (lotNote) lotNote.style.display = (step >= 3 && wizKind === "lot") ? "block" : "none";
+      document.getElementById("wiz").setAttribute("data-step", String(step));
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".tpl"), function (btn) {
+      btn.onclick = function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".tpl"), function (b) { b.classList.remove("on"); });
+        btn.classList.add("on");
+        wizTpl = btn.getAttribute("data-tpl") || "object";
+        wizKind = btn.getAttribute("data-kind") || "object";
+        var hint = document.getElementById("tplHint");
+        if (hint) hint.textContent = TPL_HINTS[wizTpl] || TPL_HINTS.other;
+        wizShow(2);
+      };
+    });
+    var btnNext2 = document.getElementById("btnWizNext2");
+    if (btnNext2) btnNext2.onclick = function () { wizShow(3); };
+    var btnBack2 = document.getElementById("btnWizBack2");
+    if (btnBack2) btnBack2.onclick = function () { wizShow(1); };
+    var btnBack3 = document.getElementById("btnWizBack3");
+    if (btnBack3) btnBack3.onclick = function () { wizShow(2); };
+    wizShow(1);
+
     document.getElementById("btnMint").onclick = function () {
-      var n = (document.getElementById("nameIn").value || "").trim() || "objecto";
-      var it = { id: nid("obj"), kind: "object", name: n, deployed: false, dest: "", rules: "owner", contains: [], trade: "" };
-      items.unshift(it);
+      var n = (document.getElementById("nameIn").value || "").trim() || (wizKind === "lot" ? "lote" : "objecto");
+      var place = (document.getElementById("wizPlace") || {}).value || "catalog";
+      var it;
+      if (wizKind === "lot") {
+        var amt = 1;
+        it = { id: nid("lot"), kind: "lot", name: amt + " STRATA", amount: amt, deployed: false, dest: "", rules: "counterpart", trade: "" };
+      } else if (wizKind === "parcel") {
+        it = { id: nid("par"), kind: "parcel", name: n, deployed: false, dest: "world", rules: "owner", contains: [], aspects: [], trade: "", unmovable: true };
+      } else if (wizKind === "room") {
+        it = { id: nid("obj"), kind: "room", catalog_class: "room", name: n, deployed: false, dest: "room", rules: "owner", contains: [], aspects: [], trade: "", template: wizTpl };
+      } else {
+        it = { id: nid("obj"), kind: "object", name: n, deployed: false, dest: "", rules: "owner", contains: [], aspects: [], trade: "", template: wizTpl };
+        if (wizTpl === "exec_contract") {
+          it.role = "spa";
+          it.contract = { kind: "spa_aps", state: "static", floor_strata: 0.1 };
+          it.contrato = it.contract;
+        }
+        if (String(wizTpl || "").indexOf("deed_") === 0) {
+          it.deed = {
+            asset_class: String(wizTpl).replace("deed_", ""),
+            custody: "international_legal_custodianship",
+            cold_storage_binds_validity: true,
+            holder_account: (who() || "")
+          };
+          it.contract = {
+            kind: "ownership_title",
+            state: "static",
+            custody: it.deed.custody,
+            asset_class: it.deed.asset_class,
+            cold_storage_binds_validity: !!it.deed.cold_storage_binds_validity,
+            holder_subject_id: it.deed.holder_account || ""
+          };
+          it.contrato = it.contract;
+        }
+      }
+      if (place !== "catalog" && it.kind !== "lot") {
+        it.deployed = true;
+        it.dest = place === "catalog" ? "" : place;
+      }
+      items.push(it);
       save(items);
-      sel = it.id;
       document.getElementById("nameIn").value = "";
-      paintList(); paintDet();
+      paint();
+      select(it.id);
+      notifyCatalogChanged();
+      wizShow(1);
+      Array.prototype.forEach.call(document.querySelectorAll(".tpl"), function (b) { b.classList.remove("on"); });
     };
     document.getElementById("btnParcel").onclick = function () {
       var n = (document.getElementById("nameIn").value || "").trim() || "parcela";
@@ -382,18 +547,33 @@
       document.getElementById("nameIn").value = "";
       paintList(); paintDet();
     };
+
+    function notifyCatalogChanged() {
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({ type: "cmn-catalog-changed" }, "*");
+        }
+      } catch (e) {}
+      try {
+        // also poke same-tab atelier iframes via localStorage timestamp
+        localStorage.setItem("sm_catalog_ping", String(Date.now()));
+      } catch (e2) {}
+    }
+
     document.getElementById("btnDeploy").onclick = function () {
       var it = cur(); if (!it || it.kind === "lot" || it.unmovable) return;
       it.deployed = true;
       it.dest = document.getElementById("dest").value;
       it.rules = document.getElementById("rules").value;
       save(items); paintList(); paintDet();
+      notifyCatalogChanged();
     };
     document.getElementById("btnUndeploy").onclick = function () {
       var it = cur(); if (!it) return;
       if (it.unmovable || it.kind === "bundle" || String(it.id || "").indexOf("par-lab-") === 0) return;
       it.deployed = false; it.dest = "";
       save(items); paintList(); paintDet();
+      notifyCatalogChanged();
     };
     document.getElementById("btnDonate").onclick = function () {
       var it = cur(); if (!it) return;

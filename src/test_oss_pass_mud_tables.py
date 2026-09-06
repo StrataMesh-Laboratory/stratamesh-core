@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""oss-pass-atelier-mud-oz: MUD tables + OZ scaffold exist and stay honest."""
+"""oss-pass-atelier-mud-oz: ontology-aligned MUD tables + OZ scaffold honesty."""
 from __future__ import annotations
 
 import json
@@ -12,13 +12,81 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_mud_tables():
     data = json.loads((ROOT / "contracts/mud/tables.json").read_text())
     assert data["oracle_live"] is False
-    for name in ("Object", "Parcel", "Subject"):
-        assert name in data["tables"]
-        assert "key" in data["tables"][name]
-    obj = data["tables"]["Object"]
+    tables = data["tables"]
+    for name in ("Object", "Parcel", "Subject", "Lot", "Contract", "AspectEdge", "Balance"):
+        assert name in tables, name
+    obj = tables["Object"]
     assert "object_id" in obj["key"]
     rules = " ".join(obj["rules"]).lower()
-    assert "sca" in rules or "subject" in " ".join(data["tables"]["Subject"]["rules"]).lower()
+    assert "lot" in rules and "forbidden" in rules
+    assert "sca" in rules
+    lot_rules = " ".join(tables["Lot"]["rules"]).lower()
+    assert "not object_id" in lot_rules and "not an nft" in lot_rules
+    subj_rules = " ".join(tables["Subject"]["rules"]).lower()
+    assert "sca" in subj_rules and "subjects not objects" in subj_rules
+    parcel_rules = " ".join(tables["Parcel"]["rules"]).lower()
+    assert "title" in parcel_rules and "unmovable" in parcel_rules
+    mud = (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").read_text()
+    for name in ("Subject", "Object", "Parcel", "Lot", "Contract", "Aspect", "Balance"):
+        assert name in mud, name
+    assert "NOT object_id" in mud or "lot_id ≠ object_id" in mud or "lot_id != object_id" in mud
+    assert "aspects" in mud.lower() and "contracts" in mud.lower()
+    assert "pt-pt" in mud.lower() and "en-gb" in mud.lower()
+    assert "cplp" in mud.lower() and ("geolocation" in mud.lower() or "ip" in mud.lower())
+    assert "international english" in mud.lower() or "aspects" in mud.lower()
+    assert (ROOT / "docs/UI-LOCALE-CPLP.md").is_file()
+    # collateral vs Agora ownership price
+    for name in ("OwnershipFraction", "Collateral"):
+        assert name in tables, name
+    own = " ".join(tables["OwnershipFraction"]["rules"]).lower()
+    assert "p_market" in own and "collateral" in own
+    assert "not the collateral value" in own or "p_market is not the collateral" in own
+    col = " ".join(tables["Collateral"]["rules"]).lower()
+    assert "static" in col and "dynamic" in col and "burn" in col
+    ont = (ROOT / "docs/STRATA_NFT_ONTOLOGY.md").read_text()
+    assert "P_market" in ont and "Collateral" in ont
+    assert "Bundle" in ont or "aspect" in ont.lower()
+    ae_rules = " ".join(tables["AspectEdge"]["rules"]).lower()
+    assert "own object_id" in ae_rules or "own object_id / strata nft" in ae_rules
+    assert "desk" in ae_rules and "drawer" in ae_rules
+    assert "all object kinds" in ae_rules or "all object" in ae_rules
+    assert "P_market ≠" in ont or "P_market !=" in ont or "not equal" in ont.lower()
+
+    # open macros · deeds · custodianship cross-refs
+    assert (ROOT / "docs/NFT-MACRO-CATEGORIES.md").is_file()
+    macro = (ROOT / "docs/NFT-MACRO-CATEGORIES.md").read_text()
+    assert "cold storage" in macro.lower() or "cold_storage" in macro.lower()
+    assert "custodianship" in macro.lower()
+    assert "spa_aps" in macro and "ownership_title" in macro
+    assert "SUBJECT-OBJECT-ECONOMY" in macro and "DIGITAL-OBJECTS" in macro
+    assert "P_market" in macro or "ownership fraction" in macro.lower()
+    assert "custodianship" in mud.lower() or "deed" in mud.lower()
+    assert "NFT-MACRO-CATEGORIES" in mud
+
+    assert (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").is_file()
+    lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text().lower()
+    assert "subject" in lore and "not main" in lore
+    assert "olissippo" in lore and "lusitan" in lore
+    assert "boutius" in lore and "charcoal" in lore
+    assert "pre-roman" in lore
+    assert "endovelicus" in lore
+    assert "true lore magic" in lore
+    assert "origine" in lore and "generative" in lore
+    assert "rite_offer" in lore
+    assert "godot" in lore and ("atelier" in lore or "bancada" in lore)
+    assert "hroth" not in lore and "eastforge" not in lore
+    crules = " ".join(tables["Contract"]["rules"]).lower()
+    assert "custodianship" in crules or "deed" in crules
+    assert "cold_storage" in crules or "cold storage" in crules
+    soe = (ROOT / "docs/SUBJECT-OBJECT-ECONOMY.md").read_text()
+    assert "NFT-MACRO-CATEGORIES" in soe
+    assert "custodianship" in soe.lower()
+    dig = (ROOT / "docs/DIGITAL-OBJECTS.md").read_text()
+    assert "NFT-MACRO-CATEGORIES" in dig or "Ownership deed" in dig or "deed" in dig.lower()
+    assert "Macro-categories" in ont or "Ownership deed" in ont
+    assert "custodianship" in ont.lower()
+    assert "NFT-MACRO-CATEGORIES" in ont
+
 
 
 def test_oz_scaffold_no_strata_mint():
@@ -26,6 +94,7 @@ def test_oz_scaffold_no_strata_mint():
     assert "NoStrataMint" in sol
     assert "ParcelImmovable" in sol
     assert "mintStrata" in sol
+    assert "title is not this registry" in sol.lower() or "dirt identity" in sol.lower()
 
 
 def test_atelier_vendor_three():
@@ -73,11 +142,43 @@ def test_atelier_vendor_three():
     assert "faucet" in poc
     erc721 = (ROOT / "contracts/strata/Object721.sol").read_text()
     assert "ParcelImmovable" in erc721
+    assert "ownership_title" in erc721 or "title" in erc721.lower()
     erc1155 = (ROOT / "contracts/strata/Object1155.sol").read_text()
     assert "NoStrataMint" in erc1155
-    html_stats = (ROOT / "frontend/gnu-atelier.html").read_text(errors="replace")
-    assert "debug=1" in html_stats
+    assert "NOT object_id" in erc1155 or "not object_id" in erc1155.lower() or "lots" in erc1155.lower()
 
+
+def test_atelier_quality_scripts():
+    html = (ROOT / "frontend/gnu-atelier.html").read_text(errors="replace")
+    assert "atelier-quality.js" in html
+    assert "atelier-instances.js" in html
+    assert "AtelierQuality" in html
+    assert (ROOT / "frontend/atelier-quality.js").is_file()
+    assert (ROOT / "frontend/atelier-instances.js").is_file()
+    assert (ROOT / "frontend/vendor/stats.min.js").is_file()
+    assert "Stats" in (ROOT / "frontend/vendor/stats.min.js").read_text(errors="replace")
+    unix = (ROOT / "frontend/atelier-unix.js").read_text(errors="replace")
+    assert "streetDashes" in unix
+    assert "disposeTree" in unix
+    assert "FogExp2" in unix or "fog" in unix.lower()
+
+
+def test_strata_poc_contracts():
+    erc = (ROOT / "contracts/strata/StrataERC20.sol").read_text()
+    assert "POC_MINTER_ROLE" in erc
+    assert "onlyRole(POC_MINTER_ROLE)" in erc
+    nft = (ROOT / "contracts/strata/StrataObjectNFT.sol").read_text()
+    assert "ParcelImmovable" in nft
+    assert "POC_MINTER_ROLE" in nft
+    assert "lots are not NFTs" in nft.lower() or "not \"lot\"" in nft.lower() or "unmovable world parcel" in nft.lower()
+    cat = (ROOT / "contracts/strata/StrataCatalog1155.sol").read_text()
+    assert "POC_MINTER_ROLE" in cat
+    assert "lots" in cat.lower()
+    assert (ROOT / "docs/ATELIER-GLTF-PIPELINE.md").is_file()
+    assert (ROOT / "frontend/vendor/gltf/README.md").is_file()
+    mud = (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").read_text()
+    for name in ("Subject", "Object", "Parcel", "Lot", "Contract", "Balance"):
+        assert name in mud, name
 
 
 if __name__ == "__main__":

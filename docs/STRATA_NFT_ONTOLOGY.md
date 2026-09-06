@@ -56,3 +56,83 @@ SPA/APS = **STRATA NFT especializado** — template automatizado de acordo de se
 - Endpoints: `POST /spa/mint` · `/spa/execute` · `/spa/complete` · `GET /spa/list`
 
 Optional lab metabolism ([`METABOLISM-ON-GRAPH.md`](./METABOLISM-ON-GRAPH.md)) may pace collateral burns until the SPA/CLP renewal; floor 0.1 STRATA stays reserved. Opt-in, not exclusive: `POST /spa/execute`, liquidate, and redeem remain valid without it.
+
+## Ownership · collateral · Agora price (normative refinement 2026-09-06)
+
+Three quantities — **never collapse**:
+
+| Symbol | What | Where |
+|--------|------|--------|
+| **C** | Collateral fungible STRATA **inside** the NFT | Object / contract tank |
+| **ownership fraction** | Subject’s claim on that collateralised NFT | FractionalEconomicOwnership |
+| **P_market** | Agora market price of that ownership portion, quoted in **fungible STRATA** | Agora listing — **not** equal to C × fraction |
+
+### Rules
+
+1. **Ownership of the NFT** means subjects own the **collateralised STRATA of that NFT** (fractions / `strata_units` weight) — Agent owns/operates NFT; NFT never owns Agent.
+2. **Static** state (template / dormancy): collateral is **reserved** (floor e.g. 0.1 STRATA stays reserved; no execution burn).
+3. **Dynamic** state (execution): the NFT **burns its own mechanisms** — collateral burns above the floor to pay execution (`POST /spa/execute` and kin). Metabolism may *pace* burns; it does not redefine C vs P_market.
+4. **Terminated**: residual collateral to titulares; or complete path.
+5. **Agora sale of ownership**: a subject may sell their ownership portion linked to that NFT on the Agora for **P_market in fungible STRATA**.  
+   **P_market ≠ collateral value** that the ownership portion represents (that claim is on C; the trade clears at market).
+6. **Redeem** (`POST /nft/redeem`) remains the path when **P_market < C** (individual exit vs collateral), distinct from an ordinary Agora ownership trade at P_market.
+7. Fungible STRATA used to *pay* P_market comes from the buyer’s **dashboard Balance** — not by minting, not by emptying another NFT’s C unless a defined liquidate/redeem path says so.
+
+### Diagram
+
+```
+Subject ──fraction──► STRATA NFT
+                         │
+                         ├─ C  collateral (static: reserve · dynamic: burn above floor)
+                         ├─ optional StateMachine (static|dynamic|terminated)
+                         └─ Actions / Bundle / aspects
+Subject ──sells fraction on Agora──► P_market (fungible STRATA)
+         P_market  confuses-not-with  (fraction · C)
+```
+
+## Bundle / aspects (normative refinement 2026-09-06)
+
+Any STRATA NFT may **bundle other STRATA NFTs inside it** (optional Bundle term in the equation).
+
+Example: a **composite desk** NFT has **drawers** bundled inside — each drawer is its **own** NFT (`object_id`), represented as a **part** (aspect) of the table/desk NFT.
+
+### Rules (all object categories)
+
+1. **Aspects** = contained child objects. Do not use “aspect” to mean a contract.
+2. Child remains a full STRATA NFT: own `object_id`, own CID/bytes, and — if present — own collateral tank / Still·Live / contract block.
+3. **Tree, no cycles.** Bundle attach refuses cycles (`POST /nft/bundle/attach`).
+4. Bundling is allowed on **every** object kind that is an Object (`object`, `room`, `parcel`, `bundle`, …): composition is category-aligned, not a special species.
+5. **Parcel caveat:** open-world parcels stay **unmovable dirt** identities; they may sit as aspects of a **land-bundle** object / title contract — that does **not** make the parcel inventory-movable.
+6. **Ownership / collateral:** parent and child each keep their own C and ownership fractions unless a defined product rule says otherwise. Selling the desk’s ownership fraction on Agora is not automatically selling each drawer’s fractions (and the reverse) — edges are structural; economic linkage is explicit.
+7. Renderer (Atelier) may show children inside the parent; absence of a renderer does not dissolve the bundle.
+
+```
+desk_object_id
+  ├─ aspect → drawer_1_object_id  (own NFT)
+  ├─ aspect → drawer_2_object_id  (own NFT)
+  └─ optional contract block / C on desk
+```
+
+## Macro-categories (not a closed set)
+
+**Bridge doc:** [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · parents [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md).
+
+Stage / create-wizard templates (object, furniture, room, land, trade lot, …) are **entry points**, not a ceiling. They never invent a new `Object.kind`.
+
+A STRATA NFT may also be:
+
+1. **Execution contract** — SPA/APS-style specialised NFT (`Contract.kind=spa_aps`): **static** reserves **C**; **dynamic** burns above floor for the NFT’s own execution; **terminated** residual to titulares. Same C / ownership-fraction / **P_market** separation as §Ownership above. See also §SPA/APS.
+2. **Ownership deed** — title (`Contract.kind=ownership_title`) over a **virtual**, **financial**, or **physical** underlying, tokenised into a StrataMesh **Subject account** via an **international legal custodianship** agreement. When the underlying is held as **cold storage**, that custodianship **binds the validity of the token**. Parcel/land titles are the world-dirt special case of the same title instrument (trade title, never pick up dirt).
+
+### Integration rules
+
+| Concern | Rule |
+|---------|------|
+| Category | Deeds and execution NFTs remain **Objects** owned/operated by **Subjects** — not Subjects, not Fog nodes, not fungible Balance, not Lots |
+| Layers | Still CID / DAG / `object_id` / C ([`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md)); legal custodianship ≠ economic mint |
+| C vs P_market | Deed-objects may carry C; Agora sells **ownership fractions** at P_market ≠ fraction·C; redeem when P_market < C stays distinct |
+| Cold storage | Binds **token validity** via custodianship — does not redefine C, P_market, or Balance |
+| Bundle | Deed and execution NFTs may contain child NFTs as **aspects** (tree, no cycles; parent C/ownership does not silently absorb children) |
+| Institutions | Custodianship sits with SPAs / Agora / governance — the deed NFT is the Object; the agreement is institutional |
+| UX | Product UI: plain *escritura* / *contrato de execução*; no technical IDs in the wizard ([`UI-LOCALE-CPLP.md`](./UI-LOCALE-CPLP.md)) |
+

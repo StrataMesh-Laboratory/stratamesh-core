@@ -2,8 +2,12 @@
 pragma solidity ^0.8.20;
 
 /// @title Object721 — STRATA NFT is the object (object_id)
-/// @notice Compatible with OZ ERC721. Parcels are unmovable (title only).
-/// SCA/ACB are subjects off-chain. No faucet. No STRATA value mint here.
+/// @notice Compatible with OZ ERC721 shape. Lab scaffold only.
+/// Ontology: object_id = NFT identity (not CID). SCA/ACB are Subjects off-chain — never tokens.
+/// `movable=false` models world **dirt/parcel identity** (no backpack pickup).
+/// Ownership **title** trade belongs on Contrato.ownership_title (or a title instrument),
+/// not by treating a reverted dirt transfer as "title cannot change".
+/// Lots are NOT this contract (see Object1155). No faucet. No STRATA value mint here.
 
 contract Object721 {
     string public constant name = "STRATA Object";
