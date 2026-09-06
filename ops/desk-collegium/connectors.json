@@ -165,5 +165,16 @@
       },
       "ship_gate": true
     }
+  ],
+  "connectors": [
+    {
+      "id": "desk-agent-contingency",
+      "kind": "mac_script",
+      "desc": "Real Hermes/OpenClaw/OpenCode fallback ladder",
+      "paths": [
+        "deploy/mac-fog/desk-agent-contingency.sh",
+        "ops/desk-collegium/DESK-AGENT-CONTINGENCY.md"
+      ]
+    }
   ]
 }

@@ -586,6 +586,7 @@
     "continue": [
       "Mac TUI r/60s",
       "desk_ops cycle",
+      "desk-agent-contingency.sh run all",
       "desk-agent-run hermes|opencode|openclaw",
       "Fog Assistant if lane-assistant ALLOW",
       "EDGE consume-only GETs"
@@ -764,5 +765,22 @@
       ]
     },
     "note": "STRATAGROK Agent leads xAI provider section and Automation Desk proper agreement gate. Fog/EDGE Assistants are STRATAGROK representatives. Human gates are outside this leadership chart."
+  },
+  "desk_agent_contingency": {
+    "doc": "ops/desk-collegium/DESK-AGENT-CONTINGENCY.md",
+    "script": "deploy/mac-fog/desk-agent-contingency.sh",
+    "levels": [
+      "primary_specialty",
+      "peer_specialist",
+      "fog_local_tools",
+      "fog_or_edge_assistant",
+      "stratagrok_escalate"
+    ],
+    "anti": [
+      "ack_only_smoke",
+      "mock_meters",
+      "unrecognized_openclaw_keys"
+    ],
+    "openclaw_config_trap": "agents.defaults.maxAgents causes EX_CONFIG; strip before bootstrap"
   }
 }
