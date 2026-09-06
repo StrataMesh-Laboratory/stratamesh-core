@@ -197,3 +197,10 @@ Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA fauc
 ## 12. Bottom line
 
 Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
+
+## Phase 1 machine graph (landed)
+
+- Graph: [`contracts/mud/olissippo-world.json`](../contracts/mud/olissippo-world.json)
+- Loader: [`src/olissippo_world.py`](../src/olissippo_world.py) — `validate_move`, `objects_at`, `numen_at`
+- Tests: `src/test_olissippo_world.py` (wired in `protocol-invariants`)
+- Next: Phase 2 deterministic Boutius routine (no LLM)

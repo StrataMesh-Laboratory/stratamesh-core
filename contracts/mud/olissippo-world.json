@@ -1,0 +1,313 @@
+{
+  "schema": "stratamesh.lore.olissippo.world.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "not_main": true,
+  "culture_tag": "lusitanian_olissippo",
+  "oracle_live": false,
+  "label": {
+    "en": "Olissippo (pre-Roman Lusitanian village)",
+    "pt_PT": "Aldeia de Olissippo (pr\u00e9-romana)"
+  },
+  "clock": {
+    "real_minute_to_game_minutes": 10,
+    "note": "Accelerated day/night; integer day+minute in runtime"
+  },
+  "locations": [
+    {
+      "id": "hill_enclosure",
+      "en": "Hill enclosure",
+      "pt_PT": "Cerca do outeiro",
+      "tags": [
+        "home",
+        "hall"
+      ]
+    },
+    {
+      "id": "smithy",
+      "en": "Smithy / forge",
+      "pt_PT": "Oficina do ferro",
+      "tags": [
+        "work",
+        "forge"
+      ]
+    },
+    {
+      "id": "charcoal_lean",
+      "en": "Charcoal lean-to",
+      "pt_PT": "Carvoeira",
+      "tags": [
+        "fuel"
+      ]
+    },
+    {
+      "id": "quay",
+      "en": "Quay / landing",
+      "pt_PT": "Cais do Tejo",
+      "tags": [
+        "water",
+        "trade"
+      ]
+    },
+    {
+      "id": "guest_house",
+      "en": "Guest house",
+      "pt_PT": "Casa de h\u00f3spedes",
+      "tags": [
+        "rest"
+      ]
+    },
+    {
+      "id": "market",
+      "en": "Open market",
+      "pt_PT": "Feira",
+      "tags": [
+        "trade"
+      ]
+    },
+    {
+      "id": "cattle_pens",
+      "en": "Cattle pens",
+      "pt_PT": "Currais",
+      "tags": [
+        "herd"
+      ]
+    },
+    {
+      "id": "wall_watch",
+      "en": "Watch on the wall",
+      "pt_PT": "Posto da muralha",
+      "tags": [
+        "patrol"
+      ]
+    },
+    {
+      "id": "sacred_grove",
+      "en": "Sacred grove (edge)",
+      "pt_PT": "Bosque limiar",
+      "tags": [
+        "cult",
+        "taboo"
+      ]
+    },
+    {
+      "id": "spring",
+      "en": "Spring / well",
+      "pt_PT": "Fonte",
+      "tags": [
+        "water",
+        "cult"
+      ]
+    },
+    {
+      "id": "east_track",
+      "en": "East track to scrub",
+      "pt_PT": "Caminho do mato",
+      "tags": [
+        "travel"
+      ]
+    },
+    {
+      "id": "apprentice_yard",
+      "en": "Apprentice yard",
+      "pt_PT": "P\u00e1tio da aprendiz",
+      "tags": [
+        "work"
+      ]
+    },
+    {
+      "id": "shrine_niche",
+      "en": "Shrine niche (hall)",
+      "pt_PT": "Nichos do culto",
+      "tags": [
+        "cult"
+      ]
+    }
+  ],
+  "edges": [
+    [
+      "hill_enclosure",
+      "smithy"
+    ],
+    [
+      "hill_enclosure",
+      "guest_house"
+    ],
+    [
+      "hill_enclosure",
+      "market"
+    ],
+    [
+      "hill_enclosure",
+      "wall_watch"
+    ],
+    [
+      "hill_enclosure",
+      "shrine_niche"
+    ],
+    [
+      "hill_enclosure",
+      "spring"
+    ],
+    [
+      "smithy",
+      "charcoal_lean"
+    ],
+    [
+      "smithy",
+      "apprentice_yard"
+    ],
+    [
+      "market",
+      "quay"
+    ],
+    [
+      "market",
+      "cattle_pens"
+    ],
+    [
+      "quay",
+      "east_track"
+    ],
+    [
+      "wall_watch",
+      "sacred_grove"
+    ],
+    [
+      "spring",
+      "sacred_grove"
+    ],
+    [
+      "east_track",
+      "cattle_pens"
+    ]
+  ],
+  "numen_hooks": [
+    {
+      "numen_id": "endovelicus",
+      "pt_PT": "Endov\u00e9lico",
+      "locations": [
+        "sacred_grove",
+        "shrine_niche"
+      ],
+      "rites": [
+        "rite_offer",
+        "rite_heal",
+        "rite_dream"
+      ]
+    },
+    {
+      "numen_id": "ataegina",
+      "pt_PT": "Ata\u00e9gina",
+      "locations": [
+        "cattle_pens",
+        "sacred_grove"
+      ],
+      "rites": [
+        "rite_offer"
+      ]
+    },
+    {
+      "numen_id": "bandua",
+      "pt_PT": "Bandua",
+      "locations": [
+        "wall_watch",
+        "hill_enclosure"
+      ],
+      "rites": [
+        "oath_bandua"
+      ]
+    },
+    {
+      "numen_id": "nabia",
+      "pt_PT": "N\u00e1bia",
+      "locations": [
+        "spring",
+        "quay"
+      ],
+      "rites": [
+        "rite_offer"
+      ]
+    },
+    {
+      "numen_id": "trebaruna",
+      "pt_PT": "Trebaruna",
+      "locations": [
+        "guest_house"
+      ],
+      "rites": [
+        "rite_offer"
+      ]
+    }
+  ],
+  "actions_mundane": [
+    "wait",
+    "move",
+    "say",
+    "buy",
+    "sell",
+    "work",
+    "eat",
+    "sleep",
+    "inspect",
+    "follow"
+  ],
+  "actions_magic": [
+    "rite_offer",
+    "rite_heal",
+    "rite_dream",
+    "oath_bandua",
+    "consult_omen"
+  ],
+  "seed_objects": [
+    {
+      "object_id": "obj-oli-charcoal-01",
+      "kind": "object",
+      "name": "Charcoal basket",
+      "name_pt": "Cesto de carv\u00e3o",
+      "location_id": "charcoal_lean",
+      "template": "object",
+      "qty": 10,
+      "notes": "Fuel for Boutius forge continuity demo"
+    },
+    {
+      "object_id": "obj-oli-spearhead-blank-01",
+      "kind": "object",
+      "name": "Spearhead blank",
+      "name_pt": "Ponta de lan\u00e7a em bruto",
+      "location_id": "smithy",
+      "template": "object",
+      "qty": 3,
+      "notes": "Chefe order work-in-progress"
+    },
+    {
+      "object_id": "obj-oli-offering-grain-01",
+      "kind": "object",
+      "name": "Grain offering",
+      "name_pt": "Oferta de cereal",
+      "location_id": "shrine_niche",
+      "template": "object",
+      "qty": 1,
+      "notes": "Valid offering Object for rite_offer"
+    },
+    {
+      "object_id": "obj-oli-forge-shed",
+      "kind": "object",
+      "name": "Forge shed",
+      "name_pt": "Barrac\u00e3o da forja",
+      "location_id": "smithy",
+      "template": "object",
+      "unmovable": true,
+      "has_contract_block": false,
+      "notes": "Building object; optional ownership_title later"
+    }
+  ],
+  "spawn": {
+    "default_location_id": "hill_enclosure",
+    "note": "Human or ACB Subject enters here; Subjects not seeded as Object rows"
+  },
+  "origine_draft": {
+    "provision": true,
+    "table": "OrigineDraft",
+    "mvp_empty": true
+  }
+}

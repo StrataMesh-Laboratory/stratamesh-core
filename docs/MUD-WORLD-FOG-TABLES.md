@@ -12,6 +12,7 @@ Lattice-MUD **shape**, Fog **store**. Not an EVM world. `oracle_live=false`.
 Machine schema: [`contracts/mud/tables.json`](../contracts/mud/tables.json).
 
 Lore (not main) continuity village: [`LORE-VILLAGE-ACB-MUD.md`](./LORE-VILLAGE-ACB-MUD.md) — ontology-filtered ACB/user co-play MUD prospectus.
+Phase 1 graph: [`contracts/mud/olissippo-world.json`](../contracts/mud/olissippo-world.json).
 
 ---
 

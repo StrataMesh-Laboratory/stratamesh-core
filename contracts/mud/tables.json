@@ -15,7 +15,8 @@
     "contracts": "Rules block, ownership title / deed, or SPA/APS execution. Ordinary contracts \u2014 not aspects. Deed: asset_class + international custodianship; cold_storage_binds_validity optional. Code: contracts. UI PT-PT (CPLP): contratos/escritura; UI EN-GB: contracts/deed.",
     "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
     "deed": "Ownership deed NFT (still Object.kind=object|\u2026) for virtual|financial|physical underlyings. Tokenised into Subject account via international legal custodianship; cold storage may bind token validity. Generalises parcel ownership_title off-world. Not a closed macro-category ceiling. See docs/NFT-MACRO-CATEGORIES.md.",
-    "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation."
+    "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation.",
+    "lore_olissippo": "Not-main Virtual Domain lore-olissippo-lusitanian. Location graph + seed Objects in contracts/mud/olissippo-world.json. Numina = institutional hooks; Subjects walk via validated move; magic = finite rite verbs."
   },
   "tables": {
     "Subject": {
@@ -206,6 +207,23 @@
       ],
       "aliases": [
         "Contrato"
+      ]
+    },
+    "Location": {
+      "key": [
+        "location_id"
+      ],
+      "value": {
+        "location_id": "string",
+        "realm": "string",
+        "label_en": "string",
+        "label_pt_PT": "string?",
+        "tags": "string[]?"
+      },
+      "rules": [
+        "Environment layer \u2014 not Subject, not Object, not Fog node",
+        "Olissippo Phase 1 graph is authoritative for adjacency; LLM cannot invent edges",
+        "Realm lore-olissippo-lusitanian is not main / not TRD"
       ]
     }
   }
