@@ -16,7 +16,7 @@
     "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
     "deed": "Ownership deed NFT (still Object.kind=object|\u2026) for virtual|financial|physical underlyings. Tokenised into Subject account via international legal custodianship; cold storage may bind token validity. Generalises parcel ownership_title off-world. Not a closed macro-category ceiling. See docs/NFT-MACRO-CATEGORIES.md.",
     "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation.",
-    "lore_olissippo": "Not-main lore-olissippo-lusitanian. Boutius Subject.kind=acb (ACB \u2260 NFT). Phase 3: LLM-advisory JSON actions; server validate_move/action_allowed; reject NFT self-claims; fallback to deterministic routine."
+    "lore_olissippo": "Not-main lore-olissippo-lusitanian. Boutius Subject.kind=acb (ACB \u2260 NFT). Phase 4: MemoryEvent + SubjectEdge on subject_id; Day-2 speech cites trade; never object_id for ACBs."
   },
   "tables": {
     "Subject": {
@@ -225,6 +225,42 @@
         "Environment layer \u2014 not Subject, not Object, not Fog node",
         "Olissippo Phase 1 graph is authoritative for adjacency; LLM cannot invent edges",
         "Realm lore-olissippo-lusitanian is not main / not TRD"
+      ]
+    },
+    "MemoryEvent": {
+      "key": [
+        "id"
+      ],
+      "value": {
+        "id": "string",
+        "subject_id": "string",
+        "ts": "string",
+        "type": "enum:trade|work|social|rite|oath|threat|gift|speech|other",
+        "summary": "string",
+        "importance": "float",
+        "refs": "object?"
+      },
+      "rules": [
+        "subject_id is Subject only \u2014 never object_id for the rememberer",
+        "Olissippo lore continuity; ACB \u2260 NFT"
+      ]
+    },
+    "SubjectEdge": {
+      "key": [
+        "a_id",
+        "b_id"
+      ],
+      "value": {
+        "a_id": "string",
+        "b_id": "string",
+        "trust": "float",
+        "familiarity": "float",
+        "last_ts": "string?",
+        "tags": "string[]?"
+      },
+      "rules": [
+        "Both ends are subject_ids (sorted a_id < b_id)",
+        "Never mint Object / NFT from an edge"
       ]
     }
   }

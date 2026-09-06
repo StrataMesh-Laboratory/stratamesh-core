@@ -57,6 +57,9 @@ jobs:
       - name: Olissippo lore decide Phase 3 (LLM-advisory, ACB ≠ NFT)
         working-directory: src
         run: python3 test_olissippo_decide.py
+      - name: Olissippo lore memory Phase 4 (MemoryEvent + SubjectEdge, ACB ≠ NFT)
+        working-directory: src
+        run: python3 test_olissippo_memory.py
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py

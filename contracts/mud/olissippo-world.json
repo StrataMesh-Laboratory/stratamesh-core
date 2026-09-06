@@ -323,6 +323,7 @@
   "phase": {
     "1": "landed",
     "2": "deterministic_boutius",
-    "3": "decide_validate_execute"
+    "3": "decide_validate_execute",
+    "4": "memory_subject_edge"
   }
 }

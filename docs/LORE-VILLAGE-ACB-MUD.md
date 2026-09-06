@@ -198,6 +198,15 @@ Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA fauc
 
 Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
 
+## Phase 4 — MemoryEvent + SubjectEdge (landed)
+
+- Schema: [`contracts/mud/olissippo-memory-schema.json`](../contracts/mud/olissippo-memory-schema.json)
+- Module: [`src/olissippo_memory.py`](../src/olissippo_memory.py)
+- `record_memory` / `recall` / `upsert_edge` / `speech_from_memory`
+- Day-2 continuity: Boutius cites stored charcoal trade with the player Subject
+- **ACB ≠ NFT:** memories bind `subject_id` only; `obj-*` rejected
+- Next: Phase 5 five opening personas
+
 ## Phase 3 — decide → validate → execute (landed)
 
 - Module: [`src/olissippo_decide.py`](../src/olissippo_decide.py)
@@ -205,7 +214,7 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - **ACB ≠ NFT** enforced: decisions carrying `object_id` / mint self are rejected
 - CI uses `mock_decide`; Mac may set `prefer_ollama=True` when `:11434` is up
 - On reject/exception: fall back to Phase 2 deterministic routine
-- Next: Phase 4 MemoryEvent + SubjectEdge
+- Next: Phase 5 five opening personas
 
 ## Phase 2 — deterministic Boutius (landed)
 
@@ -220,4 +229,4 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - Graph: [`contracts/mud/olissippo-world.json`](../contracts/mud/olissippo-world.json)
 - Loader: [`src/olissippo_world.py`](../src/olissippo_world.py) — `validate_move`, `objects_at`, `numen_at`
 - Tests: `src/test_olissippo_world.py` (wired in `protocol-invariants`)
-- Next: Phase 4 MemoryEvent + SubjectEdge
+- Next: Phase 5 five opening personas

@@ -1,0 +1,49 @@
+{
+  "schema": "stratamesh.mud.olissippo.memory.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "note": "Phase 4 \u2014 MemoryEvent + SubjectEdge. Subjects only (ACB \u2260 NFT). No Object rows for ACBs.",
+  "MemoryEvent": {
+    "fields": [
+      "id",
+      "subject_id",
+      "ts",
+      "type",
+      "summary",
+      "importance",
+      "refs"
+    ],
+    "types": [
+      "trade",
+      "work",
+      "social",
+      "rite",
+      "oath",
+      "threat",
+      "gift",
+      "speech",
+      "other"
+    ],
+    "importance": "float 0..1 \u2014 recall prefers higher",
+    "rules": [
+      "subject_id must be Subject (user|sca|acb) \u2014 never object_id",
+      "summary is server-authored or validated text, not free LLM rewrite of world state",
+      "refs may name object_id of items traded, never claim the Subject is an NFT"
+    ]
+  },
+  "SubjectEdge": {
+    "fields": [
+      "a_id",
+      "b_id",
+      "trust",
+      "familiarity",
+      "last_ts",
+      "tags"
+    ],
+    "rules": [
+      "a_id and b_id are subject_ids (undirected key sorted a_id < b_id)",
+      "trust/familiarity float 0..1",
+      "oath_bandua may raise familiarity/trust via tags",
+      "ACB \u2260 NFT \u2014 edges never mint object_id"
+    ]
+  }
+}
