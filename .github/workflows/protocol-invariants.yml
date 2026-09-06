@@ -51,6 +51,9 @@ jobs:
       - name: Olissippo lore world Phase 1 (location graph)
         working-directory: src
         run: python3 test_olissippo_world.py
+      - name: Olissippo lore Boutius Phase 2 (ACB Subject ≠ NFT)
+        working-directory: src
+        run: python3 test_olissippo_boutius.py
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py

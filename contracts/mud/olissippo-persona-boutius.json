@@ -1,0 +1,41 @@
+{
+  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "version": 1,
+  "subject_id": "acb-oli-boutius-001",
+  "kind": "acb",
+  "display_name": "Boutius",
+  "role": "smith",
+  "culture_tag": "lusitanian_olissippo",
+  "home_location": "smithy",
+  "primary_goal": "complete_chefe_spear_order",
+  "secondary_goals": [
+    "keep_forge_supplied",
+    "rest",
+    "eat"
+  ],
+  "biography": "Lusitanian smith of Olissippo on the Tagus, before Roman rule. Runs the forge; apprentice Apana; owes spearheads to the chefe.",
+  "personality": [
+    "patient with apprentices",
+    "suspicious of strangers",
+    "proud of craft",
+    "direct"
+  ],
+  "beliefs": [
+    "Good ironwork is duty",
+    "The grove at the edge is not for idle talk",
+    "Strangers earn trust slowly"
+  ],
+  "locks": [
+    "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
+    "Persona chrome is not Subject.kind",
+    "Fog node and desk external_assistant are not this Subject",
+    "No LLM in Phase 2 \u2014 deterministic routine only"
+  ],
+  "speech_lines": {
+    "greet_stranger": "Speak your need. The forge is hot.",
+    "need_charcoal": "I am short on charcoal. Bring some to the forge.",
+    "thanks_charcoal": "The charcoal helps. The chefe still waits on spears.",
+    "working": "The iron waits. Leave me to it.",
+    "sleep": "Night takes the forge."
+  }
+}

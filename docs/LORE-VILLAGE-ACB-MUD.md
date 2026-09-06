@@ -198,9 +198,17 @@ Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA fauc
 
 Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
 
+## Phase 2 — deterministic Boutius (landed)
+
+- Persona: [`contracts/mud/olissippo-persona-boutius.json`](../contracts/mud/olissippo-persona-boutius.json)
+- Runtime: [`src/olissippo_boutius.py`](../src/olissippo_boutius.py) — routine ticks, **no LLM**
+- **ACB ≠ NFT:** `subject_id=acb-oli-boutius-001`, `kind=acb`, `is_nft=false` — never `object_id`
+- Charcoal/spears remain **Objects**; Boutius **holds** charcoal in Subject runtime, does not become an Object
+- Tests: `src/test_olissippo_boutius.py`
+
 ## Phase 1 machine graph (landed)
 
 - Graph: [`contracts/mud/olissippo-world.json`](../contracts/mud/olissippo-world.json)
 - Loader: [`src/olissippo_world.py`](../src/olissippo_world.py) — `validate_move`, `objects_at`, `numen_at`
 - Tests: `src/test_olissippo_world.py` (wired in `protocol-invariants`)
-- Next: Phase 2 deterministic Boutius routine (no LLM)
+- Next: Phase 3 Ollama JSON decide → validate → execute

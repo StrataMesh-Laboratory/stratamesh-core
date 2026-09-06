@@ -16,7 +16,7 @@
     "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
     "deed": "Ownership deed NFT (still Object.kind=object|\u2026) for virtual|financial|physical underlyings. Tokenised into Subject account via international legal custodianship; cold storage may bind token validity. Generalises parcel ownership_title off-world. Not a closed macro-category ceiling. See docs/NFT-MACRO-CATEGORIES.md.",
     "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation.",
-    "lore_olissippo": "Not-main Virtual Domain lore-olissippo-lusitanian. Location graph + seed Objects in contracts/mud/olissippo-world.json. Numina = institutional hooks; Subjects walk via validated move; magic = finite rite verbs."
+    "lore_olissippo": "Not-main Virtual Domain lore-olissippo-lusitanian. Location graph + seed Objects in olissippo-world.json. Boutius (Phase 2) is Subject.kind=acb \u2014 ACB \u2260 NFT \u2260 Object. Numina = institutional hooks; magic = finite rite verbs."
   },
   "tables": {
     "Subject": {
@@ -35,7 +35,8 @@
         "SCA/ACB are subjects not objects",
         "Subjects own/operate objects; subjects are never rows in Object",
         "Fog node is infrastructure \u2014 no Subject row for the Node",
-        "Desk external_assistant agents are not SCA/ACB"
+        "Desk external_assistant agents are not SCA/ACB",
+        "Olissippo Boutius and all lore ACBs are Subject rows \u2014 never Object / object_id / NFT"
       ],
       "aliases": [
         "Account"

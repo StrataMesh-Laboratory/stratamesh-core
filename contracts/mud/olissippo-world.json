@@ -309,5 +309,19 @@
     "provision": true,
     "table": "OrigineDraft",
     "mvp_empty": true
+  },
+  "subject_seeds": [
+    {
+      "subject_id": "acb-oli-boutius-001",
+      "kind": "acb",
+      "persona_ref": "contracts/mud/olissippo-persona-boutius.json",
+      "spawn_location_id": "smithy",
+      "not_object": true,
+      "not_nft": true
+    }
+  ],
+  "phase": {
+    "1": "landed",
+    "2": "deterministic_boutius"
   }
 }
