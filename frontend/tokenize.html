@@ -318,16 +318,18 @@
       return "other";
     }
     function kindLabel(it) {
-      if (it.kind === "lot") return "lot STRATA";
+      if (it.kind === "lot") return "lote de troca";
+      if (it.kind === "parcel") return "terreno";
       if (it.kind === "room") return "sala";
       if (it.kind === "bundle") return "mundo aberto";
-      if (it.contrato) return "contrato";
+      if (it.template === "furniture") return "mobiliário";
+      if (it.contract || it.contrato) return "em curso";
       return "objecto";
     }
     function stateChip(it) {
-      if (it.kind === "lot") return "lot";
-      if (it.contrato) return it.deployed ? "A correr" : "Repouso";
-      return it.deployed ? ("desdobrado · " + it.dest) : "no catálogo";
+      if (it.kind === "lot") return "para troca";
+      if (it.contract || it.contrato) return it.deployed ? "A correr" : "Repouso";
+      return it.deployed ? "no sandbox" : "no catálogo";
     }
     function fillUl(ul, arr, emptyTxt) {
       ul.innerHTML = "";
@@ -343,8 +345,7 @@
         var title = it.name || kind;
         if (it.id === "obj-lab-land-bundle") title = "CMN Open World #1";
         li.innerHTML = "<strong>" + title + "</strong> <span class=\"chip\">" + kind + "</span>" +
-          (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") +
-          "<div class=\"id\">" + it.id + "</div>";
+          (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") ;
         li.onclick = function () { sel = it.id; paintList(); paintDet(); };
         ul.appendChild(li);
       });
