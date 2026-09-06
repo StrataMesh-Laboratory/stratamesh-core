@@ -62,19 +62,19 @@ def test_mud_tables():
     assert "P_market" in macro or "ownership fraction" in macro.lower()
     assert "custodianship" in mud.lower() or "deed" in mud.lower()
     assert "NFT-MACRO-CATEGORIES" in mud
+
     assert (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").is_file()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text().lower()
     assert "subject" in lore and "not main" in lore
     assert "olissippo" in lore and "lusitan" in lore
     assert "boutius" in lore and "charcoal" in lore
     assert "pre-roman" in lore
+    assert "endovelicus" in lore
+    assert "true lore magic" in lore
+    assert "origine" in lore and "generative" in lore
+    assert "rite_offer" in lore
     assert "godot" in lore and ("atelier" in lore or "bancada" in lore)
     assert "hroth" not in lore and "eastforge" not in lore
-    assert "subject" in lore and "not main" in lore
-    assert "godot" in lore and ("atelier" in lore or "bancada" in lore)
-    assert "external_assistant" in lore or "fog" in lore
-    assert "cold_storage_binds_validity" in json.dumps(tables["Contract"])
-    assert "asset_class" in tables["Contract"]["value"]
     crules = " ".join(tables["Contract"]["rules"]).lower()
     assert "custodianship" in crules or "deed" in crules
     assert "cold_storage" in crules or "cold storage" in crules

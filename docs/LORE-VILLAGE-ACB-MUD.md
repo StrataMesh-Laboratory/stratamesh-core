@@ -2,25 +2,24 @@
 
 **Status:** Lab design note for a **lore Virtual Domain / Open World** (not main / not TRD mainnet).  
 **Setting:** Pre-Roman **Lusitanian village on the Tagus** — **Olissippo** (Olisipo) lore, centuries before Roman municipal Lisbon.  
+**Myth:** Local Lusitanian cult and numina are **true lore magic** inside this realm (not metaphor, not “superstition flags”).  
 **Source:** external “Minimal ACB MUD” prospectus (continuity MVP), ontology-filtered.  
 **Parents:** [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`OSS-PASS-ATELIER-MUD-OZ.md`](./OSS-PASS-ATELIER-MUD-OZ.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md) · [`UI-LOCALE-CPLP.md`](./UI-LOCALE-CPLP.md)
 
-**Honesty:** This is **lab lore** inspired by the Tagus estuary settlement later called Olisipo — not a claim of archaeological reconstruction, not fantasy dwarves/elves, not Roman forum Lisbon.
+**Honesty:** Lab lore inspired by the Tagus estuary settlement later called Olisipo — not archaeological reconstruction, not fantasy dwarves/elves, not Roman forum Lisbon. Mythic names below are **realm-true** for play; they are not claims about historical ritual practice.
 
 ---
 
 ## 0. Verdict in one line
 
-**Keep** the continuity proof (same ACB across days, memory, autonomous life while the human is away, server-authoritative world, LLM-advisory).  
-**World chrome:** one hill-and-quay Lusitanian village at **Olissippo**, where **human and ACB Subjects play as equals** — not NPCs, not Fog nodes.
+**Keep** the continuity proof (same ACB across days, memory, autonomy while the human is away, server-authoritative world, LLM-advisory).  
+**World:** hill-and-quay **Olissippo** where **human and ACB Subjects play as equals**, and Lusitanian myth **works** as world rules — with **provisions** so later free-generative *origines* can expand cult, places, and tales without breaking ontology.
 
 ---
 
 ## 1. Setting — Olissippo lore (MVP map)
 
 **Realm label (eng):** `lore-olissippo-lusitanian` · **PT UI:** Aldeia de Olissippo (pré-romana).
-
-One village, 8–12 locations (enough to walk and remember):
 
 | Location (eng docs) | PT UI sense | Role |
 |---------------------|-------------|------|
@@ -32,162 +31,169 @@ One village, 8–12 locations (enough to walk and remember):
 | Open market | Feira | Barter / soft coin |
 | Cattle pens | Currais | Herd wealth |
 | Watch on the wall | Posto da muralha | Tongius’s beat |
-| Sacred grove (edge) | Bosque limiar | Quiet / taboo — no combat MVP |
+| Sacred grove (edge) | Bosque limiar | **True** cult ground — taboo + magic (§2) |
+| Spring / well | Fonte | Water; may carry Nabia’s favour |
 | East track to scrub | Caminho do mato | Navia’s supply route |
-| Spring / well | Fonte | Daily water |
 | Apprentice yard | Pátio da aprendiz | Apana’s practice |
+| Shrine niche (hall) | Nichos do culto | Small offerings — Endovelicus / Bandua / Ataegina as realm allows |
 
-**Time:** accelerated day/night; routines tied to light, heat of the forge, tide at the quay (flavour only in MVP — clock is still a simple integer day+minute).
+**Time:** accelerated day/night; forge heat and quay tide as flavour on a simple day+minute clock.
 
-**Do not begin with:** Roman legion arcs, full Lusitanian wars, Viriathus biography as playable canon, procedural Iberia, or temple combat.
-
----
-
-## 2. What the suggestor gets right (adopt)
-
-| Idea | Why it fits |
-|------|-------------|
-| Continuity test (Day 1 fuel → Day 2 recall) | Proves **Subject** persistence, not chat theatre |
-| Server-authoritative world; LLM proposes actions | Matches Fog: rules execute; model advises |
-| Finite action vocabulary + JSON decisions | Debuggable; safe on 8GB Ollama |
-| Event memory validated by server | Same honesty as catalog/object mutations |
-| Hybrid scheduler | metabol_pace — don’t burn tokens on “walk to the quay” |
-| Phased build | Same RCA/prove discipline as desk |
-| LLM ≠ world ≠ entire identity | Persona + DB + scheduler + engine |
-| Small world (~5 ACB Subjects) | Lab honesty |
-| No combat / continents / quest factory in MVP | Correct scope |
+**Do not begin with:** Roman legion arcs, full Lusitanian wars as campaign, Viriathus as mandatory canon, procedural Iberia, free-form spell invent from the LLM.
 
 ---
 
-## 3. Ontology corrections (must change)
+## 2. True lore magic (Lusitanian myth as world law)
 
-### 3.1 Players are Subjects — both kinds
+Inside `lore-olissippo-lusitanian`, the old powers are **real**. Healings, omens, grove bans, and favours are **Environment / Institution rules** executed by the server — not chat flavour and not Subject inventory of “god NPCs.”
+
+### 2.1 Numina (realm cast — not player Subjects)
+
+| Name (eng docs) | PT UI | Domain in this lore | MVP expression (server) |
+|-----------------|-------|---------------------|-------------------------|
+| **Endovelicus** | Endovélico | Healing, underworld threshold, true dreams | Grove/shrine: `rite_heal` / `rite_dream` may alter SubjectRuntime (energy, status) if offering Object valid |
+| **Ataegina** | Ataégina | Rebirth, flock/field cycle, underworld return | Seasonal ticks; rare `rite_renew` on herds/fields Objects |
+| **Bandua** | Bandua | Community protection, war-band oath | Wall/watch: `oath_bandua` buffs patrol cohesion (SubjectEdge), not free PvP win |
+| **Nabia** | Nábia | Waters, springs, river favour | Fonte/cais: water quality / safe crossing flags |
+| **Reue / Reve** | Reue | Sky / mountain weather (local) | Weather event bus — rain/heat affecting forge and travel |
+| **Trebaruna** | Trebaruna | Home, domestic peace | Guest-house hearth: rest quality while under roof |
+
+Gods / numina are **not** `Subject` rows and **not** Fog nodes. They are **institutional forces** with scripted hooks. Optional later: a cult **Object** (idol, oath-stone) with `ownership_title` or soft deed — still an Object.
+
+### 2.2 Magic is server-authoritative
+
+Same rule as coal and spears:
+
+- LLM may **intend**: `{ "action": "rite_offer", "numen": "endovelicus", "item_id": "…" }`
+- Server checks location (grove/shrine), offering Object, taboo state, cooldown
+- Server applies or rejects; memory records what **actually** happened
+
+**Finite magic vocabulary (MVP add-ons):** `rite_offer` · `rite_heal` · `rite_dream` · `oath_bandua` · `consult_omen`  
+No arbitrary “I cast …” strings. Expand the verb list when proving a new rite — never open free generative *effects* without a schema.
+
+### 2.3 Grove taboo (example world law)
+
+- Entering the bosque limiar with drawn iron without rite → server `taboo_breach` event (fear/status), not LLM invention  
+- Valid offering at the niche → may clear breach or grant Endovelicus favour token (status on SubjectRuntime or a small Object)
+
+---
+
+## 3. Provisions for free generative *origines*
+
+**Origines** = generative expansions of origin-tales, epithets, micro-places, and side cults — allowed later **without** rewriting Subject–Object law.
+
+| Provision | Rule |
+|-----------|------|
+| **Canon core vs generative shell** | Versioned `PersonaLore` + fixed numina table (§2.1) = **canon**. Generative layer may propose *origines* (epithets, local spirit nicknames, trail shrines) into a **staging** store |
+| **Admit path** | Generative text never mutates world state directly. Pipeline: propose → server/schema validate → optional human or collegium admit → then WorldEvent / location / soft lore doc |
+| **Ontology firewall** | Generators must not mint Subjects, collapse gods into ACBs, mint STRATA, or invent Object kinds outside mud tables |
+| **Magic firewall** | New rites require a new **validated action verb** + effect table row — generative prose alone cannot add effects |
+| **Culture tag** | `culture_tag='lusitanian_olissippo'`; generative origines inherit the tag or are rejected |
+| **Locale** | PT-PT UI for CPLP; eng docs international English; generative PT/EN mirrors must not invent technical jargon in chrome |
+| **Not main** | All origines stay inside the lore Virtual Domain until an explicit promote path exists |
+
+MVP ships **without** the generative loop on — only the **hooks** (staging table name, admit flag, culture_tag). Continuity demo must not depend on free generation.
+
+Suggested staging shape (future):
+
+```
+OrigineDraft   id, realm, culture_tag, kind(epithet|place|tale|rite_sketch),
+               body, source(generative|human), status(staged|admitted|rejected)
+```
+
+---
+
+## 4. Ontology corrections (must change)
 
 | Suggestor | StrataMesh · Olissippo |
 |-----------|------------------------|
-| Humans vs ACBs as NPC cast | **Equal Subject players** (`user` \| `sca` \| `acb`) |
-| Dwarven / fantasy species row | **Lore persona** only — Lusitanian villager, craft, kin ties. No `Subject.species` |
-| Fog / desk Hermes as villager | **Forbidden** — infrastructure / `external_assistant` ≠ SCA/ACB |
+| Humans vs ACBs as NPCs | Equal **Subject players** |
+| Fantasy species / dwarves | Lusitanian **persona** only |
+| Gods as chat NPCs | **Institution / environment** — true magic via server rites |
+| Fog / desk Hermes as villager | Forbidden |
+| Free LLM magic | Forbidden — finite rite verbs + provisions for origines (§3) |
 
-**Rule:** An ACB Subject may wear the persona **Boutius the smith**; charcoal and spearheads are **Objects**. Boutius is not inventory.
-
-### 3.2 Objects vs Subjects vs Lots vs Institutions
-
-| Village thing | Layer |
-|---------------|-------|
-| Charcoal, iron blooms, spearheads, fish, salt, tools | **Objects** |
-| Soft pay (silver bits, cattle-count, lore aes) | **Balance** (lore soft currency and/or lab L-STRATA) — not NFT, not Subject. No faucet |
-| Market trade lots | **Lot** if fungible bundles |
-| Title to forge shed / guest house | Optional **ownership_title** / deed Object |
-| Chefe’s spear order | Soft commitment first; optional later `spa_aps` execution Object |
-| Chefe’s hall, market custom, grove taboo | **Institutions** / world rules |
-| Olissippo map + clock | **Environment** (Virtual Domain) — **not main** |
-
-### 3.3–3.5 Relationships, memory, holonic
-
-- Social trust = **Subject ↔ Subject** (not OwnershipFraction).  
-- Memory on **`subject_id`**.  
-- Holonic: sandbox → open_world ⊂ virtual_realm — lore only.
+Objects: charcoal, iron, spearheads, fish, salt, offerings.  
+Balance: lore soft coin / barter / L-STRATA transfer — no faucet.  
+Social trust: Subject↔Subject. Ownership fractions: separate.
 
 ---
 
-## 4. Stack recast
+## 5. Stack recast
 
-| Suggestor | StrataMesh lab path |
-|-----------|---------------------|
-| Godot 2D MUD | Fog python + mud tables; **Bancada / GNU Atelier** as window |
-| `acbs` + species | `Subject` + versioned `PersonaLore` (Olissippo) |
-| Ollama | Mac Fog, metabol_pace, staggered ticks |
-| Gold | Lore soft coin / barter / L-STRATA transfer — zero mint |
+Fog python + mud tables; Bancada / GNU Atelier as window; Ollama under metabol_pace; no Godot fork unless chartered.
 
 ---
 
-## 5. Continuity scenario — Olissippo
+## 6. Continuity scenario — Olissippo
 
-**Day 1.** A human Subject walks the hill enclosure and meets an ACB Subject whose persona is **Boutius**, smith of Olissippo. Boutius is short of **charcoal** for the chefe’s spear order. The player sells charcoal (Object). Server stores transaction, episodic memory, SubjectEdge delta.
+**Day 1.** Human Subject meets ACB Subject **Boutius** (smith). Short of **charcoal** for the chefe’s spear order. Player sells charcoal. Optional: small offering at the hall niche (Object) — only if server accepts `rite_offer`. Memory + SubjectEdge stored.
 
-**Day 2.** Same `subject_id`. While the human was away, Boutius’s ticks: opened the forge, worked metal, bought more charcoal, remembered the visitor. He might say (PT UI later; eng docs for now):
+**Day 2.** Same `subject_id`. Autonomous ticks: forge, charcoal, spears; may have kept grove taboo. Speech cites **stored** memory, e.g.:
 
 > “You again. The charcoal you brought saved yesterday’s work. The chefe still waits on spears.”
 
-That proves: identity → memory → time → autonomy → world consequences → continuity — as **Subject**, in **Olissippo lore**.
-
 ---
 
-## 6. Minimal schema (unchanged shape)
+## 7. Schema (MVP + hooks)
 
 ```
 Subject          subject_id, kind(user|sca|acb), …
 PersonaLore      subject_id, display_name, biography, personality, beliefs,
-                 home_location, culture_tag='lusitanian_olissippo', version
-SubjectRuntime   subject_id, location, energy, hunger, current_goal, …
+                 home_location, culture_tag, version
+SubjectRuntime   subject_id, location, energy, hunger, current_goal,
+                 status_flags  -- e.g. bandua_oath, endovelicus_favour, taboo_breach
 MemoryEvent      id, subject_id, ts, type, summary, importance
 SubjectEdge      a_id, b_id, trust, familiarity
 WorldEvent       id, ts, type, data
-Object / Lot / Contract / …   -- mud tables when economy hardens
+NumenHook        numen_id, location_ids, rite_verbs, effect_table_ref
+OrigineDraft     …  -- provision only; empty in MVP
+Object / Lot / Contract / …
 ```
 
-Actions: `wait|move|say|buy|sell|work|eat|sleep|inspect|follow`.
+Actions (mundane): `wait|move|say|buy|sell|work|eat|sleep|inspect|follow`  
+Actions (magic MVP): `rite_offer|rite_heal|rite_dream|oath_bandua|consult_omen`
 
 ---
 
-## 7. Five opening personas (Olissippo)
-
-Each row = **ACB Subject** (or human Subject) + **Lusitanian lore persona** — not a fantasy race table.
+## 8. Five opening personas
 
 | Persona | Role | Primary goal | Demonstrates |
 |---------|------|--------------|--------------|
-| **Boutius** | Smith (oficina do ferro) | Finish the chefe’s spear order | Work, trade, memory |
-| **Camala** | Guest-house keeper (cais) | Keep the hearth fed and solvent | Economy, social |
-| **Apana** | Smith’s apprentice | Learn the forge | Mentorship (Subject↔Subject) |
-| **Tongius** | Wall watch | Keep the enclosure safe | Patrol, events |
-| **Navia** | River trader | Keep Tagus supply routes | Travel, trade, relationships |
+| **Boutius** | Smith | Chefe’s spear order | Work, trade, memory |
+| **Camala** | Guest-house (Trebaruna’s roof) | Hearth solvent | Economy, social |
+| **Apana** | Apprentice | Learn the forge | Mentorship |
+| **Tongius** | Wall watch (Bandua) | Enclosure safe | Patrol; optional oath |
+| **Navia** | River trader (Nabia’s water-roads) | Supply routes | Travel, trade |
 
-**Persona lock (Boutius example — versioned lore doc, not casual prompt drift):**
-
-- You live in Olissippo, a Lusitanian hill-and-quay village on the Tagus, before Roman rule.  
-- You are a smith; you are not a Roman magistrate, not a medieval knight, not a dwarf.  
-- Good ironwork is duty; strangers earn trust slowly; the grove at the edge is not for idle talk.  
-- Current life: forge, apprentice Apana, spear debt to the chefe, need charcoal.  
-- Rules: no invented physical actions; no knowing what the server did not show; speak as Boutius.
-
-Product UI (CPLP): PT-PT names and place labels; eng docs stay international English.
+Boutius persona lock: Lusitanian Olissippo smith; not Roman magistrate; not dwarf; grove not for idle iron; server-grounded speech only.
 
 ---
 
-## 8. Phased plan
+## 9. Phases
 
-| Phase | Deliverable |
-|-------|-------------|
-| 1 | Olissippo location graph + Object items; Subject can walk |
-| 2 | Deterministic Boutius (routine, no LLM) |
-| 3 | Ollama JSON decide → validate → execute |
-| 4 | MemoryEvent + SubjectEdge across restart |
-| 5 | Five personas, staggered scheduler |
-| 6 | Atelier/Bancada view of the village |
-| 7 | Continuity eval (§9) |
+1 World graph + Objects · 2 Deterministic Boutius · 3 Ollama JSON · 4 Memory · 5 Five personas · 6 Atelier view · 7 Continuity eval · **later:** OrigineDraft admit loop for free generative origines
 
 ---
 
-## 9. Success criteria
+## 10. Success criteria
 
-- [ ] Boutius `subject_id` is `kind=acb` (or sca) — never an Object  
-- [ ] Charcoal / spear mutations only via validated Object paths  
-- [ ] No “I took the spear” without server execute  
-- [ ] Desk assistants / Fog NODE never village Subjects  
-- [ ] Realm flagged **not main** (`lore-olissippo-lusitanian`)  
-- [ ] Setting stays pre-Roman Lusitanian Olissippo — no accidental Eastforge/dwarf chrome  
-- [ ] UI non-technical; eng docs international English  
-
----
-
-## 10. Out of MVP
-
-Suggestor’s list, plus: no STRATA faucet-as-gold; no backpack land parcels; no Roman conquest campaign; no Godot fork unless André charters it; no five full LLM ticks per second on 8GB.
+- [ ] Boutius is Subject (`acb`/`sca`), never Object  
+- [ ] Charcoal/spear/rite effects only via validated paths  
+- [ ] Numina never appear as Subject/Fog rows  
+- [ ] No free-form generative magic effects in MVP  
+- [ ] OrigineDraft provision exists (even if unused)  
+- [ ] Realm `lore-olissippo-lusitanian` **not main**  
+- [ ] No leftover northern-fantasy forge cast (prior draft chrome)  
 
 ---
 
-## 11. Bottom line
+## 11. Out of MVP
 
-Architecturally: continuity MVP for autonomous **Subjects**.  
-Narratively: **pre-Roman Lusitanian Olissippo** — hill, quay, forge, and memory — where users and ACBs play the same world, Fog supplies reality, Ollama advises, and charcoal brought yesterday still matters tomorrow.
+Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA faucet, backpack land, generative rites without schema.
+
+---
+
+## 12. Bottom line
+
+Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
