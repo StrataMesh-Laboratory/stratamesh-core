@@ -45,6 +45,9 @@ jobs:
       - name: Fog /status spa+dag pulse honesty (#148 #149)
         working-directory: src
         run: python3 test_status_pulse.py
+      - name: OSS PASS Atelier + MUD tables + OZ scaffold
+        working-directory: src
+        run: python3 test_oss_pass_mud_tables.py
       - name: User PAYG subsistence (registered dashboard, burn to #0)
         working-directory: src
         run: python3 test_user_payg.py
