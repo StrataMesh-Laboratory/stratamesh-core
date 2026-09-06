@@ -5,6 +5,15 @@ Mac host matrix (brew / Ollama / OpenClaw caps) = **Bot Mac lane**, not this shi
 
 Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 
+## Locks
+
+- Vendor Three locally; classic `<script>` only (no ESM Three on Safari).
+- Paint Bancada ASAP after size ≥ 64. No R3F.
+- Fungible STRATA mint is PoC-only. No faucet.
+- Parcels unmovable (trade title, not the dirt).
+- Fog / Edge matched casing (Névoa / Limiar).
+- No secrets in git.
+
 ## 1. Mac host (observe only)
 
 | Check | Lane | Status |

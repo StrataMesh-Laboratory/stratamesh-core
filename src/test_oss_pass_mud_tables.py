@@ -34,6 +34,14 @@ def test_atelier_vendor_three():
     assert "/vendor/three.min.js" in html
     assert "paintBancadaNow" in html
     assert "unpkg.com/three" not in html
+    assert "@react-three" not in html
+    assert "react-three-fiber" not in html
+    tok = (ROOT / "frontend/tokenize.html").read_text(errors="replace")
+    assert "unmovable: true" in tok
+    assert "faucet" not in tok.lower()
+    oz = (ROOT / "contracts/openzeppelin/ObjectRegistry.sol").read_text()
+    assert "workers.dev" not in oz
+    assert "NoStrataMint" in oz
 
 
 if __name__ == "__main__":
