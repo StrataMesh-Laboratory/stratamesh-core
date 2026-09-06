@@ -234,6 +234,26 @@ h1{font-size:13px}
 <script src="/atelier-quality.js?v=20260906q"></script>
 <script src="/vendor/three.min.js?v=20260903g"></script>
 <script>
+(function () {
+  try {
+    if (!/[?&]debug=1(?:&|$)/.test(String(location.search || ""))) return;
+    var s = document.createElement("script");
+    s.src = "/vendor/stats.min.js?v=20260906s";
+    s.onload = function () {
+      if (typeof Stats !== "function") return;
+      var st = new Stats();
+      st.showPanel(0);
+      st.dom.style.cssText = "position:fixed;top:0;left:0;z-index:80";
+      document.body.appendChild(st.dom);
+      window.__atelierStats = st;
+      (function loop() { st.update(); requestAnimationFrame(loop); })();
+    };
+    document.head.appendChild(s);
+  } catch (e) {}
+})();
+</script>
+
+<script>
 
 const CORE = "v0.5.1-session";
 const UI_LANG = (function(){

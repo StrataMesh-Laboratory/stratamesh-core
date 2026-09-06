@@ -46,6 +46,9 @@ def test_atelier_vendor_three():
     assert "AtelierQuality" in q
     assert "import " not in q
     assert "/atelier-quality.js" in html
+    assert (ROOT / "frontend/vendor/stats.min.js").is_file()
+    assert "stats.min.js" in html
+    assert "debug=1" in html
 
 
 if __name__ == "__main__":
