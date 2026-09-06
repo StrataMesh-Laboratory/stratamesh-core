@@ -16,7 +16,12 @@
     {
       "id": "specialization",
       "enforce": true,
-      "text": "Each member acts by best capability; specialty owner proposes and commits; peers may use the full verb set (act, audit, amend, revise, vote, refer, dispute, constrain) \u2014 propose is not the only move; peers do not take over another specialty's commit ownership."
+      "text": "Each member acts by best capability; specialty owner proposes and commits; peers may use the full verb set (act, audit, amend, revise, vote, refer, dispute, constrain) \u2014 propose is not the only move; peers do not take over another specialty's commit ownership. Ollama members (Hermes/OpenClaw/OpenCode) are equal specialists across domains; xAI Fog/EDGE do not outrank them as specialists \u2014 they report through STRATAGROK's lead/rep tier."
+    },
+    {
+      "id": "desk_org",
+      "enforce": true,
+      "text": "Automation Desk = six external_assistants. xAI tier is led by STRATAGROK Agent (not the human operator): Fog Assistant + EDGE Assistant are STRATAGROK subordinates/representatives in STRATAGROK's absence; STRATAGROK may solicit Fog/EDGE input and represents their will in desk decisions. Ollama tier: Hermes, OpenClaw, OpenCode are equal specialists; they deliberate collegially with domain authority; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK Agent. Andr\u00e9 (human) is escalate_to_andre only for Fog g / 2FA / captcha / Renovate majors \u2014 not desk lead. All six teach academy (orchestrator, AIOps, ACB students) and run/score daily exams \u2014 never enroll as students."
     },
     {
       "id": "bus",
@@ -66,7 +71,7 @@
     {
       "id": "ship_majority",
       "enforce": true,
-      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. After ACK majority: origin PUT required (ops/bin/cf-put-origin.py + d1-put-html / fund when intent matches) via desk_origin_put.put_live before task.shipped. Auto-ship when majority ACK AND metric bands in-band (desk_score\u226570, protocol_ok, claw fog_public=1 soft, no human_gate) \u2014 no Bot prompt required. NACK, out-of-band metrics, or PUT failure \u2192 escalate to STRATAGROK (do not mark shipped)."
+      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. After ACK majority: origin PUT required (ops/bin/cf-put-origin.py + d1-put-html / fund when intent matches) via desk_origin_put.put_live before task.shipped. Auto-ship when majority ACK AND metric bands in-band (desk_score\u226570, protocol_ok, claw fog_public=1 soft, no human_gate) \u2014 no Bot prompt required. NACK, out-of-band metrics, or PUT failure \u2192 escalate to STRATAGROK (do not mark shipped). Desk-proper decisions (affecting all six / academy mandate) additionally require agreement with STRATAGROK Agent (who may consult Fog/EDGE Assistants as representatives; not the human operator)."
     },
     {
       "id": "no_sca",
@@ -274,5 +279,6 @@
     ],
     "stratagrok_representative": true,
     "after_dispute": "prefer_stratagrok_act_before_andre_ping"
-  }
+  },
+  "desk_org_version": "2026-09-06"
 }

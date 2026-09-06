@@ -1,11 +1,25 @@
-# Bots / peers (not SCA)
+# Bots / peers (not SCA) — Automation Desk roster
 
-In Hermes **Bots** tab, treat these as desk tooling labels:
+All six are **external_agent|assistant**. Never academy students.
 
-| Bot label | Id | Role |
-|-----------|-----|------|
-| Hermes | hermes@fog.calhegasmorais.pt | external_agent (this app) |
-| OpenCode | opencode@fog.calhegasmorais.pt | external_agent |
-| OpenClaw | openclaw@fog.calhegasmorais.pt | external_agent |
+## xAI provider — led by STRATAGROK Agent (not André)
 
-Do not enroll as academy students. Academy lists them under not_students.
+| Label | Id | Role |
+|-------|-----|------|
+| STRATAGROK | stratagrok / grok@ | **Desk lead agent** — leads xAI section; represents Fog+EDGE; agreement gate for desk-proper |
+| FOG Assistant | fog-assistant | STRATAGROK subordinate/representative in STRATAGROK's absence (Fog rail) |
+| EDGE Assistant | edge-assistant | STRATAGROK subordinate/representative in STRATAGROK's absence (EDGE rail) |
+
+André (human) = Fog `g` / 2FA / captcha / Renovate majors only — **not** desk lead.
+
+## Ollama provider (equal specialists)
+
+| Bot label | Id | Domain |
+|-----------|-----|--------|
+| Hermes | hermes@fog.calhegasmorais.pt | coord — equal specialist |
+| OpenClaw | openclaw@fog.calhegasmorais.pt | claw/hops — equal specialist |
+| OpenCode | opencode@fog.calhegasmorais.pt | code/tests — equal specialist |
+
+Collegial deliberation among Ollama specialists by domain; desk-proper decisions need **peer consensus + STRATAGROK Agent agreement**.
+
+Academy: all six teach orchestrator / AIOps / ACB students and grade exams.

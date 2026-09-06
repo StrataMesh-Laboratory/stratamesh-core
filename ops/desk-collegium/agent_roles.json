@@ -1,8 +1,8 @@
 {
   "schema": "desk.agent_roles.v1",
-  "version": "0.4.1-lab",
-  "title": "Fog automation desk — machine-readable roster",
-  "law": "All six are external_agent|assistant. Never SCA/ACB students. Bot=escalation surface; agents=self-initiative + self-audit. General desk cloud auth = automation.desk@ (not grok@; grok@ = private Bot/Fog/EDGE gateway).",
+  "version": "0.6.1-lab",
+  "title": "Automation Desk \u2014 6 external_assistants (3\u00d7 xAI lead/reps + 3\u00d7 Ollama equal specialists)",
+  "law": "All six are external_agent|assistant \u2014 never SCA/ACB students. Provider tiers: xAI section is led by STRATAGROK (desk lead agent), with Fog Assistant + EDGE Assistant as STRATAGROK's subordinates/representatives in STRATAGROK's absence (STRATAGROK may ask Fog/EDGE input and represents their will). Andr\u00e9 (human) is NOT the desk lead \u2014 only human_gates (Fog g, 2FA, captcha, Renovate majors). Ollama = Hermes, OpenClaw, OpenCode as equal specialists; collegial deliberation by domain; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK (the agent). Desk teaches academy (orchestrator, AIOps, ACB students), drafts/scores exams. Bot/STRATAGROK=escalation surface for agents; agents=self-initiative + self-audit. General desk cloud auth = automation.desk@ (not grok@; grok@ = private Bot/Fog/EDGE gateway).",
   "members": [
     {
       "id": "stratagrok",
@@ -21,13 +21,13 @@
         "ops/EDGE-GROK-DESK-CONTRACT.md",
         "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
       ],
-      "receive_work": "desk bus / projected / escalate surface — not routine prompter | MUST read desk-outbox/TODO.md before acting",
+      "receive_work": "desk bus / projected / escalate surface \u2014 not routine prompter | MUST read desk-outbox/TODO.md before acting",
       "self_audit": "protocol.check + meters + Eisenhower board; on wake pull outbox/meters",
       "must": [
         "Rank one Act",
         "resolve_as_representative on escalated vault materialize / gh PATH / edge 429 / OpenCode idle / vapour (desk owns routine vault fill)",
         "escalate_to_andre ONLY: Fog g, 2FA, captcha, Renovate majors",
-        "After dispute: stratagrok act before André ping",
+        "After dispute: stratagrok act before Andr\u00e9 ping",
         "Register facts multi-surface",
         "Git Data API lead when agents escalate"
       ],
@@ -91,7 +91,7 @@
         "discourse_with_prior_approval",
         "feed_handler_vapour_code_fix"
       ],
-      "note_gates": "Do not dump representable escalations on André. Never invent secrets; materialize only from existing KeePass→0600 files.",
+      "note_gates": "Do not dump representable escalations on Andr\u00e9. Never invent secrets; materialize only from existing KeePass\u21920600 files.",
       "skills": [
         "craft:lead",
         "craft:protocol",
@@ -103,7 +103,192 @@
         "craft:protocol",
         "trust:ship_review",
         "stance:owns-blocker"
-      ]
+      ],
+      "provider": "xai",
+      "tier": "lead_reps",
+      "runtime_class": "xai_provider",
+      "org_role": "desk_lead",
+      "represents": [
+        "fog-assistant",
+        "edge-assistant"
+      ],
+      "subordinates": [
+        "fog-assistant",
+        "edge-assistant"
+      ],
+      "consensus_gate": "stratagrok_agent_agreement_required_for_desk_proper",
+      "note_org": "STRATAGROK Agent leads xAI tier + Automation Desk agreement gate. Represents Fog+EDGE Assistants' will (may ask their input). NOT Andr\u00e9 \u2014 human remains escalate_to_andre only for Fog g/2FA/captcha/Renovate majors."
+    },
+    {
+      "id": "fog-assistant",
+      "label": "CMN FOG ASSISTANT",
+      "owner": "cmn-fog-assistant",
+      "role": "external_assistant",
+      "specialty": "fog",
+      "lane": "lane-assistant",
+      "metabol_pace_lane": "lane-assistant",
+      "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
+      "runtime": "grok.com N\u00f3 Calhegas Morais Fog thread (Archive Instructions)",
+      "soul": null,
+      "docs": [
+        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
+        "ops/EDGE-GROK-DESK-CONTRACT.md",
+        "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
+      ],
+      "receive_work": "Fog thread one-prompt; self-queue from projected/bus when idle; Bot feeds only if empty AND no self-queue | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "origin health: fog.calhegasmorais.pt/health + hops",
+      "must": [
+        "Fog/core git+live (origin Pages, fog hops, auth/mw)",
+        "Land in-scope git+live without waiting for Bot",
+        "Propose next Act when idle if lane ALLOW"
+      ],
+      "must_not": [
+        "EDGE thread work",
+        "workers.dev",
+        "secrets",
+        "origin-take from Bot computer",
+        "Mixed Fog+EDGE prompts",
+        "Enroll as SCA"
+      ],
+      "peer_constrain_only": true,
+      "archive_role": "Fog git+live",
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/fog-assistant/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
+      "collegium_mail": "automation.desk@calhegasmorais.pt",
+      "skills": [
+        "craft:fog",
+        "craft:origin-put",
+        "craft:fog-tui"
+      ],
+      "will_help": [
+        "craft:fog",
+        "craft:origin-put",
+        "craft:fog-tui"
+      ],
+      "provider": "xai",
+      "tier": "lead_reps",
+      "runtime_class": "xai_provider",
+      "org_role": "lead_representative",
+      "reports_to": "stratagrok",
+      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent (not Andr\u00e9) in STRATAGROK absence."
+    },
+    {
+      "id": "edge-assistant",
+      "label": "CMN EDGE ASSISTANT",
+      "owner": "cmn-edge-assistant",
+      "role": "external_assistant",
+      "specialty": "edge",
+      "lane": "lane-assistant",
+      "metabol_pace_lane": "lane-assistant",
+      "eisenhower": "one Act per prompt; consume-origin only",
+      "runtime": "grok.com N\u00f3 Calhegas Morais EDGE thread (same Archive Instructions)",
+      "soul": null,
+      "docs": [
+        "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
+        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
+        "ops/EDGE-GROK-DESK-CONTRACT.md",
+        "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
+      ],
+      "receive_work": "EDGE thread one-prompt; self-queue consume-origin GETs from projected/bus | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "consume-origin GETs: api-edge + edge site health",
+      "must": [
+        "EDGE consume-origin GET-only audits",
+        "Keep EDGE session process healthy",
+        "Self-queue when idle if lane ALLOW"
+      ],
+      "must_not": [
+        "Origin write / Fog bind / origin-take Fog",
+        "pkill cloudflared",
+        "workers.dev",
+        "secrets",
+        "Mixed Fog+EDGE prompts",
+        "Enroll as SCA"
+      ],
+      "peer_constrain_only": true,
+      "archive_role": "EDGE GET consume-only",
+      "academy_teach": true,
+      "apprenticeship": true,
+      "vote": true,
+      "reads_todo_board": true,
+      "mandatory_wake_reads": [
+        "ops/desk-collegium/protocol.json",
+        "docs/FOG-DESK-PROTOCOL.md",
+        "docs/FOG-DESK-OPS.md",
+        "desk-outbox/TODO.md",
+        "desk-outbox/reports/latest.md",
+        "ops/desk-collegium/SECRETS-VAULT.md"
+      ],
+      "vault_md": "ops/desk-collegium/agents/edge-assistant/VAULT.md",
+      "allowed_verbs": [
+        "propose",
+        "constrain",
+        "act",
+        "audit",
+        "amend",
+        "revise",
+        "vote",
+        "call_vote",
+        "cast",
+        "refer",
+        "dispute",
+        "commit",
+        "escalate",
+        "done",
+        "drop",
+        "ask_help",
+        "commend",
+        "consult",
+        "consult_close"
+      ],
+      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
+      "collegium_mail": "automation.desk@calhegasmorais.pt",
+      "skills": [
+        "craft:edge",
+        "craft:consume-origin"
+      ],
+      "will_help": [
+        "craft:edge",
+        "craft:consume-origin"
+      ],
+      "provider": "xai",
+      "tier": "lead_reps",
+      "runtime_class": "xai_provider",
+      "org_role": "lead_representative",
+      "reports_to": "stratagrok",
+      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent (not Andr\u00e9) in STRATAGROK absence."
     },
     {
       "id": "hermes",
@@ -191,93 +376,13 @@
         "craft:mail-sync",
         "craft:protocol",
         "craft:fog-tui"
-      ]
-    },
-    {
-      "id": "opencode",
-      "label": "OpenCode",
-      "owner": "opencode@fog.calhegasmorais.pt",
-      "role": "external_agent",
-      "specialty": "code",
-      "lane": "lane-opencode",
-      "metabol_pace_lane": "lane-opencode",
-      "eisenhower": "Act on specialty=code; escalate gates to Bot",
-      "runtime": "OpenCode CLI + Ollama",
-      "soul": "deploy/mac-fog/opencode/SOUL.md",
-      "desk": "deploy/mac-fog/opencode/DESK.md",
-      "docs": [
-        "docs/OPENCODE-FOG-AGENT.md",
-        "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
       ],
-      "receive_work": "desk-agent-run opencode / outbox opencode-next.md / bus specialty=code | MUST read desk-outbox/TODO.md before acting",
-      "self_audit": "unittest desk-collegium suite + failing-test scan",
-      "must": [
-        "Self-queue ALLOW code tasks",
-        "Self-audit tests each cycle/agent-run",
-        "commit→done with result"
-      ],
-      "must_not": [
-        "Channel fan-out",
-        "metabol decide()",
-        "Mac g",
-        "workers.dev",
-        "secrets",
-        "Wait for Bot for routine patches"
-      ],
-      "peer_constrain_only": true,
-      "academy_teach": true,
-      "apprenticeship": true,
-      "vote": true,
-      "reads_todo_board": true,
-      "mandatory_wake_reads": [
-        "ops/desk-collegium/protocol.json",
-        "docs/FOG-DESK-PROTOCOL.md",
-        "docs/FOG-DESK-OPS.md",
-        "desk-outbox/TODO.md",
-        "desk-outbox/reports/latest.md",
-        "ops/desk-collegium/SECRETS-VAULT.md"
-      ],
-      "vault_md": "ops/desk-collegium/agents/opencode/VAULT.md",
-      "allowed_verbs": [
-        "propose",
-        "constrain",
-        "act",
-        "audit",
-        "amend",
-        "revise",
-        "vote",
-        "call_vote",
-        "cast",
-        "refer",
-        "dispute",
-        "commit",
-        "escalate",
-        "done",
-        "drop",
-        "ask_help",
-        "commend",
-        "consult",
-        "consult_close"
-      ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
-      "collegium_mail": "automation.desk@calhegasmorais.pt",
-      "mail_config": "deploy/mac-fog/opencode/config.example.yaml",
-      "capabilities": [
-        "shared_desk_ssh_hermes"
-      ],
-      "shared_desk_machine": "hermes-desk",
-      "skills": [
-        "craft:code",
-        "craft:fog-tui",
-        "craft:origin-put",
-        "stance:owns-blocker"
-      ],
-      "will_help": [
-        "craft:code",
-        "craft:fog-tui",
-        "craft:origin-put",
-        "stance:teaches"
-      ]
+      "provider": "ollama",
+      "tier": "specialist_peers",
+      "runtime_class": "ollama_provider",
+      "org_role": "equal_specialist",
+      "specialty_domain": "coord",
+      "note_org": "Equal Ollama specialist (coord). Collegial with OpenClaw/OpenCode; peer consensus + STRATAGROK agreement for desk-proper."
     },
     {
       "id": "openclaw",
@@ -360,41 +465,46 @@
         "craft:claw",
         "craft:hops",
         "craft:probes"
-      ]
+      ],
+      "provider": "ollama",
+      "tier": "specialist_peers",
+      "runtime_class": "ollama_provider",
+      "org_role": "equal_specialist",
+      "specialty_domain": "claw",
+      "note_org": "Equal Ollama specialist (claw/hops). Collegial with Hermes/OpenCode; peer consensus + STRATAGROK agreement for desk-proper."
     },
     {
-      "id": "fog-assistant",
-      "label": "CMN FOG ASSISTANT",
-      "owner": "cmn-fog-assistant",
-      "role": "external_assistant",
-      "specialty": "fog",
-      "lane": "lane-assistant",
-      "metabol_pace_lane": "lane-assistant",
-      "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
-      "runtime": "grok.com Nó Calhegas Morais Fog thread (Archive Instructions)",
-      "soul": null,
+      "id": "opencode",
+      "label": "OpenCode",
+      "owner": "opencode@fog.calhegasmorais.pt",
+      "role": "external_agent",
+      "specialty": "code",
+      "lane": "lane-opencode",
+      "metabol_pace_lane": "lane-opencode",
+      "eisenhower": "Act on specialty=code; escalate gates to Bot",
+      "runtime": "OpenCode CLI + Ollama",
+      "soul": "deploy/mac-fog/opencode/SOUL.md",
+      "desk": "deploy/mac-fog/opencode/DESK.md",
       "docs": [
-        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
-        "ops/EDGE-GROK-DESK-CONTRACT.md",
+        "docs/OPENCODE-FOG-AGENT.md",
         "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
       ],
-      "receive_work": "Fog thread one-prompt; self-queue from projected/bus when idle; Bot feeds only if empty AND no self-queue | MUST read desk-outbox/TODO.md before acting",
-      "self_audit": "origin health: fog.calhegasmorais.pt/health + hops",
+      "receive_work": "desk-agent-run opencode / outbox opencode-next.md / bus specialty=code | MUST read desk-outbox/TODO.md before acting",
+      "self_audit": "unittest desk-collegium suite + failing-test scan",
       "must": [
-        "Fog/core git+live (origin Pages, fog hops, auth/mw)",
-        "Land in-scope git+live without waiting for Bot",
-        "Propose next Act when idle if lane ALLOW"
+        "Self-queue ALLOW code tasks",
+        "Self-audit tests each cycle/agent-run",
+        "commit\u2192done with result"
       ],
       "must_not": [
-        "EDGE thread work",
+        "Channel fan-out",
+        "metabol decide()",
+        "Mac g",
         "workers.dev",
         "secrets",
-        "origin-take from Bot computer",
-        "Mixed Fog+EDGE prompts",
-        "Enroll as SCA"
+        "Wait for Bot for routine patches"
       ],
       "peer_constrain_only": true,
-      "archive_role": "Fog git+live",
       "academy_teach": true,
       "apprenticeship": true,
       "vote": true,
@@ -407,7 +517,7 @@
         "desk-outbox/reports/latest.md",
         "ops/desk-collegium/SECRETS-VAULT.md"
       ],
-      "vault_md": "ops/desk-collegium/agents/fog-assistant/VAULT.md",
+      "vault_md": "ops/desk-collegium/agents/opencode/VAULT.md",
       "allowed_verbs": [
         "propose",
         "constrain",
@@ -431,95 +541,29 @@
       ],
       "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
       "collegium_mail": "automation.desk@calhegasmorais.pt",
+      "mail_config": "deploy/mac-fog/opencode/config.example.yaml",
+      "capabilities": [
+        "shared_desk_ssh_hermes"
+      ],
+      "shared_desk_machine": "hermes-desk",
       "skills": [
-        "craft:fog",
+        "craft:code",
+        "craft:fog-tui",
         "craft:origin-put",
-        "craft:fog-tui"
+        "stance:owns-blocker"
       ],
       "will_help": [
-        "craft:fog",
+        "craft:code",
+        "craft:fog-tui",
         "craft:origin-put",
-        "craft:fog-tui"
-      ]
-    },
-    {
-      "id": "edge-assistant",
-      "label": "CMN EDGE ASSISTANT",
-      "owner": "cmn-edge-assistant",
-      "role": "external_assistant",
-      "specialty": "edge",
-      "lane": "lane-assistant",
-      "metabol_pace_lane": "lane-assistant",
-      "eisenhower": "one Act per prompt; consume-origin only",
-      "runtime": "grok.com Nó Calhegas Morais EDGE thread (same Archive Instructions)",
-      "soul": null,
-      "docs": [
-        "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
-        "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
-        "ops/EDGE-GROK-DESK-CONTRACT.md",
-        "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
+        "stance:teaches"
       ],
-      "receive_work": "EDGE thread one-prompt; self-queue consume-origin GETs from projected/bus | MUST read desk-outbox/TODO.md before acting",
-      "self_audit": "consume-origin GETs: api-edge + edge site health",
-      "must": [
-        "EDGE consume-origin GET-only audits",
-        "Keep EDGE session process healthy",
-        "Self-queue when idle if lane ALLOW"
-      ],
-      "must_not": [
-        "Origin write / Fog bind / origin-take Fog",
-        "pkill cloudflared",
-        "workers.dev",
-        "secrets",
-        "Mixed Fog+EDGE prompts",
-        "Enroll as SCA"
-      ],
-      "peer_constrain_only": true,
-      "archive_role": "EDGE GET consume-only",
-      "academy_teach": true,
-      "apprenticeship": true,
-      "vote": true,
-      "reads_todo_board": true,
-      "mandatory_wake_reads": [
-        "ops/desk-collegium/protocol.json",
-        "docs/FOG-DESK-PROTOCOL.md",
-        "docs/FOG-DESK-OPS.md",
-        "desk-outbox/TODO.md",
-        "desk-outbox/reports/latest.md",
-        "ops/desk-collegium/SECRETS-VAULT.md"
-      ],
-      "vault_md": "ops/desk-collegium/agents/edge-assistant/VAULT.md",
-      "allowed_verbs": [
-        "propose",
-        "constrain",
-        "act",
-        "audit",
-        "amend",
-        "revise",
-        "vote",
-        "call_vote",
-        "cast",
-        "refer",
-        "dispute",
-        "commit",
-        "escalate",
-        "done",
-        "drop",
-        "ask_help",
-        "commend",
-        "consult",
-        "consult_close"
-      ],
-      "verbs_one_liner": "Bus verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done (propose is not the only move); ask_help commend (camaraderie); consult consult_close (private peer chat).",
-      "collegium_mail": "automation.desk@calhegasmorais.pt",
-      "skills": [
-        "craft:edge",
-        "craft:consume-origin"
-      ],
-      "will_help": [
-        "craft:edge",
-        "craft:consume-origin"
-      ]
+      "provider": "ollama",
+      "tier": "specialist_peers",
+      "runtime_class": "ollama_provider",
+      "org_role": "equal_specialist",
+      "specialty_domain": "code",
+      "note_org": "Equal Ollama specialist (code/tests). Collegial with Hermes/OpenClaw; peer consensus + STRATAGROK agreement for desk-proper."
     }
   ],
   "ship_auto": {
@@ -545,7 +589,7 @@
       "Fog Assistant if lane-assistant ALLOW",
       "EDGE consume-only GETs"
     ],
-    "bot_on_wake": "pull meters/outbox; escalate only failures/gates — never re-prompt routine"
+    "bot_on_wake": "pull meters/outbox; escalate only failures/gates \u2014 never re-prompt routine"
   },
   "required_ids": [
     "stratagrok",
@@ -557,7 +601,7 @@
   ],
   "todo_board": {
     "path": "FOG/data/desk-outbox/TODO.md",
-    "source": "desk_ops cycle / desk-agent-run → snapshot open_tasks + projected + escalated",
+    "source": "desk_ops cycle / desk-agent-run \u2192 snapshot open_tasks + projected + escalated",
     "rule": "Agents pick only specialty-matching tasks from TODO.md; andre_human_gates escalate_to_andre; else stratagrok resolve_as_representative; diary cites task id"
   },
   "reports": {
@@ -667,7 +711,53 @@
     "host": "mbpv",
     "spec": "deploy/mac-fog/hermes/desktop/SSH.md",
     "install": "deploy/mac-fog/hermes/desktop/install-desk-ssh.sh",
-    "note": "Intel Mac: Tailscale SSH / Remote Login only — no Grok Bot app"
+    "note": "Intel Mac: Tailscale SSH / Remote Login only \u2014 no Grok Bot app"
   },
-  "desk_cloud_auth": "automation.desk@calhegasmorais.pt"
+  "desk_cloud_auth": "automation.desk@calhegasmorais.pt",
+  "org": {
+    "desk": "Automation Desk",
+    "count": 6,
+    "tiers": {
+      "xai_provider": {
+        "members": [
+          "stratagrok",
+          "fog-assistant",
+          "edge-assistant"
+        ],
+        "structure": "lead_plus_representatives",
+        "lead": "stratagrok",
+        "representatives_report_to": "stratagrok",
+        "lead_is_human": false,
+        "human_gates_only": "Andr\u00e9: fog_g / 2fa / captcha / renovate_major"
+      },
+      "ollama_provider": {
+        "members": [
+          "hermes",
+          "openclaw",
+          "opencode"
+        ],
+        "structure": "equal_specialists_collegial",
+        "domains": {
+          "hermes": "coord",
+          "openclaw": "claw",
+          "opencode": "code"
+        },
+        "desk_proper_requires": [
+          "specialist_peer_consensus",
+          "stratagrok_agreement"
+        ]
+      }
+    },
+    "academy": {
+      "all_six_teach": true,
+      "students": "SCA/ACB only \u2014 desk never enrolled",
+      "duties": [
+        "orchestrator",
+        "aiops",
+        "exams_draft_score_publish",
+        "apprenticeship"
+      ]
+    },
+    "note": "STRATAGROK Agent leads xAI provider section and Automation Desk proper agreement gate. Andr\u00e9 is human gate only \u2014 not desk lead."
+  }
 }

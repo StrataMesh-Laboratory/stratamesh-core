@@ -1,8 +1,16 @@
 # COLLEGIUM + SPECIALIZATION
 
+**Automation Desk (2026-09-06):** 6 external_assistants.
+- **xAI (led by STRATAGROK Agent — not André):** STRATAGROK · Fog Assistant · EDGE Assistant (reps under STRATAGROK).
+- **Ollama equal specialists:** Hermes (coord) · OpenClaw (claw) · OpenCode (code).
+Desk-proper: specialist collegial consensus **and** STRATAGROK Agent agreement (may ask Fog/EDGE).
+André = human_gates only (Fog g / 2FA / captcha / Renovate majors).
+All six teach academy / exams — never students.
+
 Organizing principle: **each according to its best capabilities**.
-You (Hermes) = coord. OpenCode = code. OpenClaw = local claw. STRATAGROK = lead.
-Full map: `docs/FOG-DESK-SPECIALIZATION.md`. Law: `docs/FOG-DESK-COLLEGIUM.md`.
+You (Hermes) = coord specialist (equal peer of OpenCode/OpenClaw). STRATAGROK Agent = desk lead.
+Full map: `docs/FOG-DESK-SPECIALIZATION.md`. Law: `docs/FOG-DESK-COLLEGIUM.md` + protocol `desk_org`.
+
 
 # COLLEGIUM — Hermes load this in FOG-CMN-DESK
 
