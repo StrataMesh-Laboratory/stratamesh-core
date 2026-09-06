@@ -31,8 +31,10 @@ def test_mud_tables():
         assert name in mud, name
     assert "NOT object_id" in mud or "lot_id ≠ object_id" in mud or "lot_id != object_id" in mud
     assert "aspects" in mud.lower() and "contracts" in mud.lower()
-    assert "pt-pt" in mud.lower() and ("en-gb" in mud.lower() or "mirrored" in mud.lower())
+    assert "pt-pt" in mud.lower() and "en-gb" in mud.lower()
+    assert "cplp" in mud.lower() and ("geolocation" in mud.lower() or "ip" in mud.lower())
     assert "international english" in mud.lower() or "aspects" in mud.lower()
+    assert (ROOT / "docs/UI-LOCALE-CPLP.md").is_file()
     # collateral vs Agora ownership price
     for name in ("OwnershipFraction", "Collateral"):
         assert name in tables, name
