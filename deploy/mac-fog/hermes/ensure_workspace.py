@@ -1,0 +1,356 @@
+#!/usr/bin/env python3
+"""Idempotent FOG-CMN-DESK workspace ensure for Hermes Desktop on Mac.
+
+Uses official Hermes CLI + SessionDB APIs only (no bare discovery-policy sqlite writes).
+See WORKSPACE.md and RCA-HERMES-EMPTY-WORKSPACE.md.
+"""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+FOG_REPO = Path(os.environ.get("FOG_SRC", Path.home() / "StrataMesh" / "fog" / "repo"))
+STRATAMESH = Path(os.environ.get("STRATAMESH_ROOT", Path.home() / "StrataMesh"))
+FOG_HOME = Path(os.environ.get("FOG_HOME", Path.home() / "StrataMesh" / "fog"))
+PROJECT_ID = "fog-cmn-desk"
+PROJECT_NAME = "FOG-CMN-DESK"
+PRIMARY = FOG_REPO
+FOLDERS: List[Tuple[Path, str, bool]] = [
+    (FOG_REPO, "stratamesh-core / Fog repo", True),
+    (FOG_REPO / "deploy" / "mac-fog" / "hermes" / "desktop", "Hermes desk docs", False),
+    (FOG_HOME / "data" / "desk-outbox", "desk outbox", False),
+]
+SCAN_ROOTS = [str(STRATAMESH), str(FOG_REPO)]
+SEED_PROMPT = "FOG-CMN-DESK desk seed. Reply exactly: ACK"
+PREFERRED_MODELS = (
+    "mistral:latest",
+    "phi3:latest",
+    "llama3:latest",
+    "llama3.2:1b",
+    "llava:latest",
+)
+
+
+def _env() -> dict:
+    env = os.environ.copy()
+    extra = "/usr/local/bin:/opt/homebrew/bin:" + str(Path.home() / ".local" / "bin")
+    env["PATH"] = extra + ":" + env.get("PATH", "")
+    return env
+
+
+def which_hermes() -> str:
+    h = shutil.which("hermes", path=_env()["PATH"])
+    if not h:
+        raise SystemExit("hermes CLI not found on PATH")
+    return h
+
+
+def run(
+    cmd: Sequence[str], *, check: bool = True, timeout: int = 180
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        list(cmd),
+        env=_env(),
+        text=True,
+        capture_output=True,
+        check=check,
+        timeout=timeout,
+    )
+
+
+def hermes(
+    *args: str, check: bool = True, timeout: int = 180
+) -> subprocess.CompletedProcess:
+    return run([which_hermes(), *args], check=check, timeout=timeout)
+
+
+def ensure_discovery_config() -> None:
+    hermes("config", "set", "desktop.repo_scan_enabled", "true")
+    hermes("config", "set", "desktop.repo_scan_roots", json.dumps(SCAN_ROOTS))
+    hermes("config", "set", "desktop.repo_scan_exclude_paths", "[]")
+    got = hermes("config", "get", "desktop.repo_scan_roots")
+    print("discovery.roots:", " ".join(got.stdout.strip().splitlines()))
+
+
+def ensure_project() -> None:
+    show = hermes("project", "show", PROJECT_ID, check=False)
+    if show.returncode != 0:
+        # Try modern flags; tolerate older CLIs
+        hermes(
+            "project",
+            "create",
+            "--name",
+            PROJECT_NAME,
+            "--slug",
+            PROJECT_ID,
+            check=False,
+        )
+        show2 = hermes("project", "show", PROJECT_ID, check=False)
+        if show2.returncode != 0:
+            hermes("project", "create", PROJECT_NAME, check=False)
+    hermes("project", "use", PROJECT_ID, check=False)
+    for path, _label, is_primary in FOLDERS:
+        path.mkdir(parents=True, exist_ok=True)
+        hermes("project", "add-folder", PROJECT_ID, str(path), check=False)
+        if is_primary:
+            hermes("project", "set-primary", PROJECT_ID, str(path), check=False)
+    hermes("project", "bind-board", PROJECT_ID, "desk", check=False)
+    out = hermes("project", "show", PROJECT_ID, check=False).stdout.strip().splitlines()
+    print("project:", out[:8])
+
+
+def ensure_desktop_cwd_env() -> None:
+    env_path = Path.home() / ".hermes" / ".env"
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    key = "HERMES_DESKTOP_CWD"
+    val = str(PRIMARY)
+    lines: List[str] = []
+    if env_path.is_file():
+        lines = env_path.read_text().splitlines()
+    out: List[str] = []
+    found = False
+    for line in lines:
+        if line.startswith(key + "=") or line.startswith("export " + key + "="):
+            out.append(f"{key}={val}")
+            found = True
+        else:
+            out.append(line)
+    if not found:
+        out.append(f"{key}={val}")
+    mode = 0o600
+    if env_path.is_file():
+        mode = env_path.stat().st_mode & 0o777
+    env_path.write_text("\n".join(out).rstrip() + "\n")
+    os.chmod(env_path, mode)
+    print("HERMES_DESKTOP_CWD=set")
+
+
+def ollama_tags() -> List[str]:
+    try:
+        p = run(["ollama", "list"], check=False, timeout=30)
+    except FileNotFoundError:
+        return []
+    if p.returncode != 0:
+        return []
+    tags: List[str] = []
+    for i, line in enumerate(p.stdout.splitlines()):
+        if i == 0 and line.upper().startswith("NAME"):
+            continue
+        parts = line.split()
+        if parts:
+            tags.append(parts[0])
+    return tags
+
+
+def _parse_config_value(raw: str) -> str:
+    cur = (raw or "").strip()
+    if not cur:
+        return ""
+    line = cur.splitlines()[-1].strip().strip("\"'")
+    # hermes config get sometimes prints "key: value"
+    if line.startswith("model.default"):
+        line = line.split(":", 1)[-1].strip().strip("\"'")
+    return line
+
+
+def ensure_model() -> None:
+    tags = ollama_tags()
+    cur_val = _parse_config_value(
+        hermes("config", "get", "model.default", check=False).stdout
+    )
+    if tags and cur_val not in tags:
+        pick = next((m for m in PREFERRED_MODELS if m in tags), tags[0])
+        hermes("config", "set", "model.default", pick)
+        print(f"model.default repaired: {cur_val!r} -> {pick}")
+    else:
+        empty = "(empty)"
+        shown = cur_val if cur_val else empty
+        print(f"model.default ok: {shown} tags={len(tags)}")
+
+
+def _session_db():
+    ha = Path.home() / ".hermes" / "hermes-agent"
+    sys.path.insert(0, str(ha))
+    from hermes_state import SessionDB  # type: ignore
+
+    return SessionDB()
+
+
+def prune_empty_orphans() -> int:
+    db = _session_db()
+    deleted = 0
+    try:
+        try:
+            deleted += int(db.delete_empty_sessions() or 0)
+        except Exception as exc:
+            print(f"delete_empty_sessions warn: {exc}")
+        rows = db.search_sessions(limit=200) or []
+        for row in rows:
+            mc = int(row.get("message_count") or 0)
+            er = row.get("end_reason") or ""
+            if mc == 0 and (er == "ws_orphan_reap" or row.get("source") == "desktop"):
+                sid = row.get("id")
+                if not sid:
+                    continue
+                try:
+                    if db.delete_session_if_empty(sid):
+                        deleted += 1
+                    else:
+                        db.set_session_hidden(sid, True)
+                except Exception:
+                    try:
+                        db.set_session_hidden(sid, True)
+                    except Exception:
+                        pass
+        print(f"orphans_pruned≈{deleted}")
+        return deleted
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+def listable_fog_sessions() -> List[dict]:
+    db = _session_db()
+    try:
+        out: List[dict] = []
+        for row in db.search_sessions(limit=200) or []:
+            mc = int(row.get("message_count") or 0)
+            if mc < 1:
+                continue
+            cwd = row.get("cwd") or ""
+            root = row.get("git_repo_root") or ""
+            blob = f"{cwd} {root}"
+            if str(FOG_REPO) in blob or "/fog/repo" in blob:
+                out.append(row)
+        return out
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+def stamp_cwd(session_id: str) -> None:
+    db = _session_db()
+    try:
+        db.update_session_cwd(
+            session_id,
+            str(PRIMARY),
+            git_repo_root=str(PRIMARY),
+            replace_git_meta=True,
+        )
+        try:
+            db.publish_session_git_metadata(
+                session_id, str(PRIMARY), 1, git_repo_root=str(PRIMARY)
+            )
+        except Exception:
+            pass
+        print(f"stamped_cwd {session_id}")
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+def ensure_listable_session() -> None:
+    existing = listable_fog_sessions()
+    if existing:
+        for row in existing:
+            blob = (row.get("cwd") or "") + (row.get("git_repo_root") or "")
+            if str(PRIMARY) not in blob:
+                stamp_cwd(row["id"])
+        print(f"listable_sessions={len(existing)}")
+        return
+
+    print("seeding listable session via hermes chat --oneshot --in")
+    p = hermes(
+        "chat",
+        "-q",
+        SEED_PROMPT,
+        "--oneshot",
+        "-Q",
+        "--in",
+        str(PRIMARY),
+        "--safe-mode",
+        check=False,
+        timeout=300,
+    )
+    if p.returncode != 0:
+        hermes("-z", SEED_PROMPT, "--in", str(PRIMARY), check=False, timeout=300)
+
+    db = _session_db()
+    try:
+        rows = db.search_sessions(limit=20) or []
+        target = None
+        for row in rows:
+            if int(row.get("message_count") or 0) >= 1:
+                target = row
+                break
+        if not target:
+            sid = time.strftime("%Y%m%d_%H%M%S") + "_fogseed"
+            db.create_session(
+                sid, "cli", cwd=str(PRIMARY), title="FOG-CMN-DESK desk seed"
+            )
+            db.append_message(sid, "user", SEED_PROMPT)
+            db.append_message(sid, "assistant", "ACK")
+            db.update_session_cwd(
+                sid, str(PRIMARY), git_repo_root=str(PRIMARY), replace_git_meta=True
+            )
+            print(f"api_seeded {sid}")
+            return
+        sid = target["id"]
+        blob = (target.get("cwd") or "") + (target.get("git_repo_root") or "")
+        if str(PRIMARY) not in blob:
+            db.update_session_cwd(
+                sid, str(PRIMARY), git_repo_root=str(PRIMARY), replace_git_meta=True
+            )
+            print(f"stamped_cwd {sid}")
+        else:
+            print(f"seed_ok {sid}")
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+def write_meter(ok: bool, extra: Optional[Dict[str, Any]] = None) -> None:
+    meter_dir = FOG_HOME / "data" / "desk-meters"
+    meter_dir.mkdir(parents=True, exist_ok=True)
+    payload: Dict[str, Any] = {
+        "ok": ok,
+        "project_id": PROJECT_ID,
+        "primary": str(PRIMARY),
+        "scan_roots": SCAN_ROOTS,
+        "oracle_live": False,
+    }
+    if extra:
+        payload.update(extra)
+    (meter_dir / "hermes-workspace.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def main() -> int:
+    print("ensure_workspace: FOG-CMN-DESK")
+    ensure_discovery_config()
+    ensure_project()
+    ensure_desktop_cwd_env()
+    ensure_model()
+    prune_empty_orphans()
+    ensure_listable_session()
+    n = len(listable_fog_sessions())
+    write_meter(n >= 1, {"listable_fog_sessions": n})
+    print(f"done listable_fog_sessions={n}")
+    return 0 if n >= 1 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

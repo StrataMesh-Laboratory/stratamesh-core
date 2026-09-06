@@ -53,6 +53,10 @@ PY
 }
 
 run_hermes() {
+  # Structural workspace ensure (discovery + listable FOG-CMN-DESK session)
+  HPY="$HOME/.hermes/hermes-agent/venv/bin/python"
+  [[ -x "$HPY" ]] || HPY=python3
+  "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" || true
   BRIEF="$FOG/data/desk-outbox/hermes-next.md"
   python3 ops/desk-collegium/desk_protocol.py check || true
   python3 ops/desk-collegium/desk_ops.py board || true

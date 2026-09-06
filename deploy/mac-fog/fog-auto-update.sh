@@ -303,3 +303,12 @@ fi
 
 # ollama wizard
 command -v ollama >/dev/null 2>&1 && curl -sf --max-time 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1 || { ollama serve >/dev/null 2>&1 & true; }
+
+# Hermes FOG-CMN-DESK workspace ensure (post-update; no secrets)
+if [[ -f "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" ]]; then
+  HPY="$HOME/.hermes/hermes-agent/venv/bin/python"
+  [[ -x "$HPY" ]] || HPY=python3
+  log "hermes ensure_workspace"
+  "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" >>"$LOG" 2>&1 || log "hermes ensure_workspace rc=$?"
+fi
+

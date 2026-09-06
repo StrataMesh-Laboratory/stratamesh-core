@@ -21,3 +21,7 @@ All six are **external_agent|assistant**. Never academy students.
 Collegial deliberation among Ollama specialists by domain; desk-proper decisions need **peer consensus + STRATAGROK Agent agreement**.
 
 Academy: all six teach orchestrator / AIOps / ACB students and grade exams.
+
+## Workspace durability
+
+Blank sidebar / "No sessions yet" → run `../ensure_workspace.py` (see [WORKSPACE.md](../WORKSPACE.md) + [RCA](../RCA-HERMES-EMPTY-WORKSPACE.md)). New session alone is insufficient if cwd is detached.
