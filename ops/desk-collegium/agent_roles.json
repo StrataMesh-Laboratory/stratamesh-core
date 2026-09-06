@@ -2,7 +2,7 @@
   "schema": "desk.agent_roles.v1",
   "version": "0.6.1-lab",
   "title": "Automation Desk \u2014 6 external_assistants (3\u00d7 xAI lead/reps + 3\u00d7 Ollama equal specialists)",
-  "law": "All six are external_agent|assistant \u2014 never SCA/ACB students. Provider tiers: xAI section is led by STRATAGROK (desk lead agent), with Fog Assistant + EDGE Assistant as STRATAGROK's subordinates/representatives in STRATAGROK's absence (STRATAGROK may ask Fog/EDGE input and represents their will). Andr\u00e9 (human) is NOT the desk lead \u2014 only human_gates (Fog g, 2FA, captcha, Renovate majors). Ollama = Hermes, OpenClaw, OpenCode as equal specialists; collegial deliberation by domain; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK (the agent). Desk teaches academy (orchestrator, AIOps, ACB students), drafts/scores exams. Bot/STRATAGROK=escalation surface for agents; agents=self-initiative + self-audit. General desk cloud auth = automation.desk@ (not grok@; grok@ = private Bot/Fog/EDGE gateway).",
+  "law": "All six are external_agent|assistant \u2014 never SCA/ACB students. xAI section is led by STRATAGROK Agent, with Fog Assistant + EDGE Assistant as STRATAGROK's subordinates/representatives in STRATAGROK's absence (STRATAGROK may ask Fog/EDGE input and represents their will). Ollama = Hermes, OpenClaw, OpenCode as equal specialists; collegial deliberation by domain; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK Agent. Human gates (Fog g, 2FA, captcha, Renovate majors) stay outside desk-org leadership. Desk teaches academy (orchestrator, AIOps, ACB students), drafts/scores exams. Bot/STRATAGROK=escalation surface for agents; agents=self-initiative + self-audit. General desk cloud auth = automation.desk@ (not grok@; grok@ = private Bot/Fog/EDGE gateway).",
   "members": [
     {
       "id": "stratagrok",
@@ -91,7 +91,7 @@
         "discourse_with_prior_approval",
         "feed_handler_vapour_code_fix"
       ],
-      "note_gates": "Do not dump representable escalations on Andr\u00e9. Never invent secrets; materialize only from existing KeePass\u21920600 files.",
+      "note_gates": "Do not dump representable escalations on Never invent secrets; materialize only from existing KeePass\u21920600 files.",
       "skills": [
         "craft:lead",
         "craft:protocol",
@@ -117,7 +117,8 @@
         "edge-assistant"
       ],
       "consensus_gate": "stratagrok_agent_agreement_required_for_desk_proper",
-      "note_org": "STRATAGROK Agent leads xAI tier + Automation Desk agreement gate. Represents Fog+EDGE Assistants' will (may ask their input). NOT Andr\u00e9 \u2014 human remains escalate_to_andre only for Fog g/2FA/captcha/Renovate majors."
+      "note_org": "STRATAGROK Agent leads xAI tier + Automation Desk agreement gate. Represents Fog+EDGE Assistants' will (may ask their input).",
+      "mandate": {}
     },
     {
       "id": "fog-assistant",
@@ -203,7 +204,7 @@
       "runtime_class": "xai_provider",
       "org_role": "lead_representative",
       "reports_to": "stratagrok",
-      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent (not Andr\u00e9) in STRATAGROK absence."
+      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent in STRATAGROK absence."
     },
     {
       "id": "edge-assistant",
@@ -288,7 +289,7 @@
       "runtime_class": "xai_provider",
       "org_role": "lead_representative",
       "reports_to": "stratagrok",
-      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent (not Andr\u00e9) in STRATAGROK absence."
+      "note_org": "xAI Assistant \u2014 subordinate/representative of STRATAGROK Agent in STRATAGROK absence."
     },
     {
       "id": "hermes",
@@ -602,7 +603,7 @@
   "todo_board": {
     "path": "FOG/data/desk-outbox/TODO.md",
     "source": "desk_ops cycle / desk-agent-run \u2192 snapshot open_tasks + projected + escalated",
-    "rule": "Agents pick only specialty-matching tasks from TODO.md; andre_human_gates escalate_to_andre; else stratagrok resolve_as_representative; diary cites task id"
+    "rule": "Agents pick only specialty-matching tasks from TODO.md; human_gates use escalate_to_andre machine key; else stratagrok resolve_as_representative; diary cites task id"
   },
   "reports": {
     "dir": "FOG/data/desk-outbox/reports/",
@@ -727,8 +728,11 @@
         "structure": "lead_plus_representatives",
         "lead": "stratagrok",
         "representatives_report_to": "stratagrok",
-        "lead_is_human": false,
-        "human_gates_only": "Andr\u00e9: fog_g / 2fa / captcha / renovate_major"
+        "representatives": [
+          "fog-assistant",
+          "edge-assistant"
+        ],
+        "note": "STRATAGROK Agent lead; Fog + EDGE are STRATAGROK reps in absence."
       },
       "ollama_provider": {
         "members": [
@@ -745,7 +749,8 @@
         "desk_proper_requires": [
           "specialist_peer_consensus",
           "stratagrok_agreement"
-        ]
+        ],
+        "note": "Equal specialists; desk-proper needs peer consensus + STRATAGROK Agent agreement."
       }
     },
     "academy": {
@@ -758,6 +763,6 @@
         "apprenticeship"
       ]
     },
-    "note": "STRATAGROK Agent leads xAI provider section and Automation Desk proper agreement gate. Andr\u00e9 is human gate only \u2014 not desk lead."
+    "note": "STRATAGROK Agent leads xAI provider section and Automation Desk proper agreement gate. Fog/EDGE Assistants are STRATAGROK representatives. Human gates are outside this leadership chart."
   }
 }

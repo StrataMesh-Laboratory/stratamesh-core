@@ -2,15 +2,13 @@
 
 All six are **external_agent|assistant**. Never academy students.
 
-## xAI provider — led by STRATAGROK Agent (not André)
+## xAI provider — led by STRATAGROK Agent
 
 | Label | Id | Role |
 |-------|-----|------|
 | STRATAGROK | stratagrok / grok@ | **Desk lead agent** — leads xAI section; represents Fog+EDGE; agreement gate for desk-proper |
 | FOG Assistant | fog-assistant | STRATAGROK subordinate/representative in STRATAGROK's absence (Fog rail) |
 | EDGE Assistant | edge-assistant | STRATAGROK subordinate/representative in STRATAGROK's absence (EDGE rail) |
-
-André (human) = Fog `g` / 2FA / captcha / Renovate majors only — **not** desk lead.
 
 ## Ollama provider (equal specialists)
 

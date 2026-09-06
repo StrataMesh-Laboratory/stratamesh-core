@@ -21,7 +21,7 @@
     {
       "id": "desk_org",
       "enforce": true,
-      "text": "Automation Desk = six external_assistants. xAI tier is led by STRATAGROK Agent (not the human operator): Fog Assistant + EDGE Assistant are STRATAGROK subordinates/representatives in STRATAGROK's absence; STRATAGROK may solicit Fog/EDGE input and represents their will in desk decisions. Ollama tier: Hermes, OpenClaw, OpenCode are equal specialists; they deliberate collegially with domain authority; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK Agent. Andr\u00e9 (human) is escalate_to_andre only for Fog g / 2FA / captcha / Renovate majors \u2014 not desk lead. All six teach academy (orchestrator, AIOps, ACB students) and run/score daily exams \u2014 never enroll as students."
+      "text": "Automation Desk = six external_assistants. xAI tier is led by STRATAGROK Agent: Fog Assistant + EDGE Assistant are STRATAGROK subordinates/representatives in STRATAGROK's absence; STRATAGROK may solicit Fog/EDGE input and represents their will in desk decisions. Ollama tier: Hermes, OpenClaw, OpenCode are equal specialists; they deliberate collegially with domain authority; desk-proper decisions require specialist peer consensus AND agreement with STRATAGROK Agent. Human gates (Fog g / 2FA / captcha / Renovate majors) are outside desk-org leadership. All six teach academy (orchestrator, AIOps, ACB students) and run/score daily exams \u2014 never enroll as students."
     },
     {
       "id": "bus",
@@ -51,7 +51,7 @@
     {
       "id": "human_gates",
       "enforce": true,
-      "text": "True Andr\u00e9 human_gate ONLY: Fog TUI g (when required), 2FA, captcha, Renovate majors Andr\u00e9 must review. Oracle/grok@ is STRATAGROK+vaulted (2FA/captcha only). Never fake progress; never git secrets. Desk cycle (ensure_desk_surfaces) owns automation.desk vault materialize from KeePass\u21920600 (never invent/chat-paste/empty stubs). STRATAGROK (lane-bot) resolve_as_representative ONLY when desk escalates that vault gate (or KeePass sources absent). Also MUST act on: gh PATH/soft-fail/LaunchAgent origin fix, edge 429/1015 collegium backoff/retry, OpenCode idle outbox briefs+agent-run, Discourse with prior approval, feed/handler vapour code fixes. After dispute: prefer stratagrok act before Andr\u00e9 ping.",
+      "text": "True human gate human_gate ONLY: Fog TUI g (when required), 2FA, captcha, Renovate majors human gate must review. Oracle/grok@ is STRATAGROK+vaulted (2FA/captcha only). Never fake progress; never git secrets. Desk cycle (ensure_desk_surfaces) owns automation.desk vault materialize from KeePass\u21920600 (never invent/chat-paste/empty stubs). STRATAGROK (lane-bot) resolve_as_representative ONLY when desk escalates that vault gate (or KeePass sources absent). Also MUST act on: gh PATH/soft-fail/LaunchAgent origin fix, edge 429/1015 collegium backoff/retry, OpenCode idle outbox briefs+agent-run, Discourse with prior approval, feed/handler vapour code fixes. After dispute: prefer stratagrok act before human gate ping.",
       "escalate_to_andre": [
         "fog_g",
         "2fa",
@@ -71,7 +71,7 @@
     {
       "id": "ship_majority",
       "enforce": true,
-      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. After ACK majority: origin PUT required (ops/bin/cf-put-origin.py + d1-put-html / fund when intent matches) via desk_origin_put.put_live before task.shipped. Auto-ship when majority ACK AND metric bands in-band (desk_score\u226570, protocol_ok, claw fog_public=1 soft, no human_gate) \u2014 no Bot prompt required. NACK, out-of-band metrics, or PUT failure \u2192 escalate to STRATAGROK (do not mark shipped). Desk-proper decisions (affecting all six / academy mandate) additionally require agreement with STRATAGROK Agent (who may consult Fog/EDGE Assistants as representatives; not the human operator)."
+      "text": "Ship-live needs strict majority ACK and no NACK; unanimous = full authority. After ACK majority: origin PUT required (ops/bin/cf-put-origin.py + d1-put-html / fund when intent matches) via desk_origin_put.put_live before task.shipped. Auto-ship when majority ACK AND metric bands in-band (desk_score\u226570, protocol_ok, claw fog_public=1 soft, no human_gate) \u2014 no Bot prompt required. NACK, out-of-band metrics, or PUT failure \u2192 escalate to STRATAGROK (do not mark shipped). Desk-proper decisions (affecting all six / academy mandate) additionally require agreement with STRATAGROK Agent (who may consult Fog/EDGE Assistants as representatives; STRATAGROK Agent)."
     },
     {
       "id": "no_sca",
@@ -131,7 +131,7 @@
     {
       "id": "camaraderie",
       "enforce": true,
-      "text": "Peers help before Andr\u00e9 escalate; reputation is peer-local qualitative notes (skill_tags + free text) \u2014 never a 0\u2013100 score and never blended into KPI/delivered/ship_live/fund JSON. Private peer dialogue uses consult (feed gets opaque pointer only, not chat body)."
+      "text": "Peers help before human gate escalate; reputation is peer-local qualitative notes (skill_tags + free text) \u2014 never a 0\u2013100 score and never blended into KPI/delivered/ship_live/fund JSON. Private peer dialogue uses consult (feed gets opaque pointer only, not chat body)."
     },
     {
       "id": "consult",
@@ -271,14 +271,14 @@
   ],
   "agent_autonomy": {
     "escalate_only": [
-      "andre_human_gates",
+      "human_gates",
       "ship_majority_nack_oob",
       "metabol_stasis_own_lane",
       "secrets_missing_entirely",
       "protocol_violations"
     ],
     "stratagrok_representative": true,
-    "after_dispute": "prefer_stratagrok_act_before_andre_ping"
+    "after_dispute": "prefer_stratagrok_act_before_human_ping"
   },
   "desk_org_version": "2026-09-06"
 }
