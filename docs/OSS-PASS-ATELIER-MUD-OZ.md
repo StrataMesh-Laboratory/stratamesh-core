@@ -57,4 +57,16 @@ Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 | Lab README, no node_modules in git | `contracts/openzeppelin/README.md` | PASS |
 | Optional OZ 5.0.2 install | documented, not vendored | PASS |
 
+## 5. STRATA OZ tokens (this ship)
+
+| Check | Evidence | PASS |
+|-------|----------|------|
+| ERC-20 PoC minter-only | `contracts/strata/StrataPoc20.sol` `onlyMinter` + `faucet` reverts | PASS |
+| ERC-721 object_id | `Object721.sol` ParcelImmovable | PASS |
+| ERC-1155 editions | `Object1155.sol` no STRATA mint / no faucet | PASS |
+| glTF pipeline | `docs/ATELIER-GLTF-PIPELINE.md` + `frontend/vendor/gltf/` | PASS |
+| MUD × Fog tables doc | `docs/MUD-WORLD-FOG-TABLES.md` | PASS |
+| DPR band 1.25–1.5 | `atelier-quality.js` | PASS |
+
+
 Pages: `/oss-pass` → `frontend/oss-pass.html`.

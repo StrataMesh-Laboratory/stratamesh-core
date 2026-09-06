@@ -63,6 +63,21 @@ def test_atelier_vendor_three():
     assert (ROOT / "frontend/vendor/OrbitControls.js").is_file()
     assert (ROOT / "frontend/vendor/PointerLockControls.js").is_file()
     assert (ROOT / "frontend/vendor/nipplejs.min.js").is_file()
+    q = (ROOT / "frontend/atelier-quality.js").read_text()
+    assert "1.25" in q and "1.5" in q
+    assert (ROOT / "docs/ATELIER-GLTF-PIPELINE.md").is_file()
+    assert (ROOT / "frontend/vendor/gltf/README.md").is_file()
+    assert (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").is_file()
+    poc = (ROOT / "contracts/strata/StrataPoc20.sol").read_text()
+    assert "onlyMinter" in poc and "NoFaucet" in poc
+    assert "faucet" in poc
+    erc721 = (ROOT / "contracts/strata/Object721.sol").read_text()
+    assert "ParcelImmovable" in erc721
+    erc1155 = (ROOT / "contracts/strata/Object1155.sol").read_text()
+    assert "NoStrataMint" in erc1155
+    html_stats = (ROOT / "frontend/gnu-atelier.html").read_text(errors="replace")
+    assert "debug=1" in html_stats
+
 
 
 if __name__ == "__main__":

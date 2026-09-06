@@ -69,9 +69,16 @@
     else if (score >= 4) tier = "mid";
 
     var pixelRatio = 1;
-    if (tier === "high") pixelRatio = Math.min(dpr, 2);
-    else if (tier === "mid") pixelRatio = Math.min(dpr, 1.5);
-    else pixelRatio = 1;
+    if (tier === "high" || tier === "mid") {
+      var cap = 1.5;
+      var floor = 1.25;
+      pixelRatio = dpr;
+      if (pixelRatio > cap) pixelRatio = cap;
+      if (pixelRatio < floor) pixelRatio = floor;
+      if (lowHint) pixelRatio = floor;
+    } else {
+      pixelRatio = 1;
+    }
 
     return {
       schema: "stratamesh.atelier.quality.v1",
