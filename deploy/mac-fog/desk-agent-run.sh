@@ -7,6 +7,11 @@ set -euo pipefail
 REPO="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"
 FOG="${FOG_HOME:-$HOME/StrataMesh/fog}"
 AGENT="${1:-all}"
+HOLD_FILE="$FOG/data/DESK-CYCLE-HOLD"
+if [[ -f "$HOLD_FILE" ]]; then
+  echo "desk-agent-run: HOLD $HOLD_FILE — skip (rm to resume)"
+  exit 0
+fi
 cd "$REPO"
 mkdir -p "$FOG/data/desk-outbox" "$FOG/data/desk-meters" \
   "$FOG/data/desk-outbox/reports" "$FOG/data/desk-outbox/journals" \
