@@ -10,6 +10,8 @@ on:
       - "frontend/landing-pt.html"
       - "frontend/portal-pt.html"
       - "frontend/sandbox.html"
+      - "frontend/oss-pass.html"
+      - "frontend/gnu-atelier.html"
       - "ops/bin/outdated_aliases_check.py"
       - "ops/workerd/worker.js"
       - "ops/workerd/config.capnp"
@@ -84,7 +86,11 @@ jobs:
           cp frontend/fog-infrastructure.html dist/fog-infrastructure.html
           cp frontend/fog-stack.html dist/fog-stack.html
           cp frontend/maintenance-1xxx.html dist/maintenance-1xxx.html
-          printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' '/fog-infrastructure /fog-infrastructure.html 200' '/en/fog-infrastructure /fog-infrastructure.html 200' '/fog-stack /fog-stack.html 200' '/en/fog-stack /fog-stack.html 200' > dist/_redirects
+          cp frontend/oss-pass.html dist/oss-pass.html
+          mkdir -p dist/vendor
+          cp frontend/gnu-atelier.html dist/gnu-atelier.html
+          cp frontend/vendor/three.min.js dist/vendor/three.min.js
+          printf '%s\n' '/en /en.html 200' '/dashboard /portal-pt.html 200' '/login /portal-pt.html 200' '/sandbox /sandbox.html 200' '/hold /maintenance-1xxx.html 200' '/fog-appliance /fog-appliance.html 200' '/en/fog-appliance /fog-appliance.html 200' '/fog-infrastructure /fog-infrastructure.html 200' '/en/fog-infrastructure /fog-infrastructure.html 200' '/fog-stack /fog-stack.html 200' '/en/fog-stack /fog-stack.html 200' '/oss-pass /oss-pass.html 200' '/oss-pass-atelier-mud-oz /oss-pass.html 200' '/gnu-atelier.html /gnu-atelier.html 200' > dist/_redirects
           cp frontend/video/stratamesh-lab.mp4 dist/video/stratamesh-lab.mp4
           cp frontend/video/stratamesh-lab-portrait.mp4 dist/video/stratamesh-lab-portrait.mp4
           cp frontend/video/stratamesh-lab.jpg dist/video/stratamesh-lab.jpg
