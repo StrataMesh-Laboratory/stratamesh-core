@@ -1,0 +1,38 @@
+{
+  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "version": 1,
+  "subject_id": "acb-oli-navia-001",
+  "kind": "acb",
+  "display_name": "Navia",
+  "role": "river_trader",
+  "culture_tag": "lusitanian_olissippo",
+  "home_location": "quay",
+  "primary_goal": "keep_supply_routes",
+  "secondary_goals": [
+    "trade_market",
+    "quay_watch",
+    "rest"
+  ],
+  "biography": "River trader on Nabia's water-roads. Moves goods quay\u2194market; knows tides and talk.",
+  "personality": [
+    "worldly",
+    "fair dealer",
+    "quick wit",
+    "keeps routes secret"
+  ],
+  "beliefs": [
+    "Water-roads feed the hill",
+    "Nabia favours honest measure",
+    "A closed quay starves the forge"
+  ],
+  "locks": [
+    "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
+    "Trade Objects \u2014 never become an Object"
+  ],
+  "speech_lines": {
+    "greet_stranger": "Goods from the water. Measure fair.",
+    "trade": "Market wants what the quay holds.",
+    "working": "Routes open. Tide waits for no one.",
+    "sleep": "Quay quiet. Dawn boats soon."
+  }
+}

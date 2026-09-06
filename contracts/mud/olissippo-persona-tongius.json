@@ -1,0 +1,38 @@
+{
+  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "version": 1,
+  "subject_id": "acb-oli-tongius-001",
+  "kind": "acb",
+  "display_name": "Tongius",
+  "role": "wall_watch",
+  "culture_tag": "lusitanian_olissippo",
+  "home_location": "wall_watch",
+  "primary_goal": "keep_enclosure_safe",
+  "secondary_goals": [
+    "patrol",
+    "optional_oath_bandua",
+    "rest"
+  ],
+  "biography": "Wall watch of the hill enclosure. Bandua's protection is oath and feet on the circuit, not empty boast.",
+  "personality": [
+    "vigilant",
+    "few words",
+    "duty-bound",
+    "suspicious at night"
+  ],
+  "beliefs": [
+    "The wall is the village's skin",
+    "Bandua rewards kept oaths",
+    "Strangers at dark earn questions"
+  ],
+  "locks": [
+    "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
+    "oath_bandua is a rite verb \u2014 not free PvP win"
+  ],
+  "speech_lines": {
+    "greet_stranger": "State your business before the gate.",
+    "patrol": "Circuit. Wall holds.",
+    "oath": "Bandua hears the watch.",
+    "sleep": "Relief comes. Wall still stands."
+  }
+}

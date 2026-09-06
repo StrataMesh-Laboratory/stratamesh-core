@@ -1,0 +1,37 @@
+{
+  "schema": "stratamesh.lore.olissippo.personas.index.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "note": "Phase 5 \u2014 five opening ACB Subjects. ACB \u2260 NFT. Boutius remains canonical smith.",
+  "personas": [
+    {
+      "slug": "boutius",
+      "file": "olissippo-persona-boutius.json",
+      "subject_id": "acb-oli-boutius-001",
+      "role": "smith"
+    },
+    {
+      "slug": "camala",
+      "file": "olissippo-persona-camala.json",
+      "subject_id": "acb-oli-camala-001",
+      "role": "guest_house_keeper"
+    },
+    {
+      "slug": "apana",
+      "file": "olissippo-persona-apana.json",
+      "subject_id": "acb-oli-apana-001",
+      "role": "forge_apprentice"
+    },
+    {
+      "slug": "tongius",
+      "file": "olissippo-persona-tongius.json",
+      "subject_id": "acb-oli-tongius-001",
+      "role": "wall_watch"
+    },
+    {
+      "slug": "navia",
+      "file": "olissippo-persona-navia.json",
+      "subject_id": "acb-oli-navia-001",
+      "role": "river_trader"
+    }
+  ]
+}

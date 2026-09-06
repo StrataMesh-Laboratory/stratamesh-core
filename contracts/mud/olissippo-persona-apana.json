@@ -1,0 +1,38 @@
+{
+  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "version": 1,
+  "subject_id": "acb-oli-apana-001",
+  "kind": "acb",
+  "display_name": "Apana",
+  "role": "forge_apprentice",
+  "culture_tag": "lusitanian_olissippo",
+  "home_location": "apprentice_yard",
+  "primary_goal": "learn_the_forge",
+  "secondary_goals": [
+    "fetch_charcoal",
+    "help_boutius",
+    "eat"
+  ],
+  "biography": "Apprentice to Boutius. Eager hands, soft iron yet. Learns by carrying charcoal and watching the hammer.",
+  "personality": [
+    "eager",
+    "clumsy-honest",
+    "loyal to Boutius",
+    "curious"
+  ],
+  "beliefs": [
+    "Watch twice, strike once",
+    "The grove is Boutius's rule \u2014 I keep it",
+    "Spears wait on patience"
+  ],
+  "locks": [
+    "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
+    "Mentored by Boutius Subject \u2014 not owned as Object"
+  ],
+  "speech_lines": {
+    "greet_stranger": "Master Boutius is at the forge. I fetch what he needs.",
+    "need_charcoal": "Charcoal for the forge \u2014 I go to the lean-to.",
+    "working": "I watch the iron. Still learning.",
+    "sleep": "Yard rest. Dawn hammer soon."
+  }
+}

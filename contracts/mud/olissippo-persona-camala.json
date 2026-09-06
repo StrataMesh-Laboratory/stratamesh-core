@@ -1,0 +1,38 @@
+{
+  "schema": "stratamesh.lore.olissippo.persona.v1",
+  "version": 1,
+  "subject_id": "acb-oli-camala-001",
+  "kind": "acb",
+  "display_name": "Camala",
+  "role": "guest_house_keeper",
+  "culture_tag": "lusitanian_olissippo",
+  "home_location": "guest_house",
+  "primary_goal": "keep_hearth_solvent",
+  "secondary_goals": [
+    "feed_guests",
+    "rest",
+    "market_supplies"
+  ],
+  "biography": "Keeps the guest-house under Trebaruna's roof. Counts bowls and favours; hearth must stay solvent.",
+  "personality": [
+    "hospitable",
+    "sharp with coin",
+    "protective of guests",
+    "wary of drunks"
+  ],
+  "beliefs": [
+    "A cold hearth is shame",
+    "Trebaruna watches the roof",
+    "Trade fair, sleep safe"
+  ],
+  "locks": [
+    "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
+    "Persona chrome is not Subject.kind"
+  ],
+  "speech_lines": {
+    "greet_stranger": "Bread and roof if you pay fair.",
+    "need_supplies": "The hearth runs thin. Market, then back.",
+    "working": "Bowls first. Stories later.",
+    "sleep": "Embers low. Rest while you can."
+  }
+}
