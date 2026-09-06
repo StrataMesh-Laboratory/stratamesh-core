@@ -8,7 +8,7 @@
 2. Tailscale join same tailnet as Mac Fog (`hermes-desk` / mbpv).
 3. `bootstrap.sh` + `stratamesh-fog.service` (`FOG-NODE-HOME-001`).
 4. Optional cloudflared for `fog-home.` — Mac keeps `fog.`.
-5. Prove: [`docs/FOG-PEER-PROVE.md`](../../docs/FOG-PEER-PROVE.md).
+5. Options + steps: [`docs/FOG-SPARE-HOST-OPTIONS.md`](../../docs/FOG-SPARE-HOST-OPTIONS.md). Prove: [`docs/FOG-PEER-PROVE.md`](../../docs/FOG-PEER-PROVE.md).
 
 ## Why this beats Oracle wait
 
