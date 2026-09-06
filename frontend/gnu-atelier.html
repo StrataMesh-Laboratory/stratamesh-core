@@ -231,7 +231,27 @@ h1{font-size:13px}
     </div>
   </div>
 </div>
-<script src="/vendor/three.min.js?v=20260903g"></script>
+<script src="/vendor/three.min.js?v=20260906oss"></script>
+<script src="/atelier-quality.js?v=20260906oss"></script>
+<script src="/atelier-instances.js?v=20260906oss"></script>
+<script>
+(function () {
+  try {
+    if (new URLSearchParams(location.search).get('debug') !== '1') return;
+    var s = document.createElement('script');
+    s.src = '/vendor/stats.min.js?v=20260906oss';
+    s.onload = function () {
+      if (typeof Stats === 'undefined') return;
+      var st = new Stats();
+      st.showPanel(0);
+      st.dom.style.zIndex = '10001';
+      document.body.appendChild(st.dom);
+      window.__atelierStats = st;
+    };
+    document.head.appendChild(s);
+  } catch (_) {}
+})();
+</script>
 <script>
 
 const CORE = "v0.5.1-session";
@@ -474,7 +494,7 @@ const camera = new THREE.PerspectiveCamera(78, 1, 0.08, 120);
 camera.up.set(0, 1, 0);
 camera.rotation.order = "YXZ";
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false }); window.renderer = renderer; window.camera = camera; window.scene = scene;
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.setPixelRatio((typeof AtelierQuality !== "undefined" && AtelierQuality.pixelRatio) || Math.min(devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1294,6 +1314,7 @@ function play(ev) {
 let last = performance.now(), gait = 0;
 function tick(now) {
   requestAnimationFrame(tick);
+  if (window.__atelierStats) window.__atelierStats.update();
   const dt = Math.min((now - last) / 1000, 0.1); last = now;
   const held = injected || [...keys];
   const has = (c) => held.includes(c);

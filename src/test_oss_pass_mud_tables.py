@@ -44,6 +44,38 @@ def test_atelier_vendor_three():
     assert "NoStrataMint" in oz
 
 
+def test_atelier_quality_scripts():
+    html = (ROOT / "frontend/gnu-atelier.html").read_text(errors="replace")
+    assert "atelier-quality.js" in html
+    assert "atelier-instances.js" in html
+    assert "AtelierQuality.pixelRatio" in html
+    assert (ROOT / "frontend/atelier-quality.js").is_file()
+    assert (ROOT / "frontend/atelier-instances.js").is_file()
+    assert (ROOT / "frontend/vendor/stats.min.js").is_file()
+    assert "REVISION:16" in (ROOT / "frontend/vendor/stats.min.js").read_text(errors="replace")
+    unix = (ROOT / "frontend/atelier-unix.js").read_text(errors="replace")
+    assert "AtelierInstances.makeInstanced" in unix
+    assert "AtelierQuality.fogDensity" in unix
+    assert "disposeObject3D" in unix
+
+
+def test_strata_poc_contracts():
+    erc = (ROOT / "contracts/strata/StrataERC20.sol").read_text()
+    assert "POC_MINTER_ROLE" in erc
+    assert "onlyRole(POC_MINTER_ROLE)" in erc
+    nft = (ROOT / "contracts/strata/StrataObjectNFT.sol").read_text()
+    assert "ParcelImmovable" in nft
+    assert "POC_MINTER_ROLE" in nft
+    cat = (ROOT / "contracts/strata/StrataCatalog1155.sol").read_text()
+    assert "POC_MINTER_ROLE" in cat
+    assert (ROOT / "docs/ATELIER-GLTF-PIPELINE.md").is_file()
+    assert (ROOT / "frontend/vendor/gltf/README.md").is_file()
+    mud = (ROOT / "docs/MUD-WORLD-FOG-TABLES.md").read_text()
+    for name in ("Account", "Holon", "Object", "Contrato", "Balance"):
+        assert name in mud
+
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

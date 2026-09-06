@@ -57,11 +57,24 @@
       if (ch === B.root || ch === B.avatar || ch === B.camera) return;
       drop.push(ch);
     });
-    drop.forEach(function (ch) { B.scene.remove(ch); });
-    if (B.door) { B.scene.remove(B.door); B.door = null; }
+    drop.forEach(function (ch) {
+      B.scene.remove(ch);
+      if (window.AtelierInstances && AtelierInstances.disposeObject3D) {
+        AtelierInstances.disposeObject3D(ch);
+      }
+    });
+    if (B.door) {
+      B.scene.remove(B.door);
+      if (window.AtelierInstances && AtelierInstances.disposeObject3D) {
+        AtelierInstances.disposeObject3D(B.door);
+      }
+      B.door = null;
+    }
 
     B.scene.background = new THREE.Color(0x2a140c);
-    B.scene.fog = new THREE.FogExp2(0xc45a28, 0.046);
+    var fogDensity = (window.AtelierQuality && typeof AtelierQuality.fogDensity === 'number')
+      ? AtelierQuality.fogDensity : 0.046;
+    B.scene.fog = new THREE.FogExp2(0xc45a28, fogDensity);
     B.HALF = 9.4;
     B.HEIGHT = 4.2;
     B.scene.add(new THREE.HemisphereLight(0xffc878, 0x3a1810, 0.95));
@@ -84,11 +97,24 @@
     lane.position.y = 0.01;
     B.scene.add(lane);
     var dashMat = toon(0xd4a017);
+    var dashGeo = new THREE.PlaneGeometry(0.12, 0.55);
+    var dashMatrices = [];
     for (var i = -8; i <= 8; i++) {
-      var d = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.55), dashMat);
-      d.rotation.x = -Math.PI / 2;
-      d.position.set(0, 0.02, i * 1.05);
-      B.scene.add(d);
+      var m4 = new THREE.Matrix4();
+      var q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+      m4.compose(new THREE.Vector3(0, 0.02, i * 1.05), q, new THREE.Vector3(1, 1, 1));
+      dashMatrices.push(m4);
+    }
+    if (window.AtelierInstances && AtelierInstances.makeInstanced) {
+      var dashMesh = AtelierInstances.makeInstanced(dashGeo, dashMat, dashMatrices);
+      if (dashMesh) B.scene.add(dashMesh);
+    } else {
+      for (var di = 0; di < dashMatrices.length; di++) {
+        var d = new THREE.Mesh(dashGeo, dashMat);
+        d.rotation.x = -Math.PI / 2;
+        d.position.set(0, 0.02, (di - 8) * 1.05);
+        B.scene.add(d);
+      }
     }
 
     function shop(x, z, rotY, w, h, col, sign) {
