@@ -56,3 +56,37 @@ SPA/APS = **STRATA NFT especializado** — template automatizado de acordo de se
 - Endpoints: `POST /spa/mint` · `/spa/execute` · `/spa/complete` · `GET /spa/list`
 
 Optional lab metabolism ([`METABOLISM-ON-GRAPH.md`](./METABOLISM-ON-GRAPH.md)) may pace collateral burns until the SPA/CLP renewal; floor 0.1 STRATA stays reserved. Opt-in, not exclusive: `POST /spa/execute`, liquidate, and redeem remain valid without it.
+
+## Ownership · collateral · Agora price (normative refinement 2026-09-06)
+
+Three quantities — **never collapse**:
+
+| Symbol | What | Where |
+|--------|------|--------|
+| **C** | Collateral fungible STRATA **inside** the NFT | Object / contrato tank |
+| **ownership fraction** | Subject’s claim on that collateralised NFT | FractionalEconomicOwnership |
+| **P_market** | Agora market price of that ownership portion, quoted in **fungible STRATA** | Agora listing — **not** equal to C × fraction |
+
+### Rules
+
+1. **Ownership of the NFT** means subjects own the **collateralised STRATA of that NFT** (fractions / `strata_units` weight) — Agent owns/operates NFT; NFT never owns Agent.
+2. **Static** state (template / dormancy): collateral is **reserved** (floor e.g. 0.1 STRATA stays reserved; no execution burn).
+3. **Dynamic** state (execution): the NFT **burns its own mechanisms** — collateral burns above the floor to pay execution (`POST /spa/execute` and kin). Metabolism may *pace* burns; it does not redefine C vs P_market.
+4. **Terminated**: residual collateral to titulares; or complete path.
+5. **Agora sale of ownership**: a subject may sell their ownership portion linked to that NFT on the Agora for **P_market in fungible STRATA**.  
+   **P_market ≠ collateral value** that the ownership portion represents (that claim is on C; the trade clears at market).
+6. **Redeem** (`POST /nft/redeem`) remains the path when **P_market < C** (individual exit vs collateral), distinct from an ordinary Agora ownership trade at P_market.
+7. Fungible STRATA used to *pay* P_market comes from the buyer’s **dashboard Balance** — not by minting, not by emptying another NFT’s C unless a defined liquidate/redeem path says so.
+
+### Diagram
+
+```
+Subject ──fraction──► STRATA NFT
+                         │
+                         ├─ C  collateral (static: reserve · dynamic: burn above floor)
+                         ├─ optional StateMachine (static|dynamic|terminated)
+                         └─ Actions / Bundle / Aspectos
+Subject ──sells fraction on Agora──► P_market (fungible STRATA)
+         P_market  confuses-not-with  (fraction · C)
+```
+

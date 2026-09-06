@@ -31,6 +31,18 @@ def test_mud_tables():
         assert name in mud, name
     assert "NOT object_id" in mud or "lot_id ≠ object_id" in mud or "lot_id != object_id" in mud
     assert "never call a contrato an aspecto" in mud.lower()
+    # collateral vs Agora ownership price
+    for name in ("OwnershipFraction", "Collateral"):
+        assert name in tables, name
+    own = " ".join(tables["OwnershipFraction"]["rules"]).lower()
+    assert "p_market" in own and "collateral" in own
+    assert "not the collateral value" in own or "p_market is not the collateral" in own
+    col = " ".join(tables["Collateral"]["rules"]).lower()
+    assert "static" in col and "dynamic" in col and "burn" in col
+    ont = (ROOT / "docs/STRATA_NFT_ONTOLOGY.md").read_text()
+    assert "P_market" in ont and "Collateral" in ont
+    assert "P_market ≠" in ont or "P_market !=" in ont or "not equal" in ont.lower()
+
 
 
 def test_oz_scaffold_no_strata_mint():

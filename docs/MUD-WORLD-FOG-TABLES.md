@@ -115,6 +115,30 @@ Fungible L-STRATA on the **Subject** dashboard wallet. Mint: PdC / PoC-gated onl
 
 ---
 
+
+## OwnershipFraction
+
+Subjects own the NFT by owning **fractions of its collateralised STRATA** (not by “owning the bytes alone”).
+
+| Field | Notes |
+|-------|--------|
+| `object_id` | Bound STRATA NFT |
+| `subject_id` | Titular |
+| `fraction` / `strata_units` | Claim weight on that NFT’s collateral |
+| `collateral_share_ref` | Accounting claim on **C** — not a wallet Balance row |
+
+**Agora:** listing sells this ownership portion at **P_market** (fungible STRATA). **P_market ≠ C × fraction.** Redeem when P_market < C is a different primitive.
+
+## Collateral (on Object / contrato tank)
+
+| State | Collateral behaviour |
+|-------|----------------------|
+| `static` | **Reserve** — dormancy; floor (e.g. 0.1) reserved |
+| `dynamic` | **Burn** above floor to fund the NFT’s own execution mechanisms |
+| `terminated` | Residual to titulares / complete |
+
+C lives **in** the NFT. Subject dashboard Balance is separate fungible STRATA.
+
 ## OZ / EVM scaffold mapping (lab only)
 
 | Scaffold | May represent | Must not |
