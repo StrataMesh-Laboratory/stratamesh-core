@@ -1,0 +1,57 @@
+{
+  "schema": "olissippo.grove.lex.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "mechanic_source": "Nomic (mutable rules via proposal/vote \u2014 no product branding)",
+  "lore_name_en": "Grove Lex / Trebaruna hearth-law",
+  "lore_name_pt": "Lei do Bosque / Trebaruna",
+  "immutable_core": [
+    {
+      "id": "lex-immut-server",
+      "text": "Server is authoritative; LLM only intends."
+    },
+    {
+      "id": "lex-immut-subject",
+      "text": "Subjects (ACB/human) are not Objects/NFTs."
+    },
+    {
+      "id": "lex-immut-lore",
+      "text": "Olissippo is lore not_main; does not host sandboxes."
+    },
+    {
+      "id": "lex-immut-magic",
+      "text": "No free generative magic effects without a schema verb."
+    },
+    {
+      "id": "lex-immut-numen",
+      "text": "Numina are institutional forces, not Subject rows."
+    }
+  ],
+  "mutable_seed": [
+    {
+      "id": "lex-mut-guest",
+      "text": "Guest-right at the guest house lasts three nights unless oath extended.",
+      "status": "active"
+    },
+    {
+      "id": "lex-mut-raid-season",
+      "text": "Raid season opens after spring rite; closed in deep winter.",
+      "status": "active"
+    },
+    {
+      "id": "lex-mut-market-tithe",
+      "text": "Market tithe is one part in twenty to the chefe hall.",
+      "status": "active"
+    }
+  ],
+  "proposal": {
+    "quorum": 3,
+    "majority": 0.5,
+    "verbs": [
+      "propose_lex",
+      "vote_lex",
+      "enact_lex",
+      "repeal_lex"
+    ],
+    "cannot_target_immutable": true
+  }
+}

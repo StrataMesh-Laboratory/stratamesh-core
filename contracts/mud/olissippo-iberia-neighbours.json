@@ -1,0 +1,196 @@
+{
+  "schema": "olissippo.iberia.neighbours.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "horizon": "pre-roman_lusitanian",
+  "honesty": "Inspired neighbour set for play \u2014 not archaeological reconstruction. Sources: Strabo/Pliny summaries; modern overviews of Lusitani\u2013Vettones\u2013Celtici\u2013Turduli\u2013Conii\u2013Gallaeci and Punic coastal presence.",
+  "peoples": [
+    {
+      "id": "lusitani",
+      "label_en": "Lusitani",
+      "label_pt": "Lusitanos",
+      "role": "home",
+      "notes": "Core Tagus\u2013Douro highland federation; Olissippo village sits in this sphere."
+    },
+    {
+      "id": "vettones",
+      "label_en": "Vettones",
+      "label_pt": "Vet\u00f5es",
+      "role": "neighbour",
+      "notes": "North/east cattle lords; frequent kinship and raid allies of Lusitani."
+    },
+    {
+      "id": "celtici",
+      "label_en": "Celtici",
+      "label_pt": "C\u00e9lticos",
+      "role": "neighbour",
+      "notes": "South / Baeturia\u2013Alentejo axis; shifting symmach\u00edai with Lusitani."
+    },
+    {
+      "id": "turduli",
+      "label_en": "Turduli",
+      "label_pt": "T\u00fardulos",
+      "role": "neighbour",
+      "notes": "South-east / coastal relatives; Turduli Veteres on lower Douro\u2013Vouga."
+    },
+    {
+      "id": "conii",
+      "label_en": "Conii (Cynetes)",
+      "label_pt": "C\u00f3nios",
+      "role": "neighbour",
+      "notes": "Far south / Algarve axis; often under Punic pressure."
+    },
+    {
+      "id": "gallaeci",
+      "label_en": "Gallaeci",
+      "label_pt": "Galaicos",
+      "role": "neighbour",
+      "notes": "Northwest hill peoples; kin discourse with Celtici migrations."
+    },
+    {
+      "id": "punic_coast",
+      "label_en": "Punic coastal posts",
+      "label_pt": "Postos p\u00fanicos",
+      "role": "power",
+      "notes": "Carthaginian/Punic trading and winter posts on south/Atlantic \u2014 pressure, not a playable tribe clone."
+    },
+    {
+      "id": "celtiberi",
+      "label_en": "Celtiberians",
+      "label_pt": "Celtiberos",
+      "role": "distant",
+      "notes": "Far-east pressure edge; rare season contact."
+    }
+  ],
+  "territories": [
+    {
+      "id": "terr-olissippo",
+      "label_en": "Olissippo hill-and-quay",
+      "label_pt": "Olissippo",
+      "people_id": "lusitani",
+      "kind": "home_village",
+      "supply": true,
+      "links_village_locs": [
+        "hill_enclosure",
+        "quay",
+        "market",
+        "cattle_pens"
+      ]
+    },
+    {
+      "id": "terr-tagus-scrub",
+      "label_en": "Tagus scrub marches",
+      "label_pt": "Mato do Tejo",
+      "people_id": "lusitani",
+      "kind": "march",
+      "supply": false
+    },
+    {
+      "id": "terr-vetton-pastures",
+      "label_en": "Vetton cattle pastures",
+      "label_pt": "Pastagens vetonas",
+      "people_id": "vettones",
+      "kind": "pasture",
+      "supply": true
+    },
+    {
+      "id": "terr-celtici-oppida",
+      "label_en": "Celtici oppida belt",
+      "label_pt": "Cerca c\u00e9ltica",
+      "people_id": "celtici",
+      "kind": "oppida",
+      "supply": true
+    },
+    {
+      "id": "terr-turduli-coast",
+      "label_en": "Turduli coast",
+      "label_pt": "Costa t\u00fardula",
+      "people_id": "turduli",
+      "kind": "coast",
+      "supply": true
+    },
+    {
+      "id": "terr-conii-south",
+      "label_en": "Conii south lands",
+      "label_pt": "Terras c\u00f3nias",
+      "people_id": "conii",
+      "kind": "south",
+      "supply": true
+    },
+    {
+      "id": "terr-gallaeci-hills",
+      "label_en": "Gallaeci hills",
+      "label_pt": "Outeiros galaicos",
+      "people_id": "gallaeci",
+      "kind": "hills",
+      "supply": true
+    },
+    {
+      "id": "terr-punic-post",
+      "label_en": "Punic coastal post",
+      "label_pt": "Posto p\u00fanico",
+      "people_id": "punic_coast",
+      "kind": "emporion",
+      "supply": true,
+      "player_controllable": false
+    },
+    {
+      "id": "terr-celtiber-edge",
+      "label_en": "Celtiberian edge",
+      "label_pt": "Orla celtibera",
+      "people_id": "celtiberi",
+      "kind": "distant",
+      "supply": false
+    }
+  ],
+  "edges": [
+    [
+      "terr-olissippo",
+      "terr-tagus-scrub"
+    ],
+    [
+      "terr-olissippo",
+      "terr-turduli-coast"
+    ],
+    [
+      "terr-tagus-scrub",
+      "terr-vetton-pastures"
+    ],
+    [
+      "terr-tagus-scrub",
+      "terr-celtici-oppida"
+    ],
+    [
+      "terr-celtici-oppida",
+      "terr-conii-south"
+    ],
+    [
+      "terr-celtici-oppida",
+      "terr-punic-post"
+    ],
+    [
+      "terr-conii-south",
+      "terr-punic-post"
+    ],
+    [
+      "terr-turduli-coast",
+      "terr-gallaeci-hills"
+    ],
+    [
+      "terr-vetton-pastures",
+      "terr-gallaeci-hills"
+    ],
+    [
+      "terr-vetton-pastures",
+      "terr-celtiber-edge"
+    ],
+    [
+      "terr-olissippo",
+      "terr-celtici-oppida"
+    ]
+  ],
+  "gateways_from_village": {
+    "east_track": "terr-tagus-scrub",
+    "quay": "terr-turduli-coast",
+    "wall_watch": "terr-olissippo"
+  }
+}

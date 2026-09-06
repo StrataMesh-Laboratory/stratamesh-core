@@ -1,0 +1,98 @@
+{
+  "schema": "olissippo.kin.stirps.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "mechanic_source": "Crusader Kings family/dynasty (kin, marriage alliance, succession, claims \u2014 no product branding)",
+  "lore_name_en": "Hill stirps / gens",
+  "lore_name_pt": "Estirpes do outeiro",
+  "note": "Kinship is SubjectEdge among Subjects. Holdings are territory claims, not NFT persons. Marriage is guest-right alliance between stirps.",
+  "edge_kinds": [
+    "parent_of",
+    "child_of",
+    "spouse_of",
+    "sibling_of",
+    "foster_of",
+    "oath_kin"
+  ],
+  "stirps_seed": [
+    {
+      "id": "stirps-oli-chefe",
+      "label_en": "Hall stirps of Olissippo",
+      "label_pt": "Estirpe da sala",
+      "home_territory": "terr-olissippo",
+      "head_role": "chefe"
+    },
+    {
+      "id": "stirps-oli-smith",
+      "label_en": "Forge stirps",
+      "label_pt": "Estirpe da forja",
+      "home_territory": "terr-olissippo",
+      "head_role": "smith"
+    },
+    {
+      "id": "stirps-vetton-cattle",
+      "label_en": "Vetton cattle stirps",
+      "label_pt": "Estirpe dos currais vet\u00f5es",
+      "home_territory": "terr-vetton-pastures",
+      "head_role": "herd-lord"
+    }
+  ],
+  "person_seeds": [
+    {
+      "person_id": "kin-oli-chefe-eldest",
+      "stirps_id": "stirps-oli-chefe",
+      "display_name": "Elder of the hall",
+      "generation": 0,
+      "alive": true,
+      "subject_ref": null
+    },
+    {
+      "person_id": "kin-oli-chefe-heir",
+      "stirps_id": "stirps-oli-chefe",
+      "display_name": "Heir of the hall",
+      "generation": 1,
+      "alive": true,
+      "parent_ids": [
+        "kin-oli-chefe-eldest"
+      ],
+      "subject_ref": null
+    },
+    {
+      "person_id": "kin-oli-smith",
+      "stirps_id": "stirps-oli-smith",
+      "display_name": "Smith kin (Boutius line seed)",
+      "generation": 0,
+      "alive": true,
+      "subject_ref": "acb-boutius-001"
+    },
+    {
+      "person_id": "kin-vetton-herd",
+      "stirps_id": "stirps-vetton-cattle",
+      "display_name": "Vetton herd-lord",
+      "generation": 0,
+      "alive": true,
+      "subject_ref": null
+    }
+  ],
+  "succession": {
+    "default": "eldest_living_child",
+    "fallback": "stirps_eldest",
+    "holding_kinds": [
+      "territory_claim",
+      "supply_claim",
+      "chefe_claim"
+    ]
+  },
+  "marriage": {
+    "creates_edge": "spouse_of",
+    "alliance_edge": "oath_kin",
+    "requires_alive": true,
+    "same_stirps_forbidden": true
+  },
+  "actions": [
+    "marry",
+    "acknowledge_heir",
+    "succeed_holding",
+    "foster",
+    "claim_kin"
+  ]
+}

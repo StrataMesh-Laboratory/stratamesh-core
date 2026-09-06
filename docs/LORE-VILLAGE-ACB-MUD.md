@@ -261,3 +261,12 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - Loader: [`src/olissippo_world.py`](../src/olissippo_world.py) — `validate_move`, `objects_at`, `numen_at`
 - Tests: `src/test_olissippo_world.py` (wired in `protocol-invariants`)
 - Next: Phase 7 continuity eval
+
+---
+
+## Phase 7 — Council games (Bandua season · Grove Lex · hill stirps)
+
+Inter-tribe **orders** (Diplomacy mechanics), **mutable hearth-law** (Nomic mechanics), and **stirps kinship/succession** (Crusader Kings family/dynasty mechanics) adapted to Lusitanian lore and historically named neighbours.
+
+Normative: [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · contracts `olissippo-iberia-neighbours.json`, `olissippo-council-diplomacy.json`, `olissippo-grove-lex-nomic.json`, `olissippo-kin-dynasty.json`.
+

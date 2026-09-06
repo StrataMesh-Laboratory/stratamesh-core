@@ -1,0 +1,47 @@
+{
+  "schema": "olissippo.council.diplomacy.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "mechanic_source": "Diplomacy (orders/support/supply only \u2014 no product branding)",
+  "lore_name_en": "Bandua war-band season",
+  "lore_name_pt": "Esta\u00e7\u00e3o de Bandua",
+  "note": "Simultaneous sealed orders among Subject war-bands and neighbour powers. Negotiation is oath/chat; adjudication is server-side.",
+  "order_verbs": [
+    "hold",
+    "move",
+    "support",
+    "river_escort"
+  ],
+  "river_escort_note": "Convoy-analogue along Tagus/coast tracks (quay \u2194 turduli coast \u2194 punic post).",
+  "river_escort_chains": [
+    [
+      "terr-olissippo",
+      "terr-turduli-coast",
+      "terr-punic-post"
+    ],
+    [
+      "terr-olissippo",
+      "terr-turduli-coast",
+      "terr-gallaeci-hills"
+    ]
+  ],
+  "supply_centers": [
+    "terr-olissippo",
+    "terr-vetton-pastures",
+    "terr-celtici-oppida",
+    "terr-turduli-coast",
+    "terr-conii-south",
+    "terr-gallaeci-hills",
+    "terr-punic-post"
+  ],
+  "resolution": {
+    "simultaneous": true,
+    "support_adds": 1,
+    "bounce_on_tie": true,
+    "cut_support_if_attacked": true
+  },
+  "actions": [
+    "submit_orders",
+    "resolve_season",
+    "claim_supply"
+  ]
+}

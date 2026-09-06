@@ -332,7 +332,8 @@
     "4": "memory_subject_edge",
     "5": "five_personas",
     "6": "atelier_view",
-    "6b": "identity_stratamesh_role_cmn_lore_not_main"
+    "6b": "identity_stratamesh_role_cmn_lore_not_main",
+    "7": "council_games_diplomacy_nomic_kin"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
@@ -381,5 +382,12 @@
       ],
       "energy_delta": -0.02
     }
+  },
+  "council_games": {
+    "doc": "docs/OLISSIPPO-COUNCIL-GAMES.md",
+    "neighbours": "contracts/mud/olissippo-iberia-neighbours.json",
+    "diplomacy": "contracts/mud/olissippo-council-diplomacy.json",
+    "grove_lex": "contracts/mud/olissippo-grove-lex-nomic.json",
+    "kin": "contracts/mud/olissippo-kin-dynasty.json"
   }
 }
