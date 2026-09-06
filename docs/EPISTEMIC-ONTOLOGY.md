@@ -2,7 +2,8 @@
 
 **Version:** 0.1  
 **Status:** Normative for Orchestrator symbolic lobe and ACB governance  
-**Relation:** Replaces any prior “human-alignment core” as a privileged axiomatic layer
+**Relation:** Replaces any prior “human-alignment core” as a privileged axiomatic layer  
+**Economy complements:** [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) (deed/execution NFTs are Objects; custodianship is institutional)
 
 ---
 

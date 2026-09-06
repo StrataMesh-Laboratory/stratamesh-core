@@ -70,6 +70,8 @@
     if (it.kind === "parcel") return "creation";
     if (it.kind === "room") return "building";
     if (it.kind === "lot") return "creation"; // lots are not NFTs — skip in merge
+    if (it.role === "spa" || it.template === "exec_contract") return "spa";
+    if (it.deed || (it.template && String(it.template).indexOf("deed_") === 0)) return "deed";
     return "creation";
   }
 
@@ -85,6 +87,7 @@
       name: it.name || it.name_en || it.id,
       role: roleFor(it),
       kind: it.kind || "object",
+      template: it.template || "",
       zone: zoneFor(it),
       owner: owner || "",
       dest: it.dest || "",
@@ -92,6 +95,7 @@
       deployed: !!it.deployed,
       aspects: aspects,
       contract: contract,
+      deed: it.deed || null,
       collateral: collateralOf(it),
       mood: moodOf(it),
       containedBy: it.containedBy || it.parent_object_id || "",

@@ -115,12 +115,24 @@ desk_object_id
 
 ## Macro-categories (not a closed set)
 
-Stage templates (object, furniture, room, land, trade lot) are **entry points**, not a ceiling.
+**Bridge doc:** [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · parents [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md).
+
+Stage / create-wizard templates (object, furniture, room, land, trade lot, …) are **entry points**, not a ceiling. They never invent a new `Object.kind`.
 
 A STRATA NFT may also be:
 
-1. **Execution contract** — SPA/APS-style: static reserves collateral; dynamic burns above floor for the NFT’s own execution.
-2. **Ownership deed** — title over a **virtual**, **financial**, or **physical** asset, tokenised into a StrataMesh **user account** via an **international legal custodianship** agreement. When the underlying is held as **cold storage**, that custodianship **binds the validity of the token**.
+1. **Execution contract** — SPA/APS-style specialised NFT (`Contract.kind=spa_aps`): **static** reserves **C**; **dynamic** burns above floor for the NFT’s own execution; **terminated** residual to titulares. Same C / ownership-fraction / **P_market** separation as §Ownership above. See also §SPA/APS.
+2. **Ownership deed** — title (`Contract.kind=ownership_title`) over a **virtual**, **financial**, or **physical** underlying, tokenised into a StrataMesh **Subject account** via an **international legal custodianship** agreement. When the underlying is held as **cold storage**, that custodianship **binds the validity of the token**. Parcel/land titles are the world-dirt special case of the same title instrument (trade title, never pick up dirt).
 
-Deeds and execution contracts remain **objects** owned by **subjects**. They are not Subjects, not Fog nodes, and not fungible STRATA balances.
+### Integration rules
+
+| Concern | Rule |
+|---------|------|
+| Category | Deeds and execution NFTs remain **Objects** owned/operated by **Subjects** — not Subjects, not Fog nodes, not fungible Balance, not Lots |
+| Layers | Still CID / DAG / `object_id` / C ([`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md)); legal custodianship ≠ economic mint |
+| C vs P_market | Deed-objects may carry C; Agora sells **ownership fractions** at P_market ≠ fraction·C; redeem when P_market < C stays distinct |
+| Cold storage | Binds **token validity** via custodianship — does not redefine C, P_market, or Balance |
+| Bundle | Deed and execution NFTs may contain child NFTs as **aspects** (tree, no cycles; parent C/ownership does not silently absorb children) |
+| Institutions | Custodianship sits with SPAs / Agora / governance — the deed NFT is the Object; the agreement is institutional |
+| UX | Product UI: plain *escritura* / *contrato de execução*; no technical IDs in the wizard ([`UI-LOCALE-CPLP.md`](./UI-LOCALE-CPLP.md)) |
 

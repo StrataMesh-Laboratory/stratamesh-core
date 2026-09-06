@@ -504,7 +504,14 @@
             cold_storage_binds_validity: true,
             holder_account: (who() || "")
           };
-          it.contract = { kind: "ownership_title", state: "static", custody: it.deed.custody, asset_class: it.deed.asset_class };
+          it.contract = {
+            kind: "ownership_title",
+            state: "static",
+            custody: it.deed.custody,
+            asset_class: it.deed.asset_class,
+            cold_storage_binds_validity: !!it.deed.cold_storage_binds_validity,
+            holder_subject_id: it.deed.holder_account || ""
+          };
           it.contrato = it.contract;
         }
       }

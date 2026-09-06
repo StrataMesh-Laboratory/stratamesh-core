@@ -52,6 +52,30 @@ def test_mud_tables():
     assert "all object kinds" in ae_rules or "all object" in ae_rules
     assert "P_market ≠" in ont or "P_market !=" in ont or "not equal" in ont.lower()
 
+    # open macros · deeds · custodianship cross-refs
+    assert (ROOT / "docs/NFT-MACRO-CATEGORIES.md").is_file()
+    macro = (ROOT / "docs/NFT-MACRO-CATEGORIES.md").read_text()
+    assert "cold storage" in macro.lower() or "cold_storage" in macro.lower()
+    assert "custodianship" in macro.lower()
+    assert "spa_aps" in macro and "ownership_title" in macro
+    assert "SUBJECT-OBJECT-ECONOMY" in macro and "DIGITAL-OBJECTS" in macro
+    assert "P_market" in macro or "ownership fraction" in macro.lower()
+    assert "custodianship" in mud.lower() or "deed" in mud.lower()
+    assert "NFT-MACRO-CATEGORIES" in mud
+    assert "cold_storage_binds_validity" in json.dumps(tables["Contract"])
+    assert "asset_class" in tables["Contract"]["value"]
+    crules = " ".join(tables["Contract"]["rules"]).lower()
+    assert "custodianship" in crules or "deed" in crules
+    assert "cold_storage" in crules or "cold storage" in crules
+    soe = (ROOT / "docs/SUBJECT-OBJECT-ECONOMY.md").read_text()
+    assert "NFT-MACRO-CATEGORIES" in soe
+    assert "custodianship" in soe.lower()
+    dig = (ROOT / "docs/DIGITAL-OBJECTS.md").read_text()
+    assert "NFT-MACRO-CATEGORIES" in dig or "Ownership deed" in dig or "deed" in dig.lower()
+    assert "Macro-categories" in ont or "Ownership deed" in ont
+    assert "custodianship" in ont.lower()
+    assert "NFT-MACRO-CATEGORIES" in ont
+
 
 
 def test_oz_scaffold_no_strata_mint():

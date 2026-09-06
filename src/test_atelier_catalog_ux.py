@@ -14,6 +14,8 @@ def test_atelier_catalog_module():
     assert "mergeDeployed" in js
     assert "aspectsOf" in js
     assert "toAtelierNft" in js
+    assert 'return "deed"' in js or "role === \"spa\"" in js or "exec_contract" in js
+    assert "deed: it.deed" in js or "deed:" in js
     assert "kind === \"lot\"" in js or "kind === 'lot'" in js
     assert "P_market" not in js  # UI bridge must not lecture market jargon in module surface
 

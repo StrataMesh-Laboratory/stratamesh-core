@@ -27,3 +27,16 @@ Same sqlite as Fog (`FOG_SQLITE_PATH`, default `/tmp/stratamesh-fog.db`): tables
 Restart: a new `ObjectRegistry()` on the same db lists previous objects.
 
 Catalog cases (lab): CID is content identity of the bytes (manifest + parts), DAG is the history vertex (`dag_tx`) on Fog sqlite, NFT is the network object (`object_id` / `nft.id`, never the CID), and STRATA is economic collateral reserved at 0 until `oracle_live`. C3 composes a multipart dragon that carries cid, dag_tx, object_id, `nft.id == object_id != cid`, and strata 0; C5 composes a building with four part roles into one NFT; C6 shows new bytes mint a new cid and a new object_id; C1 CID-only persist (`cid_only=true` / `mint=false` or PUT `/object/cid`) stores the CID without minting `nft.id` (null), STRATA stays 0; GET hit is 200, unknown cid is 404; C4 refuses `strata_units=1`; illegal compose/register without parts or cid fails. GNU Atelier remains a renderer only.
+
+## Macro roles (still the same four layers)
+
+[`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md)
+
+| Macro (UX) | Digital-object fact |
+|------------|---------------------|
+| Stage object / furniture / room / land | Same four layers; land parcels stay unmovable `object_id` |
+| Execution contract | Same four layers + optional StateMachine on the object; C burn on dynamic |
+| Ownership deed (virtual / financial / physical) | Same four layers; legal custodianship binds **token validity** (esp. cold storage) — **not** a fifth identity layer and **not** a STRATA mint |
+| Trade lot | **Not** an `object_id` — catalog Lot only |
+
+`object_id` remains network identity. Custodianship does not replace CID, DAG, or C.

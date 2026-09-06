@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0  
 **Status:** Normative for public description, orchestrator posture, and token/NFT ontology  
-**Complements:** [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md) · [`SCA-VOLITION.md`](./SCA-VOLITION.md) · [`EPISTEMIC-ONTOLOGY.md`](./EPISTEMIC-ONTOLOGY.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md)
+**Complements:** [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md) · [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`DIGITAL-OBJECTS.md`](./DIGITAL-OBJECTS.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · [`SCA-VOLITION.md`](./SCA-VOLITION.md) · [`EPISTEMIC-ONTOLOGY.md`](./EPISTEMIC-ONTOLOGY.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md)
 
 ---
 
@@ -19,7 +19,7 @@ This document fixes a two-category economy so participants are not collapsed int
 | Category | Members | Role |
 |----------|---------|------|
 | **Subjects** | Human users · ACBs | Act, agree, own, govern, transact *as participants* |
-| **Objects** | STRATA · STRATA NFTs · computational resources · digital creations · other protocol-native resources | Are owned, used, transferred, locked, burned |
+| **Objects** | STRATA · STRATA NFTs (stage props, **execution contracts**, **ownership deeds**, land titles, bundles, …) · computational resources · digital creations · other protocol-native resources | Are owned, used, transferred, locked, burned |
 
 **Rule S1 — Subjects act; objects are acted upon.**
 
@@ -94,15 +94,25 @@ Native population (lab sense) ⊆ { humans ∪ ACBs }.
 | Layer | Examples |
 |-------|----------|
 | **Subjects** | Humans, ACBs |
-| **Objects** | STRATA, NFTs, resources, creations |
+| **Objects** | STRATA, NFTs (incl. execution / deed), resources, creations |
 | **Infrastructure** | Fog, Edge, GDA/DLT, OS, networking |
-| **Institutions** | Governance, Agora, Computational Republic, SPAs/agreements |
+| **Institutions** | Governance, Agora, Computational Republic, SPAs/agreements, **international legal custodianship** (may bind deed-token validity under cold storage) |
 | **Environment** | Virtual Domains, Open Worlds, CGU sandboxes |
 | **Temporal framework** | CLP (civil time at the node locus) |
 
 These layers must not be collapsed in public copy, APIs, or governance claims.
 
 ---
+
+
+## 5b. Deeds and execution NFTs (objects, not subjects)
+
+Create-wizard macros are open — see [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md).
+
+- An **execution contract** NFT is an **Object** with an SPA/APS contract block (static reserves C; dynamic burns above floor).
+- An **ownership deed** NFT is an **Object** whose title instrument records Subject ownership of a virtual, financial, or physical underlying under custodianship.
+- Custodianship is **institutional**; the deed token is the **Object**; cold storage may bind **token validity** without making the custodian a Subject or the Fog node a citizen.
+- Agent owns/operates NFT — never reverse. Lots remain non-objects.
 
 ## 6. Relation to “beyond crypto”
 

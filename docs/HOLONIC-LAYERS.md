@@ -52,3 +52,7 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
 ### Serviço de núcleo
 
 `stratamesh-holons` — `/so` · `/syscalls` · `/boot` · `/emitir` · `/eventos` · `/camadas`
+
+### Criações = NFT STRATA (macros abertos)
+
+Na Bancada CGU, criações publicadas são **objectos** NFT STRATA — incluindo contratos de execução e escrituras (virtuais / financeiras / físicas) sob custódia internacional. Não são sujeitos nem nós Fog. Ver [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md).
