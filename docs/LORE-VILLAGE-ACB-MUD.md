@@ -198,13 +198,21 @@ Combat campaigns, Roman conquest, custom LLM, vector DB, Godot fork, STRATA fauc
 
 Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**, where **myth is true lore magic** under Fog authority, and **provisions** leave room for free generative *origines* later — without letting generation rewrite ontology or invent unvalidated miracles.
 
+## Phase 6 — Atelier view (landed)
+
+- Stage: [`frontend/olissippo.html`](../frontend/olissippo.html) + [`frontend/olissippo-stage.js`](../frontend/olissippo-stage.js)
+- Snapshot: [`frontend/olissippo-world.json`](../frontend/olissippo-world.json) (`not_main: true`, realm `lore-olissippo-lusitanian`)
+- Pretty URL: `/olissippo` → lore stage (not Bancada / not open-world main)
+- HUD: Pessoas (ACB Subjects) vs Objectos — **no `object_id` jargon in chrome**
+- Next: Phase 7 continuity eval
+
 ## Phase 5 — five opening personas (landed)
 
 - Index: [`contracts/mud/olissippo-personas.json`](../contracts/mud/olissippo-personas.json)
 - Personas: Boutius, Camala, Apana, Tongius, Navia — all `kind=acb`, `acb-oli-*-001`
 - Runtime: [`src/olissippo_personas.py`](../src/olissippo_personas.py) — role routines, `tick_all`
 - **ACB ≠ NFT** on every persona file + runtime seals
-- Next: Phase 6 Atelier view
+- Next: Phase 7 continuity eval
 
 ## Phase 4 — MemoryEvent + SubjectEdge (landed)
 
@@ -213,7 +221,7 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - `record_memory` / `recall` / `upsert_edge` / `speech_from_memory`
 - Day-2 continuity: Boutius cites stored charcoal trade with the player Subject
 - **ACB ≠ NFT:** memories bind `subject_id` only; `obj-*` rejected
-- Next: Phase 6 Atelier view
+- Next: Phase 7 continuity eval
 
 ## Phase 3 — decide → validate → execute (landed)
 
@@ -222,7 +230,7 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - **ACB ≠ NFT** enforced: decisions carrying `object_id` / mint self are rejected
 - CI uses `mock_decide`; Mac may set `prefer_ollama=True` when `:11434` is up
 - On reject/exception: fall back to Phase 2 deterministic routine
-- Next: Phase 6 Atelier view
+- Next: Phase 7 continuity eval
 
 ## Phase 2 — deterministic Boutius (landed)
 
@@ -237,4 +245,4 @@ Continuity MVP for autonomous **Subjects** in **pre-Roman Lusitanian Olissippo**
 - Graph: [`contracts/mud/olissippo-world.json`](../contracts/mud/olissippo-world.json)
 - Loader: [`src/olissippo_world.py`](../src/olissippo_world.py) — `validate_move`, `objects_at`, `numen_at`
 - Tests: `src/test_olissippo_world.py` (wired in `protocol-invariants`)
-- Next: Phase 6 Atelier view
+- Next: Phase 7 continuity eval

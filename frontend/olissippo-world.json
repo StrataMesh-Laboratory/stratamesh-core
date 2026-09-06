@@ -1,0 +1,278 @@
+{
+  "schema": "stratamesh.lore.olissippo.atelier.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "not_main": true,
+  "label_pt": "Aldeia de Olissippo",
+  "label_en": "Olissippo village",
+  "subtitle_pt": "Pré-romana · lore (não é o mundo principal)",
+  "subtitle_en": "Pre-Roman · lore (not the main world)",
+  "cache": "20260907a",
+  "locations": [
+    {
+      "id": "hill_enclosure",
+      "label_pt": "Cerca do outeiro",
+      "label_en": "Hill enclosure",
+      "tags": [
+        "home",
+        "hall"
+      ],
+      "x": 0,
+      "z": 0
+    },
+    {
+      "id": "smithy",
+      "label_pt": "Oficina do ferro",
+      "label_en": "Smithy / forge",
+      "tags": [
+        "work",
+        "forge"
+      ],
+      "x": -2.5,
+      "z": 1.2
+    },
+    {
+      "id": "charcoal_lean",
+      "label_pt": "Carvoeira",
+      "label_en": "Charcoal lean-to",
+      "tags": [
+        "fuel"
+      ],
+      "x": -4.0,
+      "z": 1.8
+    },
+    {
+      "id": "quay",
+      "label_pt": "Cais do Tejo",
+      "label_en": "Quay / landing",
+      "tags": [
+        "water",
+        "trade"
+      ],
+      "x": 0.5,
+      "z": -4.5
+    },
+    {
+      "id": "guest_house",
+      "label_pt": "Casa de hóspedes",
+      "label_en": "Guest house",
+      "tags": [
+        "rest"
+      ],
+      "x": 1.8,
+      "z": 0.8
+    },
+    {
+      "id": "market",
+      "label_pt": "Feira",
+      "label_en": "Open market",
+      "tags": [
+        "trade"
+      ],
+      "x": 2.5,
+      "z": -1.0
+    },
+    {
+      "id": "cattle_pens",
+      "label_pt": "Currais",
+      "label_en": "Cattle pens",
+      "tags": [
+        "herd"
+      ],
+      "x": 3.5,
+      "z": 1.5
+    },
+    {
+      "id": "wall_watch",
+      "label_pt": "Posto da muralha",
+      "label_en": "Watch on the wall",
+      "tags": [
+        "patrol"
+      ],
+      "x": 0.0,
+      "z": 3.2
+    },
+    {
+      "id": "sacred_grove",
+      "label_pt": "Bosque limiar",
+      "label_en": "Sacred grove (edge)",
+      "tags": [
+        "cult",
+        "taboo"
+      ],
+      "x": -2.0,
+      "z": -3.0
+    },
+    {
+      "id": "spring",
+      "label_pt": "Fonte",
+      "label_en": "Spring / well",
+      "tags": [
+        "water",
+        "cult"
+      ],
+      "x": 1.2,
+      "z": -2.8
+    },
+    {
+      "id": "east_track",
+      "label_pt": "Caminho do mato",
+      "label_en": "East track to scrub",
+      "tags": [
+        "travel"
+      ],
+      "x": 4.5,
+      "z": -0.5
+    },
+    {
+      "id": "apprentice_yard",
+      "label_pt": "Pátio da aprendiz",
+      "label_en": "Apprentice yard",
+      "tags": [
+        "work"
+      ],
+      "x": -3.2,
+      "z": 0.2
+    },
+    {
+      "id": "shrine_niche",
+      "label_pt": "Nichos do culto",
+      "label_en": "Shrine niche (hall)",
+      "tags": [
+        "cult"
+      ],
+      "x": -0.8,
+      "z": 1.5
+    }
+  ],
+  "edges": [
+    [
+      "hill_enclosure",
+      "smithy"
+    ],
+    [
+      "hill_enclosure",
+      "guest_house"
+    ],
+    [
+      "hill_enclosure",
+      "market"
+    ],
+    [
+      "hill_enclosure",
+      "wall_watch"
+    ],
+    [
+      "hill_enclosure",
+      "shrine_niche"
+    ],
+    [
+      "hill_enclosure",
+      "spring"
+    ],
+    [
+      "smithy",
+      "charcoal_lean"
+    ],
+    [
+      "smithy",
+      "apprentice_yard"
+    ],
+    [
+      "market",
+      "quay"
+    ],
+    [
+      "market",
+      "cattle_pens"
+    ],
+    [
+      "quay",
+      "east_track"
+    ],
+    [
+      "wall_watch",
+      "sacred_grove"
+    ],
+    [
+      "spring",
+      "sacred_grove"
+    ],
+    [
+      "east_track",
+      "cattle_pens"
+    ]
+  ],
+  "objects": [
+    {
+      "name_pt": "Cesto de carvão",
+      "name_en": "Charcoal basket",
+      "at": "charcoal_lean",
+      "kind_hint": "object"
+    },
+    {
+      "name_pt": "Ponta de lança em bruto",
+      "name_en": "Spearhead blank",
+      "at": "smithy",
+      "kind_hint": "object"
+    },
+    {
+      "name_pt": "Oferta de cereal",
+      "name_en": "Grain offering",
+      "at": "shrine_niche",
+      "kind_hint": "object"
+    },
+    {
+      "name_pt": "Barracão da forja",
+      "name_en": "Forge shed",
+      "at": "smithy",
+      "kind_hint": "object"
+    }
+  ],
+  "people": [
+    {
+      "name": "Boutius",
+      "role_pt": "ferreiro",
+      "role_en": "smith",
+      "home": "smithy",
+      "kind": "person",
+      "subject_ref": "acb-oli-boutius-001"
+    },
+    {
+      "name": "Camala",
+      "role_pt": "hospedeira",
+      "role_en": "guest house keeper",
+      "home": "guest_house",
+      "kind": "person",
+      "subject_ref": "acb-oli-camala-001"
+    },
+    {
+      "name": "Apana",
+      "role_pt": "aprendiz",
+      "role_en": "forge apprentice",
+      "home": "apprentice_yard",
+      "kind": "person",
+      "subject_ref": "acb-oli-apana-001"
+    },
+    {
+      "name": "Tongius",
+      "role_pt": "sentinela",
+      "role_en": "wall watch",
+      "home": "wall_watch",
+      "kind": "person",
+      "subject_ref": "acb-oli-tongius-001"
+    },
+    {
+      "name": "Navia",
+      "role_pt": "comerciante do rio",
+      "role_en": "river trader",
+      "home": "quay",
+      "kind": "person",
+      "subject_ref": "acb-oli-navia-001"
+    }
+  ],
+  "spawn": {
+    "default_location_id": "hill_enclosure",
+    "note": "Human or ACB Subject enters here; Subjects not seeded as Object rows"
+  },
+  "acb_note": "People here are Subjects (ACB) — never NFTs / objects."
+}

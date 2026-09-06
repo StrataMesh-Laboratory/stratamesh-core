@@ -15,3 +15,7 @@
 /chat/* /chat.html 200
 /oss-pass /oss-pass.html 200
 /oss-pass-atelier-mud-oz /oss-pass.html 200
+
+# Olissippo lore stage (Phase 6) — not main Bancada world
+/olissippo /olissippo.html 200
+/olissippo/ /olissippo.html 200

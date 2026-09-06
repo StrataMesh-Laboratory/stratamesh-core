@@ -12,3 +12,12 @@
 
 /vendor/*
   Cache-Control: public, max-age=31536000, immutable
+
+/olissippo
+  Cache-Control: public, max-age=60
+/olissippo.html
+  Cache-Control: public, max-age=60
+/olissippo-stage.js
+  Cache-Control: public, max-age=120
+/olissippo-world.json
+  Cache-Control: public, max-age=120

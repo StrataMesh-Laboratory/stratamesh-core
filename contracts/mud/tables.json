@@ -16,7 +16,7 @@
     "locale": "Product UI by IP/geolocation: CPLP \u2192 PT-PT; non-CPLP \u2192 EN-GB (mirrored). Identifiers/APIs/eng docs = international English.",
     "deed": "Ownership deed NFT (still Object.kind=object|\u2026) for virtual|financial|physical underlyings. Tokenised into Subject account via international legal custodianship; cold storage may bind token validity. Generalises parcel ownership_title off-world. Not a closed macro-category ceiling. See docs/NFT-MACRO-CATEGORIES.md.",
     "execution_contract": "SPA/APS-style execution NFT (Object + Contract.kind=spa_aps): static reserves C; dynamic burns above floor. Macro template, not the only contract form. Same OwnershipFraction / P_market separation.",
-    "lore_olissippo": "Not-main lore-olissippo-lusitanian. Five ACB Subjects (Boutius/Camala/Apana/Tongius/Navia). ACB \u2260 NFT. Phase 5 role routines; MemoryEvent/SubjectEdge; LLM-advisory decide."
+    "lore_olissippo": "Not-main lore-olissippo-lusitanian. Five ACB Subjects. Phase 6: /olissippo Atelier lore stage; people\u2260NFT; not Bancada main."
   },
   "tables": {
     "Subject": {

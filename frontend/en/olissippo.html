@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Olissippo village · lore · Calhegas Morais</title>
+  <meta name="description" content="Aldeia de Olissippo (pré-romana) — Atelier lore-realm view, not the main world.">
+  <meta name="theme-color" content="#07111c">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="canonical" href="https://sandbox.calhegasmorais.pt/olissippo">
+  <style>
+    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--cream:#f4e4c1;--ink:#1a1712}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
+    body{display:flex;flex-direction:column;min-height:100dvh;overflow:hidden}
+    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94);z-index:3}
+    header.chrome h1{font:400 1rem/1.2 Georgia,ui-serif,serif}
+    .nav{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
+    .nav a{color:var(--acc);text-decoration:none;font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);padding:.4rem .65rem;border-radius:2px}
+    .nav a.here{border-color:var(--acc)}
+    .badge{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:.28rem .45rem;border-radius:2px}
+    main.wrap{flex:1 1 auto;display:grid;grid-template-columns:1fr minmax(240px,320px);min-height:0}
+    .stage-wrap{position:relative;min-height:0;background:var(--cream)}
+    canvas#stage{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;touch-action:none}
+    aside#hud{border-left:1px solid var(--line);padding:.85rem .9rem;overflow:auto;background:rgba(7,17,28,.98)}
+    aside h2{font:500 .95rem/1.25 Georgia,ui-serif,serif;margin-bottom:.35rem}
+    .muted{color:var(--muted);font:400 .78rem/1.4 Georgia,ui-serif,serif;margin-bottom:.85rem}
+    .block{margin-bottom:.85rem}
+    .block h3{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+    #peopleHere,#thingsHere{list-style:none;font:400 .82rem/1.45 Georgia,ui-serif,serif}
+    #peopleHere li,#thingsHere li{padding:.2rem 0;border-bottom:1px solid var(--line)}
+    #exits{display:flex;flex-wrap:wrap;gap:.35rem}
+    #exits button{font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--acc);background:transparent;color:var(--acc);padding:.42rem .55rem;border-radius:2px;cursor:pointer}
+    @media(max-width:819px){
+      main.wrap{grid-template-columns:1fr;grid-template-rows:1fr auto}
+      aside#hud{border-left:0;border-top:1px solid var(--line);max-height:42dvh}
+    }
+  </style>
+</head>
+<body>
+  <header class="chrome">
+    <h1 id="villageTitle">Aldeia de Olissippo</h1>
+    <div class="nav">
+      <span class="badge">lore · not main</span>
+      <a class="here" href="/olissippo">Olissippo</a>
+      <a href="/sandbox">Sandbox</a>
+      <a href="https://dashboard.calhegasmorais.pt/dashboard">Bancada</a>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="stage-wrap">
+      <canvas id="stage" tabindex="0" aria-label="Aldeia de Olissippo"></canvas>
+    </div>
+    <aside id="hud">
+      <h2 id="place">…</h2>
+      <p class="muted" id="realmNote">Pré-romana · lore</p>
+      <div class="block">
+        <h3>People here</h3>
+        <ul id="peopleHere"></ul>
+      </div>
+      <div class="block">
+        <h3>Objects</h3>
+        <ul id="thingsHere"></ul>
+      </div>
+      <div class="block">
+        <h3>Paths</h3>
+        <div id="exits"></div>
+      </div>
+    </aside>
+  </main>
+  <script src="/vendor/three.min.js"></script>
+  <script src="/olissippo-stage.js?v=20260907a"></script>
+</body>
+</html>
