@@ -17,7 +17,7 @@ ensure_surfaces() {
 }
 
 run_ops() {
-  python3 ops/desk-collegium/desk_ops.py cycle --max 3 || true
+  python3 ops/desk-collegium/desk_ops.py cycle --max 1 || true
 }
 
 run_actions() {

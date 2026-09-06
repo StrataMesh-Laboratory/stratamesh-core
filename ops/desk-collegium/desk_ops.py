@@ -2565,6 +2565,19 @@ def cmd_board(_: argparse.Namespace) -> int:
 
 
 def cmd_cycle(args: argparse.Namespace) -> int:
+    # 8GB: one cycle at a time (stacked Hermes/OpenClaw thrash)
+    import fcntl
+    _lock_f = None
+    try:
+        _lp = FOG / "data" / "desk-ops-cycle.lock"
+        _lp.parent.mkdir(parents=True, exist_ok=True)
+        _lock_f = open(_lp, "a+")
+        fcntl.flock(_lock_f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("ops: skip cycle (desk-ops-cycle.lock held)")
+        return 0
+    except Exception as _le:
+        print(f"ops: lock warn {_le}", file=sys.stderr)
     if os.environ.get("DESK_CODE_NEST") == "1":
         print("ops: skip cycle (DESK_CODE_NEST)")
         return 0
