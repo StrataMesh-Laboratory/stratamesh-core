@@ -47,6 +47,15 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 - Optional TS container bridge on Mac only: `deploy/mac-fog/tailscale-container/compose-up.sh` (`tag:container`). Docker Desktop down ≠ T1 fail — WG prove is primary.
 - Optional spike (time-boxed ≤2h): **Headscale** as free-forever control plane — accept only if Mac/iPhone clients stay Tailscale-compatible *and* we self-host; else drop.
 
+
+### T1 — Mac client prove (2026-09-07 HOLD)
+
+- **Status HOLD** on hermes-desk/MBPA-4:  installed (); OpenVPN binary present;  present.
+- **Blocked:** TUN/TAP needs interactive  (SSH agent EPERM); WireGuard.app not installed; UDP 51820 to box DROP non-lo by design — prefer OpenVPN TCP after sudo.
+- **Meter:** 
+- **Do not** open UDP 51820 publicly; **do not** AllowedIPs=0.0.0.0/0.
+
+
 ### T2 — Drain Tailscale dependence (mid taper)
 - Stop using `100.x` in any script, Hermes/OpenCode note, or desk connector.
 - Move any “ping device” checks to WG handshake / Fog claw probe / named-tunnel health.
