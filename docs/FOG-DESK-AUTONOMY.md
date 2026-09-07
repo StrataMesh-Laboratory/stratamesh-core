@@ -48,3 +48,16 @@ every wake / Hermes pulse / TUI r:
 
 ## Secrets vault
 Full read+write to owned vault tokens per `ops/desk-collegium/SECRETS-VAULT.md`. Never print values. Bot escalate only if vault missing/corrupt/2FA.
+
+## Unsupervised handoff (Bot absent / HOLD / overnight)
+
+When Hermes|OpenClaw|OpenCode have **zero** pending Acts that pass `AUTONOMY-PASS-CRITERIA` (lane ALLOW + serialize free + RR + real tool evidence):
+
+1. Mark **specialty ladder PASS** for the watch window (do not invent board Acts).
+2. Keep generative surfaces alive without vapour `done`: Hermes protocol/board, OpenClaw hop health, OpenCode unittest on FAIL→patch-once.
+3. Leave Fog/EDGE Assistant briefs on disk; feed only when idle + lane-assistant ALLOW (never overnight-no-peek dual-prompt).
+4. Park wake ordinals; escalate only human_gates / P0 / secrets / protocol violations.
+
+Live runbook (Mac outbox + box ops-monitor): `UNSUPERVISED-DESK-HANDOFF-RUNBOOK.md`.
+Serialize: one specialty via `desk-agent-run.sh`; see `ops/desk-collegium/DESK-AGENT-CONTINGENCY.md`.
+
