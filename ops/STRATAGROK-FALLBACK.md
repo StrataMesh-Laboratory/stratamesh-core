@@ -37,6 +37,6 @@ Edge Assistant stays on the EDGE-GROK node. EDGE-GROK-CMN-001 is the node, not a
 - `dt-proj-homelab-second-host`: inventory only; spare still TBD.
 - `dt-proj-m2-twohost`: HOLD `distinct_second_host`.
 
-## Blocker
+## Landed
 
-GitHub connector on this hop is **read-only** (contents:write 403). Land this file on origin/main from Mac Fog (`g` or PAT with contents:write) as `ops/STRATAGROK-FALLBACK.md`.
+origin/main `7b4d827` via vaulted PAT (connector remains read-only).
