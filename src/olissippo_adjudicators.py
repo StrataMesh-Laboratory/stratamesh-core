@@ -454,7 +454,8 @@ class SuccessionResolver:
         hp = kin_state.get("persons", {}).get(deceased)
         if hp:
             hp["alive"] = False
-        before = {"holder_person_id": deceased, "territory_id": territory_id, "player_dynasty_id": pdid}
+        inherited = applied.get("inherited_edges") or {}
+        before = {"holder_person_id": deceased, "territory_id": territory_id, "player_dynasty_id": pdid, "gens_id": pdid}
         evt = _emit(
             bag,
             event_type="succession",
@@ -467,7 +468,10 @@ class SuccessionResolver:
                 "territory_id": territory_id,
                 "reason": plan.get("reason") or plan.get("law"),
                 "player_dynasty_id": pdid,
+                "gens_id": pdid,
                 "law": plan.get("law"),
+                "inherited_edges": inherited,
+                "inheritance_reason": "inheritance",
             },
         )
         return {
@@ -477,6 +481,8 @@ class SuccessionResolver:
             "from": deceased,
             "reason": plan.get("reason") or plan.get("law"),
             "player_dynasty_id": pdid,
+            "gens_id": pdid,
+            "inherited_edges": inherited,
             "event": evt,
         }
 
@@ -937,7 +943,12 @@ class DynastyClock:
                     h,
                     did,
                     law_version,
-                    {"persons": persons_snap, "holdings": holdings_snap, "edges": list(kin_state.get("edges") or [])},
+                    {
+                        "persons": persons_snap,
+                        "holdings": holdings_snap,
+                        "edges": list(kin_state.get("edges") or []),
+                        "player_dynasties": deepcopy(kin_state.get("player_dynasties") or {}),
+                    },
                     policy=pol,
                 )
                 plan = dict(plan)

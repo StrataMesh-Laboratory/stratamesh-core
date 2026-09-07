@@ -18,3 +18,6 @@
 
 # Olissippo lore stage (Phase 6) — served as frontend/olissippo.html via Pages clean URL.
 # No /olissippo rewrite. Trailing slash: let Pages 308 /olissippo/ → /olissippo.
+
+# Lusitania player briefing — frontend/lusitania.html via Pages clean URL.
+# No /lusitania rewrite (same lesson as /olissippo: avoid fighting Pages 308).

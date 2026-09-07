@@ -84,6 +84,9 @@ jobs:
       - name: Olissippo dynasty clock (1 real day = 1 game month)
         working-directory: src
         run: python3 test_olissippo_dynasty_clock.py
+      - name: Olissippo gens continuity (elective, inherit, absentee)
+        working-directory: src
+        run: python3 test_olissippo_dynasty_continuity.py
       - name: Olissippo Phase 8E cross-system scenarios
         working-directory: src
         run: python3 test_olissippo_phase8e_cross_system.py

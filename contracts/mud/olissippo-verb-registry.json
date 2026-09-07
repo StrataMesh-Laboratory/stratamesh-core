@@ -2,7 +2,7 @@
   "schema": "stratamesh.mud.olissippo.verbs.v1",
   "realm": "lore-olissippo-lusitanian",
   "phase": "8c",
-  "rule_version": "verbs-8c-1",
+  "rule_version": "verbs-9a-1",
   "note": "Finite verbs with engine tags. Aliases keep Phase 7/8 decide wires. escort is generalized; river_escort is lore instance. exchange is canonical; quay_barter is lore.",
   "engines": [
     "adjudication",
@@ -394,6 +394,45 @@
       ],
       "mutates": true,
       "canonical": "bandua_resolve_season"
+    },
+    {
+      "id": "cast_succession_vote",
+      "engines": [
+        "kinship"
+      ],
+      "mutates": true,
+      "note": "elective gens succession vote"
+    },
+    {
+      "id": "declare_absentee",
+      "engines": [
+        "kinship"
+      ],
+      "mutates": true,
+      "note": "gens absentee; steward (mordomo) may tick"
+    },
+    {
+      "id": "return_from_absentee",
+      "engines": [
+        "kinship"
+      ],
+      "mutates": true
+    },
+    {
+      "id": "add_enemy",
+      "engines": [
+        "kinship"
+      ],
+      "mutates": true,
+      "note": "first-class enemy_of edge"
+    },
+    {
+      "id": "add_obligation",
+      "engines": [
+        "kinship"
+      ],
+      "mutates": true,
+      "note": "owes_obligation_to / owed_by"
     }
   ],
   "reject": {

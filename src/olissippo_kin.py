@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Hill stirps — CK-like family/dynasty mechanics adapted to Lusitanian lore (Phase 7)."""
+"""Hill gentes — CK-like family mechanics adapted to Lusitanian lore (Phase 7).
+
+Playable unit = gens (stirps/dynasty are internal aliases). populus → Lusitani confederation.
+"""
 from __future__ import annotations
 
 import json
@@ -27,20 +30,44 @@ def new_state(data: dict[str, Any] | None = None) -> dict[str, Any]:
             p["age_months"] = int(p["age_years"]) * 12
         p.setdefault("age_months", (50 - int(p.get("generation") or 0) * 20) * 12)
         p["age_years"] = int(p["age_months"]) // 12
+    stirps = deepcopy(d["stirps_seed"])
+    stirps_by_id = {s["id"]: s for s in stirps}
+    for p in persons.values():
+        sid = p.get("stirps_id")
+        seed = stirps_by_id.get(sid) or {}
+        p.setdefault("gens_id", seed.get("gens_id") or sid)
+        p.setdefault("populus_id", seed.get("populus_id"))
+        p.setdefault("confederation", seed.get("confederation") or d.get("confederation") or "lusitani")
     return {
-        "stirps": deepcopy(d["stirps_seed"]),
+        "stirps": stirps,
+        "gentes": stirps,  # glossary alias of stirps_seed rows
+        "populi": deepcopy(d.get("populi") or []),
+        "confederation": d.get("confederation") or "lusitani",
         "persons": persons,
         "game_month": 0,
         "player_dynasties": {},
         "edges": [],
         "holdings": {
-            "terr-olissippo": {"kind": "chefe_claim", "holder_person_id": "kin-oli-chefe-eldest", "stirps_id": "stirps-oli-chefe"},
-            "terr-vetton-pastures": {"kind": "supply_claim", "holder_person_id": "kin-vetton-herd", "stirps_id": "stirps-vetton-cattle"},
+            "terr-olissippo": {
+                "kind": "chefe_claim",
+                "holder_person_id": "kin-oli-chefe-eldest",
+                "stirps_id": "stirps-oli-chefe",
+                "gens_id": "stirps-oli-chefe",
+                "populus_id": "populus-olissippo",
+            },
+            "terr-vetton-pastures": {
+                "kind": "supply_claim",
+                "holder_person_id": "kin-vetton-herd",
+                "stirps_id": "stirps-vetton-cattle",
+                "gens_id": "stirps-vetton-cattle",
+                "populus_id": "populus-vetton",
+            },
         },
         "clock": deepcopy(
             d.get("clock")
             or {"real_day_equals_game_months": 1, "game_months_per_year": 12, "game_month": 0, "game_year": 1}
         ),
+        "playable_unit": "gens",
     }
 
 

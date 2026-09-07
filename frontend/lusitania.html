@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lusitania · visão do jogador · StrataMesh</title>
+  <meta name="description" content="Briefing Lusitania / Olissippo — unidade jogável = gens; populus; confederação Lusitani; ACB=SCA; 1 dia = 1 mês; sucessão vs extinção.">
+  <meta name="theme-color" content="#07111c">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="canonical" href="https://sandbox.calhegasmorais.pt/lusitania">
+  <style>
+    :root{--bg:#07111c;--fg:#e8e6e3;--muted:#8aa0b3;--line:#1c3348;--acc:#c4a574;--cream:#f4e4c1}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
+    body{display:flex;flex-direction:column;min-height:100dvh}
+    header.chrome{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:rgba(7,17,28,.94);z-index:3;position:sticky;top:0}
+    header.chrome h1{font:400 1rem/1.2 Georgia,ui-serif,serif}
+    .nav{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
+    .nav a,.nav button{color:var(--acc);text-decoration:none;font:600 .65rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);background:transparent;padding:.4rem .65rem;border-radius:2px;cursor:pointer}
+    .nav a.here,.nav button.here{border-color:var(--acc)}
+    .badge{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:.28rem .45rem;border-radius:2px}
+    main.brief{flex:1 1 auto;max-width:44rem;margin:0 auto;padding:1.4rem 1.1rem 3rem;width:100%}
+    .lede{font:400 1.05rem/1.55 Georgia,ui-serif,serif;color:var(--cream);margin:.4rem 0 1.1rem}
+    .meta{font:500 .68rem/1.4 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem}
+    h2{font:500 1.15rem/1.3 Georgia,ui-serif,serif;color:var(--acc);margin:1.5rem 0 .55rem;border-top:1px solid var(--line);padding-top:1rem}
+    h3{font:500 .95rem/1.3 Georgia,ui-serif,serif;margin:1rem 0 .4rem}
+    p,li{font:400 .92rem/1.55 Georgia,ui-serif,serif;margin:.35rem 0}
+    ul{margin:.35rem 0 .7rem 1.2rem}
+    .en{border:1px solid var(--line);border-radius:3px;padding:.85rem 1rem;margin:1rem 0 1.4rem;background:rgba(28,51,72,.35)}
+    .en h2{border:0;padding:0;margin:0 0 .5rem;font-size:1rem}
+    .en .label{font:600 .58rem/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
+    .grid{display:grid;gap:.75rem;margin:.8rem 0}
+    @media(min-width:640px){.grid.two{grid-template-columns:1fr 1fr}}
+    .card{border:1px solid var(--line);border-radius:3px;padding:.75rem .85rem}
+    .card h3{margin-top:0;font-size:.88rem;color:var(--acc)}
+    .card p{font-size:.85rem;color:var(--muted);margin:0}
+    .diagram{font:400 .82rem/1.45 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto;border:1px solid var(--line);padding:.75rem;margin:.7rem 0;color:var(--cream);background:rgba(0,0,0,.25)}
+    footer.foot{border-top:1px solid var(--line);padding:1rem .9rem 1.5rem;color:var(--muted);font:400 .78rem/1.45 Georgia,ui-serif,serif;text-align:center}
+    footer.foot a{color:var(--acc)}
+    .hidden{display:none!important}
+    .lang-note{font:400 .78rem/1.4 Georgia,ui-serif,serif;color:var(--muted);margin-bottom:.8rem}
+    .map{font:400 .88rem/1.5 Georgia,ui-serif,serif;border-left:2px solid var(--acc);padding-left:.75rem;margin:.8rem 0;color:var(--cream)}
+  </style>
+</head>
+<body>
+  <header class="chrome">
+    <h1>Lusitania · Olissippo</h1>
+    <div class="nav">
+      <span class="badge">lore · não CMN principal</span>
+      <a class="here" href="/lusitania">Lusitania</a>
+      <a href="/olissippo">Olissippo</a>
+      <a href="/sandbox">Sandbox</a>
+      <a href="https://dashboard.calhegasmorais.pt/dashboard">Bancada</a>
+      <button type="button" id="btnLang" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <main class="brief">
+    <p class="meta">StrataMesh OS · reino lore · briefing do jogador · CPLP</p>
+
+    <section id="pt">
+      <p class="lede">A Lusitânia não é um avatar com cenário histórico. A <strong>unidade jogável é a gens</strong> (pl. <em>gentes</em>) — a casa / linhagem persistente. A pessoa viva é só o portador actual. O objectivo não é «não morrer» — é <strong>garantir que a gens sobrevive a si</strong>.</p>
+      <p class="lang-note">Português (pt-PT) em primeiro plano. Use EN no topo para a visão em inglês. Termos internos históricos (<em>estirpe / stirps / dynasty</em>) são aliases; o produto diz <strong>gens</strong>.</p>
+
+      <h2>Hierarquia normativa</h2>
+      <p class="lang-note">Nomenclatura: substrato lusitano + latim + púnico + galaicos / celtiberos / turdetanos–tartéssicos (não latim clássico puro). Ver <a href="https://raw.githubusercontent.com/calhegasmorais/stratamesh-olissippo/main/docs/LUSITANIA-NOMENCLATURE.md">LUSITANIA-NOMENCLATURE.md</a>.</p>
+      <div class="map">
+        <strong>gens</strong> (pl. gentes) → unidade jogável<br>
+        <strong>populus</strong> (pl. populi) → todas as gentes da mesma tribo<br>
+        <strong>Lusitani</strong> → confederação tribal: todos os populi da cultura lusitana
+      </div>
+      <pre class="diagram">Lusitani (confederação)
+   └── populus (tribo)
+         └── gens  ← tu jogas aqui
+               └── pessoa viva (chefe actual)</pre>
+
+      <h2>StrataMesh em uma frase</h2>
+      <p>Um <strong>sistema operativo metaversal Web3</strong>: mundos persistentes + objectos digitais (STRATA) + Sujeitos (humanos e ACB/SCA) + regras partilhadas de acção e registo.</p>
+
+      <h2>Lusitânia / Olissippo</h2>
+      <p>Mundo aberto de horizonte lusitano pré-romano sobre esse SO. <strong>Olissippo</strong> é a primeira aldeia viva (outeiro e cais) — um populus entre os Lusitani. Mesma seriedade de propriedade; nomes e lugares lusitanos. <strong>Lore ≡ stakes</strong> do mundo principal.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <h3>Tempo</h3>
+          <p><strong>1 dia real ≈ 1 mês no mundo.</strong> Ausência com mordomo (delegação) evita que o calendário seja só castigo — o mordomo não inventa herdeiros.</p>
+        </div>
+        <div class="card">
+          <h3>Extinção = game over</h3>
+          <p>Sucessão válida → a gens continua no herdeiro. Sem sucessor → <strong>extinção da gens</strong> / fim de linha para esse jogador.</p>
+        </div>
+        <div class="card">
+          <h3>ACB = SCA</h3>
+          <p><strong>ACB</strong> (EN) = <strong>SCA</strong> (PT). São Sujeitos, não NFT. Uma pessoa viva não chefia duas gentes de jogador ao mesmo tempo.</p>
+        </div>
+        <div class="card">
+          <h3>Bandua · Grove · castro</h3>
+          <p>Estação de Bandua (política); Lei do Bosque / Grove (Nomic); ciclo do castro (produção e lotes STRATA).</p>
+        </div>
+      </div>
+
+      <h2>O que fazes</h2>
+      <ul>
+        <li>Chegar como Sujeito; habitar Olissippo.</li>
+        <li>Fundar ou juntar uma <strong>gens</strong>; definir (e renegociar) a lei de sucessão.</li>
+        <li>Entrar na <strong>estação de Bandua</strong> — ordens seladas, revelação, escolta fluvial.</li>
+        <li>Falar no <strong>bosque (Grove)</strong> — propor, votar, promulgar (núcleo imutável: justiça, pessoa≠coisa).</li>
+        <li>Ciclo do <strong>castro</strong>: currais, celeiros, forja, vigias — lotes de gado, cereal, madeira, minério.</li>
+        <li>Deixar o tempo passar: meses acumulam; herdeiros mudam; a memória alonga.</li>
+      </ul>
+
+      <h2>Sucessão vs extinção da gens</h2>
+      <pre class="diagram">GENS
+   │
+   ├─ pessoa actual ── vida ── morte ─┐
+   │                                  ▼
+   │                         herdeiro válido → gens continua
+   │                                  │
+   │                         (sem herdeiro)
+   │                                  ▼
+   └──────────────────────── extinção da gens → game over</pre>
+      <p>Cada gens tem a sua constituição (filho mais velho, mais novo, designado, electivo, prioridade de gens) via Grove. Obrigações e inimigos passam ao herdeiro; alianças <em>oath_kin</em> ficam ao nível da gens.</p>
+    </section>
+
+    <section id="en" class="en hidden" lang="en">
+      <div class="label">English · vision</div>
+      <h2>Playable unit = gens</h2>
+      <p>Normative map: <strong>gens</strong> (playable house) ⊂ <strong>populus</strong> (tribe’s gentes) ⊂ <strong>Lusitani</strong> (tribal confederation). Internal aliases: stirps / dynasty.</p>
+      <p>StrataMesh is a metaversal OS. Lusitania is lore on that OS; Olissippo is the first living village. Costume Iberian; stakes same class as main markets. <strong>ACB (EN) = SCA (PT)</strong> — Subjects, never NFTs. Unique living head is <strong>per-gens</strong>.</p>
+      <p><strong>1 real day ≈ 1 in-world month.</strong> Absentee / steward keeps momentum without inventing heirs. Valid succession → continue as heir. No heir → <strong>gens extinction / game over</strong>.</p>
+      <p>Loops: Bandua season · Grove hearth-law · castro production. Lore ≡ main stakes.</p>
+    </section>
+
+    <h2>Entradas</h2>
+    <ul>
+      <li><a href="/olissippo">Aldeia de Olissippo</a></li>
+      <li><a href="https://dashboard.calhegasmorais.pt/dashboard">Bancada</a></li>
+      <li><a href="/sandbox">Sandbox</a></li>
+      <li><a href="https://raw.githubusercontent.com/calhegasmorais/stratamesh-olissippo/main/docs/LUSITANIA-PLAYER-REPORT.md">LUSITANIA-PLAYER-REPORT.md</a></li>
+      <li><a href="https://raw.githubusercontent.com/calhegasmorais/stratamesh-olissippo/main/docs/LUSITANIA-DYNASTY-PLAYABLE-UNIT.md">LUSITANIA-DYNASTY-PLAYABLE-UNIT.md</a></li>
+      <li><a href="https://raw.githubusercontent.com/calhegasmorais/stratamesh-olissippo/main/docs/LUSITANIA-NOMENCLATURE.md">LUSITANIA-NOMENCLATURE.md</a> — padrão etimológico (gens / populus / Lusitani)</li>
+    </ul>
+  </main>
+
+  <footer class="foot">
+    StrataMesh Laboratory · Lusitania / Olissippo ·
+    <a href="https://sandbox.calhegasmorais.pt/lusitania">sandbox.calhegasmorais.pt/lusitania</a>
+    · ACB≠NFT · unidade jogável = gens · gens → populus → Lusitani
+  </footer>
+
+  <script>
+    (function () {
+      var btn = document.getElementById("btnLang");
+      var en = document.getElementById("en");
+      var showEn = false;
+      btn.addEventListener("click", function () {
+        showEn = !showEn;
+        en.classList.toggle("hidden", !showEn);
+        btn.classList.toggle("here", showEn);
+        btn.setAttribute("aria-pressed", showEn ? "true" : "false");
+        btn.textContent = showEn ? "PT" : "EN";
+        if (showEn) en.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    })();
+  </script>
+</body>
+</html>

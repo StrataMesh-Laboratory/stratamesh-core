@@ -1,48 +1,63 @@
 {
-  "schema": "olissippo.kin.stirps.v1",
+  "schema": "olissippo.kin.gens.v1",
   "realm": "lore-olissippo-lusitanian",
-  "mechanic_source": "Crusader Kings family/dynasty (kin, marriage alliance, succession, claims \u2014 no product branding)",
-  "lore_name_en": "Hill stirps / gens",
-  "lore_name_pt": "Estirpes do outeiro",
-  "note": "Kinship is SubjectEdge among Subjects (ACB/humans \u2014 not NFTs). Territory/castro holdings are STRATA NFT Objects whose title Subjects hold. Marriage is guest-right alliance between stirps.",
+  "mechanic_source": "Crusader Kings family/dynasty (kin, marriage alliance, succession, claims — no product branding)",
+  "lore_name_en": "Hill gens (playable unit)",
+  "lore_name_pt": "Gentes do outeiro",
+  "note": "Playable unit = gens (aliases: stirps/dynasty). populus = tribe gentes; confederation = lusitani. Kinship is SubjectEdge among Subjects (ACB/humans — not NFTs). Territory/castro holdings are STRATA NFT Objects. Marriage oath_kin is gens-level alliance.",
   "edge_kinds": [
     "parent_of",
     "child_of",
     "spouse_of",
     "sibling_of",
     "foster_of",
-    "oath_kin"
+    "oath_kin",
+    "enemy_of",
+    "owes_obligation_to",
+    "owed_by",
+    "fostered_by",
+    "guest_right",
+    "succeeded"
   ],
   "stirps_seed": [
     {
       "id": "stirps-oli-chefe",
-      "label_en": "Hall stirps of Olissippo",
-      "label_pt": "Estirpe da sala",
+      "label_en": "Hall gens of Olissippo",
+      "label_pt": "Gens da sala",
       "home_territory": "terr-olissippo",
       "head_role": "chefe",
       "player_dynasty_id": "pdyn-oli-chefe",
       "owner_subject_id": "acb-camala-001",
-      "succession_law": "eldest_living_child"
+      "succession_law": "eldest_living_child",
+      "gens_id": "stirps-oli-chefe",
+      "populus_id": "populus-olissippo",
+      "confederation": "lusitani"
     },
     {
       "id": "stirps-oli-smith",
-      "label_en": "Forge stirps",
-      "label_pt": "Estirpe da forja",
+      "label_en": "Forge gens",
+      "label_pt": "Gens da forja",
       "home_territory": "terr-olissippo",
       "head_role": "smith",
       "player_dynasty_id": "pdyn-oli-smith",
       "owner_subject_id": "acb-boutius-001",
-      "succession_law": "eldest_living_child"
+      "succession_law": "eldest_living_child",
+      "gens_id": "stirps-oli-smith",
+      "populus_id": "populus-olissippo",
+      "confederation": "lusitani"
     },
     {
       "id": "stirps-vetton-cattle",
-      "label_en": "Vetton cattle stirps",
-      "label_pt": "Estirpe dos currais vet\u00f5es",
+      "label_en": "Vetton cattle gens",
+      "label_pt": "Gens dos currais vetões",
       "home_territory": "terr-vetton-pastures",
       "head_role": "herd-lord",
       "player_dynasty_id": "pdyn-vetton-cattle",
       "owner_subject_id": "user-vetton-01",
-      "succession_law": "eldest_living_child"
+      "succession_law": "eldest_living_child",
+      "gens_id": "stirps-vetton-cattle",
+      "populus_id": "populus-vetton",
+      "confederation": "lusitani"
     }
   ],
   "person_seeds": [
@@ -111,7 +126,9 @@
     ],
     "policy_ref": "olissippo-policy-layer.json#succession_policy",
     "per_dynasty": true,
-    "unique_head": true
+    "unique_head": true,
+    "per_gens": true,
+    "unique_head_scope": "gens"
   },
   "marriage": {
     "creates_edge": "spouse_of",
@@ -129,7 +146,24 @@
   "clock": {
     "real_day_equals_game_months": 1,
     "game_months_per_year": 12,
-    "note": "Dynasty aging: 12 game months \u2192 +1 age_years"
+    "note": "Dynasty aging: 12 game months → +1 age_years"
   },
-  "player_dynasties_note": "player_dynasty_id ties stirps to an owner Subject (ACB EN / SCA PT, or human user). Unique head: one person cannot lead two player dynasties simultaneously. succession_law is per-dynasty and Grove-overridable."
+  "player_dynasties_note": "player_dynasty_id / gens_id ties gens to an owner Subject (ACB EN / SCA PT, or human user). Unique head is per-gens. succession_law is per-gens and Grove-overridable. Legacy player_dynasty_* keys kept for compat.",
+  "confederation": "lusitani",
+  "nomenclature_ref": "docs/LUSITANIA-NOMENCLATURE.md",
+  "populi": [
+    {
+      "populus_id": "populus-olissippo",
+      "label_en": "Olissippo populus",
+      "label_pt": "Populus de Olissippo",
+      "confederation": "lusitani"
+    },
+    {
+      "populus_id": "populus-vetton",
+      "label_en": "Vetton neighbour populus",
+      "label_pt": "Populus vetão (vizinho)",
+      "confederation": "lusitani",
+      "note": "Neighbour horizon; still under lab confederation stamp for seed simplicity"
+    }
+  ]
 }

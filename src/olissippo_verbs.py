@@ -19,6 +19,7 @@ import olissippo_council as council
 import olissippo_events as ev
 import olissippo_grove_lex as lex
 import olissippo_kin as kin
+import olissippo_dynasty_clock as dynasty_clock
 import olissippo_lots as lots
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -599,5 +600,67 @@ def execute_verb(
             )
             emitted.append(evt)
         return done(bool(r.get("ok")), r.get("error") or "craft_unlocked", r)
+
+
+    if canon == "cast_succession_vote":
+        kin_state = bag.setdefault("kin", kin.new_state())
+        did = str(payload.get("gens_id") or payload.get("dynasty_id") or "")
+        r = dynasty_clock.cast_succession_vote(
+            kin_state, did, str(payload["voter"]), str(payload["nominee"])
+        )
+        if r.get("ok"):
+            evt = _emit(
+                bag,
+                event_type="succession_vote",
+                verb=canon,
+                reason="elective_vote_cast",
+                actors=actors or [str(payload["voter"])],
+                after=r,
+            )
+            emitted.append(evt)
+        return done(bool(r.get("ok")), r.get("error") or "vote_cast", r)
+
+    if canon == "declare_absentee":
+        kin_state = bag.setdefault("kin", kin.new_state())
+        did = str(payload.get("gens_id") or payload.get("dynasty_id") or "")
+        r = dynasty_clock.declare_absentee(kin_state, did, str(payload["steward_person_id"]))
+        if r.get("ok"):
+            evt = _emit(bag, event_type="absentee_declared", verb=canon, reason="declare_absentee", actors=actors, after=r)
+            emitted.append(evt)
+        return done(bool(r.get("ok")), r.get("error") or "absentee", r)
+
+    if canon == "return_from_absentee":
+        kin_state = bag.setdefault("kin", kin.new_state())
+        did = str(payload.get("gens_id") or payload.get("dynasty_id") or "")
+        r = dynasty_clock.return_from_absentee(kin_state, did)
+        if r.get("ok"):
+            evt = _emit(bag, event_type="absentee_returned", verb=canon, reason="return_from_absentee", actors=actors, after=r)
+            emitted.append(evt)
+        return done(bool(r.get("ok")), r.get("error") or "returned", r)
+
+    if canon == "add_enemy":
+        kin_state = bag.setdefault("kin", kin.new_state())
+        r = dynasty_clock.add_enemy(
+            kin_state, str(payload["a"]), str(payload["b"]), reason=str(payload.get("reason") or "declared_enemy")
+        )
+        if r.get("ok"):
+            evt = _emit(bag, event_type="enemy_declared", verb=canon, reason=r.get("reason") or "declared_enemy", actors=actors, after=r)
+            emitted.append(evt)
+        return done(bool(r.get("ok")), r.get("error") or "enemy_added", r)
+
+    if canon == "add_obligation":
+        kin_state = bag.setdefault("kin", kin.new_state())
+        r = dynasty_clock.add_obligation(
+            kin_state,
+            str(payload.get("debtor") or payload["a"]),
+            str(payload.get("creditor") or payload["b"]),
+            reason=str(payload.get("reason") or "obligation"),
+            note=payload.get("note"),
+        )
+        if r.get("ok"):
+            evt = _emit(bag, event_type="obligation_added", verb=canon, reason=r.get("reason") or "obligation", actors=actors, after=r)
+            emitted.append(evt)
+        return done(bool(r.get("ok")), r.get("error") or "obligation_added", r)
+
 
     return done(False, "unhandled_verb", {"error": "unhandled_verb", "verb": verb, "canonical": canon})

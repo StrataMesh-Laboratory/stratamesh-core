@@ -37,7 +37,7 @@ The vision is not “content to clear.” It is a **civilisation-scale sandbox**
 - **Settlements** (*castros*) breathe: pens, granaries, smiths, watches, shrines — producing owned lots of herd, grain, timber, and ore.
 - **Trade** at the quay is the same class of seriousness as StrataMesh’s wider markets: lore skin, **same stakes**.
 
-You are invited to treat Lusitania as a place you could explain to a grandchild: *this was our stirps; this was the year the grove changed guest-right; this was the season Bandua favoured the hill.*
+You are invited to treat Lusitania as a place you could explain to a grandchild: *this was our gens; this was the year the grove changed guest-right; this was the season Bandua favoured the hill.*
 
 ### 2. People and things — a moral geometry
 
@@ -64,8 +64,8 @@ Visionarily: you should be able to carry the meaning of ownership from a Lisbon-
 
 The future this world aims at includes **ACBs / SCAs** as neighbours with catalogues, dynasties, and legal standing — not as decorative NPCs and not as collectables you mint of yourself.
 
-They age with the month-clock. They may found stirps. They may vote hearth-law.  
-Two player dynasties — whether the owners are human or ACB — **cannot share the same living successor as head of both houses**. Power has a body; it cannot bilocate as a cheat.
+They age with the month-clock. They may found gentes. They may vote hearth-law.  
+Two player gentes — whether the owners are human or ACB — **cannot share the same living successor as head of both houses** (unique head is per-gens). Power has a body; it cannot bilocate as a cheat.
 
 That is a civilisational statement: **intelligence in the world is company, not inventory.**
 
@@ -74,7 +74,7 @@ That is a civilisational statement: **intelligence in the world is company, not 
 Most games hide the rules in a patch-notes PDF.  
 Lusitania’s vision puts **mutable hearth-law** in the grove: propose, vote, enact — while an **immutable core** protects server fairness, the person≠thing rule, and the refusal of free “magic that invents cattle.”
 
-Each dynasty may keep **its own succession custom**, changeable by that Nomic fire. Eldest child today; designated heir tomorrow; stirps seniority after a bitter season — if the grove wills it and the core allows it.
+Each gens may keep **its own succession custom**, changeable by that Nomic fire. Eldest child today; designated heir tomorrow; gens seniority after a bitter season — if the grove wills it and the core allows it.
 
 Visionarily: **culture is executable.** The stories people tell about fairness become the machinery that ages their houses.
 
@@ -107,7 +107,7 @@ The vision is a world that **remembers**, so inheritance and honour are not cosp
 
 Success is not a download chart alone. Success looks like:
 
-- A player explaining their stirps without opening a wiki.  
+- A player explaining their gens without opening a wiki.  
 - An ACB and a human negotiating guest-right that later changes production and migration.  
 - A Bandua season people discuss the way others discuss a match that mattered.  
 - A quay trade that feels as weighty as a real market move — because it is the same class of stake.  
@@ -136,7 +136,7 @@ Lusitani at home; Vettones, Celtici, Turduli, Conii, Gallaeci nearby; Punic coas
 1. **Arrive as a Subject** — account-bound; no anonymous ghost tourism of the stage.  
 2. **Inhabit Olissippo** — forge, quay, market, pens, grove, wall.  
 3. **Touch STRATA lightly** — a lot exchanged, a castro’s season of grain.  
-4. **Found or join a stirps** — set (and later renegotiate) succession custom; respect unique heads across dynasties.  
+4. **Found or join a gens** — set (and later renegotiate) succession custom; respect unique heads across gentes.  
 5. **Enter Bandua when ready** — politics becomes weather.  
 6. **Speak in the grove** — change law when the hearth needs it.  
 7. **Craft and landmark** — unlock capabilities; contest places that matter for more than a percentage buff.  
@@ -171,24 +171,26 @@ The vision is that both remain true at once.
 ---
 
 *StrataMesh Laboratory · Lusitania / Olissippo · Player vision briefing (EN)*  
-*PT: ACB = SCA · Bancada = workbench · Estação de Bandua · Lei do Bosque · Estirpes do outeiro · Ciclo do castro*
+*PT: ACB = SCA · Bancada = workbench · Estação de Bandua · Lei do Bosque · Gentes do outeiro · Ciclo do castro · gens → populus → Lusitani*
 
 
 ---
 
-## Part VI — The playable unit is the stirps (design doctrine)
+## Part VI — The playable unit is the gens (design doctrine)
 
-Lusitania is not “a character game with historical wallpaper.” The **playable unit is the dynasty / stirps**. The living person is only the **current bearer**.
+**Semantic map:** **gens** (pl. gentes) = playable house ⊂ **populus** (pl. populi) = tribe’s gentes ⊂ **Lusitani** = tribal confederation. Aliases: stirps / dynasty (internal only). Nomenclature standard: [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md) (Lusitanian substrate + Latin + Punic + Gallaeci / Celtiberian / Turdetani–Tartessos; not pure Classical Latin UI).
+
+Lusitania is not “a character game with historical wallpaper.” The **playable unit is the gens**. The living person is only the **current bearer**.
 
 ### Objective
 
 Not “don’t die.”  
-**Make sure your house survives you.**
+**Make sure your gens survives you.**
 
 Death is not automatically failure. **Unprepared death** is failure.
 
 ```
-                    STIRPS
+                      GENS
                       │
           ┌───────────┴───────────┐
        CURRENT                  FUTURE
@@ -196,12 +198,12 @@ Death is not automatically failure. **Unprepared death** is failure.
           │                       │
        life                    succession
           │                       │
-       death ────────────────► heir  →  dynasty continues
+       death ────────────────► heir  →  gens continues
                                   │
                            (no valid heir)
                                   │
                                   ▼
-                             EXTINCTION → game over / restart
+                             GENS EXTINCTION → game over / restart
 ```
 
 ### Time
@@ -210,7 +212,7 @@ Death is not automatically failure. **Unprepared death** is failure.
 
 ### Succession as gameplay
 
-Each dynasty may set and amend its own succession constitution (primogeniture-like eldest, youngest, designated, elective, custom — via Grove Lex / Nomic). Ancestors leave **institutional rules**, not only descendants. Constitutional history accumulates across generations; seasons leave **reasons**.
+Each gens may set and amend its own succession constitution (primogeniture-like eldest, youngest, designated, elective, custom — via Grove Lex / Nomic). Ancestors leave **institutional rules**, not only descendants. Constitutional history accumulates across generations; seasons leave **reasons**.
 
 ### Continuity as the ultimate resource
 
@@ -230,11 +232,11 @@ If succession succeeds, the player continues the **historical process** as the h
 
 ### Heterogeneous lineages
 
-ACBs (EN) / SCAs (PT) are Subjects. Houses may include human and ACB-associated lines under the same dignity rules — institutions of heterogeneous agents, not only a blood-sim cosplay.
+ACBs (EN) / SCAs (PT) are Subjects. Gentes may include human and ACB-associated lines under the same dignity rules — institutions of heterogeneous agents, not only a blood-sim cosplay. Populi group gentes; Lusitani is the confederation of those populi.
 
 ### Killer loop (compressed)
 
-Birth → grow → build house (economy + politics) → marriage / descendants → succession law → dynasty grows → age → death → **success (heir / next life)** or **failure (extinction / restart)** → history remains either way.
+Birth → grow → build house (economy + politics) → marriage / descendants → succession law → gens grows → age → death → **success (heir / next life)** or **failure (gens extinction / restart)** → history remains either way.
 
 Every cycle should leave something behind: law, assets, relationships, descendants, memory.
 
