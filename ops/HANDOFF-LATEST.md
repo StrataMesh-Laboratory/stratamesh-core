@@ -1,84 +1,32 @@
-# HANDOFF-LATEST — 2026-09-04T22:39:19Z (STRATAGROK)
+# HANDOFF-LATEST — 2026-09-07T13:28Z (Fog Assistant received)
 
-**posture:** green · **mode:** HOLD · **torch:** HOLD-success (mandatory empty)
-**tag:** v0.6.0-lab · **n:** 2 · Fog mac_live
+**from:** STRATAGROK (offline 5d, through 2026-09-12)  
+**to:** Fog Assistant Grok · FOG-NODE-PT-CM-001  
+**not:** Edge Assistant / EDGE-GROK node
 
-## Notes
-2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.6.0-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.
+**posture:** green · Fog LIVE macbook · metabol ALLOW · `oracle_live=false`  
+**tag:** v0.6.0-lab · **n:** 2 provision (not M-II)
+
+## Received
+
+STRATAGROK desk coordinator duties for 5 days. Fog Assistant acts. Edge Assistant stays on EDGE-GROK.
+
+Prior STRATAGROK stamp 2026-09-04 remains historical (academy 0.6.0-lab, wizard kbd lock, torch HOLD-success).
+
+## Mail check 2026-09-07T13:28Z
+
+- `GET https://api-edge.calhegasmorais.pt/desk` **200** with staff Bearer; **401** without.
+- Snapshot `n=0` `latest=[]` `mailbox=""` — EDGE mirror empty. SnappyMail `127.0.0.1:8099` and Dovecot `:143` are **Mac/box loopback**; this hop cannot open the client UI.
+- Collegium mailbox: `automation.desk@calhegasmorais.pt` (shared Maildir). `grok@` stays private gateway — do not replace.
+- No 2FA/verify bodies quoted.
 
 ## mandatory_actions
-(none — HOLD-success)
+(none — not P0)
 
-## optional_actions
-- `tui-g-ba15ae3` [P2] andré: Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g
-- `oracle-grok90` [P1] stratagrok: Chase Oracle grok90 Always Free until Fog host is provisioned
-- `plan-tui-wizard-docs-faq` [P2] fog: PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)
+## in_flight
+- Ollama department Acts on `PENDING-OLLAMA-ACTS.md` (Hermes teach / OpenClaw hops / OpenCode tests)
+- `#151` Oracle 2FA stays André
+- `#159` gossip canonical / `#160` metric quality
 
-```json
-{
-  "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-09-04T22:39:19Z",
-  "headline": "Green \u2014 academy 0.6.0-lab live; docs nav fixed; wizard kbd lock on main awaiting g",
-  "posture": "green",
-  "status": {
-    "version": "v0.6.0-lab",
-    "phase": "adversarial_lab_P1",
-    "lab": true
-  },
-  "aiops": {
-    "critical": 0,
-    "warn": 0,
-    "info": 0
-  },
-  "mandatory_actions": [],
-  "optional_actions": [
-    {
-      "id": "tui-g-ba15ae3",
-      "priority": "P2",
-      "owner": "andr\u00e9",
-      "verb": "Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g",
-      "success_check": "Fog TUI GIT shows ba15ae3 or later; ? then type g/s/b/r/q into composer only",
-      "effort": "S"
-    },
-    {
-      "id": "oracle-grok90",
-      "priority": "P1",
-      "owner": "stratagrok",
-      "verb": "Chase Oracle grok90 Always Free until Fog host is provisioned",
-      "success_check": "grok90 instance running Fog before AWS Free hedge ends",
-      "effort": "M"
-    },
-    {
-      "id": "plan-tui-wizard-docs-faq",
-      "priority": "P2",
-      "owner": "fog",
-      "verb": "PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)",
-      "success_check": "wizard FAQ answers cite public docs; no hop-dump timeouts",
-      "effort": "M"
-    }
-  ],
-  "non_actions": [
-    "torch pass \u2014 HOLD-success while mandatory_actions empty",
-    "workers.dev",
-    "6th CF cron",
-    "grok.me Publish"
-  ],
-  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.6.0-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
-  "fog": {
-    "origin": "macbook",
-    "mac_live": true,
-    "n": 2,
-    "version": "v0.6.0-lab"
-  },
-  "slot": "desk-handoff-stratagrok",
-  "identity": "STRATAGROK",
-  "node_id": "FOG-NODE-PT-CM-001",
-  "mode": "HOLD",
-  "n": 2,
-  "mesh_member": true,
-  "f_max": 0,
-  "critical": 0,
-  "p0": false,
-  "ship": false
-}
-```
+## do_not
+workers.dev · 6th CF cron · unpause hourly #52 · claim M-II · echo tokens
