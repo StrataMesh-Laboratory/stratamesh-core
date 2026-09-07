@@ -79,7 +79,7 @@ jobs:
         run: |
           echo "prefer local hops :8788/:8790"
           if [ -z "$TS_AUTHKEY" ]; then echo "no TS_AUTHKEY"; exit 0; fi
-      - uses: tailscale/github-action@v3
+      - uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         if: env.TS_AUTHKEY != ''
         continue-on-error: true
         with:
