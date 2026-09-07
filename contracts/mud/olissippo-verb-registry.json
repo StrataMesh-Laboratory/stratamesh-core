@@ -1,8 +1,8 @@
 {
   "schema": "stratamesh.mud.olissippo.verbs.v1",
   "realm": "lore-olissippo-lusitanian",
-  "phase": "8a",
-  "rule_version": "verbs-8a-1",
+  "phase": "8c",
+  "rule_version": "verbs-8c-1",
   "note": "Finite verbs with engine tags. Aliases keep Phase 7/8 decide wires. escort is generalized; river_escort is lore instance. exchange is canonical; quay_barter is lore.",
   "engines": [
     "adjudication",
@@ -378,6 +378,22 @@
       "engines": [
         "kinship"
       ]
+    },
+    {
+      "id": "production_tick",
+      "engines": [
+        "settlement"
+      ],
+      "mutates": true,
+      "canonical": "tick_production"
+    },
+    {
+      "id": "resolve_season",
+      "engines": [
+        "adjudication"
+      ],
+      "mutates": true,
+      "canonical": "bandua_resolve_season"
     }
   ],
   "reject": {

@@ -107,7 +107,7 @@ Hard pipeline: `intent → finite verb → validate → plan → adjudicate → 
 
 Normative: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md) · `olissippo-event-schema.json` · `olissippo-policy-layer.json` · `olissippo-verb-registry.json` · `olissippo_events.py` / `olissippo_lots.py` / `olissippo_verbs.py`.
 
-Ship: **8A** foundation · **8B** runtime bag (`events[]`, `law_version`, lots) · **8C–8E** deferred (full Bandua UI, claim modifiers, craft DAG depth / chain attest).
+Ship: **8A** foundation · **8B** runtime bag · **8C** pure adjudicators + dynasty clock (`1 real day = 1 game month`) · **8D–8E** next (claim modifiers depth, Bandua UI, craft DAG / chain attest).
 
 ## GNU Graphical-MUD
 

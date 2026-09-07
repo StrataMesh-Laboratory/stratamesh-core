@@ -78,6 +78,9 @@ jobs:
       - name: Olissippo Phase 8A/8B five engines + event pipeline
         working-directory: src
         run: python3 test_olissippo_phase8_engines.py
+      - name: Olissippo Phase 8C pure adjudicators + dynasty clock
+        working-directory: src
+        run: python3 test_olissippo_phase8c_adjudicators.py
       - name: Olissippo dynasty clock (1 real day = 1 game month)
         working-directory: src
         run: python3 test_olissippo_dynasty_clock.py

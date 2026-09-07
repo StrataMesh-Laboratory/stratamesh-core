@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Olissippo Phase 8A/8B — finite verb registry, validate, execute (event-producing)."""
+"""Olissippo Phase 8A/8B/8C — finite verb registry, validate, execute (event-producing).
+
+Phase 8C: execute paths for season/law/succession/production/trade/dynasty go through
+pure adjudicators (resolve/plan) then apply_* mutators.
+"""
 from __future__ import annotations
 
 import json
@@ -7,6 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import olissippo_adjudicators as adj
 import olissippo_castro as castro
 import olissippo_claims as claims
 import olissippo_council as council
@@ -159,7 +164,8 @@ def execute_verb(
         return done(bool(r.get("ok")), r.get("error") or "order_queued", r, None if r.get("ok") else None)
 
     if canon == "close_season":
-        r = council.close_season(bag)
+        target = bag["bandua"] if isinstance(bag.get("bandua"), dict) else bag
+        r = adj.SeasonAdjudicator.close_season(target)
         if r.get("ok"):
             evt = _emit(
                 bag,
@@ -167,7 +173,7 @@ def execute_verb(
                 verb=canon,
                 reason="season_closed_for_resolve",
                 actors=actors,
-                after={"season": bag.get("season"), "order_count": len(bag.get("orders") or [])},
+                after={"season": target.get("season"), "order_count": len(target.get("orders") or [])},
             )
             emitted.append(evt)
         return done(bool(r.get("ok")), r.get("error") or "season_closed", r)
@@ -175,11 +181,12 @@ def execute_verb(
     if canon in ("bandua_resolve_season", "resolve_season") or verb == "bandua_resolve_season":
         orders = payload.get("orders")
         if orders is None:
-            orders = list(bag.get("orders") or [])
-        resolution = council.resolve_season(orders)
+            src = bag.get("bandua") if isinstance(bag.get("bandua"), dict) else bag
+            orders = list(src.get("orders") or bag.get("orders") or [])
+        resolution = adj.SeasonAdjudicator.resolve_season(bag, orders)
         if not resolution.get("ok"):
             return done(False, resolution.get("error") or "resolve_failed", resolution)
-        applied = council.apply_resolution(bag, resolution)
+        adj.SeasonAdjudicator.apply_resolution(bag, resolution)
         evt = _emit(
             bag,
             event_type="season_resolved",
@@ -191,17 +198,26 @@ def execute_verb(
             season=bag.get("season"),
         )
         emitted.append(evt)
-        return done(True, "season_resolved", {"resolution": resolution, "applied": applied})
+        return done(True, "season_resolved", {"resolution": resolution})
 
     # --- law ---
     if canon == "propose_law":
-        r = lex.propose_lex(
-            bag.setdefault("grove", lex.new_state()),
-            actor or "unknown",
-            str(payload.get("text") or ""),
-            target_id=payload.get("target_id"),
-            replace=bool(payload.get("replace")),
-        )
+        changes = payload.get("changes")
+        if changes:
+            r = adj.LawAdjudicator.propose_policy_change(
+                bag,
+                actor or "unknown",
+                list(changes),
+                prose_text=str(payload.get("text") or payload.get("prose_text") or ""),
+            )
+        else:
+            r = lex.propose_lex(
+                bag.setdefault("grove", lex.new_state()),
+                actor or "unknown",
+                str(payload.get("text") or ""),
+                target_id=payload.get("target_id"),
+                replace=bool(payload.get("replace")),
+            )
         if r.get("ok"):
             evt = _emit(
                 bag,
@@ -209,7 +225,7 @@ def execute_verb(
                 verb=canon,
                 reason="grove_proposal_open",
                 actors=actors,
-                after={"proposal_id": r.get("proposal_id")},
+                after={"proposal_id": r.get("proposal_id"), "changes": changes},
             )
             emitted.append(evt)
         return done(bool(r.get("ok")), r.get("error") or "proposed", r)
@@ -234,9 +250,21 @@ def execute_verb(
         return done(bool(r.get("ok")), r.get("error") or "voted", r)
 
     if canon == "enact_law":
-        r = lex.enact_lex(bag.setdefault("grove", lex.new_state()), str(payload["proposal_id"]))
+        pid = str(payload["proposal_id"])
+        grove = bag.setdefault("grove", lex.new_state())
+        prop = (grove.get("proposals") or {}).get(pid) or {}
+        votes = payload.get("votes")
+        if prop.get("changes") or payload.get("typed_policy"):
+            plan = adj.LawAdjudicator.resolve_enact(bag, pid, votes=votes)
+            if not plan.get("ok"):
+                return done(False, plan.get("error") or "enact_failed", plan)
+            r = adj.LawAdjudicator.apply_enact(bag, plan)
+            if r.get("event"):
+                emitted.append(r["event"])
+            return done(bool(r.get("ok")), r.get("error") or "enacted", {"plan": plan, "applied": r})
+        # legacy grove prose enact
+        r = lex.enact_lex(grove, pid)
         if r.get("ok"):
-            # bump law_version
             cur = _law_version(bag)
             base, _, num = cur.partition("-")
             try:
@@ -278,14 +306,25 @@ def execute_verb(
         return done(bool(r.get("ok")), r.get("error") or "fostered", r)
 
     if canon == "press_claim":
+        kind = str(payload.get("kind") or "raid_trophy")
+        holder = str(payload.get("holder_person_id") or actor or "kin-oli-chefe-heir")
+        gate = adj.ClaimStrength.validate_press(
+            kind,
+            subject=holder,
+            policy=adj.policy_snapshot(bag),
+            edges=list((bag.get("kin") or {}).get("edges") or []),
+        )
+        if not gate.get("ok"):
+            return done(False, gate.get("error") or "below_claim_threshold", gate)
         r = claims.press_claim(
             bag.setdefault("claims", claims.new_state()),
             str(payload["stirps_id"]),
             str(payload["territory_id"]),
-            str(payload.get("kind") or "raid_trophy"),
-            str(payload.get("holder_person_id") or "kin-oli-chefe-heir"),
+            kind,
+            holder,
         )
         if r.get("ok"):
+            r["strength"] = gate["strength"]
             evt = _emit(
                 bag,
                 event_type="claim_pressed",
@@ -299,51 +338,72 @@ def execute_verb(
         return done(bool(r.get("ok")), r.get("error") or "claim_pressed", r)
 
     if canon == "succeed_holding":
-        r = kin.succeed_holding(bag.setdefault("kin", kin.new_state()), str(payload["territory_id"]))
-        if r.get("ok"):
-            evt = _emit(
-                bag,
-                event_type="succession",
-                verb=canon,
-                reason=f"succession_policy:{load_policy()['policy']['succession_policy']['resolve']}",
-                actors=actors,
-                location_ids=[str(payload["territory_id"])],
-                after=r,
-            )
-            emitted.append(evt)
-        return done(bool(r.get("ok")), r.get("error") or "succeeded", r)
+        kin_state = bag.setdefault("kin", kin.new_state())
+        tid = str(payload["territory_id"])
+        holding = dict(kin_state.get("holdings", {}).get(tid) or {})
+        holding["territory_id"] = tid
+        deceased = str(payload.get("deceased") or holding.get("holder_person_id") or "")
+        plan = adj.succession_policy.resolve(
+            holding,
+            deceased,
+            _law_version(bag),
+            kin_state,
+            policy=adj.policy_snapshot(bag),
+        )
+        plan["territory_id"] = tid
+        if not plan.get("ok"):
+            return done(False, plan.get("error") or "no_heir", plan)
+        r = adj.SuccessionResolver.apply_succession(bag, plan)
+        if r.get("event"):
+            emitted.append(r["event"])
+        return done(bool(r.get("ok")), r.get("error") or "succeeded", {"plan": plan, "applied": r})
+
+    if canon == "advance_game_month":
+        months = int(payload.get("months") or 1)
+        kin_state = bag.setdefault("kin", kin.new_state())
+        clock = bag.get("clock") or kin_state.get("clock") or adj.DynastyClock.default_clock()
+        plan = adj.DynastyClock.plan_advance(
+            kin_state,
+            clock,
+            _law_version(bag),
+            months=months,
+            policy=adj.policy_snapshot(bag),
+        )
+        if not plan.get("ok"):
+            return done(False, plan.get("error") or "advance_failed", plan)
+        r = adj.DynastyClock.apply_advance(bag, plan)
+        if r.get("event"):
+            emitted.append(r["event"])
+        for s in r.get("successions") or []:
+            if s.get("event"):
+                emitted.append(s["event"])
+        return done(bool(r.get("ok")), r.get("error") or "dynasty_ticked", {"plan": plan, "applied": r})
 
     # --- settlement ---
     cst = bag.setdefault("castro", castro.new_state())
 
     if canon == "tick_production":
         cid = payload.get("castro_id")
-        before_res = {}
-        if cid and cid in cst["castros"]:
-            before_res = dict(cst["castros"][cid].get("resources") or {})
-        r = castro.tick_production(cst, cid)
-        if r.get("ok"):
-            # sync lots from resources (production mints lots)
-            targets = [cid] if cid else list(cst["castros"])
-            for t in targets:
-                c = cst["castros"][t]
-                lots.sync_lots_from_resources(c)
-            obj_ids = []
-            if cid and cid in cst["castros"]:
-                c = cst["castros"][cid]
-                obj_ids = [c.get("object_id")] + list((c.get("lot_object_ids") or {}).values())
-            evt = _emit(
-                bag,
-                event_type="production_tick",
-                verb=canon,
-                reason="production_mints_strata_lots",
-                actors=actors,
-                object_ids=[x for x in obj_ids if x],
-                before={"resources": before_res},
-                after=r.get("results"),
+        targets = [cid] if cid else list(cst["castros"])
+        results = {}
+        ok_any = False
+        for t_id in targets:
+            c = cst["castros"].get(t_id)
+            if not c:
+                return done(False, "unknown_castro", {"castro_id": t_id})
+            plan = adj.ProductionResolver.production_tick(
+                c,
+                works=c.get("works"),
+                lots_view=c.get("lots"),
+                law_version=_law_version(bag),
+                elapsed=int(payload.get("elapsed") or 1),
             )
-            emitted.append(evt)
-        return done(bool(r.get("ok")), r.get("error") or "production_ticked", r)
+            applied = adj.ProductionResolver.apply_production(bag, t_id, plan)
+            if applied.get("event"):
+                emitted.append(applied["event"])
+            results[t_id] = {"plan": plan, "applied": applied}
+            ok_any = ok_any or bool(applied.get("ok"))
+        return done(ok_any, "production_ticked" if ok_any else "production_failed", {"results": results})
 
     if canon == "upgrade_work":
         r = castro.upgrade_work(cst, payload["castro_id"], payload["work_id"])
@@ -440,28 +500,24 @@ def execute_verb(
 
     # --- market ---
     if canon == "exchange":
-        r = castro.quay_barter(
-            cst,
-            payload["castro_id"],
-            str(payload["give"]),
-            str(payload["want"]),
-            int(payload["amount"]),
+        plan = adj.TradeResolver.exchange(
+            offer={
+                "castro_id": payload["castro_id"],
+                "resource": str(payload.get("give") or payload.get("resource")),
+                "qty": int(payload.get("amount") or payload.get("qty") or 0),
+            },
+            demand={"resource": str(payload.get("want") or payload.get("demand"))},
+            counterparty=payload.get("counterparty"),
+            venue=str(payload.get("venue") or "quay"),
+            constraints=payload.get("constraints"),
+            bag_view={"castro": cst},
         )
-        if r.get("ok"):
-            c = cst["castros"][payload["castro_id"]]
-            lots.sync_lots_from_resources(c)
-            evt = _emit(
-                bag,
-                event_type="exchange",
-                verb=canon,
-                reason="quay_barter_lore_instance_of_exchange",
-                actors=actors,
-                object_ids=[c.get("object_id")] + list((c.get("lot_object_ids") or {}).values()),
-                location_ids=["quay", "market"],
-                after=r,
-            )
-            emitted.append(evt)
-        return done(bool(r.get("ok")), r.get("error") or "exchanged", r)
+        if not plan.get("ok"):
+            return done(False, plan.get("error") or "exchange_invalid", plan)
+        r = adj.TradeResolver.apply_exchange(bag, plan)
+        if r.get("event"):
+            emitted.append(r["event"])
+        return done(bool(r.get("ok")), r.get("error") or "exchanged", {"plan": plan, "applied": r})
 
     if canon == "craft_tick":
         r = castro.craft_tick(cst, payload.get("castro_id"))

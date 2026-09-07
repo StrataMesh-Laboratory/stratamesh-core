@@ -19,21 +19,30 @@
       "label_en": "Hall stirps of Olissippo",
       "label_pt": "Estirpe da sala",
       "home_territory": "terr-olissippo",
-      "head_role": "chefe"
+      "head_role": "chefe",
+      "player_dynasty_id": "pdyn-oli-chefe",
+      "owner_subject_id": "acb-camala-001",
+      "succession_law": "eldest_living_child"
     },
     {
       "id": "stirps-oli-smith",
       "label_en": "Forge stirps",
       "label_pt": "Estirpe da forja",
       "home_territory": "terr-olissippo",
-      "head_role": "smith"
+      "head_role": "smith",
+      "player_dynasty_id": "pdyn-oli-smith",
+      "owner_subject_id": "acb-boutius-001",
+      "succession_law": "eldest_living_child"
     },
     {
       "id": "stirps-vetton-cattle",
       "label_en": "Vetton cattle stirps",
       "label_pt": "Estirpe dos currais vet\u00f5es",
       "home_territory": "terr-vetton-pastures",
-      "head_role": "herd-lord"
+      "head_role": "herd-lord",
+      "player_dynasty_id": "pdyn-vetton-cattle",
+      "owner_subject_id": "user-vetton-01",
+      "succession_law": "eldest_living_child"
     }
   ],
   "person_seeds": [
@@ -45,7 +54,8 @@
       "alive": true,
       "subject_ref": null,
       "age_months": 660,
-      "designated_heir_id": null
+      "designated_heir_id": null,
+      "age_years": 55
     },
     {
       "person_id": "kin-oli-chefe-heir",
@@ -58,7 +68,8 @@
       ],
       "subject_ref": null,
       "age_months": 336,
-      "designated_heir_id": null
+      "designated_heir_id": null,
+      "age_years": 28
     },
     {
       "person_id": "kin-oli-smith",
@@ -68,7 +79,8 @@
       "alive": true,
       "subject_ref": "acb-boutius-001",
       "age_months": 480,
-      "designated_heir_id": null
+      "designated_heir_id": null,
+      "age_years": 40
     },
     {
       "person_id": "kin-vetton-herd",
@@ -78,7 +90,8 @@
       "alive": true,
       "subject_ref": null,
       "age_months": 540,
-      "designated_heir_id": null
+      "designated_heir_id": null,
+      "age_years": 45
     }
   ],
   "succession": {
@@ -95,7 +108,10 @@
       "designated_heir",
       "elective",
       "stirps_priority"
-    ]
+    ],
+    "policy_ref": "olissippo-policy-layer.json#succession_policy",
+    "per_dynasty": true,
+    "unique_head": true
   },
   "marriage": {
     "creates_edge": "spouse_of",
@@ -111,6 +127,9 @@
     "claim_kin"
   ],
   "clock": {
-    "real_day_equals_game_months": 1
-  }
+    "real_day_equals_game_months": 1,
+    "game_months_per_year": 12,
+    "note": "Dynasty aging: 12 game months \u2192 +1 age_years"
+  },
+  "player_dynasties_note": "player_dynasty_id ties stirps to an owner Subject (ACB EN / SCA PT, or human user). Unique head: one person cannot lead two player dynasties simultaneously. succession_law is per-dynasty and Grove-overridable."
 }

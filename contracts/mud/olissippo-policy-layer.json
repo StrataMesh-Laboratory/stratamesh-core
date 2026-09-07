@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.mud.olissippo.policy.v1",
   "realm": "lore-olissippo-lusitanian",
-  "phase": "8a",
+  "phase": "8c",
   "note": "HearthLaw \u2014 immutable core vs versioned policy. Engines read law_version; Grove enact bumps version.",
   "immutable_core": [
     {
@@ -46,7 +46,9 @@
       "river_escort_lore_instance": true,
       "real_day_equals_game_months": 1,
       "adult_age_months": 192,
-      "max_age_months": 840
+      "max_age_months": 840,
+      "press_claim_min_strength": 1,
+      "game_months_per_year": 12
     },
     "succession_policy": {
       "resolve": "eldest_living_child",
@@ -58,7 +60,9 @@
         "elective",
         "stirps_priority"
       ],
-      "note": "Grove Lex / HearthLaw may switch resolve via typed policy change; engine reads law_version."
+      "note": "Grove Lex / HearthLaw may switch resolve via typed policy change; engine reads law_version.",
+      "per_dynasty": true,
+      "unique_head": true
     },
     "claim_strength_base": {
       "blood": 3,
@@ -88,6 +92,12 @@
         "label_en": "Stirps eldest living",
         "ck_analogue": "house seniority-ish"
       }
+    },
+    "ontology_subjects": {
+      "en": "ACB",
+      "pt": "SCA",
+      "same_beings": true,
+      "note": "ACB and SCA name the same Subject class; prefer ACB in EN code/docs, SCA only in PT copy."
     }
   },
   "versioning": {
