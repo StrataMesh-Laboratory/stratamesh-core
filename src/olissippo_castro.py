@@ -32,9 +32,15 @@ def load_castro() -> dict[str, Any]:
 def new_state(data: dict[str, Any] | None = None) -> dict[str, Any]:
     d = data or load_castro()
     castros = {c["castro_id"]: deepcopy(c) for c in d["castro_seeds"]}
+    for c in castros.values():
+        c.setdefault("craft_points", 0)
+        c.setdefault("craft_tier", 0)
+        c.setdefault("works", {}).setdefault("numen_shrine", 0)
+        c.setdefault("tribute_to", None)  # castro_id overlord
     return {
         "castros": castros,
         "by_territory": {c["territory_id"]: cid for cid, c in castros.items()},
+        "pacts": [],  # tribute / guest-right
         "tick": 0,
         "log": [],
     }
@@ -63,6 +69,10 @@ def production_rates(castro: dict[str, Any], d: dict[str, Any] | None = None) ->
         prod = w.get("produces")
         if prod:
             rates[prod] = rates.get(prod, 0) + int(w.get("rate_per_level") or 0) * int(lvl or 0)
+    tier = int(castro.get("craft_tier") or 0)
+    bonus = float((d.get("craft_lore") or {}).get("tier_bonus_rate") or 0) * tier
+    if bonus:
+        rates = {k: int(v + v * bonus) for k, v in rates.items()}
     return rates
 
 
@@ -229,3 +239,156 @@ def reinforce(state: dict[str, Any], castro_id: str, grain: int = 10) -> dict[st
     gained = max(1, grain // 5)
     c["population"] = int(c.get("population") or 0) + gained
     return {"ok": True, "population": c["population"], "spent_grain": grain}
+
+
+
+def quay_barter(state: dict[str, Any], castro_id: str, give: str, want: str, amount: int) -> dict[str, Any]:
+    """Swap village resources at quay rates — not Agora ownership / not collateral C."""
+    d = load_castro()
+    c = state["castros"].get(castro_id)
+    if not c:
+        return {"ok": False, "error": "unknown_castro"}
+    if amount <= 0:
+        return {"ok": False, "error": "bad_amount"}
+    pair = [give, want]
+    if pair not in (d["barter"].get("allowed_pairs") or []):
+        return {"ok": False, "error": "pair_forbidden"}
+    key = f"{give}->{want}"
+    rate = float((d["barter"].get("rate") or {}).get(key) or 0)
+    if rate <= 0:
+        return {"ok": False, "error": "no_rate"}
+    res = c.setdefault("resources", {})
+    if int(res.get(give, 0)) < amount:
+        return {"ok": False, "error": "insufficient_resources"}
+    raw = amount * rate
+    fee = float(d["barter"].get("fee_fraction") or 0)
+    got = int(raw * (1.0 - fee))
+    if got <= 0:
+        return {"ok": False, "error": "dust"}
+    res[give] = int(res[give]) - amount
+    res[want] = int(res.get(want, 0)) + got
+    state.setdefault("log", []).append({"verb": "quay_barter", "give": give, "want": want, "in": amount, "out": got})
+    return {"ok": True, "spent": {give: amount}, "received": {want: got}, "fee_fraction": fee, "mechanic": "castro_hearth"}
+
+
+def siege_enclosure(state: dict[str, Any], attacker_id: str, defender_id: str, band_size: int) -> dict[str, Any]:
+    """Siege damages enclosure level — not loot (raid) and not annex (Bandua)."""
+    d = load_castro()
+    att = state["castros"].get(attacker_id)
+    defn = state["castros"].get(defender_id)
+    if not att or not defn:
+        return {"ok": False, "error": "unknown_castro"}
+    if attacker_id == defender_id:
+        return {"ok": False, "error": "self_siege"}
+    sg = d["siege"]
+    if band_size < int(sg["min_band"]):
+        return {"ok": False, "error": "band_too_small"}
+    cost = int(sg["grain_cost"])
+    ares = att.setdefault("resources", {})
+    if int(ares.get("grain", 0)) < cost:
+        return {"ok": False, "error": "insufficient_grain_for_band"}
+    ares["grain"] = int(ares["grain"]) - cost
+    atk = band_size + int(att.get("works", {}).get("watch_post") or 0)
+    defense = defense_of(defn, d)
+    works = defn.setdefault("works", {})
+    enc = int(works.get("enclosure") or 0)
+    if atk <= defense:
+        state.setdefault("log", []).append({"verb": "siege_enclosure", "result": "held"})
+        return {"ok": True, "result": "held", "attack": atk, "defense": defense, "enclosure": enc}
+    dmg = int(sg["damage_if_attack_gt_defense"])
+    works["enclosure"] = max(int(sg["min_enclosure_level"]), enc - dmg)
+    state.setdefault("log", []).append({"verb": "siege_enclosure", "result": "breached", "enclosure": works["enclosure"]})
+    return {
+        "ok": True,
+        "result": "breached",
+        "attack": atk,
+        "defense": defense,
+        "enclosure_before": enc,
+        "enclosure_after": works["enclosure"],
+        "mechanic": "castro_hearth",
+    }
+
+
+def craft_tick(state: dict[str, Any], castro_id: str | None = None) -> dict[str, Any]:
+    """Accumulate craft lore points from smith_pit / wood_camp (FoE research analogue)."""
+    d = load_castro()
+    cl = d["craft_lore"]
+    ids = [castro_id] if castro_id else list(state["castros"].keys())
+    out = {}
+    for cid in ids:
+        c = state["castros"].get(cid)
+        if not c:
+            return {"ok": False, "error": "unknown_castro"}
+        works = c.get("works") or {}
+        add = (
+            int(works.get("smith_pit") or 0) * int(cl["points_per_smith_level"])
+            + int(works.get("wood_camp") or 0) * int(cl["points_per_wood_level"])
+        )
+        c["craft_points"] = int(c.get("craft_points") or 0) + add
+        out[cid] = {"added": add, "craft_points": c["craft_points"]}
+    state.setdefault("log", []).append({"verb": "craft_tick", "results": out})
+    return {"ok": True, "results": out}
+
+
+def unlock_craft(state: dict[str, Any], castro_id: str) -> dict[str, Any]:
+    d = load_castro()
+    c = state["castros"].get(castro_id)
+    if not c:
+        return {"ok": False, "error": "unknown_castro"}
+    cl = d["craft_lore"]
+    tier = int(c.get("craft_tier") or 0)
+    mx = int(cl["max_tier"])
+    if tier >= mx:
+        return {"ok": False, "error": "max_tier"}
+    costs = cl["unlock_costs"]
+    need = int(costs[tier + 1]) if tier + 1 < len(costs) else int(costs[-1]) * (tier + 1)
+    pts = int(c.get("craft_points") or 0)
+    if pts < need:
+        return {"ok": False, "error": "insufficient_craft", "need": need, "have": pts}
+    c["craft_points"] = pts - need
+    c["craft_tier"] = tier + 1
+    return {"ok": True, "craft_tier": c["craft_tier"], "spent": need, "mechanic": "castro_hearth"}
+
+
+def set_tribute_pact(state: dict[str, Any], vassal_id: str, overlord_id: str, fraction: float | None = None) -> dict[str, Any]:
+    """Guest-right herd tithe pact between castros (Subject politics, not NFT)."""
+    d = load_castro()
+    if vassal_id not in state["castros"] or overlord_id not in state["castros"]:
+        return {"ok": False, "error": "unknown_castro"}
+    if vassal_id == overlord_id:
+        return {"ok": False, "error": "self_tribute"}
+    frac = float(fraction if fraction is not None else d["tribute"]["default_fraction_herd"])
+    if not (0 < frac <= 0.5):
+        return {"ok": False, "error": "bad_fraction"}
+    state["castros"][vassal_id]["tribute_to"] = overlord_id
+    pact = {"kind": "tribute_herd", "vassal": vassal_id, "overlord": overlord_id, "fraction": frac}
+    state.setdefault("pacts", []).append(pact)
+    return {"ok": True, "pact": pact, "mechanic": "guest_right_tribute"}
+
+
+def collect_tribute(state: dict[str, Any], overlord_id: str) -> dict[str, Any]:
+    d = load_castro()
+    if overlord_id not in state["castros"]:
+        return {"ok": False, "error": "unknown_castro"}
+    min_h = int(d["tribute"]["min_herd_to_collect"])
+    collected = {}
+    for c in state["castros"].values():
+        if c.get("tribute_to") != overlord_id:
+            continue
+        # find fraction from latest pact
+        frac = float(d["tribute"]["default_fraction_herd"])
+        for p in reversed(state.get("pacts") or []):
+            if p.get("vassal") == c["castro_id"] and p.get("overlord") == overlord_id:
+                frac = float(p.get("fraction") or frac)
+                break
+        herd = int(c.setdefault("resources", {}).get("herd", 0))
+        take = int(herd * frac)
+        if take < 1 or herd - take < 0:
+            continue
+        if herd < min_h:
+            continue
+        c["resources"]["herd"] = herd - take
+        ol = state["castros"][overlord_id].setdefault("resources", {})
+        ol["herd"] = int(ol.get("herd", 0)) + take
+        collected[c["castro_id"]] = take
+    return {"ok": True, "collected": collected, "mechanic": "guest_right_tribute"}

@@ -14,6 +14,7 @@ import olissippo_council as council  # noqa: E402
 import olissippo_grove_lex as lex  # noqa: E402
 import olissippo_kin as kin  # noqa: E402
 import olissippo_castro as castro  # noqa: E402
+import olissippo_claims as claims  # noqa: E402
 import olissippo_world as ow  # noqa: E402
 
 
@@ -133,15 +134,65 @@ def test_castro_settle_expand_raid():
     assert planted["castro"].get("kind") != "nft"
 
 
+
+def test_castro_barter_siege_craft_tribute():
+    st = castro.new_state()
+    # barter herd for grain
+    before_g = st["castros"]["castro-olissippo"]["resources"]["grain"]
+    b = castro.quay_barter(st, "castro-olissippo", "herd", "grain", 10)
+    assert b["ok"] and b["received"]["grain"] > 0
+    assert st["castros"]["castro-olissippo"]["resources"]["grain"] > before_g
+    # craft unlock path
+    for _ in range(5):
+        castro.craft_tick(st, "castro-olissippo")
+    u = castro.unlock_craft(st, "castro-olissippo")
+    assert u["ok"] and u["craft_tier"] == 1
+    # tribute pact + collect
+    p = castro.set_tribute_pact(st, "castro-tagus-new", "castro-olissippo") if "castro-tagus-new" in st["castros"] else None
+    # plant then tribute
+    for _ in range(10):
+        castro.tick_production(st, "castro-olissippo")
+    if "castro-tagus-new" not in st["castros"]:
+        assert castro.plant_castro(st, "castro-olissippo", "terr-tagus-scrub", "castro-tagus-new")["ok"]
+    assert castro.set_tribute_pact(st, "castro-tagus-new", "castro-olissippo", 0.2)["ok"]
+    st["castros"]["castro-tagus-new"]["resources"]["herd"] = 50
+    col = castro.collect_tribute(st, "castro-olissippo")
+    assert col["ok"] and col["collected"].get("castro-tagus-new", 0) >= 1
+    # siege vs raid distinction
+    enc_before = st["castros"]["castro-vetton"]["works"]["enclosure"]
+    for _ in range(4):
+        castro.tick_production(st, "castro-olissippo")
+    sg = castro.siege_enclosure(st, "castro-olissippo", "castro-vetton", band_size=80)
+    assert sg["ok"] and sg["result"] in ("held", "breached")
+    if sg["result"] == "breached":
+        assert st["castros"]["castro-vetton"]["works"]["enclosure"] < enc_before
+
+
+def test_hill_claims_and_foster():
+    cs = claims.new_state()
+    r = claims.press_claim(cs, "stirps-oli-chefe", "terr-tagus-scrub", "raid_trophy", "kin-oli-chefe-heir")
+    assert r["ok"] and r["claim"]["strength"] == 1
+    top = claims.strongest_claim(cs, "terr-olissippo")
+    assert top["ok"] and top["claim"]["kind"] == "inherited"
+    ks = kin.new_state()
+    f = kin.foster(ks, "kin-oli-chefe-heir", "kin-vetton-herd")
+    assert f["ok"] and any(e["kind"] == "guest_right" for e in ks["edges"])
+    bad = kin.foster(ks, "kin-oli-chefe-heir", "kin-oli-chefe-eldest")
+    assert bad["ok"] is False
+
+
 def test_world_phase7_stamp_and_docs():
     w = json.loads((ROOT / "contracts/mud/olissippo-world.json").read_text())
     assert w["phase"].get("7") == "council_games_diplomacy_nomic_kin"
     assert w["phase"].get("7b") == "castro_hearth_settlement_raid"
+    assert w["phase"].get("7c") == "expanded_council_mmo_kin_claims"
+    assert (ROOT / "contracts/mud/olissippo-stirps-claims.json").is_file()
     assert (ROOT / "contracts/mud/olissippo-castro-settlement.json").is_file()
     assert w.get("not_main") is True
     doc = (ROOT / "docs/OLISSIPPO-COUNCIL-GAMES.md").read_text()
     assert "Bandua" in doc and "Grove Lex" in doc and "stirps" in doc.lower()
     assert "Castro" in doc or "castro" in doc
+    assert "tribute" in doc.lower() or "barter" in doc.lower() or "claim" in doc.lower()
     assert "Travian" in doc or "Forge" in doc or "raid" in doc.lower()
     assert "Crusader" in doc or "dynasty" in doc.lower() or "estirpe" in doc.lower()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text()

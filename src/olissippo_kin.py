@@ -106,3 +106,21 @@ def acknowledge_heir(state: dict[str, Any], parent_id: str, child_id: str) -> di
     child["parent_ids"] = parents
     state.setdefault("edges", []).append({"kind": "parent_of", "a": parent_id, "b": child_id})
     return {"ok": True, "parent": parent_id, "child": child_id}
+
+
+def foster(state: dict[str, Any], child_id: str, host_person_id: str) -> dict[str, Any]:
+    """CK-like fosterage — child guest under another stirps person (guest-right), not adoption/NFT."""
+    child = _person(state, child_id)
+    host = _person(state, host_person_id)
+    if not child or not host:
+        return {"ok": False, "error": "unknown_person"}
+    if not child.get("alive") or not host.get("alive"):
+        return {"ok": False, "error": "not_alive"}
+    if child.get("stirps_id") == host.get("stirps_id"):
+        return {"ok": False, "error": "same_stirps"}
+    child["foster_host_id"] = host_person_id
+    child["foster_stirps_id"] = host.get("stirps_id")
+    state.setdefault("edges", []).append({"kind": "fostered_by", "a": child_id, "b": host_person_id})
+    state.setdefault("edges", []).append({"kind": "guest_right", "a": child.get("stirps_id"), "b": host.get("stirps_id")})
+    return {"ok": True, "child": child_id, "host": host_person_id, "mechanic": "hill_stirps"}
+

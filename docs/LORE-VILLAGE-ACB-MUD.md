@@ -274,3 +274,7 @@ Normative: [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · contr
 
 Travian- and Forge-of-Empires-like **settlement production, expand, cattle raid, and works upgrades**, lore-named **Ciclo do castro**. See [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · `olissippo-castro-settlement.json`.
 
+### Phase 7c — Expanded council / MMO / kin
+
+Quay barter, siege vs raid, craft lore, guest-right tribute, hill claims, fosterage — see [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md).
+

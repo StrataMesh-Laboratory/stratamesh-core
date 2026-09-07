@@ -1,0 +1,43 @@
+{
+  "schema": "olissippo.stirps.claims.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "mechanic_source": "Crusader Kings claims / casus \u2014 no product branding",
+  "lore_name_en": "Hill claims",
+  "lore_name_pt": "Pretens\u00f5es do outeiro",
+  "note": "Stirps press claims on territories. Claims are social/legal edges \u2014 not NFT title and not collateral C. Bandua season may enforce; Grove Lex may forbid.",
+  "claim_kinds": [
+    "inherited",
+    "marriage",
+    "guest_oath",
+    "raid_trophy",
+    "grove_award"
+  ],
+  "verbs": [
+    "press_claim",
+    "renounce_claim",
+    "list_claims"
+  ],
+  "strength": {
+    "inherited": 3,
+    "marriage": 2,
+    "guest_oath": 2,
+    "raid_trophy": 1,
+    "grove_award": 2
+  },
+  "seed_claims": [
+    {
+      "claim_id": "claim-oli-home",
+      "stirps_id": "stirps-oli-chefe",
+      "territory_id": "terr-olissippo",
+      "kind": "inherited",
+      "holder_person_id": "kin-oli-chefe-eldest"
+    },
+    {
+      "claim_id": "claim-vetton-pasture",
+      "stirps_id": "stirps-vetton-cattle",
+      "territory_id": "terr-vetton-pastures",
+      "kind": "inherited",
+      "holder_person_id": "kin-vetton-herd"
+    }
+  ]
+}

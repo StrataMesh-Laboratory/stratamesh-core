@@ -1,7 +1,7 @@
 {
   "schema": "olissippo.castro.settlement.v1",
   "realm": "lore-olissippo-lusitanian",
-  "mechanic_source": "Travian + Forge of Empires (settlement/expand/raid/build/production only \u2014 no product branding)",
+  "mechanic_source": "Travian + Forge of Empires (settle/expand/raid/build/production/market/research/siege) + tribute/guest-right \u2014 no product branding",
   "lore_name_en": "Castro hearth cycle",
   "lore_name_pt": "Ciclo do castro",
   "note": "Hillfort castros produce herd/grain/timber/ore; expand by planting a new castro on empty scrub; raid lifts cattle; works upgrade like buildings. Server-authoritative; Subjects own claims, castros are not NFTs.",
@@ -75,6 +75,15 @@
       "produces": null,
       "defense_per_level": 1,
       "max_level": 5
+    },
+    {
+      "id": "numen_shrine",
+      "label_en": "Numen shrine (Endovelicus / local)",
+      "label_pt": "Ermida do numen",
+      "produces": null,
+      "defense_per_level": 3,
+      "max_level": 3,
+      "note": "Sacred site boost \u2014 numina hook, not a Subject and not free generative magic."
     }
   ],
   "verbs": [
@@ -82,7 +91,11 @@
     "upgrade_work",
     "plant_castro",
     "cattle_raid",
-    "reinforce"
+    "reinforce",
+    "quay_barter",
+    "siege_enclosure",
+    "craft_tick",
+    "unlock_craft"
   ],
   "expand": {
     "cost": {
@@ -106,8 +119,11 @@
         "granary": 1,
         "wood_camp": 1,
         "smith_pit": 0,
-        "watch_post": 0
-      }
+        "watch_post": 0,
+        "numen_shrine": 0
+      },
+      "craft_points": 0,
+      "craft_tier": 0
     },
     "plantable_kinds": [
       "scrub",
@@ -151,8 +167,11 @@
         "granary": 2,
         "wood_camp": 2,
         "smith_pit": 1,
-        "watch_post": 1
-      }
+        "watch_post": 1,
+        "numen_shrine": 1
+      },
+      "craft_points": 0,
+      "craft_tier": 0
     },
     {
       "castro_id": "castro-vetton",
@@ -172,8 +191,11 @@
         "granary": 1,
         "wood_camp": 1,
         "smith_pit": 0,
-        "watch_post": 1
-      }
+        "watch_post": 1,
+        "numen_shrine": 0
+      },
+      "craft_points": 0,
+      "craft_tier": 0
     },
     {
       "castro_id": "castro-celtici",
@@ -193,8 +215,11 @@
         "granary": 2,
         "wood_camp": 2,
         "smith_pit": 2,
-        "watch_post": 2
-      }
+        "watch_post": 2,
+        "numen_shrine": 0
+      },
+      "craft_points": 0,
+      "craft_tier": 0
     }
   ],
   "empty_plant_sites": [
@@ -213,5 +238,79 @@
     "Castros and resources are runtime claims \u2014 not STRATA NFTs",
     "Raid \u2260 annex; annex stays Bandua season / Grove Lex",
     "No free generative magic"
-  ]
+  ],
+  "barter": {
+    "note": "Quay / market resource swap \u2014 fungible village goods, not Agora ownership fractions or STRATA collateral C.",
+    "require_quay_or_market_territory": false,
+    "allowed_pairs": [
+      [
+        "herd",
+        "grain"
+      ],
+      [
+        "grain",
+        "timber"
+      ],
+      [
+        "timber",
+        "ore"
+      ],
+      [
+        "herd",
+        "ore"
+      ],
+      [
+        "grain",
+        "herd"
+      ],
+      [
+        "timber",
+        "grain"
+      ],
+      [
+        "ore",
+        "timber"
+      ],
+      [
+        "ore",
+        "herd"
+      ]
+    ],
+    "rate": {
+      "herd->grain": 2,
+      "grain->herd": 0.4,
+      "grain->timber": 1,
+      "timber->grain": 1,
+      "timber->ore": 0.5,
+      "ore->timber": 2,
+      "herd->ore": 0.5,
+      "ore->herd": 2
+    },
+    "fee_fraction": 0.05
+  },
+  "siege": {
+    "note": "Slow enclosure breach \u2014 distinct from cattle_raid loot. Does not annex; annex is Bandua season.",
+    "min_band": 25,
+    "grain_cost": 15,
+    "damage_if_attack_gt_defense": 1,
+    "min_enclosure_level": 0
+  },
+  "craft_lore": {
+    "note": "FoE-like research: smith_pit + wood_camp generate craft points; spend to raise craft_tier (unlocks higher work caps soft).",
+    "points_per_smith_level": 2,
+    "points_per_wood_level": 1,
+    "unlock_costs": [
+      0,
+      8,
+      20,
+      40
+    ],
+    "max_tier": 3,
+    "tier_bonus_rate": 0.1
+  },
+  "tribute": {
+    "note": "Guest-right / oath_kin herd tithe between castros \u2014 CK vassal lite + Travian tribute, as Subject pact not NFT.",
+    "default_fraction_herd": 0.1,
+    "min_herd_to_collect": 10
+  }
 }
