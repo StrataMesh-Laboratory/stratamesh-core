@@ -2,7 +2,8 @@
 """Castro hearth cycle — Travian/FoE-like settle/expand/raid/production (Phase 7b).
 
 Lore: Ciclo do castro. Mechanics only; no product branding.
-Castros are runtime settlements (claims), not NFTs. Subjects may hold them.
+Castros and resource stacks are STRATA Objects (settlement NFTs + fungible STRATA lots).
+All NFTs are STRATA NFTs — no non-NFT village-good class. Subjects hold title.
 """
 from __future__ import annotations
 
@@ -135,7 +136,7 @@ def plant_castro(
     territory_id: str,
     new_castro_id: str | None = None,
 ) -> dict[str, Any]:
-    """Expand: found a new castro on an empty/scrub site (Travian settle analogue)."""
+    """Expand: mint/plant a daughter castro STRATA NFT on empty/scrub (Travian settle analogue)."""
     d = load_castro()
     src = state["castros"].get(source_castro_id)
     if not src:
@@ -178,6 +179,11 @@ def plant_castro(
         "resources": seed["resources"],
         "works": seed["works"],
         "founded_from": source_castro_id,
+        "object_kind": seed.get("object_kind") or "strata_nft",
+        "macro_category": seed.get("macro_category") or "settlement_castro",
+        "resources_kind": seed.get("resources_kind") or "fungible_strata_lots",
+        "craft_points": int(seed.get("craft_points") or 0),
+        "craft_tier": int(seed.get("craft_tier") or 0),
     }
     state["castros"][cid] = new_c
     state.setdefault("by_territory", {})[territory_id] = cid
@@ -243,7 +249,7 @@ def reinforce(state: dict[str, Any], castro_id: str, grain: int = 10) -> dict[st
 
 
 def quay_barter(state: dict[str, Any], castro_id: str, give: str, want: str, amount: int) -> dict[str, Any]:
-    """Swap village resources at quay rates — not Agora ownership / not collateral C."""
+    """Swap fungible STRATA lots at quay rates — still STRATA; ≠ Agora ownership fractions ≠ collateral C."""
     d = load_castro()
     c = state["castros"].get(castro_id)
     if not c:
@@ -351,7 +357,7 @@ def unlock_craft(state: dict[str, Any], castro_id: str) -> dict[str, Any]:
 
 
 def set_tribute_pact(state: dict[str, Any], vassal_id: str, overlord_id: str, fraction: float | None = None) -> dict[str, Any]:
-    """Guest-right herd tithe pact between castros (Subject politics, not NFT)."""
+    """Guest-right herd-lot tithe between castro STRATA Objects (Subject pact; lots remain STRATA)."""
     d = load_castro()
     if vassal_id not in state["castros"] or overlord_id not in state["castros"]:
         return {"ok": False, "error": "unknown_castro"}

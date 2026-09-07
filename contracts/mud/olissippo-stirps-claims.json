@@ -4,7 +4,7 @@
   "mechanic_source": "Crusader Kings claims / casus \u2014 no product branding",
   "lore_name_en": "Hill claims",
   "lore_name_pt": "Pretens\u00f5es do outeiro",
-  "note": "Stirps press claims on territories. Claims are social/legal edges \u2014 not NFT title and not collateral C. Bandua season may enforce; Grove Lex may forbid.",
+  "note": "Stirps press claims on territory/castro STRATA NFTs. A claim edge is how Subjects contest title; the Object under claim is always a STRATA NFT (never a non-NFT holding). Resolving recognises ownership of that Object. Distinct from collateral C. Bandua/Grove may enforce/forbid.",
   "claim_kinds": [
     "inherited",
     "marriage",
@@ -39,5 +39,10 @@
       "kind": "inherited",
       "holder_person_id": "kin-vetton-herd"
     }
-  ]
+  ],
+  "ontology": {
+    "claimed_object_is_strata_nft": true,
+    "claim_edge_is_subject_politics": true,
+    "acb_not_nft": true
+  }
 }

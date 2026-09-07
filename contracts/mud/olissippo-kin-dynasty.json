@@ -4,7 +4,7 @@
   "mechanic_source": "Crusader Kings family/dynasty (kin, marriage alliance, succession, claims \u2014 no product branding)",
   "lore_name_en": "Hill stirps / gens",
   "lore_name_pt": "Estirpes do outeiro",
-  "note": "Kinship is SubjectEdge among Subjects. Holdings are territory claims, not NFT persons. Marriage is guest-right alliance between stirps.",
+  "note": "Kinship is SubjectEdge among Subjects (ACB/humans \u2014 not NFTs). Territory/castro holdings are STRATA NFT Objects whose title Subjects hold. Marriage is guest-right alliance between stirps.",
   "edge_kinds": [
     "parent_of",
     "child_of",

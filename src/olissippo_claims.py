@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Hill claims — CK-like territorial pretensions for stirps (Phase 7c).
 
-Claims are legal/social edges — not NFT title, not collateral C.
+Claim edges contest title on territory/castro STRATA NFTs — the Object is always STRATA;
+the edge is Subject politics. Distinct from collateral C.
 """
 from __future__ import annotations
 

@@ -278,3 +278,7 @@ Travian- and Forge-of-Empires-like **settlement production, expand, cattle raid,
 
 Quay barter, siege vs raid, craft lore, guest-right tribute, hill claims, fosterage — see [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md).
 
+### Ontology reminder (Phase 7+)
+
+**All NFTs are STRATA NFTs.** Castro / herd / grain / timber / ore as Objects are STRATA (settlement NFTs or fungible lots). Do not invent a non-NFT village-goods class. **ACB ≠ NFT** still holds for Subjects.
+

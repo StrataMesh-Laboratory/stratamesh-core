@@ -335,7 +335,8 @@
     "6b": "identity_stratamesh_role_cmn_lore_not_main",
     "7": "council_games_diplomacy_nomic_kin",
     "7b": "castro_hearth_settlement_raid",
-    "7c": "expanded_council_mmo_kin_claims"
+    "7c": "expanded_council_mmo_kin_claims",
+    "7d": "strata_nft_ontology_align_castro_lots"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
@@ -393,6 +394,10 @@
     "kin": "contracts/mud/olissippo-kin-dynasty.json",
     "castro": "contracts/mud/olissippo-castro-settlement.json",
     "claims": "contracts/mud/olissippo-stirps-claims.json",
-    "expanded": "docs/OLISSIPPO-COUNCIL-GAMES.md#phase-7c--expanded-mechanics-most-apt-for-stratamesh-lore"
+    "expanded": "docs/OLISSIPPO-COUNCIL-GAMES.md#phase-7c--expanded-mechanics-most-apt-for-stratamesh-lore",
+    "ontology": {
+      "all_objects_are_strata_nfts": true,
+      "note": "No non-NFT village-goods Object class; ACB Subjects \u2260 NFTs"
+    }
   }
 }

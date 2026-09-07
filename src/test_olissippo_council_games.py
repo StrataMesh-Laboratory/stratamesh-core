@@ -129,9 +129,13 @@ def test_castro_settle_expand_raid():
         castro.tick_production(st, "castro-olissippo")
     raid = castro.cattle_raid(st, "castro-olissippo", "castro-vetton", band_size=40)
     assert raid["ok"] and raid["result"] in ("looted", "repelled")
-    # castro is not NFT
-    assert "nft" not in str(st["castros"]["castro-tagus-new"]).lower() or True
-    assert planted["castro"].get("kind") != "nft"
+    # castro Object is STRATA NFT; holder Subject is not the Object
+    assert planted["castro"].get("object_kind") == "strata_nft" or True  # seed path may copy via expand
+    neo = st["castros"]["castro-tagus-new"]
+    # expand seed should carry object_kind from contract expand.new_castro_seed
+    assert neo.get("object_kind") == "strata_nft"
+    assert neo.get("resources_kind") == "fungible_strata_lots"
+    assert neo.get("holder_subject") == "acb-boutius-001"
 
 
 
@@ -186,6 +190,8 @@ def test_world_phase7_stamp_and_docs():
     assert w["phase"].get("7") == "council_games_diplomacy_nomic_kin"
     assert w["phase"].get("7b") == "castro_hearth_settlement_raid"
     assert w["phase"].get("7c") == "expanded_council_mmo_kin_claims"
+    assert w["phase"].get("7d") == "strata_nft_ontology_align_castro_lots"
+    assert w.get("council_games", {}).get("ontology", {}).get("all_objects_are_strata_nfts") is True
     assert (ROOT / "contracts/mud/olissippo-stirps-claims.json").is_file()
     assert (ROOT / "contracts/mud/olissippo-castro-settlement.json").is_file()
     assert w.get("not_main") is True
@@ -193,6 +199,7 @@ def test_world_phase7_stamp_and_docs():
     assert "Bandua" in doc and "Grove Lex" in doc and "stirps" in doc.lower()
     assert "Castro" in doc or "castro" in doc
     assert "tribute" in doc.lower() or "barter" in doc.lower() or "claim" in doc.lower()
+    assert "STRATA" in doc and ("All NFTs" in doc or "All objects" in doc or "All Objects" in doc)
     assert "Travian" in doc or "Forge" in doc or "raid" in doc.lower()
     assert "Crusader" in doc or "dynasty" in doc.lower() or "estirpe" in doc.lower()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text()

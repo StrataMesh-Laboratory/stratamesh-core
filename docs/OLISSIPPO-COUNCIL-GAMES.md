@@ -3,6 +3,13 @@
 **Realm:** `lore-olissippo-lusitanian` (not main).  
 **Import:** mechanics only from **Diplomacy**, **Nomic**, **Crusader Kings** family/dynasty, plus **Travian** / **Forge of Empires** settlement–expand–raid — no product branding in UI.
 
+## Ontology (StrataMesh)
+
+- **Every Object is a STRATA NFT** (or fungible STRATA lot in the catalog). There are no “village goods” that are Objects and not NFTs.
+- **Subjects** (ACB / humans) hold title and form SubjectEdges — Subjects are **not** NFTs.
+- **Collateral C**, **Agora P_market** ownership fractions, and **quay STRATA-lot barter** stay distinct primitives.
+- **Numina** ≠ Subjects; shrine works are aspects/hooks on the castro Object.
+
 ## Lore names
 
 | Mechanic source | Lore name (EN) | PT UI sense |
@@ -61,21 +68,21 @@ Hillfort **castros** hold resources (`herd` · `grain` · `timber` · `ore`) and
 | `cattle_raid` | Razzia — band vs defense; loot fraction or repelled (does **not** annex) |
 | `reinforce` | Spend grain to grow population |
 
-Annexation stays with **Bandua season**; law changes stay with **Grove Lex**. Castros are runtime claims — **not** STRATA NFTs.
+Annexation stays with **Bandua season**; law changes stay with **Grove Lex**. Castros and herd/grain/timber/ore stacks **are** STRATA Objects (settlement NFTs + fungible STRATA lots). **All NFTs are STRATA NFTs** — there is no Object that is a village good and is not an NFT. Subjects hold title; ACB Subjects themselves are not NFTs.
 
 Contract: `contracts/mud/olissippo-castro-settlement.json` · server: `src/olissippo_castro.py`.
 
 ## Phase 7c — Expanded mechanics (most apt for StrataMesh lore)
 
-Chosen because they map cleanly onto **Subjects / claims / finite verbs / quay trade**, without turning castros into NFTs or inventing free magic.
+Chosen because they map cleanly onto **Subjects holding title on STRATA NFT Objects**, finite verbs, and quay lot trade — without inventing a non-NFT goods class or free magic.
 
 | Source | Mechanic | Lore name | StrataMesh fit |
 |--------|----------|-----------|----------------|
-| Travian market / FoE goods | Resource swap | **Quay barter** | Fungible village goods ≠ Agora ownership fractions ≠ collateral C |
+| Travian market / FoE goods | Resource swap | **Quay barter** | Fungible **STRATA lots** (still STRATA) ≠ Agora ownership fractions ≠ collateral C |
 | Travian siege | Enclosure damage | **Siege the cerca** | Distinct from cattle-raid loot and from Bandua annex |
 | FoE research | Craft points → tier | **Craft lore** | Smith/wood works; production bonus; still finite |
 | CK vassal / Travian tribute | Herd tithe pact | **Guest-right tribute** | `tribute_to` pact between castros; Subject politics |
-| CK claims | Territorial pretension | **Hill claims** | Legal edge; not NFT title; Bandua/Grove may enforce |
+| CK claims | Territorial pretension | **Hill claims** | SubjectEdge pressing title on a **castro/territory STRATA NFT**; Bandua/Grove may enforce |
 | CK fosterage | Child at host stirps | **Foster under guest-right** | SubjectEdge `fostered_by` / `guest_right` |
 | FoE great building lite | Sacred defense | **Numen shrine** | Numina hook / defense only — shrine ≠ Subject |
 
