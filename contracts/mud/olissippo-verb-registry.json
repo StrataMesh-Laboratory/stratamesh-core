@@ -360,6 +360,24 @@
       ],
       "mutates": true,
       "canonical": "craft_tick"
+    },
+    {
+      "id": "advance_game_month",
+      "engines": [
+        "kinship",
+        "gnu_graphical_mud"
+      ],
+      "aliases": [
+        "dynasty_tick"
+      ],
+      "note": "1 real day = 1 game month; ages dynasty; may fire succession"
+    },
+    {
+      "id": "dynasty_tick",
+      "canonical": "advance_game_month",
+      "engines": [
+        "kinship"
+      ]
     }
   ],
   "reject": {

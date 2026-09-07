@@ -43,7 +43,9 @@
       "display_name": "Elder of the hall",
       "generation": 0,
       "alive": true,
-      "subject_ref": null
+      "subject_ref": null,
+      "age_months": 660,
+      "designated_heir_id": null
     },
     {
       "person_id": "kin-oli-chefe-heir",
@@ -54,7 +56,9 @@
       "parent_ids": [
         "kin-oli-chefe-eldest"
       ],
-      "subject_ref": null
+      "subject_ref": null,
+      "age_months": 336,
+      "designated_heir_id": null
     },
     {
       "person_id": "kin-oli-smith",
@@ -62,7 +66,9 @@
       "display_name": "Smith kin (Boutius line seed)",
       "generation": 0,
       "alive": true,
-      "subject_ref": "acb-boutius-001"
+      "subject_ref": "acb-boutius-001",
+      "age_months": 480,
+      "designated_heir_id": null
     },
     {
       "person_id": "kin-vetton-herd",
@@ -70,7 +76,9 @@
       "display_name": "Vetton herd-lord",
       "generation": 0,
       "alive": true,
-      "subject_ref": null
+      "subject_ref": null,
+      "age_months": 540,
+      "designated_heir_id": null
     }
   ],
   "succession": {
@@ -80,6 +88,13 @@
       "territory_claim",
       "supply_claim",
       "chefe_claim"
+    ],
+    "laws": [
+      "eldest_living_child",
+      "youngest_living_child",
+      "designated_heir",
+      "elective",
+      "stirps_priority"
     ]
   },
   "marriage": {
@@ -94,5 +109,8 @@
     "succeed_holding",
     "foster",
     "claim_kin"
-  ]
+  ],
+  "clock": {
+    "real_day_equals_game_months": 1
+  }
 }

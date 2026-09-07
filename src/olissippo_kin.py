@@ -21,9 +21,13 @@ def load_kin() -> dict[str, Any]:
 
 def new_state(data: dict[str, Any] | None = None) -> dict[str, Any]:
     d = data or load_kin()
+    persons = {p["person_id"]: deepcopy(p) for p in d["person_seeds"]}
+    for p in persons.values():
+        p.setdefault("age_months", (50 - int(p.get("generation") or 0) * 20) * 12)
     return {
         "stirps": deepcopy(d["stirps_seed"]),
-        "persons": {p["person_id"]: deepcopy(p) for p in d["person_seeds"]},
+        "persons": persons,
+        "game_month": 0,
         "edges": [],
         "holdings": {
             "terr-olissippo": {"kind": "chefe_claim", "holder_person_id": "kin-oli-chefe-eldest", "stirps_id": "stirps-oli-chefe"},

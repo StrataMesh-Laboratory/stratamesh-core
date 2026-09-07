@@ -95,6 +95,15 @@ Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · adjudication: *
 
 ---
 
+## 4b. Dynasty clock (CK-style time)
+
+**1 real calendar day = 1 game month** (`clock.real_day_equals_game_months: 1`).
+
+- Village day/night activity can still use the fine clock; **dynasty/succession** ages on the month scale.
+- Finite verb / tick: `advance_game_month` / `dynasty_tick` (server-authoritative).
+- Persons carry `age_months`; at `max_age_months` they die → `SuccessionResolver` under active HearthLaw succession law (eldest / youngest / designated / elective stub / stirps_priority).
+- Module: `src/olissippo_dynasty_clock.py`.
+
 ## 5. Kinship + claims
 
 - Kinship = **SubjectEdges** (`spouse_of`, `parent_of`, `fostered_by`, `guest_right`, …) — Subjects only.

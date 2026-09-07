@@ -2,7 +2,7 @@
   "schema": "stratamesh.mud.olissippo.policy.v1",
   "realm": "lore-olissippo-lusitanian",
   "phase": "8a",
-  "note": "HearthLaw — immutable core vs versioned policy. Engines read law_version; Grove enact bumps version.",
+  "note": "HearthLaw \u2014 immutable core vs versioned policy. Engines read law_version; Grove enact bumps version.",
   "immutable_core": [
     {
       "id": "core-subject-not-nft",
@@ -18,7 +18,7 @@
     },
     {
       "id": "core-event-pipeline",
-      "text": "Mutations follow intent→verb→validate→plan→adjudicate→transition→Event."
+      "text": "Mutations follow intent\u2192verb\u2192validate\u2192plan\u2192adjudicate\u2192transition\u2192Event."
     },
     {
       "id": "core-lore-equiv-main",
@@ -26,7 +26,7 @@
     },
     {
       "id": "core-raid-siege-annex-distinct",
-      "text": "cattle_raid ≠ siege_enclosure ≠ Bandua annex."
+      "text": "cattle_raid \u2260 siege_enclosure \u2260 Bandua annex."
     }
   ],
   "policy": {
@@ -43,11 +43,22 @@
       "barter_fee_fraction": 0.05,
       "plant_min_population": 40,
       "escort_generalized": true,
-      "river_escort_lore_instance": true
+      "river_escort_lore_instance": true,
+      "real_day_equals_game_months": 1,
+      "adult_age_months": 192,
+      "max_age_months": 840
     },
     "succession_policy": {
       "resolve": "eldest_living_child",
-      "fallback": "eldest_living_stirps_member"
+      "fallback": "stirps_priority",
+      "available": [
+        "eldest_living_child",
+        "youngest_living_child",
+        "designated_heir",
+        "elective",
+        "stirps_priority"
+      ],
+      "note": "Grove Lex / HearthLaw may switch resolve via typed policy change; engine reads law_version."
     },
     "claim_strength_base": {
       "blood": 3,
@@ -55,10 +66,35 @@
       "raid_trophy": 2,
       "foster": 1,
       "guest_right": 1
+    },
+    "succession_laws": {
+      "eldest_living_child": {
+        "label_en": "Eldest living child",
+        "ck_analogue": "primogeniture-ish"
+      },
+      "youngest_living_child": {
+        "label_en": "Youngest living child",
+        "ck_analogue": "ultimogeniture-ish"
+      },
+      "designated_heir": {
+        "label_en": "Designated heir",
+        "ck_analogue": "designated heir"
+      },
+      "elective": {
+        "label_en": "Elective (stirps vote)",
+        "ck_analogue": "elective"
+      },
+      "stirps_priority": {
+        "label_en": "Stirps eldest living",
+        "ck_analogue": "house seniority-ish"
+      }
     }
   },
   "versioning": {
-    "bump_on": ["enact_law", "grove_enact"],
+    "bump_on": [
+      "enact_law",
+      "grove_enact"
+    ],
     "stamp_on_events": true
   }
 }
