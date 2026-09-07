@@ -1134,6 +1134,15 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         }
 
     evidence = _has_tool_evidence(blob, prompt=prompt)
+    # Parity with claw: OpenCode may write status/*.txt via tools but return thin
+    # JSON / hang-truncated blob without residue — fresh FS prove still counts.
+    if not evidence:
+        fs_ok, fs_ev = _fresh_status_prove(intent)
+        if fs_ok:
+            evidence = True
+            blob = (blob + "\n" + fs_ev).strip() if blob else fs_ev
+            # Treat FS prove as success even if CLI timed out after the write.
+            rc = 0
     try:
         _load("desk_bus").feed_append(
             "opencode",

@@ -610,6 +610,27 @@ class TestHasToolEvidence(unittest.TestCase):
             self.ops.REPO_ROOT = old
 
 
+
+    def test_fresh_status_prove_opencode_name(self):
+        """Code specialty overnight prove path uses status/opencode-desk-prove.txt."""
+        import tempfile
+        from pathlib import Path
+        root = Path(tempfile.mkdtemp())
+        (root / "status").mkdir()
+        prove = root / "status" / "opencode-desk-prove.txt"
+        prove.write_text("overnight-opencode-ok\n")
+        old = self.ops.REPO_ROOT
+        try:
+            self.ops.REPO_ROOT = root
+            ok, ev = self.ops._fresh_status_prove(
+                "Create status/opencode-desk-prove.txt with overnight-opencode-ok"
+            )
+            self.assertTrue(ok, ev)
+            self.assertIn("wrote status/opencode-desk-prove.txt", ev)
+            self.assertIn("overnight-opencode-ok", ev)
+        finally:
+            self.ops.REPO_ROOT = old
+
 def test_cmd_cycle_respects_desk_cycle_hold(tmp_path, monkeypatch):
     """HOLD file must short-circuit cycle before flock/agent spawn."""
     import desk_ops as d
