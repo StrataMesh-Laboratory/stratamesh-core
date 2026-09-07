@@ -564,6 +564,45 @@ class TestHasToolEvidence(unittest.TestCase):
         self.assertTrue(fn(blob), "real exit-code output must be accepted as tool evidence")
 
 
+
+    def test_accepts_toolsummary_json(self):
+        fn = self.ops._has_tool_evidence
+        blob = (
+            '{"ok":true,"status":"ok","final":"done","toolSummary":'
+            '{"write":1,"failures":0},"payloads":[{"text":"wrote status/x.txt"}]}'
+        )
+        self.assertTrue(fn(blob), "OpenClaw JSON toolSummary write must count as evidence")
+
+    def test_fresh_status_prove_helper(self):
+        import tempfile
+        import time
+        from pathlib import Path
+        # Point REPO_ROOT at a temp tree with status prove
+        root = Path(tempfile.mkdtemp())
+        (root / "status").mkdir()
+        prove = root / "status" / "claw-overnight-prove.txt"
+        prove.write_text("overnight-claw-ok\n")
+        old = self.ops.REPO_ROOT
+        try:
+            self.ops.REPO_ROOT = root
+            ok, ev = self.ops._fresh_status_prove(
+                "write status/claw-overnight-prove.txt with overnight-claw-ok"
+            )
+            self.assertTrue(ok, ev)
+            self.assertIn("wrote status/claw-overnight-prove.txt", ev)
+            # stale file rejected
+            time.sleep(0.05)
+            old_mtime = time.time() - 2000
+            import os
+            os.utime(prove, (old_mtime, old_mtime))
+            ok2, _ = self.ops._fresh_status_prove(
+                "write status/claw-overnight-prove.txt", max_age_s=900
+            )
+            self.assertFalse(ok2)
+        finally:
+            self.ops.REPO_ROOT = old
+
+
 def test_cmd_cycle_respects_desk_cycle_hold(tmp_path, monkeypatch):
     """HOLD file must short-circuit cycle before flock/agent spawn."""
     import desk_ops as d

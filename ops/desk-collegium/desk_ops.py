@@ -155,6 +155,8 @@ def _has_tool_evidence(blob: str, *, prompt: str = "") -> bool:
         "wrote ", "created file", "edited ", "diff --git", "diff --",
         "git status", "git rev-parse", "git log",
         "sha=",
+        "toolsummary", "tool_summary", '"name": "write"', '"name":"write"',
+        "exec=", "native-tools",
     )
     has_hard = any(h in low for h in hard_tool)
     sha_hits = _re.findall(r"(?<![0-9a-f])[0-9a-f]{7,40}(?![0-9a-f])", low)
@@ -544,6 +546,35 @@ def classify(state: dict) -> dict:
     }
 
 
+
+def _fresh_status_prove(intent: str, *, max_age_s: float = 960) -> tuple[bool, str]:
+    """Secondary claw evidence: intent-named status/*.txt written freshly under cwd.
+
+    desk8k sometimes writes via tools but returns a thin JSON final without
+    toolSummary residue — the on-disk prove under status/ is still real work.
+    """
+    import re as _re
+    import time as _time
+
+    m = _re.search(r"status/[\w./-]+\.txt", intent or "")
+    if not m:
+        return False, ""
+    rel = m.group(0)
+    path = REPO_ROOT / rel
+    try:
+        if not path.is_file():
+            return False, ""
+        age = _time.time() - path.stat().st_mtime
+        if age > max_age_s or age < 0:
+            return False, ""
+        body = path.read_text(encoding="utf-8", errors="replace").strip()
+    except Exception:
+        return False, ""
+    if len(body) < 3:
+        return False, ""
+    return True, f"wrote {rel} age={int(age)}s body={body[:48]}"
+
+
 def handler_claw(task: dict, *, dry: bool) -> dict:
     """Real openclaw agent exec. Hop curls may update meters; feed openclaw only on agent output."""
     fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
@@ -705,6 +736,11 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
         }
 
     evidence = _has_tool_evidence(blob, prompt=prompt) and len(blob) >= 32
+    if not evidence and rc == 0:
+        fs_ok, fs_ev = _fresh_status_prove(intent)
+        if fs_ok:
+            evidence = True
+            blob = (blob + "\n" + fs_ev).strip() if blob else fs_ev
     try:
         _load("desk_bus").feed_append(
             "openclaw",
