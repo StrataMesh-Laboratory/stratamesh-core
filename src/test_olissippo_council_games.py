@@ -191,6 +191,8 @@ def test_world_phase7_stamp_and_docs():
     assert w["phase"].get("7b") == "castro_hearth_settlement_raid"
     assert w["phase"].get("7c") == "expanded_council_mmo_kin_claims"
     assert w["phase"].get("7d") == "strata_nft_ontology_align_castro_lots"
+    assert w["phase"].get("7e") == "lore_economics_equiv_main_stakes"
+    assert w.get("council_games", {}).get("ontology", {}).get("lore_economics_equivalent_to_main") is True
     assert w.get("council_games", {}).get("ontology", {}).get("all_objects_are_strata_nfts") is True
     assert (ROOT / "contracts/mud/olissippo-stirps-claims.json").is_file()
     assert (ROOT / "contracts/mud/olissippo-castro-settlement.json").is_file()
@@ -200,6 +202,7 @@ def test_world_phase7_stamp_and_docs():
     assert "Castro" in doc or "castro" in doc
     assert "tribute" in doc.lower() or "barter" in doc.lower() or "claim" in doc.lower()
     assert "STRATA" in doc and ("All NFTs" in doc or "All objects" in doc or "All Objects" in doc)
+    assert "same stakes" in doc.lower() or "functionally equivalent" in doc.lower() or "≡" in doc
     assert "Travian" in doc or "Forge" in doc or "raid" in doc.lower()
     assert "Crusader" in doc or "dynasty" in doc.lower() or "estirpe" in doc.lower()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text()

@@ -249,7 +249,7 @@ def reinforce(state: dict[str, Any], castro_id: str, grain: int = 10) -> dict[st
 
 
 def quay_barter(state: dict[str, Any], castro_id: str, give: str, want: str, amount: int) -> dict[str, Any]:
-    """Swap fungible STRATA lots at quay rates — still STRATA; ≠ Agora ownership fractions ≠ collateral C."""
+    """Swap fungible STRATA lots at quay rates — same stakes as Agora-class STRATA trade (lore skin)."""
     d = load_castro()
     c = state["castros"].get(castro_id)
     if not c:

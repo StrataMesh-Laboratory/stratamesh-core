@@ -280,5 +280,5 @@ Quay barter, siege vs raid, craft lore, guest-right tribute, hill claims, foster
 
 ### Ontology reminder (Phase 7+)
 
-**All NFTs are STRATA NFTs.** Castro / herd / grain / timber / ore as Objects are STRATA (settlement NFTs or fungible lots). Do not invent a non-NFT village-goods class. **ACB ≠ NFT** still holds for Subjects.
+**All NFTs are STRATA NFTs.** Castro / herd / grain / timber / ore as Objects are STRATA. **Lore ≡ main stakes** — Olissippo is skin on the same StrataMesh economics (quay ≡ Agora-class trade stakes), not a softer parallel goods world. `not_main` is realm/host identity, not weaker money. **ACB ≠ NFT** still holds for Subjects.
 

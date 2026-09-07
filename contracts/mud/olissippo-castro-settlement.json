@@ -4,7 +4,7 @@
   "mechanic_source": "Travian + Forge of Empires (settle/expand/raid/build/production/market/research/siege) + tribute/guest-right \u2014 no product branding",
   "lore_name_en": "Castro hearth cycle",
   "lore_name_pt": "Ciclo do castro",
-  "note": "Hillfort castros and their herd/grain/timber/ore stacks are STRATA Objects (settlement NFTs + fungible STRATA lots). All NFTs are STRATA NFTs \u2014 there is no non-NFT \u2018village good\u2019. Subjects hold title; server-authoritative verbs mutate stacks/works.",
+  "note": "Hillfort castros and herd/grain/timber/ore are STRATA Objects (settlement NFTs + fungible STRATA lots). Olissippo lore is a skin on the same StrataMesh stakes \u2014 quay barter \u2261 Agora-class trade; ownership/title \u2261 STRATA ownership; works/collateral dynamics use the same economic primitives. Subjects hold title; server-authoritative verbs. All NFTs are STRATA NFTs.",
   "resources": [
     {
       "id": "herd",
@@ -248,13 +248,13 @@
   "anti_goals": [
     "No Travian/FoE product names in UI chrome",
     "Never invent Objects that are village goods and are not STRATA NFTs/lots",
+    "Never treat lore trades/goods as softer or parallel-to-STRATA stakes \u2014 same stakes, lore skin",
     "ACB/human Subjects are not NFTs; castros/resources as Objects are STRATA",
-    "Raid \u2260 annex; annex stays Bandua season / Grove Lex",
-    "No free generative magic",
-    "Quay lot barter \u2260 Agora ownership-fraction sale \u2260 redeem collateral C"
+    "Raid \u2260 annex as verb (annex is Bandua) \u2014 stakes still STRATA",
+    "No free generative magic"
   ],
   "barter": {
-    "note": "Quay swap of fungible STRATA lots (herd/grain/timber/ore). Still STRATA \u2014 not a non-NFT goods class. Distinct from Agora P_market ownership-fraction trades and from collateral C redeem.",
+    "note": "Quay swap of fungible STRATA lots (herd/grain/timber/ore). Functionally equivalent stakes to Agora-class STRATA lot/ownership trade \u2014 lore skin only (rates/verbs named for Olissippo).",
     "require_quay_or_market_territory": false,
     "allowed_pairs": [
       [
@@ -323,7 +323,7 @@
     "tier_bonus_rate": 0.1
   },
   "tribute": {
-    "note": "Guest-right / oath_kin herd-lot tithe between castro STRATA Objects \u2014 Subject pact edges; the herd moved is fungible STRATA, not a non-NFT good.",
+    "note": "Guest-right herd-lot tithe between castro STRATA Objects \u2014 same STRATA lot movement stakes; Subject pact edge is the lore framing.",
     "default_fraction_herd": 0.1,
     "min_herd_to_collect": 10
   },
@@ -334,7 +334,9 @@
     "subjects_hold_title": true,
     "acb_subjects_are_not_nfts": true,
     "numina_are_not_subjects": true,
-    "collateral_C_distinct_from_stacks": true,
-    "agora_ownership_fractions_distinct_from_quay_lot_barter": true
+    "lore_economics_equivalent_to_main": true,
+    "lore_is_skin_same_stakes": true,
+    "quay_barter_equiv_agora_class_trade": true,
+    "castro_title_equiv_strata_ownership": true
   }
 }

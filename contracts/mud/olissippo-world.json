@@ -336,7 +336,8 @@
     "7": "council_games_diplomacy_nomic_kin",
     "7b": "castro_hearth_settlement_raid",
     "7c": "expanded_council_mmo_kin_claims",
-    "7d": "strata_nft_ontology_align_castro_lots"
+    "7d": "strata_nft_ontology_align_castro_lots",
+    "7e": "lore_economics_equiv_main_stakes"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
@@ -397,7 +398,9 @@
     "expanded": "docs/OLISSIPPO-COUNCIL-GAMES.md#phase-7c--expanded-mechanics-most-apt-for-stratamesh-lore",
     "ontology": {
       "all_objects_are_strata_nfts": true,
-      "note": "No non-NFT village-goods Object class; ACB Subjects \u2260 NFTs"
+      "note": "not_main = lore realm host identity; economics same STRATA stakes as main",
+      "lore_economics_equivalent_to_main": true,
+      "lore_is_skin_same_stakes": true
     }
   }
 }

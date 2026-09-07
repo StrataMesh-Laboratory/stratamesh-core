@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Hill claims — CK-like territorial pretensions for stirps (Phase 7c).
 
-Claim edges contest title on territory/castro STRATA NFTs — the Object is always STRATA;
-the edge is Subject politics. Distinct from collateral C.
+Claim edges contest title on territory/castro STRATA NFTs — same ownership stakes as main;
+lore names the politics. Object is always STRATA; Subjects are not NFTs.
 """
 from __future__ import annotations
 

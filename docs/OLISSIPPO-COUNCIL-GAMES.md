@@ -5,9 +5,9 @@
 
 ## Ontology (StrataMesh)
 
-- **Every Object is a STRATA NFT** (or fungible STRATA lot in the catalog). There are no “village goods” that are Objects and not NFTs.
-- **Subjects** (ACB / humans) hold title and form SubjectEdges — Subjects are **not** NFTs.
-- **Collateral C**, **Agora P_market** ownership fractions, and **quay STRATA-lot barter** stay distinct primitives.
+- **Every Object is a STRATA NFT** (or fungible STRATA lot). No non-NFT village-goods class.
+- **Lore ≡ main stakes.** Olissippo is a narrative/skin layer on the same StrataMesh economics — quay barter, castro title, herd lots, tribute are **functionally equivalent** to Agora-class trade / STRATA ownership / fungible STRATA movement (same stakes), not a softer parallel economy. `not_main` means lore realm hosting identity, not weaker money.
+- **Subjects** (ACB / humans) hold title — Subjects are **not** NFTs.
 - **Numina** ≠ Subjects; shrine works are aspects/hooks on the castro Object.
 
 ## Lore names
@@ -68,17 +68,17 @@ Hillfort **castros** hold resources (`herd` · `grain` · `timber` · `ore`) and
 | `cattle_raid` | Razzia — band vs defense; loot fraction or repelled (does **not** annex) |
 | `reinforce` | Spend grain to grow population |
 
-Annexation stays with **Bandua season**; law changes stay with **Grove Lex**. Castros and herd/grain/timber/ore stacks **are** STRATA Objects (settlement NFTs + fungible STRATA lots). **All NFTs are STRATA NFTs** — there is no Object that is a village good and is not an NFT. Subjects hold title; ACB Subjects themselves are not NFTs.
+Annexation stays with **Bandua season**; law changes stay with **Grove Lex**. Castros and herd/grain/timber/ore stacks **are** STRATA Objects (settlement NFTs + fungible STRATA lots). **All NFTs are STRATA NFTs.** Lore economics are **functionally equivalent** to main StrataMesh stakes (skin on top). Subjects hold title; ACB Subjects themselves are not NFTs.
 
 Contract: `contracts/mud/olissippo-castro-settlement.json` · server: `src/olissippo_castro.py`.
 
 ## Phase 7c — Expanded mechanics (most apt for StrataMesh lore)
 
-Chosen because they map cleanly onto **Subjects holding title on STRATA NFT Objects**, finite verbs, and quay lot trade — without inventing a non-NFT goods class or free magic.
+Chosen because they map onto **the same STRATA stakes** under lore names — Subjects hold title on STRATA NFT Objects; quay/tribute/claims are not a toy economy beside Agora/C.
 
 | Source | Mechanic | Lore name | StrataMesh fit |
 |--------|----------|-----------|----------------|
-| Travian market / FoE goods | Resource swap | **Quay barter** | Fungible **STRATA lots** (still STRATA) ≠ Agora ownership fractions ≠ collateral C |
+| Travian market / FoE goods | Resource swap | **Quay barter** | Fungible **STRATA lots** — **≡ Agora-class trade stakes** (lore skin) |
 | Travian siege | Enclosure damage | **Siege the cerca** | Distinct from cattle-raid loot and from Bandua annex |
 | FoE research | Craft points → tier | **Craft lore** | Smith/wood works; production bonus; still finite |
 | CK vassal / Travian tribute | Herd tithe pact | **Guest-right tribute** | `tribute_to` pact between castros; Subject politics |
