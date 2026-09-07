@@ -123,21 +123,21 @@ With `oracle_fallback=true` and `MDB_active=true` (Mac MariaDB `fog_cmn` :3307):
 | --- | --- |
 | `mariadbd` listen | `127.0.0.1:3307` (not 3306) |
 | `source ~/.config/stratamesh/load-fog-mysql.sh` | sets host/port/db + `STAFF_GROK_PASSWORD` from vault |
-| Auth as `grok@127.0.0.1:3307` | **HOLD** — `ERROR 1045` with vault password (YES); do not reset DB password unsupervised |
-| Meter | `FOG/data/desk-meters/fog-host-fallback.json` → `ok: HOLD` |
+| Auth as `grok@127.0.0.1:3307` | **HOLD** (morning) → superseded by noon PASS below |
+| Meter | morning HOLD → see noon PASS |
 | Homelab inventory | `homelab-inventory.json` → `ok: HOLD` (Pi/GCP still human gates) |
 | `oracle_live` | stays **false** |
 
 Ensure script now loads `fog-mysql.env` and uses `defaults-extra-file` (MariaDB 12). Re-prove after André aligns vault password with the live `grok` MariaDB user (or rotates both).
 
-
 ## Prove log — 2026-09-07 noon (PASS)
 
 | Check | Result |
 | --- | --- |
-| Auth  | **PASS** (vault  rotated + aligned; André authorized) |
-|  | **OK** schema ensured |
-|  tables | 9 |
-|  | **false** |
-| Meter |  →  |
+| Auth grok at 127.0.0.1:3307 | **PASS** (vault staff_grok.password rotated + aligned; André authorized) |
+| fog-mariadb-ensure.sh | **OK** schema ensured |
+| fog_cmn tables | 9 |
+| oracle_live | **false** |
+| Meter | FOG/data/desk-meters/fog-host-fallback.json → ok PASS |
 
+Also annotate the morning HOLD prove as superseded by noon PASS.
