@@ -533,6 +533,13 @@ class TestHasToolEvidence(unittest.TestCase):
         self.assertFalse(fn(exact_100, prompt=prompt),
                          "prompt-echo (exactly first 100 chars, boundary of [:100] guard) "
                          "must be rejected")
+        # ACK-only / acknowledgment without tool residue is not evidence
+        ack_only = (
+            "ACK: understood. Will proceed with the desk task as specified "
+            "and report when concrete tool results are available."
+        )
+        self.assertFalse(fn(ack_only, prompt=prompt),
+                         "ACK-only / acknowledgment without tool residue must be rejected")
 
     def test_rejects_echo_needles_without_tool_residue(self):
         fn = self.ops._has_tool_evidence
