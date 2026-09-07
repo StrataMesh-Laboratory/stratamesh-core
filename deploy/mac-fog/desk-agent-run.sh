@@ -7,6 +7,8 @@
 set -euo pipefail
 REPO="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"
 FOG="${FOG_HOME:-$HOME/StrataMesh/fog}"
+# Official OpenCode curl-install dir + brew/local bins (non-interactive SSH misses .zshrc)
+export PATH="$HOME/.opencode/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 AGENT="${1:-}"
 HOLD_FILE="$FOG/data/DESK-CYCLE-HOLD"
 if [[ -f "$HOLD_FILE" ]]; then

@@ -2,6 +2,13 @@
 
 Native Mac specialty seat for **code**. STRATAGROK Bot computer is separate.
 
+## Binary PATH (Mac Fog)
+Official install lands at `~/.opencode/bin/opencode` (`curl -fsSL https://opencode.ai/install | bash` or `brew install anomalyco/tap/opencode`).
+Non-interactive SSH/LaunchAgents do **not** load `~/.zshrc` — ensure:
+- `~/.zprofile` exports `~/.opencode/bin` + `/usr/local/bin`
+- symlink `/usr/local/bin/opencode` → `~/.opencode/bin/opencode` (desk scripts already prepend `/usr/local/bin`)
+- `desk-agent-run.sh` / `desk-agent-contingency.sh` prepend `$HOME/.opencode/bin`
+
 ## Paths (Mac)
 | What | Path |
 |------|------|

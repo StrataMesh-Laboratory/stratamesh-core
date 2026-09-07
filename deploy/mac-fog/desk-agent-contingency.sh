@@ -9,7 +9,7 @@ SPEC="${2:-all}"
 UID_NUM="$(id -u)"
 METER_DIR="$FOG/data/desk-meters"
 mkdir -p "$METER_DIR" "$FOG/data/desk-outbox"
-export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/.opencode/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 
 write_meter() {
   local name="$1" status="$2" detail="$3"
