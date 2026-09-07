@@ -8,8 +8,14 @@
       "class": "main",
       "hosts_sandboxes": true,
       "label_en": "CMN main (sandbox host)",
-      "label_pt": "CMN principal (anfitri\u00e3o de sandboxes)",
-      "notes": "Bancada / open-world sandboxes live here. Primary CMN world."
+      "label_pt": "CMN principal (anfitrião de sandboxes)",
+      "notes": "Bancada / open-world sandboxes live here. Primary CMN world.",
+      "macrohypervisor_id": "macrohv-cmn-main-open-world",
+      "microhypervisor_ids": [
+        "microhv-lab-shared"
+      ],
+      "land_bundle_id": "obj-lab-land-bundle",
+      "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md"
     },
     {
       "realm_id": "lore-olissippo-lusitanian",
@@ -18,8 +24,16 @@
       "not_main": true,
       "same_mechanics_as_main": true,
       "label_en": "Olissippo (pre-Roman Lusitanian lore village)",
-      "label_pt": "Aldeia de Olissippo (pr\u00e9-romana, lore)",
-      "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, CMN world roles \u2014 same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main."
+      "label_pt": "Aldeia de Olissippo (pré-romana, lore)",
+      "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, CMN world roles — same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main.",
+      "macrohypervisor_id": "macrohv-lusitania-olissippo",
+      "microhypervisor_ids": [
+        "microhv-lusitania-lab"
+      ],
+      "confederation": "lusitani",
+      "playable_unit": "gens",
+      "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md",
+      "nomenclature_ref": "docs/LUSITANIA-NOMENCLATURE.md"
     }
   ]
 }

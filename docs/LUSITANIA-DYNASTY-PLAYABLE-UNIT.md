@@ -1,7 +1,7 @@
 # Lusitania — Playable unit = gens (design doctrine)
 
 **Status:** Normative player/design doctrine (2026-09-07)  
-**Related:** [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md) · [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md) · `src/olissippo_dynasty_clock.py`
+**Related:** [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md) · [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md) · [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md) · `src/olissippo_dynasty_clock.py`
 
 ## Semantic map (normative)
 

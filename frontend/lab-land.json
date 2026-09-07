@@ -52,7 +52,8 @@
     ],
     "trade": "",
     "catalog_class": "open_world",
-    "display_id": "obj-lab-land-bundle"
+    "display_id": "obj-lab-land-bundle",
+    "macrohypervisor_id": "macrohv-cmn-main-open-world"
   },
   "parcels": [
     {
@@ -214,5 +215,7 @@
       "contains": [],
       "trade": ""
     }
-  ]
+  ],
+  "open_world_host_note": "CMN Open World #1 land bundle: parcels as unmovable aspectos on shared LAB server OR mirrored microhypervisors — same bundle identity. See docs/OPEN-WORLD-HYPERVISORS.md",
+  "macrohypervisor_id": "macrohv-cmn-main-open-world"
 }

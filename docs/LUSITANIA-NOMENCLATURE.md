@@ -2,7 +2,7 @@
 
 **Status:** Normative (2026-09-07)  
 **Audience:** Players, UI, contracts, API-facing keys  
-**Related:** [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`LUSITANIA-DYNASTY-PLAYABLE-UNIT.md`](./LUSITANIA-DYNASTY-PLAYABLE-UNIT.md)
+**Related:** [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`LUSITANIA-DYNASTY-PLAYABLE-UNIT.md`](./LUSITANIA-DYNASTY-PLAYABLE-UNIT.md) · [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md) · [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md)
 
 ## Principles
 
@@ -75,3 +75,16 @@ Aliases (internal only): *stirps*, *dynasty* / `player_dynasty_*`. Player copy s
 - Player briefing: `/lusitania` · doctrine: playable unit = **gens**
 - Clock / succession: `src/olissippo_dynasty_clock.py` (`gens_id` aliases beside `dynasty_*`)
 - Kin contract: `contracts/mud/olissippo-kin-dynasty.json` (`gens_id`, `populus_id`, `confederation`)
+
+## Open World host bridge
+
+Social scale lives **inside** the Lusitania Open World host plane:
+
+| Social | Host |
+|--------|------|
+| **gens** | Holdings on parcels of the land-bundle |
+| **populus** | Tribal presence across zones/micros of the same world |
+| **Lusitani** | Confederation = this Open World on its **macrohypervisor** (micros may mirror the same bundle) |
+
+Normative host doc: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md). Not Fog `:8787`/MW.
+

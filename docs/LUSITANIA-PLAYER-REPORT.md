@@ -223,6 +223,10 @@ A moderately wealthy house with clear heirs and stable law can outrank a richer 
 
 If succession succeeds, the player continues the **historical process** as the heir: property, titles, obligations, enemies, laws, reputation — but a new life and agency. If not: **end of line**.
 
+### Host plane (macro / micro)
+
+Lusitania runs as an Open World on a **macrohypervisor** (Virtual Realm capacity for that Mundo Aberto). Parcels of its land-bundle may sit on a shared LAB server or **mirrored microhypervisors** — same bundle identity. Social scale (**gens → populus → Lusitani**) lives on that world plane. See [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md).
+
 ### Why Lusitania ≠ Main Open World
 
 | CMN Main Open World | Lusitania |

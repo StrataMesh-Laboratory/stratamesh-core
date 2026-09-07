@@ -56,3 +56,14 @@ TRD StrataMesh                         ← livro-razão; CLP/PPC embutido no flu
 ### Criações = NFT STRATA (macros abertos)
 
 Na Bancada CGU, criações publicadas são **objectos** NFT STRATA — incluindo contratos de execução e escrituras (virtuais / financeiras / físicas) sob custódia internacional. Não são sujeitos nem nós Fog. Ver [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md) · [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md).
+
+## Macrohypervisor e microhypervisor (Mundo Aberto)
+
+No **Domínio Virtual**, a capacidade que hospeda um **Mundo Aberto** chama-se **macrohypervisor**. As instâncias espelhadas ou particionadas que correm parcelas/zonas do **mesmo** feixe de terra (land-bundle) chamam-se **microhypervisors**.
+
+- Um Mundo Aberto ↔ um plano de macrohypervisor.
+- Vários microhypervisors ↔ o mesmo `land_bundle_object_id` (servidor LAB partilhado *ou* micros espelhados).
+- Documentação normativa: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md).
+
+Para Lusitania: **gens → populus → Lusitani** assenta nesse Mundo Aberto (não na malha Fog). Ver [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md).
+

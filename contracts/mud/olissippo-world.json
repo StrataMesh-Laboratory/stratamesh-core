@@ -478,6 +478,13 @@
   "semantic_map": {
     "gens": "playable_house",
     "populus": "tribe_gentes",
-    "confederation": "lusitani"
-  }
+    "confederation": "lusitani",
+    "macrohypervisor": "open_world_host_plane",
+    "microhypervisor": "mirrored_shard_of_same_land_bundle"
+  },
+  "macrohypervisor_id": "macrohv-lusitania-olissippo",
+  "microhypervisor_ids": [
+    "microhv-lusitania-lab"
+  ],
+  "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md"
 }
