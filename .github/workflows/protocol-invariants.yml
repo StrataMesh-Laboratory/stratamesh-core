@@ -87,6 +87,9 @@ jobs:
       - name: Olissippo gens continuity (elective, inherit, absentee)
         working-directory: src
         run: python3 test_olissippo_dynasty_continuity.py
+      - name: Olissippo language player pools (CPLP/Intl microhv)
+        working-directory: src
+        run: python3 test_olissippo_player_pools.py
       - name: Olissippo Phase 8E cross-system scenarios
         working-directory: src
         run: python3 test_olissippo_phase8e_cross_system.py

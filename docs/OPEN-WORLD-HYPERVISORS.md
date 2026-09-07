@@ -86,6 +86,8 @@ Optional light stamps (do not invent Fog topology here):
 
 Applied lightly on lore world / realm index where present (`contracts/mud/olissippo-world.json`, `contracts/cmn/realms.json`).
 
+**Code:** `src/olissippo_player_pools.py` — `resolve_player_pool` / `locale_norm_for_pool` / `select_microhypervisor_pool` / `attach_session_pool` (geo country primary; `explicit_pool` for tests/accounts; Accept-Language not primary). Tests: `src/test_olissippo_player_pools.py`. Phase stamp: `9b_language_pools`.
+
 ## Anti-rules
 
 - Do **not** conflate microhypervisors with Fog appliance nodes (`FOG-*` docs are out of scope for this doctrine).

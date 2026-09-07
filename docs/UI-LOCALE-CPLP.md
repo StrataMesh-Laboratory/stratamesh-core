@@ -20,3 +20,8 @@ Ordinary create-wizard words (not ontology jargon in chrome):
 | custódia / cofre (cold storage) | custody / cold storage | may bind token validity — never shown as `object_id` |
 
 See [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md).
+
+## Open World player pools
+
+Same geo rule selects the Open World **language player pool** (and thus the mirrored **microhypervisor**): CPLP → `cplp` / `pt-PT` / `*-cplp-pt-pt`; non-CPLP → `international` / `en-GB` / `*-intl-en-gb`. Same macrohypervisor / land-bundle. Implementation: `src/olissippo_player_pools.py`. Doctrine: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md).
+

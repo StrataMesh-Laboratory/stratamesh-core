@@ -298,7 +298,8 @@
   "runtime_url": "/olissippo-runtime.json",
   "phase": {
     "8d": "event_provenance_depth",
-    "8e": "cross_system_scenarios"
+    "8e": "cross_system_scenarios",
+    "9b_language_pools": "cplp_pt_pt_intl_en_gb_microhv"
   },
   "macrohypervisor_id": "macrohv-lusitania-olissippo",
   "microhypervisor_ids": [

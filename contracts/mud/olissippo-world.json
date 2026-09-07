@@ -353,7 +353,8 @@
     "8d": "event_provenance_depth",
     "8e": "cross_system_scenarios",
     "9a_dynasty_continuity": "gens_elective_inherit_absentee_nomenclature",
-    "playable_unit": "gens"
+    "playable_unit": "gens",
+    "9b_language_pools": "cplp_pt_pt_intl_en_gb_microhv"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
