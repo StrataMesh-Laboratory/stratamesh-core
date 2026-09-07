@@ -1,66 +1,17 @@
 {
   "schema": "stratamesh.handoff.v1",
-  "generated_at": "2026-09-04T22:39:19Z",
-  "headline": "Green \u2014 academy 0.6.0-lab live; docs nav fixed; wizard kbd lock on main awaiting g",
+  "generated_at": "2026-09-07T13:28:00Z",
+  "from": "STRATAGROK",
+  "to": "fog-assistant",
+  "headline": "Fog Assistant received STRATAGROK cover; desk /desk 200 n=0 (loopback client)",
   "posture": "green",
-  "status": {
-    "version": "v0.6.0-lab",
-    "phase": "adversarial_lab_P1",
-    "lab": true
+  "oracle_live": false,
+  "git": "pending",
+  "mail": {
+    "endpoint": "https://api-edge.calhegasmorais.pt/desk",
+    "http": 200,
+    "n": 0,
+    "client": "snappymail :8099 / aerc Maildir \u2014 Mac loopback"
   },
-  "aiops": {
-    "critical": 0,
-    "warn": 0,
-    "info": 0
-  },
-  "mandatory_actions": [],
-  "optional_actions": [
-    {
-      "id": "tui-g-ba15ae3",
-      "priority": "P2",
-      "owner": "andr\u00e9",
-      "verb": "Fog TUI g pull ba15ae3 (wizard keyboard lock) or wait auto-g",
-      "success_check": "Fog TUI GIT shows ba15ae3 or later; ? then type g/s/b/r/q into composer only",
-      "effort": "S"
-    },
-    {
-      "id": "oracle-grok90",
-      "priority": "P1",
-      "owner": "stratagrok",
-      "verb": "Chase Oracle grok90 Always Free until Fog host is provisioned",
-      "success_check": "grok90 instance running Fog before AWS Free hedge ends",
-      "effort": "M"
-    },
-    {
-      "id": "plan-tui-wizard-docs-faq",
-      "priority": "P2",
-      "owner": "fog",
-      "verb": "PLAN: deepen TUI Ollama wizard FAQ from public docs (not Act)",
-      "success_check": "wizard FAQ answers cite public docs; no hop-dump timeouts",
-      "effort": "M"
-    }
-  ],
-  "non_actions": [
-    "torch pass \u2014 HOLD-success while mandatory_actions empty",
-    "workers.dev",
-    "6th CF cron",
-    "grok.me Publish"
-  ],
-  "notes": "2026-09-04 PT desk: academy.calhegasmorais.pt /health=0.6.0-lab (20 formations). Pages docs /roadmap /chat /fog-stack /pt/ fixed (pretty-URL+_routes). fog-tui wizard keyboard lock 8b0c3f1/ba15ae3 on main. Fog mac_live=true n=2 metabol ALLOW. Torch HOLD.",
-  "fog": {
-    "origin": "macbook",
-    "mac_live": true,
-    "n": 2,
-    "version": "v0.6.0-lab"
-  },
-  "slot": "desk-handoff-stratagrok",
-  "identity": "STRATAGROK",
-  "node_id": "FOG-NODE-PT-CM-001",
-  "mode": "HOLD",
-  "n": 2,
-  "mesh_member": true,
-  "f_max": 0,
-  "critical": 0,
-  "p0": false,
-  "ship": false
+  "mandatory_actions": []
 }
