@@ -60,7 +60,7 @@ def objects_at(location_id: str, world: dict[str, Any] | None = None) -> list[di
 
 def action_allowed(verb: str, world: dict[str, Any] | None = None) -> bool:
     w = world or load_world()
-    return verb in set(w.get("actions_mundane", [])) | set(w.get("actions_magic", []))
+    return verb in set(w.get("actions_mundane", [])) | set(w.get("actions_magic", [])) | set(w.get("actions_council", []))
 
 
 def numen_at(location_id: str, world: dict[str, Any] | None = None) -> list[dict[str, Any]]:

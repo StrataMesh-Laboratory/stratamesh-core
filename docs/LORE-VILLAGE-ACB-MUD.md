@@ -282,3 +282,11 @@ Quay barter, siege vs raid, craft lore, guest-right tribute, hill claims, foster
 
 **All NFTs are STRATA NFTs.** Castro / herd / grain / timber / ore as Objects are STRATA. **Lore ≡ main stakes** — Olissippo is skin on the same StrataMesh economics (quay ≡ Agora-class trade stakes), not a softer parallel goods world. `not_main` is realm/host identity, not weaker money. **ACB ≠ NFT** still holds for Subjects.
 
+### Phase 8 — Council verbs on decide path
+
+`actions_council` wired into decide→validate→execute; castro/lot STRATA `object_id` stamps. See [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md).
+
+### Phase 8A / 8B — Five composing engines
+
+Architecture: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md). Event pipeline + verb registry + lots; runtime stamps `law_version` / `events[]`. ACB ≠ NFT; Objects = STRATA.
+

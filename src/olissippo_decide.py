@@ -15,6 +15,7 @@ from copy import deepcopy
 from typing import Any, Callable
 
 import olissippo_boutius as bb
+import olissippo_council_runtime as cr
 import olissippo_memory as mem
 import olissippo_world as ow
 
@@ -40,12 +41,13 @@ def perception(state: dict[str, Any]) -> dict[str, Any]:
         "day": state.get("day", 1),
         "activity_hint": bb.activity_at(int(state.get("minute", 0)))[0],
         "offering_here": any(o.get("template") == "offering" for o in ow.objects_at(loc)),
+        "council": cr.perception_council(state),
     }
 
 
 def build_prompt(persona: dict[str, Any], state: dict[str, Any], perc: dict[str, Any]) -> str:
     world = ow.load_world()
-    verbs = list(world.get("actions_mundane", [])) + list(world.get("actions_magic", []))
+    verbs = list(world.get("actions_mundane", [])) + list(world.get("actions_magic", [])) + list(world.get("actions_council", []))
     return (
         "You are {name}, an ACB Subject (not an NFT, not an Object) in Olissippo lore "
         "(not CMN main sandbox-host). Return ONLY JSON: "
@@ -166,6 +168,9 @@ def validate_decision(state: dict[str, Any], decision: dict[str, Any]) -> dict[s
                 return {"ok": False, "error": "wrong_numen", "action": act}
         return {"ok": True, "action": {"type": typ}, "numen_id": gate.get("numen_id"), "effects": effects}
 
+    if typ in cr.COUNCIL_VERBS:
+        return cr.validate_council_action(state, act)
+
     return {"ok": False, "error": "unhandled_action", "action": act}
 
 
@@ -223,6 +228,10 @@ def execute_decision(state: dict[str, Any], validated: dict[str, Any], speech: A
             "flags": list(s["status_flags"]),
             "energy": s.get("energy"),
         }
+    elif typ in cr.COUNCIL_VERBS:
+        out = cr.execute_council_action(s, validated)
+        s["last_action"] = out
+        source = "council_runtime"
     else:
         s["last_action"] = {"type": typ, "ok": True, "source": source}
 
@@ -271,6 +280,20 @@ def routine_decide(state: dict[str, Any], perc: dict[str, Any]) -> dict[str, Any
         return {"intention": "Eat.", "action": {"type": "eat"}, "speech": None}
     if hint == "sleep":
         return {"intention": "Rest.", "action": {"type": "sleep"}, "speech": None}
+    # Phase 8 — castro STRATA lot tick / quay barter (same stakes, lore skin)
+    if hint in ("socialize", "close_shop", "wait") and loc in ("market", "quay"):
+        return {
+            "intention": "Quay STRATA lot barter (lore skin, main stakes).",
+            "action": {"type": "castro_quay_barter", "give": "herd", "want": "grain", "amount": 2},
+            "speech": None,
+        }
+    if hint == "work" and loc == "smithy":
+        # craft lore accumulates at forge
+        return {
+            "intention": "Advance craft lore at the forge.",
+            "action": {"type": "castro_craft_tick"},
+            "speech": None,
+        }
     return {"intention": "Wait.", "action": {"type": "wait"}, "speech": None}
 
 

@@ -1,0 +1,48 @@
+{
+  "schema": "stratamesh.mud.olissippo.event.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "phase": "8a",
+  "note": "Universal Event for engine state transitions. Mutating events always include law_version and reason. ACB Subjects never appear as object_ids of self.",
+  "Event": {
+    "required": [
+      "event_id",
+      "event_type",
+      "season",
+      "timestamp",
+      "actor_subject_ids",
+      "object_ids",
+      "location_ids",
+      "verb",
+      "before",
+      "after",
+      "rule_version",
+      "law_version",
+      "provenance",
+      "causes",
+      "reason"
+    ],
+    "fields": {
+      "event_id": "string — unique id (evt-…)",
+      "event_type": "string — transition class (order_applied, lot_minted, law_enacted, claim_pressed, production_tick, exchange, raid, siege, plant, kinship, season_resolved, …)",
+      "season": "int|null — Bandua season index when applicable",
+      "timestamp": "ISO-8601 or sim clock {day, minute}",
+      "actor_subject_ids": "string[] — Subjects (ACB/user/sca); never NFT ids",
+      "object_ids": "string[] — STRATA Object ids touched (castro, lots)",
+      "location_ids": "string[] — world or territory locations",
+      "verb": "string — finite verb from verb registry",
+      "before": "object — snapshot slice prior to transition",
+      "after": "object — snapshot slice after transition",
+      "rule_version": "string — verb/registry rule version",
+      "law_version": "string — HearthLaw / Grove policy version at apply time",
+      "provenance": "object — {source, runtime, note?}",
+      "causes": "string[] — prior event_ids / proposal_ids / order refs",
+      "reason": "string — human-readable resolution reason (required on mutate)"
+    }
+  },
+  "rules": [
+    "LLM interprets intent only; server emits Events",
+    "Mutating Events MUST include law_version and reason",
+    "object_ids never include a Subject claiming self as NFT",
+    "Sim layer first; chain attest later mirrors event_id"
+  ]
+}

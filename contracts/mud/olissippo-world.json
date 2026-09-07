@@ -337,7 +337,10 @@
     "7b": "castro_hearth_settlement_raid",
     "7c": "expanded_council_mmo_kin_claims",
     "7d": "strata_nft_ontology_align_castro_lots",
-    "7e": "lore_economics_equiv_main_stakes"
+    "7e": "lore_economics_equiv_main_stakes",
+    "8": "council_castro_decide_wire_strata_objects",
+    "8a": "five_engines_event_pipeline_verb_registry",
+    "8b": "runtime_events_lots_law_version_ci"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
@@ -401,6 +404,41 @@
       "note": "not_main = lore realm host identity; economics same STRATA stakes as main",
       "lore_economics_equivalent_to_main": true,
       "lore_is_skin_same_stakes": true
-    }
-  }
+    },
+    "runtime": "src/olissippo_council_runtime.py",
+    "decide_verbs": "actions_council",
+    "architecture": "docs/OLISSIPPO-ENGINE-ARCHITECTURE.md",
+    "event_schema": "contracts/mud/olissippo-event-schema.json",
+    "policy_layer": "contracts/mud/olissippo-policy-layer.json",
+    "verb_registry": "contracts/mud/olissippo-verb-registry.json",
+    "engines": [
+      "adjudication",
+      "law",
+      "kinship",
+      "settlement",
+      "market"
+    ]
+  },
+  "actions_council": [
+    "castro_tick_production",
+    "castro_upgrade_work",
+    "castro_quay_barter",
+    "castro_cattle_raid",
+    "castro_plant",
+    "castro_siege",
+    "castro_craft_tick",
+    "castro_unlock_craft",
+    "castro_reinforce",
+    "grove_propose",
+    "grove_vote",
+    "grove_enact",
+    "claim_press",
+    "bandua_resolve_season",
+    "exchange",
+    "press_claim",
+    "submit_order",
+    "close_season",
+    "tick_production",
+    "plant_castro"
+  ]
 }

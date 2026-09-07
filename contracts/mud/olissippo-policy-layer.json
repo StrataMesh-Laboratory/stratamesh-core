@@ -1,0 +1,64 @@
+{
+  "schema": "stratamesh.mud.olissippo.policy.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "phase": "8a",
+  "note": "HearthLaw — immutable core vs versioned policy. Engines read law_version; Grove enact bumps version.",
+  "immutable_core": [
+    {
+      "id": "core-subject-not-nft",
+      "text": "ACB Subjects are not NFTs and may not mint or assume object_id for self."
+    },
+    {
+      "id": "core-objects-strata",
+      "text": "All Objects are STRATA NFTs or fungible STRATA lots."
+    },
+    {
+      "id": "core-server-executes",
+      "text": "LLM interprets only; server validates, adjudicates, and transitions."
+    },
+    {
+      "id": "core-event-pipeline",
+      "text": "Mutations follow intent→verb→validate→plan→adjudicate→transition→Event."
+    },
+    {
+      "id": "core-lore-equiv-main",
+      "text": "Lore economics use the same STRATA stakes as main; not_main is host identity only."
+    },
+    {
+      "id": "core-raid-siege-annex-distinct",
+      "text": "cattle_raid ≠ siege_enclosure ≠ Bandua annex."
+    }
+  ],
+  "policy": {
+    "law_version": "hearthlaw-1",
+    "defaults": {
+      "raid_season_length": 1,
+      "guest_tribute_rate": 0.1,
+      "succession_default": "eldest_living_child",
+      "vote_majority": 0.5,
+      "vote_quorum": 3,
+      "bounce_on_tie": true,
+      "cut_support_if_attacked": true,
+      "support_adds": 1,
+      "barter_fee_fraction": 0.05,
+      "plant_min_population": 40,
+      "escort_generalized": true,
+      "river_escort_lore_instance": true
+    },
+    "succession_policy": {
+      "resolve": "eldest_living_child",
+      "fallback": "eldest_living_stirps_member"
+    },
+    "claim_strength_base": {
+      "blood": 3,
+      "oath": 2,
+      "raid_trophy": 2,
+      "foster": 1,
+      "guest_right": 1
+    }
+  },
+  "versioning": {
+    "bump_on": ["enact_law", "grove_enact"],
+    "stamp_on_events": true
+  }
+}

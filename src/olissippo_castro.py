@@ -182,6 +182,10 @@ def plant_castro(
         "object_kind": seed.get("object_kind") or "strata_nft",
         "macro_category": seed.get("macro_category") or "settlement_castro",
         "resources_kind": seed.get("resources_kind") or "fungible_strata_lots",
+        "object_id": f"obj-oli-{cid}",
+        "is_nft": True,
+        "nft_family": "STRATA",
+        "lot_object_ids": {r: f"obj-oli-lot-{cid}-{r}" for r in ("herd", "grain", "timber", "ore")},
         "craft_points": int(seed.get("craft_points") or 0),
         "craft_tier": int(seed.get("craft_tier") or 0),
     }

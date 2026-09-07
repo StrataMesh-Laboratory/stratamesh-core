@@ -126,7 +126,9 @@
       "craft_tier": 0,
       "object_kind": "strata_nft",
       "macro_category": "settlement_castro",
-      "resources_kind": "fungible_strata_lots"
+      "resources_kind": "fungible_strata_lots",
+      "is_nft": true,
+      "nft_family": "STRATA"
     },
     "plantable_kinds": [
       "scrub",
@@ -177,7 +179,16 @@
       "craft_tier": 0,
       "object_kind": "strata_nft",
       "macro_category": "settlement_castro",
-      "resources_kind": "fungible_strata_lots"
+      "resources_kind": "fungible_strata_lots",
+      "object_id": "obj-oli-castro-olissippo",
+      "is_nft": true,
+      "nft_family": "STRATA",
+      "lot_object_ids": {
+        "herd": "obj-oli-lot-castro-olissippo-herd",
+        "grain": "obj-oli-lot-castro-olissippo-grain",
+        "timber": "obj-oli-lot-castro-olissippo-timber",
+        "ore": "obj-oli-lot-castro-olissippo-ore"
+      }
     },
     {
       "castro_id": "castro-vetton",
@@ -204,7 +215,16 @@
       "craft_tier": 0,
       "object_kind": "strata_nft",
       "macro_category": "settlement_castro",
-      "resources_kind": "fungible_strata_lots"
+      "resources_kind": "fungible_strata_lots",
+      "object_id": "obj-oli-castro-vetton",
+      "is_nft": true,
+      "nft_family": "STRATA",
+      "lot_object_ids": {
+        "herd": "obj-oli-lot-castro-vetton-herd",
+        "grain": "obj-oli-lot-castro-vetton-grain",
+        "timber": "obj-oli-lot-castro-vetton-timber",
+        "ore": "obj-oli-lot-castro-vetton-ore"
+      }
     },
     {
       "castro_id": "castro-celtici",
@@ -231,7 +251,16 @@
       "craft_tier": 0,
       "object_kind": "strata_nft",
       "macro_category": "settlement_castro",
-      "resources_kind": "fungible_strata_lots"
+      "resources_kind": "fungible_strata_lots",
+      "object_id": "obj-oli-castro-celtici",
+      "is_nft": true,
+      "nft_family": "STRATA",
+      "lot_object_ids": {
+        "herd": "obj-oli-lot-castro-celtici-herd",
+        "grain": "obj-oli-lot-castro-celtici-grain",
+        "timber": "obj-oli-lot-castro-celtici-timber",
+        "ore": "obj-oli-lot-castro-celtici-ore"
+      }
     }
   ],
   "empty_plant_sites": [
@@ -337,6 +366,8 @@
     "lore_economics_equivalent_to_main": true,
     "lore_is_skin_same_stakes": true,
     "quay_barter_equiv_agora_class_trade": true,
-    "castro_title_equiv_strata_ownership": true
+    "castro_title_equiv_strata_ownership": true,
+    "plant_assigns_object_id": true,
+    "object_id_pattern": "obj-oli-{castro_id}"
   }
 }

@@ -89,3 +89,23 @@ Chosen because they map onto **the same STRATA stakes** under lore names — Sub
 Contracts: `olissippo-castro-settlement.json` (extended) · `olissippo-stirps-claims.json`.  
 Servers: `olissippo_castro.py` · `olissippo_claims.py` · `foster` on `olissippo_kin.py`.
 
+## Phase 8 — Decide wire + STRATA object stamps
+
+Council/castro/grove/claims verbs are in `actions_council` and run through `validate_decision` → `execute_decision` via `olissippo_council_runtime`.
+
+- Each castro has `object_id` (`obj-oli-…`), `is_nft: true`, `nft_family: STRATA`.
+- Resource stacks carry `lot_object_ids` (fungible STRATA lots).
+- ACB Subjects still reject self-`object_id` / mint — they **hold title**, they are not the Object.
+- Lore skin, **same stakes** as main (`lore_economics_equivalent_to_main`).
+
+
+## Phase 8A / 8B — Five engines + event pipeline
+
+Not five mini-games: **Adjudication ← Diplomacy**, **Law ← Nomic / HearthLaw**, **Kinship/claims ← CK**, **Settlement/economy ← Travian/FoE**, **Market/craft ← FoE**.
+
+Hard pipeline: `intent → finite verb → validate → plan → adjudicate → transition → Event → updates`. LLM interprets; server executes. Lore ≡ main STRATA stakes.
+
+Normative: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md) · `olissippo-event-schema.json` · `olissippo-policy-layer.json` · `olissippo-verb-registry.json` · `olissippo_events.py` / `olissippo_lots.py` / `olissippo_verbs.py`.
+
+Ship: **8A** foundation · **8B** runtime bag (`events[]`, `law_version`, lots) · **8C–8E** deferred (full Bandua UI, claim modifiers, craft DAG depth / chain attest).
+
