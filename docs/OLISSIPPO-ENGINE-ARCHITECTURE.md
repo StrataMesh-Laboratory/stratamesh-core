@@ -1,4 +1,4 @@
-# Olissippo Engine Architecture — Phase 8A / 8B
+# Olissippo Engine Architecture — Phase 8A / 8B / 8C
 
 **Realm:** `lore-olissippo-lusitanian` · **not_main** (host identity) · **Lore ≡ main STRATA stakes**  
 **Hard ontology:** All Objects are STRATA NFTs / lots. ACB Subjects ≠ NFTs. Subjects hold title; they never become `object_id`.
@@ -82,7 +82,7 @@ collect orders (submit_order) → close_season → resolve_season (PURE) → app
 - `apply_resolution(bag, resolution)` writes unit positions / annex / escort outcomes and appends Events.
 - **Escort** is generalized (`escort`); `river_escort` is the Tagus lore instance (chain validation from diplomacy contract).
 
-Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · adjudication: **8A** (schema + verbs + pure season) → later 8C full multi-power UI.
+Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · **8C** pure adjudicators (+ dynasty clock) · later 8D/8E polish.
 
 ---
 
@@ -103,6 +103,9 @@ Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · adjudication: *
 - Finite verb / tick: `advance_game_month` / `dynasty_tick` (server-authoritative).
 - Persons carry `age_months`; at `max_age_months` they die → `SuccessionResolver` under active HearthLaw succession law (eldest / youngest / designated / elective stub / stirps_priority).
 - Module: `src/olissippo_dynasty_clock.py`.
+- **ACB (EN) = SCA (PT)** — same Subjects; dynasty month-clock applies to ACB and human users equally.
+- **Unique dynasty head:** descendants of two different players (ACB/SCA or user) cannot share the same living person as simultaneous successor/head of both dynasties (`shared_successor_forbidden`).
+- **Per-dynasty succession laws:** each `player_dynasty` stores its own `succession_law`, changeable via Grove Lex / Nomic typed policy (not one frozen global rule).
 
 ## 5. Kinship + claims
 
@@ -110,7 +113,8 @@ Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · adjudication: *
 - **Claim records** are separate: *having* a kinship edge ≠ *pressing* a territorial claim.
 - `press_claim` / `claim_press` creates/updates Claim strength; Bandua/Grove may enforce.
 - `succession_policy.resolve(law_version)` (default `eldest_living_child`) drives `succeed_holding`.
-- Claim strength model: kind → base strength (contract); modifiers later (8D).
+- Claim strength model: kind → base strength (contract) via `ClaimStrength`; richer modifiers later (8D).
+- **Dynasty clock (CK2-like):** `1 real day = 1 game month`; `advance_game_month` / `dynasty_tick` ages persons; 12 months → +1 `age_years`; death fires `succession_policy.resolve` then `apply_succession`.
 
 ---
 
@@ -169,11 +173,22 @@ Aliases keep Phase 7/8 decide wires green (`castro_quay_barter` → `exchange`, 
 |-------|--------|
 | **8A** | Architecture, event schema, policy layer, verb registry, events/lots modules, pure season + apply |
 | **8B** | Runtime bag (`events[]`, `law_version`, `lots`), decide wire, STRATA stamps, CI |
-| **8C** | Full Bandua multi-power season UI + escort generalization polish *(deferred)* |
-| **8D** | Claim strength modifiers, succession_policy table, kin↔law loops *(deferred)* |
+| **8C** | **Shipped:** pure adjudicators (`Season` / `Law` / `Succession` / `Production` / `Trade` + `ClaimStrength`) — resolve/plan ≠ apply; dynasty clock `1 real day = 1 game month`; `advance_game_month` |
+| **8D** | Claim strength modifiers depth, multi-power Bandua UI, richer kin↔law loops *(next)* |
 | **8E** | Craft DAG depth, landmark powers, chain attest hooks *(deferred)* |
 
 ---
+
+
+## Phase 8C shipped notes
+
+- Module: `src/olissippo_adjudicators.py` — pure `resolve_*` / `production_tick` / `exchange` / `succession_policy.resolve` / `DynastyClock.plan_advance`; `apply_*` mutates + events.
+- Verbs (`tick_production`, `exchange`, `succeed_holding`, `enact_law`, `close_season` / `bandua_resolve_season`, `advance_game_month`) wire **plan then apply**.
+- Escort remains generalized (`escort`; `river_escort` lore instance).
+- Typed Grove policy changes: `propose_policy_change(changes[{rule,from,to}], prose_text)` — prose display only.
+- World stamp: `phase["8c"]="pure_adjudicators"`; clock stamps `real_day_equals_game_months=1`.
+- GNU Graphical-MUD remains peer (`phase["8f"]`); Atelier renders only.
+- **Left for 8D/8E:** deeper claim modifiers, full Bandua multi-power UI, craft DAG depth, landmark powers, chain attest.
 
 ## 12. Emergent loop (wall principle)
 
@@ -187,7 +202,7 @@ Invalid verbs never enter the loop. LLM never writes Objects. Chain attests mirr
 
 ---
 
-## 13. Contracts & modules (8A/8B)
+## 13. Contracts & modules (8A/8B/8C)
 
 | Artifact | Role |
 |----------|------|

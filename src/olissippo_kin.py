@@ -23,16 +23,24 @@ def new_state(data: dict[str, Any] | None = None) -> dict[str, Any]:
     d = data or load_kin()
     persons = {p["person_id"]: deepcopy(p) for p in d["person_seeds"]}
     for p in persons.values():
+        if "age_years" in p and "age_months" not in p:
+            p["age_months"] = int(p["age_years"]) * 12
         p.setdefault("age_months", (50 - int(p.get("generation") or 0) * 20) * 12)
+        p["age_years"] = int(p["age_months"]) // 12
     return {
         "stirps": deepcopy(d["stirps_seed"]),
         "persons": persons,
         "game_month": 0,
+        "player_dynasties": {},
         "edges": [],
         "holdings": {
             "terr-olissippo": {"kind": "chefe_claim", "holder_person_id": "kin-oli-chefe-eldest", "stirps_id": "stirps-oli-chefe"},
             "terr-vetton-pastures": {"kind": "supply_claim", "holder_person_id": "kin-vetton-herd", "stirps_id": "stirps-vetton-cattle"},
         },
+        "clock": deepcopy(
+            d.get("clock")
+            or {"real_day_equals_game_months": 1, "game_months_per_year": 12, "game_month": 0, "game_year": 1}
+        ),
     }
 
 

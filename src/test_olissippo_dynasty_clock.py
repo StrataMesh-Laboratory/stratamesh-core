@@ -43,7 +43,7 @@ def test_succession_on_max_age_death():
 
 def test_youngest_law_ranks_differently():
     st = kin.new_state()
-    # add younger sibling
+    st["persons"]["kin-oli-chefe-heir"]["age_months"] = 28 * 12
     st["persons"]["kin-oli-chefe-younger"] = {
         "person_id": "kin-oli-chefe-younger",
         "stirps_id": "stirps-oli-chefe",
@@ -55,13 +55,42 @@ def test_youngest_law_ranks_differently():
     }
     eldest = dc.rank_heirs(st, "kin-oli-chefe-eldest", "eldest_living_child")
     youngest = dc.rank_heirs(st, "kin-oli-chefe-eldest", "youngest_living_child")
-    assert eldest[0] != youngest[0]
+    assert eldest[0] == "kin-oli-chefe-heir"
     assert youngest[0] == "kin-oli-chefe-younger"
 
 
 def test_architecture_mentions_month_clock():
     arch = (ROOT / "docs/OLISSIPPO-ENGINE-ARCHITECTURE.md").read_text()
     assert "real day" in arch.lower() or "game month" in arch.lower() or "1 real day" in arch
+
+
+
+def test_unique_dynasty_head_across_two_players():
+    """Two player dynasties (ACB + user) cannot share the same successor-as-head."""
+    st = kin.new_state()
+    assert dc.ensure_player_dynasty(st, "dyn-acb-boutius", owner_subject_id="acb-boutius-001", owner_kind="acb")["ok"]
+    assert dc.ensure_player_dynasty(st, "dyn-user-andre", owner_subject_id="user-andre-001", owner_kind="user")["ok"]
+    assert dc.set_dynasty_head(st, "dyn-acb-boutius", "kin-oli-chefe-heir")["ok"]
+    bad = dc.set_dynasty_head(st, "dyn-user-andre", "kin-oli-chefe-heir")
+    assert bad["ok"] is False and bad["error"] == "shared_successor_forbidden"
+    # different heir ok
+    assert dc.set_dynasty_head(st, "dyn-user-andre", "kin-vetton-herd")["ok"]
+
+
+def test_per_dynasty_nomic_succession_law():
+    st = kin.new_state()
+    dc.ensure_player_dynasty(st, "dyn-acb-boutius", owner_subject_id="acb-boutius-001", owner_kind="acb")
+    assert dc.dynasty_law(st, "dyn-acb-boutius") == "eldest_living_child"
+    r = dc.set_dynasty_succession_law(st, "dyn-acb-boutius", "youngest_living_child")
+    assert r["ok"] and r["to"] == "youngest_living_child"
+    assert dc.dynasty_law(st, "dyn-acb-boutius") == "youngest_living_child"
+
+
+def test_acb_en_sca_pt_label():
+    st = kin.new_state()
+    dc.ensure_player_dynasty(st, "dyn-x", owner_subject_id="acb-boutius-001", owner_kind="acb")
+    assert st["player_dynasties"]["dyn-x"]["owner_label_pt"] == "SCA"
+    assert st["player_dynasties"]["dyn-x"]["owner_kind"] == "acb"
 
 
 if __name__ == "__main__":

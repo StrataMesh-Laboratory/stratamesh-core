@@ -13,7 +13,9 @@
     "real_day_equals_game_months": 1,
     "game_months_per_year": 12,
     "dynasty_tick": true,
-    "note": "1 real calendar day = 1 game month (CK-style dynasty progression). Day/night still uses real_minute_to_game_minutes for village activity; dynasty/succession ages on the month scale via advance_game_month / dynasty_tick."
+    "note": "Presence: accelerated day/night. Dynasty/succession: 1 real day = 1 game month (CK-like). 12 game months = +1 age year. ACB (EN) = SCA (PT).",
+    "game_year": 1,
+    "game_month": 0
   },
   "locations": [
     {
@@ -345,7 +347,9 @@
     "8a": "five_engines_event_pipeline_verb_registry",
     "8b": "runtime_events_lots_law_version_ci",
     "8f": "gnu_graphical_mud_state_logic_peer",
-    "8c_clock": "real_day_eq_game_month_dynasty"
+    "8c_clock": "real_day_eq_game_month_dynasty",
+    "8c": "pure_adjudicators",
+    "8c_dynasty_players": "acb_user_unique_head_per_dynasty_nomic_laws"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,

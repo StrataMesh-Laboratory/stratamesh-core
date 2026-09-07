@@ -183,3 +183,135 @@ def ensure_ages(kin_state: dict[str, Any]) -> None:
             # generation stand-in: gen0 ~ 50y, gen1 ~ 25y
             gen = int(person.get("generation") or 0)
             person["age_months"] = (50 - gen * 20) * 12
+
+
+
+def player_dynasties(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Map player_dynasty_id -> meta (owner Subject: user or ACB)."""
+    return dict(state.get("player_dynasties") or {})
+
+
+def ensure_player_dynasty(
+    state: dict[str, Any],
+    dynasty_id: str,
+    *,
+    owner_subject_id: str,
+    owner_kind: str = "acb",
+    succession_law: str | None = None,
+) -> dict[str, Any]:
+    """Register a player dynasty. owner_kind: acb|user (EN); SCA is PT label only."""
+    if owner_kind not in ("acb", "user"):
+        return {"ok": False, "error": "bad_owner_kind", "note": "use acb (EN) or user; SCA is PT for acb"}
+    if not owner_subject_id or str(owner_subject_id).startswith("obj-"):
+        return {"ok": False, "error": "owner_must_be_subject"}
+    law = succession_law or succession_law_default()
+    pd = state.setdefault("player_dynasties", {})
+    pd[dynasty_id] = {
+        "dynasty_id": dynasty_id,
+        "owner_subject_id": owner_subject_id,
+        "owner_kind": owner_kind,  # acb | user
+        "owner_label_pt": "SCA" if owner_kind == "acb" else "utilizador",
+        "succession_law": law,
+        "head_person_id": None,
+    }
+    return {"ok": True, "dynasty": pd[dynasty_id]}
+
+
+def succession_law_default() -> str:
+    return succession_law(None, None)
+
+
+def dynasty_law(state: dict[str, Any], dynasty_id: str) -> str:
+    d = (state.get("player_dynasties") or {}).get(dynasty_id) or {}
+    return str(d.get("succession_law") or succession_law(None, state))
+
+
+def set_dynasty_succession_law(state: dict[str, Any], dynasty_id: str, law: str) -> dict[str, Any]:
+    """Nomic/Grove-style per-dynasty law change (typed)."""
+    laws = set(load_policy()["policy"].get("succession_laws") or {})
+    # also accept keys from succession_laws dict
+    pol_laws = load_policy()["policy"].get("succession_laws") or {}
+    if isinstance(pol_laws, dict):
+        laws = set(pol_laws.keys())
+    if law not in laws and law not in (
+        "eldest_living_child", "youngest_living_child", "designated_heir", "elective", "stirps_priority"
+    ):
+        return {"ok": False, "error": "unknown_succession_law"}
+    pd = state.setdefault("player_dynasties", {})
+    if dynasty_id not in pd:
+        return {"ok": False, "error": "unknown_dynasty"}
+    before = pd[dynasty_id].get("succession_law")
+    pd[dynasty_id]["succession_law"] = law
+    return {"ok": True, "dynasty_id": dynasty_id, "from": before, "to": law, "reason": "nomic_dynasty_law"}
+
+
+def heads_by_person(state: dict[str, Any]) -> dict[str, list[str]]:
+    """person_id -> list of dynasty_ids they currently head."""
+    out: dict[str, list[str]] = {}
+    for did, d in (state.get("player_dynasties") or {}).items():
+        head = d.get("head_person_id")
+        if head:
+            out.setdefault(head, []).append(did)
+    return out
+
+
+def assert_unique_dynasty_head(state: dict[str, Any], person_id: str, dynasty_id: str) -> dict[str, Any]:
+    """Descendants of two players (ACB/user) cannot share the same successor leading both dynasties."""
+    mapping = heads_by_person(state)
+    others = [d for d in mapping.get(person_id, []) if d != dynasty_id]
+    if others:
+        return {
+            "ok": False,
+            "error": "shared_successor_forbidden",
+            "person_id": person_id,
+            "dynasty_id": dynasty_id,
+            "already_heads": others,
+            "note": "One living person cannot lead two player dynasties at once (ACB/SCA or user lines).",
+        }
+    return {"ok": True}
+
+
+def set_dynasty_head(state: dict[str, Any], dynasty_id: str, person_id: str) -> dict[str, Any]:
+    gate = assert_unique_dynasty_head(state, person_id, dynasty_id)
+    if not gate.get("ok"):
+        return gate
+    pd = state.get("player_dynasties") or {}
+    if dynasty_id not in pd:
+        return {"ok": False, "error": "unknown_dynasty"}
+    # clear person from other heads if somehow set
+    for did, d in pd.items():
+        if did != dynasty_id and d.get("head_person_id") == person_id:
+            return {"ok": False, "error": "shared_successor_forbidden", "already_heads": [did]}
+    pd[dynasty_id]["head_person_id"] = person_id
+    return {"ok": True, "dynasty_id": dynasty_id, "head_person_id": person_id}
+
+
+def apply_succession_to_dynasty(
+    state: dict[str, Any],
+    dynasty_id: str,
+    territory_id: str,
+) -> dict[str, Any]:
+    """Resolve succession for a holding under that dynasty's own law; enforce unique head."""
+    law = dynasty_law(state, dynasty_id)
+    plan = resolve_succession(state, territory_id, law=law)
+    if not plan.get("ok"):
+        return plan
+    heir = plan["heir"]
+    gate = assert_unique_dynasty_head(state, heir, dynasty_id)
+    if not gate.get("ok"):
+        # try next eligible heirs
+        for cand in plan.get("eligible") or []:
+            if cand == heir:
+                continue
+            g2 = assert_unique_dynasty_head(state, cand, dynasty_id)
+            if g2.get("ok"):
+                plan = dict(plan)
+                plan["heir"] = cand
+                plan["reason"] = plan["reason"] + "+unique_head_skip"
+                break
+        else:
+            return gate
+    apply_succession(state, plan)
+    set_dynasty_head(state, dynasty_id, plan["heir"])
+    return {"ok": True, "plan": plan, "dynasty_id": dynasty_id}
+
