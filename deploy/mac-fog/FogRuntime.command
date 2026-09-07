@@ -11,25 +11,26 @@ TUI="$FOG/bin/fog-tui.py"
 export FOG_HOME="$FOG"
 export OLLAMA_HOST="${OLLAMA_HOST:-http://127.0.0.1:11434}"
 ensure_wizard_ollama() {
-  # Stack import: brew ollama + serve. Never block TUI start on pull.
-  command -v brew >/dev/null 2>&1 && { brew list ollama >/dev/null 2>&1 || brew install ollama >/dev/null 2>&1 || true; }
+  # Never call brew here — brew list/install can hang forever (portable-ruby) and blank the launcher.
+  # Ollama is optional at paint; start serve only if binary exists and API is down.
   if command -v ollama >/dev/null 2>&1; then
     if ! curl -sf --max-time 1 "${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
       ollama serve >/dev/null 2>&1 &
       disown 2>/dev/null || true
     fi
-    ollama pull llama3.2:1b >/dev/null 2>&1 &
-    disown 2>/dev/null || true
   fi
 }
 ensure_wizard_ollama || true
-unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory \
-      MallocScribble MallocGuardEdges MallocNanoZone || true
-# Prefer Homebrew python3. Apple CLT Python.app 3.9 SIGSEGV is the crash dialog.
+unset MallocStackLogging MallocStackLoggingNoCompact MallocStackLoggingDirectory       MallocScribble MallocGuardEdges MallocNanoZone || true
+# Prefer Homebrew python3 (Apple CLT 3.9 SIGSEGV). Never fall through to /usr/bin/python3 if a Cellar exists.
 PY=""
-for c in /usr/local/bin/python3 /opt/homebrew/bin/python3; do
+for c in   /usr/local/bin/python3   /opt/homebrew/bin/python3   /usr/local/opt/python@3.12/bin/python3.12   /usr/local/opt/python@3.11/bin/python3   /usr/local/opt/python@3.10/bin/python3.10
+ do
   if [[ -x "$c" ]]; then PY="$c"; break; fi
 done
-PY="${PY:-python3}"
-exec /usr/bin/caffeinate -ims "$PY" "$TUI" \
-  2> >(grep -v -F 'MallocStackLogging' >&2 || true)
+if [[ -z "$PY" ]]; then
+  echo "FogRuntime: no Homebrew python3 — install python@3.12 (Apple /usr/bin/python3 crashes TUI)" >&2
+  read -r _
+  exit 1
+fi
+exec /usr/bin/caffeinate -ims "$PY" "$TUI"   2> >(grep -v -F 'MallocStackLogging' >&2 || true)
