@@ -46,3 +46,6 @@ Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenCla
 Ollama / terminal agent setup: point Messaging→Email at **automation.desk@**; load IMAP/SMTP from the env files above (key=value, no commit). Shared Maildir **plus** each agent's own config.yaml / DESK.md pointers — not instead of shared.
 
 Deny: print credentials · workers.dev · ENI `geral@` mix · git of `*.imap` / `*.smtp` / `desk-mail.token`.
+
+## Next Act (2026-09-07 fallback)
+`dt-claw-hops-20260907` — `desk-claw-probe.sh` → meters/openclaw.json. Serialize. See `ops/desk-collegium/PENDING-OLLAMA-ACTS.md`.
