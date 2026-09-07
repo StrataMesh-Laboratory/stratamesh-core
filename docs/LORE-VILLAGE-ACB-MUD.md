@@ -270,3 +270,7 @@ Inter-tribe **orders** (Diplomacy mechanics), **mutable hearth-law** (Nomic mech
 
 Normative: [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · contracts `olissippo-iberia-neighbours.json`, `olissippo-council-diplomacy.json`, `olissippo-grove-lex-nomic.json`, `olissippo-kin-dynasty.json`.
 
+### Phase 7b — Castro hearth (settle / expand / raid)
+
+Travian- and Forge-of-Empires-like **settlement production, expand, cattle raid, and works upgrades**, lore-named **Ciclo do castro**. See [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · `olissippo-castro-settlement.json`.
+

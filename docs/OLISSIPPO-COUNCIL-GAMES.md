@@ -1,7 +1,7 @@
 # Olissippo Phase 7 — Council games (Diplomacy + Nomic + kin)
 
 **Realm:** `lore-olissippo-lusitanian` (not main).  
-**Import:** mechanics only from **Diplomacy**, **Nomic**, and **Crusader Kings** family/dynasty — no product branding in UI.
+**Import:** mechanics only from **Diplomacy**, **Nomic**, **Crusader Kings** family/dynasty, plus **Travian** / **Forge of Empires** settlement–expand–raid — no product branding in UI.
 
 ## Lore names
 
@@ -10,6 +10,7 @@
 | Diplomacy orders/support/supply | **Bandua war-band season** | Estação de Bandua |
 | Nomic mutable rules | **Grove Lex / Trebaruna hearth-law** | Lei do Bosque |
 | CK dynasty/kin/succession | **Hill stirps / gens** | Estirpes do outeiro |
+| Travian/FoE settle/expand/raid/build | **Castro hearth cycle** | Ciclo do castro |
 
 ## Neighbours (pre-Roman horizon)
 
@@ -47,3 +48,20 @@ Server: `src/olissippo_kin.py`.
 - No Roman legion campaign as mandatory canon; no Viriathus required.
 - No cloning board-game or Paradox product names into chrome.
 - No stacking desk Ollama agents while proving this track.
+
+## Castro hearth cycle (Travian / FoE-like)
+
+Hillfort **castros** hold resources (`herd` · `grain` · `timber` · `ore`) and **works** (enclosure, pens, granary, wood camp, smith pit, watch).
+
+| Verb | Effect |
+|------|--------|
+| `tick_production` | Works produce resources for a season |
+| `upgrade_work` | Spend timber/ore/grain to raise a work level (building upgrade) |
+| `plant_castro` | Expand onto empty scrub/pasture (settle a daughter castro; costs + population split) |
+| `cattle_raid` | Razzia — band vs defense; loot fraction or repelled (does **not** annex) |
+| `reinforce` | Spend grain to grow population |
+
+Annexation stays with **Bandua season**; law changes stay with **Grove Lex**. Castros are runtime claims — **not** STRATA NFTs.
+
+Contract: `contracts/mud/olissippo-castro-settlement.json` · server: `src/olissippo_castro.py`.
+

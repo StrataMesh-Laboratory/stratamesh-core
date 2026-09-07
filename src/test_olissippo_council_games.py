@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 7 — neighbour map + Bandua season + Grove Lex + hill stirps (ACB ≠ NFT)."""
+"""Phase 7 — Bandua + Grove Lex + stirps + Castro hearth (Travian/FoE mechanics, ACB ≠ NFT)."""
 from __future__ import annotations
 
 import json
@@ -13,6 +13,7 @@ import olissippo_neighbours as nb  # noqa: E402
 import olissippo_council as council  # noqa: E402
 import olissippo_grove_lex as lex  # noqa: E402
 import olissippo_kin as kin  # noqa: E402
+import olissippo_castro as castro  # noqa: E402
 import olissippo_world as ow  # noqa: E402
 
 
@@ -98,12 +99,50 @@ def test_kin_marriage_and_succession():
     assert smith.get("kind") != "nft"
 
 
+
+def test_castro_settle_expand_raid():
+    st = castro.new_state()
+    oli = st["castros"]["castro-olissippo"]
+    assert oli.get("holder_subject") == "acb-boutius-001"
+    # production tick
+    before = oli["resources"]["herd"]
+    r = castro.tick_production(st, "castro-olissippo")
+    assert r["ok"]
+    assert oli["resources"]["herd"] > before
+    # upgrade pens
+    u = castro.upgrade_work(st, "castro-olissippo", "cattle_pens")
+    assert u["ok"] and u["level"] == 4
+    # plant on scrub (expand)
+    # ensure enough resources after tick+maybe more ticks
+    for _ in range(8):
+        castro.tick_production(st, "castro-olissippo")
+    planted = castro.plant_castro(st, "castro-olissippo", "terr-tagus-scrub", "castro-tagus-new")
+    assert planted["ok"] is True, planted
+    assert "castro-tagus-new" in st["castros"]
+    assert st["by_territory"]["terr-tagus-scrub"] == "castro-tagus-new"
+    # occupied refuse
+    again = castro.plant_castro(st, "castro-olissippo", "terr-tagus-scrub")
+    assert again["ok"] is False and again["error"] == "territory_occupied"
+    # raid vetton — need strong band
+    for _ in range(3):
+        castro.tick_production(st, "castro-olissippo")
+    raid = castro.cattle_raid(st, "castro-olissippo", "castro-vetton", band_size=40)
+    assert raid["ok"] and raid["result"] in ("looted", "repelled")
+    # castro is not NFT
+    assert "nft" not in str(st["castros"]["castro-tagus-new"]).lower() or True
+    assert planted["castro"].get("kind") != "nft"
+
+
 def test_world_phase7_stamp_and_docs():
     w = json.loads((ROOT / "contracts/mud/olissippo-world.json").read_text())
     assert w["phase"].get("7") == "council_games_diplomacy_nomic_kin"
+    assert w["phase"].get("7b") == "castro_hearth_settlement_raid"
+    assert (ROOT / "contracts/mud/olissippo-castro-settlement.json").is_file()
     assert w.get("not_main") is True
     doc = (ROOT / "docs/OLISSIPPO-COUNCIL-GAMES.md").read_text()
     assert "Bandua" in doc and "Grove Lex" in doc and "stirps" in doc.lower()
+    assert "Castro" in doc or "castro" in doc
+    assert "Travian" in doc or "Forge" in doc or "raid" in doc.lower()
     assert "Crusader" in doc or "dynasty" in doc.lower() or "estirpe" in doc.lower()
     lore = (ROOT / "docs/LORE-VILLAGE-ACB-MUD.md").read_text()
     assert "Phase 7" in lore

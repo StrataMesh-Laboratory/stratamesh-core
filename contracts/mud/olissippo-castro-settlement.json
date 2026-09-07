@@ -1,0 +1,217 @@
+{
+  "schema": "olissippo.castro.settlement.v1",
+  "realm": "lore-olissippo-lusitanian",
+  "mechanic_source": "Travian + Forge of Empires (settlement/expand/raid/build/production only \u2014 no product branding)",
+  "lore_name_en": "Castro hearth cycle",
+  "lore_name_pt": "Ciclo do castro",
+  "note": "Hillfort castros produce herd/grain/timber/ore; expand by planting a new castro on empty scrub; raid lifts cattle; works upgrade like buildings. Server-authoritative; Subjects own claims, castros are not NFTs.",
+  "resources": [
+    {
+      "id": "herd",
+      "label_en": "Cattle herd",
+      "label_pt": "Gado"
+    },
+    {
+      "id": "grain",
+      "label_en": "Grain / barley",
+      "label_pt": "Cereal"
+    },
+    {
+      "id": "timber",
+      "label_en": "Timber",
+      "label_pt": "Madeira"
+    },
+    {
+      "id": "ore",
+      "label_en": "Ore / copper",
+      "label_pt": "Min\u00e9rio"
+    }
+  ],
+  "works": [
+    {
+      "id": "enclosure",
+      "label_en": "Hill enclosure",
+      "label_pt": "Cerca",
+      "produces": null,
+      "defense_per_level": 2,
+      "max_level": 5
+    },
+    {
+      "id": "cattle_pens",
+      "label_en": "Cattle pens",
+      "label_pt": "Currais",
+      "produces": "herd",
+      "rate_per_level": 4,
+      "max_level": 10
+    },
+    {
+      "id": "granary",
+      "label_en": "Granary",
+      "label_pt": "Celeiro",
+      "produces": "grain",
+      "rate_per_level": 3,
+      "max_level": 10
+    },
+    {
+      "id": "wood_camp",
+      "label_en": "Wood camp",
+      "label_pt": "Madeira",
+      "produces": "timber",
+      "rate_per_level": 3,
+      "max_level": 10
+    },
+    {
+      "id": "smith_pit",
+      "label_en": "Smith pit",
+      "label_pt": "Fosso do ferro",
+      "produces": "ore",
+      "rate_per_level": 2,
+      "max_level": 8
+    },
+    {
+      "id": "watch_post",
+      "label_en": "Watch post",
+      "label_pt": "Posto",
+      "produces": null,
+      "defense_per_level": 1,
+      "max_level": 5
+    }
+  ],
+  "verbs": [
+    "tick_production",
+    "upgrade_work",
+    "plant_castro",
+    "cattle_raid",
+    "reinforce"
+  ],
+  "expand": {
+    "cost": {
+      "herd": 20,
+      "grain": 30,
+      "timber": 40,
+      "ore": 10
+    },
+    "min_source_population": 40,
+    "new_castro_seed": {
+      "population": 20,
+      "resources": {
+        "herd": 10,
+        "grain": 15,
+        "timber": 10,
+        "ore": 5
+      },
+      "works": {
+        "enclosure": 1,
+        "cattle_pens": 1,
+        "granary": 1,
+        "wood_camp": 1,
+        "smith_pit": 0,
+        "watch_post": 0
+      }
+    },
+    "plantable_kinds": [
+      "scrub",
+      "pasture",
+      "empty"
+    ],
+    "require_adjacent": true
+  },
+  "raid": {
+    "cost_band": 5,
+    "loot_fraction": 0.25,
+    "min_attacker_band": 10,
+    "defense_base": 5,
+    "same_people_forbidden": false,
+    "note": "Cattle raid / razzia \u2014 lifts resources, does not destroy castro or annex territory (Bandua season handles annex)."
+  },
+  "upgrade": {
+    "base_cost": {
+      "timber": 10,
+      "ore": 5,
+      "grain": 5
+    },
+    "cost_per_level_mult": 1.5
+  },
+  "castro_seeds": [
+    {
+      "castro_id": "castro-olissippo",
+      "territory_id": "terr-olissippo",
+      "people_id": "lusitani",
+      "holder_subject": "acb-boutius-001",
+      "population": 80,
+      "resources": {
+        "herd": 60,
+        "grain": 80,
+        "timber": 50,
+        "ore": 20
+      },
+      "works": {
+        "enclosure": 2,
+        "cattle_pens": 3,
+        "granary": 2,
+        "wood_camp": 2,
+        "smith_pit": 1,
+        "watch_post": 1
+      }
+    },
+    {
+      "castro_id": "castro-vetton",
+      "territory_id": "terr-vetton-pastures",
+      "people_id": "vettones",
+      "holder_subject": null,
+      "population": 55,
+      "resources": {
+        "herd": 90,
+        "grain": 40,
+        "timber": 30,
+        "ore": 10
+      },
+      "works": {
+        "enclosure": 1,
+        "cattle_pens": 4,
+        "granary": 1,
+        "wood_camp": 1,
+        "smith_pit": 0,
+        "watch_post": 1
+      }
+    },
+    {
+      "castro_id": "castro-celtici",
+      "territory_id": "terr-celtici-oppida",
+      "people_id": "celtici",
+      "holder_subject": null,
+      "population": 70,
+      "resources": {
+        "herd": 40,
+        "grain": 55,
+        "timber": 45,
+        "ore": 25
+      },
+      "works": {
+        "enclosure": 3,
+        "cattle_pens": 2,
+        "granary": 2,
+        "wood_camp": 2,
+        "smith_pit": 2,
+        "watch_post": 2
+      }
+    }
+  ],
+  "empty_plant_sites": [
+    {
+      "territory_id": "terr-tagus-scrub",
+      "kind": "scrub",
+      "adjacent_to": [
+        "terr-olissippo",
+        "terr-vetton-pastures",
+        "terr-celtici-oppida"
+      ]
+    }
+  ],
+  "anti_goals": [
+    "No Travian/FoE product names in UI chrome",
+    "Castros and resources are runtime claims \u2014 not STRATA NFTs",
+    "Raid \u2260 annex; annex stays Bandua season / Grove Lex",
+    "No free generative magic"
+  ]
+}
