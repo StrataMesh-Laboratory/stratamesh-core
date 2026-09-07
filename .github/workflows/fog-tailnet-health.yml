@@ -34,7 +34,7 @@ jobs:
             exit 0
           fi
           echo "present=true" >> "$GITHUB_OUTPUT"
-      - uses: tailscale/github-action@v3
+      - uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         if: steps.gate.outputs.present == 'true'
         continue-on-error: true
         with:
