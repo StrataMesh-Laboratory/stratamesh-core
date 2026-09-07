@@ -2,7 +2,7 @@
 
 **Status:** Normative for the Open World itself (2026-09-07)  
 **Scope:** Mundo Aberto / Virtual Realm hosting — **not** Fog appliance docs  
-**Related:** [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md) · [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md) · [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · `frontend/lab-land.json` · `contracts/cmn/realms.json`
+**Related:** [`HOLONIC-LAYERS.md`](./HOLONIC-LAYERS.md) · [`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md) · [`LUSITANIA-PLAYER-REPORT.md`](./LUSITANIA-PLAYER-REPORT.md) · [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) · player page `/lusitania` (`frontend/lusitania.html`) · `frontend/lab-land.json` · `contracts/cmn/realms.json`
 
 ## Thesis
 
@@ -85,6 +85,8 @@ Optional light stamps (do not invent Fog topology here):
 - `player_pool` / `locale_norm` — `cplp`→`pt-PT` · `international`→`en-GB`  
 
 Applied lightly on lore world / realm index where present (`contracts/mud/olissippo-world.json`, `contracts/cmn/realms.json`).
+
+**Player briefing:** `/lusitania` (`frontend/lusitania.html`) — PT + EN host-plane / pool gloss.
 
 **Code:** `src/olissippo_player_pools.py` — `resolve_player_pool` / `locale_norm_for_pool` / `select_microhypervisor_pool` / `attach_session_pool` (geo country primary; `explicit_pool` for tests/accounts; Accept-Language not primary). Tests: `src/test_olissippo_player_pools.py`. Phase stamp: `9b_language_pools`.
 

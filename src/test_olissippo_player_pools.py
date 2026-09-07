@@ -150,10 +150,28 @@ def test_ontology_unchanged_acb_not_nft():
         assert not str(sid).startswith("obj-"), sid
 
 
+
+def test_player_page_pt_host_pool_crosslink():
+    """PT player briefing must surface CPLP/Intl pools + hypervisor doc (parity with EN)."""
+    page = (ROOT / "frontend/lusitania.html").read_text()
+    assert "macrohypervisor" in page
+    assert "microhypervisor" in page
+    assert "CPLP" in page and "PT-PT" in page
+    assert "EN-GB" in page
+    assert "OPEN-WORLD-HYPERVISORS.md" in page
+    # PT section (not only EN) carries pool gloss
+    pt = page.split('id="pt"', 1)[1].split('id="en"', 1)[0]
+    assert "CPLP" in pt and "PT-PT" in pt
+    assert "macrohypervisor" in pt or "macrohypervisor" in pt.lower()
+    assert "OPEN-WORLD-HYPERVISORS.md" in pt
+
+
 def test_docs_pointers():
     ow = (ROOT / "docs/OPEN-WORLD-HYPERVISORS.md").read_text()
     assert "olissippo_player_pools" in ow
     assert "resolve_player_pool" in ow
+    assert "/lusitania" in ow
+    assert "frontend/lusitania.html" in ow
     ui = (ROOT / "docs/UI-LOCALE-CPLP.md").read_text()
     assert "olissippo_player_pools" in ui or "player pool" in ui.lower()
     assert "geo" in ui.lower() or "geolocation" in ui.lower()
