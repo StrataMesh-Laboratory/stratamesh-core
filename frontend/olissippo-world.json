@@ -4,8 +4,8 @@
   "not_main": true,
   "label_pt": "Aldeia de Olissippo",
   "label_en": "Olissippo village",
-  "subtitle_pt": "Pré-romana · lore (não é o mundo principal CMN onde vivem as sandboxes) · mesmas mecânicas",
-  "subtitle_en": "Pre-Roman · lore (not CMN main where sandboxes host) · same mechanics",
+  "subtitle_pt": "Pr\u00e9-romana \u00b7 lore (n\u00e3o \u00e9 o mundo principal CMN onde vivem as sandboxes) \u00b7 mesmas mec\u00e2nicas",
+  "subtitle_en": "Pre-Roman \u00b7 lore (not CMN main where sandboxes host) \u00b7 same mechanics",
   "cache": "20260907d",
   "locations": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "id": "guest_house",
-      "label_pt": "Casa de hóspedes",
+      "label_pt": "Casa de h\u00f3spedes",
       "label_en": "Guest house",
       "tags": [
         "rest"
@@ -125,7 +125,7 @@
     },
     {
       "id": "apprentice_yard",
-      "label_pt": "Pátio da aprendiz",
+      "label_pt": "P\u00e1tio da aprendiz",
       "label_en": "Apprentice yard",
       "tags": [
         "work"
@@ -204,13 +204,13 @@
   ],
   "objects": [
     {
-      "name_pt": "Cesto de carvão",
+      "name_pt": "Cesto de carv\u00e3o",
       "name_en": "Charcoal basket",
       "at": "charcoal_lean",
       "kind_hint": "object"
     },
     {
-      "name_pt": "Ponta de lança em bruto",
+      "name_pt": "Ponta de lan\u00e7a em bruto",
       "name_en": "Spearhead blank",
       "at": "smithy",
       "kind_hint": "object"
@@ -222,7 +222,7 @@
       "kind_hint": "object"
     },
     {
-      "name_pt": "Barracão da forja",
+      "name_pt": "Barrac\u00e3o da forja",
       "name_en": "Forge shed",
       "at": "smithy",
       "kind_hint": "object"
@@ -289,11 +289,15 @@
     "default_location_id": "hill_enclosure",
     "note": "Human or ACB Subject enters here; Subjects not seeded as Object rows"
   },
-  "acb_note": "People here are Subjects (ACB) — never NFTs / objects.",
-  "identity_note": "Identity = StrataMesh Subject; world role = CMN. People ≠ NFT objects.",
+  "acb_note": "People here are Subjects (ACB) \u2014 never NFTs / objects.",
+  "identity_note": "Identity = StrataMesh Subject; world role = CMN. People \u2260 NFT objects.",
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
   "realm_class": "lore",
   "cmn_main_realm": "cmn-main-sandbox-host",
-  "runtime_url": "/olissippo-runtime.json"
+  "runtime_url": "/olissippo-runtime.json",
+  "phase": {
+    "8d": "event_provenance_depth",
+    "8e": "cross_system_scenarios"
+  }
 }

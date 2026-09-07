@@ -174,8 +174,8 @@ Aliases keep Phase 7/8 decide wires green (`castro_quay_barter` → `exchange`, 
 | **8A** | Architecture, event schema, policy layer, verb registry, events/lots modules, pure season + apply |
 | **8B** | Runtime bag (`events[]`, `law_version`, `lots`), decide wire, STRATA stamps, CI |
 | **8C** | **Shipped:** pure adjudicators (`Season` / `Law` / `Succession` / `Production` / `Trade` + `ClaimStrength`) — resolve/plan ≠ apply; dynasty clock `1 real day = 1 game month`; `advance_game_month` |
-| **8D** | Claim strength modifiers depth, multi-power Bandua UI, richer kin↔law loops *(next)* |
-| **8E** | Craft DAG depth, landmark powers, chain attest hooks *(deferred)* |
+| **8D** | **Shipped:** event provenance depth — `provenance_chain`, `explain_event`; every apply_* emits Events with law_version + reason + provenance |
+| **8E** | **Shipped:** cross-system scenario tests (kin→claim→Bandua→holding→production; Nomic succession; trade→craft + Graphical-MUD presence) |
 
 ---
 
@@ -188,7 +188,24 @@ Aliases keep Phase 7/8 decide wires green (`castro_quay_barter` → `exchange`, 
 - Typed Grove policy changes: `propose_policy_change(changes[{rule,from,to}], prose_text)` — prose display only.
 - World stamp: `phase["8c"]="pure_adjudicators"`; clock stamps `real_day_equals_game_months=1`.
 - GNU Graphical-MUD remains peer (`phase["8f"]`); Atelier renders only.
-- **Left for 8D/8E:** deeper claim modifiers, full Bandua multi-power UI, craft DAG depth, landmark powers, chain attest.
+- **Left for later:** deeper claim modifiers UI, full Bandua multi-power UI, craft DAG depth, landmark powers, chain attest.
+
+
+## Phase 8D — Event / provenance depth
+
+Mutating `apply_*` paths (adjudicators + verbs) emit universal Events with:
+`event_id`, `event_type`, `verb`, `season` / `game_month`, `law_version`, `reason` (resolution reason),
+`actor_subject_ids`, `object_ids`, `before` / `after`, `provenance` (incl. `chain[]`), `causes[]`.
+
+- `provenance_chain(object_id, events)` reconstructs **created_by → transferred → used** for a STRATA Object.
+- `explain_event(event)` returns a server-truth reason dict for LLM narration (interpret only).
+- World stamp: `phase["8d"]="event_provenance_depth"`.
+
+## Phase 8E — Cross-system scenarios
+
+End-to-end (not unit silos): kinship → claim → Bandua → holding → production; Nomic dynasty succession;
+trade → craft capability with non-empty provenance; Graphical-MUD `stage_snapshot` presence.
+World stamp: `phase["8e"]="cross_system_scenarios"`. CI: `test_olissippo_phase8e_cross_system.py`.
 
 ## 12. Emergent loop (wall principle)
 
@@ -202,7 +219,7 @@ Invalid verbs never enter the loop. LLM never writes Objects. Chain attests mirr
 
 ---
 
-## 13. Contracts & modules (8A/8B/8C)
+## 13. Contracts & modules (8A–8E)
 
 | Artifact | Role |
 |----------|------|
@@ -210,7 +227,7 @@ Invalid verbs never enter the loop. LLM never writes Objects. Chain attests mirr
 | `contracts/mud/olissippo-event-schema.json` | universal Event fields |
 | `contracts/mud/olissippo-policy-layer.json` | immutable_core + versioned policy defaults |
 | `contracts/mud/olissippo-verb-registry.json` | finite verbs + engine tags |
-| `src/olissippo_events.py` | `make_event`, `append_event` |
+| `src/olissippo_events.py` | `make_event`, `append_event`, `provenance_chain`, `explain_event` |
 | `src/olissippo_lots.py` | Lot Object; mint / transfer / aggregates |
 | `src/olissippo_verbs.py` | registry; validate/execute |
 | `src/olissippo_council.py` | pure `resolve_season` + `apply_resolution` + season bag helpers |

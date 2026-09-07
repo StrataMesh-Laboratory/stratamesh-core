@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Olissippo Phase 8C — pure adjudicators (resolve/plan) separate from apply/mutate.
+"""Olissippo Phase 8C/8D — pure adjudicators (resolve/plan) separate from apply/mutate.
 
 Hard rule: resolve_* / *_tick / exchange / claim_strength are PURE (no bag mutation).
-apply_* mutates bag, mints STRATA lots / updates holdings / policy, and emits via caller.
-LLM interprets only; server validates and transitions.
+apply_* mutates bag, mints STRATA lots / updates holdings / policy, and emits Events
+(with law_version, reason, provenance chain steps). LLM interprets only.
 """
 from __future__ import annotations
 
@@ -81,7 +81,15 @@ def _emit(
     after: dict[str, Any] | None = None,
     causes: list[str] | None = None,
     season: int | None = None,
+    game_month: int | None = None,
+    provenance: dict[str, Any] | list[Any] | None = None,
 ) -> dict[str, Any]:
+    clk = bag.get("clock") or (bag.get("kin") or {}).get("clock") or {}
+    gm = game_month
+    if gm is None:
+        gm = clk.get("game_month")
+        if gm is None:
+            gm = (bag.get("kin") or {}).get("game_month")
     evt = ev.make_event(
         event_type=event_type,
         verb=verb,
@@ -94,6 +102,8 @@ def _emit(
         after=after,
         causes=causes,
         season=season if season is not None else bag.get("season"),
+        game_month=None if gm is None else int(gm),
+        provenance=provenance,
     )
     ev.append_event(bag, evt)
     return evt
@@ -123,9 +133,46 @@ class SeasonAdjudicator:
 
     @staticmethod
     def apply_resolution(bag: dict[str, Any], resolution: Resolution) -> dict[str, Any]:
-        """Mutate bag with resolution positions / season bump."""
+        """Mutate bag with resolution positions / season bump + emit Event."""
+        if not resolution.get("ok"):
+            return {"ok": False, "error": resolution.get("error") or "bad_resolution"}
+        before_target = bag.get("bandua") if isinstance(bag.get("bandua"), dict) else bag
+        before_pos = dict((before_target or {}).get("positions") or {})
+        before_season = (before_target or {}).get("season")
         applied = council.apply_resolution(bag, resolution)
-        return bag if applied.get("ok") else bag
+        if not applied.get("ok"):
+            return {"ok": False, "error": applied.get("error") or "apply_failed"}
+        causes = []
+        if bag.get("last_event_id"):
+            causes.append(str(bag["last_event_id"]))
+        evt = _emit(
+            bag,
+            event_type="season_resolved",
+            verb="bandua_resolve_season",
+            reason=str(resolution.get("reason") or "pure_resolve_then_apply"),
+            before={"positions": before_pos, "season": before_season},
+            after={
+                "positions": resolution.get("positions"),
+                "moved": resolution.get("moved"),
+                "bounced": resolution.get("bounced"),
+                "season": applied.get("season"),
+            },
+            season=applied.get("season"),
+            causes=causes,
+            provenance={
+                "source": "SeasonAdjudicator",
+                "runtime": "sim",
+                "note": "bandua_season_apply",
+                "chain": [],
+            },
+        )
+        return {
+            "ok": True,
+            "season": applied.get("season"),
+            "positions": applied.get("positions"),
+            "event": evt,
+            "resolution": resolution,
+        }
 
     @staticmethod
     def close_season(bag: dict[str, Any]) -> dict[str, Any]:
@@ -494,6 +541,18 @@ class ProductionResolver:
         lots.sync_resources_from_lots(c)
         cst["tick"] = int(cst.get("tick") or 0) + int(result.get("elapsed") or 1)
         obj_ids = [c.get("object_id")] + list((c.get("lot_object_ids") or {}).values())
+        chain = [
+            ev.provenance_step(
+                relation=ev.REL_CREATED,
+                object_id=m["lot"]["object_id"],
+                via="tick_production",
+                reason="production_mints_strata_lots",
+                resource=m["lot"]["resource"],
+                qty=m.get("minted"),
+            )
+            for m in minted
+            if m.get("lot", {}).get("object_id")
+        ]
         evt = _emit(
             bag,
             event_type="production_tick",
@@ -502,6 +561,12 @@ class ProductionResolver:
             object_ids=[x for x in obj_ids if x],
             before={"resources": before},
             after={"outputs": result.get("outputs"), "minted": [{"resource": m["lot"]["resource"], "after": m["after"], "object_id": m["lot"]["object_id"]} for m in minted]},
+            provenance={
+                "source": "ProductionResolver",
+                "runtime": "sim",
+                "note": "mint_strata_lots",
+                "chain": chain,
+            },
         )
         return {
             "ok": True,
@@ -625,6 +690,29 @@ class TradeResolver:
                 return m
             lots.sync_resources_from_lots(c)
         obj_ids = [c.get("object_id")] + list((c.get("lot_object_ids") or {}).values())
+        chain = []
+        if plan.get("from_lot"):
+            chain.append(
+                ev.provenance_step(
+                    relation=ev.REL_TRANSFERRED,
+                    object_id=plan["from_lot"],
+                    via="exchange",
+                    reason="spent_lot_qty",
+                    qty=amount,
+                    resource=give,
+                )
+            )
+        if plan.get("to_lot"):
+            chain.append(
+                ev.provenance_step(
+                    relation=ev.REL_CREATED if not plan.get("counterparty") else ev.REL_TRANSFERRED,
+                    object_id=plan["to_lot"],
+                    via="exchange",
+                    reason="received_lot_qty",
+                    qty=got,
+                    resource=want,
+                )
+            )
         evt = _emit(
             bag,
             event_type="exchange",
@@ -638,6 +726,12 @@ class TradeResolver:
                 "fee_fraction": plan.get("fee_fraction"),
                 "from_lot": plan.get("from_lot"),
                 "to_lot": plan.get("to_lot"),
+            },
+            provenance={
+                "source": "TradeResolver",
+                "runtime": "sim",
+                "note": "lot_exchange",
+                "chain": chain,
             },
         )
         return {
@@ -874,6 +968,33 @@ class DynastyClock:
         }
 
     @staticmethod
+    @staticmethod
+    def apply_succession_law(bag: dict[str, Any], dynasty_id: str, law: str) -> dict[str, Any]:
+        """Mutate per-dynasty Nomic succession law + emit Event (law_version stamped)."""
+        kin_state = bag.setdefault("kin", kin.new_state())
+        r = dynasty_clock.set_dynasty_succession_law(kin_state, dynasty_id, law)
+        if not r.get("ok"):
+            return r
+        evt = _emit(
+            bag,
+            event_type="dynasty_law_set",
+            verb="set_dynasty_succession_law",
+            reason=str(r.get("reason") or "nomic_dynasty_succession_law"),
+            actors=[(kin_state.get("player_dynasties") or {}).get(dynasty_id, {}).get("owner_subject_id") or ""],
+            before={"succession_law": r.get("from"), "dynasty_id": dynasty_id},
+            after={"succession_law": r.get("to"), "dynasty_id": dynasty_id},
+            provenance={
+                "source": "DynastyClock",
+                "runtime": "sim",
+                "note": "per_dynasty_nomic_law",
+                "chain": [],
+            },
+        )
+        r = dict(r)
+        r["event"] = evt
+        r["law_version"] = _law_version(bag)
+        return r
+
     def apply_advance(bag: dict[str, Any], plan: dict[str, Any]) -> dict[str, Any]:
         """Mutate clock + ages; apply deaths and succession; emit events."""
         if not plan.get("ok"):

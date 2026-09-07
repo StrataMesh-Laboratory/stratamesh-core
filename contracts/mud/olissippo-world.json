@@ -349,7 +349,9 @@
     "8f": "gnu_graphical_mud_state_logic_peer",
     "8c_clock": "real_day_eq_game_month_dynasty",
     "8c": "pure_adjudicators",
-    "8c_dynasty_players": "acb_user_unique_head_per_dynasty_nomic_laws"
+    "8c_dynasty_players": "acb_user_unique_head_per_dynasty_nomic_laws",
+    "8d": "event_provenance_depth",
+    "8e": "cross_system_scenarios"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,

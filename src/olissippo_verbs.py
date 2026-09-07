@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Olissippo Phase 8A/8B/8C — finite verb registry, validate, execute (event-producing).
+"""Olissippo Phase 8A–8D — finite verb registry, validate, execute (event-producing).
 
 Phase 8C: execute paths for season/law/succession/production/trade/dynasty go through
 pure adjudicators (resolve/plan) then apply_* mutators.
+Phase 8D: apply paths emit Events with provenance depth for LLM explain_event.
 """
 from __future__ import annotations
 
@@ -92,7 +93,13 @@ def _emit(
     after: dict[str, Any] | None = None,
     causes: list[str] | None = None,
     season: int | None = None,
+    game_month: int | None = None,
+    provenance: dict[str, Any] | list | None = None,
 ) -> dict[str, Any]:
+    clk = bag.get("clock") or (bag.get("kin") or {}).get("clock") or {}
+    gm = game_month if game_month is not None else clk.get("game_month")
+    if gm is None:
+        gm = (bag.get("kin") or {}).get("game_month")
     evt = ev.make_event(
         event_type=event_type,
         verb=verb,
@@ -105,7 +112,9 @@ def _emit(
         after=after,
         causes=causes,
         season=season if season is not None else bag.get("season"),
+        game_month=None if gm is None else int(gm),
         rule_version=load_registry().get("rule_version"),
+        provenance=provenance,
     )
     ev.append_event(bag, evt)
     return evt
@@ -186,19 +195,16 @@ def execute_verb(
         resolution = adj.SeasonAdjudicator.resolve_season(bag, orders)
         if not resolution.get("ok"):
             return done(False, resolution.get("error") or "resolve_failed", resolution)
-        adj.SeasonAdjudicator.apply_resolution(bag, resolution)
-        evt = _emit(
-            bag,
-            event_type="season_resolved",
-            verb="bandua_resolve_season",
-            reason="pure_resolve_then_apply",
-            actors=actors,
-            before={"orders": orders},
-            after={"positions": resolution.get("positions"), "moved": resolution.get("moved")},
-            season=bag.get("season"),
-        )
-        emitted.append(evt)
-        return done(True, "season_resolved", {"resolution": resolution})
+        applied = adj.SeasonAdjudicator.apply_resolution(bag, resolution)
+        if not applied.get("ok"):
+            return done(False, applied.get("error") or "apply_failed", applied)
+        evt = applied.get("event")
+        if evt:
+            # annotate actors on apply event (adjudicator emit may lack actor list)
+            if actors and not evt.get("actor_subject_ids"):
+                evt["actor_subject_ids"] = list(actors)
+            emitted.append(evt)
+        return done(True, "season_resolved", {"resolution": resolution, "applied": applied})
 
     # --- law ---
     if canon == "propose_law":
@@ -522,14 +528,75 @@ def execute_verb(
     if canon == "craft_tick":
         r = castro.craft_tick(cst, payload.get("castro_id"))
         if r.get("ok"):
-            evt = _emit(bag, event_type="craft_tick", verb=canon, reason="craft_points_accrued", actors=actors, after=r)
+            oids = []
+            chain = []
+            for cid, info in (r.get("results") or {}).items():
+                c = cst["castros"].get(cid) or {}
+                lots.ensure_castro_lots(c)
+                for oid in (c.get("lot_object_ids") or {}).values():
+                    oids.append(oid)
+                    chain.append(
+                        ev.provenance_step(
+                            relation=ev.REL_USED,
+                            object_id=oid,
+                            via="craft_tick",
+                            reason="craft_points_accrued",
+                            castro_id=cid,
+                            craft_points=info.get("craft_points"),
+                        )
+                    )
+                if c.get("object_id"):
+                    oids.append(c["object_id"])
+            evt = _emit(
+                bag,
+                event_type="craft_tick",
+                verb=canon,
+                reason="craft_points_accrued",
+                actors=actors,
+                object_ids=list(dict.fromkeys(oids)),
+                after=r,
+                provenance={
+                    "source": "olissippo_verbs",
+                    "runtime": "sim",
+                    "note": "craft_uses_lots",
+                    "chain": chain,
+                },
+            )
             emitted.append(evt)
         return done(bool(r.get("ok")), r.get("error") or "craft_ticked", r)
 
     if canon == "unlock_craft":
         r = castro.unlock_craft(cst, payload["castro_id"])
         if r.get("ok"):
-            evt = _emit(bag, event_type="craft_unlock", verb=canon, reason="craft_tier_advanced", actors=actors, after=r)
+            c = cst["castros"].get(payload["castro_id"]) or {}
+            lots.ensure_castro_lots(c)
+            oids = [c.get("object_id")] + list((c.get("lot_object_ids") or {}).values())
+            chain = [
+                ev.provenance_step(
+                    relation=ev.REL_USED,
+                    object_id=oid,
+                    via="unlock_craft",
+                    reason="craft_tier_advanced",
+                    craft_tier=r.get("craft_tier"),
+                )
+                for oid in oids
+                if oid
+            ]
+            evt = _emit(
+                bag,
+                event_type="craft_unlock",
+                verb=canon,
+                reason="craft_tier_advanced",
+                actors=actors,
+                object_ids=[x for x in oids if x],
+                after=r,
+                provenance={
+                    "source": "olissippo_verbs",
+                    "runtime": "sim",
+                    "note": "craft_unlock_uses_capability",
+                    "chain": chain,
+                },
+            )
             emitted.append(evt)
         return done(bool(r.get("ok")), r.get("error") or "craft_unlocked", r)
 
