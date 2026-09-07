@@ -75,6 +75,7 @@ Aliases (internal only): *stirps*, *dynasty* / `player_dynasty_*`. Player copy s
 - Player briefing: `/lusitania` · doctrine: playable unit = **gens**
 - Clock / succession: `src/olissippo_dynasty_clock.py` (`gens_id` aliases beside `dynasty_*`)
 - Kin contract: `contracts/mud/olissippo-kin-dynasty.json` (`gens_id`, `populus_id`, `confederation`)
+- Language pools → microhv: `src/olissippo_player_pools.py` (`resolve_player_pool` / `select_microhypervisor_pool`; CPLP PT-PT vs Intl EN-GB)
 
 ## Open World host bridge
 
@@ -88,5 +89,5 @@ Social scale lives **inside** the Lusitania Open World host plane:
 
 Microhypervisor mirrors split by language pool: **CPLP → PT-PT**, **International (non-CPLP) → EN-GB** (same land-bundle).
 
-Normative host doc: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md). Not Fog `:8787`/MW.
+Normative host doc: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md) · code `src/olissippo_player_pools.py`. Not Fog `:8787`/MW.
 
