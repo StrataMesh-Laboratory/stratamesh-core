@@ -225,7 +225,7 @@ If succession succeeds, the player continues the **historical process** as the h
 
 ### Host plane (macro / micro)
 
-Lusitania runs as an Open World on a **macrohypervisor** (Virtual Realm capacity for that Mundo Aberto). Parcels of its land-bundle may sit on a shared LAB server or **mirrored microhypervisors** — same bundle identity. Social scale (**gens → populus → Lusitani**) lives on that world plane. See [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md).
+Lusitania runs as an Open World on a **macrohypervisor** (Virtual Realm capacity for that Mundo Aberto). Parcels of its land-bundle may sit on a shared LAB server or **mirrored microhypervisors** — same bundle identity. Social scale (**gens → populus → Lusitani**) lives on that world plane. Mirrored **microhypervisors** split by language player pool: **CPLP → PT-PT**, **International (non-CPLP) → EN-GB** (same land-bundle). See [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md).
 
 ### Why Lusitania ≠ Main Open World
 

@@ -59,7 +59,7 @@ Na Bancada CGU, criações publicadas são **objectos** NFT STRATA — incluindo
 
 ## Macrohypervisor e microhypervisor (Mundo Aberto)
 
-No **Domínio Virtual**, a capacidade que hospeda um **Mundo Aberto** chama-se **macrohypervisor**. As instâncias espelhadas ou particionadas que correm parcelas/zonas do **mesmo** feixe de terra (land-bundle) chamam-se **microhypervisors**.
+No **Domínio Virtual**, a capacidade que hospeda um **Mundo Aberto** chama-se **macrohypervisor**. As instâncias espelhadas ou particionadas que correm parcelas/zonas do **mesmo** feixe de terra (land-bundle) chamam-se **microhypervisors**. Espelhos por **pool linguístico**: **CPLP** (norma **PT-PT**) e **Internacional** / não-CPLP (norma **EN-GB**).
 
 - Um Mundo Aberto ↔ um plano de macrohypervisor.
 - Vários microhypervisors ↔ o mesmo `land_bundle_object_id` (servidor LAB partilhado *ou* micros espelhados).

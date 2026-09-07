@@ -11,7 +11,7 @@ A **Virtual Realm** (*Domínio Virtual*) is the hypervisor plane that hosts **Op
 | Term | Meaning |
 |------|---------|
 | **Macrohypervisor** | Virtual Realm capacity that hosts **one** Open World (or that realm’s world-server plane) — sovereignty / capacity envelope for that *Mundo Aberto*. |
-| **Microhypervisor** | Mirrored / shard host instances that run **parcels or zones of the same** Open World land-bundle. Same bundle identity whether parcels sit on a **shared LAB server** or on **mirrored micros**. |
+| **Microhypervisor** | Mirrored / shard host instances that run **parcels or zones of the same** Open World land-bundle. Same bundle identity whether parcels sit on a **shared LAB server** or on **mirrored micros**. Primary mirror axis for player pools: **language** (CPLP PT-PT vs International EN-GB). |
 
 ```
 Virtual Realm (Domínio Virtual)
@@ -53,12 +53,36 @@ Normative social map ([`LUSITANIA-NOMENCLATURE.md`](./LUSITANIA-NOMENCLATURE.md)
 CMN Main Open World asks *what can you create?* (Bancada).  
 Lusitania Open World asks *what survives you?* (gens continuity) — same STRATA seriousness, different realm class.
 
+
+## Language-based player pools (microhypervisor mirrors)
+
+Mirrored **microhypervisors** for different **player pools** are partitioned by **language locale**, not by Fog topology. Same Open World / same land-bundle identity under one **macrohypervisor**; UI and copy **norm** differ by pool.
+
+| Player pool | Locale norm | Microhypervisor role |
+|-------------|-------------|----------------------|
+| **CPLP** (Comunidade dos Países de Língua Portuguesa) | **PT-PT** | CPLP-facing mirrored server(s) |
+| **International** (non-CPLP) | **EN-GB** | International mirrored server(s) |
+
+Routing: geolocation / account preference selects the pool (existing product rule: CPLP → PT-PT; all non-CPLP → EN-GB). Coding/dev remains international English.
+
+Ids (canonical stamps):
+
+- `microhv-*-cplp-pt-pt` — CPLP pool, PT-PT norm  
+- `microhv-*-intl-en-gb` — International pool, EN-GB norm  
+
+Invariants:
+
+1. Pools share **one** land-bundle / Open World identity (mirrors, not two worlds).
+2. Locale is **presentation + player-pool adjacency**; it does not fork STRATA object_ids or gens continuity.
+3. Cross-pool presence may be allowed later; default is pool-local UI with shared world truth.
+
 ## Host stamps (contracts)
 
 Optional light stamps (do not invent Fog topology here):
 
 - `macrohypervisor_id` — world-server plane / capacity id for that Open World  
-- `microhypervisor_ids` — mirrored/shard host ids serving the same land-bundle  
+- `microhypervisor_ids` — mirrored/shard host ids serving the same land-bundle (language pools: `*-cplp-pt-pt`, `*-intl-en-gb`)  
+- `player_pool` / `locale_norm` — `cplp`→`pt-PT` · `international`→`en-GB`  
 
 Applied lightly on lore world / realm index where present (`contracts/mud/olissippo-world.json`, `contracts/cmn/realms.json`).
 

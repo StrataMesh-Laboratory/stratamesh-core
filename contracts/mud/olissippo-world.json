@@ -480,11 +480,24 @@
     "populus": "tribe_gentes",
     "confederation": "lusitani",
     "macrohypervisor": "open_world_host_plane",
-    "microhypervisor": "mirrored_shard_of_same_land_bundle"
+    "microhypervisor": "language_pool_mirror_same_land_bundle"
   },
   "macrohypervisor_id": "macrohv-lusitania-olissippo",
   "microhypervisor_ids": [
-    "microhv-lusitania-lab"
+    "microhv-lusitania-cplp-pt-pt",
+    "microhv-lusitania-intl-en-gb"
   ],
-  "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md"
+  "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md",
+  "microhypervisor_pools": [
+    {
+      "microhypervisor_id": "microhv-lusitania-cplp-pt-pt",
+      "player_pool": "cplp",
+      "locale_norm": "pt-PT"
+    },
+    {
+      "microhypervisor_id": "microhv-lusitania-intl-en-gb",
+      "player_pool": "international",
+      "locale_norm": "en-GB"
+    }
+  ]
 }

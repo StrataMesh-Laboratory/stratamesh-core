@@ -86,5 +86,7 @@ Social scale lives **inside** the Lusitania Open World host plane:
 | **populus** | Tribal presence across zones/micros of the same world |
 | **Lusitani** | Confederation = this Open World on its **macrohypervisor** (micros may mirror the same bundle) |
 
+Microhypervisor mirrors split by language pool: **CPLP → PT-PT**, **International (non-CPLP) → EN-GB** (same land-bundle).
+
 Normative host doc: [`OPEN-WORLD-HYPERVISORS.md`](./OPEN-WORLD-HYPERVISORS.md). Not Fog `:8787`/MW.
 

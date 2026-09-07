@@ -12,10 +12,27 @@
       "notes": "Bancada / open-world sandboxes live here. Primary CMN world.",
       "macrohypervisor_id": "macrohv-cmn-main-open-world",
       "microhypervisor_ids": [
-        "microhv-lab-shared"
+        "microhv-cmn-main-cplp-pt-pt",
+        "microhv-cmn-main-intl-en-gb"
       ],
       "land_bundle_id": "obj-lab-land-bundle",
-      "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md"
+      "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md",
+      "microhypervisor_pools": [
+        {
+          "microhypervisor_id": "microhv-cmn-main-cplp-pt-pt",
+          "player_pool": "cplp",
+          "locale_norm": "pt-PT",
+          "label_en": "CPLP pool (PT-PT)",
+          "label_pt": "Pool CPLP (PT-PT)"
+        },
+        {
+          "microhypervisor_id": "microhv-cmn-main-intl-en-gb",
+          "player_pool": "international",
+          "locale_norm": "en-GB",
+          "label_en": "International pool (EN-GB)",
+          "label_pt": "Pool internacional (EN-GB)"
+        }
+      ]
     },
     {
       "realm_id": "lore-olissippo-lusitanian",
@@ -28,12 +45,29 @@
       "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, CMN world roles — same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main.",
       "macrohypervisor_id": "macrohv-lusitania-olissippo",
       "microhypervisor_ids": [
-        "microhv-lusitania-lab"
+        "microhv-lusitania-cplp-pt-pt",
+        "microhv-lusitania-intl-en-gb"
       ],
       "confederation": "lusitani",
       "playable_unit": "gens",
       "open_world_host_doc": "docs/OPEN-WORLD-HYPERVISORS.md",
-      "nomenclature_ref": "docs/LUSITANIA-NOMENCLATURE.md"
+      "nomenclature_ref": "docs/LUSITANIA-NOMENCLATURE.md",
+      "microhypervisor_pools": [
+        {
+          "microhypervisor_id": "microhv-lusitania-cplp-pt-pt",
+          "player_pool": "cplp",
+          "locale_norm": "pt-PT",
+          "label_en": "CPLP pool (PT-PT)",
+          "label_pt": "Pool CPLP (PT-PT)"
+        },
+        {
+          "microhypervisor_id": "microhv-lusitania-intl-en-gb",
+          "player_pool": "international",
+          "locale_norm": "en-GB",
+          "label_en": "International pool (EN-GB)",
+          "label_pt": "Pool internacional (EN-GB)"
+        }
+      ]
     }
   ]
 }
