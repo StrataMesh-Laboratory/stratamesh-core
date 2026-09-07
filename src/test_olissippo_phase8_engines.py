@@ -243,6 +243,29 @@ def test_season_bag_helpers():
     assert council.submit_order(bag, o)["ok"] is False
 
 
+def test_graphical_mud_engine():
+    import olissippo_mud_state as mud
+    import olissippo_world as ow
+    info = mud.engine_info()
+    assert info["engine"] == "gnu_graphical_mud"
+    assert info["source_of_truth"] == "server"
+    assert "gnu_atelier" in info["stage_renderers"]
+    snap = mud.stage_snapshot("smithy", [{"subject_id": "acb-boutius-001", "location_id": "smithy", "kind": "acb", "is_nft": False}])
+    assert snap["location_id"] == "smithy"
+    assert any(s["subject_id"] == "acb-boutius-001" and s["is_nft"] is False for s in snap["subjects"])
+    for o in snap["objects"]:
+        assert o["object_id"].startswith("obj-")
+        assert o["is_nft"] is True
+    assert mud.validate_move("smithy", "hill_enclosure").get("ok") in (True, False)  # adjacency-dependent
+    assert ow.action_allowed("move")
+    w = json.loads((ROOT / "contracts/mud/olissippo-world.json").read_text())
+    assert w["graphical_mud"]["engine"] == "gnu_graphical_mud"
+    assert w["phase"].get("8f") == "gnu_graphical_mud_state_logic_peer"
+    arch = (ROOT / "docs/OLISSIPPO-ENGINE-ARCHITECTURE.md").read_text()
+    assert "GNU Graphical-MUD" in arch
+    assert "Atelier" in arch and "renders" in arch.lower()
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

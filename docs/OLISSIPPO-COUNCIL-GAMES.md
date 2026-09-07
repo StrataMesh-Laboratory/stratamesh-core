@@ -109,3 +109,7 @@ Normative: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.
 
 Ship: **8A** foundation · **8B** runtime bag (`events[]`, `law_version`, lots) · **8C–8E** deferred (full Bandua UI, claim modifiers, craft DAG depth / chain attest).
 
+## GNU Graphical-MUD
+
+Peer engine for rooms/presence/stage — not a sixth mini-game and not UI-only. Normative: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md).
+

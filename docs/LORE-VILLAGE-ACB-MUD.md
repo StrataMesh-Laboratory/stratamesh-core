@@ -290,3 +290,7 @@ Quay barter, siege vs raid, craft lore, guest-right tribute, hill claims, foster
 
 Architecture: [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md). Event pipeline + verb registry + lots; runtime stamps `law_version` / `events[]`. ACB ≠ NFT; Objects = STRATA.
 
+### GNU Graphical-MUD state logic
+
+Architectural spatial engine (Lattice/Evennia patterns). Atelier/Bancada render only. See [`OLISSIPPO-ENGINE-ARCHITECTURE.md`](./OLISSIPPO-ENGINE-ARCHITECTURE.md) §1b.
+

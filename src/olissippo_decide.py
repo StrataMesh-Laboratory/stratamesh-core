@@ -16,6 +16,7 @@ from typing import Any, Callable
 
 import olissippo_boutius as bb
 import olissippo_council_runtime as cr
+import olissippo_mud_state as mud
 import olissippo_memory as mem
 import olissippo_world as ow
 
@@ -42,6 +43,7 @@ def perception(state: dict[str, Any]) -> dict[str, Any]:
         "activity_hint": bb.activity_at(int(state.get("minute", 0)))[0],
         "offering_here": any(o.get("template") == "offering" for o in ow.objects_at(loc)),
         "council": cr.perception_council(state),
+        "mud": mud.stage_snapshot(loc, [state]),
     }
 
 

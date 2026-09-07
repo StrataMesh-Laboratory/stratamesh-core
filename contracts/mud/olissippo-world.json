@@ -340,7 +340,8 @@
     "7e": "lore_economics_equiv_main_stakes",
     "8": "council_castro_decide_wire_strata_objects",
     "8a": "five_engines_event_pipeline_verb_registry",
-    "8b": "runtime_events_lots_law_version_ci"
+    "8b": "runtime_events_lots_law_version_ci",
+    "8f": "gnu_graphical_mud_state_logic_peer"
   },
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
@@ -417,7 +418,8 @@
       "kinship",
       "settlement",
       "market"
-    ]
+    ],
+    "graphical_mud": "gnu_graphical_mud"
   },
   "actions_council": [
     "castro_tick_production",
@@ -440,5 +442,23 @@
     "close_season",
     "tick_production",
     "plant_castro"
-  ]
+  ],
+  "graphical_mud": {
+    "engine": "gnu_graphical_mud",
+    "patterns": [
+      "lattice_mud",
+      "evennia"
+    ],
+    "stage_renderers": [
+      "gnu_atelier",
+      "bancada"
+    ],
+    "source_of_truth": "server",
+    "module": "src/olissippo_mud_state.py",
+    "docs": [
+      "docs/OLISSIPPO-ENGINE-ARCHITECTURE.md",
+      "docs/MUD-WORLD-FOG-TABLES.md"
+    ],
+    "note": "Architectural peer to five strategic engines; Atelier renders only."
+  }
 }

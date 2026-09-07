@@ -3,13 +3,13 @@
 **Realm:** `lore-olissippo-lusitanian` · **not_main** (host identity) · **Lore ≡ main STRATA stakes**  
 **Hard ontology:** All Objects are STRATA NFTs / lots. ACB Subjects ≠ NFTs. Subjects hold title; they never become `object_id`.
 
-This is **five composing engines** on Subjects / Objects / Edges / Events / finite verbs — **not five mini-games**.
+This is **six composing engines** (five strategic + **GNU Graphical-MUD state logic**) on Subjects / Objects / Edges / Events / finite verbs — **not mini-games glued to a renderer**.
 
 Normative pointers: [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md) · [`LORE-VILLAGE-ACB-MUD.md`](./LORE-VILLAGE-ACB-MUD.md) · [`SUBJECT-OBJECT-ECONOMY.md`](./SUBJECT-OBJECT-ECONOMY.md) · [`STRATA_NFT_ONTOLOGY.md`](./STRATA_NFT_ONTOLOGY.md).
 
 ---
 
-## 1. Five engines (composition, not silos)
+## 1. Engines (composition, not silos)
 
 | Engine | Inspiration (mechanics only) | Olissippo name | Composes |
 |--------|------------------------------|----------------|----------|
@@ -18,10 +18,41 @@ Normative pointers: [`OLISSIPPO-COUNCIL-GAMES.md`](./OLISSIPPO-COUNCIL-GAMES.md)
 | **Kinship / claims** | Crusader Kings | Hill stirps + claims | SubjectEdges + Claim records (having ≠ pressing) |
 | **Settlement / economy** | Travian / FoE | Castro hearth | resource-processing graph; STRATA lots first-class |
 | **Market / craft / progression** | FoE | Quay barter + craft lore | `exchange()`, craft DAG, landmarks as anchors |
+| **GNU Graphical-MUD state logic** | Lattice MUD + Evennia patterns | Spatial presence / rooms / stage | location graph, contents, move/inspect; Atelier/Bancada **renders only** |
 
 Cross-system loops are the product: kinship → claims → Bandua → settlement loot → law → kinship.
 
 ---
+
+
+## 1b. GNU Graphical-MUD state logic (architectural — not UI chrome)
+
+First-class peer to the five strategic engines. Patterns: **Lattice MUD shape** + **Evennia-style** rooms/exits/contents — adapted to STRATA ontology. See also [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md).
+
+**Owns (source of truth):**
+- location / room graph + adjacency (`olissippo-world.json` / `olissippo_world.py`)
+- Subject presence (`location_id` on ACB state — Subject ≠ Object)
+- Object contents at locations (STRATA `object_id` seeds / lots / castro anchors)
+- server-authoritative `move` · `inspect` · venue enter (quay / market / grove / smithy)
+- stage-facing world snapshot the **GNU Atelier / Bancada** WebGL view consumes
+
+**Does not own:**
+- NFT mint policy, Agora settlement, or chain attestation (sim first)
+- strategic adjudication / law / kinship / production math (those engines emit Events; MUD applies spatial consequences)
+
+**Stack:**
+
+```
+Atelier / Bancada stage          ← view only
+        ↑ renders
+GNU Graphical-MUD state logic    ← spatial presence / rooms / contents
+        ↔ Events / finite verbs
+Five strategic engines           ← Bandua · Grove · stirps · castro · quay/craft
+        ↓
+Subjects · STRATA Objects · Edges · Events · finite verbs
+```
+
+Module: `src/olissippo_mud_state.py` · stamp: `world.graphical_mud`.
 
 ## 2. Event-producing state transition pipeline (hard rule)
 
@@ -51,7 +82,7 @@ collect orders (submit_order) → close_season → resolve_season (PURE) → app
 - `apply_resolution(bag, resolution)` writes unit positions / annex / escort outcomes and appends Events.
 - **Escort** is generalized (`escort`); `river_escort` is the Tagus lore instance (chain validation from diplomacy contract).
 
-Ship order for adjudication: **8A** foundation (schema + verbs + pure season) → later 8C full multi-power UI.
+Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · adjudication: **8A** (schema + verbs + pure season) → later 8C full multi-power UI.
 
 ---
 
