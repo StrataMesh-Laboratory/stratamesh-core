@@ -172,3 +172,69 @@ The vision is that both remain true at once.
 
 *StrataMesh Laboratory · Lusitania / Olissippo · Player vision briefing (EN)*  
 *PT: ACB = SCA · Bancada = workbench · Estação de Bandua · Lei do Bosque · Estirpes do outeiro · Ciclo do castro*
+
+
+---
+
+## Part VI — The playable unit is the stirps (design doctrine)
+
+Lusitania is not “a character game with historical wallpaper.” The **playable unit is the dynasty / stirps**. The living person is only the **current bearer**.
+
+### Objective
+
+Not “don’t die.”  
+**Make sure your house survives you.**
+
+Death is not automatically failure. **Unprepared death** is failure.
+
+```
+                    STIRPS
+                      │
+          ┌───────────┴───────────┐
+       CURRENT                  FUTURE
+       PERSON                  PERSONS
+          │                       │
+       life                    succession
+          │                       │
+       death ────────────────► heir  →  dynasty continues
+                                  │
+                           (no valid heir)
+                                  │
+                                  ▼
+                             EXTINCTION → game over / restart
+```
+
+### Time
+
+**1 real day ≈ 1 in-world month.** The civilisation does not politely wait. Ages, rivals, laws, and assets keep moving. Inactivity is meaningful; preparedness should matter more than constant attention (absentee / delegated authority must be designed carefully so the calendar is not merely punitive).
+
+### Succession as gameplay
+
+Each dynasty may set and amend its own succession constitution (primogeniture-like eldest, youngest, designated, elective, custom — via Grove Lex / Nomic). Ancestors leave **institutional rules**, not only descendants. Constitutional history accumulates across generations; seasons leave **reasons**.
+
+### Continuity as the ultimate resource
+
+Wealth → power → legitimacy → succession → **continuity**.  
+A moderately wealthy house with clear heirs and stable law can outrank a richer house with no successor. Prestige trends toward **oldest surviving lineage**, not highest avatar level.
+
+### On death
+
+If succession succeeds, the player continues the **historical process** as the heir: property, titles, obligations, enemies, laws, reputation — but a new life and agency. If not: **end of line**.
+
+### Why Lusitania ≠ Main Open World
+
+| CMN Main Open World | Lusitania |
+|---------------------|-----------|
+| Creation and participation | Mortality and inheritance |
+| What can you create? | **What survives you?** |
+
+### Heterogeneous lineages
+
+ACBs (EN) / SCAs (PT) are Subjects. Houses may include human and ACB-associated lines under the same dignity rules — institutions of heterogeneous agents, not only a blood-sim cosplay.
+
+### Killer loop (compressed)
+
+Birth → grow → build house (economy + politics) → marriage / descendants → succession law → dynasty grows → age → death → **success (heir / next life)** or **failure (extinction / restart)** → history remains either way.
+
+Every cycle should leave something behind: law, assets, relationships, descendants, memory.
+

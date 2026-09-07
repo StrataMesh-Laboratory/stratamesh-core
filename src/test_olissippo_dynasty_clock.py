@@ -93,6 +93,33 @@ def test_acb_en_sca_pt_label():
     assert st["player_dynasties"]["dyn-x"]["owner_kind"] == "acb"
 
 
+
+def test_extinction_is_game_over():
+    """No valid heir → dynasty extinction / game over (playable unit = stirps)."""
+    st = kin.new_state()
+    dc.ensure_player_dynasty(st, "dyn-lonely", owner_subject_id="acb-boutius-001", owner_kind="acb")
+    # sole person as head, no children — force death
+    lonely = "kin-oli-smith"
+    st["persons"][lonely]["age_months"] = 70 * 12 - 1
+    st["persons"][lonely]["parent_ids"] = []
+    # clear any accidental kids refs
+    for pid, pers in list(st["persons"].items()):
+        if lonely in (pers.get("parent_ids") or []):
+            pers["parent_ids"] = [p for p in pers["parent_ids"] if p != lonely]
+    assert dc.set_dynasty_head(st, "dyn-lonely", lonely)["ok"]
+    # remove holdings that would auto-succeed to others for this person if any
+    r = dc.advance_game_month(st, 1, max_age_months=70 * 12)
+    assert lonely in r["deaths"]
+    assert "dyn-lonely" in r.get("game_over_dynasties", [])
+    assert st["player_dynasties"]["dyn-lonely"].get("extinct") is True
+
+
+def test_playable_unit_doctrine_docs():
+    doc = (ROOT / "docs/LUSITANIA-DYNASTY-PLAYABLE-UNIT.md").read_text()
+    assert "playable unit" in doc.lower() or "Playable unit" in doc
+    assert "extinction" in doc.lower()
+    assert "stirps" in doc.lower()
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):

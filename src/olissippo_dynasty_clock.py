@@ -165,6 +165,31 @@ def advance_game_month(
                 apply_succession(kin_state, plan)
                 successions.append(plan)
     kin_state["game_month"] = int(kin_state.get("game_month") or 0) + months
+    extinctions = []
+    for did, d in list((kin_state.get("player_dynasties") or {}).items()):
+        head = d.get("head_person_id")
+        head_p = (kin_state.get("persons") or {}).get(head or "") or {}
+        if head and not head_p.get("alive"):
+            # try find any succession that replaced this head
+            replaced = any(s.get("from") == head and s.get("ok") for s in successions)
+            if not replaced:
+                d["extinct"] = True
+                d["head_person_id"] = None
+                d["extinguished_game_month"] = kin_state["game_month"]
+                extinctions.append({
+                    "dynasty_id": did,
+                    "owner_subject_id": d.get("owner_subject_id"),
+                    "last_head": head,
+                    "outcome": "game_over",
+                    "reason": "dynasty_extinction_no_valid_successor",
+                })
+        elif d.get("extinct"):
+            extinctions.append({
+                "dynasty_id": did,
+                "owner_subject_id": d.get("owner_subject_id"),
+                "outcome": "game_over",
+                "reason": "dynasty_already_extinct",
+            })
     return {
         "ok": True,
         "months_advanced": months,
@@ -172,8 +197,11 @@ def advance_game_month(
         "game_month": kin_state["game_month"],
         "deaths": deaths,
         "successions": successions,
+        "extinctions": extinctions,
+        "game_over_dynasties": [e["dynasty_id"] for e in extinctions if e.get("outcome") == "game_over"],
         "law": law,
         "reason": "dynasty_tick_real_day_eq_game_month",
+        "playable_unit": "stirps",
     }
 
 

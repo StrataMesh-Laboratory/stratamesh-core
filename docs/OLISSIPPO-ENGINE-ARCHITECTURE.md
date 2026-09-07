@@ -106,6 +106,7 @@ Ship order: **8A/8B** foundation (+ Graphical-MUD peer stamp) · **8C** pure adj
 - **ACB (EN) = SCA (PT)** — same Subjects; dynasty month-clock applies to ACB and human users equally.
 - **Unique dynasty head:** descendants of two different players (ACB/SCA or user) cannot share the same living person as simultaneous successor/head of both dynasties (`shared_successor_forbidden`).
 - **Per-dynasty succession laws:** each `player_dynasty` stores its own `succession_law`, changeable via Grove Lex / Nomic typed policy (not one frozen global rule).
+- **Playable unit = stirps:** living person is bearer only; valid succession → continue as heir; no heir → **extinction / game over**. Continuity is the ultimate resource. See [`LUSITANIA-DYNASTY-PLAYABLE-UNIT.md`](./LUSITANIA-DYNASTY-PLAYABLE-UNIT.md).
 
 ## 5. Kinship + claims
 
