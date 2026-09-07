@@ -130,3 +130,14 @@ With `oracle_fallback=true` and `MDB_active=true` (Mac MariaDB `fog_cmn` :3307):
 
 Ensure script now loads `fog-mysql.env` and uses `defaults-extra-file` (MariaDB 12). Re-prove after André aligns vault password with the live `grok` MariaDB user (or rotates both).
 
+
+## Prove log — 2026-09-07 noon (PASS)
+
+| Check | Result |
+| --- | --- |
+| Auth  | **PASS** (vault  rotated + aligned; André authorized) |
+|  | **OK** schema ensured |
+|  tables | 9 |
+|  | **false** |
+| Meter |  →  |
+
