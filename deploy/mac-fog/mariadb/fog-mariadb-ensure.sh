@@ -91,9 +91,20 @@ if [[ -z "$MYSQL_BIN" ]]; then
 fi
 
 _load_secrets_env || true
+# Optional DSN fragments (host/port/user/db) — never echo
+for _envf in "${CFG_SM}/fog-mysql.env" "${CFG_SG}/fog-mysql.env"; do
+  if [[ -f "$_envf" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$_envf" >/dev/null 2>&1 || true
+    set +a
+    break
+  fi
+done
+unset _envf
 
 HOST="${FOG_MYSQL_HOST:-127.0.0.1}"
-PORT="${FOG_MYSQL_PORT:-3306}"
+PORT="${FOG_MYSQL_PORT:-3307}"
 USER="${FOG_MYSQL_USER:-grok}"
 DB="${FOG_MYSQL_DB:-fog_cmn}"
 STAFF_GROK_PASSWORD="${STAFF_GROK_PASSWORD:-}"
@@ -125,18 +136,27 @@ if [[ -z "${STAFF_GROK_PASSWORD}" ]]; then
   STAFF_GROK_PASSWORD="$(_load_pw || true)"
 fi
 
-export MYSQL_PWD="${STAFF_GROK_PASSWORD:-}"
-if ! "$MYSQL_BIN" -h "$HOST" -P "$PORT" -u "$USER" "$DB" -e "SELECT 1" >/dev/null 2>&1; then
-  unset MYSQL_PWD
-  log "SOFT-FAIL cannot connect as ${USER}@${HOST}:${PORT}/${DB} — schema not applied (SQLite remains default)"
+# MariaDB 12 client: prefer defaults-extra-file over MYSQL_PWD (often ignored → false "passwordless").
+_CNF="$(mktemp "${TMPDIR:-/tmp}/fog-mysql-XXXXXX.cnf")"
+chmod 600 "$_CNF"
+cleanup_cnf() { rm -f "$_CNF"; }
+trap cleanup_cnf EXIT
+{
+  printf '[client]\n'
+  printf 'host=%s\n' "$HOST"
+  printf 'port=%s\n' "$PORT"
+  printf 'user=%s\n' "$USER"
+  printf 'password=%s\n' "${STAFF_GROK_PASSWORD:-}"
+} >"$_CNF"
+
+if ! "$MYSQL_BIN" --defaults-extra-file="$_CNF" "$DB" -e "SELECT 1" >/dev/null 2>&1; then
+  log "SOFT-FAIL cannot connect as ${USER}@${HOST}:${PORT}/${DB} — schema not applied (SQLite remains default); check vault password vs MariaDB grok user"
   exit 0
 fi
 
-if ! "$MYSQL_BIN" -h "$HOST" -P "$PORT" -u "$USER" "$DB" <"$SQL" >/dev/null 2>&1; then
-  unset MYSQL_PWD
+if ! "$MYSQL_BIN" --defaults-extra-file="$_CNF" "$DB" <"$SQL" >/dev/null 2>&1; then
   log "SOFT-FAIL schema apply failed — leaving existing DB untouched"
   exit 0
 fi
-unset MYSQL_PWD
 log "OK fog_cmn schema ensured (exclusive-off ready when FOG_MYSQL_URL set)"
 exit 0

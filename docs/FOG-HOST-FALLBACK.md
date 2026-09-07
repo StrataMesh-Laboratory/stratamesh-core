@@ -116,3 +116,17 @@ With `oracle_fallback=true` and `MDB_active=true` (Mac MariaDB `fog_cmn` :3307):
 - M-II stays `hold_until: distinct_second_host` (not MariaDB alone).
 - `oracle_live` stays **false** (mint/STRATA economic).
 - Oracle Support chase remains OPTIONAL Plan — not an Act blocker.
+
+## Prove log — 2026-09-07 (STRATAGROK)
+
+| Check | Result |
+| --- | --- |
+| `mariadbd` listen | `127.0.0.1:3307` (not 3306) |
+| `source ~/.config/stratamesh/load-fog-mysql.sh` | sets host/port/db + `STAFF_GROK_PASSWORD` from vault |
+| Auth as `grok@127.0.0.1:3307` | **HOLD** — `ERROR 1045` with vault password (YES); do not reset DB password unsupervised |
+| Meter | `FOG/data/desk-meters/fog-host-fallback.json` → `ok: HOLD` |
+| Homelab inventory | `homelab-inventory.json` → `ok: HOLD` (Pi/GCP still human gates) |
+| `oracle_live` | stays **false** |
+
+Ensure script now loads `fog-mysql.env` and uses `defaults-extra-file` (MariaDB 12). Re-prove after André aligns vault password with the live `grok` MariaDB user (or rotates both).
+
