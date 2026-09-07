@@ -14,6 +14,9 @@ RETIRED on 2026.9.1 (doctor rejects / strips — never write these):
   - agents.defaults.llm / idleTimeoutSeconds
   - agents.defaults.toolCallTimeoutSeconds
 
+Desk8k weak-model pin:
+  - tools.toolSearch = false  (opt out of lean auto Tool Search; expose write/exec directly)
+
 No secrets written. Backs up openclaw.json before mutate.
 Exit 0 if already applied or successfully patched; 1 on hard failure.
 """
@@ -58,6 +61,9 @@ def _needed(d: dict) -> list[str]:
     bu = str(prov.get("baseUrl") or "")
     if bu.endswith("/v1") or "/v1/" in bu:
         reasons.append("ollama.baseUrl_has_/v1")
+    tools = d.get("tools") or {}
+    if tools.get("toolSearch") is not False:
+        reasons.append("toolSearch!=false")
     return reasons
 
 
@@ -94,6 +100,8 @@ def apply(d: dict) -> list[str]:
     elif "/v1/" in bu:
         bu = bu.replace("/v1/", "/")
     ollama["baseUrl"] = bu or "http://127.0.0.1:11434"
+    tools = d.setdefault("tools", {})
+    tools["toolSearch"] = False
     return changed
 
 
@@ -134,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
             print("NEED", ",".join(need))
             return 1
         print(
-            "OK turn=%s ollama.timeout>=%s primary=%s lean=true no-retired-llm"
+            "OK turn=%s ollama.timeout>=%s primary=%s lean=true toolSearch=false no-retired-llm"
             % (TURN, TURN, PRIMARY)
         )
         return 0

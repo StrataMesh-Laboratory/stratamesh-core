@@ -20,7 +20,8 @@ Symptom: catalog/tool-search then hang or exit timeout while direct `ollama` / `
 | --- | --- | --- |
 | `models.providers.ollama.timeoutSeconds` | `900` | Provider HTTP **and** model stream idle watchdog on 2026.9.x ([#77744](https://github.com/openclaw/openclaw/issues/77744) / [#83979](https://github.com/openclaw/openclaw/pull/83979); [docs/providers/ollama](https://docs.openclaw.ai/providers/ollama.md)) |
 | `agents.defaults.timeoutSeconds` | `900` | Overall agent turn / CLI `--timeout` |
-| `experimental.localModelLean` | `true` | Smaller tool surface; structured Tool Search when `tools.toolSearch` unset |
+| `experimental.localModelLean` | `true` | Smaller tool surface |
+| `tools.toolSearch` | `false` | Desk8k: opt out of lean auto Tool Search so `write`/`exec` schemas are direct (weak models fail `tool_call` bridge) |
 | `baseUrl` | `http://127.0.0.1:11434` (**no `/v1`**) | Native tools; `/v1` breaks tool calling |
 
 ### Retired keys (do not write)

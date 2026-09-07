@@ -45,6 +45,7 @@ class EnsureDesk8kTimeouts(unittest.TestCase):
                     }
                 }
             },
+            "tools": {"toolSearch": False},
         }
 
     def test_strips_retired_llm_and_toolcall(self):
@@ -58,6 +59,7 @@ class EnsureDesk8kTimeouts(unittest.TestCase):
         self.assertNotIn("llm", ad)
         self.assertNotIn("toolCallTimeoutSeconds", ad)
         self.assertEqual(self.mod._needed(d), [])
+        self.assertIs(d.get("tools", {}).get("toolSearch"), False)
 
     def test_strips_v1_baseurl(self):
         d = {
