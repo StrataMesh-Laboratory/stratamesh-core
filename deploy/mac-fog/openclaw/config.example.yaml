@@ -1,6 +1,13 @@
-# Openclaw FOG external_agent — example terminal/Ollama setup
+# Openclaw FOG external_agent — example desk8k / Ollama setup
 # NOT an SCA. No secrets in this file — vault PATHS only.
 # BOTH shared Maildir/SnappyMail AND this per-agent mail: block.
+#
+# Docs-forums path (timeout after tool-search on 8GB):
+#   providers.ollama.timeoutSeconds=900
+#   models.providers.ollama.timeoutSeconds=900  (HTTP + idle watchdog on 2026.9.x)
+#   --local-model-lean --code-mode direct; serialize vs Hermes/OpenCode
+#   native baseUrl without /v1 (tools break on OpenAI-compat)
+# Apply: python3 deploy/mac-fog/openclaw/ensure-desk8k-timeouts.py
 
 agent:
   name: openclaw-fog
@@ -11,8 +18,11 @@ agent:
 
 model:
   provider: ollama
-  base_url: http://127.0.0.1:11434/v1
-  name: llava:latest
+  # Native Ollama API — do NOT append /v1 (breaks tool calling)
+  base_url: http://127.0.0.1:11434
+  name: qwen2.5:3b-desk8k
+  timeout_seconds: 900
+  # idleTimeoutSeconds retired on 2026.9.1 — use providers.ollama.timeoutSeconds
 
 fog:
   health: http://127.0.0.1:8787/health
@@ -45,4 +55,3 @@ mail:
     - secrets_in_git_or_chat
     - eni_geral_mix
     - gmail
-

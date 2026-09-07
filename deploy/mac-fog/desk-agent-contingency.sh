@@ -46,6 +46,10 @@ status_all() {
 }
 
 ensure_openclaw() {
+  # Docs-forums desk8k pins (idle watchdog + turn/provider timeouts) — idempotent.
+  if [[ -f "$REPO/deploy/mac-fog/openclaw/ensure-desk8k-timeouts.py" ]]; then
+    python3 "$REPO/deploy/mac-fog/openclaw/ensure-desk8k-timeouts.py" || true
+  fi
   if openclaw_live; then echo "OpenClaw already live"; return 0; fi
   python3 - <<'EPY'
 import json,shutil,time

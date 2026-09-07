@@ -4,7 +4,7 @@ JSON samples agents or operators write (0600). Consumed by `desk_metabol.py tick
 
 | File | Shape |
 |------|--------|
-| `openclaw.json` | `{"tokens_used":2100,"tokens_limit":33000,"model":"llava:latest"}` |
+| `openclaw.json` | `{"tokens_used":2100,"tokens_limit":33000,"model":"ollama/qwen2.5:3b-desk8k"}` |
 | `hermes.json` | `{"context_length":65536,"tokens_used":12000,"model":"qwen2.5:7b"}` |
 | `bot.json` | `{"unknown_remaining":true}` or `{"remaining_frac":0.2}` |
 | `assistant.json` | `{"remaining_frac":0.96,"reset_iso":"2026-09-07T14:55:00+01:00"}` |

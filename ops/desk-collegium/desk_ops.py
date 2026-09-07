@@ -611,13 +611,15 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
     prompt = (
         f"Desk collegium claw task {tid}. Intent: {intent}\n"
         "Do real work with tools in the Fog repo. Report concrete evidence.\n"
+        "Filesystem tools are restricted to this cwd — write only under the repo "
+        "(prefer status/ or deploy/). Outside paths are blocked.\n"
         f"Repo: {REPO_ROOT}\n"
     )
     # 8GB Fog: one Ollama slot — claw tools use qwen desk8k; llama1b light-only (RCA 2026-09-06)
     model = "ollama/qwen2.5:3b-desk8k"
     fallback = "ollama/qwen2.5:3b"
-    # CLI default 600; lean 8GB Mac needs headroom (was 300 → embedded hang/timeout spam)
-    timeout_s = 180 if str(tid).startswith("audit-") else 600
+    # CLI default 600; desk8k idle+turn pins use 900 (docs #62732 + providers.ollama.timeoutSeconds)
+    timeout_s = 180 if str(tid).startswith("audit-") else 900
     env = _agent_path_env()
 
     def _run_exec(mdl: str) -> subprocess.CompletedProcess:

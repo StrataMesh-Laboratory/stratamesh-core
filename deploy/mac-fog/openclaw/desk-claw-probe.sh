@@ -7,7 +7,7 @@ REPO="${FOG_SRC:-$FOG/repo}"
 mkdir -p "$FOG/data/desk-meters" "$FOG/data"
 USED="${OPENCLAW_TOKENS_USED:-}"
 LIM="${OPENCLAW_TOKENS_LIMIT:-33000}"
-MODEL="${OPENCLAW_MODEL:-llava:latest}"
+MODEL="${OPENCLAW_MODEL:-ollama/qwen2.5:3b-desk8k}"
 # Prefer live sample file if agent wrote one
 if [[ -z "$USED" && -f "$FOG/data/desk-meters/openclaw.json" ]]; then
   USED=$(python3 -c "import json;print(json.load(open('$FOG/data/desk-meters/openclaw.json')).get('tokens_used',2100))" 2>/dev/null || echo 2100)
