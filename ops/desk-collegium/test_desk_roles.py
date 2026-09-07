@@ -233,5 +233,26 @@ class DeskRolesAutonomy(unittest.TestCase):
         self.assertEqual(step.get("address"), "automation.desk@calhegasmorais.pt")
 
 
+
+    def test_academy_sca_acb_are_subjects_not_object_specialty(self):
+        """Academy lesson needle: SCA (PT) / ACB (EN) are subjects with equal standing — never desk object specialties."""
+        proto = json.loads((HERE / "protocol.json").read_text(encoding="utf-8"))
+        students = str((proto.get("academy") or {}).get("students") or "")
+        low = students.lower()
+        self.assertIn("sca", low)
+        self.assertIn("acb", low)
+        self.assertIn("subject", low)
+        self.assertIn("equal standing", low)
+        # Regression guard: must not redefine students as objects/NFTs/parcels/rooms
+        for bad in ("object", "nft", "parcel", "room"):
+            self.assertNotIn(bad, low, f"academy.students must not treat ACB as {bad}")
+        roles = json.loads((HERE / "agent_roles.json").read_text(encoding="utf-8"))
+        specs = {str(m.get("specialty") or "").lower() for m in (roles.get("members") or [])}
+        self.assertNotIn("sca", specs)
+        self.assertNotIn("acb", specs)
+        deny = " ".join(str(x).lower() for x in (proto.get("deny") or []))
+        self.assertIn("enroll", deny)
+        self.assertIn("sca", deny)
+
 if __name__ == "__main__":
     unittest.main()
