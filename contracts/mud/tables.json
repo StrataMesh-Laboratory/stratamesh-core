@@ -194,7 +194,8 @@
         "contract_id": "string",
         "custody": "string?",
         "asset_class": "enum:virtual|financial|physical|n/a?",
-        "cold_storage_binds_validity": "bool?"
+        "cold_storage_binds_validity": "bool?",
+        "rules_cid": "string?"
       },
       "rules": [
         "Contracts are ordinary rules/title/SPA records \u2014 not a special ontology species",
@@ -208,7 +209,8 @@
         "spa_aps is the execution-contract path (static/dynamic/terminated) \u2014 same C vs P_market rules",
         "cold_storage_binds_validity gates token validity via international custodianship \u2014 does not mint C or redefine P_market",
         "holder_subject_id is a Subject account \u2014 never Fog NODE_WALLET as citizen",
-        "Macro UX templates do not create new Object.kind values"
+        "Macro UX templates do not create new Object.kind values",
+        "Contract encompasses smart-contract rules of the bound NFT: state=static stores the standard contract (rules_cid); state=dynamic executes those rules on the Object and burns C above floor; still optional; still not the Object; still not an aspect"
       ],
       "aliases": [
         "Contrato"
