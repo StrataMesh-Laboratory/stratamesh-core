@@ -73,7 +73,8 @@
         "UX template (furniture|exec_contract|deed_*|other|\u2026) is optional metadata \u2014 never a substitute for kind and never invents kind=deed",
         "computable economic object: object_id+cid+owner_subject_id+kind+execution state coupled at Object; static persist reserves C; dynamic transition burns C above floor ON the Object; Contract is optional relationship not the Object; not LAND-style scarce-property-only NFT",
         "terminated names the end of a dynamic execution episode when C cannot fund Contract rules (lack of STRATA); Object remains/returns static \u2014 not a third parked Object state; dynamic again only after C is sufficient",
-        "static\u2194dynamic reversible while remaining C can fund the next dynamic episode required by Contract rules"
+        "static\u2194dynamic reversible while remaining C can fund the next dynamic episode required by Contract rules",
+        "Agora sale of collateralised fungible STRATA transfers the proportional OwnershipFraction of the bound NFT; clearing is P_market in STRATA regardless of collateral quantity represented (P_market \u2260 C\u00d7fraction)"
       ]
     },
     "Parcel": {
@@ -142,7 +143,8 @@
         "Ownership of NFT = subjects that own the collateralised STRATA of that NFT",
         "Agora may sell this ownership portion at P_market in fungible STRATA",
         "P_market is not the collateral value that the ownership portion represents",
-        "Redeem when P_market < C is distinct from an Agora ownership trade"
+        "Redeem when P_market < C is distinct from an Agora ownership trade",
+        "Agora sale of collateralised fungible STRATA transfers the proportional OwnershipFraction of the bound NFT; clearing is P_market in STRATA regardless of collateral quantity represented (P_market \u2260 C\u00d7fraction)"
       ]
     },
     "Collateral": {
@@ -159,7 +161,8 @@
         "static: collateral reserves (floor reserved)",
         "dynamic: NFT burns its own mechanisms \u2014 burn C above floor for execution",
         "terminated: residual to titulares",
-        "C is inside the NFT \u2014 not subject dashboard Balance and not Agora P_market"
+        "C is inside the NFT \u2014 not subject dashboard Balance and not Agora P_market",
+        "Agora sale of collateralised fungible STRATA transfers the proportional OwnershipFraction of the bound NFT; clearing is P_market in STRATA regardless of collateral quantity represented (P_market \u2260 C\u00d7fraction)"
       ]
     },
     "AspectEdge": {
