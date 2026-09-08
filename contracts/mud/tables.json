@@ -70,7 +70,8 @@
         "SCA/ACB must not appear in this table",
         "Optional Bundle: may contain child object_ids as aspects (e.g. desk\u2192drawers); all categories; children stay full NFTs",
         "Macro templates are open: beyond stage props, object may be execution contract or ownership deed (virtual/financial/physical) under international custodianship; cold storage may bind token validity",
-        "UX template (furniture|exec_contract|deed_*|other|\u2026) is optional metadata \u2014 never a substitute for kind and never invents kind=deed"
+        "UX template (furniture|exec_contract|deed_*|other|\u2026) is optional metadata \u2014 never a substitute for kind and never invents kind=deed",
+        "computable economic object: object_id+cid+owner_subject_id+kind+execution state coupled at Object; static persist reserves C; dynamic transition burns C above floor ON the Object; Contract is optional relationship not the Object; not LAND-style scarce-property-only NFT"
       ]
     },
     "Parcel": {
