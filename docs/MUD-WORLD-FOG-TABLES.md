@@ -120,6 +120,23 @@ ERC-1155 scaffolds may mirror lots; they still must not mint land or Subjects.
 
 ## Contract
 
+## Contract as rules of the NFT (smart contract, 2026-09-07)
+
+`Contract` is not only a legal wrapper. It also **is** the NFT’s rule-machine — a smart contract in the ordinary sense:
+
+| `state` | What the Contract holds |
+|---------|-------------------------|
+| `static` | Stores the **standard contract** (rules text / schema / bytecode CID). No execution spend. Floor C reserved. |
+| `dynamic` | Those rules **run on the Object**. Burns C above the floor. Spend = the transition. |
+| `terminated` | Rules no longer fire. Residual C to titulares. |
+
+Still optional: an Object may exist with `has_contract_block=false` (CID-only or titled later).  
+Still not the Object: computation acts on the Object; the Contract is the bound rules + legal relationship.  
+Still not an aspect: aspects are child Objects.
+
+`kind` stays `ownership_title` | `spa_aps` | `other`. The smart-contract body (`rules_cid`) may sit on any of them. `spa_aps` is the usual live execution path; a static `ownership_title` may store a standard deed without running.
+
+
 | `kind` | Meaning |
 |--------|---------|
 | `ownership_title` | Tradable title — parcel/bundle **or** ownership **deed** over virtual / financial / physical underlying |
