@@ -4,6 +4,8 @@ Fog Assistant consolidation while STRATAGROK is away. Lab. `oracle_live=false`.
 
 This page is the **index**. Do not fork a second ontology.
 
+**Object rule (2026-09-07):** the STRATA NFT is the computable economic unit — static persist reserves collateral; dynamic state change burns C on the Object. Contract is optional. Not LAND. See [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md).
+
 ## Live (Pages)
 
 | URL | HTTP | What |
