@@ -85,7 +85,8 @@ Coupled at the Object layer (do not split across an external runtime and call th
 | Economic execution state | optional StateMachine `static` \| `dynamic` \| `terminated` + Collateral **C** |
 
 - **Static** persist: the Object may remain dormant without consuming resources. Floor collateral (e.g. 0.1 STRATA) stays **reserved**.
-- **Dynamic** transition: executed **against the Object**. Burns embedded fungible STRATA collateral above the floor. Resource expenditure is **intrinsic to state change**, not an external payment attached to an inert NFT.
+- **Dynamic** episode: executed **against the Object**. Burns C above the floor while rules run. Spend is intrinsic to the episode, not an external fee on an inert NFT.
+- **Reversible:** `static` ↔ `dynamic` may repeat indefinitely while remaining C can fund the next dynamic episode the Contract rules require. Returning to static does **not** terminate the Object.
 - **Contract** blocks remain optional legal / execution *relationships*. They are not the Object.
 - GNU Atelier renders the Object; it is not the economic locus.
 
@@ -127,8 +128,8 @@ ERC-1155 scaffolds may mirror lots; they still must not mint land or Subjects.
 | `state` | What the Contract holds |
 |---------|-------------------------|
 | `static` | Stores the **standard contract** (rules text / schema / bytecode CID). No execution spend. Floor C reserved. |
-| `dynamic` | Those rules **run on the Object**. Burns C above the floor. Spend = the transition. |
-| `terminated` | Rules no longer fire. Residual C to titulares. |
+| `dynamic` | Those rules **run on the Object**. Burns C above the floor for the episode. |
+| `terminated` | Optional end only. Not implied by leaving dynamic. static↔dynamic may repeat. |
 
 Still optional: an Object may exist with `has_contract_block=false` (CID-only or titled later).  
 Still not the Object: computation acts on the Object; the Contract is the bound rules + legal relationship.  
@@ -202,9 +203,9 @@ Subjects own the NFT by owning **fractions of its collateralised STRATA** (not b
 
 | State | Collateral behaviour |
 |-------|----------------------|
-| `static` | **Reserve** — dormancy; floor (e.g. 0.1) reserved |
-| `dynamic` | **Burn** above floor to fund the NFT’s own execution mechanisms |
-| `terminated` | Residual to titulares / complete |
+| `static` | **Reserve** — dormancy; floor reserved. May return here after dynamic. |
+| `dynamic` | **Burn** above floor while this episode runs. May return to static. |
+| `terminated` | Optional end — residual to titulares. Not automatic after dynamic. |
 
 C lives **in** the NFT. Subject dashboard Balance is separate fungible STRATA.
 
