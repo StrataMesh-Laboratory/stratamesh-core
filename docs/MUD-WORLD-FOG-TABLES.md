@@ -70,6 +70,30 @@ Subject ──catalog Lot──► trade-lot rows (not NFTs)
 5. Bundles: objects-inside-object (aspects); no cycles; children keep their own `object_id`.
 6. Macro templates are open (execution / deed / other) — they do **not** add `Object.kind` values; deeds & execution stay Objects ([`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md)).
 
+## Computable economic Object (normative 2026-09-07)
+
+A STRATA NFT is **itself** a computable economic object. `object_id` identifies not merely a tokenised asset but a persistent, state-bearing unit of the MUD world.
+
+Coupled at the Object layer (do not split across an external runtime and call that “the NFT”):
+
+| Coupled | Field / tank |
+|---------|----------------|
+| Identity | `object_id` |
+| Content | `cid` (CID-only persist still legal; NFT without CID illegal) |
+| Ownership | `owner_subject_id` + OwnershipFraction |
+| Semantic kind | `kind` ∈ object\|room\|parcel\|bundle |
+| Economic execution state | optional StateMachine `static` \| `dynamic` \| `terminated` + Collateral **C** |
+
+- **Static** persist: the Object may remain dormant without consuming resources. Floor collateral (e.g. 0.1 STRATA) stays **reserved**.
+- **Dynamic** transition: executed **against the Object**. Burns embedded fungible STRATA collateral above the floor. Resource expenditure is **intrinsic to state change**, not an external payment attached to an inert NFT.
+- **Contract** blocks remain optional legal / execution *relationships*. They are not the Object.
+- GNU Atelier renders the Object; it is not the economic locus.
+
+**Not Decentraland LAND.** LAND principally represents scarce property; computation and content execution are delegated to external chain + runtime. In STRATA the NFT is the canonical identity, state container, **and** economic execution locus: computation acts on the Object; state changes are resource-accounted; collateral is consumed only when the transition requires dynamic execution.
+
+Lab: `oracle_live=false`. No faucet. No workers.dev.
+
+
 ---
 
 ## Parcel (specialization of Object)
