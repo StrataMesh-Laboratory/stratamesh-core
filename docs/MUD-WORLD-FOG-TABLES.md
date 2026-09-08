@@ -156,6 +156,25 @@ Still not an aspect: aspects are child Objects.
 
 Parcel titles remain the unmovable-dirt special case of `ownership_title` (trade title, never inventory dirt). Deeds generalise the same instrument off-world / off-stage underlyings. See [`NFT-MACRO-CATEGORIES.md`](./NFT-MACRO-CATEGORIES.md).
 
+
+## Collateral fractions on Agora (normative 2026-09-07)
+
+Fungible STRATA **inside** the NFT (collateral **C**) are also the **fractional ownership** of that NFT.
+
+Selling those collateralised STRATA on Agora **is** selling the proportional claim on the Object (`OwnershipFraction` / `strata_units`). It is not a separate IOU detached from the NFT.
+
+Those fractions list and clear at **Agora market STRATA prices (`P_market`)**, **regardless of how much collateral quantity they represent**.
+
+```
+P_market  ≠  C × fraction
+```
+
+- **C** — tank inside the Object (static reserve / dynamic burn fuel).
+- **fraction** — Subject’s claim on that Object, weighted by collateralised units.
+- **P_market** — what Agora pays in fungible STRATA for that claim today.
+
+Redeem when `P_market < C` (per-unit claim vs tank) stays a distinct exit path from an ordinary Agora sale. Dashboard wallet Balance ≠ C.
+
 **C / P_market:** execution (`spa_aps`) and deed-objects follow Collateral + OwnershipFraction rules — static reserves C; dynamic burns above floor; Agora P_market ≠ fraction·C; redeem when P_market < C is distinct. Cold-storage validity ≠ C.
 
 **Words:** aspects / contracts are ordinary terms (not branded primitives). **Code & eng docs:** international English (`aspects`, `contracts`, `deed`, `custody`). **Product UI (IP / geolocation):** CPLP → PT-PT (`aspectos`, `contratos`, `escritura`); non-CPLP → EN-GB mirrored translation. Create macros: *contrato de execução* / *escritura* — never technical IDs in the wizard.
