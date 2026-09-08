@@ -5,6 +5,8 @@ Mac host matrix (brew / Ollama / OpenClaw caps) = **Bot Mac lane**, not this shi
 
 Lab. `oracle_live=false`. No workers.dev. No STRATA ERC-20.
 
+**Latest map:** [`ATELIER-MUD-LATEST.md`](./ATELIER-MUD-LATEST.md) (2026-09-07 consolidation).
+
 ## Locks
 
 - Vendor Three locally; classic `<script>` only (no ESM Three on Safari).
