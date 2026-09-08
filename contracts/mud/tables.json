@@ -71,7 +71,8 @@
         "Optional Bundle: may contain child object_ids as aspects (e.g. desk\u2192drawers); all categories; children stay full NFTs",
         "Macro templates are open: beyond stage props, object may be execution contract or ownership deed (virtual/financial/physical) under international custodianship; cold storage may bind token validity",
         "UX template (furniture|exec_contract|deed_*|other|\u2026) is optional metadata \u2014 never a substitute for kind and never invents kind=deed",
-        "computable economic object: object_id+cid+owner_subject_id+kind+execution state coupled at Object; static persist reserves C; dynamic transition burns C above floor ON the Object; Contract is optional relationship not the Object; not LAND-style scarce-property-only NFT"
+        "computable economic object: object_id+cid+owner_subject_id+kind+execution state coupled at Object; static persist reserves C; dynamic transition burns C above floor ON the Object; Contract is optional relationship not the Object; not LAND-style scarce-property-only NFT",
+        "state static\u2194dynamic is reversible and may repeat indefinitely while remaining collateral C can fund the next dynamic episode required by Contract rules; terminated is optional end not the default after dynamic"
       ]
     },
     "Parcel": {
@@ -210,7 +211,8 @@
         "cold_storage_binds_validity gates token validity via international custodianship \u2014 does not mint C or redefine P_market",
         "holder_subject_id is a Subject account \u2014 never Fog NODE_WALLET as citizen",
         "Macro UX templates do not create new Object.kind values",
-        "Contract encompasses smart-contract rules of the bound NFT: state=static stores the standard contract (rules_cid); state=dynamic executes those rules on the Object and burns C above floor; still optional; still not the Object; still not an aspect"
+        "Contract encompasses smart-contract rules of the bound NFT: state=static stores the standard contract (rules_cid); state=dynamic executes those rules on the Object and burns C above floor; still optional; still not the Object; still not an aspect",
+        "state static\u2194dynamic is reversible and may repeat indefinitely while remaining collateral C can fund the next dynamic episode required by Contract rules; terminated is optional end not the default after dynamic"
       ],
       "aliases": [
         "Contrato"
