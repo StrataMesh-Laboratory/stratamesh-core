@@ -149,3 +149,15 @@ A STRATA NFT may also be:
 | Institutions | Custodianship sits with SPAs / Agora / governance — the deed NFT is the Object; the agreement is institutional |
 | UX | Product UI: plain *escritura* / *contrato de execução*; no technical IDs in the wizard ([`UI-LOCALE-CPLP.md`](./UI-LOCALE-CPLP.md)) |
 
+
+
+## Contract = rules of the NFT (static store / dynamic execute)
+
+A Contract block is the NFT’s **smart contract** when present:
+
+- **static** — stores the standard contract (rules / schema / bytecode at `rules_cid`). No burn.
+- **dynamic** — those rules execute **on the Object**; burn C above floor.
+- Legal title / deed / SPA-APS are the same table, not a second species.
+
+The Object remains the economic locus. Contract does not become the Object.
+
