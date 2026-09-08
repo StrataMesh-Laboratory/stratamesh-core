@@ -20,6 +20,19 @@ Agent = User | SCA
 Agent → owns/operates → NFT
 ```
 
+## Computable Object vs scarce-property NFT (2026-09-07)
+
+STRATA NFT **is** the Object: identity (`object_id`), content (`cid`), ownership (`owner_subject_id`), kind, and execution state stay coupled at the Object layer.
+
+Static state persists without spend. Dynamic transitions execute **on the Object** and burn embedded collateral **C** above the floor. Spend is intrinsic to the state change — not a fee bolted onto an inert token.
+
+`Contract` is an optional relationship (title / SPA-APS / other), never a substitute for the Object.
+
+Contrast: Decentraland **LAND** is principally scarce property; computation and scene runtime live outside the NFT. STRATA does not delegate the economic locus off the Object.
+
+See [`MUD-WORLD-FOG-TABLES.md`](./MUD-WORLD-FOG-TABLES.md) §Computable economic Object.
+
+
 ## Primitivas live
 
 | Primitiva | Endpoint | Regra |
