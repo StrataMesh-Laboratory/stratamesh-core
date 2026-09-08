@@ -157,7 +157,8 @@ A Contract block is the NFT’s **smart contract** when present:
 
 - **static** — stores the standard contract (rules / schema / bytecode at `rules_cid`). No burn.
 - **dynamic** — those rules execute **on the Object**; burn C above floor for the episode.
-- **reversible** — static ↔ dynamic indefinitely while remaining C can fund the next dynamic episode the Contract rules require. `terminated` is optional, not automatic.
+- **reversible** — static ↔ dynamic while remaining C can fund the next episode.
+- **terminated** — end of a dynamic execution when C cannot fund the rules (lack of STRATA). The Object **stays static**. Not a third parked state. Dynamic again only after C is sufficient.
 - Legal title / deed / SPA-APS are the same table, not a second species.
 
 The Object remains the economic locus. Contract does not become the Object.
