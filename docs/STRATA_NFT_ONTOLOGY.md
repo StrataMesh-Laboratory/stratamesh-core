@@ -156,7 +156,8 @@ A STRATA NFT may also be:
 A Contract block is the NFT’s **smart contract** when present:
 
 - **static** — stores the standard contract (rules / schema / bytecode at `rules_cid`). No burn.
-- **dynamic** — those rules execute **on the Object**; burn C above floor.
+- **dynamic** — those rules execute **on the Object**; burn C above floor for the episode.
+- **reversible** — static ↔ dynamic indefinitely while remaining C can fund the next dynamic episode the Contract rules require. `terminated` is optional, not automatic.
 - Legal title / deed / SPA-APS are the same table, not a second species.
 
 The Object remains the economic locus. Contract does not become the Object.
