@@ -163,3 +163,13 @@ A Contract block is the NFT’s **smart contract** when present:
 
 The Object remains the economic locus. Contract does not become the Object.
 
+
+
+## Agora: selling C-weighted units is selling the NFT fraction
+
+Collateral **C** inside the NFT *is* the fractional ownership base. A Subject who sells collateralised fungible STRATA on Agora sells the **proportional fraction of that NFT**.
+
+Clearing price is **P_market** in fungible STRATA, **independent of the collateral quantity those units represent** (`P_market ≠ C × fraction`).
+
+C still fuels static reserve / dynamic episodes. Agora price does not refill C and does not equal C.
+
