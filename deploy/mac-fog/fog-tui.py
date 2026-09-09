@@ -1137,6 +1137,16 @@ def desk_feed_tail(n: int = 10) -> list[dict]:
             except Exception:
                 continue
             if isinstance(rec, dict) and rec.get("text"):
+                tx = str(rec.get("text") or "")
+                low = tx.lower()
+                if "unittest discover rc=0 pass" in low:
+                    continue
+                if re.search(r"ran \d+ tests? in [0-9.]+s", low) and "fail" not in low:
+                    continue
+                if low.strip() in ("unittest discover pass", "desk ci unittest"):
+                    continue
+                if "waiting for desk agents" in low:
+                    continue
                 out.append(rec)
         return out
     except Exception:
