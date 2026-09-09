@@ -3,7 +3,7 @@
 # Do NOT add /* /index.html 200. Do not SPA-rewrite /chat.
 # /sandbox is the sandbox document (sandbox.html: chrome + #atelierFrame → same-origin /gnu-atelier.html).
 # /dashboard is the workbench (dashboard.html). They are not the same HTML.
-# /atelier remains 404 on apex Pages (renderer lives on same-origin /gnu-atelier.html).
+# /atelier aliases first-party /gnu-atelier.html (real renderer, not landing SPA).
 # Functions under functions/api remain in-tree; _routes.json excludes /api/*
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
 # /chat is chat.html via Pages clean URL (no /chat → /chat.html 200 rewrite — that 308-loops).
