@@ -101,3 +101,5 @@ Invariant (`desk_feed_rows_for` in `fog-tui.py`):
 TUI feed = collegium verbs from real Acts only.
 `specialty_self_audit_tick` must not run `unittest discover` or append `Ran N tests`.
 Tests belong to an OpenCode code Act. GHA remains GHA.
+
+Also law: [`ops/desk-collegium/NO-FAKE-DONE.md`](../ops/desk-collegium/NO-FAKE-DONE.md) — skip is not done.
