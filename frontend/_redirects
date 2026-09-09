@@ -8,8 +8,8 @@
 # so Pages does not serve landing HTML (or fake JSON) on /api/health.
 # /chat is chat.html via Pages clean URL (no /chat → /chat.html 200 rewrite — that 308-loops).
 /manutencao /maintenance-1xxx.html 200
-/atelier /404.html 404
-/atelier/* /404.html 404
+/atelier /gnu-atelier.html 200
+/atelier/ /gnu-atelier.html 200
 /api/* /404.html 404
 # Pages auto-serves foo.html at /foo (clean URL) and 308s /foo.html → /foo.
 # NEVER add /foo /foo.html 200 — that fights the 308 and loops (308 Location: /foo).
