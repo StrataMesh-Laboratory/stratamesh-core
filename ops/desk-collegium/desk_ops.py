@@ -1683,23 +1683,18 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
         except Exception as e:
             results[spec] = {"ok": False, "result": str(e)[:80]}
 
-    # Board picks run full openclaw/hermes; self-audit stays meters + pending Acts.
-    results["claw"] = {
-        "ok": True,
-        "skipped": True,
-        "result": "self-audit: openclaw deferred to board claw tasks",
-    }
-    # code: no r/60s unittest. OpenCode runs tests only on a real board code Act.
-    results["code"] = {
-        "ok": True,
-        "skipped": True,
-        "result": "self-audit: code deferred to board code tasks (no CI theatre)",
-    }
-    results["coord"] = {
-        "ok": True,
-        "skipped": True,
-        "result": "self-audit: hermes deferred to board coord tasks",
-    }
+    # The three Ollama specialists must stay on the board. Do not "defer" them
+    # into skip-success. Do not run all three in this tick (8GB serialize).
+    # Cycle pick_tasks + desk-agent-run.sh execute them one specialty at a time.
+    try:
+        bus = _load("desk_bus")
+        seeded = _ensure_ollama_specialists_on_board(bus, state)
+        results["claw"] = {"ok": True, "result": "openclaw on board"}
+        results["code"] = {"ok": True, "result": "opencode on board"}
+        results["coord"] = {"ok": True, "result": "hermes on board"}
+        results["ollama_seeded"] = seeded
+    except Exception as e:
+        results["claw"] = results["code"] = results["coord"] = {"ok": False, "result": str(e)[:80]}
     _run("fog", handler_fog, {"id": "audit-fog", "specialty": "fog", "intent": "self-audit fog pending Act"})
     _run("edge", handler_edge, {"id": "audit-edge", "specialty": "edge", "intent": "self-audit edge pending Act"})
     try:
