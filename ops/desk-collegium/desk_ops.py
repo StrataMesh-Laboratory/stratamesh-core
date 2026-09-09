@@ -1043,33 +1043,28 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         except Exception:
             pass
 
-    # Desk CI path: unittest only — feed as desk, done only for literal self-audit
+    # Self-audit / "desk CI" is not a code Act. No unittest theatre on the feed.
     if is_self_audit:
-        out = _run_code_unittest_subset()
-        out["done"] = bool(out.get("ok") and is_self_audit)
-        try:
-            _load("desk_bus").feed_append("stratagrok",
-                _trunc_ev(out.get("result") or "unittest"),
-                kind="audit" if out.get("ok") else "refer",
-                specialty="code",
-            )
-        except Exception:
-            pass
-        return out
+        return {
+            "ok": True,
+            "result": "code self-audit skipped (no CI theatre)",
+            "done": False,
+            "sha": "",
+            "verb": "audit",
+            "skipped": True,
+        }
 
     oc_bin = _which_bin("opencode") or str(Path.home() / ".opencode/bin/opencode")
     if not Path(oc_bin).is_file():
-        # Honest: cannot claim opencode; desk CI only, not done
-        out = _run_code_unittest_subset()
-        out["done"] = False
-        out["verb"] = "dispute"
-        out["result"] = _trunc_ev(f"opencode missing; desk CI: {out.get('result')}")
+        out = {
+            "ok": False,
+            "done": False,
+            "sha": "",
+            "verb": "dispute",
+            "result": "opencode missing — cannot run code Act (no unittest substitute)",
+        }
         try:
-            _load("desk_bus").feed_append("stratagrok",
-                out["result"],
-                kind="dispute",
-                specialty="code",
-            )
+            _load("desk_bus").feed_append("stratagrok", out["result"], kind="dispute", specialty="code")
         except Exception:
             pass
         return out
@@ -1694,40 +1689,12 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
         "skipped": True,
         "result": "self-audit: openclaw deferred to board claw tasks",
     }
-    # code: desk CI unittest — feed as desk NEVER as opencode
-    allowed_c, pace_c, lane_c = _pace_allows(state, "code")
-    if not allowed_c:
-        _feed_metabol_skip("code", pace_c, lane_c, state)
-        results["code"] = {"ok": True, "skipped": True, "pace": pace_c}
-    else:
-        try:
-            code_out = _run_code_unittest_subset()
-            code_out["done"] = False  # self-audit CI ≠ board code done
-            results["code"] = code_out
-            meters = FOG / "data" / "desk-meters"
-            meters.mkdir(parents=True, exist_ok=True)
-            (meters / "opencode-audit.json").write_text(json.dumps({
-                "ts": _now(),
-                "audit": "unittest_discover",
-                "agent": "stratagrok",
-                "ok": bool(code_out.get("ok")),
-                "result": (code_out.get("result") or "")[:180],
-            }, indent=2) + "\n")
-            try:
-                # PASS is a meter only. Timing-noisy "Ran N tests in 0.012s OK"
-                # was looping the TUI feed with stub CI theatre.
-                if not code_out.get("ok"):
-                    _load("desk_bus").feed_append(
-                        "stratagrok",
-                        (code_out.get("result") or "desk CI unittest FAIL")[:200],
-                        kind="refer",
-                        specialty="code",
-                    )
-            except Exception:
-                pass
-        except Exception as e:
-            results["code"] = {"ok": False, "result": str(e)[:80], "verb": "refer", "peer_vote": True,
-                               "next_action": "desk: fix self-audit unittest runner"}
+    # code: no r/60s unittest. OpenCode runs tests only on a real board code Act.
+    results["code"] = {
+        "ok": True,
+        "skipped": True,
+        "result": "self-audit: code deferred to board code tasks (no CI theatre)",
+    }
     results["coord"] = {
         "ok": True,
         "skipped": True,
