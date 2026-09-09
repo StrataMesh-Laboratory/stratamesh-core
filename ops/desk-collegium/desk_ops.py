@@ -576,6 +576,28 @@ def _fresh_status_prove(intent: str, *, max_age_s: float = 960) -> tuple[bool, s
     return True, f"wrote {rel} age={int(age)}s body={body[:48]}"
 
 
+
+def honest_result(*, ok: bool, done: bool, verb: str, result: str, evidence: bool | None = None,
+                  skipped: bool = False, **extra) -> dict:
+    """NO-FAKE-DONE: skipped/queued work is never ok+done.
+
+    See ops/desk-collegium/NO-FAKE-DONE.md.
+    """
+    if skipped:
+        ok = False
+        done = False
+        evidence = False
+        verb = verb if verb in ("dispute", "refer", "audit") else "refer"
+    if done and evidence is not True:
+        done = False
+        ok = False
+        verb = "dispute"
+        result = (result or "") + " | refused fake done (no evidence)"
+    out = {"ok": ok, "done": done, "verb": verb, "result": result, "evidence": bool(evidence), "skipped": skipped}
+    out.update(extra)
+    return out
+
+
 def handler_claw(task: dict, *, dry: bool) -> dict:
     """Real openclaw agent exec. Hop curls may update meters; feed openclaw only on agent output."""
     fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
@@ -1045,14 +1067,11 @@ def handler_code(task: dict, *, dry: bool) -> dict:
 
     # Self-audit / "desk CI" is not a code Act. No unittest theatre on the feed.
     if is_self_audit:
-        return {
-            "ok": True,
-            "result": "code self-audit skipped (no CI theatre)",
-            "done": False,
-            "sha": "",
-            "verb": "audit",
-            "skipped": True,
-        }
+        return honest_result(
+            ok=False, done=False, verb="refer",
+            result="not a code Act (self-audit label) — OpenCode must take a real TODO item",
+            evidence=False, skipped=True, sha="",
+        )
 
     oc_bin = _which_bin("opencode") or str(Path.home() / ".opencode/bin/opencode")
     if not Path(oc_bin).is_file():
@@ -1689,9 +1708,9 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
     try:
         bus = _load("desk_bus")
         seeded = _ensure_ollama_specialists_on_board(bus, state)
-        results["claw"] = {"ok": True, "result": "openclaw on board"}
-        results["code"] = {"ok": True, "result": "opencode on board"}
-        results["coord"] = {"ok": True, "result": "hermes on board"}
+        results["claw"] = {"ok": False, "done": False, "skipped": False, "result": "openclaw tasked (not done)"}
+        results["code"] = {"ok": False, "done": False, "skipped": False, "result": "opencode tasked (not done)"}
+        results["coord"] = {"ok": False, "done": False, "skipped": False, "result": "hermes tasked (not done)"}
         results["ollama_seeded"] = seeded
     except Exception as e:
         results["claw"] = results["code"] = results["coord"] = {"ok": False, "result": str(e)[:80]}
@@ -2417,6 +2436,13 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
         if out.get("next_action"):
             _diary(by, "act", tid, f"human_gate next: {out.get('next_action')}"[:160])
             chain.append("act")
+    elif out.get("done") and out.get("evidence") is not True and out.get("force_done") is not True:
+        out = dict(out)
+        out["done"] = False
+        out["ok"] = False
+        bus._mutate(tid, "dispute", by=by, note="NO-FAKE-DONE: done without evidence refused")
+        chain.append("dispute")
+        _diary(by, "dispute", tid, "fake done refused")
     elif out.get("done"):
         intent_l = f"{task.get('intent') or ''} {task.get('title') or ''} {out.get('result') or ''}".lower()
         if ("oracle" in intent_l or "grok90" in intent_l) and not out.get("force_done"):
@@ -2791,7 +2817,7 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         write_agent_outbox(mentor, task, out)
         if out.get("ok") and (out.get("done") or out.get("escalate")):
             write_apprenticeship_trail(task, out, agent=mentor)
-        if out.get("ok"):
+        if out.get("ok") and out.get("done") and out.get("evidence") and not out.get("skipped"):
             delivered += 1
 
     # auto-ship when majority + metrics in-band (no Bot prompt)
