@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import subprocess
 import sys
@@ -1004,9 +1005,11 @@ def _run_code_unittest_subset() -> dict:
     r = _R(); r.returncode = rc; r.stderr = "\n".join(tails); r.stdout = ""
     ok = r.returncode == 0
     tail = (r.stderr or r.stdout or "")[-140:].replace("\n", " ")
+    tail = re.sub(r"Ran \d+ tests? in [0-9.]+s", "", tail)
+    tail = re.sub(r"\s+", " ", tail).strip()
     out = {
         "ok": ok,
-        "result": f"unittest discover rc={r.returncode} {'PASS' if ok else 'FAIL'} {tail}"[:220],
+        "result": (f"unittest discover FAIL rc={r.returncode} {tail}"[:220] if not ok else "unittest discover PASS"),
         "done": ok,
         "sha": "",
         "verb": "audit" if ok else "refer",
@@ -1711,11 +1714,15 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
                 "result": (code_out.get("result") or "")[:180],
             }, indent=2) + "\n")
             try:
-                _load("desk_bus").feed_append("stratagrok",
-                    (code_out.get("result") or "desk CI unittest")[:200],
-                    kind=("audit" if code_out.get("ok") else "refer"),
-                    specialty="code",
-                )
+                # PASS is a meter only. Timing-noisy "Ran N tests in 0.012s OK"
+                # was looping the TUI feed with stub CI theatre.
+                if not code_out.get("ok"):
+                    _load("desk_bus").feed_append(
+                        "stratagrok",
+                        (code_out.get("result") or "desk CI unittest FAIL")[:200],
+                        kind="refer",
+                        specialty="code",
+                    )
             except Exception:
                 pass
         except Exception as e:
