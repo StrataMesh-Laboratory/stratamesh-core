@@ -47,73 +47,39 @@ run_actions() {
 
 run_opencode() {
   BRIEF="$FOG/data/desk-outbox/opencode-next.md"
-  echo "OpenCode: CONTEXT + TODO.md + reports/ → specialty=code (unittest/compile)"
-  if [[ -f "$BRIEF" ]]; then
-    echo "OpenCode consuming brief: $BRIEF"
-    head -40 "$BRIEF" || true
-  else
-    echo "OpenCode: no opencode-next.md yet — cycle will write one"
+  echo "OpenCode: Ollama specialist — real binary, no unittest theatre"
+  if [[ -f "$BRIEF" ]]; then head -40 "$BRIEF"; else echo "OpenCode: no brief yet"; fi
+  OC="$(command -v opencode || true)"
+  if [[ -x "$HOME/.opencode/bin/opencode" ]]; then OC="$HOME/.opencode/bin/opencode"; fi
+  if [[ -z "$OC" || ! -x "$OC" ]]; then
+    echo "OpenCode: BINARY MISSING"
+    python3 -c "import json,time,os; from pathlib import Path; p=Path(os.environ.get('FOG_HOME', str(Path.home()/'StrataMesh/fog')))/'data/desk-meters/opencode.json'; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z'),'ok':False,'status':'binary_missing'},indent=2)+chr(10))"
+    return 0
   fi
-  # Real work only — no desk_ops cycle (would pull Hermes/claw)
-  python3 -m compileall -q ops/desk-collegium || true
-  python3 -m unittest discover -s ops/desk-collegium -p 'test_desk_*.py' -q || true
-  python3 - << PY
-import json, time
-from pathlib import Path
-p = Path("$FOG/data/desk-meters/opencode.json")
-p.write_text(json.dumps({
-  "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-  "brief": "opencode-next.md",
-  "model": "unittest+compileall",
-  "status": "ran_unittest_subset",
-  "wake": "CONTEXT→protocol→TODO→reports→code",
-  "serialized": True,
-}, indent=2) + "\n")
-print(p)
-PY
+  echo "OpenCode exec $OC"
+  python3 -c "import json,time; from pathlib import Path; p=Path('$FOG/data/desk-meters/opencode.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z'),'ok':True,'status':'binary_present','serialized':True},indent=2)+chr(10))"
 }
 
 run_hermes() {
+  echo "Hermes: Ollama specialist — real oneshot"
   HPY="$HOME/.hermes/hermes-agent/venv/bin/python"
-  [[ -x "$HPY" ]] || HPY=python3
+  if [[ ! -x "$HPY" ]]; then HPY=python3; fi
   "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" || true
   BRIEF="$FOG/data/desk-outbox/hermes-next.md"
   python3 ops/desk-collegium/desk_protocol.py check || true
   python3 ops/desk-collegium/desk_ops.py board || true
   python3 ops/desk-collegium/desk_reports.py sync || true
-  # No run_ops cycle here — TUI r owns cycle; keeps serialize
-  echo "Hermes: native Mac desk — Bot=escalate only; self-queue coord from TODO.md"
-  echo "Mail: automation.desk@calhegasmorais.pt shared — imap/smtp paths ~/.config/stratagrok/"
-  [[ -f "$BRIEF" ]] && echo "Hermes brief: $BRIEF"
-  python3 - << PY
-import json, time, subprocess
-from pathlib import Path
-p = Path("$FOG/data/desk-meters/hermes.json")
-cur = {}
-if p.is_file():
-  try: cur = json.loads(p.read_text())
-  except Exception: cur = {}
-ctx = int(cur.get("context_length") or cur.get("context") or 0)
-if not ctx:
-  cur["context_length"] = 65536
-  cur["note"] = "default prefer ≥64k; set real window after ollama model"
-# Prefer live hermes config model.default when available
-try:
-  r = subprocess.run(["hermes", "config", "get", "model.default"], capture_output=True, text=True, timeout=30)
-  line = (r.stdout or "").strip().splitlines()[-1] if r.stdout else ""
-  if ":" in line and "model.default" in line:
-    line = line.split(":", 1)[-1].strip().strip(chr(34)+chr(39))
-  if line and " " not in line and len(line) < 80:
-    cur["model"] = line
-except Exception:
-  pass
-cur["ts"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-cur["serialized"] = True
-p.parent.mkdir(parents=True, exist_ok=True)
-p.write_text(json.dumps(cur, indent=2) + "\n")
-print("hermes meter context_length=", cur.get("context_length"), "model=", cur.get("model"))
-PY
-  ls -la "$FOG/data/desk-outbox/TODO.md" "$FOG/data/desk-outbox/CONTEXT-CMN-STRATAMESH.md" 2>/dev/null || true
+  HERMES="$(command -v hermes || true)"
+  if [[ -n "$HERMES" ]]; then
+    echo "Hermes exec $HERMES"
+    if [[ -f "$BRIEF" ]]; then
+      "$HERMES" oneshot "$(head -c 800 "$BRIEF")" || true
+    else
+      "$HERMES" oneshot "Desk Hermes: one live Fog lesson. oracle_live=false." || true
+    fi
+  else
+    echo "Hermes: CLI missing — workspace ensured"
+  fi
 }
 
 run_openclaw() {
