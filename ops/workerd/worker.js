@@ -134,21 +134,47 @@ export default {
 
     if (url.pathname === "/health" || url.pathname === "/workerd") {
       const mac_live = origin === "macbook";
-      const edge_live = origin === "edge";
+      const origin_is_edge = origin === "edge";
+      // edge_live is a PEER probe, not "am I the edge origin".
+      // origin===macbook used to force edge_live=false even when Edge /health was 200.
+      let edge_live = origin_is_edge;
+      let edge_probe = { skipped: origin_is_edge ? "self" : "pending" };
+      if (!origin_is_edge) {
+        const t0 = Date.now();
+        try {
+          const ac = new AbortController();
+          const to = setTimeout(() => ac.abort(), 1500);
+          const er = await fetch("https://edge.calhegasmorais.pt/health", {
+            method: "GET",
+            headers: { "user-agent": "stratamesh-fog-peer/1", "accept": "application/json" },
+            signal: ac.signal,
+          });
+          clearTimeout(to);
+          const txt = await er.text();
+          let js = {};
+          try { js = JSON.parse(txt); } catch (_) {}
+          edge_live = er.status === 200 && (js.status === "ok" || js.ok === true || js.node_id === "EDGE-GROK-CMN-001");
+          edge_probe = { ok: edge_live, http: er.status, ms: Date.now() - t0, node_id: js.node_id || null };
+        } catch (e) {
+          edge_live = false;
+          edge_probe = { ok: false, error: String(e && e.name || e), ms: Date.now() - t0 };
+        }
+      }
       // Lab mesh n is FOG_MESH_N (P1 n=2), not ORIGIN. session is a public-origin
       // flag; coupling n/member to origin made /health an outdated alias of P0.
       const n = Math.max(1, Number(env.FOG_MESH_N || 2) || 2);
-      const layer = edge_live
+      const layer = origin_is_edge
         ? "tunnel→workerd:8788→edge:8789"
         : "tunnel→workerd:8788→fog:8787";
       return Response.json({
         ok: true,
         runtime: "workerd",
-        plugin: edge_live ? "edge-workerd" : "fog-workerd",
+        plugin: origin_is_edge ? "edge-workerd" : "fog-workerd",
         origin,
         mac_live,
         edge_live,
-        trusted: mac_live || edge_live,
+        edge_probe,
+        trusted: mac_live || origin_is_edge,
         n,
         mesh_member: n >= 2,
         mesh_provision: n >= 2,
