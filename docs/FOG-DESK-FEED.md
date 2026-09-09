@@ -95,3 +95,9 @@ Invariant (`desk_feed_rows_for` in `fog-tui.py`):
 - Clamp: prefer ≥4 when space allows, else ≥2
 - `draw_desk_feed` pads blank rows to the budget so the panel fills to the last usable terminal row
 - Hop/host chrome above DESK is fixed; DESK absorbs remaining height (scroll content inside)
+
+## No CI theatre (2026-09-09)
+
+TUI feed = collegium verbs from real Acts only.
+`specialty_self_audit_tick` must not run `unittest discover` or append `Ran N tests`.
+Tests belong to an OpenCode code Act. GHA remains GHA.
