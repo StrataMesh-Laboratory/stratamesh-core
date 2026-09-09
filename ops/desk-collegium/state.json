@@ -2,7 +2,41 @@
   "schema": "desk.collegium.state.v1",
   "version": "0.3.5-lab",
   "members": [],
-  "open_tasks": [],
+  "open_tasks": [
+    {
+      "id": "dt-hermes-teach-20260909",
+      "specialty": "coord",
+      "owner": "hermes",
+      "lanes": [
+        "lane-hermes"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "intent": "Hermes: write one SCA/ACB lesson to desk-outbox/journals/hermes/ from live Fog facts (oracle_live=false). Real ollama oneshot."
+    },
+    {
+      "id": "dt-claw-hops-20260909",
+      "specialty": "claw",
+      "owner": "openclaw",
+      "lanes": [
+        "lane-openclaw"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "intent": "OpenClaw: desk-claw-probe + desk8k hop evidence into desk-meters/openclaw.json. Real agent exec."
+    },
+    {
+      "id": "dt-code-next-20260909",
+      "specialty": "code",
+      "owner": "opencode",
+      "lanes": [
+        "lane-opencode"
+      ],
+      "eisenhower": "act",
+      "human_gate": false,
+      "intent": "OpenCode: next TODO.md code item. Real opencode binary. No unittest-only substitute."
+    }
+  ],
   "done_tasks": [
     {
       "schema": "desk.task.v1",
@@ -193,7 +227,7 @@
       "computed_at": "2026-09-05T11:09:45+0000"
     }
   },
-  "updated": "2026-09-07T13:22:00+0000",
+  "updated": "2026-09-09T13:10:00Z",
   "metabol_tick": "2026-09-05T11:09:45+0000",
   "last_commit": {
     "id": "dt-proj-homelab-second-host",
