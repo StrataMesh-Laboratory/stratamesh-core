@@ -61,7 +61,8 @@ def normalize_kind(kind: str | None) -> str:
 
 def digest_key(agent: str, kind: str, text: str) -> str:
     """Stable key: agent|kind|normalized body (metrics kept so fog=0→1 is a delta)."""
-    body = re.sub(r"\s+", " ", (text or "").strip().lower())
+    body = re.sub(r"ran \d+ tests? in [0-9.]+s", "", (text or "").strip().lower())
+    body = re.sub(r"\s+", " ", body)
     body = body[:180]
     return f"{(agent or 'stratagrok').lower()}|{normalize_kind(kind)}|{body}"
 
