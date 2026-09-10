@@ -397,7 +397,10 @@ async function livePrice() {
 
 const EZ_EXCH = new Set(["VIE","GER","FRA","PAR","AMS","MCE","HEL","LIS","MIL","BRU","DUB","ISE","ATH","EBS","HAM","STU","MUN","BER"]);
 async function fetchJson(url, ttl) {
-  const r = await fetch(url, { cf: { cacheTtl: ttl || 600, cacheEverything: true } });
+  const r = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 AurumEuro/1.3", "Accept": "application/json" },
+    cf: { cacheTtl: ttl || 600, cacheEverything: true }
+  });
   if (!r.ok) throw new Error(url + " " + r.status);
   return r.json();
 }
@@ -437,7 +440,8 @@ async function quoteEau(lei, goldEur, goldByYear) {
       listing = pickListing(await yahooSearch(isin));
       if (listing) break;
     }
-    if (!listing) return out;
+    if (!listing) listing = pickListing(await yahooSearch(lei));
+    if (!listing) return Object.assign(out, { error: "no listing", isins });
     const chart = await yahooChart(listing.symbol);
     if (!chart) return out;
     const meta = chart.meta || {};
