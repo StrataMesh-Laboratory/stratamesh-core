@@ -386,6 +386,14 @@ async function aurumEuro(request, url, path) {
     const pack = await livePrice();
     return Response.json(pack, { headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
   }
+  if (path === "/aurum-euro/api/v1/accounts.csv") {
+    const accounts = await loadJson(ACCOUNTS_URL);
+    return new Response(accountsCsv(accounts || {}), { headers: { "Content-Type": "text/csv; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
+  }
+  if (path === "/aurum-euro/api/v1/stocks.csv") {
+    const stocks = await loadJson(STOCKS_URL);
+    return new Response(stocksCsv(stocks || {}), { headers: { "Content-Type": "text/csv; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
+  }
   if (path === "/aurum-euro/api/v1/health" || path === "/aurum-euro/api/v1/status") {
     return Response.json({
       status: "ok", service: "aurum-euro",
