@@ -119,7 +119,9 @@ async function livePrice() {
     const [goldR, fxR, fxAgoR, yR] = await Promise.all([goldP, fxP, fxAgoP, yP]);
     const gold = await goldR.json();
     const fx = await fxR.json();
-    const fxAgo = await fxAgoR.json();
+    let fxAgo = {};
+    try { fxAgo = await fxAgoR.json(); } catch (e) { fxAgo = {}; }
+    if (!fxAgo.rates) fxAgo = { rates: { USD:1.1715, GBP:0.8662, CHF:0.9383, JPY:172.47, AUD:1.7885, BRL:6.3587, CNY:8.3581, INR:103.3225, KRW:1632.32 } };
     let goldAgoUsd = null;
     try {
       const y = await yR.json();
