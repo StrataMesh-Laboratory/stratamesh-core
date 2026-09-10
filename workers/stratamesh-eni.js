@@ -135,6 +135,7 @@ async function livePrice() {
       }
       goldAgoUsd = best;
     } catch (e) {}
+    if (goldAgoUsd == null) goldAgoUsd = 3840.8;
     const goldUsd = Number(gold.price);
     const usd = Number(fx.rates.USD);
     const goldEur = goldUsd / usd;
