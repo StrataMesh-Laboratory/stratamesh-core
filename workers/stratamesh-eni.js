@@ -90,7 +90,7 @@ function stocksPage(pack) {
 <link rel="stylesheet" href="/aurum-euro/static/styles.css"/></head><body>
 <header><div class="mark">Aurum Euro · €Au</div>
 <nav><a href="/aurum-euro/">The unit</a><a href="/aurum-euro/eau-accounts">€Au accounts</a><a href="/aurum-euro/european-stocks">European stocks</a></nav></header>
-" + AURUM_LIVE_WIDGET + "
+${AURUM_LIVE_WIDGET}
 <main>
 <h1>European listed issuers in Aurum Euro</h1>
 <p class="notice">${SCALE_RULE}</p>
