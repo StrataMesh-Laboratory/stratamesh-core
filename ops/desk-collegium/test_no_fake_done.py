@@ -23,3 +23,10 @@ def test_delivered_requires_done_and_evidence():
 def test_honest_result_helper_exists():
     assert "def honest_result(" in OPS
     assert "NO-FAKE-DONE" in (ROOT / "NO-FAKE-DONE.md").read_text(encoding="utf-8")
+
+
+def test_agent_run_does_not_stamp_binary_present_ok():
+    sh = (ROOT.parents[1] / "deploy" / "mac-fog" / "desk-agent-run.sh").read_text(encoding="utf-8")
+    assert "binary_present" not in sh
+    assert "desk_agent_finish.py" in sh
+    assert "serialized=True" not in sh

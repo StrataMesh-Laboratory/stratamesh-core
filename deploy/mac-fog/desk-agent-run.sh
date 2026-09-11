@@ -45,19 +45,41 @@ run_actions() {
   python3 ops/desk-collegium/desk_actions.py sync --limit 12 || true
 }
 
+finish_agent() {
+  # $1 agent  $2 ok  $3 result  $4 optional evidence path
+  python3 "$REPO/ops/desk-collegium/desk_agent_finish.py" \
+    --agent "$1" --ok "$2" --result "$3" ${4:+--evidence "$4"} || true
+}
+
 run_opencode() {
   BRIEF="$FOG/data/desk-outbox/opencode-next.md"
+  LOG="$FOG/data/desk-meters/opencode-last.log"
   echo "OpenCode: Ollama specialist — real binary, no unittest theatre"
   if [[ -f "$BRIEF" ]]; then head -40 "$BRIEF"; else echo "OpenCode: no brief yet"; fi
   OC="$(command -v opencode || true)"
   if [[ -x "$HOME/.opencode/bin/opencode" ]]; then OC="$HOME/.opencode/bin/opencode"; fi
   if [[ -z "$OC" || ! -x "$OC" ]]; then
     echo "OpenCode: BINARY MISSING"
-    python3 -c "import json,time,os; from pathlib import Path; p=Path(os.environ.get('FOG_HOME', str(Path.home()/'StrataMesh/fog')))/'data/desk-meters/opencode.json'; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z'),'ok':False,'status':'binary_missing'},indent=2)+chr(10))"
+    finish_agent opencode 0 "BINARY MISSING — not done"
     return 0
   fi
-  echo "OpenCode exec $OC"
-  python3 -c "import json,time; from pathlib import Path; p=Path('$FOG/data/desk-meters/opencode.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z'),'ok':True,'status':'binary_present','serialized':True},indent=2)+chr(10))"
+  if [[ ! -f "$BRIEF" ]]; then
+    finish_agent opencode 0 "no opencode-next.md brief — not done"
+    return 0
+  fi
+  echo "OpenCode exec $OC on brief"
+  set +e
+  if "$OC" run --prompt "$(head -c 2000 "$BRIEF")" >"$LOG" 2>&1; then
+    RC=0
+  else
+    RC=$?
+  fi
+  set -e
+  if [[ "$RC" -eq 0 && -s "$LOG" ]]; then
+    finish_agent opencode 1 "opencode run wrote log rc=0" "$LOG"
+  else
+    finish_agent opencode 0 "opencode run rc=$RC or empty log — not done" "$LOG"
+  fi
 }
 
 run_hermes() {
@@ -66,42 +88,73 @@ run_hermes() {
   if [[ ! -x "$HPY" ]]; then HPY=python3; fi
   "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" || true
   BRIEF="$FOG/data/desk-outbox/hermes-next.md"
+  JOURNAL_DIR="$FOG/data/desk-outbox/journals/hermes"
+  mkdir -p "$JOURNAL_DIR"
   python3 ops/desk-collegium/desk_protocol.py check || true
   python3 ops/desk-collegium/desk_ops.py board || true
   python3 ops/desk-collegium/desk_reports.py sync || true
   HERMES="$(command -v hermes || true)"
-  if [[ -n "$HERMES" ]]; then
-    echo "Hermes exec $HERMES"
-    if [[ -f "$BRIEF" ]]; then
-      "$HERMES" oneshot "$(head -c 800 "$BRIEF")" || true
-    else
-      "$HERMES" oneshot "Desk Hermes: one live Fog lesson. oracle_live=false." || true
-    fi
+  if [[ -z "$HERMES" ]]; then
+    echo "Hermes: CLI missing — not done"
+    finish_agent hermes 0 "CLI missing — workspace only is not an Act"
+    return 0
+  fi
+  echo "Hermes exec $HERMES"
+  set +e
+  if [[ -f "$BRIEF" ]]; then
+    "$HERMES" oneshot "$(head -c 800 "$BRIEF")"
+    RC=$?
   else
-    echo "Hermes: CLI missing — workspace ensured"
+    "$HERMES" oneshot "Desk Hermes: one live Fog lesson. oracle_live=false."
+    RC=$?
+  fi
+  set -e
+  # evidence = newest journal in this tick window
+  EV="$(ls -t "$JOURNAL_DIR"/* 2>/dev/null | head -1 || true)"
+  if [[ "$RC" -eq 0 && -n "$EV" && -s "$EV" ]]; then
+    finish_agent hermes 1 "hermes oneshot rc=0 journal=$(basename "$EV")" "$EV"
+  else
+    finish_agent hermes 0 "hermes oneshot rc=$RC or no journal — not done" "$EV"
   fi
 }
 
 run_openclaw() {
-  echo "OpenClaw: self-audit hops; TODO.md specialty=claw"
+  echo "OpenClaw: hop probe; TODO.md specialty=claw"
+  METER="$FOG/data/desk-meters/openclaw.json"
+  LOG="$FOG/data/desk-meters/openclaw-last.log"
+  set +e
   if [[ -f "$REPO/deploy/mac-fog/desk-claw-probe.sh" ]]; then
-    bash "$REPO/deploy/mac-fog/desk-claw-probe.sh" || true
+    bash "$REPO/deploy/mac-fog/desk-claw-probe.sh" >"$LOG" 2>&1
+    RC=$?
   elif [[ -f "$REPO/deploy/mac-fog/openclaw/desk-claw-probe.sh" ]]; then
-    bash "$REPO/deploy/mac-fog/openclaw/desk-claw-probe.sh" || true
+    bash "$REPO/deploy/mac-fog/openclaw/desk-claw-probe.sh" >"$LOG" 2>&1
+    RC=$?
+  else
+    RC=127
+    echo "desk-claw-probe.sh missing" >"$LOG"
   fi
-  # No run_ops — serialize
+  set -e
+  EV="$METER"
+  [[ -s "$LOG" ]] && EV="$LOG"
+  if [[ "$RC" -eq 0 && -s "$EV" ]]; then
+    finish_agent openclaw 1 "claw probe rc=0" "$EV"
+  else
+    finish_agent openclaw 0 "claw probe rc=$RC or empty evidence — not done" "$EV"
+  fi
 }
 
 run_fog() {
   BRIEF="$FOG/data/desk-outbox/fog-assistant-next.md"
   echo "Fog Assistant: read brief (no Bot browser); origin health via desk_ops fog handler"
   [[ -f "$BRIEF" ]] && cat "$BRIEF" | head -40
+  finish_agent fog 0 "fog-assistant consume-only this tick — cycle apply_result is the closer"
 }
 
 run_edge() {
   BRIEF="$FOG/data/desk-outbox/edge-assistant-next.md"
   echo "EDGE Assistant: consume-origin GETs; read brief"
   [[ -f "$BRIEF" ]] && cat "$BRIEF" | head -40
+  finish_agent edge 0 "edge-assistant consume-only this tick — cycle apply_result is the closer"
 }
 
 ensure_surfaces
