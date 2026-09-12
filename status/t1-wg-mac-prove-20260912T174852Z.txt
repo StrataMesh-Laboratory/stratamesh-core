@@ -1,0 +1,11 @@
+t1-wg-mac-prove 20260912T174852Z
+sha=8d1abb9
+mac_addr=10.88.0.2
+mac_addr_match=True
+ping_10.88.0.1=True
+iphone_prove=false honest residual not faked
+openvpn_client_conf_present=True
+openvpn_daemon_running=True
+operator_path=hermes-wg PASS (live refresh)
+refreshed=true
+wave=full_board_act_wave_20260912

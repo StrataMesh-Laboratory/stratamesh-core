@@ -444,9 +444,14 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
             "human_gate": bool(t.get("human_gate")),
             "intent": (t.get("intent") or "")[:120],
         }
+        # Align with desk_ops.classify: act/audit/amend/vote/refer/dispute are Ongoing
+        # (thin TODO starvation was: act fell into Pending and looked like 1 propose).
         if st == "escalate" or t.get("human_gate"):
             escalated.append(row)
-        elif st in ("constrain", "revise", "commit"):
+        elif st in (
+            "constrain", "revise", "commit",
+            "act", "audit", "amend", "vote", "refer", "dispute",
+        ):
             ongoing.append(row)
         else:
             pending.append(row)
