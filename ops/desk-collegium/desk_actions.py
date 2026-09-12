@@ -124,7 +124,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
         except Exception:
             last = 0.0
         if now - last >= 600:
-            bus.feed_append("stratagrok",
+            bus.feed_append_system(
                 "actions: gh unavailable (PATH/auth)",
                 kind="dispute",
                 specialty="coord",
@@ -157,7 +157,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
         # Only failures (or in_progress→failure) hit the feed; success stays meter-only.
         line = f"GHA {wf}: {conc or status} #{rid}"
         if not args.dry_run and conc == "failure":
-            bus.feed_append("stratagrok", line[:200], kind="dispute", specialty="actions", force=True)
+            bus.feed_append_system( line[:200], kind="dispute", specialty="actions", force=True)
         mirrored += 1
         if conc == "failure" and source not in known and not args.dry_run:
             failed += 1
@@ -213,7 +213,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
     )
     print(r.stdout or r.stderr)
     bus = _bus()
-    bus.feed_append("stratagrok",
+    bus.feed_append_system(
         f"actions dispatch {file} rc={r.returncode}",
         kind="propose" if r.returncode == 0 else "escalate",
         specialty="actions",

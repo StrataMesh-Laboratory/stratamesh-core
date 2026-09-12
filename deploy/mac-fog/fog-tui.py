@@ -1201,13 +1201,20 @@ def _wrap_plain(s: str, width: int) -> list[str]:
 
 def _desk_agent_style(tag: str) -> tuple[str, str]:
     tag = (tag or "").strip().lower()
+    # System/alert chrome — not an agent roster entry
+    if tag in ("", "·", ".", "sys", "system", "alert", "desk", "ops", "automation"):
+        return MUT, "·"
     if "hermes" in tag:
         return ACC, "hermes"
     if "opencode" in tag or tag == "code":
         return OK, "opencode"
     if "openclaw" in tag or tag == "claw":
         return AMBER, "openclaw"
-    if "stratagrok" in tag or "grok" in tag:
+    if "fog" in tag and "assistant" in tag:
+        return MUT, "fog-asst"
+    if "edge" in tag and "assistant" in tag:
+        return MUT, "edge-asst"
+    if "stratagrok" in tag or tag in ("grok", "bot"):
         return BOLD, "stratagrok"
     return MUT, (tag or "?")[:10]
 
@@ -1315,8 +1322,14 @@ def desk_agent_ops_status() -> dict:
     stratagrok = _meter_fresh("bot.json", max_age=DESK_OPS_STALE_SEC * 2)
     if not stratagrok:
         try:
-            for rec in desk_feed_tail(20):
-                ag = str(rec.get("agent") or "").lower()
+            for rec in desk_feed_tail(40):
+                if str(rec.get("source") or "").lower() == "system":
+                    continue
+                if str(rec.get("kind") or "").lower() in ("sys", "alert"):
+                    continue
+                ag = str(rec.get("agent") or "").lower().strip()
+                if not ag or ag in ("·", "desk", "system", "sys"):
+                    continue
                 if "stratagrok" in ag or ag in ("grok", "bot"):
                     stratagrok = True
                     break
@@ -1419,11 +1432,35 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
         for rec in feed[-remain:]:
             if used >= budget:
                 break
-            ag_raw = str(rec.get("agent") or "?")
-            col, ag = _desk_agent_style(ag_raw)
-            tm = str(rec.get("t") or "--:--:--")[:8]
+            ag_raw = str(rec.get("agent") or "")
+            src = str(rec.get("source") or "")
             kind = str(rec.get("kind") or "act")[:9]
+            is_sys = (
+                src.lower() == "system"
+                or kind.lower() in ("sys", "alert")
+                or ag_raw.strip().lower() in ("", "·", "desk", "system", "sys", "alert", "ops")
+            )
+            tm = str(rec.get("t") or "--:--:--")[:8]
             body = str(rec.get("text") or "").replace("\n", " ")
+            if is_sys:
+                # Non-agent chrome: HH:MM:SS · sys|alert body
+                label = "sys" if kind.lower() != "alert" else "alert"
+                head_plain = "%s · %-5s " % (tm, label)
+                wrap_w = max(12, inner - len(head_plain) - 1)
+                parts = _wrap_plain(body, wrap_w)
+                for i, part in enumerate(parts[:2]):
+                    if used >= budget:
+                        break
+                    if i == 0:
+                        colored = (
+                            " " + MUT + tm + RST + " " + MUT + "·" + RST
+                            + " " + MUT + label + RST + " " + MUT + part + RST
+                        )
+                        emit(" " + head_plain + part, colored=colored)
+                    else:
+                        emit(" " + (" " * len(head_plain)) + part)
+                continue
+            col, ag = _desk_agent_style(ag_raw)
             head_plain = "%s %s %s " % (tm, ag.ljust(8)[:8], kind)
             wrap_w = max(12, inner - len(head_plain) - 1)
             parts = _wrap_plain(body, wrap_w)
