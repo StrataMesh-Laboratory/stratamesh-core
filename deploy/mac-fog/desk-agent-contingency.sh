@@ -80,8 +80,8 @@ run_fog_tools() {
   cd "$REPO"
   python3 ops/desk-collegium/desk_ops.py cycle --max 1 || true
   python3 -m compileall -q ops/desk-collegium || true
-  python3 -m unittest discover -s ops/desk-collegium -p 'test_desk_*.py' -q || true
-  write_meter fog_tools ran "desk_ops+compileall+unittest"
+  # unittest discover is desk CI, not an Act. Never a PASS/done meter.
+  write_meter fog_tools ran "desk_ops+compileall — unittest is not evidence"
 }
 
 run_coord() {
