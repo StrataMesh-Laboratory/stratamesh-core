@@ -1,0 +1,6 @@
+# Hermes local config for Fog
+model:
+  provider: ollama
+  base_url: http://127.0.0.1:11434/v1
+  name: llama3.2:1b-64k  # 8GB floor; live often gpt-oss:20b cloud
+  context_length: 65536

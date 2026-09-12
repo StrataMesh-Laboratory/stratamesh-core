@@ -1,0 +1,15 @@
+dt-proj-hermes-64k prove — 2026-09-12T14:20:52Z
+tip=07f13be
+Mac 8GB Intel
+
+PASS (floor / live):
+- ollama show llama3.2:1b-64k reports context length 131072 / num_ctx 65536 / tools
+- live ~/.hermes/config.yaml: name gpt-oss:20b, context_length 131072, base_url ollama.com
+- ensure_workspace prefers gpt-oss cloud then llama3.2:1b-64k
+
+HOLD (local generate):
+- ollama run llama3.2:1b-64k timed out 90s this wake (and Sep 7 TIMEOUT_180s)
+- do NOT pull qwen2.5:7b on 8GB; do NOT stamp generate_ok
+
+ok=true for context floor via cloud+tag metadata; generate_ok=false
+NO-FAKE-DONE
