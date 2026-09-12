@@ -4,7 +4,26 @@
 # Cycle (desk_ops.py cycle) is TUI `r` / desk_ops only — specialty runners must NOT call it
 # (that pulled live Hermes/claw Acts under an OpenCode smoke).
 # Respects metabol pace via desk_ops HOLD file.
-set -euo pipefail
+set -e
+
+# Serialize OpenCode: r/60s must not stack multiple `if ! _opencode_lock_acquire; then exit 75; fi
+  trap _opencode_lock_release EXIT
+  opencode run` on 8GB Mac
+OPENCODE_LOCK="${FOG_HOME:-$HOME/StrataMesh/fog}/data/desk-meters/opencode.lock"
+_opencode_lock_acquire() {
+  mkdir -p "$(dirname "$OPENCODE_LOCK")"
+  if [ -f "$OPENCODE_LOCK" ]; then
+    oldpid=$(cut -d' ' -f1 "$OPENCODE_LOCK" 2>/dev/null || true)
+    if [ -n "$oldpid" ] && kill -0 "$oldpid" 2>/dev/null; then
+      echo "opencode lock held by pid $oldpid — skip this launch" >&2
+      return 1
+    fi
+  fi
+  echo "$$ $(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$OPENCODE_LOCK"
+  return 0
+}
+_opencode_lock_release() { rm -f "$OPENCODE_LOCK" 2>/dev/null || true; }
+uo pipefail
 REPO="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"
 FOG="${FOG_HOME:-$HOME/StrataMesh/fog}"
 # Official OpenCode curl-install dir + brew/local bins (non-interactive SSH misses .zshrc)

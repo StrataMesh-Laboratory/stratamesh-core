@@ -1421,7 +1421,7 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
         except Exception as e:
             exam_bit = f" daily_exam_err={str(e)[:60]}"
     note = (
-        f"academy_teach live={int(ok)} students=SCA/ACB teachers=desk "
+        f"academy_teach live={int(ok)} students=SCA/ACB teachers=desk wrote desk-meters/academy-teach.json "
         f"— apprenticeship_by_doing (never enroll desk agents)"
         f"{exam_bit}"
     )
