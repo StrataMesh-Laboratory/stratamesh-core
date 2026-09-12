@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Wrapper: desk-mail → python3 desk-mail-client.py
+# Prefer sibling next to this script (repo or ~/.local/bin install).
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+CLIENT=""
+for cand in \
+  "${HERE}/desk-mail-client.py" \
+  "${FOG_SRC:-}/deploy/mac-fog/desk-mail-client.py" \
+  "${HOME}/StrataMesh/fog/repo/deploy/mac-fog/desk-mail-client.py" \
+  "${HERE}/../deploy/mac-fog/desk-mail-client.py"
+do
+  if [[ -n "${cand}" && -f "${cand}" ]]; then
+    CLIENT="${cand}"
+    break
+  fi
+done
+if [[ -z "${CLIENT}" ]]; then
+  echo "desk-mail: desk-mail-client.py not found" >&2
+  exit 1
+fi
+exec python3 "${CLIENT}" "$@"

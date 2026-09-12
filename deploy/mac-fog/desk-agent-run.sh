@@ -71,7 +71,7 @@ run_opencode() {
   set +e
   # OpenCode CLI: message is positional (no --prompt). --auto for non-interactive desk.
   PROMPT="$(head -c 4000 "$BRIEF")"
-  if "$OC" run --dir "$REPO" --auto "$PROMPT" >"$LOG" 2>&1; then
+  if "$OC" run --dir "$REPO" --auto "$PROMPT" </dev/null >"$LOG" 2>&1; then
     RC=0
   else
     RC=$?

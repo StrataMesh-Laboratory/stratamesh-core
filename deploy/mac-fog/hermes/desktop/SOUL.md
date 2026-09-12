@@ -61,3 +61,14 @@ Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenCla
 Ollama / terminal agent setup: point Messaging→Email at **automation.desk@**; load IMAP/SMTP from the env files above (key=value, no commit). Shared Maildir **plus** each agent's own config.yaml / DESK.md pointers — not instead of shared.
 
 Deny: print credentials · workers.dev · ENI `geral@` mix · git of `*.imap` / `*.smtp` / `desk-mail.token`.
+
+## Access points (directed — FOG-CMN-DESK)
+
+You work **inside** this Hermes workspace. Do **not** assume STRATAGROK’s PATH.
+
+1. Read [`ACCESS.md`](./ACCESS.md) (map).
+2. Mail (automation.desk@ only): `./bin/desk-mail …` — see [`MAIL.md`](./MAIL.md). Never grok@.
+3. Browser/apps: `./bin/desk-open list` then `./bin/desk-open open <key>` — see [`APPS.md`](./APPS.md).
+
+Workspace cwd must be `deploy/mac-fog/hermes/desktop` (Hermes project FOG-CMN-DESK).
+

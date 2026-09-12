@@ -442,6 +442,128 @@ def ensure_fallback_providers(tags: list) -> None:
         print(f"fallback_providers ok: {cur_models}")
 
 
+
+def ensure_desk_mail() -> None:
+    """Shared automation.desk@ Maildir + desk-mail CLI for FOG-CMN-DESK agents.
+
+    Paths/vault names only — never print IMAP_PASS/SMTP_PASS/tokens.
+    See ops/desk-collegium/DESK-MAIL-AUTOMATION.md and hermes/desktop/MAIL.md.
+    """
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        # Prefer Hermes venv (has PyYAML); else skip mail-block merge only
+        vpy = Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
+        if vpy.is_file():
+            subprocess.run(
+                [
+                    str(vpy),
+                    "-c",
+                    (
+                        "import yaml, pathlib, os; "
+                        "desk=pathlib.Path(os.environ['FOG_SRC'])/'deploy/mac-fog/hermes/desktop/config.yaml'; "
+                        "hc=pathlib.Path.home()/'.hermes'/'config.yaml'; "
+                        "desk_raw=yaml.safe_load(desk.read_text()) or {}; "
+                        "mail=desk_raw.get('mail') if isinstance(desk_raw, dict) else None; "
+                        "cur=yaml.safe_load(hc.read_text()) if hc.is_file() else {}; "
+                        "cur=cur if isinstance(cur, dict) else {}; "
+                        "hc.parent.mkdir(parents=True, exist_ok=True); "
+                        "ok=isinstance(mail, dict) and not isinstance(cur.get('mail'), dict); "
+                        "safe={k:v for k,v in (mail or {}).items() if not any(s in str(k).lower() for s in ('pass','secret','password','token_value'))} if ok else None; "
+                        "cur.__setitem__('mail', safe) if ok else None; "
+                        "hc.write_text(yaml.safe_dump(cur, sort_keys=False, allow_unicode=True)) if ok else None; "
+                        "print('hermes config: mail block merged via venv' if ok else 'hermes config: mail block already present (venv)')"
+                    ),
+                ],
+                env={**os.environ, "FOG_SRC": str(FOG_REPO)},
+                check=False,
+            )
+            yaml = None  # type: ignore
+        else:
+            print("desk_mail: PyYAML missing — skip hermes mail merge")
+            yaml = None  # type: ignore
+
+    md = Path.home() / "mail" / "automation.desk"
+    for sub in ("cur", "new", "tmp", ".drafts", "sent"):
+        (md / sub).mkdir(parents=True, exist_ok=True)
+    print(f"desk_mail maildir={md}")
+
+    local_bin = Path.home() / ".local" / "bin"
+    local_bin.mkdir(parents=True, exist_ok=True)
+    src_client = FOG_REPO / "deploy" / "mac-fog" / "desk-mail-client.py"
+    src_wrap = FOG_REPO / "deploy" / "mac-fog" / "desk-mail"
+    src_sync = FOG_REPO / "deploy" / "mac-fog" / "desk-mail-sync.py"
+    if not src_client.is_file():
+        print("desk_mail client missing in repo — skip install")
+        return
+
+    # Install wrapper that always resolves repo client (stable entrypoint)
+    wrap_lines = [
+        '#!/usr/bin/env bash',
+        'set -euo pipefail',
+        f'exec python3 "{src_client}" "$@"',
+        '',
+    ]
+    dest_wrap = local_bin / "desk-mail"
+    dest_wrap.write_text("\n".join(wrap_lines))
+    dest_wrap.chmod(0o755)
+    print(f"desk_mail installed={dest_wrap}")
+
+    dest_sync = local_bin / "desk-mail-sync"
+    if not dest_sync.exists():
+        try:
+            dest_sync.symlink_to(src_sync)
+            print(f"desk_mail-sync symlink={dest_sync}")
+        except OSError:
+            shutil.copy2(src_sync, dest_sync)
+            dest_sync.chmod(0o755)
+            print(f"desk_mail-sync copied={dest_sync}")
+    else:
+        print(f"desk_mail-sync ok={dest_sync}")
+
+    # Merge mail: block from desktop/config.yaml into ~/.hermes/config.yaml if missing
+    desk_cfg = FOG_REPO / "deploy" / "mac-fog" / "hermes" / "desktop" / "config.yaml"
+    hermes_cfg = Path.home() / ".hermes" / "config.yaml"
+    hermes_cfg.parent.mkdir(parents=True, exist_ok=True)
+    if yaml is None:
+        pass  # already handled via venv subprocess or skipped
+    elif desk_cfg.is_file():
+        desk_raw = yaml.safe_load(desk_cfg.read_text()) or {}
+        mail_block = desk_raw.get("mail") if isinstance(desk_raw, dict) else None
+        if isinstance(mail_block, dict):
+            cur = yaml.safe_load(hermes_cfg.read_text()) if hermes_cfg.is_file() else {}
+            if not isinstance(cur, dict):
+                cur = {}
+            if "mail" not in cur or not isinstance(cur.get("mail"), dict):
+                # paths only — strip any accidental secret-looking keys
+                safe = {
+                    k: v
+                    for k, v in mail_block.items()
+                    if not any(
+                        s in str(k).lower()
+                        for s in ("pass", "secret", "password", "token_value")
+                    )
+                }
+                cur["mail"] = safe
+                hermes_cfg.write_text(
+                    yaml.safe_dump(cur, sort_keys=False, allow_unicode=True)
+                )
+                print("hermes config: mail block merged (paths only)")
+            else:
+                print("hermes config: mail block already present")
+        else:
+            print("desk config: no mail block to merge")
+    else:
+        print("desk config.yaml missing — skip mail merge")
+
+    # Ensure MAIL.md note exists in desktop workspace
+    mail_md = FOG_REPO / "deploy" / "mac-fog" / "hermes" / "desktop" / "MAIL.md"
+    if mail_md.is_file():
+        print(f"desk_mail note={mail_md}")
+    else:
+        print("desk_mail note MAIL.md missing")
+
+
 def write_meter(ok: bool, extra: Optional[Dict[str, Any]] = None) -> None:
     meter_dir = FOG_HOME / "data" / "desk-meters"
     meter_dir.mkdir(parents=True, exist_ok=True)
@@ -457,6 +579,77 @@ def write_meter(ok: bool, extra: Optional[Dict[str, Any]] = None) -> None:
     (meter_dir / "hermes-workspace.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
+
+def ensure_desk_apps(home: Path | None = None) -> dict:
+    """Install desk-open + copy desk-apps.json into ~/.hermes for FOG-CMN-DESK."""
+    home = home or Path.home()
+    hermes = home / ".hermes"
+    hermes.mkdir(parents=True, exist_ok=True)
+    local_bin = home / ".local/bin"
+    local_bin.mkdir(parents=True, exist_ok=True)
+    out = {"ok": True, "steps": {}}
+    src_json = Path(__file__).resolve().parent / "desktop" / "desk-apps.json"
+    if src_json.is_file():
+        dest = hermes / "desk-apps.json"
+        dest.write_text(src_json.read_text(encoding="utf-8"), encoding="utf-8")
+        out["steps"]["roster"] = str(dest)
+    for name in ("desk-open", "desk-mail"):
+        src = Path(__file__).resolve().parent.parent / name
+        if not src.is_file():
+            # desk-mail may be desk-mail-client.py
+            alt = Path(__file__).resolve().parent.parent / f"{name}-client.py"
+            src = alt if alt.is_file() else src
+        if src.is_file():
+            dest = local_bin / name
+            dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+            dest.chmod(dest.stat().st_mode | 0o111)
+            out["steps"][name] = str(dest)
+    return out
+
+
+
+
+def ensure_workspace_access_bins(repo: Path | None = None, home: Path | None = None) -> dict:
+    """Copy desk-mail/desk-open into FOG-CMN-DESK desktop/bin and ~/.hermes hints."""
+    home = home or Path.home()
+    here = Path(__file__).resolve().parent
+    repo = repo or here.parent.parent.parent  # deploy/mac-fog/hermes -> repo? 
+    # Path: repo/deploy/mac-fog/hermes/ensure_workspace.py → parents: hermes, mac-fog, deploy, repo
+    repo = here.parents[2]
+    ws = here / "desktop"
+    bin_dir = ws / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    out = {"ok": True, "bins": []}
+    macfog = here.parent
+    for name, srcs in {
+        "desk-mail": [macfog / "desk-mail-client.py", macfog / "desk-mail", bin_dir / "desk-mail"],
+        "desk-open": [bin_dir / "desk-open", macfog / "desk-open.py", macfog / "desk-open"],
+    }.items():
+        src = next((p for p in srcs if p.is_file()), None)
+        if not src:
+            continue
+        dest = bin_dir / name
+        if src.resolve() != dest.resolve():
+            dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        dest.chmod(dest.stat().st_mode | 0o755)
+        # also ~/.local/bin for convenience — workspace ./bin is canonical
+        lb = home / ".local/bin"
+        lb.mkdir(parents=True, exist_ok=True)
+        (lb / name).write_text(dest.read_text(encoding="utf-8"), encoding="utf-8")
+        (lb / name).chmod((lb / name).stat().st_mode | 0o755)
+        out["bins"].append(str(dest))
+    # point Hermes at ACCESS.md
+    hint = home / ".hermes" / "FOG-CMN-DESK-ACCESS.md"
+    access = ws / "ACCESS.md"
+    if access.is_file():
+        hint.write_text(access.read_text(encoding="utf-8"), encoding="utf-8")
+        out["access_hint"] = str(hint)
+    roster = ws / "desk-apps.json"
+    if roster.is_file():
+        (home / ".hermes" / "desk-apps.json").write_text(roster.read_text(encoding="utf-8"), encoding="utf-8")
+    return out
+
+
 def main() -> int:
     print("ensure_workspace: FOG-CMN-DESK")
     ensure_discovery_config()
@@ -464,6 +657,7 @@ def main() -> int:
     ensure_desktop_cwd_env()
     ensure_model()
     ensure_fallback_providers(ollama_tags())
+    ensure_desk_mail()
     prune_empty_orphans()
     ensure_listable_session()
     n = len(listable_fog_sessions())
@@ -473,4 +667,13 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Prefer Hermes venv (PyYAML + SessionDB deps) when system python lacks them
+    vpy = Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
+    need_venv = False
+    try:
+        import yaml  # noqa: F401
+    except ImportError:
+        need_venv = True
+    if need_venv and vpy.is_file() and Path(sys.executable).resolve() != vpy.resolve():
+        os.execv(str(vpy), [str(vpy), str(Path(__file__).resolve()), *sys.argv[1:]])
     sys.exit(main())

@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Workspace-local desk-open for FOG-CMN-DESK (directed path ./bin/desk-open)."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+WS = Path(__file__).resolve().parent.parent  # .../hermes/desktop
+BIN = Path(__file__).resolve().parent
+
+
+def load_roster() -> dict:
+    for p in (
+        WS / "desk-apps.json",
+        BIN / "desk-apps.json",
+        Path.home() / ".hermes" / "desk-apps.json",
+    ):
+        if p.is_file():
+            return json.loads(p.read_text(encoding="utf-8")), p
+    raise SystemExit("desk-apps.json missing in FOG-CMN-DESK workspace — see ACCESS.md")
+
+
+def entries(roster: dict) -> dict:
+    """Normalize either schema (apps list + browser urls, or flat DEFAULT map)."""
+    out = {}
+    if "apps" in roster or "browser" in roster:
+        for u in (roster.get("browser") or {}).get("allowlist_urls") or []:
+            out[u["id"]] = {"kind": "url", "url": u["url"], "label": u.get("why") or u["id"]}
+        for a in roster.get("apps") or []:
+            aid = a.get("id")
+            if not aid:
+                continue
+            out[aid] = a
+        return out
+    # flat map schema
+    return {k: v for k, v in roster.items() if isinstance(v, dict) and k not in ("schema",)}
+
+
+def which_browser() -> str | None:
+    for name in ("Google Chrome", "Chromium", "Safari"):
+        r = subprocess.run(["osascript", "-e", f'id of app "{name}"'], capture_output=True, text=True)
+        if r.returncode == 0:
+            return name
+    return None
+
+
+def cmd_status(_: argparse.Namespace) -> int:
+    roster, path = load_roster()
+    ent = entries(roster)
+    print(f"workspace={WS}")
+    print(f"roster={path}")
+    print(f"access={WS / 'ACCESS.md'}")
+    print(f"entries={len(ent)}")
+    print(f"browser_app={which_browser() or 'none'}")
+    print(f"desk_mail_bin={(BIN / 'desk-mail').is_file()}")
+    return 0
+
+
+def cmd_list(_: argparse.Namespace) -> int:
+    roster, _ = load_roster()
+    ent = entries(roster)
+    for k in sorted(ent):
+        e = ent[k]
+        kind = e.get("kind") or ("url" if e.get("url") else "app")
+        label = e.get("label") or e.get("why") or ""
+        target = e.get("url") or e.get("app") or e.get("cmd") or e.get("open") or ""
+        print(f"{k}	{kind}	{label}	{target}")
+    return 0
+
+
+def open_entry(key: str, *, dry: bool) -> int:
+    roster, _ = load_roster()
+    ent = entries(roster)
+    # aliases
+    aliases = {"github-core": "github", "finder-mail": "maildir"}
+    key = aliases.get(key, key)
+    if key not in ent:
+        # try fuzzy
+        for k in ent:
+            if k.replace("_", "-") == key or key in k:
+                key = k
+                break
+    if key not in ent:
+        print(f"unknown key {key}. Run: ./bin/desk-open list", file=sys.stderr)
+        return 2
+    e = ent[key]
+    if dry:
+        print(f"dry-run {key}: {e}")
+        return 0
+    if e.get("url") or e.get("kind") == "url":
+        url = e.get("url")
+        b = which_browser()
+        if b:
+            subprocess.run(["open", "-a", b, url], check=False)
+        else:
+            subprocess.run(["open", url], check=False)
+        print(f"opened url {key} -> {url}")
+        return 0
+    if e.get("open") and isinstance(e["open"], list) and e["open"] and e["open"][0] != "chrome_or_safari":
+        subprocess.run(list(e["open"]), check=False)
+        print(f"launched {key}")
+        return 0
+    if e.get("app") or (e.get("open") == ["chrome_or_safari"]) or e.get("kind") == "app":
+        app = e.get("app")
+        if not app:
+            app = which_browser() or "Safari"
+        subprocess.run(["open", "-a", app], check=False)
+        print(f"launched app {app}")
+        return 0
+    if e.get("cmd"):
+        print(f"run in Terminal: {e['cmd']}")
+        return 0
+    print(f"no launcher for {key}", file=sys.stderr)
+    return 1
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="FOG-CMN-DESK ./bin/desk-open (workspace-local)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("status").set_defaults(func=cmd_status)
+    sub.add_parser("list").set_defaults(func=cmd_list)
+    o = sub.add_parser("open", help="open allowlisted url/app by key")
+    o.add_argument("key")
+    o.add_argument("--dry-run", action="store_true")
+    o.set_defaults(func=lambda a: open_entry(a.key, dry=a.dry_run))
+    # compat with earlier CLI
+    b = sub.add_parser("browser")
+    b.add_argument("id")
+    b.add_argument("--dry-run", action="store_true")
+    b.set_defaults(func=lambda a: open_entry(a.id, dry=a.dry_run))
+    a = sub.add_parser("app")
+    a.add_argument("id")
+    a.add_argument("--dry-run", action="store_true")
+    a.set_defaults(func=lambda a: open_entry(a.id, dry=a.dry_run))
+    args = p.parse_args()
+    return int(args.func(args) or 0)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

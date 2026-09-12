@@ -164,6 +164,17 @@ class TestEnsureWorkspaceUnit(unittest.TestCase):
         self.assertNotEqual(mod.SCAN_ROOTS, [])
 
 
+    def test_ensure_desk_mail_helper_exists(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "ensure_workspace", HERE / "ensure_workspace.py"
+        )
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        self.assertTrue(callable(getattr(mod, "ensure_desk_mail", None)))
+
+
 if __name__ == "__main__":
     # Prefer hermes venv python for SessionDB imports when available
     vpy = Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
