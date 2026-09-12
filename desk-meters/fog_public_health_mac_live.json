@@ -1,0 +1,27 @@
+{
+  "act": "fog_public_health_mac_live",
+  "utc": "20260912T150713Z",
+  "pass": true,
+  "tip_base": "ed20b02",
+  "change": "ops/workerd/config.capnp ORIGIN session\u2192macbook",
+  "public_health": {
+    "mac_live": true,
+    "origin": "macbook",
+    "trusted": true,
+    "standby": false
+  },
+  "public_status": {
+    "mac_live": true
+  },
+  "local_8788": {
+    "mac_live": true,
+    "origin": "macbook"
+  },
+  "local_8787": {
+    "mac_live": true
+  },
+  "prove_before": "status/fog_public_health_mac_live_prove_20260912T150611Z.txt",
+  "prove_after": "status/fog_public_health_mac_live_prove_20260912T150659Z.txt",
+  "worker_put": false,
+  "eni_touched": false
+}

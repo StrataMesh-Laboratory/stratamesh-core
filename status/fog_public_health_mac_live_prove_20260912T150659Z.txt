@@ -1,0 +1,87 @@
+fog_public_health_mac_live prove AFTER
+utc=20260912T150659Z pt=2026-09-12T16:06:59+0100 tip_branch=ed20b02 branch=fix/workerd-origin-macbook-health
+fix: ops/workerd/config.capnp ORIGIN session→macbook (hardlink live workerd-config); workerd reboot
+
+=== local :8787 /health ===
+{
+  "ok": true,
+  "node_id": "FOG-NODE-PT-CM-001",
+  "version": "0.6.0-lab",
+  "mac_live": true,
+  "trusted": true,
+  "mesh_member": true,
+  "oracle_live": false,
+  "n": 2,
+  "mesh_provision": {
+    "ready": true,
+    "mesh_member": true,
+    "n": 2,
+    "f_max": 0,
+    "n_min_member": 2,
+    "n_min_byzantine": 3,
+    "runtime": "workerd",
+    "serverless_hop": true,
+    "trusted_origin": "macbook",
+    "peers": [
+      {
+        "id": "FOG-NODE-PT-CM-001",
+        "role": "fog",
+        "continuity": "continuous",
+        "origin": "macbook"
+      },
+      {
+        "id": "EDGE-GROK-CMN-001",
+        "role": "edge",
+        "continuity": "session",
+        "origin": "edge-grok-local",
+        "note": "non-continuous expected (EDGE)"
+      }
+    ],
+    "next": "n>=3 \u2192 f_max>0"
+  }
+}
+=== local :8788 /health ===
+{"ok":true,"runtime":"workerd","plugin":"fog-workerd","origin":"macbook","mac_live":true,"edge_live":true,"edge_probe":{"ok":true,"http":200,"ms":71,"node_id":"EDGE-GROK-CMN-001"},"trusted":true,"n":2,"mesh_member":true,"mesh_provision":true,"layer":"tunnel→workerd:8788→fog:8787","version":"v0.6.0-lab","release":"v0.6.0-lab","oracle_live":false,"substrate":"workerd-hop","metabol":"/metabol","mw":"/mw/health","fallback":{"after_sec":1800,"primary":"macbook","standby":"session","dns":"fog.calhegasmorais.pt CNAME → macbook-server | stratamesh-fog-lab"}}
+=== public /health ===
+{"ok":true,"runtime":"workerd","plugin":"fog-workerd","origin":"macbook","mac_live":true,"edge_live":true,"edge_probe":{"ok":true,"http":200,"ms":24,"node_id":"EDGE-GROK-CMN-001"},"trusted":true,"n":2,"mesh_member":true,"mesh_provision":true,"layer":"tunnel→workerd:8788→fog:8787","version":"v0.6.0-lab","release":"v0.6.0-lab","oracle_live":false,"substrate":"workerd-hop","metabol":{"circuit":"metabol-v1.3","night_freeze":false,"origin":"macbook","state_change":false,"decision":"ALLOW","pace":1,"hourlyCap":112.57066271568657,"burn_rate":112.57066271568657,"remaining":1000,"hoursLeft":8.883309166666667,"reason":"macbook primary"},"mw":"/mw/health","fallback":{"after_sec":1800,"primary":"macbook","standby":"session","dns":"fog.calhegasmorais.pt CNAME → macbook-server | stratamesh-fog-lab"},"standby":false}
+=== public /status (mac_live extract) ===
+{
+  "mac_live": true,
+  "trusted": true,
+  "node_id": "FOG-NODE-PT-CM-001",
+  "status": "operational",
+  "version": "0.6.0-lab"
+}
+
+=== ORIGIN binding ===
+26:    (name = "ORIGIN", text = "macbook"),  # Mac Fog continuous; match FOG_ORIGIN LaunchAgent
+
+=== ASSERT ===
+{
+  "act": "fog_public_health_mac_live",
+  "utc": "20260912T150713Z",
+  "pass": true,
+  "tip_base": "ed20b02",
+  "change": "ops/workerd/config.capnp ORIGIN session\u2192macbook",
+  "public_health": {
+    "mac_live": true,
+    "origin": "macbook",
+    "trusted": true,
+    "standby": false
+  },
+  "public_status": {
+    "mac_live": true
+  },
+  "local_8788": {
+    "mac_live": true,
+    "origin": "macbook"
+  },
+  "local_8787": {
+    "mac_live": true
+  },
+  "prove_before": "status/fog_public_health_mac_live_prove_20260912T150611Z.txt",
+  "prove_after": "status/fog_public_health_mac_live_prove_20260912T150659Z.txt",
+  "worker_put": false,
+  "eni_touched": false
+}
+RESULT: PASS
