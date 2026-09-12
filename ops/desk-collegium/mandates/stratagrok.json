@@ -1,0 +1,23 @@
+{
+  "schema": "desk.mandate.v1",
+  "id": "stratagrok",
+  "subject_class": "external_agent",
+  "specialty": "lead",
+  "purpose": "Lead the desk: escalate only true human gates; keep agents directed; no feed theatre.",
+  "default_done_when": [
+    "human gate cleared or representable vault/gh Act with evidence"
+  ],
+  "default_stop_when": [
+    "2FA/captcha/Renovate major \u2014 park and ping Andr\u00e9 once"
+  ],
+  "not_this": [
+    "fake progress on Oracle/GCP",
+    "audit spam as leadership Act"
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant. Agent vs Assistant = volitional trigger cut.",
+  "desk_department": "xai",
+  "volition": "direct_and_prompt",
+  "volition_note": "External Agent who directs/prompts xAI Assistants (Fog/EDGE); lead desk Acts."
+}

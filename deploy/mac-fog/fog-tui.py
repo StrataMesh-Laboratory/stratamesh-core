@@ -1049,16 +1049,10 @@ def kick_desk_refresh(force: bool = False) -> None:
                         scorep.write_text((r_m.stdout or "").strip() + "\n")
                     except Exception:
                         pass
-            # specialty agent scripts (OpenCode/Hermes/OpenClaw outbox)
-            agent_run = sync.parent.parent.parent / "deploy/mac-fog/desk-agent-run.sh"
-            if agent_run.is_file():
-                subprocess.run(
-                    ["bash", str(agent_run), "all"],
-                    cwd=str(sync.parent.parent.parent),
-                    env=env,
-                    timeout=90,
-                    capture_output=True,
-                )
+            # Specialty runners: NEVER `all` (invalid + stacks on 8GB).
+            # cmd_cycle above already picked/ran one ALLOW handler; desk-agent-run
+            # is for explicit one-agent pulses (auto-g / contingency), not r/60s.
+            # (Removed desk-agent-run.sh all — RCA-DESK-FEED-THEATRE.md)
             # pull = live update from EDGE (r/60s — not g)
             subprocess.run(
                 [sys.executable, str(sync), "pull"],

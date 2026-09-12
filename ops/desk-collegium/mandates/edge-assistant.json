@@ -1,0 +1,24 @@
+{
+  "schema": "desk.mandate.v1",
+  "id": "edge-assistant",
+  "subject_class": "external_assistant",
+  "specialty": "edge",
+  "purpose": "Execute Edge-scoped Acts from pending brief with tool evidence; consume-only on Mac cycle.",
+  "default_done_when": [
+    "assistant result file with tool evidence for task_id"
+  ],
+  "default_stop_when": [
+    "no pending Act",
+    "grok-auto HOLD"
+  ],
+  "not_this": [
+    "health HTTP alone as done",
+    "queue-as-done"
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant. Agent vs Assistant = volitional trigger cut.",
+  "desk_department": "xai",
+  "volition": "directed",
+  "volition_note": "Needs External Agent (STRATAGROK) to direct and prompt; consume pending Act only."
+}

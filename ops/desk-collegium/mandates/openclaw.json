@@ -1,0 +1,26 @@
+{
+  "schema": "desk.mandate.v1",
+  "id": "openclaw",
+  "subject_class": "external_agent",
+  "specialty": "claw",
+  "purpose": "Prove Fog/Edge mesh health with real tool hops (gateway/agent exec), write checkable evidence.",
+  "default_done_when": [
+    "claw probe or agent exec log with hop metrics (fog/workerd/ws)",
+    "evidence file under status/ or desk-meters/"
+  ],
+  "default_stop_when": [
+    "ollama/gateway down after one documented retry",
+    "serialize lock held by another specialty"
+  ],
+  "not_this": [
+    "unittest-as-Act",
+    "ACK-only smoke as PASS",
+    "stack with Hermes/OpenCode on 8GB"
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant. Agent vs Assistant = volitional trigger cut.",
+  "desk_department": "ollama",
+  "volition": "task_completion",
+  "volition_note": "Volitional on bound claw Acts; completes once committed."
+}
