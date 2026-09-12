@@ -72,10 +72,11 @@ class DeskOps(unittest.TestCase):
                 }
             return {
                 "ok": True,
-                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-stub tool=read",
+                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-stub tool=read wrote status/ut-prove.txt",
                 "done": True,
                 "sha": "",
                 "verb": "audit",
+                "evidence": True,
             }
         mod.handler_claw = stub_claw  # type: ignore
         mod.HANDLERS["claw"] = stub_claw
@@ -337,10 +338,11 @@ class DeskOps(unittest.TestCase):
                 }
             return {
                 "ok": True,
-                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-pace tool=read",
+                "result": "hops fog=1 edge=1 :8787=1 | ollama/qwen2.5:3b-desk8k rc=0 session_id=ut-pace tool=read wrote status/ut-pace-prove.txt",
                 "done": True,
                 "sha": "",
                 "verb": "audit",
+                "evidence": True,
             }
         mod.handler_claw = wrap  # type: ignore
         mod.HANDLERS["claw"] = wrap
