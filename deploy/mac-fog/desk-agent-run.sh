@@ -109,7 +109,8 @@ run_hermes() {
   echo "Hermes exec $HERMES chat --oneshot"
   set +e
   # Hermes CLI: oneshot is a flag on chat, not a subcommand (WORKSPACE.md).
-  "$HERMES" chat -q "$PROMPT" --oneshot -Q --in "$REPO" --safe-mode >"$EV" 2>&1
+  # Match desk_ops: explicit custom + gpt-oss:20b (Ollama cloud; local 64k thrash on 8GB).
+  "$HERMES" chat -q "$PROMPT" --oneshot -Q --provider custom -m gpt-oss:20b --in "$REPO" --safe-mode >"$EV" 2>&1
   RC=$?
   set -e
   # evidence = this-tick journal only (mtime within 15 min); refuse stale reuse

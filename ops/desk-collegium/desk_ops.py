@@ -861,15 +861,19 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         f"Working directory: {REPO_ROOT}\n"
     )
     timeout_s = 180 if str(tid).startswith("audit-") else 600
+    # provider must be runtime-routable: "custom" (or a named providers: entry that
+    # Hermes resolves). Bare "auto" ignores non-registry ids → AuthError.
+    # Prefer llama3.2:1b-64k (≥ Hermes 64K floor); fall back to llama3.2:1b with
+    # model.context_length override from ensure_workspace.
     cmd = [
         hermes,
         "chat",
         "--oneshot",
         "--yolo",
         "-m",
-        "llama3.2:1b",
+        "gpt-oss:20b",
         "--provider",
-        "ollama-launch",
+        "custom",
         "-t",
         "terminal,file",
         "--in",

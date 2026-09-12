@@ -31,9 +31,11 @@ SEED_PROMPT = "FOG-CMN-DESK desk seed. Reply exactly: ACK"
 # Prefer installed open-source tags with Hermes-usable context (>=64k).
 # mistral/llava often report 32k and fail agent init; qwen only if pulled.
 PREFERRED_MODELS = (
-    "llama3.2:1b",      # primary: 131072 + tools (desk smoke OK)
-    "qwen2.5:3b",       # fallback medium metabol
-    "qwen2.5:7b",       # fallback heavy metabol
+    "gpt-oss:20b",      # primary via Ollama cloud (8GB Mac cannot host Hermes 64k local)
+    "llama3.2:1b-64k",  # local only when host RAM allows
+    "llama3.2:1b",
+    "qwen2.5:3b",
+    "qwen2.5:7b",
     "qwen2.5:14b",
     "hermes3:8b",
     "llama3:latest",
@@ -198,6 +200,20 @@ def ensure_model() -> None:
     else:
         shown = cur_val if cur_val else "(empty)"
         print(f"model.default ok: {shown} tags={len(tags)}")
+    # custom is runtime-routable; ollama-launch alone is not in PROVIDER_REGISTRY
+    # so resolve_provider("auto") AuthErrors without explicit --provider.
+    hermes("config", "set", "model.provider", "custom", check=False)
+    # 8GB Intel Fog Mac: local 64k KV thrash — prefer Ollama cloud when token present.
+    _tok = Path.home() / ".config/stratagrok/ollama.api.token"
+    if _tok.is_file() and _tok.read_text().strip():
+        hermes("config", "set", "model.base_url", "https://ollama.com/v1", check=False)
+        hermes("config", "set", "model.api_key", _tok.read_text().strip(), check=False)
+        hermes("config", "set", "model.default", "gpt-oss:20b", check=False)
+        print("model endpoint: ollama.com gpt-oss:20b (cloud)")
+    else:
+        hermes("config", "set", "model.base_url", "http://127.0.0.1:11434/v1", check=False)
+        hermes("config", "set", "model.api_key", "ollama", check=False)
+        print("model endpoint: local ollama (no cloud token)")
     hermes("config", "set", "model.context_length", str(DEFAULT_CONTEXT), check=False)
     ctx_raw = _parse_config_value(
         hermes("config", "get", "model.context_length", check=False).stdout
@@ -221,7 +237,7 @@ def ensure_model() -> None:
                         continue
                     sid = row.get("id")
                     if sid and (row.get("model") or "") != cur_val:
-                        db.update_session_model(sid, cur_val, provider="ollama-launch")
+                        db.update_session_model(sid, cur_val, provider="custom")
                         print(f"session_model {sid} -> {cur_val}")
             finally:
                 db.close()
@@ -397,7 +413,7 @@ def ensure_fallback_providers(tags: list) -> None:
         if model in tags:
             wanted.append(
                 {
-                    "provider": "ollama-launch",
+                    "provider": "custom",
                     "model": model,
                     "base_url": "http://127.0.0.1:11434/v1",
                     "api_key": "ollama",
@@ -408,7 +424,7 @@ def ensure_fallback_providers(tags: list) -> None:
     if not wanted:
         wanted = [
             {
-                "provider": "ollama-launch",
+                "provider": "custom",
                 "model": m,
                 "base_url": "http://127.0.0.1:11434/v1",
                 "api_key": "ollama",
