@@ -38,3 +38,7 @@ proj-host-rpi-nuc-peer: hold=None eis=act ping=True
 proj-host-gcp-e2-micro: hold=None eis=act ping=True
 
 SUCCESS
+
+== PR ==
+https://github.com/StrataMesh-Laboratory/stratamesh-core/pull/199
+commit=ca348c4
