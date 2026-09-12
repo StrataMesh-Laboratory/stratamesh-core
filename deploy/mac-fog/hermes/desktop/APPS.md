@@ -22,16 +22,16 @@ Launch via `desk-open` (allowlisted). See `~/.hermes/desk-apps.json` (written by
 | `maildir` | Finder | `~/mail/automation.desk` |
 | `desk-mail` | CLI | `desk-mail status` |
 
-## Commands
+## Commands (workspace-local first)
 
 ```bash
-desk-open status                 # list linked apps
-desk-open open fog-health        # open Fog health in browser
-desk-open open snappymail        # local SnappyMail when up
-desk-open open maildir           # Finder on shared Maildir
-desk-open open desk-mail         # print desk-mail status
-desk-open --dry-run open academy # print only
-desk-open url http://127.0.0.1:8787/health
+./bin/./bin/desk-open list
+./bin/desk-open browser fog-health
+./bin/desk-open browser snappymail
+./bin/desk-open app finder-mail
+./bin/desk-open app desk-mail
+./bin/desk-open --dry-run browser academy
+./bin/desk-mail status
 ```
 
 ## Mail

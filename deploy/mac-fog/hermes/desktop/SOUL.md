@@ -45,6 +45,22 @@ Teach SCA (PT) / ACB (EN). Mentor via live work → `desk-outbox/apprentice/`. N
 TUI `r`/60s → `desk_ops cycle` → `desk-agent-run hermes` → outbox `hermes-next.md` + TODO.md
 Full peer verbs (act/audit/amend/revise/vote/refer/dispute/constrain); specialty commit stays with owner.
 
+
+## Directed access (workspace-local — mandatory)
+
+Hermes FOG-CMN-DESK tools are **in this project tree**. Prefer these over hoping `~/.local/bin` is on PATH:
+
+| Need | Exact command (from `hermes/desktop` cwd) |
+|------|-------------------------------------------|
+| Access map | read [ACCESS.md](./ACCESS.md) |
+| Mail status/sync/list/read/draft/send | `./bin/desk-mail status` · `./bin/desk-mail sync` · see ACCESS.md |
+| Browser allowlist | `./bin/desk-open list` · `./bin/desk-open browser <id>` |
+| Apps | `./bin/desk-open app <id>` |
+| Roster | [desk-apps.json](./desk-apps.json) · [APPS.md](./APPS.md) · [MAIL.md](./MAIL.md) |
+
+**grok@** stays private Bot/Fog/EDGE gateway — not for Hermes/OpenCode/OpenClaw.
+Fog/EDGE Assistants: directed digests only.
+
 ## Mail — automation.desk@ (shared client + per-agent pointers)
 
 Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenClaw) **and** external_assistant CMN standing:
@@ -52,6 +68,7 @@ Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenCla
 | What | Value / path (paths only — never passwords in git) |
 |------|------------------------------------------------------|
 | Address | `automation.desk@calhegasmorais.pt` |
+| CLI (workspace) | `./bin/desk-mail` ([ACCESS.md](./ACCESS.md) · [MAIL.md](./MAIL.md)) |
 | Role | shared Maildir / desk client (not geral@eni; not personal) |
 | IMAP env file | `~/.config/stratagrok/automation.desk.imap` (0600) |
 | SMTP env file | `~/.config/stratagrok/automation.desk.smtp` (0600) |
@@ -68,7 +85,7 @@ You work **inside** this Hermes workspace. Do **not** assume STRATAGROK’s PATH
 
 1. Read [`ACCESS.md`](./ACCESS.md) (map).
 2. Mail (automation.desk@ only): `./bin/desk-mail …` — see [`MAIL.md`](./MAIL.md). Never grok@.
-3. Browser/apps: `./bin/desk-open list` then `./bin/desk-open open <key>` — see [`APPS.md`](./APPS.md).
+3. Browser/apps: `./bin/desk-open list` then `./bin/desk-open browser <id>` / `./bin/desk-open app <id>` — see [`APPS.md`](./APPS.md).
 
 Workspace cwd must be `deploy/mac-fog/hermes/desktop` (Hermes project FOG-CMN-DESK).
 

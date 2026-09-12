@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
-"""desk-open — allowlisted browser/app launcher for FOG-CMN-DESK agents.
+"""desk-open — allowlisted browser/app launcher for FOG-CMN-DESK (workspace-local).
 
-No secrets. Opens only URLs/apps listed in ~/.hermes/desk-apps.json
-(or the repo desktop roster). Commands: status | list | open <key> | url <url>
+Prefer roster at (in order):
+  1) $DESK_APPS_JSON
+  2) <this-workspace>/desk-apps.json or bin/desk-apps.json
+  3) ~/.hermes/desk-apps.json
+  4) built-in defaults
+
+Commands:
+  status | list
+  browser <id>     — open allowlisted URL id (from desk-apps.json browser.allowlist_urls)
+  app <id>         — launch allowlisted app id (from desk-apps.json apps[])
+  open <key>       — compat alias (browser id or app id or builtin key)
+  url <url>        — open URL if allowlisted prefix
+
+No secrets. See ACCESS.md + APPS.md in the Hermes desktop workspace.
 """
 from __future__ import annotations
 
@@ -13,136 +25,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 FOG_REPO = Path(os.environ.get("FOG_SRC", Path.home() / "StrataMesh" / "fog" / "repo"))
-DESK_APPS_JSON = Path.home() / ".hermes" / "desk-apps.json"
-REPO_APPS_MD = FOG_REPO / "deploy" / "mac-fog" / "hermes" / "desktop" / "APPS.md"
-
-# Canonical allowlist (paths/URLs only — never tokens)
-DEFAULT_APPS: Dict[str, Dict[str, Any]] = {
-    "browser": {
-        "kind": "app",
-        "label": "Default browser (Chrome preferred, else Safari)",
-        "open": ["chrome_or_safari"],
-        "notes": "Used for CF / GitHub / Discourse / GCP / Fog health / academy",
-    },
-    "chrome": {
-        "kind": "app",
-        "label": "Google Chrome",
-        "app": "Google Chrome",
-    },
-    "safari": {
-        "kind": "app",
-        "label": "Safari",
-        "app": "Safari",
-    },
-    "snappymail": {
-        "kind": "url",
-        "label": "SnappyMail (automation.desk)",
-        "url": "http://127.0.0.1:8099",
-        "notes": "Local hop; automation.desk account when configured",
-    },
-    "fog-health": {
-        "kind": "url",
-        "label": "Fog health",
-        "url": "http://127.0.0.1:8787/health",
-    },
-    "academy": {
-        "kind": "url",
-        "label": "Academy",
-        "url": "https://academy.calhegasmorais.pt",
-    },
-    "github": {
-        "kind": "url",
-        "label": "GitHub StrataMesh-Laboratory",
-        "url": "https://github.com/StrataMesh-Laboratory",
-    },
-    "discourse": {
-        "kind": "url",
-        "label": "Discourse (calhegasmorais)",
-        "url": "https://forum.calhegasmorais.pt",
-    },
-    "gcp": {
-        "kind": "url",
-        "label": "GCP console",
-        "url": "https://console.cloud.google.com/",
-    },
-    "cloudflare": {
-        "kind": "url",
-        "label": "Cloudflare dashboard",
-        "url": "https://dash.cloudflare.com/",
-    },
-    "terminal": {
-        "kind": "app",
-        "label": "Terminal",
-        "app": "Terminal",
-    },
-    "iterm": {
-        "kind": "app",
-        "label": "iTerm",
-        "app": "iTerm",
-        "optional": True,
-    },
-    "fog-tui": {
-        "kind": "command",
-        "label": "Fog TUI",
-        "command": [
-            "open",
-            str(FOG_REPO / "deploy" / "mac-fog" / "FogRuntime.command"),
-        ],
-        "alt": "python3 deploy/mac-fog/fog-tui.py",
-    },
-    "fog-runtime": {
-        "kind": "command",
-        "label": "FogRuntime.command",
-        "command": [
-            "open",
-            str(FOG_REPO / "deploy" / "mac-fog" / "FogRuntime.command"),
-        ],
-    },
-    "opencode": {
-        "kind": "command",
-        "label": "OpenCode CLI",
-        "command": ["opencode", "--help"],
-        "notes": "CLI on PATH; project under FOG_SRC",
-    },
-    "openclaw": {
-        "kind": "url",
-        "label": "OpenClaw gateway (local WS note)",
-        "url": "http://127.0.0.1:18789",
-        "notes": "Gateway; WS ws://127.0.0.1:18789 — do not dump tokens",
-    },
-    "ollama": {
-        "kind": "command",
-        "label": "Ollama",
-        "command": ["ollama", "list"],
-        "notes": "Local or cloud via vault token path only",
-    },
-    "maildir": {
-        "kind": "command",
-        "label": "Finder → ~/mail/automation.desk",
-        "command": ["open", str(Path.home() / "mail" / "automation.desk")],
-    },
-    "desk-mail": {
-        "kind": "command",
-        "label": "desk-mail status",
-        "command": ["desk-mail", "status"],
-    },
-}
-
-# URL allowlist prefixes for `desk-open url …`
-URL_ALLOW_PREFIXES = (
-    "http://127.0.0.1:",
-    "http://localhost:",
-    "https://academy.calhegasmorais.pt",
-    "https://calhegasmorais.pt",
-    "https://forum.calhegasmorais.pt",
-    "https://github.com/StrataMesh-Laboratory",
-    "https://console.cloud.google.com",
-    "https://dash.cloudflare.com",
-    "https://ollama.com",
-)
+DESKTOP = FOG_REPO / "deploy" / "mac-fog" / "hermes" / "desktop"
+HERE = Path(__file__).resolve().parent
 
 
 def die(msg: str, code: int = 1) -> None:
@@ -150,36 +37,81 @@ def die(msg: str, code: int = 1) -> None:
     raise SystemExit(code)
 
 
-def load_roster() -> Dict[str, Dict[str, Any]]:
-    if DESK_APPS_JSON.is_file():
+def roster_candidates() -> List[Path]:
+    out: List[Path] = []
+    if os.environ.get("DESK_APPS_JSON"):
+        out.append(Path(os.environ["DESK_APPS_JSON"]))
+    # Workspace-local first (Hermes FOG-CMN-DESK)
+    out.extend(
+        [
+            HERE / "desk-apps.json",
+            HERE.parent / "desk-apps.json" if HERE.name == "bin" else HERE / "desk-apps.json",
+            DESKTOP / "desk-apps.json",
+            DESKTOP / "bin" / "desk-apps.json",
+            Path.home() / ".hermes" / "desk-apps.json",
+        ]
+    )
+    # dedupe preserving order
+    seen = set()
+    uniq: List[Path] = []
+    for p in out:
         try:
-            data = json.loads(DESK_APPS_JSON.read_text(encoding="utf-8"))
-            apps = data.get("apps") if isinstance(data, dict) else None
-            if isinstance(apps, dict) and apps:
-                return apps
-        except Exception as e:
-            print(f"desk-open: warn bad {DESK_APPS_JSON}: {type(e).__name__}", file=sys.stderr)
-    return dict(DEFAULT_APPS)
+            rp = p.resolve()
+        except Exception:
+            rp = p
+        if rp in seen:
+            continue
+        seen.add(rp)
+        uniq.append(p)
+    return uniq
 
 
-def url_allowed(url: str) -> bool:
-    u = url.strip()
-    return any(u.startswith(p) for p in URL_ALLOW_PREFIXES)
+def load_roster() -> Tuple[Dict[str, Any], Path]:
+    for p in roster_candidates():
+        if p.is_file():
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data, p
+            except Exception as e:
+                print(f"desk-open: warn bad roster {p}: {type(e).__name__}", file=sys.stderr)
+    return {"schema": "desk.apps.builtin", "browser": {"allowlist_urls": []}, "apps": []}, Path("(builtin)")
 
 
-def pick_browser_app() -> str:
-    for name in ("Google Chrome", "Chromium", "Safari"):
-        # `open -a` resolves by name; probe via mdfind/ls Applications lightly
-        app_path = Path("/Applications") / f"{name}.app"
-        if app_path.is_dir():
+def pick_browser_app(preferred: Optional[List[str]] = None) -> str:
+    names = preferred or ["Google Chrome", "Chromium", "Safari"]
+    for name in names:
+        if (Path("/Applications") / f"{name}.app").is_dir():
             return name
     return "Safari"
 
 
-def run_open_app(app_name: str, url: Optional[str] = None, dry_run: bool = False) -> int:
-    cmd = ["open", "-a", app_name]
-    if url:
-        cmd.append(url)
+def url_prefixes_from_roster(roster: Dict[str, Any]) -> List[str]:
+    prefixes = [
+        "http://127.0.0.1:",
+        "http://localhost:",
+        "https://academy.calhegasmorais.pt",
+        "https://calhegasmorais.pt",
+        "https://fog.calhegasmorais.pt",
+        "https://forum.calhegasmorais.pt",
+        "https://discourse.stratamesh-laboratory.org",
+        "https://github.com/StrataMesh-Laboratory",
+        "https://console.cloud.google.com",
+        "https://dash.cloudflare.com",
+        "https://ollama.com",
+    ]
+    for item in (roster.get("browser") or {}).get("allowlist_urls") or []:
+        if isinstance(item, dict) and item.get("url"):
+            prefixes.append(str(item["url"]))
+    return prefixes
+
+
+def url_allowed(url: str, roster: Dict[str, Any]) -> bool:
+    u = url.strip()
+    return any(u.startswith(p) for p in url_prefixes_from_roster(roster))
+
+
+def run_cmd(cmd: List[str], dry_run: bool = False) -> int:
     print(f"desk-open: {' '.join(cmd)}")
     if dry_run:
         print("desk-open: dry-run (not executed)")
@@ -187,109 +119,139 @@ def run_open_app(app_name: str, url: Optional[str] = None, dry_run: bool = False
     return subprocess.run(cmd).returncode
 
 
-def run_open_url(url: str, dry_run: bool = False) -> int:
-    if not url_allowed(url):
+def open_url(url: str, roster: Dict[str, Any], dry_run: bool) -> int:
+    if not url_allowed(url, roster):
         die(f"URL not allowlisted: {url}")
-    browser = pick_browser_app()
-    return run_open_app(browser, url=url, dry_run=dry_run)
+    preferred = (roster.get("browser") or {}).get("preferred")
+    browser = pick_browser_app(preferred if isinstance(preferred, list) else None)
+    return run_cmd(["open", "-a", browser, url], dry_run=dry_run)
 
 
-def run_command(cmd: List[str], dry_run: bool = False) -> int:
-    print(f"desk-open: exec {' '.join(cmd)}")
-    if dry_run:
-        print("desk-open: dry-run (not executed)")
-        return 0
-    # For `open` of local paths, just run; for CLI help-ish, capture briefly
-    if cmd and cmd[0] == "open":
-        return subprocess.run(cmd).returncode
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    out = (p.stdout or "")[:500]
-    err = (p.stderr or "")[:300]
-    if out.strip():
-        print(out.rstrip())
-    if p.returncode != 0 and err.strip():
-        print(err.rstrip(), file=sys.stderr)
-    return p.returncode
+def browser_ids(roster: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    for item in (roster.get("browser") or {}).get("allowlist_urls") or []:
+        if isinstance(item, dict) and item.get("id") and item.get("url"):
+            out[str(item["id"])] = item
+    return out
 
 
-def cmd_status(_args: argparse.Namespace) -> int:
-    apps = load_roster()
+def app_ids(roster: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    for item in roster.get("apps") or []:
+        if isinstance(item, dict) and item.get("id"):
+            out[str(item["id"])] = item
+    return out
+
+
+def cmd_status(_args: argparse.Namespace, roster: Dict[str, Any], path: Path) -> int:
+    browsers = browser_ids(roster)
+    apps = app_ids(roster)
+    preferred = (roster.get("browser") or {}).get("preferred") or []
     print("desk-open status")
-    print(f"  roster: {DESK_APPS_JSON if DESK_APPS_JSON.is_file() else '(defaults)'}")
+    print(f"  roster: {path}")
+    print(f"  schema: {roster.get('schema', '?')}")
+    print(f"  workspace: {roster.get('workspace', 'FOG-CMN-DESK')}")
+    print(f"  browser_pick: {pick_browser_app(preferred if isinstance(preferred, list) else None)}")
+    print(f"  browser_urls: {len(browsers)}")
+    for k, v in sorted(browsers.items()):
+        print(f"    - {k}: {v.get('url')} ({v.get('why', '')})")
     print(f"  apps: {len(apps)}")
-    print(f"  browser_pick: {pick_browser_app()}")
-    print(f"  apps_md: {'yes' if REPO_APPS_MD.is_file() else 'no'}")
-    for key in sorted(apps.keys()):
-        meta = apps[key]
-        kind = meta.get("kind", "?")
-        label = meta.get("label", key)
-        target = meta.get("url") or meta.get("app") or " ".join(meta.get("command") or []) or ""
-        opt = " optional" if meta.get("optional") else ""
-        print(f"  - {key}: [{kind}]{opt} {label} → {target}")
+    for k, v in sorted(apps.items()):
+        target = v.get("url") or " ".join(v.get("open") or []) or v.get("cmd") or ""
+        opt = " optional" if v.get("optional") else ""
+        print(f"    - {k}:{opt} {target} ({v.get('why', '')})")
     return 0
 
 
-def cmd_list(args: argparse.Namespace) -> int:
-    return cmd_status(args)
+def cmd_browser(args: argparse.Namespace, roster: Dict[str, Any], _path: Path) -> int:
+    browsers = browser_ids(roster)
+    bid = args.id
+    if bid not in browsers:
+        die(f"unknown browser id {bid!r}; known: {', '.join(sorted(browsers)) or '(none)'}")
+    return open_url(str(browsers[bid]["url"]), roster, dry_run=bool(args.dry_run))
 
 
-def resolve_and_open(key: str, dry_run: bool) -> int:
-    apps = load_roster()
-    if key not in apps:
-        die(f"unknown app key {key!r}; try: desk-open status")
-    meta = apps[key]
-    kind = meta.get("kind")
-    if kind == "url":
-        return run_open_url(str(meta["url"]), dry_run=dry_run)
-    if kind == "app":
-        if key == "browser" or meta.get("open") == ["chrome_or_safari"]:
-            return run_open_app(pick_browser_app(), dry_run=dry_run)
-        app = meta.get("app")
-        if not app:
-            die(f"{key}: missing app name")
-        return run_open_app(str(app), dry_run=dry_run)
-    if kind == "command":
-        cmd = meta.get("command")
-        if not isinstance(cmd, list) or not cmd:
-            die(f"{key}: missing command")
-        # expand ~ in args
-        cmd = [os.path.expanduser(str(c)) for c in cmd]
-        # resolve desk-mail / opencode / ollama on PATH
-        if cmd[0] not in ("open",) and not Path(cmd[0]).is_file():
-            resolved = shutil.which(cmd[0])
-            if not resolved:
-                if meta.get("optional"):
-                    print(f"desk-open: skip optional missing {cmd[0]}")
-                    return 0
-                die(f"command not on PATH: {cmd[0]}")
-            cmd[0] = resolved
-        return run_command(cmd, dry_run=dry_run)
-    die(f"{key}: unknown kind {kind!r}")
+def cmd_app(args: argparse.Namespace, roster: Dict[str, Any], _path: Path) -> int:
+    apps = app_ids(roster)
+    aid = args.id
+    if aid not in apps:
+        die(f"unknown app id {aid!r}; known: {', '.join(sorted(apps)) or '(none)'}")
+    meta = apps[aid]
+    if meta.get("url"):
+        return open_url(str(meta["url"]), roster, dry_run=bool(args.dry_run))
+    if meta.get("open"):
+        cmd = [os.path.expanduser(str(c)) for c in meta["open"]]
+        # optional apps: tolerate missing .app
+        if meta.get("optional") and len(cmd) >= 3 and cmd[0] == "open" and cmd[1] == "-a":
+            app_name = cmd[2]
+            if not (Path("/Applications") / f"{app_name}.app").is_dir():
+                print(f"desk-open: skip optional missing app {app_name}")
+                return 0
+        return run_cmd(cmd, dry_run=bool(args.dry_run))
+    if meta.get("cmd"):
+        # cmd may be a shell-ish description — try first token on PATH
+        raw = str(meta["cmd"]).split()[0]
+        # special: FogRuntime.command
+        if "FogRuntime.command" in str(meta["cmd"]):
+            path = FOG_REPO / "deploy" / "mac-fog" / "FogRuntime.command"
+            return run_cmd(["open", str(path)], dry_run=bool(args.dry_run))
+        if raw == "desk-mail":
+            # prefer workspace-local bin
+            for cand in (HERE / "desk-mail", DESKTOP / "bin" / "desk-mail", shutil.which("desk-mail")):
+                if cand and Path(cand).exists():
+                    return run_cmd([str(cand), "status"], dry_run=bool(args.dry_run))
+        resolved = shutil.which(raw)
+        if not resolved:
+            if meta.get("optional"):
+                print(f"desk-open: skip optional missing {raw}")
+                return 0
+            die(f"command not on PATH: {raw}")
+        # safe info-only for CLIs
+        extra = ["--help"] if raw in ("opencode", "openclaw", "hermes") else []
+        if raw == "ollama":
+            extra = ["list"]
+        if raw == "desk-mail":
+            extra = ["status"]
+        return run_cmd([resolved, *extra], dry_run=bool(args.dry_run))
+    die(f"app {aid}: no open/url/cmd")
 
 
-def cmd_open(args: argparse.Namespace) -> int:
-    return resolve_and_open(args.key, dry_run=bool(args.dry_run))
+def cmd_open(args: argparse.Namespace, roster: Dict[str, Any], path: Path) -> int:
+    key = args.key
+    if key in browser_ids(roster):
+        args.id = key
+        return cmd_browser(args, roster, path)
+    if key in app_ids(roster):
+        args.id = key
+        return cmd_app(args, roster, path)
+    die(f"unknown key {key!r}; try: desk-open list")
 
 
-def cmd_url(args: argparse.Namespace) -> int:
-    return run_open_url(args.url, dry_run=bool(args.dry_run))
+def cmd_url(args: argparse.Namespace, roster: Dict[str, Any], _path: Path) -> int:
+    return open_url(args.url, roster, dry_run=bool(args.dry_run))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="desk-open", description="FOG-CMN-DESK allowlisted app/URL opener")
-    p.add_argument("--dry-run", action="store_true", help="Print action only")
+    p = argparse.ArgumentParser(
+        prog="desk-open",
+        description="FOG-CMN-DESK allowlisted app/URL opener (workspace-local)",
+    )
+    p.add_argument("--dry-run", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("status", help="List linked apps")
+    sub.add_parser("status", help="List linked browser ids + apps")
     sub.add_parser("list", help="Alias for status")
-    op = sub.add_parser("open", help="Open allowlisted app key")
+    bp = sub.add_parser("browser", help="Open allowlisted browser URL id")
+    bp.add_argument("id")
+    ap = sub.add_parser("app", help="Launch allowlisted app id")
+    ap.add_argument("id")
+    op = sub.add_parser("open", help="Compat: open browser/app id")
     op.add_argument("key")
-    up = sub.add_parser("url", help="Open allowlisted URL in browser")
+    up = sub.add_parser("url", help="Open allowlisted URL")
     up.add_argument("url")
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    # allow global --dry-run before or after subcommand
     argv = list(sys.argv[1:] if argv is None else argv)
     dry = False
     if "--dry-run" in argv:
@@ -297,13 +259,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         argv = [a for a in argv if a != "--dry-run"]
     parser = build_parser()
     args = parser.parse_args(argv)
-    args.dry_run = dry or bool(getattr(args, "dry_run", False))
+    args.dry_run = dry
+    roster, path = load_roster()
     if args.cmd in ("status", "list"):
-        return cmd_status(args)
+        return cmd_status(args, roster, path)
+    if args.cmd == "browser":
+        return cmd_browser(args, roster, path)
+    if args.cmd == "app":
+        return cmd_app(args, roster, path)
     if args.cmd == "open":
-        return cmd_open(args)
+        return cmd_open(args, roster, path)
     if args.cmd == "url":
-        return cmd_url(args)
+        return cmd_url(args, roster, path)
     die(f"unknown cmd {args.cmd}")
 
 

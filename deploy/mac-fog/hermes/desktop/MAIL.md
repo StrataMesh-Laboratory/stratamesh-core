@@ -1,4 +1,4 @@
-# automation.desk@ — desk-mail CLI (FOG-CMN-DESK)
+# automation.desk@ — ./bin/desk-mail CLI (FOG-CMN-DESK)
 
 Shared collegium mailbox for **Hermes / OpenCode / OpenClaw** (and STRATAGROK on Mac).  
 Address: `automation.desk@calhegasmorais.pt`  
@@ -7,18 +7,18 @@ Vault paths only: `~/.config/stratagrok/automation.desk.{imap,smtp,token}`
 
 **grok@ stays private** (Bot/Fog/EDGE gateway). Do not open grok@ to Hermes/OpenCode/OpenClaw.
 
-## Commands (`desk-mail` on PATH via `~/.local/bin`)
+## Commands (workspace-local canonical)
 
 ```bash
-desk-mail status          # address, maildir counts, vault yes/no, MAIL_MODE/SMTP_MODE
-desk-mail sync            # Worker → Maildir (desk-mail-sync.py + vault token)
-desk-mail list [--limit N]
-desk-mail read ID|path    # full body
-desk-mail search QUERY
-desk-mail draft compose --to ADDR --subject '…' --body '…'   # or --body-file
-desk-mail draft edit PATH --body '…'                         # or --body-file
-desk-mail draft list
-desk-mail send PATH|draft # maildir_drop → sent/+new; real SMTP loopback only by default
+./bin/desk-mail status          # address, maildir counts, vault yes/no, MAIL_MODE/SMTP_MODE
+./bin/desk-mail sync            # Worker → Maildir (desk-mail-sync.py + vault token)
+./bin/desk-mail list [--limit N]
+./bin/desk-mail read ID|path    # full body
+./bin/desk-mail search QUERY
+./bin/desk-mail draft compose --to ADDR --subject '…' --body '…'   # or --body-file
+./bin/desk-mail draft edit PATH --body '…'                         # or --body-file
+./bin/desk-mail draft list
+./bin/desk-mail send PATH|draft # maildir_drop → sent/+new; real SMTP loopback only by default
 ```
 
 ## Modes

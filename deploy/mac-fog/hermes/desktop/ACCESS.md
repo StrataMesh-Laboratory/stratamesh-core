@@ -1,69 +1,62 @@
-# FOG-CMN-DESK access points (directed)
+# ACCESS — FOG-CMN-DESK directed map (Hermes / OpenCode / OpenClaw)
 
-This file is part of the **Hermes workspace project**. Desk agents (Hermes / OpenCode / OpenClaw)
-use these paths **from this workspace** — not by guessing STRATAGROK’s PATH.
+**Read this as mandate.** Tools live **inside this workspace** under `bin/` — do not wait for STRATAGROK PATH.
 
-Workspace root (cwd):
+Workspace root (this folder): `deploy/mac-fog/hermes/desktop/`  
+From project cwd:
 
-`deploy/mac-fog/hermes/desktop`  
-(absolute on Mac: `/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop`)
-
-## Rule
-
-1. `cd` to the workspace root (or set Hermes project root here).
-2. Call tools via **`./bin/...`** (workspace-local). Fallback `~/.local/bin` only if `./bin` missing.
-3. Read this file + [MAIL.md](./MAIL.md) + [APPS.md](./APPS.md) before mail/browser Acts.
-
-## Mail — automation.desk@ (R/W/edit/send/sync)
-
-**Not grok@.** grok@ is private Bot/Fog/EDGE.
+## Mail — automation.desk@ (full R/W/edit/send/sync)
 
 ```bash
 ./bin/desk-mail status
 ./bin/desk-mail sync
-./bin/desk-mail list
-./bin/desk-mail read <id>
-./bin/desk-mail search <query>
+./bin/desk-mail list [--limit N]
+./bin/desk-mail read ID|path
+./bin/desk-mail search QUERY
+./bin/desk-mail draft compose --to ADDR --subject '…' --body '…'
+./bin/desk-mail draft edit PATH --body '…'
 ./bin/desk-mail draft list
-./bin/desk-mail draft compose --to ADDR --subject TEXT --body TEXT
-./bin/desk-mail draft edit <path>
-./bin/desk-mail send <draft-path>
+./bin/desk-mail send PATH|draft
 ```
 
-Vault paths (names only): `~/.config/stratagrok/automation.desk.{imap,smtp,token}`  
-Maildir: `~/mail/automation.desk`
+Address: `automation.desk@calhegasmorais.pt` · Maildir: `~/mail/automation.desk`  
+Vault paths only: `~/.config/stratagrok/automation.desk.{imap,smtp,token}`  
+**grok@ is private** (Bot/Fog/EDGE) — never open to Hermes/OpenCode/OpenClaw.  
+Details: [MAIL.md](./MAIL.md)
 
-## Browser + apps
+## Browser — allowlisted URLs
 
 ```bash
-./bin/desk-open status
 ./bin/desk-open list
-./bin/desk-open open fog-health
-./bin/desk-open open snappymail
-./bin/desk-open open github-core
-./bin/desk-open open discourse
-./bin/desk-open open academy
-./bin/desk-open open cloudflare
-./bin/desk-open open gcp
-./bin/desk-open open terminal
-./bin/desk-open open finder-mail
-./bin/desk-open open fog-tui
+./bin/desk-open browser fog-health
+./bin/desk-open browser snappymail
+./bin/desk-open browser academy
+./bin/desk-open browser github-core
+./bin/desk-open browser discourse
+./bin/desk-open browser cloudflare
+./bin/desk-open browser gcp
+./bin/desk-open --dry-run browser fog-health
 ```
 
-Allowlist source: [`desk-apps.json`](./desk-apps.json) (also copied under `./bin/`).
+Roster: [desk-apps.json](./desk-apps.json) · [APPS.md](./APPS.md)
 
-## Fog / specialty CLIs (repo-relative)
+## Apps
 
 ```bash
-# from Fog repo root ($FOG_SRC or ../../../../ from this desktop folder's fog/repo)
-python3 ops/desk-collegium/desk_ops.py cycle --max 1
-bash deploy/mac-fog/desk-agent-run.sh hermes   # serialize — never stack all
-bash deploy/mac-fog/desk-hermes-pulse.sh
+./bin/desk-open app terminal
+./bin/desk-open app finder-mail
+./bin/desk-open app desk-mail
+./bin/desk-open app fog-tui
+./bin/desk-open app ollama
+./bin/desk-open app opencode
+./bin/desk-open app openclaw
+./bin/desk-open app hermes
 ```
+
+## Install / seed
+
+`ensure_workspace.py` keeps `bin/` synced, copies roster to `~/.hermes/desk-apps.json`, and may also install `~/.local/bin/{desk-mail,desk-open}` — **workspace `./bin/` is canonical for agents**.
 
 ## Deny
 
-- Assuming tools exist only on STRATAGROK’s box PATH
-- Opening grok@ mailbox tools from Ollama agents
-- Secrets in chat/git
-- workers.dev as Assistant fetch
+secrets in chat · non-allowlisted URLs · workers.dev as Assistant fetch · grok@ tools for Ollama agents
