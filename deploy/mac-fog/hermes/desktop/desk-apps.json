@@ -1,0 +1,139 @@
+{
+  "schema": "desk.apps.v1",
+  "workspace": "FOG-CMN-DESK",
+  "browser": {
+    "preferred": [
+      "Google Chrome",
+      "Safari",
+      "Chromium"
+    ],
+    "extension_control_note": "Hermes browser.extension_control may be enabled in ~/.hermes/config.yaml when agents need page control; default off until proven.",
+    "allowlist_urls": [
+      {
+        "id": "fog-health",
+        "url": "http://127.0.0.1:8787/health",
+        "why": "Fog kernel health"
+      },
+      {
+        "id": "fog-public",
+        "url": "https://fog.calhegasmorais.pt/health",
+        "why": "Public Fog health"
+      },
+      {
+        "id": "snappymail",
+        "url": "http://127.0.0.1:8099",
+        "why": "Shared webmail (automation.desk)"
+      },
+      {
+        "id": "github-core",
+        "url": "https://github.com/StrataMesh-Laboratory/stratamesh-core",
+        "why": "Desk repo"
+      },
+      {
+        "id": "discourse",
+        "url": "https://discourse.stratamesh-laboratory.org",
+        "why": "Lab Discourse"
+      },
+      {
+        "id": "academy",
+        "url": "https://academy.calhegasmorais.pt",
+        "why": "Academy"
+      },
+      {
+        "id": "cloudflare",
+        "url": "https://dash.cloudflare.com",
+        "why": "CF Email Routing / Workers"
+      },
+      {
+        "id": "gcp",
+        "url": "https://console.cloud.google.com",
+        "why": "GCP Always Free / desk cloud"
+      }
+    ]
+  },
+  "apps": [
+    {
+      "id": "terminal",
+      "open": [
+        "open",
+        "-a",
+        "Terminal"
+      ],
+      "why": "Shell for desk-mail / fog / git"
+    },
+    {
+      "id": "iterm",
+      "open": [
+        "open",
+        "-a",
+        "iTerm"
+      ],
+      "optional": true,
+      "why": "Alt terminal"
+    },
+    {
+      "id": "finder-mail",
+      "open": [
+        "open",
+        "/Users/andremorais/mail/automation.desk"
+      ],
+      "why": "Shared Maildir folder"
+    },
+    {
+      "id": "fog-tui",
+      "cmd": "FogRuntime.command or python3 deploy/mac-fog/fog-tui.py",
+      "why": "Automation Desk TUI"
+    },
+    {
+      "id": "ollama",
+      "open": [
+        "open",
+        "-a",
+        "Ollama"
+      ],
+      "optional": true,
+      "why": "Local models for Ollama dept"
+    },
+    {
+      "id": "opencode",
+      "cmd": "opencode",
+      "why": "Code specialty CLI"
+    },
+    {
+      "id": "openclaw",
+      "cmd": "openclaw",
+      "why": "Claw specialty / gateway"
+    },
+    {
+      "id": "hermes",
+      "cmd": "hermes",
+      "why": "Coord specialty / FOG-CMN-DESK host"
+    },
+    {
+      "id": "desk-mail",
+      "cmd": "desk-mail",
+      "why": "automation.desk@ R/W/edit/send/sync"
+    },
+    {
+      "id": "snappymail",
+      "url": "http://127.0.0.1:8099",
+      "why": "Webmail UI for automation.desk"
+    },
+    {
+      "id": "desk-chat",
+      "cmd": "./bin/desk-chat status",
+      "why": "Desk room + private peer DMs (volitional coms)"
+    },
+    {
+      "id": "desk-room",
+      "cmd": "./bin/desk-chat room tail",
+      "why": "Public collegium room (agent feed lines)"
+    }
+  ],
+  "never": [
+    "paste secrets into browser forms from chat",
+    "workers.dev as Assistant fetch",
+    "share STRATAGROK Bot desktop",
+    "open grok@ private mailbox tools for Ollama agents"
+  ]
+}

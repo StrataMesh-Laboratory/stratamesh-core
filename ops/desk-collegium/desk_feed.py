@@ -281,3 +281,98 @@ def protocol_payload(*, ok: bool, violations: list | None = None) -> str:
         return "protocol check ok"
     v = ",".join((violations or [])[:3]) or "unknown"
     return f"protocol VIOL {v}"
+
+
+def read_tail(n: int = 80, fog: Path | None = None) -> list[dict]:
+    """Last n JSONL feed records (fail-open)."""
+    path = feed_path(fog)
+    if not path.is_file():
+        return []
+    try:
+        data = path.read_bytes()
+        if len(data) > 512_000:
+            data = data[-512_000:]
+        out: list[dict] = []
+        for line in data.decode("utf-8", "replace").splitlines()[-max(1, int(n)) :]:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(rec, dict) and (rec.get("text") or rec.get("msg")):
+                out.append(rec)
+        return out
+    except Exception:
+        return []
+
+
+def situational_annex(
+    agent_id: str,
+    *,
+    peers: list[str] | None = None,
+    own_n: int = 8,
+    peer_n: int = 12,
+    fog: Path | None = None,
+) -> str:
+    """Compact live feed context: own agent lines + peer agent lines.
+
+    Excludes source=system / sys|alert chrome. Static CONTEXT pack is not enough —
+    subjects need to see what they and peers emitted on the DESK feed.
+    """
+    peers = peers or [
+        "hermes",
+        "openclaw",
+        "opencode",
+        "stratagrok",
+        "fog-assistant",
+        "edge-assistant",
+    ]
+    aid = (agent_id or "").strip().lower()
+    aliases = {
+        "coord": "hermes",
+        "claw": "openclaw",
+        "code": "opencode",
+        "lead": "stratagrok",
+        "fog": "fog-assistant",
+        "edge": "edge-assistant",
+    }
+    aid = aliases.get(aid, aid)
+    peer_set = {aliases.get(p, p).lower() for p in peers}
+    peer_set.discard(aid)
+
+    rows = read_tail(120, fog=fog)
+    own: list[str] = []
+    peer_lines: list[str] = []
+    for rec in reversed(rows):
+        if is_system_record(rec):
+            continue
+        ag = str(rec.get("agent") or "").strip().lower()
+        if not ag:
+            continue
+        kind = str(rec.get("kind") or "")[:10]
+        tm = str(rec.get("t") or "")[:8]
+        body = re.sub(r"\s+", " ", str(rec.get("text") or rec.get("msg") or "")).strip()[:160]
+        line = f"{tm} {ag} {kind} {body}".strip()
+        if ag == aid or (aid and aid in ag):
+            if len(own) < own_n:
+                own.append(line)
+        elif any(p == ag or p in ag or ag in p for p in peer_set):
+            if len(peer_lines) < peer_n:
+                peer_lines.append(line)
+        if len(own) >= own_n and len(peer_lines) >= peer_n:
+            break
+
+    parts = [
+        "## Situational feed (live — you + peers)",
+        "Recent DESK feed lines from agents (not system chrome).",
+        "Orient on what you already emitted and what peers are doing before acting.",
+        "",
+        f"### Your recent lines ({aid or 'self'})",
+    ]
+    parts.extend([f"- {x}" for x in own] or ["- (none yet)"])
+    parts += ["", "### Peer agents (recent)"]
+    parts.extend([f"- {x}" for x in peer_lines] or ["- (none yet)"])
+    parts.append("")
+    return "\n".join(parts)

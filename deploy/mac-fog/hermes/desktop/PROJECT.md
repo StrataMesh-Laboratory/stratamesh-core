@@ -18,3 +18,7 @@
 
 **Native desk env:** [DESK.md](./DESK.md)  
 Do not create SCA accounts for desk agents. Students = SCA/ACB only.
+
+## Access
+
+Directed tools live in this project: [`ACCESS.md`](./ACCESS.md), `./bin/desk-mail`, `./bin/desk-open`.

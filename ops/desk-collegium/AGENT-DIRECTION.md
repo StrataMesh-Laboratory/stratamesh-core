@@ -77,3 +77,10 @@ queue) emits `source=system` lines rendered as muted chrome:
 
 Never stamp those as `stratagrok`, and never invent a fake `desk` agent.
 System lines do not light Automation Desk ops ● dots.
+
+## Situational feed (own + peers)
+
+Directed briefs include a **live** annex from `desk_feed.situational_annex`:
+the agent's own recent feed lines and peers' recent agent lines.
+System chrome (`source=system`) is excluded. Static CONTEXT pack ≠ live feed.
+Agents must be contextualised on what they and others are outputting.

@@ -86,3 +86,29 @@ shared_desk_machine:
     - grok_bot_computers_registration
     - share_stratagrok_bot_desktop
     - secrets_in_git
+
+# Browser + local apps linked to this workspace (paths/URLs only — see APPS.md)
+desk_apps:
+  roster: deploy/mac-fog/hermes/desktop/desk-apps.json
+  cli: desk-open
+  mail_cli: desk-mail
+  browser_extension_control: false
+  notes: |
+    Agents open allowlisted URLs via desk-open browser <id>.
+    Enable Hermes browser.extension_control only for a directed Act.
+
+# Directed access inside this workspace (agents must use these paths)
+access_map: ACCESS.md
+workspace_bin: deploy/mac-fog/hermes/desktop/bin
+workspace_tools:
+  - ./bin/desk-mail
+  - ./bin/desk-open
+hermes_project:
+  name: FOG-CMN-DESK
+  root: deploy/mac-fog/hermes/desktop
+  load:
+    - SOUL.md
+    - ACCESS.md
+    - MAIL.md
+    - APPS.md
+    - DESK.md

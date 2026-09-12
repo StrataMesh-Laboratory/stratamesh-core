@@ -70,8 +70,8 @@ run_opencode() {
   echo "OpenCode exec $OC on brief"
   set +e
   # OpenCode CLI: message is positional (no --prompt). --auto for non-interactive desk.
-  PROMPT="$(head -c 4000 "$BRIEF")"
-  if "$OC" run --dir "$REPO" --auto "$PROMPT" >"$LOG" 2>&1; then
+  PROMPT="$(head -c 12000 "$BRIEF")"
+  if "$OC" run --dir "$REPO" --auto "$PROMPT" </dev/null >"$LOG" 2>&1; then
     RC=0
   else
     RC=$?
@@ -102,7 +102,7 @@ run_hermes() {
     return 0
   fi
   if [[ -f "$BRIEF" ]]; then
-    PROMPT="$(head -c 800 "$BRIEF")"
+    PROMPT="$(head -c 12000 "$BRIEF")"
   else
     PROMPT="Desk Hermes: one live Fog lesson (tools OK). oracle_live=false. Reply with one concrete prove line."
   fi

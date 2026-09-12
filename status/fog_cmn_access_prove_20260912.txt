@@ -1,0 +1,19 @@
+fog-cmn-desk directed access prove
+cwd=/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop
+access=ACCESS.md
+workspace=/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop
+roster=/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop/desk-apps.json
+access=/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/hermes/desktop/ACCESS.md
+entries=17
+browser_app=Safari
+desk_mail_bin=True
+desk-mail status
+  address: automation.desk@calhegasmorais.pt
+  maildir: /Users/andremorais/mail/automation.desk
+  counts: new=10 cur=0 drafts=1 sent=1
+  vault.imap: yes path=/Users/andremorais/.config/stratagrok/automation.desk.imap
+  vault.smtp: yes path=/Users/andremorais/.config/stratagrok/automation.desk.smtp
+  vault.token: yes path=/Users/andremorais/.config/stratagrok/automation.desk.token
+  MAIL_MODE: imap
+  SMTP_MODE: maildir_drop
+ok=true

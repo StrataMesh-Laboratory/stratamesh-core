@@ -1,0 +1,56 @@
+desk-mail-client + desk-open workspace access prove — FOG-CMN-DESK
+date_utc=2026-09-12T10:35:43Z
+date_pt=2026-09-12T11:35:43+0100
+host=MBPA-4.local
+branch=desk/automation-desk-mail-client
+base=c48c2054f079f06cf8f8df7d980ab4c7d923032e
+
+sha256:
+  deploy/mac-fog/desk-mail-client.py=23379b974138732777b1ca29b19b3a87a781d1abee11707edaed9518f3e45415
+  deploy/mac-fog/desk-open.py=c9416ee1466da711a0199607bbfd25d40beecf3b83817b17ef4f59b9d9975e4a
+  desktop/bin/desk-mail=23379b974138732777b1ca29b19b3a87a781d1abee11707edaed9518f3e45415
+  desktop/bin/desk-open=c9416ee1466da711a0199607bbfd25d40beecf3b83817b17ef4f59b9d9975e4a
+
+himalaya=skipped (optional; Python CLI shipped)
+
+modes: MAIL_MODE=imap SMTP_MODE=maildir_drop
+vault.imap=yes vault.smtp=yes vault.token=yes (no secret values)
+
+mail_commands_proved:
+  ensure_workspace desk_mail+desk_apps
+  desk-mail / ./bin/desk-mail status
+  desk-mail sync → new_from_worker=9
+  list/read/search/draft compose/edit/list/send(maildir_drop)=ok
+
+workspace_cwd_prove (canonical for Hermes agents):
+  cd deploy/mac-fog/hermes/desktop
+  ./bin/desk-mail status → ok
+  ./bin/desk-open list → ok (8 browser urls, 10 apps; roster=bin/desk-apps.json)
+  ./bin/desk-open --dry-run browser fog-health → ok
+  ./bin/desk-open browser fog-health → open_rc=0
+  curl 127.0.0.1:8787/health → ok=true (Fog live)
+
+counts: new=10 cur=0 drafts=1 sent=1
+
+status_redacted:
+  desk-mail status
+    address: automation.desk@calhegasmorais.pt
+    maildir: /Users/andremorais/mail/automation.desk
+    counts: new=10 cur=0 drafts=1 sent=1
+    vault.imap: yes path=/Users/andremorais/.config/stratagrok/automation.desk.imap
+    vault.smtp: yes path=/Users/andremorais/.config/stratagrok/automation.desk.smtp
+    vault.token: yes path=/Users/andremorais/.config/stratagrok/automation.desk.token
+    MAIL_MODE: imap
+    SMTP_MODE: maildir_drop
+    imap_keys: ADDRESS,IMAP_HOST,IMAP_PASS,IMAP_PORT,IMAP_SSL,IMAP_USER,MAILDIR,MAIL_MODE
+    smtp_keys: MAILDIR,NOTE,SMTP_FROM,SMTP_HOST,SMTP_MODE,SMTP_PASS,SMTP_PORT,SMTP_USER
+
+mandate:
+  ACCESS.md + MAIL.md + APPS.md in desktop/
+  SOUL.md / DESK.md / PROJECT.md / README.md list ./bin/ commands
+  config.yaml desk_apps.workspace_bin + tools pointers
+  ensure_workspace seeds desktop/bin/* and ~/.hermes/desk-apps.json
+
+unit: test_desk_mail_client.py OK; test_desk_open.py OK
+grok@=NOT opened to Hermes/OpenCode/OpenClaw
+ok=yes

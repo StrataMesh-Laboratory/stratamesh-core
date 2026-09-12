@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""desk-chat — desk room + private peer consult for Automation Desk agents.
+
+Volitional coms for Hermes / OpenClaw / OpenCode (and lead) as part of task completion.
+
+Surfaces:
+  room   — public DESK feed (agent lines; system chrome filtered)
+  dm     — private consult threads (bodies off public feed)
+  status — how sessions are instantiated
+
+Workspace-local: ./bin/desk-chat (see ACCESS.md). Never paste secrets.
+"""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+WS = HERE.parent if HERE.name == "bin" else HERE
+COLLEGIUM = Path(os.environ.get("FOG_SRC", Path.home() / "StrataMesh/fog/repo")) / "ops/desk-collegium"
+if not (COLLEGIUM / "desk_bus.py").is_file():
+    COLLEGIUM = Path.home() / "StrataMesh/fog/repo/ops/desk-collegium"
+
+
+def _load(name: str, rel: str):
+    fp = COLLEGIUM / rel
+    spec = importlib.util.spec_from_file_location(name, fp)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _feed():
+    return _load("desk_feed", "desk_feed.py")
+
+
+def _bus():
+    return _load("desk_bus", "desk_bus.py")
+
+
+def _consult():
+    return _load("desk_consult_store", "consult/store.py")
+
+
+def cmd_status(_: argparse.Namespace) -> int:
+    fog = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog"))
+    print("desk_chat.status")
+    print(f"  workspace={WS}")
+    print(f"  access={WS / 'ACCESS.md'}")
+    print(f"  desk_room=DESK feed (agent lines) via desk_feed / Fog TUI")
+    print(f"  private_dm=consult threads under {fog / 'data/desk-collegium/consult'}")
+    print("  hermes_project=FOG-CMN-DESK (Hermes desktop project session; ensure_workspace.py)")
+    print("  discord_slack=lab allowlist ACK-path (MESSAGING.md) — not primary peer DM")
+    print("  volition=external_agent may room say / dm open|reply as part of Act")
+    # counts
+    try:
+        c = _consult()
+        idx = c.load_index()
+        n = len(idx.get("threads") or {})
+        open_n = sum(1 for t in (idx.get("threads") or {}).values() if (t.get("status") or "open") == "open")
+        print(f"  consult_threads={n} open={open_n}")
+    except Exception as e:
+        print(f"  consult_err={e}")
+    try:
+        f = _feed()
+        rows = [r for r in f.read_tail(40) if not f.is_system_record(r) and (r.get("agent") or "").strip()]
+        print(f"  room_recent_agent_lines={len(rows)}")
+    except Exception as e:
+        print(f"  room_err={e}")
+    return 0
+
+
+def cmd_room_tail(args: argparse.Namespace) -> int:
+    f = _feed()
+    rows = f.read_tail(max(10, int(args.limit) * 3))
+    shown = 0
+    for rec in rows[::-1]:
+        if f.is_system_record(rec):
+            continue
+        ag = str(rec.get("agent") or "").strip()
+        if not ag:
+            continue
+        print(f"{rec.get('t','')} {ag} {rec.get('kind','')} {(rec.get('text') or '')[:200]}")
+        shown += 1
+        if shown >= int(args.limit):
+            break
+    if shown == 0:
+        print("(no agent room lines)")
+    return 0
+
+
+def cmd_room_say(args: argparse.Namespace) -> int:
+    who = (args.by or "").strip()
+    if not who:
+        print("desk-chat room say requires --by <agent>", file=sys.stderr)
+        return 2
+    text = (args.text or "").strip()
+    if not text:
+        print("desk-chat room say requires --text", file=sys.stderr)
+        return 2
+    bus = _bus()
+    # Prefer act/commend-style room utterance; kind=act for volitional peer note
+    kind = args.kind or "act"
+    out = bus.feed_append(who, text[:240], kind=kind, specialty=args.specialty or "")
+    print(json.dumps({"ok": True, "surface": "room", "by": who, "out": out}, ensure_ascii=False))
+    return 0 if out.get("ok") else 1
+
+
+def cmd_dm_list(args: argparse.Namespace) -> int:
+    c = _consult()
+    rows = c.list_threads(for_agent=args.by or "", status=args.status or "open")
+    if isinstance(rows, dict):
+        rows = rows.get("threads") or rows.get("items") or []
+    for t in rows[: int(args.limit)]:
+        if isinstance(t, dict):
+            print(f"{t.get('id')}  status={t.get('status')}  from={t.get('from') or t.get('frm')}  to={t.get('to')}  topic={t.get('topic','')[:60]}")
+        else:
+            print(t)
+    return 0
+
+
+def cmd_dm_open(args: argparse.Namespace) -> int:
+    if not args.by or not args.to:
+        print("dm open requires --by and --to", file=sys.stderr)
+        return 2
+    c = _consult()
+    out = c.open_thread(
+        frm=args.by,
+        to=args.to,
+        topic=args.topic or "",
+        text=args.text or "",
+        related_task=args.task or "",
+    )
+    # opaque feed pointer via bus when available
+    try:
+        bus = _bus()
+        tid = (out.get("thread") or {}).get("id") or out.get("id") or ""
+        ptr = f"consult → {args.to} thread={tid} {(args.topic or '')[:80]}".strip()
+        bus.feed_append(args.by, ptr, kind="consult", specialty="")
+    except Exception:
+        pass
+    print(json.dumps({"ok": True, "surface": "dm", "out": out}, ensure_ascii=False, default=str)[:2000])
+    return 0
+
+
+def cmd_dm_reply(args: argparse.Namespace) -> int:
+    if not args.by or not args.thread or not args.text:
+        print("dm reply requires --by --thread --text", file=sys.stderr)
+        return 2
+    c = _consult()
+    out = c.reply(thread_id=args.thread, frm=args.by, text=args.text)
+    try:
+        bus = _bus()
+        bus.feed_append(args.by, f"consult_reply thread={args.thread}", kind="consult", specialty="")
+    except Exception:
+        pass
+    print(json.dumps({"ok": True, "surface": "dm", "mode": "reply", "out": out}, ensure_ascii=False, default=str)[:2000])
+    return 0
+
+
+def cmd_dm_read(args: argparse.Namespace) -> int:
+    if not args.thread:
+        print("dm read requires --thread", file=sys.stderr)
+        return 2
+    c = _consult()
+    out = c.read_thread(thread_id=args.thread, frm=getattr(args, "by", "") or "")
+    print(json.dumps(out, indent=2, ensure_ascii=False, default=str)[:8000])
+    return 0
+
+
+def cmd_dm_close(args: argparse.Namespace) -> int:
+    if not args.by or not args.thread:
+        print("dm close requires --by --thread", file=sys.stderr)
+        return 2
+    c = _consult()
+    out = c.close_thread(thread_id=args.thread, frm=args.by, note=args.text or "")
+    try:
+        bus = _bus()
+        bus.feed_append(args.by, f"consult_close thread={args.thread}", kind="consult_close", specialty="")
+    except Exception:
+        pass
+    print(json.dumps({"ok": True, "out": out}, ensure_ascii=False, default=str)[:2000])
+    return 0
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="FOG-CMN-DESK desk-chat (room + private DM)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("status").set_defaults(func=cmd_status)
+
+    room = sub.add_parser("room", help="public desk room (DESK feed agent lines)")
+    room_sub = room.add_subparsers(dest="room_cmd", required=True)
+    t = room_sub.add_parser("tail")
+    t.add_argument("--limit", type=int, default=20)
+    t.set_defaults(func=cmd_room_tail)
+    s = room_sub.add_parser("say")
+    s.add_argument("--by", required=True)
+    s.add_argument("--text", required=True)
+    s.add_argument("--kind", default="act")
+    s.add_argument("--specialty", default="")
+    s.set_defaults(func=cmd_room_say)
+
+    dm = sub.add_parser("dm", help="private peer consult (bodies off public feed)")
+    dm_sub = dm.add_subparsers(dest="dm_cmd", required=True)
+    dl = dm_sub.add_parser("list")
+    dl.add_argument("--by", default="")
+    dl.add_argument("--status", default="open")
+    dl.add_argument("--limit", type=int, default=20)
+    dl.set_defaults(func=cmd_dm_list)
+    do = dm_sub.add_parser("open")
+    do.add_argument("--by", required=True)
+    do.add_argument("--to", required=True, help="peer id or comma list")
+    do.add_argument("--topic", default="")
+    do.add_argument("--text", default="")
+    do.add_argument("--task", default="")
+    do.set_defaults(func=cmd_dm_open)
+    dr = dm_sub.add_parser("reply")
+    dr.add_argument("--by", required=True)
+    dr.add_argument("--thread", required=True)
+    dr.add_argument("--text", required=True)
+    dr.set_defaults(func=cmd_dm_reply)
+    dread = dm_sub.add_parser("read")
+    dread.add_argument("--thread", required=True)
+    dread.add_argument("--by", default="")
+    dread.set_defaults(func=cmd_dm_read)
+    dc = dm_sub.add_parser("close")
+    dc.add_argument("--by", required=True)
+    dc.add_argument("--thread", required=True)
+    dc.add_argument("--text", default="")
+    dc.set_defaults(func=cmd_dm_close)
+
+    args = p.parse_args()
+    return int(args.func(args) or 0)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

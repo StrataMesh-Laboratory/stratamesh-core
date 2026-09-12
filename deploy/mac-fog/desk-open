@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec python3 "/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/desk-open.py" "$@"

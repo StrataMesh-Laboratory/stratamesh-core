@@ -23,3 +23,6 @@ Gateway ready on local desktop is expected; Fog TUI  still uses Ollama  preferen
 ## Shared desk SSH
 
 Intel Mac workaround (no Grok Bot app): [SSH.md](./SSH.md) · `install-desk-ssh.sh`
+
+## Access points
+Open project root = this folder. Agents use [`ACCESS.md`](./ACCESS.md) and `./bin/desk-mail` / `./bin/desk-open`.

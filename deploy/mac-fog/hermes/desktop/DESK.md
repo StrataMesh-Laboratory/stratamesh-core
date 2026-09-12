@@ -87,20 +87,45 @@ TODO.md · CONTEXT-CMN-STRATAMESH.md · reports/ · journals/ — Bot never requ
 
 ## Mail — automation.desk@ (shared client + per-agent pointers)
 
-Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenClaw) **and** external_assistant CMN standing:
+Shared desk mailbox for **all** Mac terminal agents (Hermes / OpenCode / OpenClaw) with **full read/write/edit/send/sync** via **`./bin/desk-mail`** in this workspace ([ACCESS.md](./ACCESS.md); `ensure_workspace.py` also mirrors to `~/.local/bin`). Fog/EDGE Assistants remain **directed** (digests / Mac path) — not origin SMTP from EDGE. **grok@** stays private Bot/Fog/EDGE gateway.
 
 | What | Value / path (paths only — never passwords in git) |
 |------|------------------------------------------------------|
 | Address | `automation.desk@calhegasmorais.pt` |
-| Role | shared Maildir / desk client (not geral@eni; not personal) |
+| CLI (canonical) | `./bin/desk-mail` ([ACCESS.md](./ACCESS.md)) |
+| Sync | `desk-mail sync` / `desk-mail-sync` → Worker→Maildir |
+| Maildir | `~/mail/automation.desk` (`cur`/`new`/`tmp`/`.drafts`/`sent`) |
+| Note | [MAIL.md](./MAIL.md) |
 | IMAP env file | `~/.config/stratagrok/automation.desk.imap` (0600) |
 | SMTP env file | `~/.config/stratagrok/automation.desk.smtp` (0600) |
+| Sync token | `~/.config/stratagrok/automation.desk.token` (0600) |
 | Alias pointer | `~/.config/stratamesh/automation.desk.env` (optional materialize) |
-| Desk Bearer (sync) | `~/.config/stratagrok/desk-mail.token` (separate from IMAP pass) |
+| Desk Bearer (sync API) | `~/.config/stratagrok/desk-mail.token` (separate from IMAP pass) |
+
+```bash
+./bin/desk-mail status
+./bin/desk-mail sync && ./bin/desk-mail list
+./bin/desk-mail draft compose --to automation.desk@calhegasmorais.pt --subject 'desk note' --body '…'
+./bin/desk-mail send draft   # maildir_drop until CF Email Sending
+```
 
 Ollama / terminal agent setup: point Messaging→Email at **automation.desk@**; load IMAP/SMTP from the env files above (key=value, no commit). Shared Maildir **plus** each agent's own config.yaml / DESK.md pointers — not instead of shared.
 
-Deny: print credentials · workers.dev · ENI `geral@` mix · git of `*.imap` / `*.smtp` / `desk-mail.token`.
+Deny: print credentials · workers.dev · ENI `geral@` mix · git of `*.imap` / `*.smtp` / `desk-mail.token` · opening grok@ to Hermes/OpenCode/OpenClaw.
 
 ## Next Act (2026-09-07 fallback)
 `dt-hermes-teach-20260907` — one Fog-ladder lesson for SCA/ACB. No 64k pull. See `ops/desk-collegium/PENDING-OLLAMA-ACTS.md`.
+
+## Desk apps / browser
+
+Linked into this workspace for Hermes / OpenCode / OpenClaw duties:
+
+- Roster: [`APPS.md`](./APPS.md) · `desk-apps.json`
+- CLI: `./bin/desk-open list|status|browser <id>|app <id>`
+- Mail: `./bin/desk-mail` ([MAIL.md](./MAIL.md)) — automation.desk@ only (not grok@)
+
+`ensure_workspace.py` installs both CLIs to `~/.local/bin` and copies `desk-apps.json` to `~/.hermes/`.
+
+## Directed CLIs (workspace-local)
+
+See [`ACCESS.md`](./ACCESS.md). Use `./bin/desk-mail` and `./bin/desk-open` from this folder — not ambient PATH assumptions.
