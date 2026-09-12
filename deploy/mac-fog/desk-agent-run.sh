@@ -69,7 +69,9 @@ run_opencode() {
   fi
   echo "OpenCode exec $OC on brief"
   set +e
-  if "$OC" run --prompt "$(head -c 2000 "$BRIEF")" >"$LOG" 2>&1; then
+  # OpenCode CLI: message is positional (no --prompt). --auto for non-interactive desk.
+  PROMPT="$(head -c 4000 "$BRIEF")"
+  if "$OC" run --dir "$REPO" --auto "$PROMPT" >"$LOG" 2>&1; then
     RC=0
   else
     RC=$?
