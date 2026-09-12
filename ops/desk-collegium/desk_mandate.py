@@ -106,8 +106,40 @@ def bind_commitment(
     return c
 
 
-def render_directed_brief(commitment: dict[str, Any], *, annex: str = "") -> str:
-    """Brief for oneshot: purpose-first, no filing-cabinet dump."""
+def render_directed_brief(
+    commitment: dict[str, Any],
+    *,
+    annex: str = "",
+    include_feed: bool = True,
+) -> str:
+    """Brief for oneshot: purpose-first + live feed situational (own + peers)."""
+    if include_feed and not annex:
+        try:
+            from desk_feed import situational_annex  # type: ignore
+            annex = situational_annex(str(commitment.get("agent_id") or ""))
+        except Exception:
+            try:
+                import importlib.util
+                fp = Path(__file__).resolve().parent / "desk_feed.py"
+                spec = importlib.util.spec_from_file_location("desk_feed", fp)
+                mod = importlib.util.module_from_spec(spec)
+                assert spec.loader
+                spec.loader.exec_module(mod)
+                annex = mod.situational_annex(str(commitment.get("agent_id") or ""))
+            except Exception:
+                annex = annex or ""
+    elif include_feed and annex:
+        try:
+            import importlib.util
+            fp = Path(__file__).resolve().parent / "desk_feed.py"
+            spec = importlib.util.spec_from_file_location("desk_feed", fp)
+            mod = importlib.util.module_from_spec(spec)
+            assert spec.loader
+            spec.loader.exec_module(mod)
+            feed = mod.situational_annex(str(commitment.get("agent_id") or ""))
+            annex = feed + chr(10) + annex
+        except Exception:
+            pass
     lines = [
         f"# Directed Act — {commitment.get('agent_id')} — {commitment.get('task_id')}",
         "",
