@@ -43,14 +43,19 @@ class PublicHysteresis(unittest.TestCase):
         self.assertEqual(_MOD.PUB_LAST_GOOD.get("origin"), "session")
         self.assertEqual(out.get("origin"), "session")
         self.assertTrue(out.get("_lamp"))
-        self.assertEqual(_MOD.PUB_FAILS, 1)
+        # Hairpin timeout with last_good: annotation only — do not bump PUB_FAILS
+        self.assertEqual(_MOD.PUB_FAILS, 0)
+        self.assertEqual(out.get("_annot_fails"), 1)
 
     def test_three_fails_then_dark(self):
         _MOD.apply_public_result({"ok": True, "origin": "session", "n": 1, "mac_live": False}, "pub")
         for _ in range(3):
             _MOD.apply_public_result({"ok": False, "error": "timed out"}, "pub")
-        self.assertEqual(_MOD.PUB_FAILS, 3)
-        self.assertFalse(_MOD.PUB_CACHE.get("_lamp"))
+        # With last_good, timeouts annotate — lamp stays on; PUB_FAILS stays 0
+        self.assertEqual(_MOD.PUB_FAILS, 0)
+        self.assertTrue(_MOD.PUB_CACHE.get("_lamp"))
+        self.assertGreaterEqual(int(_MOD.PUB_CACHE.get("_annot_fails") or 0), 3)
+        self.assertTrue(_MOD.PUB_CACHE.get("_annot_dark"))
         self.assertEqual(_MOD.PUB_CACHE.get("origin"), "session")
         self.assertEqual(_MOD.pub_origin_label(_MOD.PUB_CACHE), "session")
 

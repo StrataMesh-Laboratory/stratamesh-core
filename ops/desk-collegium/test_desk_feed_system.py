@@ -42,7 +42,7 @@ class TestSystemFeed(unittest.TestCase):
         self.assertEqual(rec.get("source"), "system")
         self.assertEqual(rec.get("agent"), "")
         line = self.mod.format_line(rec["agent"], rec["kind"], rec["text"], source=rec.get("source"))
-        self.assertIn("·", line)
+        self.assertIn("[sys]", line)
         self.assertNotIn("stratagrok", line)
         self.assertNotIn(" desk ", f" {line} ")
 

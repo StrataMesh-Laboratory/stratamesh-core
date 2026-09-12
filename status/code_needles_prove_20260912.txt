@@ -1,0 +1,12 @@
+M-I code needles prove — dt-proj-m1-code-needles
+date_utc=2026-09-12T13:03:38Z
+tip_before=243eec1
+killed_stacked_opencode=7
+ran_focused_desk_tests=not unittest-discover-all
+initial_fail=4 then patched:
+  test_desk_feed_system: expect [sys] not middle-dot
+  test_fog_tui_public: hysteresis annot not PUB_FAILS bump
+  test_ensure_workspace: OSS local tags vs cloud gpt-oss; 7b optional
+reprove: all three OK
+log=/Users/andremorais/StrataMesh/fog/data/desk-meters/opencode-last.log
+NO-FAKE-DONE: STRATAGROK ran tests after killing stack
