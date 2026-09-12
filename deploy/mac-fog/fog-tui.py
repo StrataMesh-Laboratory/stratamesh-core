@@ -1201,9 +1201,11 @@ def _wrap_plain(s: str, width: int) -> list[str]:
 
 def _desk_agent_style(tag: str) -> tuple[str, str]:
     tag = (tag or "").strip().lower()
-    # System/alert chrome — not an agent roster entry
-    if tag in ("", "·", ".", "sys", "system", "alert", "desk", "ops", "automation"):
-        return MUT, "·"
+    # System/alert chrome — not an agent roster entry (ASCII brackets; never ?)
+    if tag in ("", "·", ".", "sys", "system", "[sys]", "desk", "ops", "automation"):
+        return MUT, "[sys]"
+    if tag in ("alert", "[alert]"):
+        return MUT, "[alert]"
     if "hermes" in tag:
         return ACC, "hermes"
     if "opencode" in tag or tag == "code":
@@ -1216,7 +1218,7 @@ def _desk_agent_style(tag: str) -> tuple[str, str]:
         return MUT, "edge-asst"
     if "stratagrok" in tag or tag in ("grok", "bot"):
         return BOLD, "stratagrok"
-    return MUT, (tag or "?")[:10]
+    return MUT, (tag or "unknown")[:10]
 
 
 # DESK panel geometry: menu/instr (and optional HELP hint) sit after the feed.
@@ -1438,14 +1440,19 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
             is_sys = (
                 src.lower() == "system"
                 or kind.lower() in ("sys", "alert")
-                or ag_raw.strip().lower() in ("", "·", "desk", "system", "sys", "alert", "ops")
+                or ag_raw.strip().lower() in (
+                    "", "·", ".", "desk", "system", "sys", "alert", "ops",
+                    "[sys]", "[alert]", "automation",
+                )
             )
             tm = str(rec.get("t") or "--:--:--")[:8]
             body = str(rec.get("text") or "").replace("\n", " ")
             if is_sys:
-                # Non-agent chrome: HH:MM:SS · sys|alert body
-                label = "sys" if kind.lower() != "alert" else "alert"
-                head_plain = "%s · %-5s " % (tm, label)
+                # Non-agent chrome: HH:MM:SS [sys]|[alert] body
+                # Brackets + no middle-dot — Terminal often renders · as ?
+                # Structure differs from agent bylines (name unbracketed + verb).
+                label = "[alert]" if kind.lower() == "alert" else "[sys]"
+                head_plain = "%s %-7s " % (tm, label)
                 wrap_w = max(12, inner - len(head_plain) - 1)
                 parts = _wrap_plain(body, wrap_w)
                 for i, part in enumerate(parts[:2]):
@@ -1453,8 +1460,9 @@ def draw_desk_feed(w: int, *, rows: int = 8, _print=None) -> None:
                         break
                     if i == 0:
                         colored = (
-                            " " + MUT + tm + RST + " " + MUT + "·" + RST
-                            + " " + MUT + label + RST + " " + MUT + part + RST
+                            " " + MUT + tm + RST
+                            + " " + MUT + label + RST
+                            + " " + MUT + part + RST
                         )
                         emit(" " + head_plain + part, colored=colored)
                     else:

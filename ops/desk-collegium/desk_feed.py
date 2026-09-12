@@ -23,7 +23,8 @@ COLLEGIUM_KINDS = frozenset({
 
 # Non-agent feed chrome. Never invent a "desk" agent byline.
 SYSTEM_SOURCE = "system"
-SYSTEM_MARK = "·"  # TUI column where agent name would be
+SYSTEM_MARK = "[sys]"  # non-agent chrome; ASCII (Terminal often shows · as ?)
+ALERT_MARK = "[alert]"
 FAKE_AGENT_LABELS = frozenset({
     "desk", "agent desk", "agent-desk", "agent_desk", "system",
     "sys", "alert", "ops", "automation", "machinery",
@@ -156,9 +157,10 @@ def format_line(agent: str, kind: str, text: str, *, t: str | None = None, sourc
     verb = normalize_kind(kind)
     body = re.sub(r"\s+", " ", (text or "").strip())[:200]
     if is_system_record(agent=agent, source=source, kind=verb):
-        # chrome: time · verb body  (not another agent in the roster)
-        return f"{tm} {SYSTEM_MARK} {verb} {body}".strip()
-    ag = (agent or "?")[:12]
+        # chrome: time [sys]|[alert] body — not an agent byline (ASCII; no ·)
+        mark = ALERT_MARK if verb == "alert" else SYSTEM_MARK
+        return f"{tm} {mark} {body}".strip()
+    ag = (agent or "unknown")[:12]
     return f"{tm} {ag} {verb} {body}".strip()
 
 
