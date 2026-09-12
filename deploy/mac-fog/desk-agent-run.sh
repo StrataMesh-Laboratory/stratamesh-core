@@ -69,7 +69,9 @@ run_opencode() {
   fi
   echo "OpenCode exec $OC on brief"
   set +e
-  if "$OC" run --prompt "$(head -c 2000 "$BRIEF")" >"$LOG" 2>&1; then
+  # OpenCode CLI: message is positional (no --prompt). --auto for non-interactive desk.
+  PROMPT="$(head -c 4000 "$BRIEF")"
+  if "$OC" run --dir "$REPO" --auto "$PROMPT" >"$LOG" 2>&1; then
     RC=0
   else
     RC=$?
@@ -109,7 +111,8 @@ run_hermes() {
   echo "Hermes exec $HERMES chat --oneshot"
   set +e
   # Hermes CLI: oneshot is a flag on chat, not a subcommand (WORKSPACE.md).
-  "$HERMES" chat -q "$PROMPT" --oneshot -Q --in "$REPO" --safe-mode >"$EV" 2>&1
+  # Match desk_ops: explicit custom + gpt-oss:20b (Ollama cloud; local 64k thrash on 8GB).
+  "$HERMES" chat -q "$PROMPT" --oneshot -Q --provider custom -m gpt-oss:20b --in "$REPO" --safe-mode >"$EV" 2>&1
   RC=$?
   set -e
   # evidence = this-tick journal only (mtime within 15 min); refuse stale reuse
