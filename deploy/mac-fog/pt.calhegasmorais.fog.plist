@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>pt.calhegasmorais.fog</string>
+  <key>WorkingDirectory</key><string>/Users/andremorais/StrataMesh/fog/src</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/andremorais/StrataMesh/fog/repo/deploy/mac-fog/fog-node-run.sh</string>
+    <string>/Users/andremorais/StrataMesh/fog/src/node_persistent.py</string>
+    <string>--port</string><string>8787</string>
+    <string>--db</string><string>/Users/andremorais/StrataMesh/fog/data/fog.db</string>
+    <string>--id</string><string>FOG-NODE-PT-CM-001</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FOG_DATA</key><string>/Users/andremorais/StrataMesh/fog/data</string>
+    <key>FOG_SRC</key><string>/Users/andremorais/StrataMesh/fog/repo</string>
+    <key>WORKERD_BIN</key><string>/Users/andremorais/StrataMesh/fog/workerd-runtime/node_modules/.bin/workerd</string>
+    <key>WORKERD_PORT</key><string>8788</string>
+    <key>WORKERD_CONFIG</key><string>/Users/andremorais/StrataMesh/fog/workerd-config/config.capnp</string>
+    <key>FOG_ORIGIN</key><string>macbook</string>
+    <key>FOG_MAC_LIVE</key><string>true</string>
+    <key>FOG_MESH_N</key><string>2</string>
+    <key>PYTHONUNBUFFERED</key><string>1</string>
+  </dict>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/andremorais/StrataMesh/fog/log/fog.out</string>
+  <key>StandardErrorPath</key><string>/Users/andremorais/StrataMesh/fog/log/fog.err</string>
+</dict></plist>

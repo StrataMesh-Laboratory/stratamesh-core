@@ -141,3 +141,20 @@ Ensure script now loads `fog-mysql.env` and uses `defaults-extra-file` (MariaDB 
 | Meter | FOG/data/desk-meters/fog-host-fallback.json → ok PASS |
 
 Also annotate the morning HOLD prove as superseded by noon PASS.
+
+
+## Prove log — 2026-09-12 (STRATAGROK · ladder residual)
+
+| Check | Result |
+| --- | --- |
+| tip | `240e8b5` (pre-patch) → this Act commits after |
+| `mariadbd` listen | `127.0.0.1:3307` |
+| `fog-mariadb-ensure.sh` | **OK** schema ensured |
+| `fog_cmn` tables | **9** (transactions, meta, staff, staff_otp, subsistence_*, gossip_*) |
+| Fog `/status` `storage.backend` | **sqlite** (honest — PersistentDAG not on fog_db yet) |
+| `storage.mariadb_offload.configured` | **true** after `fog-node-run.sh` sources `load-fog-mysql.sh` |
+| LaunchAgent | `pt.calhegasmorais.fog` ProgramArguments → `deploy/mac-fog/fog-node-run.sh` |
+| `oracle_live` | **false** (MariaDB ≠ remote Fog host) |
+| M-II / m2-twohost | still **HOLD** `distinct_second_host` |
+
+Residual (not this Act): wire `PersistentDAG` onto `fog_db` store so kernel `backend` can become `mariadb` under exclusive-off.
