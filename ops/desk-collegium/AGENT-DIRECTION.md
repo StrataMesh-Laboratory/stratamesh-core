@@ -66,3 +66,14 @@ PREP (GHA/surfaces/self-audit) is never a commitment and must not feed as Act.
 Think of each desk agent like a colleague with a job description (mandate) and
 one sticky note on their desk (commitment). You do not hand them the whole filing
 cabinet and ask them to “be useful.” You point at the sticky note.
+
+## Feed bylines (agents vs system)
+
+Only External Agents / Assistants appear as agent bylines in the DESK feed.
+Desk machinery (r/60s, pull/push, surfaces, GHA sync, metabol mirror, outbox
+queue) emits `source=system` lines rendered as muted chrome:
+
+`HH:MM:SS · sys|alert …`
+
+Never stamp those as `stratagrok`, and never invent a fake `desk` agent.
+System lines do not light Automation Desk ops ● dots.

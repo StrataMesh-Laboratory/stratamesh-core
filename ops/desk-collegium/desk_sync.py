@@ -187,18 +187,26 @@ def append_feed_lines(rows: list[dict]) -> int:
         for rec in rows:
             if not isinstance(rec, dict) or not rec.get("text"):
                 continue
-            ag = str(rec.get("agent") or "stratagrok").strip()[:32]
-            # Reality: never feed as bare "desk" / agent desk — use stratagrok
-            if ag.lower() in ("desk", "agent desk", "agent-desk", "agent_desk"):
-                ag = "stratagrok"
+            # System/alert chrome is not an agent. Never invent stratagrok/desk bylines.
+            src = str(rec.get("source") or "").strip().lower()
+            kind = str(rec.get("kind") or "act")[:16]
+            ag = str(rec.get("agent") or "").strip()[:32]
+            fake = {"desk", "agent desk", "agent-desk", "agent_desk", "system", "sys", "alert", "ops"}
+            if src == "system" or kind in ("sys", "alert") or ag.lower() in fake or not ag:
+                ag = ""
+                src = "system"
+                if kind not in ("sys", "alert", "audit", "escalate", "revise"):
+                    kind = "sys"
             clean = {
                 "ts": str(rec.get("ts") or _now())[:40],
                 "t": str(rec.get("t") or time.strftime("%H:%M:%S"))[:8],
-                "agent": ag or "stratagrok",
-                "kind": str(rec.get("kind") or "act")[:16],
+                "agent": ag,
+                "kind": kind,
                 "specialty": str(rec.get("specialty") or "")[:16],
                 "text": str(rec.get("text") or "")[:240],
             }
+            if src == "system":
+                clean["source"] = "system"
             line = json.dumps(clean, ensure_ascii=False)
             if line in existing:
                 continue
@@ -399,7 +407,7 @@ def pull(url: str | None = None) -> dict:
     line = "pull /desk ok" + ((" · " + "; ".join(notes[:4])) if notes else "")
     append_feed_lines([{
         "ts": _now(), "t": time.strftime("%H:%M:%S"),
-        "agent": "stratagrok", "kind": "act", "specialty": "lead",
+        "agent": "", "kind": "sys", "specialty": "ops", "source": "system",
         "text": line[:240],
     }])
     return {"ok": True, "notes": notes, "remote_schema": remote.get("schema"), "url": url}
@@ -428,7 +436,7 @@ def push(url: str | None = None, git_sha: str = "") -> dict:
     if digest != last:
         append_feed_lines([{
             "ts": _now(), "t": time.strftime("%H:%M:%S"),
-            "agent": "stratagrok", "kind": "act", "specialty": "lead",
+            "agent": "", "kind": "sys", "specialty": "ops", "source": "system",
             "text": f"push /desk ok tasks={n_tasks} sha={(git_sha or '-')[:12]} dig={digest}",
         }])
         try:

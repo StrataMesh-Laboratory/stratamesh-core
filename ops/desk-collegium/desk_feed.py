@@ -18,7 +18,34 @@ COLLEGIUM_KINDS = frozenset({
     "vote", "refer", "dispute", "commit", "escalate", "done", "drop",
     "call_vote", "cast",
     "ask_help", "commend", "consult", "consult_reply", "consult_close",
+    "sys", "alert",
 })
+
+# Non-agent feed chrome. Never invent a "desk" agent byline.
+SYSTEM_SOURCE = "system"
+SYSTEM_MARK = "·"  # TUI column where agent name would be
+FAKE_AGENT_LABELS = frozenset({
+    "desk", "agent desk", "agent-desk", "agent_desk", "system",
+    "sys", "alert", "ops", "automation", "machinery",
+})
+
+
+def is_system_record(rec: dict | None = None, *, agent: str = "", source: str = "", kind: str = "") -> bool:
+    """True when this line is desk machinery / alert — not an External Agent/Assistant."""
+    if rec:
+        source = str(rec.get("source") or source or "")
+        agent = str(rec.get("agent") or agent or "")
+        kind = str(rec.get("kind") or kind or "")
+    if (source or "").lower() == SYSTEM_SOURCE:
+        return True
+    if (kind or "").lower() in ("sys", "alert"):
+        return True
+    if (agent or "").strip().lower() in FAKE_AGENT_LABELS:
+        return True
+    if not (agent or "").strip() and (kind or "").lower() in ("audit", "sys", "alert"):
+        return True
+    return False
+
 
 # Opaque legacy → default Act (still technical; never invent fake progress)
 SAY_ALIASES = {
@@ -64,7 +91,7 @@ def digest_key(agent: str, kind: str, text: str) -> str:
     body = re.sub(r"ran \d+ tests? in [0-9.]+s", "", (text or "").strip().lower())
     body = re.sub(r"\s+", " ", body)
     body = body[:180]
-    return f"{(agent or 'stratagrok').lower()}|{normalize_kind(kind)}|{body}"
+    return f"{(agent or 'system').lower()}|{normalize_kind(kind)}|{body}"
 
 
 def load_dedupe(fog: Path | None = None) -> dict:
@@ -123,12 +150,15 @@ def mark_emitted(digest: str, fog: Path | None = None) -> None:
     save_dedupe(data, fog)
 
 
-def format_line(agent: str, kind: str, text: str, *, t: str | None = None) -> str:
-    """Human/TUI-facing one-liner (no JSON)."""
+def format_line(agent: str, kind: str, text: str, *, t: str | None = None, source: str = "") -> str:
+    """Human/TUI-facing one-liner (no JSON). System lines: no agent byline."""
     tm = (t or time.strftime("%H:%M:%S"))[:8]
-    ag = (agent or "stratagrok")[:12]
     verb = normalize_kind(kind)
     body = re.sub(r"\s+", " ", (text or "").strip())[:200]
+    if is_system_record(agent=agent, source=source, kind=verb):
+        # chrome: time · verb body  (not another agent in the roster)
+        return f"{tm} {SYSTEM_MARK} {verb} {body}".strip()
+    ag = (agent or "?")[:12]
     return f"{tm} {ag} {verb} {body}".strip()
 
 
@@ -147,11 +177,25 @@ def append(
     fog = fog or fog_home()
     verb = normalize_kind(kind)
     body = (text or "")[:240]
-    ag = (agent or "stratagrok")[:32]
-    if ag.lower().strip() in ("desk", "agent desk", "agent-desk", "agent_desk"):
-        ag = "stratagrok"
+    src = ""
+    ag_raw = (agent or "").strip()
+    # Never invent a fake "desk" agent; never default blank→stratagrok for machinery.
+    if ag_raw.lower() in FAKE_AGENT_LABELS or verb in ("sys", "alert"):
+        ag = ""
+        src = SYSTEM_SOURCE
+        if verb not in ("sys", "alert") and verb == "act":
+            # machinery mislabeled as act → sys chrome
+            verb = "sys"
+    elif not ag_raw:
+        # blank agent: treat as system unless caller forced a collegium agent verb with intent
+        ag = ""
+        src = SYSTEM_SOURCE
+        if verb not in ("sys", "alert"):
+            verb = "sys" if verb in ("act", "say", "info", "note") else verb
+    else:
+        ag = ag_raw[:32]
     emit, dig = should_emit(
-        ag, verb, body, fog=fog, dedupe_sec=dedupe_sec if dedupe else 0, force=force,
+        ag or "system", verb, body, fog=fog, dedupe_sec=dedupe_sec if dedupe else 0, force=force,
     )
     if not emit:
         return {"ok": True, "deduped": True, "digest": dig}
@@ -165,6 +209,8 @@ def append(
         "text": body,
         "digest": dig[:80],
     }
+    if src:
+        rec["source"] = src
     path = feed_path(fog)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,7 +223,39 @@ def append(
         return {"ok": False, "deduped": False, "err": str(e)[:120]}
 
 
+def append_system(
+    text: str,
+    *,
+    kind: str = "sys",
+    specialty: str = "",
+    fog: Path | None = None,
+    dedupe: bool = True,
+    dedupe_sec: int = DEFAULT_DEDUPE_SEC,
+    force: bool = False,
+) -> dict:
+    """Desk machinery / alert line — not an External Agent or Assistant byline."""
+    k = normalize_kind(kind)
+    # Map collegium noise into chrome verbs; never invent an agent.
+    if k in ("dispute", "escalate"):
+        k = "alert"
+    elif k == "propose" or k == "act":
+        k = "sys"
+    elif k not in ("sys", "alert", "audit", "revise"):
+        k = "sys"
+    return append(
+        "",
+        text,
+        kind=k,
+        specialty=specialty,
+        fog=fog,
+        dedupe=dedupe,
+        dedupe_sec=dedupe_sec,
+        force=force,
+    )
+
+
 # --- payload helpers (compact, technical) ---
+
 
 def claw_payload(*, fog_public: int = 0, edge: int = 0, local8787: int = 0,
                  tokens_used: int = 0, tokens_limit: int = 33000,

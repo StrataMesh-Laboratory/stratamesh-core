@@ -759,9 +759,9 @@ def tick() -> dict:
     mirrored = mirror_open_tasks_to_feed(state)
     save_state(state)
     if changes:
-        feed_append("stratagrok", "metabol " + "; ".join(changes), kind="revise")
+        feed_append("", "metabol " + "; ".join(changes), kind="sys")
     if mirrored:
-        feed_append("stratagrok", f"mirror {mirrored} open tasks → desk-feed", kind="act")
+        feed_append("", f"mirror {mirrored} open tasks → desk-feed", kind="sys")
     return {
         "ok": True,
         "lanes": {k: v.get("pace") for k, v in lanes.items()},

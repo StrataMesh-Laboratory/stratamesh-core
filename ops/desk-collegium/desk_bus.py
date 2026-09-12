@@ -176,7 +176,8 @@ def feed_append(
             rec = {
                 "ts": _now(),
                 "t": _clock(),
-                "agent": (agent or "stratagrok")[:32],
+                "agent": (agent or "")[:32],
+                "source": "system" if not (agent or "").strip() else "",
                 "kind": (kind or "act")[:16],
                 "specialty": (specialty or "")[:16],
                 "text": (text or "")[:240],
@@ -190,7 +191,31 @@ def feed_append(
             return {"ok": False, "err": str(e2)[:120]}
 
 
+def feed_append_system(
+    text: str,
+    *,
+    kind: str = "sys",
+    specialty: str = "",
+    dedupe: bool = True,
+    force: bool = False,
+) -> dict:
+    """Machinery/alert feed line — never an agent byline."""
+    try:
+        import importlib.util
+        fp = Path(__file__).resolve().parent / "desk_feed.py"
+        spec = importlib.util.spec_from_file_location("desk_feed", fp)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(mod)
+        return mod.append_system(
+            text, kind=kind, specialty=specialty, fog=FOG, dedupe=dedupe, force=force,
+        )
+    except Exception as e:
+        return feed_append("", text, kind="sys", specialty=specialty, dedupe=dedupe, force=force)
+
+
 def find_task(state: dict, task_id: str) -> dict | None:
+
     for t in state.get("open_tasks") or []:
         if t.get("id") == task_id:
             return t

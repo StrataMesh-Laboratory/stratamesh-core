@@ -301,9 +301,9 @@ def _write_pending_assistant_act(agent: str, task: dict, *, health_note: str) ->
             raise RuntimeError(f"pending-act write failed: {p}")
     listed = sorted(x.name for x in box.glob(f"{agent}-*") if x.is_file())
     try:
-        _load("desk_bus").feed_append("stratagrok",
+        _load("desk_bus").feed_append_system(
             f"outbox {agent}: " + ",".join(listed[:8]),
-            kind="audit",
+            kind="sys",
             specialty="coord",
         )
     except Exception:
@@ -1300,9 +1300,9 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
 
     _write_pending_assistant_act("edge-assistant", task, health_note=result)
     try:
-        _load("desk_bus").feed_append("stratagrok",
+        _load("desk_bus").feed_append_system(
             f"queued Act for edge-assistant: {tid}",
-            kind="act",
+            kind="sys",
             specialty="edge",
         )
     except Exception:
@@ -1360,9 +1360,9 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
 
     _write_pending_assistant_act("fog-assistant", task, health_note=result)
     try:
-        _load("desk_bus").feed_append("stratagrok",
+        _load("desk_bus").feed_append_system(
             f"queued Act for fog-assistant: {tid}",
-            kind="act",
+            kind="sys",
             specialty="fog",
         )
     except Exception:
@@ -2726,9 +2726,9 @@ def _feed_r60_pick(bus, task: dict, state: dict) -> None:
         last = ""
     if tid and tid == last:
         return
-    bus.feed_append("stratagrok",
+    bus.feed_append_system(
         f"r/60s cycle picked={tid} spec={task.get('_handler')} open={len(state.get('open_tasks') or [])}",
-        kind="act",
+        kind="sys",
         specialty=str(task.get("_handler") or "coord"),
     )
     try:
@@ -2759,11 +2759,10 @@ def _push(bus) -> None:
         except Exception:
             last = ""
         if sha and sha != last:
-            bus.feed_append(
-                "stratagrok",
+            bus.feed_append_system(
                 f"ops cycle push /desk sha={sha}",
-                kind="act",
-                specialty="lead",
+                kind="sys",
+                specialty="ops",
             )
             try:
                 meter.parent.mkdir(parents=True, exist_ok=True)
@@ -2771,7 +2770,7 @@ def _push(bus) -> None:
             except Exception:
                 pass
     except Exception as e:
-        bus.feed_append("stratagrok", f"ops push warn: {e}", kind="escalate", specialty="lead")
+        bus.feed_append_system(f"ops push warn: {e}", kind="alert", specialty="ops")
 
 
 def cmd_board(_: argparse.Namespace) -> int:
@@ -2848,7 +2847,7 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     try:
         chk = _load("desk_protocol").check(state)
         if not chk["ok"]:
-            bus.feed_append("stratagrok", f"protocol VIOL: {','.join(chk['violations'][:3])}", kind="escalate", specialty="coord")
+            bus.feed_append_system(f"protocol VIOL: {','.join(chk['violations'][:3])}", kind="alert", specialty="coord")
     except Exception as e:
         chk = {"ok": False, "violations": [str(e)]}
 
@@ -2921,7 +2920,7 @@ def cmd_cycle(args: argparse.Namespace) -> int:
                 except Exception:
                     last = 0.0
                 if now - last >= 600:
-                    bus.feed_append("stratagrok", msg, kind="audit", specialty="coord")
+                    bus.feed_append_system(msg, kind="sys", specialty="coord")
                     try:
                         skip_flag.parent.mkdir(parents=True, exist_ok=True)
                         skip_flag.write_text(str(now))
