@@ -13,12 +13,12 @@ model:
   base_url: http://127.0.0.1:11434/v1
   # llava (~32K) FAILS Hermes min 64K — do not use as primary
   # Prefer a ≥64K window model. Override reported window if Ollama under-reports:
-  name: qwen2.5:7b-instruct-q4_K_M
+  name: llama3.2:1b-64k-instruct-q4_K_M
   context_length: 65536
   # fallbacks after pull: hermes3:8b, qwen2.5:14b — never llava as sole agent model
   fallbacks:
     - hermes3:8b
-    - qwen2.5:7b
+    - llama3.2:1b-64k
     - phi3:medium  # only if context_length override ≥65536 and model truly supports it
 
 # Vision-only / short-context tags (llava) may be used as a *tool* later, not agent init model
