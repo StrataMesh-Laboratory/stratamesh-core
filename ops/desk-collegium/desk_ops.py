@@ -978,6 +978,48 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
 
 
 
+
+def _opencode_host_lock():
+    """Serialize `opencode run` across r/60s cycles on the 8GB Fog Mac.
+
+    Uses fog/data/desk-meters/opencode.lock (pid + ISO ts). Stale if pid dead.
+    Returns (acquired: bool, reason: str). Caller must release via _opencode_host_unlock.
+    """
+    lock = FOG / "data" / "desk-meters" / "opencode.lock"
+    try:
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        if lock.is_file():
+            raw = lock.read_text(encoding="utf-8").strip()
+            oldpid = (raw.split() or [""])[0]
+            if oldpid.isdigit():
+                try:
+                    os.kill(int(oldpid), 0)
+                    return False, f"held by pid {oldpid}"
+                except OSError:
+                    pass  # stale
+        lock.write_text(f"{os.getpid()} {_now()}\n", encoding="utf-8")
+        return True, "acquired"
+    except Exception as e:
+        return False, f"lock err: {e}"
+
+
+def _opencode_host_unlock() -> None:
+    lock = FOG / "data" / "desk-meters" / "opencode.lock"
+    try:
+        if lock.is_file():
+            raw = lock.read_text(encoding="utf-8").strip()
+            oldpid = (raw.split() or [""])[0]
+            if oldpid == str(os.getpid()) or not oldpid.isdigit():
+                lock.unlink(missing_ok=True)
+            else:
+                try:
+                    os.kill(int(oldpid), 0)
+                except OSError:
+                    lock.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def handler_code(task: dict, *, dry: bool) -> dict:
     """Prefer real OpenCode on the task. Unittest subset is desk CI — not opencode."""
     if dry:
@@ -1033,6 +1075,13 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         )
     timeout_s = 600
     env = _agent_path_env()
+    got_lock, lock_why = _opencode_host_lock()
+    if not got_lock:
+        return honest_result(
+            ok=False, done=False, verb="refer",
+            result=f"opencode serialize skip — {lock_why}",
+            evidence=False, skipped=True, sha="",
+        )
     try:
         # anomalyco/opencode#22132: inherited stdin can hang when spawned from desk_ops
         r = subprocess.run(
@@ -1087,6 +1136,8 @@ def handler_code(task: dict, *, dry: bool) -> dict:
             "verb": "dispute",
             "next_action": "retry opencode with stdin=/dev/null; serialize vs hermes/openclaw",
         }
+    finally:
+        _opencode_host_unlock()
 
     evidence = _has_tool_evidence(blob, prompt=prompt)
     # Parity with claw: OpenCode may write status/*.txt via tools but return thin
@@ -1420,13 +1471,14 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
                         exam_bit += f" publish_skip={pace_pub}"
         except Exception as e:
             exam_bit = f" daily_exam_err={str(e)[:60]}"
+    path = FOG / "data" / "desk-meters" / "academy-teach.json"
     note = (
         f"academy_teach live={int(ok)} students=SCA/ACB teachers=desk wrote desk-meters/academy-teach.json "
         f"— apprenticeship_by_doing (never enroll desk agents)"
         f"{exam_bit}"
     )
+    wrote = False
     if not dry:
-        path = FOG / "data" / "desk-meters" / "academy-teach.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(
@@ -1435,14 +1487,26 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
             )
             + "\n"
         )
-        write_apprenticeship_trail(task, {"result": note, "done": ok}, agent="hermes")
+        wrote = path.is_file()
+        write_apprenticeship_trail(
+            task, {"result": note, "done": ok, "evidence": bool(ok and wrote)}, agent="hermes"
+        )
         try:
             _load("desk_bus").feed_append(
                 "hermes", note[:200], kind="act" if ok else "refer", specialty="teach",
             )
         except Exception:
             pass
-    return {"ok": True, "result": note, "done": ok, "sha": "", "verb": "act" if ok else "refer"}
+    evidence = bool(ok) if dry else bool(ok and wrote)
+    # evidence=True required for apply_result + delivered counter (NO-FAKE-DONE)
+    return {
+        "ok": bool(ok),
+        "result": note,
+        "done": bool(ok and evidence),
+        "sha": "",
+        "verb": "act" if (ok and evidence) else ("refer" if not ok else "dispute"),
+        "evidence": evidence,
+    }
 
 
 

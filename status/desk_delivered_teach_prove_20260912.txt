@@ -1,0 +1,10 @@
+desk delivered teach prove 2026-09-12T15:58:09+0100
+tip_base=1561a77
+before: academy-teach cycles delivered=0 (e.g. 15:53:06) — NO-FAKE-DONE done without evidence refused
+after:  delivered=1 picked=[dt-proj-academy-teach-pulse] ts=2026-09-12T15:58:09+0100
+board: dt-proj-academy-teach-pulse status=done result cites desk-meters/academy-teach.json
+meter: /Users/andremorais/StrataMesh/fog/data/desk-meters/academy-teach.json academy_ok=true
+score: 70 -> 72 delivered_frac 0.15 -> 0.20
+fix: handler_teach sets evidence=True when meter written; #191 mandate live=1/desk-meters markers
+opencode_serialize: _opencode_host_lock + desk-agent-run.sh lock (syntax fixed vs mangled #191)
+fog_public: status/fog_public_tunnel_prove_20260912.txt fog_public=1 local_8787=1 health_mac_live=false(session) status_mac_live=true

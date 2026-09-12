@@ -1,0 +1,6 @@
+fog_public_tunnel prove 2026-09-12T15:51:42+0100
+local_8787=1 code=200 mac_live=True
+fog_public=1 health_code=200 health_mac_live=False origin=session n=2
+status_mac_live=True status_code=200
+cloudflared_running=1 method=curl+browser-UA
+honest: /health mac_live=false with origin=session expected; hop LIVE = fog_public=1 + local=1 + cloudflared; /status mac_live=true

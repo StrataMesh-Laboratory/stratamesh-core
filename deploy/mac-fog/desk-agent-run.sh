@@ -4,12 +4,12 @@
 # Cycle (desk_ops.py cycle) is TUI `r` / desk_ops only — specialty runners must NOT call it
 # (that pulled live Hermes/claw Acts under an OpenCode smoke).
 # Respects metabol pace via desk_ops HOLD file.
-set -e
+set -euo pipefail
+REPO="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"
+FOG="${FOG_HOME:-$HOME/StrataMesh/fog}"
 
-# Serialize OpenCode: r/60s must not stack multiple `if ! _opencode_lock_acquire; then exit 75; fi
-  trap _opencode_lock_release EXIT
-  opencode run` on 8GB Mac
-OPENCODE_LOCK="${FOG_HOME:-$HOME/StrataMesh/fog}/data/desk-meters/opencode.lock"
+# Serialize OpenCode: r/60s / desk-agent-run must not stack multiple opencode run on 8GB Mac
+OPENCODE_LOCK="$FOG/data/desk-meters/opencode.lock"
 _opencode_lock_acquire() {
   mkdir -p "$(dirname "$OPENCODE_LOCK")"
   if [ -f "$OPENCODE_LOCK" ]; then
@@ -23,9 +23,6 @@ _opencode_lock_acquire() {
   return 0
 }
 _opencode_lock_release() { rm -f "$OPENCODE_LOCK" 2>/dev/null || true; }
-uo pipefail
-REPO="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"
-FOG="${FOG_HOME:-$HOME/StrataMesh/fog}"
 # Official OpenCode curl-install dir + brew/local bins (non-interactive SSH misses .zshrc)
 export PATH="$HOME/.opencode/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 AGENT="${1:-}"
@@ -71,6 +68,11 @@ finish_agent() {
 }
 
 run_opencode() {
+  if ! _opencode_lock_acquire; then
+    echo "OpenCode: skip — another opencode run holds lock" >&2
+    exit 75
+  fi
+  trap '_opencode_lock_release; cleanup_lock' EXIT INT TERM
   BRIEF="$FOG/data/desk-outbox/opencode-next.md"
   LOG="$FOG/data/desk-meters/opencode-last.log"
   echo "OpenCode: directed specialty — commitment brief (not context dump)"
