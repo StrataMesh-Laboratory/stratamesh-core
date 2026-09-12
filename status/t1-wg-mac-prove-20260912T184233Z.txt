@@ -1,0 +1,1 @@
+t1-mac-wg LIVE refresh PASS mac=10.88.0.2 ping_10.88.0.1=True openvpn=False sha=2e05a12 iphone_prove=false
