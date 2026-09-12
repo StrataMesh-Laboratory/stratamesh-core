@@ -572,6 +572,32 @@ class TestHasToolEvidence(unittest.TestCase):
 
 
 
+
+    def test_rejects_soft_ok_evidence_json_wallpaper(self):
+        """ok+evidence JSON alone (no hard tool residue) is not evidence."""
+        fn = self.ops._has_tool_evidence
+        blob = (
+            '{"ok": true, "evidence": "sure I did the thing", '
+            '"result": "completed the desk task successfully without tools"}'
+        )
+        self.assertFalse(
+            fn(blob),
+            "soft ok+evidence JSON wallpaper must not count as tool evidence",
+        )
+
+    def test_rejects_openclaw_session_chrome_alone(self):
+        """openclaw agent + session_id/rc= without tool residue is not evidence."""
+        fn = self.ops._has_tool_evidence
+        blob = (
+            "openclaw agent exec finished session_id=abc123-session "
+            "model=ollama/qwen2.5:3b-desk8k rc=0 status=ok "
+            "no tools invoked just chrome"
+        )
+        self.assertFalse(
+            fn(blob),
+            "openclaw session chrome alone must not count as tool evidence",
+        )
+
     def test_accepts_toolsummary_json(self):
         fn = self.ops._has_tool_evidence
         blob = (

@@ -171,6 +171,24 @@ def _has_tool_evidence(blob: str, *, prompt: str = "") -> bool:
     if any(a in low for a in advice) and not (has_hard or sha_ok or ls_hits >= 2):
         return False
 
+    # Session chrome alone (openclaw agent + session_id/rc=) is NOT evidence,
+    # even when bare rc=0 trips hard_tool — require residue beyond chrome.
+    chrome_only = (
+        "openclaw agent" in low
+        and ("session_id" in low or "rc=" in low)
+        and "hops fog=" not in low
+    )
+    if chrome_only:
+        beyond_chrome = (
+            "ran command", "terminal:", "tool call", "tool_call", "[tool",
+            "wrote ", "created file", "edited ", "diff --git", "diff --",
+            "toolsummary", "tool_summary", '"name": "write"', '"name":"write"',
+            "exec=", "native-tools", "exit code", "returncode",
+            "git status", "git rev-parse", "git log",
+        )
+        if not any(h in low for h in beyond_chrome) and not sha_ok and ls_hits < 2:
+            return False
+
     if has_hard:
         return True
     if sha_ok and any(
@@ -195,10 +213,8 @@ def _has_tool_evidence(blob: str, *, prompt: str = "") -> bool:
         v in low for v in ("wrote", "updated", "created", "ran ", "listed", "ls ", "inventory")
     ):
         return True
-    if '"ok": true' in low and '"evidence"' in low:
-        return True
-    if "openclaw agent" in low and ("session_id" in low or "rc=" in low) and "hops fog=" not in low:
-        return True
+    # Soft chrome alone is NOT evidence: do not accept ok+evidence JSON
+    # wallpaper or openclaw agent session_id/rc= without hard tool residue / FS prove.
     return False
 
 
@@ -782,6 +798,7 @@ def handler_claw(task: dict, *, dry: bool) -> dict:
         "done": done,
         "sha": "",
         "verb": "audit" if done else "dispute",
+        "evidence": bool(evidence),
         "next_action": "" if done else "openclaw: retry agent exec with real tool evidence",
     }
 
@@ -1089,6 +1106,7 @@ def handler_code(task: dict, *, dry: bool) -> dict:
         "done": done,
         "sha": "",
         "verb": "act" if done else "dispute",
+        "evidence": bool(evidence),
         "next_action": "" if done else "opencode: retry run with real edit/test evidence",
     }
 
@@ -1591,6 +1609,60 @@ def ensure_roles_documented(*, dry: bool = False) -> dict:
     return out
 
 
+
+def _ensure_ollama_specialists_on_board(bus, state: dict) -> list[str]:
+    """Seed Hermes / OpenClaw / OpenCode board rows when a specialty is missing.
+
+    Prefer projected catalog M-I items (idempotent stable ids). Fall back to a
+    pulse-style propose. Never marks done — board presence only (NO-FAKE-DONE).
+    """
+    seeded: list[str] = []
+    state = state if state is not None else bus.load_state()
+    open_specs = {t.get("specialty") for t in (state.get("open_tasks") or [])}
+    want = (
+        ("claw", "proj-m1-claw-loop", "openclaw",
+         "M-I: OpenClaw hop health → desk-meters + feed (lane ALLOW)"),
+        ("code", "proj-m1-code-needles", "opencode",
+         "M-I: OpenCode desk needles — patch only on FAIL (no vapour PASS)"),
+        ("coord", "proj-m1-coord-board", "hermes",
+         "M-I: Hermes board + protocol.check; sync strict issues only"),
+    )
+    data = load_projected()
+    by_id = {it.get("id"): it for it in (data.get("items") or []) if it.get("id")}
+    for spec, pid, owner, fallback_intent in want:
+        if spec in open_specs:
+            continue
+        item = by_id.get(pid)
+        got = None
+        if item and hold_released(item, data):
+            got = _seed_one_projected(bus, item, dry=False)
+        if got:
+            seeded.append(str(got))
+            state = bus.load_state()
+            open_specs = {t.get("specialty") for t in (state.get("open_tasks") or [])}
+            continue
+        # Catalog held/done/absent — still keep specialty on the board.
+        tid = f"dt-ollama-{spec}-board"
+        if bus.find_task(state, tid):
+            continue
+        ns = argparse.Namespace(
+            owner=owner,
+            specialty=spec,
+            intent=fallback_intent,
+            id=tid,
+            lanes=[],
+        )
+        try:
+            rc = bus.cmd_propose(ns)
+        except Exception:
+            rc = 1
+        if rc == 0:
+            seeded.append(tid)
+            state = bus.load_state()
+            open_specs = {t.get("specialty") for t in (state.get("open_tasks") or [])}
+    return seeded
+
+
 def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -> dict:
     """Run lightweight specialty audits when lane ALLOW; HOLD/STASIS skip (metabol law)."""
     if dry:
@@ -1606,7 +1678,10 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
         allowed, pace, lane = _pace_allows(state, spec)
         if not allowed:
             _feed_metabol_skip(spec, pace, lane, state)
-            results[spec] = {"ok": True, "skipped": True, "pace": pace, "result": f"skip {pace}"}
+            results[spec] = honest_result(
+                ok=False, done=False, skipped=True, evidence=False, verb="refer",
+                result=f"skip {pace}", pace=pace,
+            )
             return
         try:
             results[spec] = fn(task, dry=False)
