@@ -7,6 +7,8 @@ Funnel: **off** (Fog is not public origin).
 
 **T2 drain:** Prefer MagicDNS (`*.taild31dc1.ts.net` / short names) in scripts, connectors, workflows, and SSH HostName. IPv4 column below is inventory/residual only — do not hardcode 100.x in new code. Trial ends PT 2026-09-16; T3 from 2026-09-14.
 
+**Script/workflow scan (2026-09-12):** `deploy/`, `ops/`, `scripts/`, `.github/` have **no** hardcoded Tailscale `100.x` literals except residual comments / inventory in Hermes desktop docs and `tailscale_ipv4` example fields. SSH `config.example` uses MagicDNS.
+
 | hostname | MagicDNS | IPv4 | role |
 |---|---|---|---|
 | edge-grok-cmn-001 | edge-grok-cmn-001.taild31dc1.ts.net | 100.102.244.34 | EDGE hop |

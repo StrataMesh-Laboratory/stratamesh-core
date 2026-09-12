@@ -1,6 +1,6 @@
 # Copy fragments into ~/.ssh/config — never commit private keys.
 Host hermes-desk mbpv
-  HostName 100.108.35.26
+  HostName mbpv.taild31dc1.ts.net
   User andremorais
   IdentityFile ~/.ssh/desk_hermes_ed25519
   IdentitiesOnly yes

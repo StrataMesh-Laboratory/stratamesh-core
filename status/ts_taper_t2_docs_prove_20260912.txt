@@ -1,0 +1,13 @@
+T2 taper docs residual — 2026-09-12T14:40:05Z
+tip_before=96aa967
+
+INTENT: IPv4 100.x is inventory-only in docs; scripts/workflows use MagicDNS.
+
+EVIDENCE:
+- rg 100.x under deploy/ops/scripts/.github → only residual comments + hermes desktop docs + tailscale_ipv4 example fields
+- patched deploy/mac-fog/hermes/desktop/ssh/config.example HostName → mbpv.taild31dc1.ts.net
+- docs/TAILSCALE-FOG.md documents intentional inventory table + script scan note
+- T1 still partial (Mac ssh PASS; iPhone human; Mac wg show sudo residual)
+
+ok=true for T2 docs residual Act
+NO-FAKE-DONE for full Tailscale taper / T1
