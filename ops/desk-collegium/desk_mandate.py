@@ -177,7 +177,12 @@ def render_directed_brief(
 
 
 def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
-    """Heuristic: at least one done_when needle appears in evidence blob, or a path write."""
+    """Heuristic: at least one done_when needle appears in evidence blob, or a path write.
+
+    Accept common desk prove markers (live=1, meter paths, academy_ok) so real
+    specialty results are not stripped to dispute when default done_when is
+    the vague "non-empty evidence path in result".
+    """
     text = (blob or "").lower()
     if not text.strip():
         return False
@@ -185,12 +190,15 @@ def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
         return False
     if "help" in text[:400] and "opencode" in text and "wrote" not in text:
         return False
+    # Strip our own gate suffix if re-checked
+    text = text.split("| no-fake-done:")[0].strip()
     hits = 0
     for rule in commitment.get("done_when") or []:
         for tok in re.findall(r"[a-z0-9_./-]{4,}", str(rule).lower()):
             if tok in (
                 "when", "with", "this", "that", "from", "only",
                 "true", "false", "file", "path", "non-empty",
+                "result", "evidence",  # too vague alone from default_done_when
             ):
                 continue
             if tok in text:
@@ -198,7 +206,12 @@ def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
                 break
     if hits >= 1:
         return True
-    if re.search(r"(wrote|created|diff|sha=|rc=0|fog=1|evidence)", text):
+    if re.search(
+        r"(wrote|created|diff|sha=|rc=0|fog[_=]?1|edge[_=]?1|"
+        r"live=1|ok=true|academy_ok|desk-meters/|status/|"
+        r"apprentice/|prove_|fog_public.?=.?1)",
+        text,
+    ):
         return True
     return False
 
