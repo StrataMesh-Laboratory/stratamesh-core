@@ -42,3 +42,7 @@ Full R/W/edit/send/sync: `desk-mail` — see [MAIL.md](./MAIL.md).
 ## Deny
 
 secrets in chat · opening non-allowlisted URLs · workers.dev as Assistant fetch · printing vault tokens
+
+## Chat
+
+`./bin/desk-chat` — desk room + private DMs. See [CHAT.md](./CHAT.md).

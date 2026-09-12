@@ -89,3 +89,5 @@ You work **inside** this Hermes workspace. Do **not** assume STRATAGROK’s PATH
 
 Workspace cwd must be `deploy/mac-fog/hermes/desktop` (Hermes project FOG-CMN-DESK).
 
+## Chat (volitional)
+Use `./bin/desk-chat` for desk room + private peer DMs during Acts — see [`CHAT.md`](./CHAT.md).

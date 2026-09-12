@@ -60,3 +60,15 @@ Roster: [desk-apps.json](./desk-apps.json) · [APPS.md](./APPS.md)
 ## Deny
 
 secrets in chat · non-allowlisted URLs · workers.dev as Assistant fetch · grok@ tools for Ollama agents
+
+## Chat — desk room + private DMs
+
+See [`CHAT.md`](./CHAT.md).
+
+```bash
+./bin/desk-chat status
+./bin/desk-chat room tail
+./bin/desk-chat room say --by hermes --text "…"
+./bin/desk-chat dm open --by hermes --to opencode --topic … --text "…"
+./bin/desk-chat dm reply --by opencode --thread ct-… --text "…"
+```

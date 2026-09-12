@@ -118,6 +118,16 @@
       "id": "snappymail",
       "url": "http://127.0.0.1:8099",
       "why": "Webmail UI for automation.desk"
+    },
+    {
+      "id": "desk-chat",
+      "cmd": "./bin/desk-chat status",
+      "why": "Desk room + private peer DMs (volitional coms)"
+    },
+    {
+      "id": "desk-room",
+      "cmd": "./bin/desk-chat room tail",
+      "why": "Public collegium room (agent feed lines)"
     }
   ],
   "never": [
