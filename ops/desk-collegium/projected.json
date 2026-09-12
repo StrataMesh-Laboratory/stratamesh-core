@@ -3,7 +3,7 @@
   "version": "0.6.0-lab",
   "spine": "docs/ROADMAP-VISION.md",
   "current_milestone": "M-I",
-  "note": "Stable catalog \u2014 desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14.",
+  "note": "Stable catalog \u2014 desk_ops.ensure_projected_catalog re-seeds idempotently by source=projected:<id>. No secrets. Do not buy Tailscale seats. Clock: TRIAL_ENDS_PT=2026-09-16 (Billing 11d as of 2026-09-05 PT); T3 from 2026-09-14. | 2026-09-12 Andr\u00e9: Oracle/T1/M-II/GCP human_gates NOT HOLD \u2014 ping-when-needed.",
   "trial_ends_pt": "2026-09-16",
   "t3_from_pt": "2026-09-14",
   "items": [
@@ -30,13 +30,16 @@
       "lanes": [
         "lane-bot"
       ],
-      "eisenhower": "plan",
+      "eisenhower": "act",
       "human_gate": true,
-      "andre_gate": true,
-      "escalate_to_andre": true,
-      "note": "Optional rung 7. MariaDB+Mac path is Act now. oracle_live stays false until remote Fog host.",
+      "andre_gate": false,
+      "escalate_to_andre": false,
+      "note": "NOT HOLD. Vaulted non-2FA probes Actable; ping Andr\u00e9 only when OCI 2FA/captcha blocks.",
       "oracle_fallback": true,
-      "status": "act"
+      "status": "act",
+      "ping_when_needed": true,
+      "prep_allowed": true,
+      "resolve_as_representative": true
     },
     {
       "id": "proj-ts-taper-t1",
@@ -48,7 +51,10 @@
         "lane-assistant"
       ],
       "eisenhower": "act",
-      "human_gate": false
+      "human_gate": true,
+      "ping_when_needed": true,
+      "prep_allowed": true,
+      "note": "Mac refresh Actable; ping Andr\u00e9 for iPhone operator step if blocked."
     },
     {
       "id": "proj-ts-taper-t2",
@@ -135,10 +141,14 @@
       "lanes": [
         "lane-bot"
       ],
-      "eisenhower": "plan",
+      "eisenhower": "act",
       "human_gate": true,
-      "hold_until": "distinct_second_host",
-      "note": "HOLD = distinct second host missing (GCP e2-micro / homelab / RPi / Oracle optional). Mac+MDB\u2260host. See oracle-oss-alts-2026-09-05.md."
+      "note": "NOT Eisenhower HOLD. Residual=missing distinct second host. Prep/inventory/docs Actable; ping when Pi/NUC/GCP ready. Oracle optional.",
+      "ping_when_needed": true,
+      "prep_allowed": true,
+      "blocked_on": "distinct_second_host_hardware",
+      "residual": "Pi/NUC/homelab or GCP e2-micro not yet a Fog peer \u2014 prep/docs live; ping Andr\u00e9 when hardware ready",
+      "status": "act"
     },
     {
       "id": "proj-academy-teach-pulse",
@@ -230,10 +240,13 @@
       "id": "proj-host-rpi-nuc-peer",
       "title": "Home peer Fog (RPi/NUC) via Tailscale+tunnel",
       "eisenhower": "act",
-      "hold_until": "distinct_second_host",
-      "note": "Best M-II path when hardware exists. Not live. See docs/ORACLE-OSS-ALTS.md",
+      "note": "Live prep when spare exists \u2014 not HOLD park. Ping Andr\u00e9 when Pi/NUC ready ask.",
       "oracle_fallback": true,
-      "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared \u2014 distinct second host"
+      "intent": "Act: spare RPi/NUC/homelab Fog peer + Tailscale/cloudflared \u2014 distinct second host",
+      "ping_when_needed": true,
+      "prep_allowed": true,
+      "blocked_on": "distinct_second_host_hardware",
+      "specialty": "fog"
     },
     {
       "id": "proj-homelab-second-host",
@@ -241,7 +254,10 @@
       "specialty": "fog",
       "owner": "fog",
       "intent": "Act inventory+Tailscale prove if spare device exists \u2014 do not claim second Fog live; M-II stays hold_until=distinct_second_host",
-      "lanes": ["lane-fog-hop", "lane-hermes"],
+      "lanes": [
+        "lane-fog-hop",
+        "lane-hermes"
+      ],
       "eisenhower": "act",
       "human_gate": false,
       "resolve_as_representative": true,
@@ -251,11 +267,14 @@
       "id": "proj-host-gcp-e2-micro",
       "title": "GCP Always Free e2-micro Fog peer",
       "eisenhower": "act",
-      "hold_until": "distinct_second_host",
-      "note": "Always-free US regions; 1GB lean Fog. Not live. docs/ORACLE-OSS-ALTS.md",
+      "note": "Actable spike/docs; ping Andr\u00e9 only for GCP signup 2FA \u2014 not forever HOLD.",
       "oracle_fallback": true,
       "intent": "Act spike: GCP Always Free e2-micro Fog peer (Oracle VM substitute); Andr\u00e9 2FA for signup",
-      "human_gate": true
+      "human_gate": true,
+      "ping_when_needed": true,
+      "prep_allowed": true,
+      "blocked_on": "andre_gcp_signup_2fa",
+      "specialty": "lead"
     },
     {
       "id": "proj-host-fly-probe",
@@ -557,5 +576,5 @@
       "source": "andre:2026-09-05"
     }
   ],
-  "updated": "2026-09-05T14:55:00+0100"
+  "updated": "2026-09-12T19:46:11+0100"
 }
