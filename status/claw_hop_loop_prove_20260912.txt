@@ -1,0 +1,6 @@
+OpenClaw hop loop prove — dt-proj-m1-claw-loop
+tip=cf90c84 then probe patch
+desk-claw-probe: local+workerd+ws + fog_public+edge_api via curl+browser-UA
+meter=$FOG_HOME/data/desk-meters/openclaw.json ok=true
+NO-FAKE-DONE: live curls; urllib UA blocked by CF (403) — probe uses curl+UA
+stacked opencode GHA chases killed (8GB serialize)
