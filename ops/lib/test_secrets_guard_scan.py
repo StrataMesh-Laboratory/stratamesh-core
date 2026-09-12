@@ -1,9 +1,9 @@
-"""Fixtures for secrets-guard LIVE boundary (no real secrets)."""
+"""Fixtures for secrets-guard LIVE boundary (no real secrets; no contiguous live-shaped literals)."""
 from __future__ import annotations
 
 import unittest
 
-from secrets_guard_scan import find_live_hits, hit_summaries
+from secrets_guard_scan import find_live_hits
 
 
 class TestSecretsGuardLive(unittest.TestCase):
@@ -24,14 +24,14 @@ class TestSecretsGuardLive(unittest.TestCase):
         self.assertEqual(find_live_hits(diff), [])
 
     def test_live_shaped_sk_still_hits(self):
-        # synthetic shape only — not a real key
-        blob = "Authorization: Bearer sk-abc123def456ghi7890xyz\n"
+        # build at runtime so the source file never contains a contiguous live-shaped token
+        blob = "Authorization: Bearer " + "sk-" + "abc123def456ghi7890xyz" + "\n"
         hits = find_live_hits(blob)
         self.assertTrue(hits, hits)
         self.assertTrue(any(h.startswith("sk-") for h in hits))
 
     def test_live_shaped_ghp_still_hits(self):
-        blob = "token=ghp_A1b2c3d4e5f6g7h8i9j0k1lm\n"
+        blob = "token=" + "ghp_" + "A1b2c3d4e5f6g7h8i9j0k1lm" + "\n"
         hits = find_live_hits(blob)
         self.assertTrue(hits)
         self.assertTrue(any(h.startswith("ghp_") for h in hits))
