@@ -1,0 +1,181 @@
+{
+  "schema": "desk.roadmap_thresholds.v1",
+  "version": "0.6.0-lab",
+  "spine": "docs/ROADMAP-VISION.md",
+  "sources": [
+    "docs/ROADMAP-VISION.md",
+    "docs/ROADMAP-PUBLIC-v0.3.md",
+    "docs/INSTITUTIONAL-ROADMAP.md",
+    "os-lib/roadmap.ts",
+    "ops/desk-collegium/projected.json",
+    "docs/PROOF-OF-SUBSISTENCE.md"
+  ],
+  "current_milestone": "M-I",
+  "telos": "M-IX Mature Mainnet — complete loop Intention → Resource Requirement → Discovery → Allocation → Physical Execution → Evidence → Receipt → Settlement → Persistent State (docs/ROADMAP-VISION.md §23). Not claimed PASS.",
+  "note": "Thin catalog of documented thresholds only — no vapour milestones, never invent PASS. desk_ops.refresh_roadmap_pending seeds next unmet as propose (Pending). Aliases skip items already open via projected.json.",
+  "updated": "2026-09-12",
+  "thresholds": [
+    {
+      "id": "rm-m1-lab-protocol",
+      "milestone": "M-I",
+      "title": "Laboratory Protocol",
+      "eisenhower": "act",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "M-I remaining: DAG/gossip/tip/STRATA/workers/basic resource coordination/initial evidence — lab feasible, not multi-host PASS (ROADMAP-VISION §23 Milestone I)",
+      "source_doc": "docs/ROADMAP-VISION.md",
+      "aliases": ["proj-m1-claw-loop", "proj-m1-code-needles", "proj-m1-coord-board", "dt-proj-m1-claw-loop", "dt-proj-m1-code-needles", "dt-proj-m1-coord-board"]
+    },
+    {
+      "id": "rm-m2-twohost",
+      "milestone": "M-II",
+      "title": "Adversarial Multi-Host — distinct second host",
+      "eisenhower": "act",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "M-II: distinct second host INV/TX (Mac+Pi/AWS-shaped/Oracle optional) — MariaDB/same-Mac EDGE are not the exit (ROADMAP-VISION §23 + FOG-HOST-FALLBACK)",
+      "source_doc": "docs/ROADMAP-VISION.md",
+      "aliases": ["proj-m2-twohost", "dt-proj-m2-twohost", "proj-host-rpi-nuc-peer", "proj-homelab-second-host"]
+    },
+    {
+      "id": "rm-m2-chaos-inject",
+      "milestone": "M-II",
+      "title": "Chaos testing + failure injection",
+      "eisenhower": "plan",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "M-II next: chaos testing + failure injection so coordination survives hostile/degraded conditions (ROADMAP-VISION Milestone II introduce list). No fake PASS.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m2-resource-proof",
+      "milestone": "M-II",
+      "title": "Resource-proof MVP",
+      "eisenhower": "plan",
+      "specialty": "code",
+      "owner": "opencode",
+      "intent": "M-II next: resource-proof MVP — claimed capacity ≠ accepted contribution (ROADMAP-VISION Milestone II + ROADMAP-PUBLIC-v0.3 five centres). No fake PASS.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m2-gossip-transitions",
+      "milestone": "M-II",
+      "title": "Distributed gossip + node-state transitions",
+      "eisenhower": "plan",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "M-II next: distributed gossip + measurable execution + node-state transitions beyond in-process pair (ROADMAP-VISION Milestone II). Lab n=2 is not this bar.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m3-fog-appliance",
+      "milestone": "M-III",
+      "title": "Physical Fog Appliance",
+      "eisenhower": "plan",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "M-III: dedicated measurable appliance — independent evidence plane, secure identity, hardware/energy/thermal/network telemetry, persistent operation (ROADMAP-VISION Milestone III). Not claimed.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m4-resilient-infra",
+      "milestone": "M-IV",
+      "title": "Resilient Fog Infrastructure",
+      "eisenhower": "plan",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "M-IV: independent energy/network paths, autonomous fallback, environmental monitoring, graceful degradation, infrastructure-level resource evidence (ROADMAP-VISION Milestone IV). Not claimed.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m5-public-testnet",
+      "milestone": "M-V",
+      "title": "Public Testnet",
+      "eisenhower": "plan",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "M-V / control-law next: public testnet — resource discovery, offers, allocation, execution, evidence, receipts, settlement, heterogeneous nodes, real demand (ROADMAP-VISION Milestone V + ROADMAP-PUBLIC-v0.3). Current=Adversarial LAB P1, not this bar.",
+      "source_doc": "docs/ROADMAP-PUBLIC-v0.3.md"
+    },
+    {
+      "id": "rm-poc-settlement",
+      "milestone": "M-I",
+      "title": "Proof≠claim mint / settlement poles",
+      "eisenhower": "plan",
+      "specialty": "code",
+      "owner": "opencode",
+      "intent": "Settlement centre: Proof≠claim mint path; #mint emit-only, #0 burn sink; lab Agora ≠ production custody (ROADMAP-PUBLIC-v0.3 five centres + PROOF-OF-SUBSISTENCE). Not PASS.",
+      "source_doc": "docs/ROADMAP-PUBLIC-v0.3.md"
+    },
+    {
+      "id": "rm-m6-metaversal-os",
+      "milestone": "M-VI",
+      "title": "Web3 Metaversal OS",
+      "eisenhower": "plan",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "M-VI: persistent domains/worlds/sandboxes/subjects/SCAs/assets/temporal state/volition/world portability (ROADMAP-VISION Milestone VI). Lab chrome is not this bar.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m7-terminalization",
+      "milestone": "M-VII",
+      "title": "Terminalization",
+      "eisenhower": "plan",
+      "specialty": "coord",
+      "owner": "hermes",
+      "intent": "M-VII: separate interface hardware from computational capability — lightweight terminals consume fabric compute (ROADMAP-VISION Milestone VII). Not claimed.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m8-global-fabric",
+      "milestone": "M-VIII",
+      "title": "Global Resource Fabric",
+      "eisenhower": "plan",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "M-VIII: heterogeneous global pools, geographic/energy-aware allocation, dynamic pricing, evidence confidence, cross-domain discovery (ROADMAP-VISION Milestone VIII). Not claimed.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-m9-mature-mainnet",
+      "milestone": "M-IX",
+      "title": "Mature Mainnet (telos loop)",
+      "eisenhower": "plan",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "TELOS M-IX: reliably perform Intention→Requirement→Discovery→Allocation→Physical Execution→Evidence→Receipt→Settlement→Persistent State (ROADMAP-VISION Milestone IX). Explicit decision — not scheduled. Never mark PASS from this refresh.",
+      "source_doc": "docs/ROADMAP-VISION.md"
+    },
+    {
+      "id": "rm-inst-stage1-lab",
+      "milestone": "STAGE-1",
+      "title": "Formal Portuguese Laboratory",
+      "eisenhower": "plan",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "Institutional STAGE 1: Portuguese APsFL when ≥2 founders exist — research identity only today (INSTITUTIONAL-ROADMAP). Do not claim association status. Do not touch ENI.",
+      "source_doc": "docs/INSTITUTIONAL-ROADMAP.md"
+    },
+    {
+      "id": "rm-os-m9-adversary",
+      "milestone": "os-m9",
+      "title": "Multiple nodes · BFT · antifragility",
+      "eisenhower": "plan",
+      "specialty": "fog",
+      "owner": "fog",
+      "intent": "os-lib/roadmap.ts m9 (progress): multiple nodes · BFT · antifragility — second node only with an operator; adversary ≠ Node (PHASES m9). Not PASS.",
+      "source_doc": "os-lib/roadmap.ts"
+    },
+    {
+      "id": "rm-os-m10-publication",
+      "milestone": "os-m10",
+      "title": "Post-laboratory publication gate",
+      "eisenhower": "plan",
+      "specialty": "lead",
+      "owner": "stratagrok",
+      "intent": "os-lib/roadmap.ts m10 (gated): only effective PoC transits published version; contribution-measurement audit + independent production nodes (PHASES m10). Gated — not claimed.",
+      "source_doc": "os-lib/roadmap.ts"
+    }
+  ]
+}

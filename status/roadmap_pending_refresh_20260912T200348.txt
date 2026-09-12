@@ -1,0 +1,65 @@
+roadmap_pending_refresh PROVE 2026-09-12
+written_pt 2026-09-12T20:03:48+0100
+base_tip 7e67c8d  # origin/main 7e67c8d #199 — PR tip follows commit
+NO-FAKE-DONE: Pending regenerated from documented ROADMAP->telos thresholds. No PASS invented.
+
+ROADMAP spine: docs/ROADMAP-VISION.md (section 23 Milestone I-IX; telos = M-IX complete loop)
+also: docs/ROADMAP-PUBLIC-v0.3.md, docs/INSTITUTIONAL-ROADMAP.md, os-lib/roadmap.ts,
+      ops/desk-collegium/projected.json, docs/PROOF-OF-SUBSISTENCE.md
+catalog: ops/desk-collegium/roadmap_thresholds.json (16 documented thresholds)
+module: ops/desk-collegium/roadmap_pending.py
+
+roadmap-derived open tasks: 14
+  dt-rm-m2-chaos-inject spec=fog eh=plan src=roadmap:rm-m2-chaos-inject status=propose
+  dt-rm-m2-resource-proof spec=code eh=plan src=roadmap:rm-m2-resource-proof status=propose
+  dt-rm-m2-gossip-transitions spec=fog eh=plan src=roadmap:rm-m2-gossip-transitions status=propose
+  dt-rm-m3-fog-appliance spec=fog eh=plan src=roadmap:rm-m3-fog-appliance status=propose
+  dt-rm-m4-resilient-infra spec=fog eh=plan src=roadmap:rm-m4-resilient-infra status=propose
+  dt-rm-m5-public-testnet spec=lead eh=plan src=roadmap:rm-m5-public-testnet status=propose
+  dt-rm-poc-settlement spec=code eh=plan src=roadmap:rm-poc-settlement status=propose
+  dt-rm-m6-metaversal-os spec=coord eh=plan src=roadmap:rm-m6-metaversal-os status=propose
+  dt-rm-m7-terminalization spec=coord eh=plan src=roadmap:rm-m7-terminalization status=propose
+  dt-rm-m8-global-fabric spec=lead eh=plan src=roadmap:rm-m8-global-fabric status=propose
+  dt-rm-m9-mature-mainnet spec=lead eh=plan src=roadmap:rm-m9-mature-mainnet status=propose
+  dt-rm-inst-stage1-lab spec=lead eh=plan src=roadmap:rm-inst-stage1-lab status=propose
+  dt-rm-os-m9-adversary spec=fog eh=plan src=roadmap:rm-os-m9-adversary status=propose
+  dt-rm-os-m10-publication spec=lead eh=plan src=roadmap:rm-os-m10-publication status=propose
+
+TODO.md Pending rows: 16 (includes leftover projected plan items + roadmap derivatives)
+board: /Users/andremorais/StrataMesh/fog/data/desk-outbox/TODO.md
+
+OPERATOR TRIGGER:
+  python3 ops/desk-collegium/desk_ops.py refresh-pending
+  python3 ops/desk-collegium/desk_ops.py board          # also refreshes
+  python3 ops/desk-collegium/desk_ops.py cycle --max 1  # r/60s + overnight no-idle
+Wired into: cmd_cycle (before surfaces + after projected catalog),
+            ensure_desk_surfaces_tick, cmd_board, handler_coord write_todo_board.
+Overnight no-idle / TUI r / desk-agent-run.sh board all call these paths — keep using it.
+
+RCA: write_todo_board Pending = open_tasks status=propose.
+ensure_projected_catalog seeds leftovers; cycle auto-constrains eisenhower=act -> Ongoing.
+Already-open/done catalog ids never re-seed. After leftovers clear, Pending starved.
+Fix: refresh_roadmap_pending derives next unmet M-II+...M-IX/telos as propose (plan stays Pending).
+Idempotent (source=roadmap:<id> / dt-rm-* / aliases). Never status=done.
+
+Pending section excerpt:
+## Pending (propose)
+
+| Id | Spec | Eisenhower | Intent |
+|----|------|------------|--------|
+| `dt-proj-ts-taper-t2` | coord | plan | Plan T2: drain 100.x from scripts/connectors/notes; inventory via WG/Fog; ts-api read-only until T3 |
+| `dt-proj-host-fly-probe` | coord | plan | proj-host-fly-probe |
+| `dt-rm-m2-chaos-inject` | fog | plan | M-II next: chaos testing + failure injection so coordination survives hostile/degraded conditions (ROADMAP-VISION Milest |
+| `dt-rm-m2-resource-proof` | code | plan | M-II next: resource-proof MVP — claimed capacity ≠ accepted contribution (ROADMAP-VISION Milestone II + ROADMAP-PUBLIC-v |
+| `dt-rm-m2-gossip-transitions` | fog | plan | M-II next: distributed gossip + measurable execution + node-state transitions beyond in-process pair (ROADMAP-VISION Mil |
+| `dt-rm-m3-fog-appliance` | fog | plan | M-III: dedicated measurable appliance — independent evidence plane, secure identity, hardware/energy/thermal/network tel |
+| `dt-rm-m4-resilient-infra` | fog | plan | M-IV: independent energy/network paths, autonomous fallback, environmental monitoring, graceful degradation, infrastruct |
+| `dt-rm-m5-public-testnet` | lead | plan | M-V / control-law next: public testnet — resource discovery, offers, allocation, execution, evidence, receipts, settleme |
+| `dt-rm-poc-settlement` | code | plan | Settlement centre: Proof≠claim mint path; #mint emit-only, #0 burn sink; lab Agora ≠ production custody (ROADMAP-PUBLIC- |
+| `dt-rm-m6-metaversal-os` | coord | plan | M-VI: persistent domains/worlds/sandboxes/subjects/SCAs/assets/temporal state/volition/world portability (ROADMAP-VISION |
+| `dt-rm-m7-terminalization` | coord | plan | M-VII: separate interface hardware from computational capability — lightweight terminals consume fabric compute (ROADMAP |
+| `dt-rm-m8-global-fabric` | lead | plan | M-VIII: heterogeneous global pools, geographic/energy-aware allocation, dynamic pricing, evidence confidence, cross-doma |
+| `dt-rm-m9-mature-mainnet` | lead | plan | TELOS M-IX: reliably perform Intention→Requirement→Discovery→Allocation→Physical Execution→Evidence→Receipt→Settlement→P |
+| `dt-rm-inst-stage1-lab` | lead | plan | Institutional STAGE 1: Portuguese APsFL when ≥2 founders exist — research identity only today (INSTITUTIONAL-ROADMAP). D |
+| `dt-rm-os-m9-adversary` | fog | plan | os-lib/roadmap.ts m9 (progress): multiple nodes · BFT · antifragility — second node only with an operator; adversary ≠ N |
+| `dt-rm-os-m10-publication` | lead | plan | os-lib/roadmap.ts m10 (gated): only effective PoC transits published version; contribution-measurement audit + independe |

@@ -413,7 +413,7 @@ def sync(*, limit: int = 12, prepend: bool = True, feed: bool = True) -> dict:
 
 
 def write_todo_board(state: dict | None = None, projected: dict | None = None) -> Path:
-    """Human+agent readable to-do snapshot from bus state + projected catalog."""
+    """Human+agent readable to-do snapshot from bus state + projected + roadmap thresholds."""
     if state is None:
         try:
             import importlib.util
@@ -462,7 +462,7 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
     lines = [
         "# Desk TODO board (live)",
         "",
-        f"_snapshot {_now()} · source: bus state + projected.json · no secrets_",
+        f"_snapshot {_now()} · source: bus state + projected.json + roadmap_thresholds.json · no secrets_",
         "",
         "Rules: pick ONLY your specialty; human_gates stay Ongoing — ping André only when blocked; diary cites task id.",
         "Wake order: CONTEXT pack → protocol → Eisenhower → this board → specialty.",
