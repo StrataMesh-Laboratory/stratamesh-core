@@ -1,0 +1,89 @@
+full_board_act_wave_20260912
+ts_pt=2026-09-12T18:54:18+0100
+tip_origin_main=8d1abb9d2 (>=8d1abb9 OK)
+
+== INVENTORY COUNTS BY CLASS (open_tasks) ==
+  Act now: 6
+  Andre-gate: 4
+  Delegate specialty: 4
+  Note: 2
+  Plan: 2
+  TOTAL_OPEN: 8 (after wave dones; residual open listed)
+  classify.ongoing=15 pending=2 escalated=1 projected_held=5
+
+== OPEN TASKS ==
+  [Plan] dt-proj-m2-twohost status=revise :: M-II: distinct second host INV/TX — Mac+Pi/AWS-shaped peer when ready; Oracle optional; MariaDB=offl
+  [Andre-gate] dt-iss151 status=revise :: issue:#151 [challenge] Oracle grok90 before AWS hedge end
+  [Andre-gate] dt-ch-oracle-gr status=escalate :: OPTIONAL Oracle grok90 chase — never blocks desk; MariaDB+Mac Act now
+  [Andre-gate] dt-proj-oracle-260826 status=revise :: OPTIONAL Oracle grok90 chase 260826-001576 — escalate only; never blocks desk Acts
+  [Andre-gate] dt-proj-gcp-e2micro-fog status=refer :: Spike: GCP Always Free e2-micro as Oracle VM substitute — Fog+SQLite peer via Tailscale/CF tunnel; M
+  [Act now] dt-proj-ts-taper-t1 status=act :: Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24 (Mac 10.88.0.2) + OpenVPN operator path — dual-run OK; 
+  [Delegate specialty] dt-wave-academy-teacher-fill-20260912 status=act :: Act: academy 2026-09-12 teacher fill complete (pending_teacher 6→0); keep latest.json current; publi
+  [Delegate specialty] dt-wave-spa-quality-gh182-20260912 status=revise :: Act: GH#182/#181/#178 SPA registry quality — public /status spa.total=0 source=empty is honest but e
+  [Plan] dt-wave-ts-taper-t2-plan-20260912 status=revise :: Plan T2 refresh: drain 100.x inventory via WG/Fog notes; ts-api read-only until T3; no paid seats
+  [Delegate specialty] dt-wave-m1-code-needles-20260912 status=act :: Act refresh: run desk unit tests; patch only on FAIL (no vapour PASS) — M-I code needles standing
+  [Act now] dt-wave-m1-coord-board-20260912 status=act :: Act refresh: desk_ops board + protocol.check; sync strict issues/challenges; expand pending beyond t
+  [Delegate specialty] dt-wave-m1-claw-loop-20260912 status=act :: Act refresh: hop health → desk-meters + feed when lane-openclaw ALLOW
+  [Act now] dt-wave-gha123-observe-20260912 status=act :: Act: GH#123 GHA observe + prepare ticks — verify ledger unlocked for gha-fail-watch/desk-prepare; no
+  [Act now] dt-wave-mac-desk-operative-20260912 status=act :: Act: mac-desk operative health — gh PATH ok; LaunchAgent soft-fail check; no KeePass secrets dump; B
+  [Act now] dt-wave-migrate-desk-auth-docs-20260912 status=act :: Act: verify docs/DESK-AUTH-MIGRATION.md still matches grok@ KEEP vs automation.desk@ MIGRATE policy;
+  [Act now] dt-wave-ovpn-t1-residual-20260912 status=act :: Note/Act residual of T1: Mac+OVPN PASS; iPhone T1 still André/device residual — keep Mac refresh pat
+  [Note] dt-proj-mac-desk-operative status=propose :: Act desk: materialize automation.desk.* from KeePass (Bot only if escalated) if present; fix gh PATH
+  [Note] dt-proj-migrate-desk-auth-automation status=propose :: Act: enforce grok@ KEEP (Bot/Fog/EDGE gateway) vs automation.desk@ MIGRATE (GCP/hyperscaler/new SaaS
+
+== PROJECTED HOLDS (correctly gated) ==
+  proj-ts-taper-t3 hold_until=trial_t3 eisen=plan
+  proj-ts-taper-t4 hold_until=trial_ended eisen=plan
+  proj-ts-headscale-spike hold_until=headscale_eval eisen=note
+  proj-m2-twohost hold_until=distinct_second_host eisen=plan
+  proj-host-rpi-nuc-peer hold_until=distinct_second_host eisen=act
+  proj-host-gcp-e2-micro hold_until=distinct_second_host eisen=act
+
+== GH OPEN (sampled) ==
+  #182/#181/#178 SPA/DAG Act/Delegate; #151 Andre-gate; #123 Act; #46 Renovate Note; duplicates Note
+
+== DELIVERED ACTS ==
+  + T1 Mac refresh PASS (10.88.0.2 ping OK; OVPN conf+daemon True; iPhone residual NOT faked)
+  + hermes-wg-t1.md residual crystal clear
+  + Academy teacher fill 2026-09-12 pending 6->0; latest.json fixed
+  + Wave propose: open_tasks 6->16 (expanded thin pending)
+  + unittest Ran 36 OK
+  + claw hops all 200
+  + mac-desk: gh PATH ok; LaunchAgents present
+  + DESK-AUTH-MIGRATION.md verified (no secrets)
+  + SPA pulse evidence spa.total=0 empty honest; DAG 1243
+  + GHA#123 scripts present; token block honest
+  + Done: academy-fill, code-needles, claw, mac-desk, migrate-auth, ovpn-residual, gha123, coord-board
+  + Open/revise: T1 iPhone residual, spa-quality, T2 plan
+
+== HONEST BLOCKS ==
+  ! Oracle/#151 Andre 2FA skipped
+  ! iPhone T1 PASS not faked
+  ! M-II distinct_second_host held
+  ! ENI never touch
+  ! GCP 2FA refer/skipped
+  ! Renovate: 0 open PRs; #46 awaiting schedule
+  ! GHA poll: no GITHUB_TOKEN
+  ! SPA populate PR deferred (no fabricated members)
+
+== PRs ==
+  pending: academy_scores teacher-fill + prove (if committed)
+
+NO-FAKE-DONE · no secrets · ENI untouched
+SUCCESS: richer board acted; not starved to 1 pending + escalations
+
+== FINAL OPEN (after wave dones) ==
+  dt-proj-ts-taper-t1 act (Mac PASS; iPhone residual)
+  dt-wave-spa-quality-gh182-20260912 revise
+  dt-wave-ts-taper-t2-plan-20260912 revise Plan
+  dt-proj-m2-twohost revise Plan
+  dt-iss151 / dt-ch-oracle-gr / dt-proj-oracle-260826 / dt-proj-gcp-e2micro-fog Andre-gate
+  desk_ops cycle --max 6 launched (openclaw/ollama in flight at prove time)
+
+== POSTSCRIPT ==
+PR: https://github.com/StrataMesh-Laboratory/stratamesh-core/pull/197
+Root-cause fix: write_todo_board now classifies act/audit/amend/vote/refer/dispute as Ongoing (was starving board into Pending).
+Live TODO after fix: Ongoing=4 (T1 act, spa-quality, T2 plan, iss151) Pending=_none_ Escalated=4
+Wave delivered Acts marked done; iPhone T1 residual not faked; ENI untouched.
+desk_ops cycle --max 6 launched then TERM (was thrashing openclaw/ollama vs wave dones).
+tip_origin_main=8d1abb9 (>=8d1abb9 OK)
