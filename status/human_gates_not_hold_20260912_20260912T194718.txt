@@ -1,0 +1,44 @@
+STRATAGROK prove: human_gates_not_hold_20260912
+ts_pt=2026-09-12T19:47:18.224915+01:00
+branch=chore/human-gates-not-hold-20260912
+git_tip=5afa33e (5afa33e9fee1761a7142192ec88572ca040e2c94)  # working tree may be ahead of tip with uncommitted patches
+base_includes_2e05a12=yes (>=2e05a12 via 5afa33e)
+
+== posture ==
+Oracle / T1 iPhone / M-II second host / GCP human-gate items are NOT on HOLD.
+Keep live/Actable; ping André only when the human step blocks.
+
+== board sections (want Ongoing) ==
+PASS dt-ch-oracle-gr -> ## Ongoing
+PASS dt-proj-oracle-260826 -> ## Ongoing
+PASS dt-iss151 -> ## Ongoing
+PASS dt-proj-ts-taper-t1 -> ## Ongoing
+PASS dt-proj-m2-twohost -> ## Ongoing
+PASS dt-proj-gcp-e2micro-fog -> ## Ongoing
+
+== task snapshot (no secrets) ==
+dt-proj-m2-twohost: status=act eisen=act hold_until=None ping=True prep=True blocked_on='distinct_second_host_hardware' residual=need Pi/NUC/homelab or GCP e2-micro Fog peer — ping André when hardware ready ask
+dt-iss151: status=revise eisen=act hold_until=None ping=True prep=True blocked_on=None residual=challenge #151 open — not HOLD; ping if console 2FA blocks
+dt-ch-oracle-gr: status=act eisen=act hold_until=None ping=True prep=True blocked_on='andre_2fa' residual=OCI/console 2FA or captcha — ping André only when vaulted path blocks
+dt-proj-oracle-260826: status=act eisen=act hold_until=None ping=True prep=True blocked_on=None residual=ping André only for OCI 2FA/captcha on 260826-001576
+dt-proj-gcp-e2micro-fog: status=act eisen=act hold_until=None ping=True prep=True blocked_on=None residual=ping André for GCP signup 2FA; docs/spike prep Actable
+dt-proj-ts-taper-t1: status=act eisen=act hold_until=None ping=True prep=True blocked_on=None residual=Mac WG prove live; ping André for iPhone operator step if blocked
+
+== code checks ==
+hold_released(distinct_second_host)=True
+pick_tasks(include_human_gates=False) sample=['dt-wave-ts-taper-t2-plan-20260912', 'dt-iss151', 'dt-proj-host-rpi-nuc-peer', 'dt-proj-m2-twohost', 'dt-wave-spa-quality-gh182-20260912', 'dt-proj-academy-daily-exams']
+TODO.md=/Users/andremorais/StrataMesh/fog/data/desk-outbox/TODO.md
+board.md=/Users/andremorais/StrataMesh/fog/data/desk-outbox/board.md
+
+== projected holds ==
+proj-oracle-260826: hold=None eis=act ping=True
+proj-ts-taper-t1: hold=None eis=act ping=True
+proj-m2-twohost: hold=None eis=act ping=True
+proj-host-rpi-nuc-peer: hold=None eis=act ping=True
+proj-host-gcp-e2-micro: hold=None eis=act ping=True
+
+SUCCESS
+
+== PR ==
+https://github.com/StrataMesh-Laboratory/stratamesh-core/pull/199
+commit=ca348c4

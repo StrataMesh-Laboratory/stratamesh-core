@@ -444,15 +444,18 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
             "human_gate": bool(t.get("human_gate")),
             "intent": (t.get("intent") or "")[:120],
         }
-        # Align with desk_ops.classify: act/audit/amend/vote/refer/dispute are Ongoing
-        # (thin TODO starvation was: act fell into Pending and looked like 1 propose).
-        if st == "escalate" or t.get("human_gate"):
-            escalated.append(row)
-        elif st in (
+        # Align with desk_ops.classify: act/audit/amend/vote/refer/dispute are Ongoing.
+        # André 2026-09-12: human_gate alone must NOT dump into Escalated-as-forgotten —
+        # keep Ongoing/visible; escalate section only for status==escalate (ping-when-blocked).
+        if st in (
             "constrain", "revise", "commit",
             "act", "audit", "amend", "vote", "refer", "dispute",
         ):
+            if t.get("human_gate") or t.get("ping_when_needed"):
+                row["ping"] = "ping-when-blocked"
             ongoing.append(row)
+        elif st == "escalate":
+            escalated.append(row)
         else:
             pending.append(row)
 
@@ -461,7 +464,7 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
         "",
         f"_snapshot {_now()} · source: bus state + projected.json · no secrets_",
         "",
-        "Rules: pick ONLY your specialty; human_gates escalate to STRATAGROK; diary cites task id.",
+        "Rules: pick ONLY your specialty; human_gates stay Ongoing — ping André only when blocked; diary cites task id.",
         "Wake order: CONTEXT pack → protocol → Eisenhower → this board → specialty.",
         "",
         "## Ongoing",
@@ -470,10 +473,13 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
     if not ongoing:
         lines.append("_none_")
     else:
-        lines.append("| Id | Spec | Status | Intent |")
-        lines.append("|----|------|--------|--------|")
+        lines.append("| Id | Spec | Status | Gate | Intent |")
+        lines.append("|----|------|--------|------|--------|")
         for r in ongoing:
-            lines.append(f"| `{r['id']}` | {r['specialty']} | {r['status']} | {r['intent']} |")
+            gate = r.get("ping") or ("human" if r.get("human_gate") else "—")
+            lines.append(
+                f"| `{r['id']}` | {r['specialty']} | {r['status']} | {gate} | {r['intent']} |"
+            )
     lines += ["", "## Pending (propose)", ""]
     if not pending:
         lines.append("_none_")
@@ -482,7 +488,7 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
         lines.append("|----|------|------------|--------|")
         for r in pending:
             lines.append(f"| `{r['id']}` | {r['specialty']} | {r['eisenhower']} | {r['intent']} |")
-    lines += ["", "## Escalated / human_gates", ""]
+    lines += ["", "## Escalated (ping André — still visible, not HOLD park)", ""]
     if not escalated:
         lines.append("_none_")
     else:

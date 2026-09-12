@@ -477,7 +477,7 @@ class DeskOps(unittest.TestCase):
         os.environ["ORACLE_FALLBACK"] = "true"
         try:
             self.assertTrue(self.mod.hold_released({"hold_until": "oracle_grok90"}, {}))
-            self.assertFalse(self.mod.hold_released({"hold_until": "distinct_second_host"}, {}))
+            self.assertTrue(self.mod.hold_released({"hold_until": "distinct_second_host"}, {}))  # prep live, residual not HOLD
         finally:
             os.environ.pop("ORACLE_FALLBACK", None)
 

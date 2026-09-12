@@ -498,7 +498,11 @@ def _oracle_fallback_active() -> bool:
 
 
 def hold_released(item: dict, data: dict | None = None) -> bool:
-    """True when projected item may be seeded into open_tasks."""
+    """True when projected item may be seeded into open_tasks.
+
+    André 2026-09-12: distinct_second_host / human_gate residuals are NOT forever
+    HOLD — seed/prep stay live; ping when hardware/2FA actually blocks.
+    """
     hold = item.get("hold_until")
     if not hold:
         return True
@@ -509,7 +513,9 @@ def hold_released(item: dict, data: dict | None = None) -> bool:
             return True  # Mac+MDB fallback — Fog host not blocked on grok90
         return False
     if hold == "distinct_second_host":
-        return False  # need Pi/AWS/remote Fog — not Mac+MDB alone
+        # André 2026-09-12: NOT forever HOLD — prep/docs/inventory stay actable;
+        # residual hardware gate = ping-when-Pi/NUC-ready, not Eisenhower skip.
+        return True
     if hold == "trial_t3":
         t3 = _t3_from_pt(data)
         return bool(t3 and today >= t3)
@@ -2316,12 +2322,20 @@ def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
     """
     out: list[dict] = []
     for t in state.get("open_tasks") or []:
-        if _is_andre_human_gate_task(t):
+        st = (t.get("status") or "").lower()
+        ping_prep = bool(
+            t.get("ping_when_needed")
+            or t.get("prep_allowed")
+            or st in ("act", "revise", "refer", "constrain", "audit", "amend", "dispute")
+        )
+        if _is_andre_human_gate_task(t) and not ping_prep:
             continue
-        if _is_standing_soft_refer(t):
+        if _is_standing_soft_refer(t) and not (
+            t.get("ping_when_needed") or t.get("prep_allowed") or t.get("human_gate")
+        ):
             continue
         eisen = (t.get("eisenhower") or "act").lower()
-        if eisen in ("plan", "note"):
+        if eisen in ("plan", "note") and not ping_prep:
             continue
         spec = _handler_for(t) or "coord"
         allowed, pace, lane = _pace_allows(state, spec)
@@ -2413,12 +2427,23 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
     scored: list[tuple[int, dict]] = []
     for t in ordered:
         eisen = (t.get("eisenhower") or "act").lower()
-        if eisen in ("plan", "note") and not include_human_gates:
+        st = (t.get("status") or "").lower()
+        ping_prep = bool(
+            t.get("ping_when_needed")
+            or t.get("prep_allowed")
+            or st in ("act", "revise", "refer", "constrain", "audit", "amend", "dispute")
+        )
+        # plan/note skipped unless prep/ping posture (M-II residual prep)
+        if eisen in ("plan", "note") and not include_human_gates and not ping_prep:
             continue
         if _is_human_gate_task(t) and not include_human_gates:
-            continue
+            # André 2026-09-12: pick vaulted non-2FA probes / Mac T1 refresh / docs;
+            # ping André only when the human step blocks — never skip entirely.
+            if not ping_prep and st == "escalate":
+                continue
         if _is_standing_soft_refer(t) and not include_human_gates:
-            continue
+            if not (t.get("ping_when_needed") or t.get("prep_allowed") or t.get("human_gate")):
+                continue
         use_spec = _handler_for(t)
         if not use_spec:
             continue
