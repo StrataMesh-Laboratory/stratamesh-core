@@ -48,6 +48,14 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 - Optional spike (time-boxed ≤2h): **Headscale** as free-forever control plane — accept only if Mac/iPhone clients stay Tailscale-compatible *and* we self-host; else drop.
 
 
+### T1 — Mac client prove (2026-09-12 IN PROGRESS)
+
+- **Box restored 2026-09-12:** `wg0` 10.88.0.1, OpenVPN 127.0.0.1:1194 + tun0 10.89.0.1, Tor 9050 + HS ports. Prior "LIVE" claim was stale after box reset.
+- **Dual-run transport:** Mac packs use box Tailscale IP only as UDP/TCP carrier to WG/OVPN (`AllowedIPs` / push stay 10.88 / 10.89 — never 0.0.0.0/0). Public UDP 51820 remains DROP except lo + temporary TS ACCEPT.
+- **Mac:** `wireguard-tools` + `openvpn` brew present; WireGuard.app **not** installed; client confs at `~/.config/stratagrok/andre-mac-wg0.conf` and `~/.config/stratagrok/openvpn-mac/andre-mac.ovpn`.
+- **Blocked for PASS:** interactive `sudo` for `wg-quick up` / OpenVPN TUN (SSH agent EPERM). Then prove `ping 10.88.0.1` and SSH `andremorais@10.88.0.2` from box with Tailscale unused for operator.
+- **Do not** open UDP 51820 publicly; **do not** AllowedIPs=0.0.0.0/0; **do not** buy seats. T3 from 2026-09-14; trial ends 2026-09-16.
+
 ### T1 — Mac client prove (2026-09-07 HOLD)
 
 - **Status HOLD** on hermes-desk/MBPA-4:  installed (); OpenVPN binary present;  present.
