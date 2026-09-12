@@ -34,15 +34,33 @@ OWNER = {
 
 
 def _evidence_ok(path: str) -> bool:
+    """NO-FAKE-DONE: size alone is not evidence (stub verified-on-DATE closed T1).
+
+    Require desk_ops._has_tool_evidence residue in the file body.
+    """
     if not path:
         return False
     p = Path(path)
     if not p.is_file():
         return False
     try:
-        return p.stat().st_size > 8
+        if p.stat().st_size <= 8:
+            return False
+        blob = p.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return False
+    low = blob.lower()
+    # Explicit vapour stubs Hermes/OpenCode have written as evidence
+    stub_needles = (
+        "act t1 verified on",
+        "verified on 20",
+        "no further changes needed",
+        "file written, verified, and ready",
+    )
+    if any(s in low for s in stub_needles) and "iphone_prove" not in low:
+        if "mac_addr=" not in low and "ping_10.88" not in low and "wrote status/" not in low:
+            return False
+    return bool(ops._has_tool_evidence(blob))
 
 
 def _pick_task(state: dict, agent: str) -> dict | None:

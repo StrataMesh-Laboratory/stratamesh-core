@@ -1,0 +1,8 @@
+overnight-no-idle 2026-09-12 PT
+P0 autonomy: hermes oneshot closed dt-proj-ts-taper-t1 on stub evidence (act t1 verified on DATE).
+dispute+reopen T1 act; live Mac WG refresh prove=status/t1-wg-mac-prove-20260912T184233Z.txt iphone_prove=false
+structural: desk_agent_finish._evidence_ok now requires _has_tool_evidence (rejects size-only + stub needles)
+unittest test_desk_agent_finish_evidence 3/3 OK
+HEAD_before=2e05a12
+opencode_stacked_killed_to=1
+fog_public mac_live=true metabol=ALLOW
