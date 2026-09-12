@@ -83,7 +83,7 @@ run_opencode() {
 }
 
 run_hermes() {
-  echo "Hermes: Ollama specialist — real oneshot"
+  echo "Hermes: Ollama specialist — real oneshot (chat --oneshot)"
   HPY="$HOME/.hermes/hermes-agent/venv/bin/python"
   if [[ ! -x "$HPY" ]]; then HPY=python3; fi
   "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" || true
@@ -99,23 +99,30 @@ run_hermes() {
     finish_agent hermes 0 "CLI missing — workspace only is not an Act"
     return 0
   fi
-  echo "Hermes exec $HERMES"
-  set +e
   if [[ -f "$BRIEF" ]]; then
-    "$HERMES" oneshot "$(head -c 800 "$BRIEF")"
-    RC=$?
+    PROMPT="$(head -c 800 "$BRIEF")"
   else
-    "$HERMES" oneshot "Desk Hermes: one live Fog lesson. oracle_live=false."
-    RC=$?
+    PROMPT="Desk Hermes: one live Fog lesson (tools OK). oracle_live=false. Reply with one concrete prove line."
   fi
+  TS="$(date +%Y%m%dT%H%M%S)"
+  EV="$JOURNAL_DIR/oneshot-$TS.md"
+  echo "Hermes exec $HERMES chat --oneshot"
+  set +e
+  # Hermes CLI: oneshot is a flag on chat, not a subcommand (WORKSPACE.md).
+  "$HERMES" chat -q "$PROMPT" --oneshot -Q --in "$REPO" --safe-mode >"$EV" 2>&1
+  RC=$?
   set -e
-  # evidence = newest journal in this tick window
-  EV="$(ls -t "$JOURNAL_DIR"/* 2>/dev/null | head -1 || true)"
-  if [[ "$RC" -eq 0 && -n "$EV" && -s "$EV" ]]; then
-    finish_agent hermes 1 "hermes oneshot rc=0 journal=$(basename "$EV")" "$EV"
-  else
-    finish_agent hermes 0 "hermes oneshot rc=$RC or no journal — not done" "$EV"
+  # evidence = this-tick journal only (mtime within 15 min); refuse stale reuse
+  NOW=$(date +%s)
+  if [[ "$RC" -eq 0 && -s "$EV" ]]; then
+    MT=$(stat -f %m "$EV" 2>/dev/null || stat -c %Y "$EV")
+    AGE=$((NOW - MT))
+    if [[ "$AGE" -le 900 ]] && grep -q "[A-Za-z0-9]" "$EV"; then
+      finish_agent hermes 1 "hermes chat --oneshot rc=0 journal=$(basename "$EV")" "$EV"
+      return 0
+    fi
   fi
+  finish_agent hermes 0 "hermes chat --oneshot rc=$RC or stale/empty journal — not done" "$EV"
 }
 
 run_openclaw() {
