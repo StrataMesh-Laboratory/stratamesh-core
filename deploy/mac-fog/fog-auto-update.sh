@@ -312,3 +312,35 @@ if [[ -f "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" ]]; then
   "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" >>"$LOG" 2>&1 || log "hermes ensure_workspace rc=$?"
 fi
 
+# Ollama specialty autonomy — one of hermes|openclaw|opencode per auto-g.
+# Never stack on 8GB. Skip if desk HOLD or :11434 down. desk-agent-run lock serializes.
+if [[ -f "$REPO/deploy/mac-fog/desk-agent-run.sh" ]]; then
+  if [[ -f "$FOG/data/DESK-CYCLE-HOLD" ]]; then
+    log "desk-agent-run HOLD — skip autonomy pulse"
+  elif ! curl -sf --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+    log "ollama :11434 down — skip desk-agent-run"
+  else
+    AGENT="$(python3 -c "
+import json, os, time
+from pathlib import Path
+fog=Path(os.environ.get('FOG_HOME') or (Path.home()/'StrataMesh/fog'))
+p=fog/'data/desk-meters/ollama-rr.json'
+order=['hermes','openclaw','opencode']
+i=0
+if p.is_file():
+    try: i=int(json.loads(p.read_text()).get('cursor') or 0)
+    except Exception: i=0
+agent=order[i % 3]
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text(json.dumps({'ts':time.strftime('%Y-%m-%dT%H:%M:%S%z'),'cursor':(i+1)%3,'last':agent},indent=2)+chr(10))
+print(agent)
+" 2>/dev/null || echo hermes)"
+    log "desk-agent-run autonomy pulse agent=$AGENT"
+    if command -v timeout >/dev/null 2>&1; then
+      timeout 180 bash "$REPO/deploy/mac-fog/desk-agent-run.sh" "$AGENT" >>"$LOG" 2>&1 || log "desk-agent-run rc=$?"
+    else
+      bash "$REPO/deploy/mac-fog/desk-agent-run.sh" "$AGENT" >>"$LOG" 2>&1 || log "desk-agent-run rc=$?"
+    fi
+  fi
+fi
+

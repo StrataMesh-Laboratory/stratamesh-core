@@ -1694,10 +1694,13 @@ def specialty_self_audit_tick(*, dry: bool = False, state: dict | None = None) -
     try:
         bus = _load("desk_bus")
         seeded = _ensure_ollama_specialists_on_board(bus, state)
+        state = bus.load_state()
+        briefed = _refresh_ollama_autonomy_briefs(bus, state)
         results["claw"] = {"ok": False, "done": False, "skipped": False, "result": "openclaw tasked (not done)"}
         results["code"] = {"ok": False, "done": False, "skipped": False, "result": "opencode tasked (not done)"}
         results["coord"] = {"ok": False, "done": False, "skipped": False, "result": "hermes tasked (not done)"}
         results["ollama_seeded"] = seeded
+        results["ollama_briefs"] = briefed
     except Exception as e:
         results["claw"] = results["code"] = results["coord"] = {"ok": False, "result": str(e)[:80]}
     _run("fog", handler_fog, {"id": "audit-fog", "specialty": "fog", "intent": "self-audit fog pending Act"})
@@ -1928,13 +1931,83 @@ def _is_human_gate_task(task: dict) -> bool:
     return False
 
 
+_OWNER_HANDLER = {
+    "hermes": "coord",
+    "opencode": "code",
+    "openclaw": "claw",
+    "fog": "fog",
+    "edge": "edge",
+    "stratagrok": "lead",
+    "grok": "lead",
+}
+
+
+def _handler_from_owner(owner: str) -> str | None:
+    o = (owner or "").strip().lower()
+    for key, spec in _OWNER_HANDLER.items():
+        if key in o:
+            return spec
+    return None
+
+
+def _refresh_ollama_autonomy_briefs(bus, state: dict) -> list[str]:
+    """Write *-next.md from the live board. Never marks done.
+
+    Owner infers specialty; status None → propose. Specialists act without
+    a STRATAGROK prompt. Close only with evidence via desk_agent_finish.
+    """
+    touched: list[str] = []
+    open_tasks = list(state.get("open_tasks") or [])
+    dirty = False
+    by_agent = {"hermes": None, "openclaw": None, "opencode": None}
+    for t in open_tasks:
+        if str(t.get("status") or "") in ("", "None"):
+            t["status"] = "propose"
+            dirty = True
+        own = str(t.get("owner") or "")
+        inferred = _handler_from_owner(own)
+        if inferred and not t.get("specialty"):
+            t["specialty"] = inferred
+            dirty = True
+        for agent, spec in (("hermes", "coord"), ("openclaw", "claw"), ("opencode", "code")):
+            if inferred == spec or spec == (t.get("specialty") or "") or agent in own.lower():
+                if by_agent[agent] is None:
+                    by_agent[agent] = t
+    if dirty:
+        try:
+            bus.save_state(state)
+        except Exception:
+            pass
+    for agent, task in by_agent.items():
+        if not task:
+            continue
+        steps = [
+            f"Own Act {task.get('id')} — do not wait for STRATAGROK prompt.",
+            "Write evidence under desk-meters/ or desk-outbox/journals/.",
+            "desk_agent_finish.py only closes with a non-empty evidence file.",
+        ]
+        _write_assistant_brief(
+            agent,
+            task,
+            result="specialty autonomy brief (not done)",
+            steps=steps,
+        )
+        touched.append(str(task.get("id")))
+    return touched
+
+
 def _handler_for(task: dict) -> str | None:
-    spec = task.get("specialty") or "coord"
     if task.get("duty") == "academy_teach" or "academy teach" in (task.get("intent") or "").lower():
         return "teach"
+    spec = (task.get("specialty") or "").strip()
     if spec in HANDLERS:
         return spec
-    return None
+    inferred = _handler_from_owner(str(task.get("owner") or ""))
+    if inferred in HANDLERS:
+        return inferred
+    if spec:
+        return None
+    return "coord"
 
 
 def _pick_rr_path() -> Path:
