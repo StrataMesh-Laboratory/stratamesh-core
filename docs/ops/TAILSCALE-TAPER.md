@@ -48,6 +48,13 @@ TRIAL_ENDS_PT=2026-09-16  # Billing: 11 days left as of 2026-09-05 PT; T3 from 2
 - Optional spike (time-boxed ≤2h): **Headscale** as free-forever control plane — accept only if Mac/iPhone clients stay Tailscale-compatible *and* we self-host; else drop.
 
 
+### T1 — Mac client prove (2026-09-12 PASS)
+
+- **PASS 2026-09-12 ~03:12 PT:** Mac `wg-quick up` → `utun9` `10.88.0.2`; box handshake live; SSH `andremorais@10.88.0.2` / Host `hermes-wg` works. Ping Mac→`10.88.0.1` OK.
+- Dual-run transport still uses box Tailscale IP only as UDP carrier for Endpoint; AllowedIPs=`10.88.0.0/24` only.
+- Settle script: `~/.local/bin/settle-operator-vpn.sh` (OpenVPN fallback only if WG ping fails).
+- Next: T2 drain `100.x` from operator scripts; T3 from 2026-09-14 revoke. Do not buy seats.
+
 ### T1 — Mac client prove (2026-09-12 IN PROGRESS)
 
 - **Box restored 2026-09-12:** `wg0` 10.88.0.1, OpenVPN 127.0.0.1:1194 + tun0 10.89.0.1, Tor 9050 + HS ports. Prior "LIVE" claim was stale after box reset.
