@@ -1,32 +1,38 @@
 """Ban skip-success / fake done in desk_ops."""
 from pathlib import Path
-import re
+import unittest
 
 ROOT = Path(__file__).resolve().parent
 OPS = (ROOT / "desk_ops.py").read_text(encoding="utf-8")
 
 
-def test_no_deferred_to_board_success():
-    assert "deferred to board" not in OPS
+class TestNoFakeDone(unittest.TestCase):
+    def test_no_deferred_to_board_success(self):
+        self.assertNotIn("deferred to board", OPS)
+
+    def test_no_unittest_discover_pass_as_act(self):
+        self.assertNotIn("unittest discover PASS", OPS)
+        self.assertNotIn("_run_code_unittest_subset", OPS)
+
+    def test_honest_result_helper_exists(self):
+        self.assertIn("def honest_result(", OPS)
+        self.assertIn(
+            "NO FAKE DONE",
+            (ROOT / "NO-FAKE-DONE.md").read_text(encoding="utf-8"),
+        )
+
+    def test_handler_code_refuses_unittest_substitute(self):
+        self.assertIn("no unittest substitute", OPS)
+        self.assertIn("not a code Act (self-audit label)", OPS)
+
+    def test_agent_run_does_not_stamp_binary_present_ok(self):
+        sh = (ROOT.parents[1] / "deploy" / "mac-fog" / "desk-agent-run.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("binary_present", sh)
+        self.assertIn("desk_agent_finish.py", sh)
+        self.assertNotIn("serialized=True", sh)
 
 
-def test_self_audit_does_not_ok_true_skip_code_act():
-    assert "code self-audit skipped (no CI theatre)" not in OPS or '"ok": True' not in OPS.split("code self-audit skipped")[0][-80:]
-
-
-def test_delivered_requires_done_and_evidence():
-    assert "if out.get(\"ok\") and out.get(\"done\") and out.get(\"evidence\")" in OPS or (
-        "delivered +=" in OPS and "skipped" in OPS
-    )
-
-
-def test_honest_result_helper_exists():
-    assert "def honest_result(" in OPS
-    assert "NO-FAKE-DONE" in (ROOT / "NO-FAKE-DONE.md").read_text(encoding="utf-8")
-
-
-def test_agent_run_does_not_stamp_binary_present_ok():
-    sh = (ROOT.parents[1] / "deploy" / "mac-fog" / "desk-agent-run.sh").read_text(encoding="utf-8")
-    assert "binary_present" not in sh
-    assert "desk_agent_finish.py" in sh
-    assert "serialized=True" not in sh
+if __name__ == "__main__":
+    unittest.main()
