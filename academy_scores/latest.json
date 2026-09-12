@@ -1,21 +1,16 @@
 {
   "schema": "stratamesh.academy.daily_exam.v0",
   "kind": "latest",
-  "date": "2026-09-07",
+  "date": "2026-09-12",
   "tz": "Europe/Lisbon",
-  "updated": "2026-09-07T10:49:42+0100",
+  "updated": "2026-09-12T18:48:52+0100",
   "paths": {
     "roster": "academy_scores/roster.json",
-    "day": "academy_scores/2026-09-07/",
-    "exam": "academy_scores/2026-09-07/exam.json",
-    "scores": "academy_scores/2026-09-07/scores.json",
-    "teachers": "academy_scores/2026-09-07/teachers.json"
+    "day": "academy_scores/2026-09-12/",
+    "exam": "academy_scores/2026-09-12/exam.json",
+    "scores": "academy_scores/2026-09-12/scores.json",
+    "teachers": "academy_scores/2026-09-12/teachers.json"
   },
   "grades_url": "https://academy.calhegasmorais.pt/grades",
-  "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-07/scores.json",
-  "summary": {
-    "n_students": 6,
-    "pending_teacher": 0,
-    "complete": 6
-  }
+  "note": "pointer refreshed by full_board_act_wave_20260912 after teacher fill"
 }

@@ -79,11 +79,3 @@ SUCCESS: richer board acted; not starved to 1 pending + escalations
   dt-proj-m2-twohost revise Plan
   dt-iss151 / dt-ch-oracle-gr / dt-proj-oracle-260826 / dt-proj-gcp-e2micro-fog Andre-gate
   desk_ops cycle --max 6 launched (openclaw/ollama in flight at prove time)
-
-== POSTSCRIPT ==
-PR: https://github.com/StrataMesh-Laboratory/stratamesh-core/pull/197
-Root-cause fix: write_todo_board now classifies act/audit/amend/vote/refer/dispute as Ongoing (was starving board into Pending).
-Live TODO after fix: Ongoing=4 (T1 act, spa-quality, T2 plan, iss151) Pending=_none_ Escalated=4
-Wave delivered Acts marked done; iPhone T1 residual not faked; ENI untouched.
-desk_ops cycle --max 6 launched then TERM (was thrashing openclaw/ollama vs wave dones).
-tip_origin_main=8d1abb9 (>=8d1abb9 OK)

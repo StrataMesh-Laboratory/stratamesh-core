@@ -1,0 +1,21 @@
+{
+  "ts": "2026-09-12T18:50:30+0100",
+  "task": "dt-wave-spa-quality-gh182-20260912",
+  "spa": {
+    "total": 0,
+    "active": 0,
+    "by_role": {},
+    "opt_out_pending": [],
+    "source": "empty",
+    "measured": true,
+    "seed_only": false
+  },
+  "dag_summary": {
+    "transaction_count": 1243,
+    "measured": true,
+    "seed_only": false,
+    "source": "ledger"
+  },
+  "assessment": "SPA total=0 source=empty measured=true seed_only=false \u2014 honest empty registry, not fabricated. Quality Act = register real SPAs or document empty-as-expected for Mac-only M-I; do not invent members (SG-GOSSIP).",
+  "next_action": "code: find Mac Fog SPA registration path; ship PR only if live registry populate is safe"
+}
