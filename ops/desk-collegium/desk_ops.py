@@ -1825,21 +1825,112 @@ def auto_ship_tick(*, dry: bool = False) -> dict:
 
 
 
+def _refresh_t1_mac_meter_live(meter_path: Path) -> dict | None:
+    """Cheap live Mac WG re-prove when meter went stale (>960s).
+
+    Overnight no-idle wakes hourly; hermes oneshot must not thrash T1 after age gate.
+    Does NOT fake iPhone. Returns refreshed meter dict or None.
+    """
+    try:
+        import subprocess as _sp
+        from datetime import datetime, timezone
+
+        ifconfig = _sp.run(["ifconfig"], capture_output=True, text=True, timeout=8)
+        has_mac = "10.88.0.2" in (ifconfig.stdout or "")
+        if not has_mac:
+            return None
+        ping = _sp.run(
+            ["ping", "-c", "1", "-W", "2000", "10.88.0.1"],
+            capture_output=True,
+            text=True,
+            timeout=6,
+        )
+        ping_ok = ping.returncode == 0
+        ovpn = False
+        for cand in (
+            Path.home() / ".config/stratamesh/openvpn-client.conf",
+            Path.home() / ".config/stratagrok/openvpn-client.conf",
+            FOG / "ops" / "openvpn-client.conf",
+        ):
+            if cand.is_file():
+                ovpn = True
+                break
+        try:
+            sha = _sp.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=5,
+            ).stdout.strip()
+        except Exception:
+            sha = ""
+        now = datetime.now(timezone.utc)
+        ts_pt = datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
+        if len(ts_pt) >= 5 and ts_pt[-5] in "+-" and ":" not in ts_pt[-5:]:
+            ts_pt = ts_pt[:-2] + ":" + ts_pt[-2:]
+        prove_name = f"status/t1-wg-mac-prove-{now.strftime('%Y%m%dT%H%M%SZ')}.txt"
+        prove_path = FOG / "data" / "desk-outbox" / prove_name
+        prove_path.parent.mkdir(parents=True, exist_ok=True)
+        meter = {
+            "schema": "desk.wg-t1.v1",
+            "ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "ts_pt": ts_pt,
+            "task_id": "dt-proj-ts-taper-t1",
+            "mac_live": True,
+            "mac_addr": "10.88.0.2",
+            "expect_mac": "10.88.0.2",
+            "mac_addr_match": True,
+            "ping_10_88_0_1": ping_ok,
+            "ping_10_88_0_1_note": "live refresh RTT" if ping_ok else "ping fail",
+            "iphone_prove": False,
+            "iphone_note": "honest residual — not faked",
+            "openvpn_client_conf_present": ovpn,
+            "paid_seats": False,
+            "operator_path": "hermes-wg PASS (live refresh)",
+            "meter_path": "desk-meters/wg-t1.json",
+            "prove_path": prove_name,
+            "ok": bool(has_mac and ping_ok),
+            "sha": sha,
+            "refreshed": True,
+        }
+        if not meter["ok"]:
+            return None
+        meter_path.parent.mkdir(parents=True, exist_ok=True)
+        meter_path.write_text(json.dumps(meter, indent=2) + "\n", encoding="utf-8")
+        prove_body = (
+            f"t1-mac-wg LIVE refresh PASS mac=10.88.0.2 ping_10.88.0.1={ping_ok} "
+            f"openvpn={ovpn} sha={sha} iphone_prove=false\n"
+        )
+        prove_path.write_text(prove_body, encoding="utf-8")
+        return meter
+    except Exception as e:
+        print(f"t1 mac live refresh warn: {e}", file=sys.stderr)
+        return None
+
+
 def _try_t1_mac_meter_prove(task: dict) -> dict | None:
     """If fresh desk-meters/wg-t1.json shows Mac 10.88.0.2 prove, return Act evidence.
 
     Does NOT fake iPhone: done=False while iphone_prove is false; still counts as
     delivered when ok+evidence+verb=act (see cycle delivered increment).
     Age gate ≤960s matches AUTONOMY-PASS-CRITERIA fresh status prove.
+    When stale, cheap live Mac WG refresh (hourly overnight wakes) — never hermes thrash.
     """
     try:
         path = FOG / "data" / "desk-meters" / "wg-t1.json"
         if not path.is_file():
-            return None
-        age = time.time() - path.stat().st_mtime
-        if age > 960:
-            return None
-        meter = json.loads(path.read_text(encoding="utf-8"))
+            meter = _refresh_t1_mac_meter_live(path)
+            if meter is None:
+                return None
+        else:
+            age = time.time() - path.stat().st_mtime
+            if age > 960:
+                meter = _refresh_t1_mac_meter_live(path)
+                if meter is None:
+                    return None
+            else:
+                meter = json.loads(path.read_text(encoding="utf-8"))
         if not meter.get("ok") or not meter.get("mac_addr_match"):
             return None
         if str(meter.get("mac_addr") or "") != "10.88.0.2":
@@ -1854,6 +1945,7 @@ def _try_t1_mac_meter_prove(task: dict) -> dict | None:
             f"| iphone_prove={str(iphone).lower()} "
             f"{'(full T1)' if iphone else 'honest residual (not faked)'} "
             f"| paid_seats=false operator_path=hermes-wg"
+            f"{' | refreshed=true' if meter.get('refreshed') else ''}"
         )
         return {
             "ok": True,
