@@ -1,0 +1,32 @@
+dt-proj-fog-host-fallback — MariaDB ladder residual Act (NO-FAKE-DONE)
+date_pt=2026-09-12T16:42:57+0100 PT
+date_utc=2026-09-12T154257Z
+tip_at_start=240e8b5
+tip_working=240e8b5
+full_sha=240e8b57e16f4b87d9918d95d589a70fe9bc656c
+origin_main_ok=true (>=240e8b5)
+board_id=dt-proj-fog-host-fallback
+eisenhower=act
+mandate=MariaDB fog_cmn exclusive-off + Mac Fog primary; Oracle never hard-gate; not second host / not ENI
+
+EVIDENCE:
+1) bash ops/bin/fog-mariadb-ensure.sh → OK fog_cmn schema ensured (rc=0)
+2) mariadbd LISTEN 127.0.0.1:3307; connect grok/fog_cmn OK; tables=9
+3) deploy/mac-fog/fog-node-run.sh added; LaunchAgent pt.calhegasmorais.fog ProgramArguments → wrapper (sources load-fog-mysql.sh; no secrets in plist)
+4) src/node_persistent.py _storage_status(): honest backend=sqlite + mariadb_offload.configured
+5) after launchctl kickstart: GET :8787/health ok; /status storage=
+   backend=sqlite
+   mariadb_offload.configured=true
+   mdb_active_env=true oracle_fallback_env=true oracle_live_env=false
+   oracle_live=false (top-level)
+6) unittest test_fog_db → 4 OK
+7) docs/FOG-HOST-FALLBACK.md prove log 2026-09-12 + mariadb README wrapper note
+8) meter=desk-meters/fog-host-fallback.json ok=PASS ladder=rung2_mariadb_offload
+
+NOT CLAIMED:
+- oracle_live=true
+- M-II / m2-twohost PASS (still HOLD distinct_second_host)
+- kernel backend=mariadb (PersistentDAG still sqlite — residual documented)
+- ENI untouched
+
+NO-FAKE-DONE=ladder rung2 live+visible; Fog process loads FOG_MYSQL_URL; storage honesty on /status

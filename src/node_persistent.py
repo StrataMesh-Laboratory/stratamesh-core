@@ -437,6 +437,40 @@ code {{ color:var(--fg); }}
             ),
         }
 
+
+    def _storage_status(self) -> dict:
+        """Honest storage block: DAG stays sqlite until PersistentDAG wires fog_db.
+
+        MariaDB rung-2 exclusive-off is reported when FOG_MYSQL_URL is in the
+        process env (LaunchAgent via fog-node-run.sh). Never prints DSN secrets.
+        """
+        block = {"backend": "sqlite", "path": self.db_path, "lab": True}
+        off = {
+            "exclusive_off": True,
+            "kernel_backend": "sqlite",
+            "configured": False,
+            "note": "rung2 fog_cmn via ensure; PersistentDAG not on fog_db yet",
+        }
+        try:
+            import fog_db  # local src on PYTHONPATH / WorkingDirectory
+
+            off["configured"] = bool(fog_db.mysql_url_configured())
+        except Exception as exc:  # noqa: BLE001 — status must not fail
+            off["fog_db_error"] = type(exc).__name__
+        for env_key, out_key in (
+            ("MDB_ACTIVE", "mdb_active_env"),
+            ("ORACLE_FALLBACK", "oracle_fallback_env"),
+            ("ORACLE_LIVE", "oracle_live_env"),
+        ):
+            raw = (os.environ.get(env_key) or "").strip().lower()
+            if raw in ("1", "true", "yes"):
+                off[out_key] = True
+            elif env_key == "ORACLE_LIVE" and raw in ("0", "false", "no"):
+                off[out_key] = False
+        # Never claim oracle_live from MariaDB alone
+        block["mariadb_offload"] = off
+        block["oracle_live"] = False
+        return block
     def status(self) -> dict:
         wrd = self.workerd.snapshot() if getattr(self, "workerd", None) else None
         with self.lock:
@@ -469,7 +503,7 @@ code {{ color:var(--fg); }}
                     },
                     "oracle_vm": False,
                     "uptime_seconds": int(time.time() - self.started_at),
-                    "storage": {"backend": "sqlite", "path": self.db_path},
+                    "storage": self._storage_status(),
                     "finality_tips": tip_set_report(self.dag, limit=8),
                     "contribution": self.poc.summary(),
                     "token": self.token.summary(),
