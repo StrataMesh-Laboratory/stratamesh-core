@@ -23,7 +23,7 @@ const worker :Workerd.Worker = (
     (name = "MW_PY", service = "mwpy"),
     (name = "MW_NODE", service = "mwnode"),
     (name = "MW_DENO", service = "mwdeno"),
-    (name = "ORIGIN", text = "session"),
+    (name = "ORIGIN", text = "macbook"),  # Mac Fog continuous; match FOG_ORIGIN LaunchAgent
     (name = "FOG_MESH_N", text = "2"),
   ],
 );
