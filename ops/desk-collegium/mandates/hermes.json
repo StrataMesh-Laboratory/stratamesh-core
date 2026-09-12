@@ -20,5 +20,8 @@
   ],
   "standing": "computational_agent",
   "native_acb": false,
-  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant. Agent vs Assistant = volitional trigger cut.",
+  "desk_department": "ollama",
+  "volition": "task_completion",
+  "volition_note": "Volitional on bound specialty Acts (coord); completes once committed."
 }

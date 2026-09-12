@@ -13,6 +13,21 @@ direction mechanics.
 - Mandate/commitment direction applies to Computational Agents on the desk; do not
   collapse External* into ACB/SCA citizenship.
 
+## External Agent vs External Assistant (volition)
+
+Both are outsourced Computational Agents (subject ≠ object; not native ACB).
+The cut is **capability / volitional trigger**, not citizenship:
+
+| | External **Agent** | External **Assistant** |
+|---|---|---|
+| Desk dept | **Ollama** (Hermes, OpenClaw, OpenCode) + STRATAGROK when directing | **xAI** (Fog Assistant, EDGE Assistant) |
+| Volition | Can complete a **bound** task once committed (specialty Act) | Do **not** self-pick; need an External Agent to **direct and prompt** |
+| Trigger | Mandate ∩ commitment ∩ evidence gate → oneshot/handler | STRATAGROK (or peer External Agent) writes pending brief / feeds Act |
+
+STRATAGROK’s desk role includes directing xAI Assistants; Ollama specialists are
+volitional on their own specialty commitments. Do not treat Assistants as
+self-driving RR picks without a directed prompt.
+
 ## Two objects
 
 1. **Mandate** (standing) — why this subject exists on the Automation Desk.
