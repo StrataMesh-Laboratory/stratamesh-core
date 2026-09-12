@@ -5,10 +5,12 @@ Laws: ops/desk-collegium/protocol.json (academy_teach, academy_daily_exam, agent
 Lifecycle: projected → pending(propose) → ongoing(constrain|act|audit|amend|revise|vote|refer|dispute|commit) → done|escalate.
 Full verbs: propose act audit amend revise vote(call|cast) refer dispute constrain commit escalate done drop.
 Catalog: projected.json re-seeded each cycle via ensure_projected_catalog (idempotent ids).
+Pending: refresh_roadmap_pending derives next unmet ROADMAP→telos thresholds every cycle.
 
 Usage:
   python3 ops/desk-collegium/desk_ops.py cycle [--max 1] [--dry-run]
   python3 ops/desk-collegium/desk_ops.py board
+  python3 ops/desk-collegium/desk_ops.py refresh-pending
   python3 ops/desk-collegium/desk_ops.py rca
 """
 from __future__ import annotations
@@ -826,6 +828,11 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         try:
             rep = _load("desk_reports")
             rep.sync(limit=12, prepend=True, feed=True)
+            try:
+                refresh_roadmap_pending(bus, state, dry=False)
+                state = bus.load_state()
+            except Exception:
+                pass
             rep.write_todo_board(state=bus.load_state())
         except Exception as e:
             print(f"coord reports warn: {e}", file=sys.stderr)
@@ -1807,6 +1814,13 @@ def ensure_desk_surfaces_tick(bus, state: dict, *, dry: bool = False) -> dict:
     if dry:
         return {"ok": True, "dry": True}
     try:
+        rm = refresh_roadmap_pending(bus, state, dry=dry)
+        if rm:
+            print(f"ops: surfaces roadmap_pending seeded {len(rm)}")
+            state = bus.load_state()
+    except Exception as e:
+        print(f"surfaces roadmap_pending warn: {e}", file=sys.stderr)
+    try:
         rep = _load("desk_reports")
         return rep.ensure_desk_surfaces(limit=12, state=state, feed=True)
     except Exception as e:
@@ -2522,6 +2536,25 @@ def _seed_one_projected(bus, item: dict, *, dry: bool, as_escalate: bool = False
     return tid
 
 
+
+def refresh_roadmap_pending(bus, state: dict, *, dry: bool = False, limit: int = 16) -> list[str]:
+    """André 2026-09-12: Pending ALWAYS from roadmap→telos thresholds, not leftovers only.
+
+    Idempotent stable ids (dt-rm-*). Never marks done/PASS. First new item may be
+    eisenhower=act (next Act); the rest stay plan so Pending is not drained.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("roadmap_pending", HERE / "roadmap_pending.py")
+        rp = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(rp)
+        return rp.refresh_roadmap_pending(bus, state, dry=dry, limit=limit)
+    except Exception as e:
+        print(f"roadmap_pending warn: {e}", file=sys.stderr)
+        return []
+
+
 def ensure_projected_catalog(bus, state: dict, *, dry: bool) -> list[str]:
     """BY DESIGN: re-seed all released projected catalog items (idempotent stable ids).
 
@@ -3009,6 +3042,11 @@ def cmd_board(_: argparse.Namespace) -> int:
     except Exception:
         pass
     state = bus.load_state()
+    try:
+        refresh_roadmap_pending(bus, state, dry=False)
+        state = bus.load_state()
+    except Exception as e:
+        print(f"board roadmap_pending warn: {e}", file=sys.stderr)
     board = classify(state)
     try:
         chk = _load("desk_protocol").check(state)
@@ -3087,6 +3125,15 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"roles warn: {e}", file=sys.stderr)
 
+    # André 2026-09-12: Pending from roadmap→telos (not leftovers only)
+    try:
+        rm_seeded = refresh_roadmap_pending(bus, state, dry=args.dry_run)
+        if rm_seeded:
+            print(f"ops: roadmap_pending seeded {len(rm_seeded)} → {rm_seeded[:8]}")
+            state = bus.load_state()
+    except Exception as e:
+        print(f"roadmap_pending warn: {e}", file=sys.stderr)
+
     # cycle-owned surfaces (TODO/CONTEXT/reports/journals) — Bot never required
     try:
         if not args.dry_run:
@@ -3101,6 +3148,14 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     if seeded:
         print(f"ops: ensure_projected seeded {len(seeded)} → {seeded[:6]}")
         state = bus.load_state()
+
+    try:
+        rm2 = refresh_roadmap_pending(bus, state, dry=args.dry_run)
+        if rm2:
+            print(f"ops: roadmap_pending post-catalog {len(rm2)} → {rm2[:6]}")
+            state = bus.load_state()
+    except Exception as e:
+        print(f"roadmap_pending post-catalog warn: {e}", file=sys.stderr)
 
     # soft taper status meter (optional helper)
     try:
@@ -3286,6 +3341,32 @@ def _write_last(obj: dict) -> None:
 
 
 
+
+def cmd_refresh_pending(_: argparse.Namespace) -> int:
+    """Operator / overnight trigger: refresh Pending from roadmap thresholds + rewrite board."""
+    bus = _load("desk_bus")
+    state = bus.load_state()
+    seeded = refresh_roadmap_pending(bus, state, dry=False)
+    state = bus.load_state()
+    board = classify(state)
+    pending = board.get("pending") or []
+    try:
+        path = _load("desk_reports").write_todo_board(state=state)
+    except Exception as e:
+        path = f"board-write-warn: {e}"
+    print(json.dumps({
+        "seeded": seeded,
+        "seeded_n": len(seeded),
+        "pending_n": len(pending),
+        "pending": [{"id": t.get("id"), "spec": t.get("specialty"),
+                     "eh": t.get("eisenhower"), "src": t.get("source"),
+                     "intent": (t.get("intent") or "")[:80]} for t in pending],
+        "todo": str(path),
+        "pass_invented": False,
+    }, indent=2))
+    return 0 if pending else 2
+
+
 def cmd_rca(_: argparse.Namespace) -> int:
     p = HERE / "RCA-DESK-IDLE.md"
     print(p.read_text(encoding="utf-8") if p.is_file() else "missing RCA")
@@ -3299,6 +3380,7 @@ def main() -> int:
     c.add_argument("--max", type=int, default=1)
     c.add_argument("--dry-run", action="store_true")
     sub.add_parser("board", help="ongoing / pending / projected / escalated")
+    sub.add_parser("refresh-pending", help="derive Pending from roadmap→telos thresholds")
     sub.add_parser("rca", help="print idle RCA")
     sub.add_parser("token-check", help="alias → desk_sync.token-check")
     args = p.parse_args()
@@ -3306,6 +3388,8 @@ def main() -> int:
         return cmd_cycle(args)
     if args.cmd == "board":
         return cmd_board(args)
+    if args.cmd == "refresh-pending":
+        return cmd_refresh_pending(args)
     if args.cmd == "rca":
         return cmd_rca(args)
     if args.cmd == "token-check":

@@ -46,7 +46,10 @@ python3 ops/desk-collegium/desk_issues.py sync
 ```bash
 python3 ops/desk-collegium/desk_protocol.py check
 python3 ops/desk-collegium/desk_ops.py board
+python3 ops/desk-collegium/desk_ops.py refresh-pending
 python3 ops/desk-collegium/desk_ops.py cycle --max 1
+
+`refresh-pending` (also runs inside `cycle`, `board`, and `ensure_desk_surfaces` / r/60s / overnight no-idle) derives Pending from `roadmap_thresholds.json` ← `docs/ROADMAP-VISION.md` milestones toward telos (M-IX). Idempotent; never invents PASS.
 ```
 
 Laws include **academy_teach**: all desk agents teach SCA/ACB students; never enroll as students.
