@@ -1,0 +1,18 @@
+{
+  "schema": "desk.mandate.v1",
+  "id": "fog-assistant",
+  "subject_class": "external_assistant",
+  "specialty": "fog",
+  "purpose": "Execute Fog-scoped Acts from pending brief with tool evidence; consume-only on Mac cycle.",
+  "default_done_when": [
+    "assistant result file with tool evidence for task_id"
+  ],
+  "default_stop_when": [
+    "no pending Act",
+    "grok-auto HOLD"
+  ],
+  "not_this": [
+    "health HTTP alone as done",
+    "queue-as-done"
+  ]
+}

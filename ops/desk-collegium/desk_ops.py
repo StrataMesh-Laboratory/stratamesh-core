@@ -852,14 +852,17 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
             "next_action": "ensure ~/.local/bin/hermes on PATH",
         }
 
-    prompt = (
-        f"Desk collegium coord task {tid}.\n"
-        f"Intent: {intent}\n\n"
-        "You MUST use terminal and/or file tools to do real work in this repo. "
-        "Do not invent results. Run concrete commands and report evidence "
-        "(paths touched, command output, exit codes).\n"
-        f"Working directory: {REPO_ROOT}\n"
-    )
+    if task.get("_directed_brief"):
+        prompt = str(task["_directed_brief"]) + f"\nWorking directory: {REPO_ROOT}\n"
+    else:
+        prompt = (
+            f"Desk collegium coord task {tid}.\n"
+            f"Intent: {intent}\n\n"
+            "You MUST use terminal and/or file tools to do real work in this repo. "
+            "Do not invent results. Run concrete commands and report evidence "
+            "(paths touched, command output, exit codes).\n"
+            f"Working directory: {REPO_ROOT}\n"
+        )
     timeout_s = 180 if str(tid).startswith("audit-") else 600
     # provider must be runtime-routable: "custom" (or a named providers: entry that
     # Hermes resolves). Bare "auto" ignores non-registry ids → AuthError.
@@ -1020,11 +1023,14 @@ def handler_code(task: dict, *, dry: bool) -> dict:
             pass
         return out
 
-    prompt = (
-        f"Desk collegium code task {tid}.\n"
-        f"Intent: {intent}\n"
-        f"Work in {REPO_ROOT}. Make real edits/tests; report evidence.\n"
-    )
+    if task.get("_directed_brief"):
+        prompt = str(task["_directed_brief"]) + f"\nWork in {REPO_ROOT}.\n"
+    else:
+        prompt = (
+            f"Desk collegium code task {tid}.\n"
+            f"Intent: {intent}\n"
+            f"Work in {REPO_ROOT}. Make real edits/tests; report evidence.\n"
+        )
     timeout_s = 600
     env = _agent_path_env()
     try:
@@ -1202,7 +1208,8 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             "peer_vote": True,
         }
     if "oracle" in intent or "grok90" in intent or "m-ii" in intent or "m-2" in intent:
-        # No canned "act representative: Oracle…" success theatre
+        # No canned "act representative: Oracle…" success theatre.
+        # peer_vote=False: standing refer must not thrash revise/call_vote every r/60s.
         return {
             "ok": True,
             "result": "oracle/grok@ still open — needs vaulted session or André 2FA/captcha; no fake done",
@@ -1212,7 +1219,9 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
             "verb": "refer",
             "resolve_as_representative": True,
             "next_action": "stratagrok: use vaulted grok@; escalate only on 2FA/captcha",
-            "peer_vote": True,
+            "peer_vote": False,
+            "skip_soft_fail_chain": True,
+            "standing_refer": True,
         }
     if not dry:
         try:
@@ -1946,6 +1955,58 @@ _OWNER_HANDLER = {
 }
 
 
+
+def _is_standing_soft_refer(task: dict, *, cooldown_s: float = 1800.0) -> bool:
+    """Park soft-refer / standing HOLD from RR until cooldown elapses.
+
+    These are not André gates, but re-picking them every r/60s only produces
+    revise/call_vote theatre with no Act (GCP e2micro / Oracle pattern).
+    """
+    import time as _time
+    status = (task.get("status") or "").lower()
+    verb = (task.get("last_verb") or task.get("verb") or "").lower()
+    if status not in ("refer", "revise", "vote", "ongoing", "act", "constrain") and verb not in ("refer", "revise"):
+        # also catch via result text
+        pass
+    result = f"{task.get('result') or ''} {task.get('note') or ''} {task.get('intent') or ''}".lower()
+    standing = (
+        "still open" in result
+        or "no fake done" in result
+        or "human gate" in result
+        or "2fa" in result
+        or "captcha" in result
+        or task.get("skip_soft_fail_chain")
+        or task.get("standing_refer")
+    )
+    if not standing and status != "refer" and verb != "refer":
+        return False
+    if not standing and status == "refer":
+        standing = True
+    if not standing:
+        return False
+    # cooldown from updated
+    updated = task.get("updated") or task.get("refer_at") or ""
+    # if no parseable time, park anyway when status=refer
+    try:
+        # ISO-ish with offset: 2026-09-12T04:03:23+0100
+        from datetime import datetime
+        u = str(updated).strip()
+        for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S%Z"):
+            try:
+                # normalize +0100 → +01:00 for fromisoformat
+                uu = u
+                if len(uu) >= 5 and (uu[-5] in "+-") and uu[-3] != ":":
+                    uu = uu[:-2] + ":" + uu[-2:]
+                ts = datetime.fromisoformat(uu).timestamp()
+                return (_time.time() - ts) < cooldown_s
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return status == "refer" or bool(task.get("standing_refer"))
+
+
+
 def _handler_from_owner(owner: str) -> str | None:
     o = (owner or "").strip().lower()
     for key, spec in _OWNER_HANDLER.items():
@@ -2053,6 +2114,8 @@ def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
     for t in state.get("open_tasks") or []:
         if _is_andre_human_gate_task(t):
             continue
+        if _is_standing_soft_refer(t):
+            continue
         eisen = (t.get("eisenhower") or "act").lower()
         if eisen in ("plan", "note"):
             continue
@@ -2149,6 +2212,8 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
         if eisen in ("plan", "note") and not include_human_gates:
             continue
         if _is_human_gate_task(t) and not include_human_gates:
+            continue
+        if _is_standing_soft_refer(t) and not include_human_gates:
             continue
         use_spec = _handler_for(t)
         if not use_spec:
@@ -2400,6 +2465,9 @@ def collegium_continue_after_soft_fail(bus, task: dict, out: dict, *, by: str) -
     Chain: revise (next_action slot) → optional call_vote for peers.
     True human_gate escalate is handled separately and does not get auto-revise.
     """
+    if out.get("skip_soft_fail_chain"):
+        # Standing HOLD/refer (e.g. Oracle 2FA) — diary once via apply_result, no vote thrash.
+        return
     tid = task["id"]
     next_action = (out.get("next_action") or "retry specialty handler with amend/revise").strip()
     # Soft camaraderie prior for refer targets (specialty → will_help → notes → RR)
@@ -2601,6 +2669,30 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
             verb = "act"
         chain.append(verb)
         _diary(by, verb, tid, out.get("result") or "progress")
+        # Persist standing soft-refer so pick_tasks parks until cooldown/delta
+        if out.get("standing_refer") or out.get("skip_soft_fail_chain"):
+            try:
+                st_sr = bus.load_state()
+                t_sr = bus.find_task(st_sr, tid)
+                if t_sr:
+                    t_sr["standing_refer"] = True
+                    t_sr["status"] = t_sr.get("status") or "refer"
+                    t_sr["updated"] = _now()
+                    bus.save_state(st_sr)
+            except Exception:
+                pass
+        # Persist standing soft-refer so pick_tasks parks until cooldown/delta
+        if out.get("standing_refer") or out.get("skip_soft_fail_chain"):
+            try:
+                st_sr = bus.load_state()
+                t_sr = bus.find_task(st_sr, tid)
+                if t_sr:
+                    t_sr["standing_refer"] = True
+                    t_sr["status"] = t_sr.get("status") or "refer"
+                    t_sr["updated"] = _now()
+                    bus.save_state(st_sr)
+            except Exception:
+                pass
         # Collegium continuation: dispute/refer must open revise/vote, not stop
         if verb in ("dispute", "refer") and not out.get("escalate"):
             # machine-solvable retries auto-arm cast ack
@@ -2868,7 +2960,46 @@ def cmd_cycle(args: argparse.Namespace) -> int:
             "lead": "stratagrok", "edge": "edge", "fog": "fog", "teach": "hermes",
         }.get(hname, "hermes")
         print(f"ops: run {task.get('id')} handler={hname} pace={pace}")
+        # Direction: bind mandate+commitment before Act (subjects, not context dumps)
+        try:
+            mdir = _load("desk_mandate")
+            agent_id = mdir.agent_for_handler(hname)
+            commitment = mdir.bind_commitment(agent_id, task)
+            task = dict(task)
+            task["_commitment"] = commitment
+            task["_directed_brief"] = mdir.render_directed_brief(commitment)
+            # refresh specialty next.md from commitment (not filing-cabinet dump)
+            brief_path = FOG / "data" / "desk-outbox" / f"{agent_id}-next.md"
+            if agent_id == "hermes":
+                brief_path = FOG / "data" / "desk-outbox" / "hermes-next.md"
+            elif agent_id == "opencode":
+                brief_path = FOG / "data" / "desk-outbox" / "opencode-next.md"
+            elif agent_id == "openclaw":
+                brief_path = FOG / "data" / "desk-outbox" / "openclaw-next.md"
+            brief_path.parent.mkdir(parents=True, exist_ok=True)
+            brief_path.write_text(task["_directed_brief"])
+            print(f"ops: bound commitment {agent_id} → {task.get('id')}")
+        except Exception as e:
+            print(f"ops: mandate bind warn: {e}", file=sys.stderr)
         out = handler(task, dry=args.dry_run)
+        # Evidence gate vs commitment when handler claims done
+        try:
+            if out.get("done") and task.get("_commitment"):
+                mdir = _load("desk_mandate")
+                blob = str(out.get("result") or "")
+                if not mdir.evidence_matches_commitment(blob, task["_commitment"]):
+                    out = dict(out)
+                    out["done"] = False
+                    out["ok"] = False
+                    out["evidence"] = False
+                    out["verb"] = "dispute"
+                    out["result"] = (out.get("result") or "") + " | NO-FAKE-DONE: evidence≠commitment done_when"
+            if out.get("done") and out.get("evidence") and task.get("_commitment"):
+                _load("desk_mandate").clear_commitment(
+                    _load("desk_mandate").agent_for_handler(hname)
+                )
+        except Exception as e:
+            print(f"ops: commitment gate warn: {e}", file=sys.stderr)
         print(" ", out)
         if args.dry_run:
             continue

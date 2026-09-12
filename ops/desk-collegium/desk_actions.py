@@ -153,9 +153,11 @@ def cmd_sync(args: argparse.Namespace) -> int:
         interesting = any(w in wf.lower() for w in DESK_WORKFLOWS) or conc == "failure"
         if not interesting:
             continue
+        # NO-FAKE-DONE / feed honesty: green GHA runs are not desk Acts.
+        # Only failures (or in_progress→failure) hit the feed; success stays meter-only.
         line = f"GHA {wf}: {conc or status} #{rid}"
-        if not args.dry_run:
-            bus.feed_append("stratagrok", line[:200], kind="audit" if conc != "failure" else "dispute", specialty="actions")
+        if not args.dry_run and conc == "failure":
+            bus.feed_append("stratagrok", line[:200], kind="dispute", specialty="actions", force=True)
         mirrored += 1
         if conc == "failure" and source not in known and not args.dry_run:
             failed += 1

@@ -1123,8 +1123,8 @@ def ensure_desk_surfaces(*, limit: int = 12, state: dict | None = None, feed: bo
             spec.loader.exec_module(busmod)
             busmod.feed_append("stratagrok",
                 f"surfaces TODO+CONTEXT+reports+journals {'ok' if out.get('ok') else 'PARTIAL'}",
-                kind="act",
-                specialty="coord",
+                kind="audit",
+                specialty="coord", dedupe_sec=3600,
             )
         except Exception:
             pass

@@ -54,7 +54,7 @@ finish_agent() {
 run_opencode() {
   BRIEF="$FOG/data/desk-outbox/opencode-next.md"
   LOG="$FOG/data/desk-meters/opencode-last.log"
-  echo "OpenCode: Ollama specialist — real binary, no unittest theatre"
+  echo "OpenCode: directed specialty — commitment brief (not context dump)"
   if [[ -f "$BRIEF" ]]; then head -40 "$BRIEF"; else echo "OpenCode: no brief yet"; fi
   OC="$(command -v opencode || true)"
   if [[ -x "$HOME/.opencode/bin/opencode" ]]; then OC="$HOME/.opencode/bin/opencode"; fi
@@ -85,7 +85,7 @@ run_opencode() {
 }
 
 run_hermes() {
-  echo "Hermes: Ollama specialist — real oneshot (chat --oneshot)"
+  echo "Hermes: directed specialty — commitment brief (chat --oneshot)"
   HPY="$HOME/.hermes/hermes-agent/venv/bin/python"
   if [[ ! -x "$HPY" ]]; then HPY=python3; fi
   "$HPY" "$REPO/deploy/mac-fog/hermes/ensure_workspace.py" || true

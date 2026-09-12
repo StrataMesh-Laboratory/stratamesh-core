@@ -1,0 +1,20 @@
+{
+  "schema": "desk.mandate.v1",
+  "id": "opencode",
+  "subject_class": "external_agent",
+  "specialty": "code",
+  "purpose": "Make real code edits/tests for the bound task; leave a diff or prove file as evidence.",
+  "default_done_when": [
+    "git diff or new/changed file under repo cited",
+    "or status/* prove file written by this run"
+  ],
+  "default_stop_when": [
+    "model/provider hang with empty log after budget",
+    "task is plan/note or standing_refer"
+  ],
+  "not_this": [
+    "PASS on help-text / build chrome only",
+    "unittest discover as Act substitute",
+    "edit outside the commitment scope"
+  ]
+}
