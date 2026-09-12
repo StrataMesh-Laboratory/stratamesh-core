@@ -17,5 +17,8 @@
     "ship_live without real peer votes",
     "treat GHA green or surfaces-ok as your Act",
     "oneshot ACK theatre as task done"
-  ]
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
 }

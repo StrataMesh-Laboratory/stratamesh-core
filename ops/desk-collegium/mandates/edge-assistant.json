@@ -14,5 +14,8 @@
   "not_this": [
     "health HTTP alone as done",
     "queue-as-done"
-  ]
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
 }

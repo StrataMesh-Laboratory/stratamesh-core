@@ -13,5 +13,8 @@
   "not_this": [
     "fake progress on Oracle/GCP",
     "audit spam as leadership Act"
-  ]
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
 }

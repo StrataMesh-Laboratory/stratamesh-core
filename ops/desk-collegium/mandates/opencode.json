@@ -16,5 +16,8 @@
     "PASS on help-text / build chrome only",
     "unittest discover as Act substitute",
     "edit outside the commitment scope"
-  ]
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
 }

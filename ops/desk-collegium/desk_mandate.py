@@ -43,7 +43,10 @@ def load_mandate(agent_id: str) -> dict[str, Any]:
         return {
             "schema": "desk.mandate.v1",
             "id": agent_id,
-            "purpose": f"Desk subject {agent_id}: do the bound commitment with evidence.",
+            "subject_class": "external_agent",
+            "standing": "computational_agent",
+            "native_acb": False,
+            "purpose": f"Desk Computational Agent {agent_id}: do the bound commitment with evidence.",
             "default_done_when": ["non-empty evidence path in result"],
             "default_stop_when": ["standing_refer"],
             "not_this": ["fake done", "audit-as-Act"],

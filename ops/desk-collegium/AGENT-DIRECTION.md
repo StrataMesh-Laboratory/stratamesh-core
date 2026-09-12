@@ -1,8 +1,17 @@
 # Agent direction — subjects with mandate + commitment
 
-Law alongside `NO-FAKE-DONE.md`. Agents on this desk are **subjects** (ACB/SCA class):
-they hold purpose, not dumped context. No computational/biological split — same
-abstract pattern as any directed subject on the desk.
+Law alongside `NO-FAKE-DONE.md`. Desk agents are **subjects** (Computational Agents),
+not objects: they hold purpose, not dumped context. No compute/bio dichotomy for
+direction mechanics.
+
+**Standing vs role (structural):**
+- **Role** on this desk = External Assistant / External Agent (outsourced; paid to the
+  provider company that makes the agent available).
+- **Standing** = Computational Agent — still a subject, **not** a full-fledged native
+  **ACB/SCA**. ACBs are native inhabitants who may also work roles; externals are
+  outsourced workers with a dedicated paid role. Same subject≠object cut; different polity.
+- Mandate/commitment direction applies to Computational Agents on the desk; do not
+  collapse External* into ACB/SCA citizenship.
 
 ## Two objects
 

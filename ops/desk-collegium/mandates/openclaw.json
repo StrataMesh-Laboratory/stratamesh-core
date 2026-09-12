@@ -16,5 +16,8 @@
     "unittest-as-Act",
     "ACK-only smoke as PASS",
     "stack with Hermes/OpenCode on 8GB"
-  ]
+  ],
+  "standing": "computational_agent",
+  "native_acb": false,
+  "standing_note": "External* role (outsourced to provider). Standing=computational_agent subject, not native ACB/SCA inhabitant."
 }
