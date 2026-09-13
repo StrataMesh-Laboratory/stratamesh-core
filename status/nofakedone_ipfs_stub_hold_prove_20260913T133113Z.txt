@@ -1,0 +1,19 @@
+NO-FAKE-DONE prove 20260913T133113Z
+tip_base=19d7b5f
+branch=act/nofakedone-ipfs-stub-desk-metabol-hold-20260913
+status hold
+decision HOLD
+live False
+sample_unknown True
+reason no live Kubo sample — stub does not invent pinned (set IPFS_API_URL or mode=gateway)
+--- unittest ---
+test_stub_request_pin_is_hold_not_pinned (test_nofakedone_ipfs_metabol.TestIpfsStubHold) ... ok
+test_metabol_unavailable_is_hold (test_nofakedone_ipfs_metabol.TestPlatformAllowsFailClosed) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.055s
+
+OK
+--- public health ---
+origin macbook n 2 metabol ALLOW remaining 840 day_spent 160 sample_unknown False
+public_status_pins_pre_reload {'mode': 'stub', 'api_url': None, 'gateway': 'https://ipfs.io', 'total': 0, 'by_status': {}}

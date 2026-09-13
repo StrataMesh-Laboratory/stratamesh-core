@@ -344,13 +344,16 @@ def _platforms(state: dict | None = None) -> dict:
 
 
 def _platform_allows(state: dict, name: str, *, action: str | None = None) -> tuple[bool, str, str]:
-    """Platform typology gate (HOLD/STASIS skip/slow)."""
+    """Platform typology gate (HOLD/STASIS skip/slow).
+
+    NO-FAKE-DONE: metabol load failure is fail-closed HOLD — never invent ALLOW.
+    """
     try:
         metabol = _load("desk_metabol")
         ok, pace, meta = metabol.platform_allows(_platforms(state), name, action=action)
         return bool(ok), str(pace), str((meta or {}).get("reason") or "")
-    except Exception:
-        return True, "ALLOW", "metabol_unavailable"
+    except Exception as e:
+        return False, "HOLD", f"metabol_unavailable:{type(e).__name__}"
 
 
 def _specialty_lane(spec: str) -> str:

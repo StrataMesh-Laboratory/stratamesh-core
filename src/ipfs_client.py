@@ -4,7 +4,7 @@ StrataMesh IPFS Client — Phase 1/2
 HTTP client for Kubo (go-ipfs) API and gateway fallbacks.
 
 Modes:
-  stub     — in-memory pin records (default, offline-safe)
+  stub     — offline record only; NEVER claims pinned (HOLD / fail-closed)
   api      — POST /api/v0/pin/add against a Kubo node
   gateway  — HEAD/GET a public or private gateway (availability check only)
 
@@ -28,7 +28,7 @@ import urllib.parse
 class PinRecord:
     cid: str
     requested_at: float
-    status: str = "queued"  # queued | pinning | pinned | failed | available
+    status: str = "queued"  # queued | pinning | pinned | failed | available | hold
     last_error: Optional[str] = None
     mode: str = "stub"
 
@@ -109,7 +109,12 @@ class IPFSClient:
         self.pins[cid] = rec
 
         if self.mode == "stub":
-            rec.status = "pinned"
+            # NO-FAKE-DONE: stub must not stamp pinned. Honest HOLD until Kubo API or gateway.
+            rec.status = "hold"
+            rec.last_error = (
+                "stub mode — no IPFS_API_URL; not a live pin "
+                "(set IPFS_API_URL for api mode, or use mode=gateway)"
+            )
             self._persist_pin(rec)
             return rec
 
@@ -193,13 +198,30 @@ class IPFSClient:
         counts: Dict[str, int] = {}
         for r in self.pins.values():
             counts[r.status] = counts.get(r.status, 0) + 1
-        return {
+        live = self.mode in ("api", "gateway") and (
+            bool(self.api_url) if self.mode == "api" else bool(self.gateway)
+        )
+        out = {
             "mode": self.mode,
             "api_url": self.api_url or None,
             "gateway": self.gateway,
             "total": len(self.pins),
             "by_status": counts,
+            "live": bool(live and self.mode != "stub"),
         }
+        if self.mode == "stub":
+            # Public /status honesty: stub is HOLD, not operational pin capacity.
+            out["decision"] = "HOLD"
+            out["sample_unknown"] = True
+            out["reason"] = (
+                "no live Kubo sample — stub does not invent pinned "
+                "(set IPFS_API_URL or mode=gateway)"
+            )
+        else:
+            out["decision"] = "ALLOW"
+            out["sample_unknown"] = False
+            out["reason"] = f"ipfs mode={self.mode}"
+        return out
 
 
 # Back-compat alias used by older call sites
@@ -207,7 +229,7 @@ PinStub = IPFSClient
 
 
 def demo():
-    print("--- stub mode ---")
+    print("--- stub mode (HOLD, never pinned) ---")
     c = IPFSClient(mode="stub")
     print(c.request_pin("bafybeig-demo-stub"))
     print(c.summary())
