@@ -98,8 +98,10 @@ run_opencode() {
     RC=$?
   fi
   set -e
+  # NO-FAKE-DONE: log chrome alone is not evidence (confirm-chat / wrote-log rc=0).
+  # Always pass the log path; finish/_evidence_ok decides ok+done.
   if [[ "$RC" -eq 0 && -s "$LOG" ]]; then
-    finish_agent opencode 1 "opencode run wrote log rc=0" "$LOG"
+    finish_agent opencode 1 "opencode run finished rc=0 — evidence gate decides" "$LOG"
   else
     finish_agent opencode 0 "opencode run rc=$RC or empty log — not done" "$LOG"
   fi

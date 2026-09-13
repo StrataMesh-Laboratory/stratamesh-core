@@ -42,5 +42,16 @@ class TestDeskAgentFinishEvidence(unittest.TestCase):
             self.assertTrue(fin._evidence_ok(str(p)))
 
 
+    def test_rejects_confirm_chat_log(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "log.txt"
+            p.write_text(
+                "Would you like me to proceed? Please confirm.\n"
+                "opencode run wrote log rc=0\n",
+                encoding="utf-8",
+            )
+            self.assertFalse(fin._evidence_ok(str(p)))
+
+
 if __name__ == "__main__":
     unittest.main()

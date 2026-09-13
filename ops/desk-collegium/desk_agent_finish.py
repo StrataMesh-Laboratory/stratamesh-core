@@ -56,6 +56,10 @@ def _evidence_ok(path: str) -> bool:
         "verified on 20",
         "no further changes needed",
         "file written, verified, and ready",
+        "please confirm",
+        "would you like me",
+        "shall i proceed",
+        "opencode run wrote log",
     )
     if any(s in low for s in stub_needles) and "iphone_prove" not in low:
         if "mac_addr=" not in low and "ping_10.88" not in low and "wrote status/" not in low:

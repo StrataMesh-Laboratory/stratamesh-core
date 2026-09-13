@@ -15,7 +15,10 @@
   "not_this": [
     "PASS on help-text / build chrome only",
     "unittest discover as Act substitute",
-    "edit outside the commitment scope"
+    "edit outside the commitment scope",
+    "ask operator to confirm / Please confirm",
+    "chat-only reply without desk-meters/ or status/ prove file",
+    "claim done from opencode-last.log chrome alone"
   ],
   "standing": "computational_agent",
   "native_acb": false,

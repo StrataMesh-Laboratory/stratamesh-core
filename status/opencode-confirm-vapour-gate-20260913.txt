@@ -1,0 +1,17 @@
+RCA 2026-09-13 overnight: opencode specialty dt-rm-m2-resource-proof ended evidence=false
+with confirmation-chat vapour ("Please confirm" / "Would you like me") and log chrome
+"opencode run wrote log rc=0" — evidence≠commitment.
+
+Structural fix (same wake):
+- desk_mandate.evidence_matches_commitment rejects confirm needles + wrote-log chrome
+  without desk-meters/|status/|sha prove markers; Rules forbid asking operator to confirm
+- mandates/opencode.json not_this: confirm / chat-only / log chrome alone
+- desk_agent_finish stub needles include please confirm / wrote log
+- desk-agent-run.sh still passes log to finish; gate decides ok+done (no log-chrome PASS)
+- tests: test_desk_mandate_evidence + test_desk_agent_finish_evidence (19 OK incl. no_fake_done)
+
+Delivered>0 prove this wake: hermes desk_ops cycle delivered=1 on
+dt-wave-ts-taper-t2-plan-20260912 @ 2026-09-13T12:47:42+0100 (wg-t1 meter).
+Public fog LIVE mac_live=true tip=fca2231. hermes-desk TS OK; hermes-wg :22 TIMEOUT
+(honest: WG handshake live, sshd not reachable on 10.88.0.2 from box).
+Stacked opencode run killed 6→1 then specialty finished evidence=false → patch.
