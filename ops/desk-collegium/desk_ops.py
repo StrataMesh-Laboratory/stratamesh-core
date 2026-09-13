@@ -853,7 +853,14 @@ def handler_coord(task: dict, *, dry: bool) -> dict:
         chk = {"ok": True, "violations": []}
 
     intent_l = intent.lower()
-    if "wg" in intent_l or "10.88" in intent_l or "taper-t1" in (task.get("source") or "") or "t1" in intent_l:
+    # Bind T1 meter only to the T1 task id (T2 "via WG/Fog" must not steal T1 evidence).
+    tid = str(task.get("id") or "")
+    is_t1_task = "ts-taper-t1" in tid or tid.endswith("taper-t1")
+    if is_t1_task or (
+        "taper-t1" in (task.get("source") or "")
+        and "taper-t2" not in tid
+        and "-t2" not in tid
+    ):
         _write_wg_t1_brief(task)
         mac_hit = _try_t1_mac_meter_prove(task)
         if mac_hit is not None:
@@ -1360,13 +1367,14 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
             )
         except Exception:
             pass
-        return {
-            "ok": True,
-            "result": _trunc_ev(f"edge-assistant result: {evidence}"),
-            "done": True,
-            "sha": "",
-            "verb": "act",
-        }
+        return honest_result(
+            ok=True,
+            done=True,
+            verb="act",
+            result=_trunc_ev(f"edge-assistant result: {evidence}"),
+            evidence=True,
+            sha="",
+        )
 
     _write_pending_assistant_act("edge-assistant", task, health_note=result)
     try:
@@ -1377,14 +1385,19 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
         )
     except Exception:
         pass
-    return {
-        "ok": True,
-        "result": f"queued Act for edge-assistant: {tid} | probe {result}",
-        "done": False,
-        "sha": "",
-        "verb": "act",
-        "next_action": f"edge-assistant on grok.com: execute pending-act; write edge-assistant-result.json for {tid}",
-    }
+    # Queue alone is not Act evidence (same P0 as fog handler).
+    return honest_result(
+        ok=True,
+        done=False,
+        verb="refer",
+        result=f"queued Act for edge-assistant: {tid} | probe {result}",
+        evidence=False,
+        sha="",
+        next_action=(
+            f"edge-assistant on grok.com: execute pending-act; "
+            f"write edge-assistant-result.json for {tid}"
+        ),
+    )
 
 
 def handler_fog(task: dict, *, dry: bool) -> dict:
@@ -1420,13 +1433,14 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
             )
         except Exception:
             pass
-        return {
-            "ok": True,
-            "result": _trunc_ev(f"fog-assistant result: {evidence}"),
-            "done": True,
-            "sha": "",
-            "verb": "act",
-        }
+        return honest_result(
+            ok=True,
+            done=True,
+            verb="act",
+            result=_trunc_ev(f"fog-assistant result: {evidence}"),
+            evidence=True,
+            sha="",
+        )
 
     _write_pending_assistant_act("fog-assistant", task, health_note=result)
     try:
@@ -1437,14 +1451,19 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
         )
     except Exception:
         pass
-    return {
-        "ok": True,
-        "result": f"queued Act for fog-assistant: {tid} | probe {result}",
-        "done": False,
-        "sha": "",
-        "verb": "act",
-        "next_action": f"fog-assistant on grok.com: execute pending-act; write fog-assistant-result.json for {tid}",
-    }
+    # Queue alone is not Act evidence (delivered=0 while picked was P0 autonomy bug).
+    return honest_result(
+        ok=True,
+        done=False,
+        verb="refer",
+        result=f"queued Act for fog-assistant: {tid} | probe {result}",
+        evidence=False,
+        sha="",
+        next_action=(
+            f"fog-assistant on grok.com: execute pending-act; "
+            f"write fog-assistant-result.json for {tid}"
+        ),
+    )
 
 
 def handler_teach(task: dict, *, dry: bool) -> dict:
@@ -3314,6 +3333,13 @@ def cmd_cycle(args: argparse.Namespace) -> int:
         except Exception as e:
             print(f"ops: mandate bind warn: {e}", file=sys.stderr)
         out = handler(task, dry=args.dry_run)
+        # Defense: verb=act requires evidence (queue-only must not look delivered-ready)
+        if out.get("verb") == "act" and out.get("evidence") is not True:
+            out = dict(out)
+            out["verb"] = "refer"
+            out["evidence"] = False
+            out["done"] = False
+            out["result"] = (out.get("result") or "") + " | NO-FAKE-DONE: act without evidence → refer"
         # Evidence gate vs commitment when handler claims done
         try:
             if out.get("done") and task.get("_commitment"):
