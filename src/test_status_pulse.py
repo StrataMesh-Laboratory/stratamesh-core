@@ -59,6 +59,26 @@ def test_honest_helpers_reject_none():
     assert s["total"] == 0
 
 
+def test_ensure_self_spa_registers_only_self():
+    """GH#178 seed path: empty → one fog SPA for node_id; no fabricated peers."""
+    import tempfile
+    import os
+    os.environ["FOG_TESTNET"] = "1"  # skip workerd attach in PersistentFogNode
+    from node_persistent import PersistentFogNode
+    with tempfile.TemporaryDirectory() as td:
+        db = os.path.join(td, "fog-test.db")
+        node = PersistentFogNode(node_id="FOG-NODE-TEST-001", db_path=db)
+        s = node.spas.summary()
+        assert s["total"] == 1, s
+        assert s["active"] == 1
+        assert s["source"] == "registry"
+        assert s["seed_only"] is False
+        assert s["by_role"].get("fog") == 1
+        assert node.ensure_self_spa() is None
+        assert node.spas.summary()["total"] == 1
+        assert "edge" not in s["by_role"]
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in list(globals().items()):
