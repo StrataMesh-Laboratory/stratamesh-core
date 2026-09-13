@@ -1,4 +1,4 @@
-"""desk_agent_finish: --task-id + status prove markers."""
+"""desk_agent_finish: --task-id + status prove markers + ambiguity refuse."""
 from __future__ import annotations
 
 import importlib.util
@@ -28,6 +28,33 @@ class TestDeskAgentFinishTaskId(unittest.TestCase):
         }
         self.assertEqual(m._pick_task(st, "hermes")["id"], "dt-commit")
         self.assertEqual(m._pick_task(st, "hermes", task_id="dt-propose")["id"], "dt-propose")
+
+    def test_pick_task_refuses_ambiguous_owned_acts(self):
+        m = _load()
+        st = {
+            "open_tasks": [
+                {"id": "dt-proj-ts-taper-t2", "owner": "hermes@fog", "status": "act"},
+                {"id": "dt-proj-academy-daily-exams", "owner": "hermes@fog", "status": "act"},
+            ]
+        }
+        self.assertIsNone(m._pick_task(st, "hermes"))
+        self.assertEqual(
+            m._pick_task(st, "hermes", task_id="dt-proj-academy-daily-exams")["id"],
+            "dt-proj-academy-daily-exams",
+        )
+
+    def test_commitment_ids_from_evidence(self):
+        m = _load()
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "academy_daily_exams_overnight_prove.txt"
+            p.parent.mkdir(parents=True)
+            p.write_text(
+                "wake=overnight\ntask=dt-proj-academy-daily-exams\n"
+                "academy_rc=0\nsha=13bd1b0\npublish=skipped\n" + ("x" * 180),
+                encoding="utf-8",
+            )
+            ids = m._commitment_ids(str(p), "academy daily exams")
+            self.assertIn("dt-proj-academy-daily-exams", ids)
 
     def test_status_prove_markers_count_as_evidence(self):
         m = _load()
