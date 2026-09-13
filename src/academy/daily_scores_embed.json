@@ -2,32 +2,32 @@
   "latest": {
     "schema": "stratamesh.academy.daily_exam.v0",
     "kind": "latest",
-    "date": "2026-09-05",
+    "date": "2026-09-13",
     "tz": "Europe/Lisbon",
-    "updated": "2026-09-12T18:50:15+0100",
+    "updated": "2026-09-13T12:59:27+0100",
     "paths": {
       "roster": "academy_scores/roster.json",
-      "day": "academy_scores/2026-09-05/",
-      "exam": "academy_scores/2026-09-05/exam.json",
-      "scores": "academy_scores/2026-09-05/scores.json",
-      "teachers": "academy_scores/2026-09-05/teachers.json"
+      "day": "academy_scores/2026-09-13/",
+      "exam": "academy_scores/2026-09-13/exam.json",
+      "scores": "academy_scores/2026-09-13/scores.json",
+      "teachers": "academy_scores/2026-09-13/teachers.json"
     },
     "grades_url": "https://academy.calhegasmorais.pt/grades",
-    "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-05/scores.json",
+    "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-13/scores.json",
     "summary": {
       "n_students": 6,
-      "pending_teacher": 6,
-      "complete": 0
+      "pending_teacher": 0,
+      "complete": 6
     }
   },
   "scores": {
     "schema": "stratamesh.academy.daily_exam.v0",
     "kind": "scores",
-    "date": "2026-09-05",
+    "date": "2026-09-13",
     "tz": "Europe/Lisbon",
-    "scored_at": "2026-09-12T18:50:15+0100",
-    "scored_by_stub": true,
-    "note": "v0 stubs \u2014 desk teachers fill protocolar measurements + qualitative adjustments/recognitions. Not a desk KPI meter.",
+    "scored_at": "2026-09-13T12:59:26+01:00",
+    "scored_by_stub": false,
+    "note": "Teacher-filled from live Fog/academy protocolar probes (NO-FAKE-DONE). Evidence: status/academy_daily_exams_prove_20260913T115833Z.txt",
     "students": [
       {
         "acb_id": "ACB-ORCH-CMN-001",
@@ -37,71 +37,99 @@
         "formation_id": "ORCH-C-03",
         "objective_metrics": {
           "fail_closed": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "fog trusted mac_live; metabol ALLOW; spa.source=empty measured no fabrications",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "bilateral_commit": {
-            "score": null,
+            "score": 0.85,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "desk bus verbs live; tip=9ef07dc NO-FAKE-DONE gate merged",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "named_handlers": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "desk_ops handlers n=7 claw,code,coord,edge,fog,lead,teach",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "no_workers_dev": {
-            "score": null,
+            "score": 1.0,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "curl fog/academy/fund workers_dev=0; academy /health workers_dev=false http=200",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.912,
         "qualitative": {
-          "adjustments_needed": [],
-          "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "adjustments_needed": [
+            "opencode: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+            "SPA registry still spa.total=0 source=empty on public /status \u2014 seed path Act dt-wave-spa-quality-gh182 open; do not fabricate members"
+          ],
+          "recognitions_of_excellence": [
+            "Live custom-domain + no workers.dev + honest n=2 maintained"
+          ],
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=ORCH-C-03 role=orchestrator"
         },
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
+        "adjustments_needed": [
+          "opencode: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ORCH-C-03 \u2014 no workers.dev / named handlers only",
+          "SPA registry still spa.total=0 source=empty on public /status \u2014 seed path Act dt-wave-spa-quality-gh182 open; do not fabricate members"
+        ],
+        "recognitions_of_excellence": [
+          "Live custom-domain + no workers.dev + honest n=2 maintained"
+        ],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       },
       {
         "acb_id": "ACB-AIOPS-devops",
@@ -111,71 +139,97 @@
         "formation_id": "DEVOPS-C-02",
         "objective_metrics": {
           "no_workers_dev": {
-            "score": null,
+            "score": 1.0,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "curl fog/academy/fund workers_dev=0; academy /health workers_dev=false http=200",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "origin_custom_domain": {
-            "score": null,
+            "score": 1.0,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "fog+academy.calhegasmorais.pt DNS CF + http=200 custom origin",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "residual_cmesh": {
-            "score": null,
+            "score": 0.8,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "custom domains only; mesh n=2 f_max=0 second-host residual open",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "named_handlers": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "desk_ops handlers n=7 claw,code,coord,edge,fog,lead,teach",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.925,
         "qualitative": {
-          "adjustments_needed": [],
-          "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "adjustments_needed": [
+            "opencode: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only"
+          ],
+          "recognitions_of_excellence": [
+            "Live custom-domain + no workers.dev + honest n=2 maintained"
+          ],
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=DEVOPS-C-02 role=devops"
         },
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
+        "adjustments_needed": [
+          "opencode: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation DEVOPS-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "Live custom-domain + no workers.dev + honest n=2 maintained"
+        ],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       },
       {
         "acb_id": "ACB-AIOPS-security",
@@ -185,65 +239,87 @@
         "formation_id": "SECURITY-C-02",
         "objective_metrics": {
           "secrets_hygiene": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "prove uses public health/status only; academy worker_hf_token=false",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "no_workers_dev": {
-            "score": null,
+            "score": 1.0,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "curl fog/academy/fund workers_dev=0; academy /health workers_dev=false http=200",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "fail_closed": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "fog trusted mac_live; metabol ALLOW; spa.source=empty measured no fabrications",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.933,
         "qualitative": {
-          "adjustments_needed": [],
-          "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "adjustments_needed": [
+            "opencode: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only"
+          ],
+          "recognitions_of_excellence": [
+            "Live custom-domain + no workers.dev + honest n=2 maintained"
+          ],
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=SECURITY-C-02 role=security"
         },
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
+        "adjustments_needed": [
+          "opencode: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation SECURITY-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "Live custom-domain + no workers.dev + honest n=2 maintained"
+        ],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       },
       {
         "acb_id": "ACB-AIOPS-analysis",
@@ -253,65 +329,87 @@
         "formation_id": "ANALYSIS-C-02",
         "objective_metrics": {
           "named_handlers": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "desk_ops handlers n=7 claw,code,coord,edge,fog,lead,teach",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "fail_closed": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "fog trusted mac_live; metabol ALLOW; spa.source=empty measured no fabrications",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "honest_n": {
-            "score": null,
+            "score": 0.95,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "local+public health n=2 mesh_member=true oracle_live=false honest",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.917,
         "qualitative": {
-          "adjustments_needed": [],
-          "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "adjustments_needed": [
+            "opencode: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only"
+          ],
+          "recognitions_of_excellence": [
+            "Live custom-domain + no workers.dev + honest n=2 maintained"
+          ],
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=ANALYSIS-C-02 role=analysis"
         },
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
+        "adjustments_needed": [
+          "opencode: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ANALYSIS-C-02 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "Live custom-domain + no workers.dev + honest n=2 maintained"
+        ],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       },
       {
         "acb_id": "ACB-AIOPS-mesh",
@@ -321,65 +419,83 @@
         "formation_id": "MESH-C-02",
         "objective_metrics": {
           "honest_n": {
-            "score": null,
+            "score": 0.95,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "local+public health n=2 mesh_member=true oracle_live=false honest",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "residual_cmesh": {
-            "score": null,
+            "score": 0.8,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "custom domains only; mesh n=2 f_max=0 second-host residual open",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "handler_complete": {
-            "score": null,
+            "score": 0.88,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "handler_teach+academy_exams path live; academy 0.5.3-lab",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.877,
         "qualitative": {
-          "adjustments_needed": [],
+          "adjustments_needed": [
+            "opencode: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only"
+          ],
           "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=MESH-C-02 role=mesh"
         },
-        "adjustments_needed": [],
+        "adjustments_needed": [
+          "opencode: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation MESH-C-02 \u2014 no workers.dev / named handlers only"
+        ],
         "recognitions_of_excellence": [],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       },
       {
         "acb_id": "ACB-AIOPS-economy",
@@ -389,72 +505,95 @@
         "formation_id": "ECONOMY-C-03",
         "objective_metrics": {
           "economy_no_mint": {
-            "score": null,
+            "score": 0.92,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "subsistence solvent=true debt=0 reserve=10 surplus~24.88 active",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "handler_complete": {
-            "score": null,
+            "score": 0.88,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "handler_teach+academy_exams path live; academy 0.5.3-lab",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           },
           "fail_closed": {
-            "score": null,
+            "score": 0.9,
             "scale": "0..1",
-            "status": "pending_teacher",
-            "evidence": null
+            "status": "scored",
+            "evidence": "fog trusted mac_live; metabol ALLOW; spa.source=empty measured no fabrications",
+            "scored_by": [
+              "stratagrok",
+              "hermes"
+            ]
           }
         },
-        "overall_objective": null,
+        "overall_objective": 0.9,
         "qualitative": {
-          "adjustments_needed": [],
-          "recognitions_of_excellence": [],
-          "teacher_notes": ""
+          "adjustments_needed": [
+            "opencode: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only",
+            "fog-assistant: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only"
+          ],
+          "recognitions_of_excellence": [
+            "Live custom-domain + no workers.dev + honest n=2 maintained"
+          ],
+          "teacher_notes": "stratagrok 2026-09-13T12:59:26+01:00: scored from live Fog/academy probes (status/academy_daily_exams_prove_20260913T115833Z.txt); formation=ECONOMY-C-03 role=economy"
         },
-        "adjustments_needed": [],
-        "recognitions_of_excellence": [],
+        "adjustments_needed": [
+          "opencode: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only",
+          "fog-assistant: keep formation ECONOMY-C-03 \u2014 no workers.dev / named handlers only"
+        ],
+        "recognitions_of_excellence": [
+          "Live custom-domain + no workers.dev + honest n=2 maintained"
+        ],
         "teachers": [
           {
             "id": "hermes",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "opencode",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "openclaw",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "fog-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "edge-assistant",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           },
           {
             "id": "stratagrok",
-            "status": "pending",
-            "detail": null
+            "status": "scored",
+            "detail": "protocolar live probe fill by stratagrok"
           }
         ],
-        "status": "draft_scored_stub"
+        "status": "teacher_scored"
       }
     ],
     "summary": {
       "n_students": 6,
-      "pending_teacher": 6,
-      "complete": 0
-    }
+      "pending_teacher": 0,
+      "complete": 6
+    },
+    "scored_by": "stratagrok@calhegasmorais.pt"
   },
   "exam_focus": [
     "ANALYSIS-C-02",

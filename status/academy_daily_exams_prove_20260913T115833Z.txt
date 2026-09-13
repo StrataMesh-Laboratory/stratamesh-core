@@ -1,0 +1,126 @@
+act_id=dt-proj-academy-daily-exams
+git_tip=9ef07dc628192b611c85352701ffdaa74548bf4c
+ts_utc=20260913T115833Z
+ts_pt=2026-09-13T12:58:33+0100
+=== LIVE PROBES ===
+--- local /health ---
+{
+  "ok": true,
+  "node_id": "FOG-NODE-PT-CM-001",
+  "version": "0.6.0-lab",
+  "mac_live": true,
+  "trusted": true,
+  "mesh_member": true,
+  "oracle_live": false,
+  "n": 2,
+  "mesh_provision": {
+    "ready": true,
+    "mesh_member": true,
+    "n": 2,
+    "f_max": 0,
+    "n_min_member": 2,
+    "n_min_byzantine": 3,
+    "runtime": "workerd",
+    "serverless_hop": true,
+    "trusted_origin": "macbook",
+    "peers": [
+      {
+        "id": "FOG-NODE-PT-CM-001",
+        "role": "fog",
+        "continuity": "continuous",
+        "origin": "macbook"
+      },
+      {
+        "id": "EDGE-GROK-CMN-001",
+        "role": "edge",
+        "continuity": "session",
+        "origin": "edge-grok-local",
+        "note": "non-continuous expected (EDGE)"
+      }
+    ],
+    "next": "n>=3 \u2192 f_max>0"
+  }
+}
+--- public /health ---
+{"ok":true,"runtime":"workerd","plugin":"fog-workerd","origin":"macbook","mac_live":true,"edge_live":true,"edge_probe":{"ok":true,"http":200,"ms":18,"node_id":"EDGE-GROK-CMN-001"},"trusted":true,"n":2,"mesh_member":true,"mesh_provision":true,"layer":"tunnel→workerd:8788→fog:8787","version":"v0.6.0-lab","release":"v0.6.0-lab","oracle_live":false,"substrate":"workerd-hop","metabol":{"circuit":"metabol-v1.3","night_freeze":false,"origin":"macbook","state_change":false,"decision":"ALLOW","pace":1,"hourlyCap":83.16777363358409,"burn_rate":83.16777363358409,"remaining":1000,"hoursLeft":12.023888055555556,"reason":"macbook primary"},"mw":"/mw/health","fallback":{"after_sec":1800,"primary":"macbook","standby":"session","dns":"fog.calhegasmorais.pt CNAME → macbook-server | stratamesh-fog-lab"},"standby":false}
+--- public /status spa+dag ---
+{
+  "spa": {
+    "total": 0,
+    "active": 0,
+    "by_role": {},
+    "opt_out_pending": [],
+    "source": "empty",
+    "measured": true,
+    "seed_only": false
+  },
+  "dag": {
+    "transaction_count": 1243,
+    "tip_count": 1,
+    "height": 1242,
+    "max_height": 1242,
+    "tips_sample": [
+      "120218594c9f6530"
+    ],
+    "source": "ledger",
+    "measured": true,
+    "seed_only": false
+  },
+  "version": "0.6.0-lab",
+  "status": "operational",
+  "node_id": "FOG-NODE-PT-CM-001"
+}
+--- academy health ---
+http=200
+{
+  "status": "ok",
+  "service": "stratamesh-academy",
+  "version": "0.5.3-lab",
+  "lab": true,
+  "not_mainnet": true,
+  "always_on": true,
+  "n": 2,
+  "mesh_member": true,
+  "f_max": 0,
+  "oracle_live": false,
+  "hf_inference": "HOLD",
+  "worker_hf_token": false,
+  "workers_dev": false,
+  "ollama":
+--- workers.dev residual check (fog/academy hosts) ---
+https://fog.calhegasmorais.pt/ -> 200 effective=https://fog.calhegasmorais.pt/status workers_dev=0
+https://academy.calhegasmorais.pt/ -> 200 effective=https://academy.calhegasmorais.pt/ workers_dev=0
+https://fund.calhegasmorais.pt/ -> 200 effective=https://fund.calhegasmorais.pt/ workers_dev=0
+--- origin custom domain ---
+fog.calhegasmorais.pt DNS 104.21.78.97
+172.67.219.240
+academy.calhegasmorais.pt DNS 104.21.78.97
+172.67.219.240
+--- named handlers present ---
+handlers ['handler_claw', 'handler_code', 'handler_coord', 'handler_edge', 'handler_fog', 'handler_lead', 'handler_teach']
+n 7
+--- honest_n from health ---
+n 2 mesh_member True oracle_live False
+--- economy / subsistence ---
+{'solvent': True, 'debt': 0.0, 'reserve': 10.0, 'surplus': 24.879178999999997, 'status': 'active'}
+
+=== TEACHER SCORE RESULT ===
+scored_by_stub=False complete=6 pending=0
+scored_by=stratagrok@calhegasmorais.pt
+latest_summary={"n_students": 6, "pending_teacher": 0, "complete": 6}
+sample=[["Vespera", 0.912, "teacher_scored"], ["Kael", 0.925, "teacher_scored"], ["Nyx", 0.933, "teacher_scored"], ["Solace", 0.917, "teacher_scored"], ["Reed", 0.877, "teacher_scored"], ["Mira", 0.9, "teacher_scored"]]
+publish_soft={"ok": false, "steps": [{"step": "build_worker", "ok": false, "detail": "/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/andremorais/StrataMesh/fog/repo/src/academy/src/academy/build_worker.py': [Errno 2] No such file or directory\n"}], "note": "scores durable on disk; d1-put may still run", "grades_err": "HTTP Error 403: Forbidden"}
+done_criteria_met=True
+
+=== BUILD_WORKER RETRY (cwd=repo) ===
+workers/stratamesh-academy.js bytes=55556 mtime_ok=True
+embed.latest.summary={"n_students": 6, "pending_teacher": 0, "complete": 6} date=2026-09-13
+d1_put_html_pid=82744 still_running_at_report=likely
+grades_http=403 (soft blocker; scores durable on disk + worker js rebuilt)
+git_commit_academy_scores=NOT_YET (untracked; raw.githubusercontent main URL stale until PR)
+
+=== TEACHER SCORE RESULT ===
+pending_before=6 complete=6 scored_by_stub=False
+publish_ok=True
+latest_summary={"n_students": 6, "pending_teacher": 0, "complete": 6}
+sample=[["Vespera", 0.912], ["Kael", 0.925], ["Nyx", 0.933], ["Solace", 0.917], ["Reed", 0.877], ["Mira", 0.9]]
