@@ -404,8 +404,18 @@ def write_day(
         + "\n",
         encoding="utf-8",
     )
-    _write_meter(d, ok=True)
-    return {"ok": True, "dry": False, "date": d.isoformat(), "paths": paths, "latest": latest}
+    # NO-FAKE-DONE: stub drafts write files but meter is not ok/PASS
+    pub_ok, _why = scores_publishable(scores)
+    _write_meter(d, ok=pub_ok)
+    return {
+        "ok": True,
+        "dry": False,
+        "date": d.isoformat(),
+        "paths": paths,
+        "latest": latest,
+        "publishable": pub_ok,
+        "scored_by_stub": bool(scores.get("scored_by_stub")),
+    }
 
 
 def _write_meter(d: date, *, ok: bool) -> None:
@@ -462,6 +472,71 @@ _SPECIALTY_NOTES = {
     "edge-assistant": "edge: api/site live; never workers.dev",
     "stratagrok": "lead: Eisenhower audit; taper/metabol pace; not student",
 }
+
+
+def stub_markers(scores: dict[str, Any] | None) -> list[str]:
+    """Return stub / incomplete markers that block publish/PASS (NO-FAKE-DONE).
+
+    Stub drafts are allowed as drafts only. Teacher-fill clears scored_by_stub.
+    """
+    hits: list[str] = []
+    if not isinstance(scores, dict):
+        hits.append("scores_missing")
+        return hits
+    if scores.get("scored_by_stub") is True:
+        hits.append("scored_by_stub=true")
+    scored_by = str(scores.get("scored_by") or "").lower()
+    if scored_by in ("stub", "score_stubs", "draft_stub"):
+        hits.append(f"scored_by={scored_by}")
+    for i, row in enumerate(scores.get("students") or []):
+        st = str((row or {}).get("status") or "")
+        if "stub" in st.lower() or st == "draft_scored_stub":
+            hits.append(f"student[{i}].status={st}")
+        for axis, cell in ((row or {}).get("objective_metrics") or {}).items():
+            if (cell or {}).get("scored_by_stub") is True:
+                hits.append(f"student[{i}].{axis}.scored_by_stub")
+    return hits
+
+
+def scores_publishable(scores: dict[str, Any] | None) -> tuple[bool, str]:
+    """Fail-closed: publish/PASS only when no stub markers remain."""
+    hits = stub_markers(scores)
+    if hits:
+        return False, "HOLD:stub_scores:" + ",".join(hits[:6])
+    return True, "publishable"
+
+
+def load_latest_scores() -> dict[str, Any] | None:
+    """Best-effort load of latest day scores.json for publish gates."""
+    latest_p = SCORES_ROOT / "latest.json"
+    if latest_p.is_file():
+        try:
+            latest = json.loads(latest_p.read_text(encoding="utf-8"))
+            rel = ((latest.get("paths") or {}).get("scores") or "")
+            # paths.scores like academy_scores/YYYY-MM-DD/scores.json
+            if rel:
+                cand = REPO / rel
+                if cand.is_file():
+                    return json.loads(cand.read_text(encoding="utf-8"))
+            day = latest.get("date")
+            if day:
+                cand = SCORES_ROOT / str(day) / "scores.json"
+                if cand.is_file():
+                    return json.loads(cand.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    # fallback: newest day dir
+    try:
+        days = sorted(
+            (p for p in SCORES_ROOT.iterdir() if p.is_dir() and (p / "scores.json").is_file()),
+            reverse=True,
+        )
+        if days:
+            return json.loads((days[0] / "scores.json").read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return None
+
 
 
 def fill_teacher_scores(
@@ -589,7 +664,7 @@ def apply_teacher_fill(
     result["written"] = written
     _write_meter(d, ok=after == 0)
     if publish:
-        result["publish"] = maybe_publish_grades(dry=False)
+        result["publish"] = maybe_publish_grades(dry=False, scores=scores)
     return result
 
 
@@ -619,12 +694,28 @@ def run_daily(
     return written
 
 
-def maybe_publish_grades(*, dry: bool = False) -> dict[str, Any]:
+def maybe_publish_grades(*, dry: bool = False, scores: dict[str, Any] | None = None) -> dict[str, Any]:
     """Best-effort: rebuild academy worker embed + origin PUT if helpers present.
 
     Never requires Bot. Soft-fail if tokens/scripts missing.
+    NO-FAKE-DONE: refuse publish/PASS while scored_by_stub (or equiv) remains.
+    Stub drafts stay writable; teacher-fill path clears the marker first.
     """
     out: dict[str, Any] = {"ok": False, "steps": []}
+    gate_scores = scores if scores is not None else load_latest_scores()
+    publishable, why = scores_publishable(gate_scores)
+    out["publishable"] = publishable
+    out["gate"] = why
+    out["scored_by_stub"] = bool((gate_scores or {}).get("scored_by_stub"))
+    if not publishable:
+        out["hold"] = True
+        out["decision"] = "HOLD"
+        out["note"] = (
+            "NO-FAKE-DONE: academy grades publish refused while stub scores present; "
+            "drafts OK; run --fill-teachers before publish"
+        )
+        out["steps"].append({"step": "stub_gate", "ok": False, "detail": why})
+        return out
     build = REPO / "src" / "academy" / "build_worker.py"
     if build.is_file() and not dry:
         try:
@@ -700,7 +791,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     result = run_daily(day=d, dry=args.dry_run, force=args.force or args.run)
     if args.publish and result.get("ok") and not result.get("skipped"):
-        result["publish"] = maybe_publish_grades(dry=args.dry_run)
+        # run_daily writes stubs — gate must HOLD until teacher-fill
+        day_scores = None
+        try:
+            sp = day_dir(d) / "scores.json"
+            if sp.is_file():
+                day_scores = json.loads(sp.read_text(encoding="utf-8"))
+        except Exception:
+            day_scores = None
+        result["publish"] = maybe_publish_grades(dry=args.dry_run, scores=day_scores)
     print(json.dumps(result, indent=2, default=str))
     return 0 if result.get("ok") else 1
 

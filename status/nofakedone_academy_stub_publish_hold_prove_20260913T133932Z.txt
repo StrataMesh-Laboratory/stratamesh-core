@@ -1,0 +1,31 @@
+NO-FAKE-DONE academy stub publish HOLD prove
+ts_utc=20260913T133932Z
+branch=fix/nofakedone-academy-stub-publish-hold
+base=c6a6c4c
+head_worktree=c6a6c4c
+
+== RCA ==
+score_stubs() writes scored_by_stub=true + draft_scored_stub (drafts OK).
+maybe_publish_grades previously rebuilt embed + origin PUT with no stub gate.
+handler_teach + academy_teach_tick called publish after run_daily (stubs).
+CLI --run --publish same hole. write_day stamped meter ok=True on stubs.
+/grades + /v1/daily-scores served stubs without HOLD/publishable=false.
+Teacher-fill clears scored_by_stub=false — path kept.
+
+== unit ==
+unittest_exit=0
+
+== live scores (git) ==
+scored_by_stub False
+statuses ['teacher_scored']
+
+== gate prove ==
+live_publishable (True, 'publishable')
+forced_stub {'ok': False, 'hold': True, 'decision': 'HOLD', 'publishable': False, 'gate': 'HOLD:stub_scores:scored_by_stub=true'}
+forced_stub_reject_OK
+
+== live academy JSON (pre-origin-put may lag) ==
+live_endpoint scored_by_stub False
+keys ['exam_focus', 'latest', 'note', 'ok', 'scores', 'source']
+
+SUCCESS: cannot publish/PASS with scored_by_stub=true; drafts still writable; teacher-fill clears gate.
