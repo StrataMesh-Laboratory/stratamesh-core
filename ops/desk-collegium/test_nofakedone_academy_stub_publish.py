@@ -116,5 +116,80 @@ class TestAcademyStubPublishHold(unittest.TestCase):
         self.assertIn("draft_scored_stub", why)
 
 
+
+class HandlerTeachPublishableDone(unittest.TestCase):
+    """handler_teach done keys off grades publishability, not HTTP health alone."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="teach-pub-"))
+        self.fog = self.tmp / "fog"
+        (self.fog / "data" / "desk-meters").mkdir(parents=True)
+        os.environ["FOG_HOME"] = str(self.fog)
+        self.ae = _load()
+        self.scores_root = self.tmp / "academy_scores"
+        self.scores_root.mkdir()
+        self.ae.SCORES_ROOT = self.scores_root
+        self.ae.FOG = self.fog
+        self.ae.REPO = self.tmp
+        (self.tmp / "src" / "academy").mkdir(parents=True, exist_ok=True)
+
+    
+    def test_handler_teach_hold_when_stubs(self):
+        d = date(2026, 9, 9)
+        self.ae.run_daily(day=d, force=True)
+        # point academy module load used by desk_ops
+        import sys
+        sys.modules["academy_exams"] = self.ae
+        # desk_ops uses _load("academy_exams") which loads from file — patch after load
+        here = Path(__file__).resolve().parent
+        spec = importlib.util.spec_from_file_location("desk_ops_teach", here / "desk_ops.py")
+        dop = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(dop)
+        dop.FOG = self.fog
+        dop._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
+        real_load = dop._load
+
+        def fake_load(name):
+            if name == "academy_exams":
+                return self.ae
+            return real_load(name)
+
+        dop._load = fake_load  # type: ignore
+        out = dop.handler_teach({"id": "dt-teach-x", "intent": "Academy teach pulse"}, dry=True)
+        self.assertFalse(out.get("grades_publishable"))
+        self.assertFalse(out.get("done"))
+        self.assertFalse(out.get("ok"))
+        self.assertEqual(out.get("verb"), "refer")
+        self.assertIn("HOLD", out.get("result") or "")
+
+    def test_handler_teach_done_when_publishable(self):
+        d = date(2026, 9, 10)
+        self.ae.run_daily(day=d, force=True)
+        self.ae.apply_teacher_fill(day=d, dry=False)
+        self.assertTrue(self.ae.scores_publishable(self.ae.load_day_scores(d))[0])
+        here = Path(__file__).resolve().parent
+        spec = importlib.util.spec_from_file_location("desk_ops_teach2", here / "desk_ops.py")
+        dop = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(dop)
+        dop.FOG = self.fog
+        dop._http_ok = lambda url, timeout=6.0, retries=2: (True, "200:ok")  # type: ignore
+        real_load = dop._load
+
+        def fake_load(name):
+            if name == "academy_exams":
+                return self.ae
+            return real_load(name)
+
+        dop._load = fake_load  # type: ignore
+        out = dop.handler_teach({"id": "dt-teach-y", "intent": "Academy teach pulse"}, dry=True)
+        self.assertTrue(out.get("grades_publishable"))
+        self.assertTrue(out.get("done"))
+        self.assertTrue(out.get("ok"))
+        self.assertEqual(out.get("verb"), "act")
+        self.assertNotIn("HOLD", out.get("result") or "")
+
+
 if __name__ == "__main__":
     unittest.main()

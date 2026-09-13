@@ -137,5 +137,68 @@ class TeacherFill(unittest.TestCase):
         self.assertIsNotNone(st["overall_objective"])
         self.assertTrue(st["qualitative"]["teacher_notes"])
 
+class PreserveTeacherScored(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="academy-preserve-"))
+        self.fog = self.tmp / "fog"
+        self.fog.mkdir()
+        os.environ["FOG_HOME"] = str(self.fog)
+        self.mod = _load()
+        self.scores = self.tmp / "academy_scores"
+        self.scores.mkdir()
+        self.mod.SCORES_ROOT = self.scores
+        self.mod.FOG = self.fog
+        self.mod.REPO = self.tmp
+        (self.tmp / "src" / "academy").mkdir(parents=True, exist_ok=True)
+
+    def test_force_refuses_teacher_scored_default(self):
+        d = date(2026, 9, 6)
+        self.mod.run_daily(day=d, force=True)
+        # fill teachers -> publishable teacher tree
+        filled = self.mod.apply_teacher_fill(day=d, dry=False, publish=False)
+        self.assertTrue(filled.get("ok"))
+        scores = self.mod.load_day_scores(d)
+        self.assertTrue(self.mod.day_is_teacher_scored(d, scores))
+        self.assertTrue(self.mod.scores_publishable(scores)[0])
+        # force=True alone must NOT overwrite
+        refused = self.mod.run_daily(day=d, force=True)
+        self.assertTrue(refused.get("refused"))
+        self.assertEqual(refused.get("reason"), "preserve_teacher_scored")
+        self.assertFalse(refused.get("ok"))
+        # tree still teacher-scored / not stub
+        after = self.mod.load_day_scores(d)
+        self.assertFalse(after.get("scored_by_stub"))
+        self.assertTrue(self.mod.day_is_teacher_scored(d, after))
+        # due_for_run force also false for teacher tree
+        self.assertFalse(self.mod.due_for_run(d=d, force=True))
+        self.assertTrue(
+            self.mod.due_for_run(d=d, force=True, force_overwrite_teacher_scored=True)
+        )
+
+    def test_force_may_overwrite_stubs_only(self):
+        d = date(2026, 9, 7)
+        first = self.mod.run_daily(day=d, force=True)
+        self.assertTrue(first.get("ok"))
+        self.assertTrue(self.mod.load_day_scores(d).get("scored_by_stub"))
+        # force re-draft stubs OK
+        again = self.mod.run_daily(day=d, force=True)
+        self.assertTrue(again.get("ok"))
+        self.assertFalse(again.get("refused"))
+        self.assertTrue(self.mod.load_day_scores(d).get("scored_by_stub"))
+
+    def test_destructive_override_documented(self):
+        d = date(2026, 9, 8)
+        self.mod.run_daily(day=d, force=True)
+        self.mod.apply_teacher_fill(day=d, dry=False)
+        self.assertTrue(self.mod.day_is_teacher_scored(d))
+        wiped = self.mod.run_daily(
+            day=d, force=True, force_overwrite_teacher_scored=True
+        )
+        self.assertTrue(wiped.get("ok"))
+        self.assertTrue(wiped.get("destructive_overwrite_teacher_scored"))
+        self.assertTrue(self.mod.load_day_scores(d).get("scored_by_stub"))
+
+
+
 if __name__ == "__main__":
     unittest.main()
