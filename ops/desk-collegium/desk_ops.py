@@ -1386,7 +1386,8 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
     except Exception:
         pass
     # Queue alone is not Act evidence (same P0 as fog handler).
-    return honest_result(
+    # standing_refer parks RR until assistant result file exists.
+    out = honest_result(
         ok=True,
         done=False,
         verb="refer",
@@ -1398,6 +1399,9 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
             f"write edge-assistant-result.json for {tid}"
         ),
     )
+    out["standing_refer"] = True
+    out["skip_soft_fail_chain"] = True
+    return out
 
 
 def handler_fog(task: dict, *, dry: bool) -> dict:
@@ -1452,7 +1456,8 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
     except Exception:
         pass
     # Queue alone is not Act evidence (delivered=0 while picked was P0 autonomy bug).
-    return honest_result(
+    # standing_refer parks RR until assistant result file exists.
+    out = honest_result(
         ok=True,
         done=False,
         verb="refer",
@@ -1464,6 +1469,9 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
             f"write fog-assistant-result.json for {tid}"
         ),
     )
+    out["standing_refer"] = True
+    out["skip_soft_fail_chain"] = True
+    return out
 
 
 def handler_teach(task: dict, *, dry: bool) -> dict:
@@ -2255,6 +2263,23 @@ def _is_standing_soft_refer(task: dict, *, cooldown_s: float = 1800.0) -> bool:
     revise/call_vote theatre with no Act (GCP e2micro / Oracle pattern).
     """
     import time as _time
+    # Allow fog/edge standing_refer to clear when assistant wrote a result file.
+    try:
+        tid = str(task.get("id") or "")
+        spec = str(task.get("specialty") or task.get("_handler") or "").lower()
+        owner = str(task.get("owner") or "").lower()
+        if tid and (
+            spec in ("fog", "edge")
+            or "fog" in owner
+            or "edge" in owner
+            or "cmn-fog" in owner
+            or "cmn-edge" in owner
+        ):
+            for agent in ("fog-assistant", "edge-assistant"):
+                if _assistant_result_file(agent, tid):
+                    return False
+    except Exception:
+        pass
     status = (task.get("status") or "").lower()
     verb = (task.get("last_verb") or task.get("verb") or "").lower()
     if status not in ("refer", "revise", "vote", "ongoing", "act", "constrain") and verb not in ("refer", "revise"):
@@ -2523,9 +2548,11 @@ def pick_tasks(state: dict, *, max_n: int, include_human_gates: bool = False) ->
             # ping André only when the human step blocks — never skip entirely.
             if not ping_prep and st == "escalate":
                 continue
+        # P0 2026-09-13: standing_refer must park even when ping_when_needed /
+        # prep_allowed / human_gate are set — those flags are for André ping
+        # prep, not RR re-pick theatre (delivered=0 while picked).
         if _is_standing_soft_refer(t) and not include_human_gates:
-            if not (t.get("ping_when_needed") or t.get("prep_allowed") or t.get("human_gate")):
-                continue
+            continue
         use_spec = _handler_for(t)
         if not use_spec:
             continue
@@ -3006,25 +3033,19 @@ def apply_result(bus, task: dict, out: dict, *, by: str) -> None:
                 t_sr = bus.find_task(st_sr, tid)
                 if t_sr:
                     t_sr["standing_refer"] = True
-                    t_sr["status"] = t_sr.get("status") or "refer"
-                    t_sr["updated"] = _now()
-                    bus.save_state(st_sr)
-            except Exception:
-                pass
-        # Persist standing soft-refer so pick_tasks parks until cooldown/delta
-        if out.get("standing_refer") or out.get("skip_soft_fail_chain"):
-            try:
-                st_sr = bus.load_state()
-                t_sr = bus.find_task(st_sr, tid)
-                if t_sr:
-                    t_sr["standing_refer"] = True
-                    t_sr["status"] = t_sr.get("status") or "refer"
+                    t_sr["status"] = "refer"
                     t_sr["updated"] = _now()
                     bus.save_state(st_sr)
             except Exception:
                 pass
         # Collegium continuation: dispute/refer must open revise/vote, not stop
-        if verb in ("dispute", "refer") and not out.get("escalate"):
+        # standing_refer / skip_soft_fail_chain: no revise/call_vote theatre
+        if (
+            verb in ("dispute", "refer")
+            and not out.get("escalate")
+            and not out.get("standing_refer")
+            and not out.get("skip_soft_fail_chain")
+        ):
             # machine-solvable retries auto-arm cast ack
             if out.get("next_action") and ("429" in (out.get("result") or "") or "unittest" in (out.get("result") or "") or out.get("auto_cast_ack") is None):
                 if "429" in (out.get("result") or "") or "1015" in (out.get("result") or "") or "unittest" in (out.get("result") or ""):
