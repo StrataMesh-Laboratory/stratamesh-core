@@ -94,6 +94,9 @@ class PersistentFogNode:
         self.keepup.attach()
         self.lifecycle = AccountGraph(dag=self.dag, token=self.token)
         self.payg = PaygRuntime(lab_ledger=self.lifecycle.lab, graph=self.lifecycle)
+        # GH#178/#181: empty registry is honest until this live Fog asserts itself once.
+        # Never invent EDGE/peers — only provider_id=self.node_id.
+        self.ensure_self_spa()
 
     def submit(self, tx_type: str = "standard", cid: str | None = None) -> dict:
         with self.lock:
@@ -141,6 +144,19 @@ class PersistentFogNode:
                 "active": rec.active,
                 "pin_policy": policy,
             }
+
+    def ensure_self_spa(self) -> dict | None:
+        """Boot seed path for GH#178 SPA quality — self only, never fabricate members.
+
+        If the in-memory registry is empty after restart, register this Fog node once
+        with roles=["fog"]. Does not invent EDGE peers or six lab roles (seed_only).
+        """
+        with self.lock:
+            if self.spas.summary().get("total", 0) > 0:
+                return None
+            if any(r.provider_id == self.node_id for r in self.spas.spas.values()):
+                return None
+        return self.register_spa(roles=["fog"])
 
 
     def mint_poc(self) -> dict:
@@ -479,7 +495,7 @@ code {{ color:var(--fg); }}
             sub = self.subsistence.ledger.report(self.node_id)
             fp = host_fingerprint()
             # Do not seed six lab roles on GET /status — that is seed-only noise for AIOps.
-            # Empty registry stays total=0 source=empty. Live Fog already persisted roles.
+            # Boot ensure_self_spa registers only this node_id; empty remains honest until then.
             agora_book = self.agora.book()
             log = getattr(self.agora, "settlement_log", None) or []
             trades = agora_book.get("trades")

@@ -1,0 +1,35 @@
+schema: spa-quality-self-register-prove.v1
+ts_utc: 20260913T120647Z
+task: dt-wave-spa-quality-gh182-20260912
+issues: GH#178 GH#181 (quality; #182 is DAG count sibling)
+sha_base: ababdeb
+act: ensure_self_spa boot seed path — self FOG node only; NO fabricated members
+opencode: killed thrash pids 80312+83777 (confirm-chat vapour; no evidence)
+live_register: POST /spa/register roles=[fog] → spa_96354a39263ca874 tx=c6591ed2699f4f13
+code: src/node_persistent.py ensure_self_spa + boot call; test_status_pulse.py
+tests: FOG_TESTNET=1 python3 src/test_status_pulse.py → 5 ok
+local_spa: {"total": 1, "active": 1, "by_role": {"fog": 1}, "opt_out_pending": [], "source": "registry", "measured": true, "seed_only": false}
+fog_public_spa: {"total": 1, "active": 1, "by_role": {"fog": 1}, "opt_out_pending": [], "source": "registry", "measured": true, "seed_only": false}
+health: {"ok": true, "mac_live": true, "mesh_member": true, "n": 2, "version": "0.6.0-lab", "node_id": "FOG-NODE-PT-CM-001"}
+spa_export: {
+  "spas": [
+    {
+      "spa_id": "spa_96354a39263ca874",
+      "provider_id": "FOG-NODE-PT-CM-001",
+      "roles": [
+        "fog"
+      ],
+      "service_level": {
+        "uptime_pct": 99.0,
+        "max_sync_lag_sec": 120
+      },
+      "opt_out_days": 14,
+      "cid": null,
+      "tx_id": "c6591ed2699f4f13",
+      "active": true
+    }
+  ]
+}
+seed_path: empty registry → register(provider_id=self.node_id, roles=[fog]); seed_only=false; never invent EDGE
+status_worker_note: public status.calhegasmorais.pt spa still health-fallback (not registry); Fog /status now source=registry total=1
+verdict: Act progress REAL — live registry populated + durable boot ensure shipped; NO-FAKE-DONE
