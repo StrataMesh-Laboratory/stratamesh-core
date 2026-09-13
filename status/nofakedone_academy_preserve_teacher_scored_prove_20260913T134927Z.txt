@@ -1,0 +1,20 @@
+NO-FAKE-DONE prove: preserve teacher-scored + teach done=publishable
+ts_utc=20260913T134927Z
+branch=fix/nofakedone-academy-preserve-teacher-scored-20260913
+base_main=d6493b5
+
+tests: python3 -m unittest test_academy_exams test_nofakedone_academy_stub_publish (ops/desk-collegium) — 17 OK
+
+live Mac:
+- academy_scores/2026-09-13 scored_by_stub=false scored_by=stratagrok@calhegasmorais.pt status=teacher_scored
+- python3 academy_exams.py --force --day 2026-09-13 → refused=preserve_teacher_scored exit=1; tree unchanged
+- handler_teach force_exam (dt-proj-academy-daily-exams) → skipped=1 wrote=0 refused=preserve_teacher_scored; still teacher_scored
+- handler_teach dry → done=True ok=True grades_publishable=True (keys off publishability not HTTP alone)
+
+gate:
+- force may overwrite stub drafts only
+- teacher-scored requires --force-overwrite-teacher-scored / force_overwrite_teacher_scored=True
+- default preserve
+
+stash: kept stash wip-pre-nofakedone-academy-stub-gate (scores are stubs vs live teacher_scored; not empty/merged-as-scores — do not drop)
+origin embed lag: note only (worker DAILY_SCORES embed may lag git teacher scores until rebuild/publish)

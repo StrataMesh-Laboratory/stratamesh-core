@@ -445,12 +445,63 @@ def already_scored(d: date) -> bool:
     return (day_dir(d) / "scores.json").is_file()
 
 
-def due_for_run(*, d: date | None = None, force: bool = False) -> bool:
-    """True when today's scores missing (or force). Bot-independent."""
-    day = d or lisbon_today()
-    if force:
+def load_day_scores(d: date) -> dict[str, Any] | None:
+    """Load academy_scores/YYYY-MM-DD/scores.json if present."""
+    p = day_dir(d) / "scores.json"
+    if not p.is_file():
+        return None
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def day_is_teacher_scored(
+    d: date,
+    scores: dict[str, Any] | None = None,
+) -> bool:
+    """True when existing day tree is teacher-scored (preserve by default).
+
+    NO-FAKE-DONE: stub drafts must not overwrite scored_by_stub=false /
+    teacher_scored trees. Stub markers mean the day is still draft-only.
+    """
+    scores = scores if scores is not None else load_day_scores(d)
+    if not isinstance(scores, dict):
+        return False
+    if scores.get("scored_by_stub") is True:
+        return False
+    if stub_markers(scores):
+        return False
+    students = scores.get("students") or []
+    if students and all(
+        str((row or {}).get("status") or "") == "teacher_scored" for row in students
+    ):
         return True
-    return not already_scored(day)
+    # Explicit clear of stub flag after teacher-fill / human score
+    if scores.get("scored_by_stub") is False:
+        return True
+    return False
+
+
+def due_for_run(
+    *,
+    d: date | None = None,
+    force: bool = False,
+    force_overwrite_teacher_scored: bool = False,
+) -> bool:
+    """True when today's scores missing, or force on stub drafts only.
+
+    Teacher-scored days are not due unless explicit destructive override.
+    Bot-independent.
+    """
+    day = d or lisbon_today()
+    if not already_scored(day):
+        return True
+    if day_is_teacher_scored(day):
+        return bool(force_overwrite_teacher_scored)
+    # Stub / incomplete day exists — force may re-draft stubs
+    return bool(force)
 
 
 
@@ -673,16 +724,45 @@ def run_daily(
     day: date | None = None,
     dry: bool = False,
     force: bool = False,
+    force_overwrite_teacher_scored: bool = False,
 ) -> dict[str, Any]:
+    """Draft/write daily exam stubs.
+
+    Default preserves teacher-scored trees (scored_by_stub=false / teacher_scored).
+    --force / force=True may overwrite stub drafts only.
+    Destructive stub overwrite of a teacher-scored day requires
+    force_overwrite_teacher_scored=True (--force-overwrite-teacher-scored).
+    """
     d = day or lisbon_today()
-    if already_scored(d) and not force:
-        return {
-            "ok": True,
-            "skipped": True,
-            "reason": "already_scored",
-            "date": d.isoformat(),
-            "bot_required": False,
-        }
+    existing = load_day_scores(d) if already_scored(d) else None
+    teacher_tree = bool(existing) and day_is_teacher_scored(d, existing)
+    if already_scored(d):
+        if teacher_tree and force_overwrite_teacher_scored:
+            pass  # explicit destructive override — fall through to stub rewrite
+        elif teacher_tree and force:
+            return {
+                "ok": False,
+                "skipped": True,
+                "refused": True,
+                "reason": "preserve_teacher_scored",
+                "date": d.isoformat(),
+                "bot_required": False,
+                "scored_by_stub": bool((existing or {}).get("scored_by_stub")),
+                "note": (
+                    "NO-FAKE-DONE: refusing stub overwrite of teacher-scored day; "
+                    "pass --force-overwrite-teacher-scored for explicit destructive override"
+                ),
+            }
+        elif not force and not force_overwrite_teacher_scored:
+            return {
+                "ok": True,
+                "skipped": True,
+                "reason": "already_scored",
+                "date": d.isoformat(),
+                "bot_required": False,
+                "teacher_scored": teacher_tree,
+            }
+        # else: stub day + force → fall through and rewrite stubs
     roster = load_roster(refresh=not dry)
     prior = load_prior(d)
     exam = draft_exam(d, roster, prior)
@@ -691,6 +771,8 @@ def run_daily(
     written["prior_date"] = (prior or {}).get("date")
     written["bot_required"] = False
     written["skipped"] = False
+    if force_overwrite_teacher_scored and teacher_tree:
+        written["destructive_overwrite_teacher_scored"] = True
     return written
 
 
@@ -770,7 +852,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tick", action="store_true", help="Run if due (LaunchAgent / desk)")
     ap.add_argument("--run", action="store_true", help="Force run path (same as default)")
     ap.add_argument("--day", default=None, help="YYYY-MM-DD (Europe/Lisbon)")
-    ap.add_argument("--force", action="store_true")
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-run when stub drafts exist (does NOT overwrite teacher-scored)",
+    )
+    ap.add_argument(
+        "--force-overwrite-teacher-scored",
+        action="store_true",
+        help=(
+            "DESTRUCTIVE: allow stub draft overwrite of a teacher-scored day "
+            "(scored_by_stub=false / teacher_scored). Default is preserve."
+        ),
+    )
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--publish", action="store_true", help="Best-effort grades/worker publish")
     ap.add_argument("--roster-only", action="store_true")
@@ -785,11 +879,32 @@ def main(argv: list[str] | None = None) -> int:
         r = load_roster(refresh=not args.dry_run)
         print(json.dumps({"ok": True, "n": len(r.get("students") or [])}, indent=2))
         return 0
-    # --tick skips when already scored unless --force; bare CLI / --run always attempts
-    if args.tick and not due_for_run(d=d, force=args.force):
-        print(json.dumps({"ok": True, "skipped": True, "date": d.isoformat(), "bot_required": False}, indent=2))
+    # --tick skips when already scored unless --force (stubs only);
+    # teacher-scored requires --force-overwrite-teacher-scored
+    if args.tick and not due_for_run(
+        d=d,
+        force=args.force,
+        force_overwrite_teacher_scored=args.force_overwrite_teacher_scored,
+    ):
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "skipped": True,
+                    "date": d.isoformat(),
+                    "bot_required": False,
+                    "teacher_scored": day_is_teacher_scored(d),
+                },
+                indent=2,
+            )
+        )
         return 0
-    result = run_daily(day=d, dry=args.dry_run, force=args.force or args.run)
+    result = run_daily(
+        day=d,
+        dry=args.dry_run,
+        force=args.force or args.run or args.force_overwrite_teacher_scored,
+        force_overwrite_teacher_scored=args.force_overwrite_teacher_scored,
+    )
     if args.publish and result.get("ok") and not result.get("skipped"):
         # run_daily writes stubs — gate must HOLD until teacher-fill
         day_scores = None

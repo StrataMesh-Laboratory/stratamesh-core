@@ -1448,13 +1448,16 @@ def handler_fog(task: dict, *, dry: bool) -> dict:
 
 
 def handler_teach(task: dict, *, dry: bool) -> dict:
-    """Academy teach — live check + daily exam tick + apprenticeship trail.
+    """Academy teach — grades publishability + daily exam tick + trail.
 
     Daily exams run on Mac Fog (Bot contingency only). See academy_exams.py.
+    NO-FAKE-DONE: done keys off grades publishability (HOLD while stubs),
+    not mere academy HTTP health. force_exam never overwrites teacher-scored
+    trees unless task explicitly sets force_overwrite_teacher_scored.
     """
-    ok, detail = _http_ok("https://academy.calhegasmorais.pt/health")
-    if not ok:
-        ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
+    http_ok, detail = _http_ok("https://academy.calhegasmorais.pt/health")
+    if not http_ok:
+        http_ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
     exam_bit = ""
     intent = (task.get("intent") or "").lower()
     force_exam = (
@@ -1462,15 +1465,26 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
         or "daily exam" in intent
         or "academy_scores" in intent
     )
+    force_overwrite_teacher = bool(task.get("force_overwrite_teacher_scored"))
+    publishable = False
+    pub_why = "scores_missing"
+    ae = None
     if not dry:
         try:
             ae = _load("academy_exams")
-            if force_exam or ae.due_for_run():
-                er = ae.run_daily(dry=False, force=force_exam)
+            # force_exam may re-draft stubs only; teacher-scored needs explicit override
+            if force_exam or ae.due_for_run() or force_overwrite_teacher:
+                er = ae.run_daily(
+                    dry=False,
+                    force=force_exam or force_overwrite_teacher,
+                    force_overwrite_teacher_scored=force_overwrite_teacher,
+                )
                 exam_bit = (
                     f" daily_exam={er.get('date')} skipped={int(bool(er.get('skipped')))}"
                     f" wrote={int(bool(er.get('ok') and not er.get('skipped')))}"
                 )
+                if er.get("refused"):
+                    exam_bit += f" refused={er.get('reason')}"
                 if er.get("ok") and not er.get("skipped") and (
                     force_exam or "publish" in intent
                 ):
@@ -1490,45 +1504,77 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
                         exam_bit += f" publish_skip={pace_pub}"
         except Exception as e:
             exam_bit = f" daily_exam_err={str(e)[:60]}"
+    # Grades publishability gate (NO-FAKE-DONE) — not HTTP health alone
+    try:
+        if ae is None:
+            ae = _load("academy_exams")
+        scores = ae.load_latest_scores()
+        if scores is None:
+            try:
+                scores = ae.load_day_scores(ae.lisbon_today())
+            except Exception:
+                scores = None
+        publishable, pub_why = ae.scores_publishable(scores)
+    except Exception as e:
+        publishable, pub_why = False, f"gate_err:{str(e)[:80]}"
+    hold_bit = "" if publishable else f" HOLD grades={pub_why}"
     path = FOG / "data" / "desk-meters" / "academy-teach.json"
     note = (
-        f"academy_teach live={int(ok)} students=SCA/ACB teachers=desk wrote desk-meters/academy-teach.json "
+        f"academy_teach live={int(http_ok)} publishable={int(publishable)} "
+        f"students=SCA/ACB teachers=desk wrote desk-meters/academy-teach.json "
         f"— apprenticeship_by_doing (never enroll desk agents)"
-        f"{exam_bit}"
+        f"{exam_bit}{hold_bit}"
     )
     wrote = False
     if not dry:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(
-                {"ts": _now(), "academy_ok": ok, "duty": "academy_teach", "exam": exam_bit.strip()},
+                {
+                    "ts": _now(),
+                    "academy_ok": http_ok,
+                    "grades_publishable": publishable,
+                    "grades_gate": pub_why,
+                    "duty": "academy_teach",
+                    "exam": exam_bit.strip(),
+                },
                 indent=2,
             )
             + "\n"
         )
         wrote = path.is_file()
         write_apprenticeship_trail(
-            task, {"result": note, "done": ok, "evidence": bool(ok and wrote)}, agent="hermes"
+            task,
+            {
+                "result": note,
+                "done": bool(publishable and wrote),
+                "evidence": bool(publishable and wrote),
+            },
+            agent="hermes",
         )
         try:
             _load("desk_bus").feed_append(
-                "hermes", note[:200], kind="act" if ok else "refer", specialty="teach",
+                "hermes",
+                note[:200],
+                kind="act" if publishable else "refer",
+                specialty="teach",
             )
         except Exception:
             pass
-    evidence = bool(ok) if dry else bool(ok and wrote)
-    # evidence=True required for apply_result + delivered counter (NO-FAKE-DONE)
+    # done keys off grades publishability (HOLD when stubs), not mere HTTP health
+    evidence = bool(publishable) if dry else bool(publishable and wrote)
+    done = bool(publishable and evidence)
     return {
-        "ok": bool(ok),
+        "ok": bool(publishable),
         "result": note,
-        "done": bool(ok and evidence),
+        "done": done,
         "sha": "",
-        "verb": "act" if (ok and evidence) else ("refer" if not ok else "dispute"),
+        "verb": "act" if done else "refer",
         "evidence": evidence,
+        "grades_publishable": publishable,
+        "grades_gate": pub_why,
+        "academy_http_ok": http_ok,
     }
-
-
-
 def record_taper_status(*, dry: bool = False) -> dict:
     """Optional soft probe — never prints secrets; writes desk-meters/tailscale-taper.json."""
     out = {
