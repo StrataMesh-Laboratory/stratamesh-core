@@ -425,7 +425,11 @@ code {{ color:var(--fg); }}
         }
 
     def resources_view(self) -> dict:
-        """GET /resources: this process sample + one lab mock device (this host)."""
+        """GET /resources: live process sample + one lab host device (this host only).
+
+        NO-FAKE-DONE: device is synthetic/lab (not a device farm). Sample is live via
+        resource_meter; never invent multi-host inventory.
+        """
         s = resource_sample()
         return {
             "ok": True,
@@ -439,18 +443,21 @@ code {{ color:var(--fg); }}
                 "timestamp": s.timestamp,
                 "source": s.source,
             },
+            "sample_live": True,
             "devices": [
                 {
                     "id": self.node_id,
                     "kind": "host-process",
-                    "mock": True,
+                    "lab_synthetic": True,
+                    "mock": True,  # back-compat; prefer lab_synthetic
                     "label": "single lab host (this process)",
                     "substrate": "local-process",
+                    "note": "synthetic device row for this process — not a farm",
                 }
             ],
             "note": (
-                "single-host process sample via resource_meter.sample(); "
-                "one mock device object for this host only — not a device farm, not multi-host"
+                "single-host process sample via resource_meter.sample() (live); "
+                "one lab-synthetic device for this host only — not a device farm, not multi-host"
             ),
         }
 
@@ -550,6 +557,10 @@ code {{ color:var(--fg); }}
                     "ipfs": {
                         "dnslink_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf4dfuylqabf3oclgtqy55fbzdi",
                         "pins": self.pinner.summary(),
+                        "note": (
+                            "pins.mode=stub → decision=HOLD (no invented pinned); "
+                            "set IPFS_API_URL for live Kubo or use gateway mode"
+                        ),
                     },
                 },
             )

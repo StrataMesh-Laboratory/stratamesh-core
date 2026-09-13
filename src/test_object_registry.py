@@ -113,18 +113,23 @@ class TestObjectRegistry(unittest.TestCase):
         r.close()
 
     def test_ipfs_pins_persist(self):
+        """Stub persists hold records — never invents pinned (NO-FAKE-DONE)."""
         c = IPFSClient(mode="stub", db_path=self.db)
         rec = c.request_pin("bafypinlab01")
-        self.assertEqual(rec.status, "pinned")
+        self.assertEqual(rec.status, "hold")
+        summ = c.summary()
+        self.assertEqual(summ.get("decision"), "HOLD")
+        self.assertTrue(summ.get("sample_unknown"))
+        self.assertFalse(summ.get("live"))
         conn = sqlite3.connect(self.db)
         row = conn.execute("SELECT status, mode FROM ipfs_pins WHERE cid=?", ("bafypinlab01",)).fetchone()
         conn.close()
         self.assertIsNotNone(row)
-        self.assertEqual(row[0], "pinned")
+        self.assertEqual(row[0], "hold")
         c2 = IPFSClient(mode="stub", db_path=self.db)
         st = c2.status("bafypinlab01")
         self.assertIsNotNone(st)
-        self.assertEqual(st.status, "pinned")
+        self.assertEqual(st.status, "hold")
 
 
 if __name__ == "__main__":
