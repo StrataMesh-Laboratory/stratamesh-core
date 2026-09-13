@@ -1,0 +1,10 @@
+act=metabol-d1-r2-live-sample
+ts_utc=2026-09-13T12:36:06Z
+source=ops-monitor/bin/metabolism-status --sample (GraphQL)
+
+cf-d1-reads: ALLOW rem=4906442 day=93558 (limit 5000000)
+cf-d1-writes: HOLD rem=30729 day=69271 (limit 100000) — hour overspend circuit honest
+cf-r2-class-a: ALLOW rem=33000 day=0 (only HeadBucket seen; Class A=0)
+cf-kv-writes: ALLOW rem=840 day=160
+
+Rule: unknown GraphQL → HOLD remaining unknown; never invent full daily_limit.

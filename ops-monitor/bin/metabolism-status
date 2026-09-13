@@ -344,6 +344,160 @@ def _gh_meter(resource: dict) -> dict:
     return entry
 
 
+
+def _cf_d1_usage(now: datetime) -> dict | None:
+    """Live D1 rowsRead/rowsWritten since 00:00 UTC. Failure → None (unknown HOLD)."""
+    import urllib.request
+    token = _load_secret("CLOUDFLARE_API_TOKEN") or _load_secret("GOD_API")
+    if not token:
+        return None
+    utc = now.astimezone(timezone.utc)
+    day_start = utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    hour_start = utc.replace(minute=0, second=0, microsecond=0)
+    payload = {
+        "query": """
+          query ($accountTag: String!, $dayFrom: Time!, $hourFrom: Time!, $to: Time!) {
+            viewer {
+              accounts(filter: { accountTag: $accountTag }) {
+                day: d1AnalyticsAdaptiveGroups(
+                  limit: 10
+                  filter: { datetime_geq: $dayFrom, datetime_lt: $to }
+                ) { sum { rowsRead rowsWritten } }
+                hour: d1AnalyticsAdaptiveGroups(
+                  limit: 10
+                  filter: { datetime_geq: $hourFrom, datetime_lt: $to }
+                ) { sum { rowsRead rowsWritten } }
+              }
+            }
+          }
+        """,
+        "variables": {
+            "accountTag": CF_ACCOUNT,
+            "dayFrom": day_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hourFrom": hour_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+    }
+    req = urllib.request.Request(
+        "https://api.cloudflare.com/client/v4/graphql",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+    except Exception:
+        return None
+    try:
+        if not data or not data.get("data") or data.get("errors"):
+            return None
+        acct = data["data"]["viewer"]["accounts"][0]
+        def agg(rows):
+            rr = rw = 0
+            for row in rows or []:
+                s = row.get("sum") or {}
+                rr += int(s.get("rowsRead") or 0)
+                rw += int(s.get("rowsWritten") or 0)
+            return rr, rw
+        day_r, day_w = agg(acct.get("day"))
+        hour_r, hour_w = agg(acct.get("hour"))
+        return {
+            "reads_used": day_r,
+            "writes_used": day_w,
+            "reads_hour": hour_r,
+            "writes_hour": hour_w,
+        }
+    except Exception:
+        return None
+
+
+# R2 Class A (mutating/list) vs Class B (Get/Head). cf-r2-class-a paces Class A only.
+_R2_CLASS_A = {
+    "ListBuckets", "PutBucket", "DeleteBucket", "ListObjects", "ListObjectsV2",
+    "PutObject", "CopyObject", "DeleteObject", "DeleteObjects",
+    "CreateMultipartUpload", "UploadPart", "UploadPartCopy", "CompleteMultipartUpload",
+    "AbortMultipartUpload", "ListMultipartUploads", "ListParts",
+    "PutBucketEncryption", "DeleteBucketEncryption", "PutBucketCors", "DeleteBucketCors",
+    "PutBucketLifecycleConfiguration", "DeleteBucketLifecycle",
+}
+
+
+def _r2_is_class_a(action: str) -> bool:
+    a = str(action or "")
+    if a in _R2_CLASS_A:
+        return True
+    # fail-open toward Class A for unknown mutating verbs; Get/Head stay B
+    if a.startswith("Get") or a.startswith("Head"):
+        return False
+    if a.startswith("Put") or a.startswith("Delete") or a.startswith("List") or a.startswith("Copy"):
+        return True
+    return False
+
+
+def _cf_r2_usage(now: datetime) -> dict | None:
+    """Live R2 Class A ops since 00:00 UTC. Failure → None (unknown HOLD)."""
+    import urllib.request
+    token = _load_secret("CLOUDFLARE_API_TOKEN") or _load_secret("GOD_API")
+    if not token:
+        return None
+    utc = now.astimezone(timezone.utc)
+    day_start = utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    hour_start = utc.replace(minute=0, second=0, microsecond=0)
+    payload = {
+        "query": """
+          query ($accountTag: String!, $dayFrom: Time!, $hourFrom: Time!, $to: Time!) {
+            viewer {
+              accounts(filter: { accountTag: $accountTag }) {
+                day: r2OperationsAdaptiveGroups(
+                  limit: 50
+                  filter: { datetime_geq: $dayFrom, datetime_lt: $to }
+                ) { sum { requests } dimensions { actionType } }
+                hour: r2OperationsAdaptiveGroups(
+                  limit: 50
+                  filter: { datetime_geq: $hourFrom, datetime_lt: $to }
+                ) { sum { requests } dimensions { actionType } }
+              }
+            }
+          }
+        """,
+        "variables": {
+            "accountTag": CF_ACCOUNT,
+            "dayFrom": day_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hourFrom": hour_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+    }
+    req = urllib.request.Request(
+        "https://api.cloudflare.com/client/v4/graphql",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+    except Exception:
+        return None
+    try:
+        if not data or not data.get("data") or data.get("errors"):
+            return None
+        acct = data["data"]["viewer"]["accounts"][0]
+        def class_a(rows):
+            n = 0
+            for row in rows or []:
+                action = (row.get("dimensions") or {}).get("actionType") or ""
+                if _r2_is_class_a(action):
+                    n += int((row.get("sum") or {}).get("requests") or 0)
+            return n
+        return {
+            "class_a_used": class_a(acct.get("day")),
+            "class_a_hour": class_a(acct.get("hour")),
+        }
+    except Exception:
+        return None
+
+
 def sample_live(cfg: dict, now: datetime) -> dict:
     live: dict = {}
     rl = _gh_rate_limit()
@@ -403,6 +557,41 @@ def sample_live(cfg: dict, now: datetime) -> dict:
             "used": ru,
             "day_spent": ru,
             "hour_spent": int(kv.get("reads_hour") or 0),
+        }
+
+
+    # CF D1 Free: 5M reads / 100k writes per UTC day. Live sample or unknown (HOLD).
+    d1 = _cf_d1_usage(now)
+    if d1 is None:
+        live["cf-d1-reads"] = {"unknown": True}
+        live["cf-d1-writes"] = {"unknown": True}
+    else:
+        ru = int(d1.get("reads_used") or 0)
+        wu = int(d1.get("writes_used") or 0)
+        live["cf-d1-reads"] = {
+            "remaining": max(0, 5000000 - ru),
+            "used": ru,
+            "day_spent": ru,
+            "hour_spent": int(d1.get("reads_hour") or 0),
+        }
+        live["cf-d1-writes"] = {
+            "remaining": max(0, 100000 - wu),
+            "used": wu,
+            "day_spent": wu,
+            "hour_spent": int(d1.get("writes_hour") or 0),
+        }
+
+    # CF R2 Free Class A ≈ 33k/day. Live sample or unknown (HOLD).
+    r2 = _cf_r2_usage(now)
+    if r2 is None:
+        live["cf-r2-class-a"] = {"unknown": True}
+    else:
+        au = int(r2.get("class_a_used") or 0)
+        live["cf-r2-class-a"] = {
+            "remaining": max(0, 33000 - au),
+            "used": au,
+            "day_spent": au,
+            "hour_spent": int(r2.get("class_a_hour") or 0),
         }
 
     # HF remaining 0 until 2026-09-01
