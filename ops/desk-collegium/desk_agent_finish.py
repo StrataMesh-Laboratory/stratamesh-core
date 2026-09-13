@@ -9,12 +9,16 @@ Never stamps ok+done because a binary exists or a meter JSON was written.
   python3 ops/desk-collegium/desk_agent_finish.py \\
       --agent hermes --ok 1 --result 'oneshot wrote journal' \\
       --evidence "$FOG/data/desk-outbox/journals/hermes/lesson.md"
+  python3 ops/desk-collegium/desk_agent_finish.py \\
+      --agent hermes --ok 1 --task-id dt-proj-academy-daily-exams \\
+      --evidence status/academy_prove.txt --done 0
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -31,6 +35,8 @@ OWNER = {
     "fog": "fog",
     "edge": "edge",
 }
+
+_TASK_ID_RE = re.compile(r"\b(dt-[a-z0-9][a-z0-9-]{2,80})\b", re.I)
 
 
 def _evidence_ok(path: str) -> bool:
@@ -82,11 +88,40 @@ def _evidence_ok(path: str) -> bool:
         "local8787=",
         "git_head=",
         "box_to_mac_tcp",
+        "task=dt-",
+        "academy_rc=",
+        "sha=",
     )
     marker_hits = sum(1 for m in markers if m in low)
     if under_status and prove_name and marker_hits >= 3 and len(blob) >= 200:
         return True
     return False
+
+
+def _ids_in_text(text: str) -> list[str]:
+    if not text:
+        return []
+    found: list[str] = []
+    for m in _TASK_ID_RE.finditer(text):
+        tid = m.group(1)
+        if tid not in found:
+            found.append(tid)
+    return found
+
+
+def _commitment_ids(evidence: str, result: str) -> list[str]:
+    """Task ids named in evidence body and/or result — commitment residue."""
+    blob = result or ""
+    if evidence:
+        p = Path(evidence)
+        if p.is_file():
+            try:
+                blob = blob + "\n" + p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+            # also filename / path fragments
+            blob = blob + "\n" + str(p)
+    return _ids_in_text(blob)
 
 
 def _pick_task(state: dict, agent: str, task_id: str = "") -> dict | None:
@@ -105,10 +140,24 @@ def _pick_task(state: dict, agent: str, task_id: str = "") -> dict | None:
         if want in own or own.endswith(want) or own.startswith(want):
             if str(t.get("status") or "") not in ("done", "drop", "escalate"):
                 owned.append(t)
+    preferred = []
     for st in preferred_status:
         for t in owned:
             if str(t.get("status") or "") == st:
-                return t
+                preferred.append(t)
+    # Ambiguous: multiple in-flight owned Acts — caller must pass --task-id
+    # (P0: finishing academy evidence must not close an unrelated T2).
+    uniq_pref = []
+    seen = set()
+    for t in preferred:
+        tid = str(t.get("id") or "")
+        if tid and tid not in seen:
+            seen.add(tid)
+            uniq_pref.append(t)
+    if len(uniq_pref) > 1:
+        return None
+    if len(uniq_pref) == 1:
+        return uniq_pref[0]
     return owned[0] if owned else None
 
 
@@ -120,11 +169,20 @@ def main() -> int:
     ap.add_argument("--evidence", default="")
     ap.add_argument("--verb", default="")
     ap.add_argument("--task-id", default="", help="Bind finish to this desk_bus task id")
+    ap.add_argument(
+        "--done",
+        type=int,
+        default=-1,
+        help="1=close task, 0=leave open with evidence, -1=default (same as ok)",
+    )
     args = ap.parse_args()
     agent = args.agent.strip().lower()
     ev = _evidence_ok(args.evidence)
     ok = bool(args.ok) and ev
-    done = ok
+    if args.done < 0:
+        done = ok
+    else:
+        done = bool(args.done) and ok
     skipped = False
     # Incomplete Act with real evidence amends/acts — do not dispute a peer task.
     if args.verb:
@@ -136,6 +194,28 @@ def main() -> int:
     else:
         verb = "dispute"
     result = args.result or ("evidence " + args.evidence if ev else "no evidence — not done")
+
+    explicit = (args.task_id or "").strip()
+    committed = _commitment_ids(args.evidence, result)
+    if not explicit and len(committed) == 1:
+        explicit = committed[0]
+    if explicit and committed:
+        # Evidence named a different task than the bind — refuse (evidence≠commitment).
+        if explicit not in committed and any(c != explicit for c in committed):
+            # allow evidence that names bind + peers; hard-fail only if bind absent
+            # and a different dt-* is the only/primary claim
+            if explicit not in committed:
+                payload = {
+                    "ok": False,
+                    "done": False,
+                    "reason": "evidence_commitment_mismatch",
+                    "task_id": explicit,
+                    "commitment_ids": committed,
+                    "result": result[:240],
+                }
+                print(json.dumps(payload, indent=2))
+                return 2
+
     out = ops.honest_result(
         ok=ok,
         done=done,
@@ -145,7 +225,7 @@ def main() -> int:
         skipped=skipped,
     )
     state = bus.load_state()
-    task = _pick_task(state, agent, task_id=(args.task_id or "").strip())
+    task = _pick_task(state, agent, task_id=explicit)
     meter_dir = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog")) / "data" / "desk-meters"
     meter_dir.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -157,15 +237,44 @@ def main() -> int:
         "skipped": out["skipped"],
         "verb": out["verb"],
         "result": out["result"][:240],
-        "task_id": (task or {}).get("id"),
+        "task_id": (task or {}).get("id") or (explicit or None),
+        "commitment_ids": committed,
     }
     (meter_dir / f"{agent}.json").write_text(json.dumps(payload, indent=2) + "\n")
     if not task:
-        print(json.dumps({"ok": False, "done": False, "reason": "no open task for agent", **payload}, indent=2))
+        reason = "ambiguous_owned_acts_need_task_id" if not explicit else "no open task for agent"
+        payload["ok"] = False
+        payload["done"] = False
+        payload["evidence"] = ev
+        # meter must not claim delivered when refuse
+        (meter_dir / f"{agent}.json").write_text(json.dumps(payload, indent=2) + "\n")
+        print(
+            json.dumps(
+                {"applied": False, "reason": reason, **payload},
+                indent=2,
+            )
+        )
         return 1
+    # Final gate: picked task must match commitment when commitment names ids
+    picked_id = str(task.get("id") or "")
+    if committed and picked_id and picked_id not in committed:
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "done": False,
+                    "reason": "evidence_commitment_mismatch",
+                    "task_id": picked_id,
+                    "commitment_ids": committed,
+                    "result": result[:240],
+                },
+                indent=2,
+            )
+        )
+        return 2
     ops.apply_result(bus, task, out, by=agent)
     print(json.dumps({"applied": True, **payload}, indent=2))
-    return 0 if out["ok"] and out["done"] else 1
+    return 0 if out["ok"] else 1
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+P0 overnight autonomy: finish closed wrong task (T2) with academy evidence
+fix: refuse ambiguous owned acts without --task-id; bind from commitment ids;
+  --done 0 for evidence-only; evidence≠commitment mismatch returns rc=2
+sha_base=52bb6aa
+tests=test_desk_agent_finish_taskid (ambiguous refuse + commitment ids)
+academy_stub_HOLD=true reopen_t2=true
