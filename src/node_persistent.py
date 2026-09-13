@@ -91,7 +91,8 @@ class PersistentFogNode:
             resource_sample=resource_sample,
         )
         self.keepup.on_sample = lambda sample: self.rails.ingest(sample, node_id)
-        self.keepup.attach()
+        if os.environ.get("FOG_TESTNET") != "1":
+            self.keepup.attach()
         self.lifecycle = AccountGraph(dag=self.dag, token=self.token)
         self.payg = PaygRuntime(lab_ledger=self.lifecycle.lab, graph=self.lifecycle)
         # GH#178/#181: empty registry is honest until this live Fog asserts itself once.
