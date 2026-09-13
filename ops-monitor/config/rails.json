@@ -213,7 +213,8 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": true,
-      "note": "D1 Free 5M reads/day. Portal/status chunks live here."
+      "note": "D1 Free 5M reads/day UTC. Pace remaining from live GraphQL d1AnalyticsAdaptiveGroups.rowsRead. HOLD if sample unknown.",
+      "unknown_remaining": "hold"
     },
     "cf-d1-writes": {
       "layer": "node",
@@ -224,7 +225,9 @@
       "phase": "hour",
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
-      "debt_persists_across_renewal": true
+      "debt_persists_across_renewal": true,
+      "note": "D1 Free 100k writes/day UTC. Pace remaining from live GraphQL rowsWritten. HOLD if sample unknown.",
+      "unknown_remaining": "hold"
     },
     "cf-kv-reads": {
       "layer": "node",
@@ -259,7 +262,8 @@
       "renewal_hhmm": "00:00",
       "renewal_tz": "UTC",
       "debt_persists_across_renewal": true,
-      "note": "R2 Free ~1M Class A / month \u2248 33k/day."
+      "note": "R2 Free Class A \u224833k/day. Pace from live GraphQL r2OperationsAdaptiveGroups Class A verbs. HOLD if sample unknown.",
+      "unknown_remaining": "hold"
     },
     "cf-acb-cron": {
       "layer": "stratamesh",
