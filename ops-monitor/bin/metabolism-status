@@ -13,12 +13,12 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "lib"))
 
 from metabolism import (  # noqa: E402
-    estimated_spent_slots,
     load_ledger,
     load_rails,
     save_ledger,
@@ -30,6 +30,7 @@ CF_DAILY = 100_000
 CF_ACCOUNT = "f3645fcb56675cf7250d8ba7358eb252"
 SECRETS = Path("/home/box/.config/stratagrok/secrets.env")
 GROK_USAGE_LIVE = Path("/tmp/metab/grok-usage-live.json")
+GROK_BOT_LIVE = Path("/tmp/metab/grok-bot-included-live.json")
 # Hardcoded until the next grok.com Settings → Usage scrape.
 # Reset text has no timezone; treated as Europe/Lisbon (session TZ).
 GROK_ASSISTANT_SAMPLE = {
@@ -40,6 +41,92 @@ GROK_ASSISTANT_SAMPLE = {
     "reset_iso": "2026-08-31T14:55:00+01:00",
     "reset_tz_assumed": "Europe/Lisbon",
 }
+
+FIRES_PATH = ROOT / "state" / "grok-auto-fires.json"
+LISBON = ZoneInfo("Europe/Lisbon")
+GROK_AUTO_DAILY = 6
+
+
+def _lisbon_day(now: datetime) -> str:
+    return now.astimezone(LISBON).date().isoformat()
+
+
+def _empty_fires(day: str) -> dict:
+    return {
+        "schema": "stratamesh.grok-auto-fires.v1",
+        "timezone": "Europe/Lisbon",
+        "day": day,
+        "daily_limit": GROK_AUTO_DAILY,
+        "spent": 0,
+        "remaining": GROK_AUTO_DAILY,
+        "fires": [],
+    }
+
+
+def save_grok_auto_fires(data: dict, now: datetime | None = None) -> dict:
+    """Persist Lisbon-day fire counter. remaining is always daily_limit - spent."""
+    now = now or datetime.now(timezone.utc)
+    spent = max(0, int(data.get("spent") or 0))
+    limit = int(data.get("daily_limit") or GROK_AUTO_DAILY)
+    data["schema"] = "stratamesh.grok-auto-fires.v1"
+    data["timezone"] = "Europe/Lisbon"
+    data["spent"] = spent
+    data["daily_limit"] = limit
+    data["remaining"] = max(0, limit - spent)
+    data["fires"] = list(data.get("fires") or [])
+    data["updated_at"] = now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    FIRES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = FIRES_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n")
+    tmp.replace(FIRES_PATH)
+    return data
+
+
+def load_grok_auto_fires(now: datetime | None = None) -> dict:
+    """Read the Lisbon-day counter. Rollover to spent=0 on a new Lisbon date.
+
+    Never invent remaining from calendar slot estimates. Missing/corrupt file
+    initialises an empty day (spent=0, remaining=daily_limit).
+    """
+    now = now or datetime.now(timezone.utc)
+    day = _lisbon_day(now)
+    data = None
+    if FIRES_PATH.exists():
+        try:
+            loaded = json.loads(FIRES_PATH.read_text())
+            if isinstance(loaded, dict):
+                data = loaded
+        except Exception:
+            data = None
+    if not isinstance(data, dict) or data.get("day") != day:
+        data = _empty_fires(day)
+        return save_grok_auto_fires(data, now)
+    spent = max(0, int(data.get("spent") or 0))
+    limit = int(data.get("daily_limit") or GROK_AUTO_DAILY)
+    data["spent"] = spent
+    data["daily_limit"] = limit
+    data["remaining"] = max(0, limit - spent)
+    return data
+
+
+def record_grok_auto_fire(
+    slot_id: str | None = None,
+    source: str = "slot",
+    now: datetime | None = None,
+    cost: float = 1.0,
+) -> dict:
+    """Increment the Lisbon-day counter for one actual grok-auto fire."""
+    now = now or datetime.now(timezone.utc)
+    data = load_grok_auto_fires(now)
+    n = max(1, int(cost or 1))
+    data["spent"] = int(data.get("spent") or 0) + n
+    data.setdefault("fires", []).append({
+        "at": now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "slot_id": slot_id,
+        "source": source,
+        "cost": n,
+    })
+    return save_grok_auto_fires(data, now)
 
 
 
@@ -120,6 +207,108 @@ def _cf_worker_usage(now: datetime) -> dict | None:
     except Exception:
         return None
 
+
+
+def _cf_sum_kv_ops(rows, op=None) -> int:
+    """Sum KV adaptive ops. rows may be list of {sum:{requests}} or operationType groups."""
+    if not rows:
+        return 0
+    total = 0
+    for row in rows:
+        if op is not None:
+            dims = row.get("dimensions") or {}
+            if dims.get("actionType") != op and dims.get("operationType") != op:
+                # some schemas use operation
+                if dims.get("operation") != op:
+                    continue
+        total += int((row.get("sum") or {}).get("requests") or (row.get("sum") or {}).get("count") or 0)
+    return total
+
+
+def _cf_kv_usage(now: datetime) -> dict | None:
+    """Live KV write/read counts since 00:00 UTC. Failure → None (unknown HOLD), never invent 0 used."""
+    import urllib.request
+    token = _load_secret("CLOUDFLARE_API_TOKEN") or _load_secret("GOD_API")
+    if not token:
+        return None
+    utc = now.astimezone(timezone.utc)
+    day_start = utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    hour_start = utc.replace(minute=0, second=0, microsecond=0)
+    payload = {
+        "query": """
+          query ($accountTag: String!, $dayFrom: Time!, $hourFrom: Time!, $to: Time!) {
+            viewer {
+              accounts(filter: { accountTag: $accountTag }) {
+                day: kvOperationsAdaptiveGroups(
+                  limit: 10
+                  filter: { datetime_geq: $dayFrom, datetime_lt: $to }
+                ) { sum { requests } dimensions { actionType } }
+                hour: kvOperationsAdaptiveGroups(
+                  limit: 10
+                  filter: { datetime_geq: $hourFrom, datetime_lt: $to }
+                ) { sum { requests } dimensions { actionType } }
+              }
+            }
+          }
+        """,
+        "variables": {
+            "accountTag": CF_ACCOUNT,
+            "dayFrom": day_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hourFrom": hour_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+    }
+    req = urllib.request.Request(
+        "https://api.cloudflare.com/client/v4/graphql",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+    except Exception:
+        return None
+    try:
+        if not data or not data.get("data"):
+            return None
+        if data.get("errors"):
+            return None
+        acct = data["data"]["viewer"]["accounts"][0]
+        day = acct.get("day") or []
+        hour = acct.get("hour") or []
+        def split(rows):
+            writes = reads = lists = deletes = other = 0
+            for row in rows:
+                n = int((row.get("sum") or {}).get("requests") or 0)
+                at = ((row.get("dimensions") or {}).get("actionType") or "").lower()
+                if "write" in at or at in ("put", "set"):
+                    writes += n
+                elif "read" in at or at in ("get",):
+                    reads += n
+                elif "list" in at:
+                    lists += n
+                elif "delete" in at or "del" in at:
+                    deletes += n
+                else:
+                    other += n
+            return writes, reads, lists, deletes, other
+        dw, dr, dl, dd, do = split(day)
+        hw, hr, hl, hd, ho = split(hour)
+        # If schema returned untyped totals only, attribute conservatively to writes when single bucket
+        if dw + dr + dl + dd + do == 0 and day:
+            total = sum(int((row.get("sum") or {}).get("requests") or 0) for row in day)
+            dw = total  # worst-case pace the tight rail
+        return {
+            "writes_used": dw + dd,
+            "reads_used": dr + dl,
+            "writes_hour": hw + hd,
+            "reads_hour": hr + hl,
+        }
+    except Exception:
+        return None
+
+
 def _gh_rate_limit() -> dict | None:
     """Call `gh api rate_limit`. Never print the token."""
     env = {k: v for k, v in os.environ.items() if k != "GITHUB_TOKEN" or True}
@@ -195,17 +384,67 @@ def sample_live(cfg: dict, now: datetime) -> dict:
             "hour_spent": int(usage.get("hour_spent") or 0),
         }
 
+    # CF KV Free: 100k reads / 1k writes per UTC day. Live sample or unknown (HOLD).
+    kv = _cf_kv_usage(now)
+    if kv is None:
+        live["cf-kv-writes"] = {"unknown": True}
+        live["cf-kv-reads"] = {"unknown": True}
+    else:
+        wu = int(kv.get("writes_used") or 0)
+        ru = int(kv.get("reads_used") or 0)
+        live["cf-kv-writes"] = {
+            "remaining": max(0, 1000 - wu),
+            "used": wu,
+            "day_spent": wu,
+            "hour_spent": int(kv.get("writes_hour") or 0),
+        }
+        live["cf-kv-reads"] = {
+            "remaining": max(0, 100000 - ru),
+            "used": ru,
+            "day_spent": ru,
+            "hour_spent": int(kv.get("reads_hour") or 0),
+        }
+
     # HF remaining 0 until 2026-09-01
     live["hf-inference"] = {"remaining": 0}
 
     live["aws-free"] = {"remaining": 0}
 
-    spent = estimated_spent_slots(cfg, now, "grok-auto")
-    live["grok-auto"] = {"remaining": max(0.0, 6.0 - float(spent))}
+    # grok-auto remaining from Lisbon-day fire counter — never a clock-slot estimate.
+    fires = load_grok_auto_fires(now)
+    live["grok-auto"] = {
+        "remaining": float(fires["remaining"]),
+        "day_spent": float(fires["spent"]),
+        "used": int(fires["spent"]),
+        "source": "counter",
+    }
 
-    # SuperGrok weekly pool (percent remaining). grok-bot-included stays unknown.
+    # SuperGrok weekly pool (percent remaining).
     live["grok-assistant"] = _grok_assistant_sample()
+    live["grok-bot-included"] = _grok_bot_sample()
     return live
+
+
+
+def _grok_bot_sample() -> dict:
+    """André 2026-08-29: 85% last 24h, 15% left for ~7d. Never invent remaining."""
+    if not GROK_BOT_LIVE.exists():
+        return {"unknown": True}
+    try:
+        scraped = json.loads(GROK_BOT_LIVE.read_text())
+    except Exception:
+        return {"unknown": True}
+    data = {}
+    for k in ("remaining_frac", "remaining", "used_pct", "reset_unix", "reset_iso", "reset_tz_assumed", "last_24h_used_frac"):
+        if k in scraped and scraped[k] is not None:
+            data[k] = scraped[k]
+    if "last_24h_used_frac" not in data and data.get("used_pct") is not None:
+        data["last_24h_used_frac"] = float(data["used_pct"]) / 100.0
+    if data.get("remaining_frac") is not None and "remaining" not in data:
+        data["remaining"] = data["remaining_frac"]
+    if not data:
+        return {"unknown": True}
+    return data
 
 
 def _grok_assistant_sample() -> dict:
@@ -221,6 +460,45 @@ def _grok_assistant_sample() -> dict:
     if data.get("remaining_frac") is not None and "remaining" not in data:
         data["remaining"] = data["remaining_frac"]
     return data
+
+
+
+def write_fog_cf_kv_cache(live: dict | None) -> None:
+    """Publish cf-kv live sample for Fog workerd /metabol/live (never invent rem=1000)."""
+    if not live:
+        return
+    kv = live.get("cf-kv-writes") or {}
+    if kv.get("unknown"):
+        payload = {"ok": False, "error": "sample_unknown", "sampled_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    elif "used" in kv or "remaining" in kv:
+        used = int(kv.get("used") if kv.get("used") is not None else max(0, 1000 - int(kv.get("remaining") or 0)))
+        payload = {
+            "ok": True,
+            "writes_used": used,
+            "writes_hour": int(kv.get("hour_spent") or 0),
+            "remaining": int(kv.get("remaining") if kv.get("remaining") is not None else max(0, 1000 - used)),
+            "sampled_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "source": "metabolism-status",
+            "rail": "cf-kv-writes",
+        }
+    else:
+        return
+    paths = []
+    env_path = os.environ.get("METABOL_CF_KV_PATH")
+    if env_path:
+        paths.append(Path(env_path))
+    fog_data = os.environ.get("FOG_DATA")
+    if fog_data:
+        paths.append(Path(fog_data) / "metabol-cf-kv.json")
+    # Always also write ops-monitor state for desk
+    paths.append(ROOT / "state" / "metabol-cf-kv.json")
+    text = json.dumps(payload, indent=2)
+    for path in paths:
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        except OSError:
+            pass
 
 
 def merge_sampled(ledger: dict, live: dict) -> dict:
@@ -254,6 +532,10 @@ def merge_sampled(ledger: dict, live: dict) -> dict:
         if used is not None:
             st["sampled_used"] = used
             st["day_spent"] = float(used)
+        if data.get("source"):
+            st["sampled_source"] = data["source"]
+        if data.get("last_24h_used_frac") is not None:
+            st["sampled_last_24h_used_frac"] = data["last_24h_used_frac"]
     ledger["sampled_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return ledger
 
@@ -272,6 +554,7 @@ def main(argv: list[str] | None = None) -> int:
         live = sample_live(cfg, now)
         ledger = merge_sampled(ledger, live)
         save_ledger(ledger)
+        write_fog_cf_kv_cache(live)
 
     snap = snapshot(now=now, live=live, cfg=cfg, ledger=ledger)
     if args.pretty:
