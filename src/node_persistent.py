@@ -599,6 +599,29 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, NODE.status())
         elif path in ("/health", "/api/v1/health"):
             self._json(200, {"ok": True, "node_id": NODE.node_id, "version": "0.6.0-lab", **mesh_flags()})
+        elif path in ("/metabol/live", "/api/v1/metabol/live"):
+            import os
+            from pathlib import Path as _P
+            candidates = []
+            env_path = os.environ.get("METABOL_CF_KV_PATH")
+            if env_path:
+                candidates.append(_P(env_path))
+            fog_home = os.environ.get("FOG_HOME") or str(_P.home() / "StrataMesh/fog")
+            fog_data = os.environ.get("FOG_DATA") or str(_P(fog_home) / "data")
+            candidates.append(_P(fog_data) / "metabol-cf-kv.json")
+            payload = None
+            for c in candidates:
+                try:
+                    if c.is_file():
+                        import json as _json
+                        payload = _json.loads(c.read_text())
+                        break
+                except Exception:
+                    payload = None
+            if not payload:
+                self._json(503, {"ok": False, "error": "no live KV sample — do not invent a cap", "sample_unknown": True})
+            else:
+                self._json(200, payload)
         elif path == "/inv":
             self._json(200, {"ids": NODE.inventory()})
         elif path == "/tx":

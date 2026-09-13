@@ -48,15 +48,120 @@ function meter() {
   return m;
 }
 
-function localSnap(extra = {}) {
+async function loadLiveKvDay(env) {
+  // Prefer Mac fog live cache via FOG service binding (isolates cannot rely on host loopback).
+  try {
+    const fog = env && env.FOG;
+    const r = fog
+      ? await fog.fetch("http://fog/metabol/live", { headers: { "user-agent": "stratamesh-workerd-metabol/1" } })
+      : await fetch("http://127.0.0.1:8787/metabol/live", { headers: { "user-agent": "stratamesh-workerd-metabol/1" } });
+    if (r.ok) {
+      const j = await r.json();
+      if (j && j.ok === true && j.writes_used != null) {
+        return {
+          ok: true,
+          writes_used: Number(j.writes_used),
+          writes_hour: Number(j.writes_hour || 0),
+          sampled_at: j.sampled_at || null,
+          source: j.source || "fog-metabol-live",
+        };
+      }
+    }
+  } catch (_) {}
+  const token = String((env && (env.CLOUDFLARE_API_TOKEN || env.GOD_API || env.CF_API_TOKEN)) || "").trim();
+  if (!token) return { ok: false, error: "no live sample path" };
+  const acct = String((env && (env.CF_ACCOUNT || env.CF_ACCOUNT_ID)) || "f3645fcb56675cf7250d8ba7358eb252");
+  const utc = new Date();
+  const dayStart = new Date(Date.UTC(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate()));
+  const hourStart = new Date(Date.UTC(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate(), utc.getUTCHours()));
+  const q = `query ($accountTag: String!, $dayFrom: Time!, $hourFrom: Time!, $to: Time!) {
+  viewer { accounts(filter: { accountTag: $accountTag }) {
+    day: kvOperationsAdaptiveGroups(limit: 20, filter: { datetime_geq: $dayFrom, datetime_lt: $to }) {
+      sum { requests } dimensions { actionType }
+    }
+    hour: kvOperationsAdaptiveGroups(limit: 20, filter: { datetime_geq: $hourFrom, datetime_lt: $to }) {
+      sum { requests } dimensions { actionType }
+    }
+  }} }`;
+  try {
+    const r = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: q,
+        variables: {
+          accountTag: acct,
+          dayFrom: dayStart.toISOString().replace(/\.\d{3}Z$/, "Z"),
+          hourFrom: hourStart.toISOString().replace(/\.\d{3}Z$/, "Z"),
+          to: utc.toISOString().replace(/\.\d{3}Z$/, "Z"),
+        },
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok || (data.errors && data.errors.length)) return { ok: false, error: "graphql" };
+    const rows = ((((data.data || {}).viewer || {}).accounts || [])[0] || {}).day || [];
+    let writes = 0, wh = 0;
+    for (const row of rows) {
+      if (String((row.dimensions || {}).actionType).toLowerCase() === "write") writes += Number((row.sum || {}).requests || 0);
+    }
+    const hrows = ((((data.data || {}).viewer || {}).accounts || [])[0] || {}).hour || [];
+    for (const row of hrows) {
+      if (String((row.dimensions || {}).actionType).toLowerCase() === "write") wh += Number((row.sum || {}).requests || 0);
+    }
+    return { ok: true, writes_used: writes, writes_hour: wh, sampled_at: utc.toISOString(), source: "cloudflare-graphql" };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message || e) };
+  }
+}
+
+function localSnap(extra = {}, live = null) {
   const m = meter();
-  const v = kvWriteDecision({ daySpent: m.day, hourSpent: m.hour, cost: extra.cost || 0 });
+  // Live CF account burn wins over isolate memory meter (which starts at 0 → fake rem=1000).
+  let daySpent;
+  let sample_unknown = false;
+  if (live && live.ok === true && live.writes_used != null) {
+    daySpent = Number(live.writes_used);
+  } else {
+    sample_unknown = true;
+    daySpent = null;
+  }
+  if (sample_unknown) {
+    return {
+      ok: true,
+      circuit: "metabol-v1.3",
+      rail: "cf-kv-writes",
+      formula: "hourly_cap=remaining/hours_left ; pace=clamp(time_frac/spent_frac,0.5,1.5) ; burn_rate=hourly_cap*pace",
+      night_freeze: false,
+      decision: "HOLD",
+      reason: "no live KV sample — do not invent a cap",
+      hourlyCap: 0,
+      adjusted: 0,
+      pace: 0,
+      remaining: 0,
+      hoursLeft: hoursLeftUtcMidnight(),
+      burn_rate: 0,
+      daySpent: null,
+      day_spent: null,
+      hourSpent: m.hour,
+      cost: extra.cost || 0,
+      sample_unknown: true,
+      sampled_at: live && live.sampled_at || null,
+      ticks: m.ticks,
+      ...extra,
+    };
+  }
+  const hourSpent = Number(live.writes_hour != null ? live.writes_hour : m.hour);
+  const v = kvWriteDecision({ daySpent, hourSpent, cost: extra.cost || 0 });
   return {
     ok: true,
     circuit: "metabol-v1.3",
+    rail: "cf-kv-writes",
     formula: "hourly_cap=remaining/hours_left ; pace=clamp(time_frac/spent_frac,0.5,1.5) ; burn_rate=hourly_cap*pace",
     night_freeze: false,
     ...v,
+    day_spent: daySpent,
+    sample_unknown: false,
+    sampled_at: live.sampled_at || null,
     ticks: m.ticks,
     ...extra,
   };
@@ -195,7 +300,8 @@ export default {
     }
 
     if (url.pathname === "/metabol" && request.method === "GET") {
-      const local = localSnap({ origin, hop: "workerd:8788" });
+      const live = await loadLiveKvDay(env);
+      const local = localSnap({ origin, hop: "workerd:8788" }, live);
       const cf = await pullCf(origin);
       return Response.json({
         ...local,
@@ -207,7 +313,8 @@ export default {
           remaining: cf.remaining || null,
           error: cf.error || null,
         },
-        talk: "tui → :8788/metabol local (HOPMESH; STASIS paces, freeze last)",
+        live_sample: live,
+        talk: "tui → :8788/metabol live CF KV sample (fail closed if unknown)",
       }, { headers: cors });
     }
 
