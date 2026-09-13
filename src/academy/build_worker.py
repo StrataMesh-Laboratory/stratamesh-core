@@ -238,6 +238,19 @@ async function pushAcbQiga(env, acbId, fitness) {{
     return {{ pushed: false, error: String(e.message || e).slice(0, 80) }};
   }}
 }}
+function scoresStubHold(scores) {{
+  if (!scores || typeof scores !== "object") return {{ hold: true, reasons: ["scores_missing"] }};
+  const reasons = [];
+  if (scores.scored_by_stub === true) reasons.push("scored_by_stub=true");
+  const sb = String(scores.scored_by || "").toLowerCase();
+  if (sb === "stub" || sb === "score_stubs" || sb === "draft_stub") reasons.push("scored_by=" + sb);
+  const students = Array.isArray(scores.students) ? scores.students : [];
+  for (let i = 0; i < students.length; i++) {{
+    const st = String((students[i] && students[i].status) || "");
+    if (/stub/i.test(st) || st === "draft_scored_stub") reasons.push("student[" + i + "].status=" + st);
+  }}
+  return {{ hold: reasons.length > 0, reasons }};
+}}
 function pageGrades() {{
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>StrataMesh LAB · Academy grades</title><style>${{CSS}}table{{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}}th,td{{border:1px solid var(--line);padding:.4rem .5rem;text-align:left}}th{{color:var(--fg)}}td{{color:var(--muted)}}.muted{{color:var(--muted);font-size:.8rem}}</style></head><body><main>
@@ -274,8 +287,18 @@ async function load() {{
   }}
   const latest = data.latest || data;
   const scores = data.scores || null;
-  meta.textContent = "Date " + (latest.date || "?") + " · source " + (data.source || "embed") + " · teachers desk (not students)";
+  const gate = (data.hold || (scores && scores.scored_by_stub === true))
+    ? {{ hold: true, reasons: data.stub_reasons || ["scored_by_stub"] }}
+    : (typeof scoresStubHold === "function" ? scoresStubHold(scores) : {{ hold: false, reasons: [] }});
+  const hold = !!(data.decision === "HOLD" || data.publishable === false || gate.hold);
+  meta.textContent = "Date " + (latest.date || "?") + " · source " + (data.source || "embed")
+    + " · teachers desk (not students)"
+    + (hold ? " · HOLD (stub draft — not PASS)" : " · publishable");
   let html = "";
+  if (hold) {{
+    html += "<p class=\\"badge\\" style=\\"border-color:var(--bad);color:var(--bad)\\">HOLD · NO-FAKE-DONE · stub scores are drafts only — not PASS</p>";
+    html += "<p class=\\"muted\\">Reasons: " + ((gate.reasons || data.stub_reasons || []).join(", ") || "stub") + ". Teacher-fill clears scored_by_stub before publish.</p>";
+  }}
   if (scores && Array.isArray(scores.students)) {{
     html += "<table><thead><tr><th>Student</th><th>Role</th><th>Formation</th><th>Status</th><th>Adjustments</th><th>Excellence</th></tr></thead><tbody>";
     for (const s of scores.students) {{
@@ -390,13 +413,20 @@ export default {{
     if (path === "/" && wantsHtml(request)) return html(pageIndex());
     if (path === "/grades") return html(pageGrades());
     if (path === "/v1/daily-scores") {{
+      const scores = (DAILY_SCORES && DAILY_SCORES.scores) || null;
+      const gate = scoresStubHold(scores);
       const body = {{
         ok: !!(DAILY_SCORES && (DAILY_SCORES.latest || DAILY_SCORES.scores)),
         source: "embed",
         latest: (DAILY_SCORES && DAILY_SCORES.latest) || null,
-        scores: (DAILY_SCORES && DAILY_SCORES.scores) || null,
+        scores,
         exam_focus: (DAILY_SCORES && DAILY_SCORES.exam_focus) || null,
         note: "Mac Fog desk writes academy_scores/; Bot not required",
+        scored_by_stub: !!(scores && scores.scored_by_stub === true),
+        publishable: !gate.hold,
+        decision: gate.hold ? "HOLD" : "ALLOW",
+        hold: gate.hold,
+        stub_reasons: gate.reasons,
       }};
       return json(body, 200, "no-store");
     }}
