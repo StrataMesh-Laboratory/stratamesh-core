@@ -49,11 +49,12 @@ function meter() {
 }
 
 async function loadLiveKvDay(env) {
-  // Prefer Mac fog live cache (desk/metabolism-status), then GraphQL if token bound, else unknown.
+  // Prefer Mac fog live cache via FOG service binding (isolates cannot rely on host loopback).
   try {
-    const r = await fetch("http://127.0.0.1:8787/metabol/live", {
-      headers: { "user-agent": "stratamesh-workerd-metabol/1" },
-    });
+    const fog = env && env.FOG;
+    const r = fog
+      ? await fog.fetch("http://fog/metabol/live", { headers: { "user-agent": "stratamesh-workerd-metabol/1" } })
+      : await fetch("http://127.0.0.1:8787/metabol/live", { headers: { "user-agent": "stratamesh-workerd-metabol/1" } });
     if (r.ok) {
       const j = await r.json();
       if (j && j.ok === true && j.writes_used != null) {
