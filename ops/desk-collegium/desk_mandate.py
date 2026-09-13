@@ -165,6 +165,8 @@ def render_directed_brief(
         "- Do real work toward Done. Cite paths, commands, exit codes.",
         "- If Stop applies: say so and stop. Do not invent progress.",
         "- No fake done. Skip/queue/audit is not Done.",
+        "- Never ask the operator to confirm. Write the prove file, then stop.",
+        "- Chat questions ('Please confirm', 'Would you like me') are NOT evidence.",
         "",
     ]
     if annex.strip():
@@ -182,6 +184,9 @@ def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
     Accept common desk prove markers (live=1, meter paths, academy_ok) so real
     specialty results are not stripped to dispute when default done_when is
     the vague "non-empty evidence path in result".
+
+    Reject confirmation-seeking chat and log-only chrome ("wrote log rc=0") —
+    those are evidence≠commitment vapour (2026-09-13 overnight RCA).
     """
     text = (blob or "").lower()
     if not text.strip():
@@ -190,6 +195,33 @@ def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
         return False
     if "help" in text[:400] and "opencode" in text and "wrote" not in text:
         return False
+    # Operator-confirm / chat vapour is never evidence
+    confirm_needles = (
+        "please confirm",
+        "would you like me",
+        "shall i proceed",
+        "do you want me to",
+        "confirm before",
+        "awaiting confirmation",
+    )
+    if any(n in text for n in confirm_needles):
+        return False
+    # Log-only chrome: "opencode run wrote log rc=0" without a prove path
+    if re.search(r"wrote\s+log\b", text) and not re.search(
+        r"(desk-meters/|status/|apprentice/|prove_|git diff|sha=[0-9a-f]{7})",
+        text,
+    ):
+        return False
+    # Bare rc=0 / wrote without a concrete path is not a prove
+    if re.fullmatch(r".*\b(rc=0|wrote)\b.*", text) and not re.search(
+        r"(desk-meters/|status/|apprentice/|prove_|\bdiff\b|sha=[0-9a-f]{7}|"
+        r"live=1|academy_ok|fog[_=]?1|edge[_=]?1|mac_addr=|ping_10\.88)",
+        text,
+    ):
+        # still allow if done_when needles hit below
+        soft_only = True
+    else:
+        soft_only = False
     # Strip our own gate suffix if re-checked
     text = text.split("| no-fake-done:")[0].strip()
     hits = 0
@@ -206,10 +238,13 @@ def evidence_matches_commitment(blob: str, commitment: dict[str, Any]) -> bool:
                 break
     if hits >= 1:
         return True
+    if soft_only:
+        return False
     if re.search(
-        r"(wrote|created|diff|sha=|rc=0|fog[_=]?1|edge[_=]?1|"
-        r"live=1|ok=true|academy_ok|desk-meters/|status/|"
-        r"apprentice/|prove_|fog_public.?=.?1)",
+        r"(desk-meters/|status/|apprentice/|prove_|sha=[0-9a-f]{7}|"
+        r"fog[_=]?1|edge[_=]?1|live=1|ok=true|academy_ok|"
+        r"fog_public.?=.?1|mac_addr=|ping_10\.88|\bgit diff\b|"
+        r"wrote status/|wrote desk-meters/)",
         text,
     ):
         return True
