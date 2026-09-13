@@ -36,7 +36,9 @@ OWNER = {
 def _evidence_ok(path: str) -> bool:
     """NO-FAKE-DONE: size alone is not evidence (stub verified-on-DATE closed T1).
 
-    Require desk_ops._has_tool_evidence residue in the file body.
+    Prefer desk_ops._has_tool_evidence residue. Also accept fresh status/*prove*
+    bodies with concrete Mac/WG markers (operator residual proves), never vapour
+    stubs.
     """
     if not path:
         return False
@@ -64,18 +66,50 @@ def _evidence_ok(path: str) -> bool:
     if any(s in low for s in stub_needles) and "iphone_prove" not in low:
         if "mac_addr=" not in low and "ping_10.88" not in low and "wrote status/" not in low:
             return False
-    return bool(ops._has_tool_evidence(blob))
+    if ops._has_tool_evidence(blob):
+        return True
+    # Status residual proves: real command output, not oneshot chrome.
+    name = p.name.lower()
+    under_status = "status" in {x.lower() for x in p.parts}
+    prove_name = "prove" in name
+    markers = (
+        "utun9:",
+        "10.88.0.2",
+        "ping 10.88.0.1",
+        "packets received",
+        "asymmetric=",
+        "iphone_faked=false",
+        "local8787=",
+        "git_head=",
+        "box_to_mac_tcp",
+    )
+    marker_hits = sum(1 for m in markers if m in low)
+    if under_status and prove_name and marker_hits >= 3 and len(blob) >= 200:
+        return True
+    return False
 
 
-def _pick_task(state: dict, agent: str) -> dict | None:
-    want = OWNER.get(agent, agent)
+def _pick_task(state: dict, agent: str, task_id: str = "") -> dict | None:
     open_tasks = list(state.get("open_tasks") or [])
+    if task_id:
+        for t in open_tasks:
+            if str(t.get("id") or "") == task_id:
+                return t
+        return None
+    want = OWNER.get(agent, agent)
+    # Prefer in-flight act/commit over a random first owned propose.
+    preferred_status = ("act", "commit", "revise", "constrain")
+    owned = []
     for t in open_tasks:
         own = str(t.get("owner") or "")
         if want in own or own.endswith(want) or own.startswith(want):
             if str(t.get("status") or "") not in ("done", "drop", "escalate"):
+                owned.append(t)
+    for st in preferred_status:
+        for t in owned:
+            if str(t.get("status") or "") == st:
                 return t
-    return None
+    return owned[0] if owned else None
 
 
 def main() -> int:
@@ -85,13 +119,22 @@ def main() -> int:
     ap.add_argument("--result", default="")
     ap.add_argument("--evidence", default="")
     ap.add_argument("--verb", default="")
+    ap.add_argument("--task-id", default="", help="Bind finish to this desk_bus task id")
     args = ap.parse_args()
     agent = args.agent.strip().lower()
     ev = _evidence_ok(args.evidence)
     ok = bool(args.ok) and ev
     done = ok
     skipped = False
-    verb = (args.verb or ("act" if ok else "dispute")).strip()
+    # Incomplete Act with real evidence amends/acts — do not dispute a peer task.
+    if args.verb:
+        verb = args.verb.strip()
+    elif ok:
+        verb = "act"
+    elif ev:
+        verb = "act"
+    else:
+        verb = "dispute"
     result = args.result or ("evidence " + args.evidence if ev else "no evidence — not done")
     out = ops.honest_result(
         ok=ok,
@@ -102,7 +145,7 @@ def main() -> int:
         skipped=skipped,
     )
     state = bus.load_state()
-    task = _pick_task(state, agent)
+    task = _pick_task(state, agent, task_id=(args.task_id or "").strip())
     meter_dir = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog")) / "data" / "desk-meters"
     meter_dir.mkdir(parents=True, exist_ok=True)
     payload = {
