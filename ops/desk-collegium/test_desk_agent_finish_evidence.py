@@ -53,6 +53,43 @@ class TestDeskAgentFinishEvidence(unittest.TestCase):
             self.assertFalse(fin._evidence_ok(str(p)))
 
 
+    def test_forbids_done_when_evidence_done_false(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-wg-mac-prove.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "task=dt-proj-ts-taper-t1\n"
+                "mac_addr=10.88.0.2\n"
+                "ping_10.88.0.1=true\n"
+                "sha=deadbeef\n"
+                "iphone_prove=false\n"
+                "done=false\n"
+                "NO_FAKE_DONE=true\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                fin._evidence_forbids_done(str(p), "residual", None),
+                "evidence_says_done_false",
+            )
+
+    def test_forbids_done_t1_iphone_unproved(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-prove.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "task=dt-proj-ts-taper-t1 mac_addr=10.88.0.2 "
+                "ping_10.88.0.1=true sha=abc1234 iphone_prove=false\n",
+                encoding="utf-8",
+            )
+            task = {
+                "id": "dt-proj-ts-taper-t1",
+                "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24",
+            }
+            self.assertEqual(
+                fin._evidence_forbids_done(str(p), "ok", task),
+                "iphone_unproved_residual",
+            )
+
 if __name__ == "__main__":
     unittest.main()
 

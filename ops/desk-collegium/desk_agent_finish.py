@@ -119,6 +119,35 @@ def _ids_in_text(text: str) -> list[str]:
     return found
 
 
+def _evidence_forbids_done(evidence: str, result: str, task: dict | None = None) -> str | None:
+    """NO-FAKE-DONE: real residual evidence must not close an incomplete commitment.
+
+    - Explicit done=false / done: false in evidence or result → stay open.
+    - Task intent names iPhone and evidence has iphone_prove=false → stay open
+      (Mac residual Act is evidence, not Done).
+    """
+    blob = (result or "")
+    if evidence:
+        ep = Path(evidence)
+        if ep.is_file():
+            try:
+                blob = blob + "\n" + ep.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+    low = blob.lower()
+    if re.search(r"\bdone\s*[:=]\s*false\b", low):
+        return "evidence_says_done_false"
+    intent = ""
+    tid = ""
+    if task:
+        intent = str(task.get("intent") or "").lower()
+        tid = str(task.get("id") or "").lower()
+    needs_iphone = ("iphone" in intent) or ("taper-t1" in tid) or ("ts-taper-t1" in tid)
+    if needs_iphone and re.search(r"iphone_prove\s*[:=]\s*false", low):
+        return "iphone_unproved_residual"
+    return None
+
+
 def _commitment_ids(evidence: str, result: str) -> list[str]:
     """Task ids named in evidence body and/or result — commitment residue."""
     blob = result or ""
@@ -234,6 +263,14 @@ def main() -> int:
         evidence=ev,
         skipped=skipped,
     )
+    # Pre-pick gate on explicit residual flags (task intent applied after pick).
+    forbid0 = _evidence_forbids_done(args.evidence, result, None)
+    if forbid0 and out.get("done"):
+        out = dict(out)
+        out["done"] = False
+        out["result"] = (out.get("result") or "") + f" | NO-FAKE-DONE: {forbid0}"
+        if out.get("verb") == "done":
+            out["verb"] = "act"
     state = bus.load_state()
     task = _pick_task(state, agent, task_id=explicit)
     meter_dir = Path(os.environ.get("FOG_HOME") or (Path.home() / "StrataMesh/fog")) / "data" / "desk-meters"
@@ -282,6 +319,17 @@ def main() -> int:
             )
         )
         return 2
+    forbid = _evidence_forbids_done(args.evidence, result, task)
+    if forbid and out.get("done"):
+        out = dict(out)
+        out["done"] = False
+        out["result"] = (out.get("result") or "") + f" | NO-FAKE-DONE: {forbid}"
+        if out.get("verb") == "done":
+            out["verb"] = "act"
+        payload["done"] = False
+        payload["result"] = out["result"][:240]
+        payload["forbid_done"] = forbid
+        (meter_dir / f"{agent}.json").write_text(json.dumps(payload, indent=2) + "\n")
     ops.apply_result(bus, task, out, by=agent)
     print(json.dumps({"applied": True, **payload}, indent=2))
     return 0 if out["ok"] else 1
