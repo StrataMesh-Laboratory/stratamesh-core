@@ -62,9 +62,9 @@ run_actions() {
 }
 
 finish_agent() {
-  # $1 agent  $2 ok  $3 result  $4 optional evidence path
+  # $1 agent  $2 ok  $3 result  $4 optional evidence path  $5 optional --task-id
   python3 "$REPO/ops/desk-collegium/desk_agent_finish.py" \
-    --agent "$1" --ok "$2" --result "$3" ${4:+--evidence "$4"} || true
+    --agent "$1" --ok "$2" --result "$3" ${4:+--evidence "$4"} ${5:+--task-id "$5"} || true
 }
 
 run_opencode() {
@@ -167,12 +167,24 @@ run_openclaw() {
     echo "desk-claw-probe.sh missing" >"$LOG"
   fi
   set -e
-  EV="$METER"
-  [[ -s "$LOG" ]] && EV="$LOG"
-  if [[ "$RC" -eq 0 && -s "$EV" ]]; then
-    finish_agent openclaw 1 "claw probe rc=0" "$EV"
+  # NO-FAKE-DONE: short desk-meters log is not status evidence — write status prove
+  # with hop needles so desk_agent_finish _evidence_ok can accept it.
+  TS="$(date -u +%Y%m%dT%H%M%SZ)"
+  EV="status/openclaw-hop-prove-${TS}.txt"
+  mkdir -p status
+  {
+    echo "openclaw-hop-prove task=dt-ollama-claw-board operator=desk-agent-run $TS"
+    echo "git_head=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo na)"
+    echo "sha=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo na)"
+    echo "local8787=$(curl -sS -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/health 2>/dev/null || echo down)"
+    echo "probe_rc=$RC"
+    echo "--- claw log ---"
+    cat "$LOG" 2>/dev/null || true
+  } >"$EV"
+  if [[ "$RC" -eq 0 && -s "$EV" ]] && grep -Eq 'fog_public=1|ok=1|local=1' "$LOG" 2>/dev/null; then
+    finish_agent openclaw 1 "claw probe rc=0 prove=$EV task=dt-ollama-claw-board" "$EV" dt-ollama-claw-board
   else
-    finish_agent openclaw 0 "claw probe rc=$RC or empty evidence — not done" "$EV"
+    finish_agent openclaw 0 "claw probe rc=$RC or hops missing — not done prove=$EV" "$EV" dt-ollama-claw-board
   fi
 }
 

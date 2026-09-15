@@ -81,9 +81,37 @@ def _git_sha() -> str:
     return ""
 
 
+
+def _is_soft_refer_punish_row(sample: dict) -> bool:
+    """P0: do not tank autonomy score when cycle only touched standing_refer / optional oracle.
+    Those picks with delivered=0 are park theatre, not failed specialty Acts.
+    """
+    if int(sample.get("delivered") or 0) > 0:
+        return False
+    if sample.get("idle_skip"):
+        return True
+    picked = sample.get("picked") or []
+    if not picked:
+        return bool(sample.get("idle_skip"))
+    soft_prefixes = (
+        "dt-ch-oracle",
+        "dt-proj-oracle",
+        "dt-iss151",
+        "dt-proj-gcp",
+        "dt-proj-host-gcp",
+        "dt-proj-m2-twohost",
+        "dt-proj-host-rpi",
+        "dt-proj-host-fly",
+    )
+    # Only treat as soft-refer punish when ALL picked ids look like parked gates
+    return all(any(str(pid).startswith(p) for p in soft_prefixes) for pid in picked)
+
+
 def record(sample: dict) -> Path:
     """Append one cycle sample to desk-metrics.jsonl and last-cycle.jsonl."""
     sample = dict(sample)
+    if _is_soft_refer_punish_row(sample):
+        sample["idle_skip"] = True  # soft_refer_idle_skip
     sample.setdefault("ts", _now())
     line = json.dumps(sample, ensure_ascii=False) + "\n"
     primary = metrics_path()

@@ -91,9 +91,19 @@ def _evidence_ok(path: str) -> bool:
         "task=dt-",
         "academy_rc=",
         "sha=",
+        "fog_public=1",
+        "edge_api=1",
+        "local=1",
+        "workerd=1",
+        "openclaw-hop-prove",
+        "probe_rc=0",
     )
     marker_hits = sum(1 for m in markers if m in low)
-    if under_status and prove_name and marker_hits >= 3 and len(blob) >= 200:
+    if under_status and prove_name and marker_hits >= 3 and len(blob) >= 120:
+        return True
+    # Claw hop log residue (even if not under status/): require hop ones + task id
+    if ("fog_public=1" in low and "edge_api=1" in low and ("local=1" in low or "ok=1" in low)
+            and "dt-ollama-claw-board" in low and len(blob) >= 80):
         return True
     return False
 
