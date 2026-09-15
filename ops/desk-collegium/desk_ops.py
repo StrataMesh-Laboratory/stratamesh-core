@@ -2301,7 +2301,11 @@ def _is_standing_soft_refer(task: dict, *, cooldown_s: float = 1800.0) -> bool:
         standing = True
     if not standing:
         return False
-    # cooldown from updated
+    # Explicit standing_refer flag: park until cleared (assistant result / act).
+    # Cooldown alone re-opened Oracle/GCP every 30m → delivered=0 theatre.
+    if task.get("standing_refer") or task.get("skip_soft_fail_chain"):
+        return True
+    # cooldown from updated (inferred soft-refer only)
     updated = task.get("updated") or task.get("refer_at") or ""
     # if no parseable time, park anyway when status=refer
     try:
@@ -2424,8 +2428,10 @@ def _pick_rr_advance(chosen_spec: str) -> None:
 def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
     """If RR pick is empty but open Act work remains, take the next representable task.
 
-    Skips only true André gates and eisenhower plan/note. Used so r/60s cannot
-    idle-skip while dt-* Acts are still open.
+    Skips true André gates, eisenhower plan/note, and standing_soft_refer
+    (same park rule as pick_tasks — ping/prep/human_gate do not re-admit).
+    Used so r/60s cannot idle-skip while dt-* Acts are still open, without
+    delivered=0 Oracle/GCP theatre.
     """
     out: list[dict] = []
     for t in state.get("open_tasks") or []:
@@ -2437,9 +2443,9 @@ def pick_actable_fallback(state: dict, *, max_n: int = 1) -> list[dict]:
         )
         if _is_andre_human_gate_task(t) and not ping_prep:
             continue
-        if _is_standing_soft_refer(t) and not (
-            t.get("ping_when_needed") or t.get("prep_allowed") or t.get("human_gate")
-        ):
+        # P0 2026-09-16 overnight: align with pick_tasks — standing_refer must park
+        # even when ping_when_needed / prep_allowed / human_gate are set.
+        if _is_standing_soft_refer(t):
             continue
         eisen = (t.get("eisenhower") or "act").lower()
         if eisen in ("plan", "note") and not ping_prep:
