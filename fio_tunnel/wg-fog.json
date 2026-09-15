@@ -1,0 +1,15 @@
+{
+  "schema": "desk.meter.wg-fog.v1",
+  "task_id": "dt-proj-ts-taper-t2",
+  "ts": "20260913T180000Z",
+  "tip": "100.x",
+  "inventory": {
+    "wg": {
+      "mac_addr": "?",
+      "ping_ok": true
+    },
+    "fog": {
+      "remote": true
+    }
+  }
+}

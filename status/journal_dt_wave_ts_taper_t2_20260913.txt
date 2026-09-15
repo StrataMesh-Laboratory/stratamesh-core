@@ -1,0 +1,8 @@
+dt-wave-ts-taper-t2-20260913 journal
+ts_pt=2026-09-13T19:00:00+0100
+tip_origin_main=8d1abb9d2
+
+== ACT PROOF ==
+  note: ops/scripts/connectors/notes/100.x-drain.md
+  timestamp: 2026-09-13T18:00:00Z
+  DONE
