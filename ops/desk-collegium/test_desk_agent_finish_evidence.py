@@ -90,6 +90,28 @@ class TestDeskAgentFinishEvidence(unittest.TestCase):
                 "iphone_unproved_residual",
             )
 
+    def test_accepts_overnight_residual_keys(self):
+        """Overnight T1 residual uses mac_addr=/ping_10.88_/fog_local_ keys."""
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-wg-mac-prove-residual.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "prove=t1-wg-mac\n"
+                "task=dt-proj-ts-taper-t1\n"
+                "NO_FAKE_DONE=1\n"
+                "mac_addr=10.88.0.2\n"
+                "mac_inet_present=true\n"
+                "ping_10.88.0.1=true\n"
+                "openvpn=true\n"
+                "iphone_prove=false\n"
+                "done=false\n"
+                "fog_local_8787=200\n"
+                "fog_public=200\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(fin._evidence_ok(str(p)))
+
+
 if __name__ == "__main__":
     unittest.main()
 
