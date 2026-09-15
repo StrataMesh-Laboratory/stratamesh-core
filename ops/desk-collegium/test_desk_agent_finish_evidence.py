@@ -55,3 +55,20 @@ class TestDeskAgentFinishEvidence(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OpenClawHopEvidence(unittest.TestCase):
+    def test_openclaw_hop_prove_markers(self):
+        import desk_agent_finish as fin
+        from pathlib import Path
+        import tempfile
+        blob = (
+            "openclaw-hop-prove task=dt-ollama-claw-board\n"
+            "git_head=abc1234\nsha=abc1234\nlocal8787=200\nprobe_rc=0\n"
+            "claw probe local=1 workerd=1 ws=1 fog_public=1 edge_api=1 ok=1\n"
+        )
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "openclaw-hop-prove-test.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(blob * 3)  # ensure length
+            self.assertTrue(fin._evidence_ok(str(p)))
