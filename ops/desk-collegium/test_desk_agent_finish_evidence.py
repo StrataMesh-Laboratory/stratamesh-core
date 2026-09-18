@@ -53,6 +53,65 @@ class TestDeskAgentFinishEvidence(unittest.TestCase):
             self.assertFalse(fin._evidence_ok(str(p)))
 
 
+    def test_forbids_done_when_evidence_done_false(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-wg-mac-prove.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "task=dt-proj-ts-taper-t1\n"
+                "mac_addr=10.88.0.2\n"
+                "ping_10.88.0.1=true\n"
+                "sha=deadbeef\n"
+                "iphone_prove=false\n"
+                "done=false\n"
+                "NO_FAKE_DONE=true\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                fin._evidence_forbids_done(str(p), "residual", None),
+                "evidence_says_done_false",
+            )
+
+    def test_forbids_done_t1_iphone_unproved(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-prove.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "task=dt-proj-ts-taper-t1 mac_addr=10.88.0.2 "
+                "ping_10.88.0.1=true sha=abc1234 iphone_prove=false\n",
+                encoding="utf-8",
+            )
+            task = {
+                "id": "dt-proj-ts-taper-t1",
+                "intent": "Act T1 NOW: Mac+iPhone prove WG 10.88.0.0/24",
+            }
+            self.assertEqual(
+                fin._evidence_forbids_done(str(p), "ok", task),
+                "iphone_unproved_residual",
+            )
+
+    def test_accepts_overnight_residual_keys(self):
+        """Overnight T1 residual uses mac_addr=/ping_10.88_/fog_local_ keys."""
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "status" / "t1-wg-mac-prove-residual.txt"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                "prove=t1-wg-mac\n"
+                "task=dt-proj-ts-taper-t1\n"
+                "NO_FAKE_DONE=1\n"
+                "mac_addr=10.88.0.2\n"
+                "mac_inet_present=true\n"
+                "ping_10.88.0.1=true\n"
+                "openvpn=true\n"
+                "iphone_prove=false\n"
+                "done=false\n"
+                "fog_local_8787=200\n"
+                "fog_public=200\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(fin._evidence_ok(str(p)))
+
+
 if __name__ == "__main__":
     unittest.main()
 
