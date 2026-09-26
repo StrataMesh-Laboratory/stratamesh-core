@@ -659,6 +659,22 @@ class TestHasToolEvidence(unittest.TestCase):
         finally:
             self.ops.REPO_ROOT = old
 
+    def test_rejects_planning_chat_without_tool_residue(self):
+        """P0 overnight: OpenCode planning chat must not count as evidence."""
+        fn = self.ops._has_tool_evidence
+        blob = (
+            "Let's investigate the empty status in the /status SPA registry. "
+            "We need to look into the seed path without fabricating any member data. "
+            "First, I'll use grep to find where these values might be defined."
+        )
+        self.assertFalse(fn(blob, prompt="Desk collegium code task dt-wave"))
+        ok_blob = (
+            "ran command: pytest -q\nexit code 0\nwrote status/spa-seed-prove.txt "
+            "sha=abcdef1 live=1\n"
+        )
+        self.assertTrue(fn(ok_blob, prompt="Desk collegium code task dt-wave"))
+
+
 def test_cmd_cycle_respects_desk_cycle_hold(tmp_path, monkeypatch):
     """HOLD file must short-circuit cycle before flock/agent spawn."""
     import desk_ops as d
