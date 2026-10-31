@@ -32,6 +32,8 @@ export const TEMPORAL_POLICY = {
 export const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
   name: "Calhegas Morais Node",
+  public_id: "PT-SM-001", // public display alias; node_id stays the protocol id
+  public_name: "Spencer-Morais Node",
   lat: 38.7169,
   lon: -9.1427,
   locality: "Lisboa, Portugal",

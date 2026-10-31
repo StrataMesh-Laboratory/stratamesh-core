@@ -12,13 +12,15 @@ What exists today is a **one-person research/development initiative** using the 
 
 A Portuguese *Associação Privada Sem Fins Lucrativos* requires **at least two founders** to be constituted; legal existence comes through registration. Until then, the name may be used as research identity **without** claiming association status.
 
-### Fog Node infrastructure (today)
+### Spencer-Morais Node (today, confirmed wording)
 
-The present Fog Node is **infrastructure belonging to AMCM ENI** (André Manuel Calhegas Morais — Empresário em Nome Individual), already registered in the relevant sense but **not yet fiscally activated for commercial activity**.
+O Spencer-Morais Node tem por titular a Instituição Spencer-Morais Unipessoal, Lda., quando constituída, ou sociedade por ela dominada, se a actividade comercial vier a exigir entidade própria.
 
-Correct representation:
+Responsável pelo projecto: o fundador André Manuel Calhegas Morais.
 
-> **StrataMesh Fog Node — infrastructure of AMCM ENI**
+Public id: **PT-SM-001** (display alias; the internal protocol id `FOG-NODE-PT-CM-001` is kept unchanged for peers, gossip, signatures, KV keys and ledger continuity).
+
+StrataMesh LAB, projecto de registo distribuído (DLT) da Casa Spencer-Morais, integrado no seu ecossistema digital de código aberto. It is a project, not a constituted entity or laboratory.
 
 Not: an independent commercial enterprise currently operating for income.
 
