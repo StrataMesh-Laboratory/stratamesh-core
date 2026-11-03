@@ -416,7 +416,7 @@ export function paceFailed({ prevCircuit, circuit, hourSpent, hourlyCap } = {}) 
 export const DEFAULT_CONTINGENCY = {
   auth: { url: "https://auth.calhegasmorais.pt", note: "python :8790 JSON hop" },
   "cf-worker-req": { url: "https://calhegasmorais.pt/", note: "Pages apex, not Worker SPA" },
-  sandbox: { url: "https://sandbox.calhegasmorais.pt/", note: "gnu-atelier Pages" },
+  sandbox: { url: "https://node.spencer-morais.pt/sandbox/", note: "gnu-atelier Pages" },
 };
 
 function retryAfterSec(pack) {

@@ -163,12 +163,12 @@ function publicLanding() {
        <div class="row"><span class="mono">Token / Ágora / Status</span><span class="mono">3.5.5-fog-honest · 3.3.1-gold-spot · 0.4.8-circ-split</span></div>
      </div>
      <div class="card">
-       <div class="row"><span class="mono">Fog process</span><a href="https://fog.calhegasmorais.pt/">fog.calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">Fog /health</span><a href="https://fog.calhegasmorais.pt/health">origin probe</a></div>
-       <div class="row"><span class="mono">Gossip</span><a href="https://gossip.calhegasmorais.pt/">gossip.calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">EDGE desk</span><a href="https://edge.calhegasmorais.pt/">edge.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Fog process</span><a href="https://node.spencer-morais.pt/fog/">fog.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Fog /health</span><a href="https://node.spencer-morais.pt/fog/health">origin probe</a></div>
+       <div class="row"><span class="mono">Gossip</span><a href="https://node.spencer-morais.pt/gossip/">gossip.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">EDGE desk</span><a href="https://node.spencer-morais.pt/edge/">edge.calhegasmorais.pt</a></div>
        <div class="row"><span class="mono">Apex / Pages</span><a href="https://calhegasmorais.pt/">calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">Status pulse</span><a href="https://status.calhegasmorais.pt/status">status.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Status pulse</span><a href="https://node.spencer-morais.pt/status/status">status.calhegasmorais.pt</a></div>
      </div>
      <p><a class="pill" href="/login">Staff login</a></p>
      <p class="mono">Lab · n=2 · mesh_member=true · f_max=0 · spa.source=fog_process · Challenge 0 unfunded</p>
@@ -176,7 +176,7 @@ function publicLanding() {
      (function(){
        var el = document.getElementById("fog-origin");
        if (!el) return;
-       fetch("https://fog.calhegasmorais.pt/health").then(function(r){ return r.json(); }).then(function(d){
+       fetch("https://node.spencer-morais.pt/fog/health").then(function(r){ return r.json(); }).then(function(d){
          el.textContent = d.origin || "DARK";
          if (d.origin) el.className = "mono ok";
          var ml = document.getElementById("fog-mac-live");
@@ -265,7 +265,7 @@ var stratamesh_origin_archive_default = {
         staff_gated: true,
         public_landing: true,
         sixth_cron: false,
-        fog_probe: "https://fog.calhegasmorais.pt/health",
+        fog_probe: "https://node.spencer-morais.pt/fog/health",
         fog_origin_roles: ["macbook", "session"],
         one_connector: true,
         session_fallback_after_sec: 1800,

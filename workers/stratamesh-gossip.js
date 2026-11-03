@@ -13,9 +13,9 @@ const CORS = {
 const VERSION = '2.3.11-destyle';
 const NODE_ID = 'FOG-NODE-PT-CM-001';
 const EDGE_GROK_ID = 'EDGE-GROK-CMN-001';
-const FOG_ENDPOINT = 'https://fog.calhegasmorais.pt';
+const FOG_ENDPOINT = 'https://node.spencer-morais.pt/fog';
 const FOG_HEALTH = FOG_ENDPOINT + '/health';
-const EDGE_CUSTOM = 'https://edge.calhegasmorais.pt';
+const EDGE_CUSTOM = 'https://node.spencer-morais.pt/edge';
 
 function edgeGrokUrl(env) {
   const fromEnv = env && env.EDGE_GROK_URL && String(env.EDGE_GROK_URL);
@@ -169,8 +169,8 @@ code { color:var(--fg); }
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/peers">/peers</a> JSON</li>
 <li><a href="/have">/have</a> IHAVE digest</li>
-<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
-<li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a></li>
+<li><a href="https://node.spencer-morais.pt/fog/health">Fog /health</a></li>
+<li><a href="https://node.spencer-morais.pt/edge/health">EDGE /health</a></li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>
@@ -276,7 +276,7 @@ async function cachedPeersPayload(env, request) {
     protocol: 'lab_fog_edge_mesh_active',
     lab: true,
     cached_sec: 60,
-    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://fog.calhegasmorais.pt/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
+    note: 'Fog FOG-NODE-PT-CM-001 listed from live GET https://node.spencer-morais.pt/fog/health (local-process; not status Worker; not Oracle VM). EDGE-GROK-CMN-001 listed when /health returns 200, or when the caller is EDGE itself (inbound liveness; avoids circular fetch). Local :8788 is same-host EDGE, not a second peer. /peers is cached 60s so a probe loop cannot 2× edge-grok. IHAVE is GET /have — not full /events.',
     version: VERSION,
     mesh: 'active',
   };

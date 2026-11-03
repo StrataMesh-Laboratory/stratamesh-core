@@ -16,7 +16,7 @@
       },
       {
         "id": "fog-public",
-        "url": "https://fog.calhegasmorais.pt/health",
+        "url": "https://node.spencer-morais.pt/fog/health",
         "why": "Public Fog health"
       },
       {
@@ -36,7 +36,7 @@
       },
       {
         "id": "academy",
-        "url": "https://academy.calhegasmorais.pt",
+        "url": "https://node.spencer-morais.pt/academy",
         "why": "Academy"
       },
       {

@@ -11,12 +11,12 @@ export const PACKAGE = {
   installs_into: ["cognition", "debug"],
   requires: ["cognition-lobes"],
   endpoints: {
-    chat_debug: "POST https://academy.calhegasmorais.pt/v1/debug/chat",
-    packages: "GET https://academy.calhegasmorais.pt/v1/packages",
-    cognition: "POST https://academy.calhegasmorais.pt/v1/cognition/install",
-    subsist: "POST https://academy.calhegasmorais.pt/v1/subsist",
+    chat_debug: "POST https://node.spencer-morais.pt/academy/v1/debug/chat",
+    packages: "GET https://node.spencer-morais.pt/academy/v1/packages",
+    cognition: "POST https://node.spencer-morais.pt/academy/v1/cognition/install",
+    subsist: "POST https://node.spencer-morais.pt/academy/v1/subsist",
   },
   workers_dev: false,
   worker_infers: false,
-  host: "https://academy.calhegasmorais.pt",
+  host: "https://node.spencer-morais.pt/academy",
 };

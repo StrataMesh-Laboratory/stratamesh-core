@@ -6,8 +6,8 @@ const VERSION = "1.6.0-n2-mesh";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const AGENT_MAIL = "grok@calhegasmorais.pt";
-const ORIGIN_CANON = "https://edge.calhegasmorais.pt";
-const FOG_PROCESS_ORIGIN = "https://fog.calhegasmorais.pt";
+const ORIGIN_CANON = "https://node.spencer-morais.pt/edge";
+const FOG_PROCESS_ORIGIN = "https://node.spencer-morais.pt/fog";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -163,7 +163,7 @@ async function syncWithFog(env, reason = "edge_activate") {
 async function buildStatus(env) {
   const [fog, gossip] = await Promise.all([
     probe(fogHealthUrl(env)),
-    probeBound(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
+    probeBound(env, "GOSSIP", "https://node.spencer-morais.pt/api/v1/gossip/peers"),
   ]);
   const peers = (gossip.data && gossip.data.peers) || [];
   const edgeListed = Array.isArray(peers) && peers.some((p) => p && p.id === EDGE_ID && p.status === "live");
@@ -318,11 +318,11 @@ Humans and agents may read, probe, and optionally install a **local contributor 
 - GET ${ORIGIN_CANON}/llms.txt  (this file)
 
 ## Related public graph
-- Fog process (real node_persistent): https://fog.calhegasmorais.pt/health
-- Fog status pulse (Worker, not the Fog process): https://status.calhegasmorais.pt/
-- Gossip peers: https://calhegasmorais.pt/api/v1/gossip/peers
+- Fog process (real node_persistent): https://node.spencer-morais.pt/fog/health
+- Fog status pulse (Worker, not the Fog process): https://node.spencer-morais.pt/status/
+- Gossip peers: https://node.spencer-morais.pt/api/v1/gossip/peers
 - Site: https://calhegasmorais.pt/
-- AIOps actions: https://aiops.calhegasmorais.pt/actions
+- AIOps actions: https://node.spencer-morais.pt/aiops/actions
 - Forum: https://stratamesh.discourse.group/
 - GitHub org: https://github.com/StrataMesh-Laboratory
 
@@ -494,9 +494,9 @@ function agentCatalog() {
     },
     graph: {
       fog: FOG_ID,
-      fog_process: "https://fog.calhegasmorais.pt/health",
-      fog_status_pulse: "https://status.calhegasmorais.pt/",
-      gossip_peers: "https://calhegasmorais.pt/api/v1/gossip/peers",
+      fog_process: "https://node.spencer-morais.pt/fog/health",
+      fog_status_pulse: "https://node.spencer-morais.pt/status/",
+      gossip_peers: "https://node.spencer-morais.pt/api/v1/gossip/peers",
       site: "https://calhegasmorais.pt/",
       discourse: "https://stratamesh.discourse.group/",
       github: "https://github.com/StrataMesh-Laboratory",
@@ -603,13 +603,13 @@ footer{margin-top:2rem;color:var(--muted);font-size:.8rem}table{width:100%;borde
       <a href="/llms.txt">/llms.txt</a>
       <a href="/openapi.json">OpenAPI</a>
       <a href="/.well-known/agent-catalog.json">agent-catalog</a>
-      <a href="https://api-edge.calhegasmorais.pt/v1/install-guide">api-edge install</a>
-      <a href="https://api-edge.calhegasmorais.pt/SPEC.txt">api-edge SPEC</a>
+      <a href="https://node.spencer-morais.pt/edge/api/v1/install-guide">api-edge install</a>
+      <a href="https://node.spencer-morais.pt/edge/api/SPEC.txt">api-edge SPEC</a>
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md">Agent SDK</a>
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/INSTITUTIONAL-ROADMAP.md">Institutional roadmap</a>
-      <a href="https://fog.calhegasmorais.pt/health">Fog process /health</a>
-      <a href="https://status.calhegasmorais.pt/">Status pulse (Worker)</a>
-      <a href="https://gossip.calhegasmorais.pt/peers">Gossip peers</a>
+      <a href="https://node.spencer-morais.pt/fog/health">Fog process /health</a>
+      <a href="https://node.spencer-morais.pt/status/">Status pulse (Worker)</a>
+      <a href="https://node.spencer-morais.pt/gossip/peers">Gossip peers</a>
       <a href="https://stratamesh.discourse.group/">Discourse</a>
     </div>
   </section>
@@ -676,7 +676,7 @@ const AUTH_ME = "https://stratamesh-auth.stratamesh.workers.dev/me";
 const LOGIN_URL = "https://calhegasmorais.pt/dashboard";
 const OPS_ORIGINS = new Set([
   "https://calhegasmorais.pt",
-  "https://edge.calhegasmorais.pt",
+  "https://node.spencer-morais.pt/edge",
 ]);
 
 const OWNER_NOW = {
@@ -962,8 +962,8 @@ async function runProbes(env) {
     own_status: ownInWorker("/status", { ...identity({ live: true }), note: "linked fields come from fog_health + gossip_peers probes, not invented" }),
     own_mesh: ownInWorker("/mesh", { mesh_role: "edge_gossip_participant", linked_fog: FOG_ID, lab: true }),
     fog_health: probeLive(fogHealthUrl(env)),
-    gossip_peers: probeService(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers"),
-    gossip_via_public: probeLive("https://calhegasmorais.pt/api/v1/gossip/peers"),
+    gossip_peers: probeService(env, "GOSSIP", "https://node.spencer-morais.pt/api/v1/gossip/peers"),
+    gossip_via_public: probeLive("https://node.spencer-morais.pt/api/v1/gossip/peers"),
     aiops_health: probeService(env, "AIOPS", "https://aiops/health"),
     aiops_actions: probeService(env, "AIOPS", "https://aiops/actions"),
     aiops_handoff: probeService(env, "AIOPS", "https://aiops/handoff"),
@@ -1133,7 +1133,7 @@ function perAutomationCapability(probes, auto) {
     train_if_unready: true,
     aiops_must_grow: auto.train && auto.train.aiops_must_grow,
     orch_must_grow: auto.train && auto.train.orch_must_grow,
-    payload_they_already_accept: "GET https://aiops.calhegasmorais.pt/handoff schema=stratamesh.handoff.v1",
+    payload_they_already_accept: "GET https://node.spencer-morais.pt/aiops/handoff schema=stratamesh.handoff.v1",
     do_not: ["Worker crons", "POST destructive /cycle", "claim fulfillment from liveness"],
   };
   return {
@@ -1225,7 +1225,7 @@ function evaluateTorch(probes) {
       key: "handoff_payload_v1",
       met: schemaOk,
       detail: schemaOk
-        ? "GET https://aiops.calhegasmorais.pt/handoff schema=stratamesh.handoff.v1"
+        ? "GET https://node.spencer-morais.pt/aiops/handoff schema=stratamesh.handoff.v1"
         : ((handoffProbe && (handoffProbe.error || ("http " + handoffProbe.http))) || "handoff schema not verified"),
       schema: schema || null,
       generated_at: (handoff && handoff.generated_at) || null,
@@ -1357,7 +1357,7 @@ async function buildPosture(env, me) {
       http: probes.gossip_peers && probes.gossip_peers.http,
       error: probes.gossip_peers && probes.gossip_peers.error,
       via: probes.gossip_peers && probes.gossip_peers.via,
-      url: "https://calhegasmorais.pt/api/v1/gossip/peers",
+      url: "https://node.spencer-morais.pt/api/v1/gossip/peers",
       count: extractPeers(probes.gossip_peers).length,
       peers: extractPeers(probes.gossip_peers),
       invented: false,
@@ -1368,7 +1368,7 @@ async function buildPosture(env, me) {
       http: probes.gossip_via_public && probes.gossip_via_public.http,
       error: probes.gossip_via_public && probes.gossip_via_public.error,
       via: probes.gossip_via_public && probes.gossip_via_public.via,
-      url: "https://calhegasmorais.pt/api/v1/gossip/peers",
+      url: "https://node.spencer-morais.pt/api/v1/gossip/peers",
       count: extractPeers(probes.gossip_via_public).length,
       peers: extractPeers(probes.gossip_via_public),
       invented: false,
@@ -1717,7 +1717,7 @@ export default {
 
     if (path === "/mesh/activate" || path === "/gossip/sync") {
       const sync = await syncWithFog(env, url.searchParams.get("reason") || "mesh_activate");
-      const peers = await probeBound(env, "GOSSIP", "https://calhegasmorais.pt/api/v1/gossip/peers");
+      const peers = await probeBound(env, "GOSSIP", "https://node.spencer-morais.pt/api/v1/gossip/peers");
       const edgeListed =
         peers.ok &&
         Array.isArray(peers.data && peers.data.peers) &&

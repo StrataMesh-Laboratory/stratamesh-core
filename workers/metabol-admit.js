@@ -29,7 +29,7 @@ export const PAGES_CONTINGENCY = {
   note: "Pages apex, not Worker SPA",
 };
 export const SANDBOX_CONTINGENCY = {
-  url: "https://sandbox.calhegasmorais.pt/",
+  url: "https://node.spencer-morais.pt/sandbox/",
   note: "gnu-atelier Pages",
 };
 

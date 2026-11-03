@@ -206,7 +206,7 @@ function shell({ lang, path, title, active, body }) {
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${esc(title)}</title>
   <meta name="description" content="${pt ? "Fundo StrataMesh — evidência GitHub, GitHub Sponsors e grants por recipiente." : "StrataMesh fund — GitHub evidence, GitHub Sponsors, and per-recipient grants."}"/>
-  <link rel="canonical" href="https://fund.calhegasmorais.pt${path.split("?")[0]}"/>
+  <link rel="canonical" href="https://node.spencer-morais.pt/fund${path.split("?")[0]}"/>
   <style>${css()}</style>
 </head>
 <body>

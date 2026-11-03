@@ -316,12 +316,12 @@ function healthLine(snap, statusJson) {
 async function probeMesh(env) {
   const [aiopsBound, aiopsPub, edge, apiEdge, gossip, git, fog] = await Promise.all([
     fetchBound(env, "AIOPS", "/"),
-    fetchJson("https://aiops.calhegasmorais.pt/", 6000),
-    fetchJson("https://edge.calhegasmorais.pt/health", 4000),
-    fetchJson("https://api-edge.calhegasmorais.pt/health", 4000),
-    fetchJson("https://calhegasmorais.pt/api/v1/gossip/peers", 4000),
+    fetchJson("https://node.spencer-morais.pt/aiops/", 6000),
+    fetchJson("https://node.spencer-morais.pt/edge/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/edge/api/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/api/v1/gossip/peers", 4000),
     fetchJson("https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/commits?per_page=4", 5000),
-    fetchJson("https://fog.calhegasmorais.pt/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/fog/health", 4000),
   ]);
   let aiops = (aiopsBound.ok && aiopsBound.json) ? aiopsBound : aiopsPub;
   // Always run GET /cycle via service binding: public aiops host is INC-1027 HOLD pages,
@@ -388,7 +388,7 @@ async function composeBriefing(env, mode) {
   const [statusRes, agoraRes, pocRes, intel, last, mesh] = await Promise.all([
     fetchBound(env, "STATUS", "/summary").then(async (r) => {
       if (r.ok && r.json) return r;
-      return fetchJson("https://status.calhegasmorais.pt/summary");
+      return fetchJson("https://node.spencer-morais.pt/status/summary");
     }),
     fetchBound(env, "AGORA", "/health").then(async (r) => {
       if (r.ok) return r;

@@ -374,8 +374,8 @@ def kick_public_refresh() -> None:
     def _run() -> None:
         global _PUB_BUSY
         try:
-            pub = get("https://fog.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
-            edge = get("https://edge.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
+            pub = get("https://node.spencer-morais.pt/fog/health", timeout=PUB_HTTP_TIMEOUT)
+            edge = get("https://node.spencer-morais.pt/edge/health", timeout=PUB_HTTP_TIMEOUT)
             if not isinstance(pub, dict):
                 pub = {"ok": False, "error": "bad"}
             if not isinstance(edge, dict):
@@ -2169,13 +2169,13 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
                 notes.append("origin GET ok %s" % (oget.get("version") or oget.get("_http") or "service"))
             else:
                 notes.append("origin POST %s" % (ohttp or opost.get("error") or "err"))
-                ai = _http_json("https://aiops.calhegasmorais.pt/chat", "POST", raw, 4.0)
+                ai = _http_json("https://node.spencer-morais.pt/aiops/chat", "POST", raw, 4.0)
                 ahttp = int(ai.get("_http") or 0)
                 if _orch_endpoint_live(ai) or (200 <= ahttp < 300):
                     notes.append("aiops POST %s" % (ahttp or 200))
                     delivered = True
                 else:
-                    aget = _http_json("https://aiops.calhegasmorais.pt/chat", "GET", None, 2.0)
+                    aget = _http_json("https://node.spencer-morais.pt/aiops/chat", "GET", None, 2.0)
                     if _orch_endpoint_live(aget):
                         notes.append("aiops GET ok")
                     elif not hop_live_any:

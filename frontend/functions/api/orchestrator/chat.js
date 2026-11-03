@@ -63,7 +63,7 @@ async function withTimeout(promise, ms, label) {
 async function probeFogHealth1500() {
   const a = abortAfter(1500);
   try {
-    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
+    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: a.signal,

@@ -90,9 +90,9 @@ def url_prefixes_from_roster(roster: Dict[str, Any]) -> List[str]:
     prefixes = [
         "http://127.0.0.1:",
         "http://localhost:",
-        "https://academy.calhegasmorais.pt",
+        "https://node.spencer-morais.pt/academy",
         "https://calhegasmorais.pt",
-        "https://fog.calhegasmorais.pt",
+        "https://node.spencer-morais.pt/fog",
         "https://forum.calhegasmorais.pt",
         "https://discourse.stratamesh-laboratory.org",
         "https://github.com/StrataMesh-Laboratory",

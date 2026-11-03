@@ -779,8 +779,8 @@ async function buildLiveStatus(env, opts) {
     svcJson(env, 'HOLONS', '/health', 2500),
     svcJson(env, 'HOLONS', '/so', 2500),
     svcJson(env, 'GOSSIP', '/peers', 7000),
-    fetchJsonPublic('https://fog.calhegasmorais.pt/health', 800),
-    fetchJsonPublic('https://fog.calhegasmorais.pt/', 800),
+    fetchJsonPublic('https://node.spencer-morais.pt/fog/health', 800),
+    fetchJsonPublic('https://node.spencer-morais.pt/fog/', 800),
   ]);
 
   const mon = tokenSnap.json;

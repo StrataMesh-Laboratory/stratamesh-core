@@ -220,8 +220,8 @@ class DrawFast(unittest.TestCase):
 
     def test_is_local_helper(self):
         self.assertTrue(_MOD.is_local_instrument_url("http://127.0.0.1:8788/health"))
-        self.assertFalse(_MOD.is_local_instrument_url("https://fog.calhegasmorais.pt/health"))
-        self.assertFalse(_MOD.is_local_instrument_url("https://status.calhegasmorais.pt/metabol"))
+        self.assertFalse(_MOD.is_local_instrument_url("https://node.spencer-morais.pt/fog/health"))
+        self.assertFalse(_MOD.is_local_instrument_url("https://node.spencer-morais.pt/status/metabol"))
 
 
 

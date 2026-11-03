@@ -65,7 +65,7 @@ secrets in chat · workers.dev · enroll as SCA · Fog `g` from Bot computer · 
 
 Hermes (and peers) teach SCA/ACB on academy **and** mentor them via live desk/dev:
 
-- Academy: https://academy.calhegasmorais.pt
+- Academy: https://node.spencer-morais.pt/academy
 - StrataMesh proper: https://calhegasmorais.pt · fog · sandbox · stratamesh-core
 - Trail after each deliverable: `$FOG_HOME/data/desk-outbox/apprentice/latest.md`
 

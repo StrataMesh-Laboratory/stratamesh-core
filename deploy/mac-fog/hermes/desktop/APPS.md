@@ -9,7 +9,7 @@ Launch via `desk-open` (allowlisted). See `~/.hermes/desk-apps.json` (written by
 | `chrome` / `safari` | `open -a …` | named browser |
 | `snappymail` | URL | `http://127.0.0.1:8099` — automation.desk account when configured |
 | `fog-health` | URL | `http://127.0.0.1:8787/health` |
-| `academy` | URL | `https://academy.calhegasmorais.pt` |
+| `academy` | URL | `https://node.spencer-morais.pt/academy` |
 | `github` | URL | `https://github.com/StrataMesh-Laboratory` |
 | `discourse` | URL | `https://forum.calhegasmorais.pt` |
 | `gcp` | URL | `https://console.cloud.google.com/` |

@@ -22,4 +22,4 @@ Upload `../status/index.html` and `../status/status.json` to the web root or `/s
 ## After deploy
 curl https://<worker-subdomain>.workers.dev/status
 # or
-curl https://status.calhegasmorais.pt/status
+curl https://node.spencer-morais.pt/status/status

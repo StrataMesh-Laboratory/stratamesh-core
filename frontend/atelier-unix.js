@@ -20,7 +20,7 @@
       var ifr = document.createElement('iframe');
       ifr.id = 'atelierFrame';
       ifr.title = 'Atelier GNU';
-      ifr.src = 'https://sandbox.calhegasmorais.pt/';
+      ifr.src = 'https://node.spencer-morais.pt/sandbox/';
       ifr.setAttribute('allow', 'fullscreen; pointer-lock');
       ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
       stage.appendChild(ifr);

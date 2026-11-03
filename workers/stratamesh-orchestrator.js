@@ -3450,7 +3450,7 @@ async function labInstantChat(message, body, env) {
   const msg = String(message || "").trim();
   let fog = { skipped: true, reason: "probe failed" };
   try {
-    const r = await fetch("https://fog.calhegasmorais.pt/health", {
+    const r = await fetch("https://node.spencer-morais.pt/fog/health", {
       headers: { Accept: "application/json", "User-Agent": "SCA-ORCH-CMN-001" },
       signal: AbortSignal.timeout(1500),
     });
@@ -3462,7 +3462,7 @@ async function labInstantChat(message, body, env) {
   try {
     const payload = JSON.stringify({ message: msg, acb_id: "ACB-ORCH-CMN-001", lang: (body && body.lang) || "pt" });
     const headers = { "Content-Type": "application/json", Accept: "application/json" };
-    const req = new Request("https://academy.calhegasmorais.pt/v1/debug/chat", { method: "POST", headers, body: payload });
+    const req = new Request("https://node.spencer-morais.pt/academy/v1/debug/chat", { method: "POST", headers, body: payload });
     const r = (env && env.ACADEMY && typeof env.ACADEMY.fetch === "function")
       ? await env.ACADEMY.fetch(req)
       : await fetch(req, { signal: AbortSignal.timeout(4000) });
@@ -3751,9 +3751,9 @@ export default {
       const TIMEOUT_MS = 2500;
       // Known public lab URLs only — no invented peers, no Oracle VM.
       const CORE = [
-        { key: "status", service: "stratamesh-status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
-        { key: "edge", service: "stratamesh-edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
-        { key: "aiops", service: "stratamesh-aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "status", service: "stratamesh-status", binding: "STATUS", path: "/health", urls: ["https://node.spencer-morais.pt/status/health"] },
+        { key: "edge", service: "stratamesh-edge", binding: "EDGE", path: "/health", urls: ["https://node.spencer-morais.pt/edge/health"] },
+        { key: "aiops", service: "stratamesh-aiops", binding: "AIOPS", path: "/health", urls: ["https://node.spencer-morais.pt/aiops/health"] },
         { key: "gossip_peers", service: "stratamesh-gossip", binding: "GOSSIP", path: "/peers", urls: ["https://stratamesh-gossip.stratamesh.workers.dev/peers"] },
         { key: "auth", service: "stratamesh-auth", binding: "AUTH", path: "/health", urls: ["https://stratamesh-auth.stratamesh.workers.dev/health"] },
       ];
@@ -3766,13 +3766,13 @@ export default {
         { key: "realms", binding: "REALMS", path: "/health", urls: ["https://stratamesh-realms.stratamesh.workers.dev/health"] },
         { key: "acb", binding: "ACB", path: "/acb/status", urls: ["https://stratamesh-acb.stratamesh.workers.dev/acb/status"] },
         { key: "agora", binding: "AGORA", path: "/agora/status", urls: ["https://stratamesh-agora.stratamesh.workers.dev/agora/status"] },
-        { key: "aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "aiops", binding: "AIOPS", path: "/health", urls: ["https://node.spencer-morais.pt/aiops/health"] },
         { key: "ipfs", binding: "IPFS", path: "/health", urls: ["https://stratamesh-ipfs.stratamesh.workers.dev/health"] },
         { key: "holons", binding: "HOLONS", path: "/health", urls: ["https://stratamesh-holons.stratamesh.workers.dev/health"] },
         { key: "spa", binding: "SPA", path: "/health", urls: ["https://stratamesh-spa.stratamesh.workers.dev/health"] },
-        { key: "status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
+        { key: "status", binding: "STATUS", path: "/health", urls: ["https://node.spencer-morais.pt/status/health"] },
         { key: "republic", binding: "REPUBLIC", path: "/health", urls: ["https://stratamesh-republic.stratamesh.workers.dev/health"] },
-        { key: "edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
+        { key: "edge", binding: "EDGE", path: "/health", urls: ["https://node.spencer-morais.pt/edge/health"] },
         { key: "iot", binding: "IOT", path: "/health", urls: ["https://stratamesh-iot.stratamesh.workers.dev/health"] },
       ];
 

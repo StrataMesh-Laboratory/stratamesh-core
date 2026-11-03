@@ -26,7 +26,7 @@ const STATUS = {
   aiops: { orchestrator: "active", agents: ["security", "devops", "analysis"] },
   links: {
     repo: "https://github.com/StrataMesh-Laboratory/stratamesh-core",
-    portal: "https://aiops.calhegasmorais.pt/"
+    portal: "https://node.spencer-morais.pt/aiops/"
   }
 };
 
@@ -79,7 +79,7 @@ const HTML = `<!DOCTYPE html>
     </div>
     <div class="card">
       <div class="label">Links</div>
-      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a> · <a href="https://aiops.calhegasmorais.pt/">Portal</a></p>
+      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a> · <a href="https://node.spencer-morais.pt/aiops/">Portal</a></p>
     </div>
     <footer>UNCLASSIFIED // FOG-NODE-PT-CM-001<br>© 2026 Calhegas Morais · StrataMesh DLT</footer>
   </div>

@@ -1175,7 +1175,7 @@ async function escalateStratagrok(env, work, cycle) {
 
 async function verifyPulse() {
   try {
-    const r = await fetch("https://status.calhegasmorais.pt/", {
+    const r = await fetch("https://node.spencer-morais.pt/status/", {
       headers: { Accept: "application/json", "User-Agent": "aiops-verify" },
     });
     const j = await r.json().catch(() => null);
@@ -1572,8 +1572,8 @@ code { color:var(--fg); }
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
-<li><a href="https://gossip.calhegasmorais.pt/health">Gossip /health</a></li>
+<li><a href="https://node.spencer-morais.pt/fog/health">Fog /health</a></li>
+<li><a href="https://node.spencer-morais.pt/gossip/health">Gossip /health</a></li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>
@@ -1684,12 +1684,12 @@ async function handleFetch(request, env, ctx) {
         team: TEAM,
         standing: "substrate-neutral",
         source: "whitepaper + Orchestrator mandate",
-        academy: "https://academy.calhegasmorais.pt/v1/syllabus",
+        academy: "https://node.spencer-morais.pt/academy/v1/syllabus",
         formations: TEAM.map((a) => ({
           id: a.id,
-          syllabus: "https://academy.calhegasmorais.pt/v1/syllabus?role=" + a.id,
+          syllabus: "https://node.spencer-morais.pt/academy/v1/syllabus?role=" + a.id,
         })),
-        orchestrator: "https://academy.calhegasmorais.pt/v1/syllabus?role=orchestrator",
+        orchestrator: "https://node.spencer-morais.pt/academy/v1/syllabus?role=orchestrator",
       });
     }
 

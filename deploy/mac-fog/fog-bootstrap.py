@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fog Node bootstrap wizard (macOS).
 
-Identity API: https://api-fog.calhegasmorais.pt
+Identity API: https://node.spencer-morais.pt/fog/api
   POST /fog/bootstrap/challenge|verify|session
 Secrets (GitHub PAT, CF token, tunnel token) stay in ~/.config/stratamesh — never posted.
 Override host with FOG_AUTH_BASE. Pop-ups optional via FOG_DIALOGS=1.
@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-AUTH = os.environ.get("FOG_AUTH_BASE", "https://api-fog.calhegasmorais.pt").rstrip("/")
+AUTH = os.environ.get("FOG_AUTH_BASE", "https://node.spencer-morais.pt/fog/api").rstrip("/")
 AUTH_FALLBACK = "https://calhegasmorais.pt/api/auth"
 HOME = Path.home()
 FOG = Path(os.environ.get("STRATAMESH_HOME") or (HOME / "StrataMesh")) / "fog"

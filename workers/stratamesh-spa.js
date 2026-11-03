@@ -205,7 +205,7 @@ async function withTimeout(promise, ms, label) {
 async function probeFogHealth1500() {
   const a = abortAfter(1500);
   try {
-    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
+    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: a.signal,
@@ -514,7 +514,7 @@ https://calhegasmorais.pt/transcrito
 https://calhegasmorais.pt/termos
 https://calhegasmorais.pt/privacidade
 https://eni.calhegasmorais.pt/
-https://status.calhegasmorais.pt/
+https://node.spencer-morais.pt/status/
 `;
       return new Response(sm, {
         headers: withSecurityHeaders({
@@ -542,7 +542,7 @@ https://status.calhegasmorais.pt/
   <url><loc>https://calhegasmorais.pt/termos</loc></url>
   <url><loc>https://calhegasmorais.pt/privacidade</loc></url>
   <url><loc>https://eni.calhegasmorais.pt/</loc></url>
-  <url><loc>https://status.calhegasmorais.pt/</loc></url>
+  <url><loc>https://node.spencer-morais.pt/status/</loc></url>
 </urlset>
 `;
       return new Response(xml, {
@@ -1435,14 +1435,14 @@ function injectPortalSession(html, me, token) {
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
         ifr.title = 'Atelier GNU';
-        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.src = 'https://node.spencer-morais.pt/sandbox/';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c;z-index:40';
         stage.appendChild(ifr);
       } else {
         ifr.style.zIndex = '40';
         ifr.style.display = 'block';
-        if (!ifr.getAttribute('src')) ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        if (!ifr.getAttribute('src')) ifr.src = 'https://node.spencer-morais.pt/sandbox/';
       }
       var title = document.getElementById('bancadaPanelTitle');
       if (title) title.textContent = 'Atelier GNU · Holon 5';

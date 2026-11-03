@@ -1550,7 +1550,7 @@ export default {
           status: 'ok',
           service: 'stratamesh-acb',
           version: '5.14.1-register-auth',
-          academy: 'https://academy.calhegasmorais.pt/',
+          academy: 'https://node.spencer-morais.pt/academy/',
           academy_always_on: true,
           economics: {
             acb_income: 'STRATA paid by holders for labour contracts (no mint)',

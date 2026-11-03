@@ -22,7 +22,7 @@ function fogPage() {
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://edge.calhegasmorais.pt/health">EDGE /health</a> JSON</li>
+<li><a href="https://node.spencer-morais.pt/edge/health">EDGE /health</a> JSON</li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>`
@@ -39,7 +39,7 @@ function edgePage() {
 <p>Continuity=<code>session</code> (expected). Linked Fog <code>FOG-NODE-PT-CM-001</code>. Distinct host from the Mac. <code>oracle_live=false</code>.</p>
 <ul>
 <li><a href="/health">/health</a> JSON</li>
-<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a> JSON</li>
+<li><a href="https://node.spencer-morais.pt/fog/health">Fog /health</a> JSON</li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>`

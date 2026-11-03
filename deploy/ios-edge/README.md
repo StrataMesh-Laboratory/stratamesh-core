@@ -8,7 +8,7 @@ An Edge has a primary job (this iPhone, this iPad). Residual capacity only: C_me
 - Foreground duty 1.0 · background 0.25
 - Indexed to a parent Fog. Not a miner.
 
-PWA: https://api-edge.calhegasmorais.pt/app/
+PWA: https://node.spencer-morais.pt/edge/api/app/
 Native: deploy/ios-edge/StrataMeshEdge/ (Xcode 15+)
 
 Ask Discourse for an EDGE-NODE- / EDGE-GROK- id. When CF Workers are in daily stasis, HTML stays on Pages; Edge heartbeats back off.

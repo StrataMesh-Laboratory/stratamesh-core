@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sandbox · Calhegas Morais · v0.6.0-lab</title>
   <meta name="description" content="StrataMesh sandbox — account session on sandbox.calhegasmorais.pt.">
-  <link rel="canonical" href="https://sandbox.calhegasmorais.pt/en/sandbox">
+  <link rel="canonical" href="https://node.spencer-morais.pt/sandbox/en/sandbox">
   <meta name="theme-color" content="#07111c">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
@@ -51,8 +51,8 @@
     <h1>Sandbox</h1>
     <div class="nav">
       <span id="sessionChip" data-acct="account" data-empty="no account · workbench">no account · workbench</span>
-      <a class="here" href="https://sandbox.calhegasmorais.pt/en/sandbox">Sandbox</a>
-      <a href="https://dashboard.calhegasmorais.pt/dashboard">Workbench</a>
+      <a class="here" href="https://node.spencer-morais.pt/sandbox/en/sandbox">Sandbox</a>
+      <a href="https://node.spencer-morais.pt/dashboard">Workbench</a>
       <a href="https://calhegasmorais.pt/en/">Lab</a>
       <button type="button" id="btnToken">Tokenisation</button>
       <button type="button" id="btnFs">Fullscreen</button>
@@ -89,7 +89,7 @@
         if (!el) return;
         el.innerHTML = '';
         var a = document.createElement('a');
-        a.href = 'https://dashboard.calhegasmorais.pt/dashboard';
+        a.href = 'https://node.spencer-morais.pt/dashboard';
         a.textContent = labels.sessionEmpty;
         el.appendChild(a);
         var t = token();
@@ -184,7 +184,7 @@
       }
       function requireAccount() {
         takeHandoff();
-        var bancada = 'https://dashboard.calhegasmorais.pt/dashboard';
+        var bancada = 'https://node.spencer-morais.pt/dashboard';
         var t = token();
         var who = accountWho();
         var f = document.getElementById('atelierFrame');

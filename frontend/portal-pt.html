@@ -356,14 +356,14 @@ body.in-session .user-info{display:flex!important}
     <h3 id="bancadaPanelTitle">Atelier GNU · renderer</h3>
     <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">O Atelier GNU é só o renderer 3D. O sandbox/dashboard completo (sessão, definições, objectos) vive em sandbox.calhegasmorais.pt, /sandbox e /dashboard.</p>
     <p style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:center">
-      <a id="goSandbox" href="https://sandbox.calhegasmorais.pt/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
+      <a id="goSandbox" href="https://node.spencer-morais.pt/sandbox/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
       <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
     </p>
     <div id="mudSpaces" class="mud-spaces">
       <button type="button" data-panel="mud-bancada" class="active" onclick="setMudSpace('bancada',this)">Bancada</button>
       <button type="button" data-panel="mud-mundo" onclick="setMudSpace('mundo',this)">Mundo</button>
       <button type="button" data-panel="mud-quartos" onclick="setMudSpace('quartos',this)">Quartos</button>
-      <button type="button" data-panel="mud-full" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://sandbox.calhegasmorais.pt/';})()">Ecrã inteiro</button>
+      <button type="button" data-panel="mud-full" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://node.spencer-morais.pt/sandbox/';})()">Ecrã inteiro</button>
     </div>
     <div id="bancadaModeBar" style="display:none">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
@@ -648,7 +648,7 @@ body.in-session .user-info{display:flex!important}
       <button type="button" id="vaPrimary" onclick="vaPrimary()" style="padding:.5rem 1rem;background:var(--fg);color:var(--bg,#111);border:0;border-radius:4px;cursor:pointer;font-weight:600">Ligar · 7 dias</button>
       <button type="button" id="vaCopyBtn" onclick="vaCopy()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Copiar pacote</button>
       <button type="button" id="vaRevokeBtn" onclick="vaRevoke()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Revogar</button>
-      <a href="https://api-edge.calhegasmorais.pt/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções</a>
+      <a href="https://node.spencer-morais.pt/edge/api/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções</a>
     </div>
     <label style="font-size:.75rem;color:var(--muted)">Pacote para colar no AI (uma vez por emissão)</label>
     <textarea id="vaTokenBox" readonly rows="8" style="width:100%;max-width:44rem;display:block;margin:.35rem 0 0;padding:.6rem;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:ui-monospace,monospace;font-size:.75rem;border-radius:6px" placeholder="O pacote aparece aqui depois de Ligar ou Renovar."></textarea>
@@ -668,7 +668,7 @@ const SVC = {
   sandbox: '/api/v1/sandbox',
   orch: '/api/v1/orchestrator',
   holons: '/api/v1/holons',
-  va: 'https://api-edge.calhegasmorais.pt',
+  va: 'https://node.spencer-morais.pt/edge/api',
   auth: AUTH_BASE+'/api/auth',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
@@ -880,7 +880,7 @@ async function applyVaPrefs(){
   var tok=localStorage.getItem('sm_token')||localStorage.getItem('token');
   if(!tok) return;
   try{
-    var r=await fetch('https://api-edge.calhegasmorais.pt/v1/va/prefs',{headers:{Authorization:'Bearer '+tok,Accept:'application/json'},signal:AbortSignal.timeout(2000)});
+    var r=await fetch('https://node.spencer-morais.pt/edge/api/v1/va/prefs',{headers:{Authorization:'Bearer '+tok,Accept:'application/json'},signal:AbortSignal.timeout(2000)});
     if(!r.ok) return;
     var j=await r.json();
     var p=(j&&j.prefs)||{};
@@ -1169,7 +1169,7 @@ function authHeaders(extra){const h=Object.assign({'Content-Type':'application/j
 var _vaActive=null;
 var _vaMode='off';
 async function vaApi(path, opt){
-  var r=await fetch((SVC.va||'https://api-edge.calhegasmorais.pt')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
+  var r=await fetch((SVC.va||'https://node.spencer-morais.pt/edge/api')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
   var j=await r.json().catch(function(){return {ok:false,error:'bad_json',http:r.status};});
   j.http=r.status;
   return j;
