@@ -14,15 +14,15 @@ A Portuguese *Associação Privada Sem Fins Lucrativos* requires **at least two 
 
 ### Spencer-Morais Node (today, confirmed wording)
 
-O Spencer-Morais Node é infra-estrutura digital da Casa Spencer-Morais (CSM): é o nó que serve o projecto StrataMesh LAB, e com ele não se confunde.
+O Spencer-Morais Node é projecto familiar e privado de André Manuel Calhegas Morais e da Casa Spencer-Morais, de que constitui a infra-estrutura digital. Não tem carácter comercial nem receitas próprias e, perante o Estado, é representado pelo casal fundador, sob a direcção de André Manuel Calhegas Morais, enquanto pessoa singular. A Instituição Spencer-Morais Unipessoal, Lda., hoje latente, só será chamada a intervir se vier a haver actividade comercial.
 
-O Spencer-Morais Node tem por titular a Instituição Spencer-Morais Unipessoal, Lda., quando constituída, ou sociedade por ela dominada, se a actividade comercial vier a exigir entidade própria.
+O Spencer-Morais Node distingue-se conceptualmente do LAB: não é parte dele, nem é forma de reunião livre em torno da sua tecnologia.
 
 Responsável pelo projecto: o fundador André Manuel Calhegas Morais.
 
 Public id: **PT-SM-001** (display alias; the internal protocol id `FOG-NODE-PT-CM-001` is kept unchanged for peers, gossip, signatures, KV keys and ledger continuity).
 
-StrataMesh LAB, projecto livre e aberto de registo distribuído (DLT), associação livre de pessoas com regras internas próprias, integrado no ecossistema digital de código aberto da Casa Spencer-Morais. The LAB is the project, not a registered legal person; the Node is the infrastructure that serves it.
+O StrataMesh LAB é um projecto de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a project of free people, not an association and not a legal person; the Spencer-Morais Node is conceptually distinct from it.
 
 Not: an independent commercial enterprise currently operating for income.
 
