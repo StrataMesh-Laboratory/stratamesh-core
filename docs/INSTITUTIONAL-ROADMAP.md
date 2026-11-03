@@ -18,11 +18,13 @@ O Spencer-Morais Node é projecto familiar e privado de André Manuel Calhegas M
 
 Na ordem interna da Casa, o Spencer-Morais Node é infra-estrutura experimental da Casa no projecto StrataMesh LAB, projecto tecnológico de associação livre igualmente fundado por André Manuel Calhegas Morais, do qual se distingue conceptualmente.
 
+Ambas as qualificações descrevem o estado actual, que é latente, e não determinam a forma por que o Spencer-Morais Node se venha a constituir na ordem da Casa ou perante a ordem estadual, a qual dependerá da progressão e do desenvolvimento do projecto.
+
 Responsável pelo projecto: o fundador André Manuel Calhegas Morais.
 
 Public id: **PT-SM-001** (display alias; the internal protocol id `FOG-NODE-PT-CM-001` is kept unchanged for peers, gossip, signatures, KV keys and ledger continuity).
 
-O StrataMesh LAB é um projecto tecnológico de associação livre de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a technological project of free association, without legal personality. Before the State, the Node is a family and private project of André Manuel Calhegas Morais and the Casa, represented by the founding couple and led by André as a natural person, with ISM Lda. latent. In the Casa's internal order, the Spencer-Morais Node is experimental infrastructure of the Casa within the StrataMesh LAB project, a technological project of free association also founded by André Manuel Calhegas Morais, from which it is conceptually distinct.
+O StrataMesh LAB é um projecto tecnológico de associação livre de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a technological project of free association, without legal personality. Before the State, the Node is a family and private project of André Manuel Calhegas Morais and the Casa, represented by the founding couple and led by André as a natural person, with ISM Lda. latent. In the Casa's internal order, the Spencer-Morais Node is experimental infrastructure of the Casa within the StrataMesh LAB project, a technological project of free association also founded by André Manuel Calhegas Morais, from which it is conceptually distinct. Both qualifications describe the present state, which is latent, and do not determine how the Spencer-Morais Node will come to be constituted in the order of the Casa or before the State; that will depend on the progress and development of the project.
 
 Not: an independent commercial enterprise currently operating for income.
 

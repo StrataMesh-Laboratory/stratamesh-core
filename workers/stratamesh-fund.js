@@ -368,7 +368,7 @@ async function sponsorsStatus(env) {
       : userLive && orgPending
         ? "Sponsors public for @amcmorais. StrataMesh-Laboratory listing submitted — pending GitHub staff approval (isPublic:false). Legal/payout umbrella: AMCM ENI."
         : userLive
-          ? "Sponsors public for @amcmorais (AMCM ENI operator). Org listing not public yet."
+          ? "Sponsors public for @amcmorais (Node lead: AndrÃ© Manuel Calhegas Morais). Org listing not public yet."
           : "No public Sponsors listing — use ENI /pagamentos.",
   };
 }
@@ -1428,7 +1428,7 @@ function sponsorsEmbedHtml(sp) {
     return "off";
   }
   const desc = u.active
-    ? "Support open contribution on StrataMesh Laboratory via GitHub Sponsors. Operator rail under AMCM ENI."
+    ? "Support open contribution on StrataMesh Laboratory via GitHub Sponsors. Node lead: AndrÃ© Manuel Calhegas Morais, natural person."
     : "GitHub Sponsors not public yet — use ENI /pagamentos for EUR grants.";
   let meta =
     '<span class="sp-dot ' +
@@ -1906,7 +1906,7 @@ function claimPage(lang, prefillLogin) {
       </div>
       <p id="claimMsg" class="muted"></p>
     </form>
-    <p class="note">${pt ? "O operador AMCM usa /pagamentos — não precisa deste formulário." : "Operator AMCM uses /pagamentos — no need for this form."}</p>
+    <p class="note">${pt ? "O responsÃ¡vel do Node usa /pagamentos — não precisa deste formulário." : "The Node lead uses /pagamentos — no need for this form."}</p>
     <script>
     document.getElementById('claimForm').addEventListener('submit', async function(e){
       e.preventDefault();
