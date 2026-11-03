@@ -36,7 +36,7 @@ function copy(lang) {
   const en = isEn(lang);
   return {
     en,
-    node: en ? "Calhegas Morais Node" : "Nó Calhegas Morais",
+    node: en ? "Spencer-Morais Node" : "Nó Calhegas Morais",
     brand: "AMCM ENI · StrataMesh",
     fog: "FOG-NODE-PT-CM-001",
     orch: en
@@ -141,7 +141,7 @@ function eniMail(opts) {
   if (code && (kind === "2fa" || kind === "staff_2fa" || kind === "register")) {
     inner += `<tr><td style="padding:0 0 8px;color:${T.muted};font-size:15px;line-height:1.6;">${
       c.en
-        ? "Use this code to complete sign-in on the Calhegas Morais Node."
+        ? "Use this code to complete sign-in on the Spencer-Morais Node."
         : "Use este código para concluir a sessão no Nó Calhegas Morais."
     }</td></tr>`;
     inner += codeBlock(code);

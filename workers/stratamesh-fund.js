@@ -24,7 +24,7 @@ const OPERATOR = {
   status: "active",
   widget_url: "https://calhegasmorais.pt/pagamentos",
   widget_note:
-    "AMCM ENI payment portal — unique bank-transfer instruction (IBAN not published). Purpose: donation to the Calhegas Morais Node / StrataMesh project.",
+    "AMCM ENI payment portal — unique bank-transfer instruction (IBAN not published). Purpose: donation to the Spencer-Morais Node / StrataMesh project.",
   payment_intent_purpose: "donation",
   contact: "geral@eni.calhegasmorais.pt",
 };

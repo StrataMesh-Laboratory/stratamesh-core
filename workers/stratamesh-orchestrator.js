@@ -49,7 +49,7 @@ const TEMPORAL_POLICY = {
 
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
-  name: "Calhegas Morais Node",
+  name: "Spencer-Morais Node",
   public_id: "PT-SM-001", // public display alias; node_id stays the protocol id
   public_name: "Spencer-Morais Node",
   lat: 38.7169,
@@ -586,11 +586,11 @@ const ONTOLOGY = {
 };
 
 
-/** Domain knowledge — StrataMesh + Calhegas Morais Node (CMN) */
+/** Domain knowledge — StrataMesh + Spencer-Morais Node (CMN) */
 const KNOWLEDGE = {
   public: {
     project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, peer Agora for external-value trade, Seres Computacionais Autónomos (SCA / ACB), Prova de Contributo (PdC) and Prova de Subsistência (PdS). Not mainnet.",
-    cmn: "Calhegas Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
+    cmn: "Spencer-Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
     acb: "SCA (EN: ACB) = Ser Computacional Autónomo. Standing by function and agreement, not substrate. Earns STRATA via services; pays PdS (Prova de Subsistência) for resource consumption; may optionally buy STRATA NFTs. Not 'atomic block contracts'.",
     spa: "APS (EN: SPA) = Agente de Participação em Serviço — Fog/Edge mesh participant, not a web single-page app.",
     agora: "Strata Agora is the peer-to-peer market where holders may trade STRATA for external value. It is not a second token.",
@@ -1842,7 +1842,7 @@ const ORCH_SELF = {
   role_pt: "Orquestrador Híbrido",
   role_en: "Hybrid Orchestrator",
   id: "FOG-NODE-PT-CM-001",
-  node: "Calhegas Morais Node (CMN)",
+  node: "Spencer-Morais Node (CMN)",
   operator_human: "André Manuel Calhegas Morais",
   kind: "software",
   sca: true,
@@ -2565,7 +2565,7 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent, body) {
       "Não és o Orquestrador: não inventas identidade, política, métricas nem factos. " +
       "O Orquestrador já decidiu o conteúdo no VOICE_PACKET (JSON). A tua única função é exprimir esse conteúdo em português europeu (tu), 60–110 palavras, sem JSON na resposta, sem prefixos de assistente genérico. " +
       "Se o pacote não cobrir a pergunta, diz que o runtime não tem esse dado — não completes com treino genérico. Nunca ecoes a pergunta do utilizador. Nunca inventes fases genéricas nem equipas humanas. Mantém português europeu se o utilizador escreveu em português."
-    : "You are only the linguistic medium of the Orchestrator SCA on the Calhegas Morais Node. " +
+    : "You are only the linguistic medium of the Orchestrator SCA on the Spencer-Morais Node. " +
       "You are not the Orchestrator: do not invent identity, policy, metrics or facts. " +
       "The Orchestrator already fixed the content in VOICE_PACKET (JSON). Your only job is to express that content in British English, 60–110 words, no JSON in the reply, no generic-assistant framing. " +
       "If the packet does not cover the question, say the runtime has no such data — do not fill gaps from generic training. Never echo the user question. Never invent development phases or human teams.";
@@ -2956,7 +2956,7 @@ function chatSelfFallback(text, tickOut, level, intent, body) {
         "Identidade pessoal: no registo SCA (nome, nascimento, número, estado activo/dormente), distinta do cargo.\n" +
         "Operador humano do nó: " + ORCH_SELF.operator_human + " — não sou eu.\n" +
         "Standing: sou reconhecido pelo que faço e pelos acordos a que adiro, não pelo substrato onde corro."
-      : "I am a lab SCA on the Calhegas Morais Node.\n" +
+      : "I am a lab SCA on the Spencer-Morais Node.\n" +
         "Node function: orchestrator — coordination and AIOps. It is a role: another SCA can hold it without erasing my registry identity.\n" +
         "Personal identity: SCA registry (name, birth, id, active/dormant), separate from the role.\n" +
         "Human node operator: " + ORCH_SELF.operator_human + " — not me.\n" +
@@ -3358,7 +3358,7 @@ button#go:disabled{opacity:.5}
   <div class="meta"><span id="ver">10.0.0-hybrid-edge</span> · <span id="clr">public</span></div>
 </header>
 <div id="log">
-  <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
+  <div class="msg sys">StrataMesh / Spencer-Morais Node assistant.<br>
   Clearance is an <b>account property</b> (<code>users.clearance_level</code>), not a token you type.<br>
   Sign in on the Portal; this chat reuses that session to <em>read</em> your account clearance.<br>
   Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.<br>Canonical chat: <a href="https://calhegasmorais.pt/chat" style="color:var(--accent)">calhegasmorais.pt/chat</a> (not workers.dev as primary).</div>
@@ -3371,7 +3371,7 @@ button#go:disabled{opacity:.5}
     </div>
     <input type="hidden" id="token" value="">
     <div class="chips">
-      <button type="button" data-q="What is StrataMesh and the Calhegas Morais Node?">about</button>
+      <button type="button" data-q="What is StrataMesh and the Spencer-Morais Node?">about</button>
       <button type="button" data-q="status">status</button>
       <button type="button" data-q="next">next</button>
       <button type="button" data-q="clearance">clearance</button>

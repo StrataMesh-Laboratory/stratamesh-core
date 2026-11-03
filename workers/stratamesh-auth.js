@@ -516,7 +516,7 @@ export default {
         if (kind === 'fog_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Fog bootstrap 2FA'
+              ? 'Spencer-Morais Node · Fog bootstrap 2FA'
               : 'Nó Calhegas Morais · 2FA de instalação Fog',
             text: en
               ? ('Your Fog Node bootstrap code is: ' + code + '\n\nValid for 10 minutes. One use. Node install will not start without it.')
@@ -529,7 +529,7 @@ export default {
         if (kind === 'staff_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · staff 2FA code'
+              ? 'Spencer-Morais Node · staff 2FA code'
               : 'Nó Calhegas Morais · código 2FA (pessoal)',
             text: en
               ? ('Your staff verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
@@ -541,7 +541,7 @@ export default {
         if (kind === 'user_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · verification code'
+              ? 'Spencer-Morais Node · verification code'
               : 'Nó Calhegas Morais · código de verificação',
             text: en
               ? ('Your verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
@@ -553,7 +553,7 @@ export default {
         if (kind === 'invite') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · set your password'
+              ? 'Spencer-Morais Node · set your password'
               : 'Nó Calhegas Morais · definir a sua palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set your password:\n\n' + code)
@@ -565,7 +565,7 @@ export default {
         if (kind === 'reset') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · password reset'
+              ? 'Spencer-Morais Node · password reset'
               : 'Nó Calhegas Morais · redefinição de palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set a new password:\n\n' + code)
@@ -577,7 +577,7 @@ export default {
         if (kind === 'register') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · registration received'
+              ? 'Spencer-Morais Node · registration received'
               : 'Nó Calhegas Morais · confirmação de registo',
             text: en
               ? ('Your registration has been received. KYC status: pending staff approval.\nEmail confirmation code: ' + code)
@@ -586,7 +586,7 @@ export default {
             code,
           };
         }
-        return { subject: en ? 'Calhegas Morais Node' : 'Nó Calhegas Morais', text: String(code || ''), kind: 'system' };
+        return { subject: en ? 'Spencer-Morais Node' : 'Nó Calhegas Morais', text: String(code || ''), kind: 'system' };
       }
 
       async function notifyOrchMail(env, subject, meta) {
@@ -1884,7 +1884,7 @@ export default {
         const format = (u.searchParams.get('format') || '').toLowerCase();
         const version = 'node-1.0';
         const title = lang === 'en'
-          ? 'Calhegas Morais Node — Terms and Conditions'
+          ? 'Spencer-Morais Node — Terms and Conditions'
           : 'Nó Calhegas Morais — Termos e Condições';
         const sections_pt = [
           ['1. Natureza do serviço', 'O domínio e os serviços associados operam o Nó Fog de referência Calhegas Morais (FOG-NODE-PT-CM-001), em versão de laboratório da StrataMesh (tecnologia de registo distribuído). O operador da infraestrutura de laboratório é a AMCM ENI (André Manuel Calhegas Morais, Empresário em Nome Individual). Nada aqui constitui aconselhamento financeiro, oferta de valores mobiliários ou serviço bancário.'],
