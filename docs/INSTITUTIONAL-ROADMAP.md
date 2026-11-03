@@ -16,13 +16,13 @@ A Portuguese *Associação Privada Sem Fins Lucrativos* requires **at least two 
 
 O Spencer-Morais Node é projecto familiar e privado de André Manuel Calhegas Morais e da Casa Spencer-Morais, de que constitui a infra-estrutura digital. Não tem carácter comercial nem receitas próprias e, perante o Estado, é representado pelo casal fundador, sob a direcção de André Manuel Calhegas Morais, enquanto pessoa singular. A Instituição Spencer-Morais Unipessoal, Lda., hoje latente, só será chamada a intervir se vier a haver actividade comercial.
 
-O Spencer-Morais Node distingue-se conceptualmente do LAB: não é parte dele, nem é forma de reunião livre em torno da sua tecnologia.
+Na óptica do ordenamento da Casa, o Spencer-Morais Node é infra-estrutura experimental da Casa no projecto StrataMesh LAB, que o fundador da Casa, André Manuel Calhegas Morais, também fundou como projecto tecnológico de associação livre. As duas ópticas coexistem sem se confundirem: a primeira rege a relação com o Estado; a segunda, a ordem interna da Casa. O Node e o LAB permanecem conceitos distintos.
 
 Responsável pelo projecto: o fundador André Manuel Calhegas Morais.
 
 Public id: **PT-SM-001** (display alias; the internal protocol id `FOG-NODE-PT-CM-001` is kept unchanged for peers, gossip, signatures, KV keys and ledger continuity).
 
-O StrataMesh LAB é um projecto de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a project of free people, not an association and not a legal person; the Spencer-Morais Node is conceptually distinct from it.
+O StrataMesh LAB é um projecto tecnológico de associação livre de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a technological project of free association, without legal personality. Two optics coexist: before the State, the Node is a family and private project; in the Casa's own order, it is experimental infrastructure of the Casa within the LAB. Node and LAB remain distinct concepts.
 
 Not: an independent commercial enterprise currently operating for income.
 
