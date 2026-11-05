@@ -1,5 +1,5 @@
 /**
- * Nó Calhegas Morais — Briefing diário (instrumento de comando).
+ * Spencer-Morais Node — Briefing diário (instrumento de comando).
  *
  * CONTRATO — o que é um bom briefing
  * 1. Delta-first: só o que mudou desde o último ciclo, ou o que exige decisão.
@@ -22,7 +22,7 @@ const STRATAGROK = {
   bot_id: "c02df87b-0431-46b7-abfc-6f65d751af8e",
   mailbox: "grok@calhegasmorais.pt",
 };
-const OWNER_WA = "447404796458";
+const OWNER_WA = "351308800218";
 const LISBON_TZ = "Europe/Lisbon";
 const CYCLE_CACHE = "https://briefing.internal/cycle/last";
 
@@ -316,12 +316,12 @@ function healthLine(snap, statusJson) {
 async function probeMesh(env) {
   const [aiopsBound, aiopsPub, edge, apiEdge, gossip, git, fog] = await Promise.all([
     fetchBound(env, "AIOPS", "/"),
-    fetchJson("https://aiops.calhegasmorais.pt/", 6000),
-    fetchJson("https://edge.calhegasmorais.pt/health", 4000),
-    fetchJson("https://api-edge.calhegasmorais.pt/health", 4000),
-    fetchJson("https://calhegasmorais.pt/api/v1/gossip/peers", 4000),
+    fetchJson("https://node.spencer-morais.pt/aiops/", 6000),
+    fetchJson("https://node.spencer-morais.pt/edge/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/edge/api/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/api/v1/gossip/peers", 4000),
     fetchJson("https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core/commits?per_page=4", 5000),
-    fetchJson("https://fog.calhegasmorais.pt/health", 4000),
+    fetchJson("https://node.spencer-morais.pt/fog/health", 4000),
   ]);
   let aiops = (aiopsBound.ok && aiopsBound.json) ? aiopsBound : aiopsPub;
   // Always run GET /cycle via service binding: public aiops host is INC-1027 HOLD pages,
@@ -357,7 +357,7 @@ async function probeMesh(env) {
   }
   const tasks = [];
   if (spa_missing) tasks.push({ id: "SG-SPA", text: "Expor métricas SPA no pulse AIOps e no status público." });
-  if (dag_na) tasks.push({ id: "SG-DAG", text: "Publicar contagem DAG txs no status.calhegasmorais.pt usado pelo AIOps." });
+  if (dag_na) tasks.push({ id: "SG-DAG", text: "Publicar contagem DAG txs no node.spencer-morais.pt/status usado pelo AIOps." });
   tasks.push({ id: "SG-DELTA", text: "Persistir evidência de trabalho do ciclo (não só health) para o briefing das 11h." });
   tasks.push({ id: "SG-REDDIT", text: "Quando r/StrataMesh_DLT estiver público, republicar canais oficiais; senão acompanhar redditrequest." });
   return {
@@ -388,15 +388,15 @@ async function composeBriefing(env, mode) {
   const [statusRes, agoraRes, pocRes, intel, last, mesh] = await Promise.all([
     fetchBound(env, "STATUS", "/summary").then(async (r) => {
       if (r.ok && r.json) return r;
-      return fetchJson("https://status.calhegasmorais.pt/summary");
+      return fetchJson("https://node.spencer-morais.pt/status/summary");
     }),
     fetchBound(env, "AGORA", "/health").then(async (r) => {
       if (r.ok) return r;
-      return fetchJson("https://calhegasmorais.pt/api/v1/agora/health");
+      return fetchJson("https://node.spencer-morais.pt/api/v1/agora/health");
     }),
     fetchBound(env, "POC", "/health").then(async (r) => {
       if (r.ok) return r;
-      return fetchJson("https://calhegasmorais.pt/api/v1/poc/health");
+      return fetchJson("https://node.spencer-morais.pt/api/v1/poc/health");
     }),
     ingestFeeds(),
     loadLast(env),
@@ -470,7 +470,7 @@ async function composeBriefing(env, mode) {
   lines.push("BRIEFING · " + lisbon.date + " · 11h " + LISBON_TZ);
   lines.push("Para: André M. Calhegas Morais · AMCM ENI");
   lines.push("CC: " + BRIEFING_CC.join(", ") + " · " + STRATAGROK.name + " " + STRATAGROK.bot_id);
-  lines.push("De: SCA-Orquestrador · Nó Calhegas Morais · " + VERSION);
+  lines.push("De: SCA-Orquestrador · Spencer-Morais Node · " + VERSION);
   lines.push("");
   lines.push("0. SÍNTESE");
   lines.push("   " + (snap.status || "UNKNOWN").toUpperCase() + " · upstream " + (snap.upstream_ok != null ? snap.upstream_ok + "/" + snap.upstream_total : "?"));

@@ -16,7 +16,7 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
-FOG_PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt"
+FOG_PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog"
 KNOWN_FOG = "FOG-NODE-PT-CM-001"
 UA = "stratamesh-homelab-inventory/1 (+lab; oracle_live=false)"
 

@@ -274,7 +274,7 @@ def draft_t20_metrics_line() -> dict:
         line,
         "```",
         "",
-        f"Fund: https://fund.calhegasmorais.pt · progress JSON: `status/desk-lab-progress.json`",
+        f"Fund: https://node.spencer-morais.pt/fund · progress JSON: `status/desk-lab-progress.json`",
         "",
         "Do not spam if HOLD. Objective numbers only — no invented EUR.",
         "",
@@ -530,7 +530,7 @@ def write_todo_board(state: dict | None = None, projected: dict | None = None) -
 
 
 def write_context_pack(state: dict | None = None, projected: dict | None = None) -> Path:
-    """Shared CMN + StrataMesh context pack — read-only pointers, no secrets / no Bot-private memory."""
+    """Shared SMN + StrataMesh context pack — read-only pointers, no secrets / no Bot-private memory."""
     if projected is None:
         try:
             projected = json.loads((HERE / "projected.json").read_text(encoding="utf-8"))
@@ -544,7 +544,7 @@ def write_context_pack(state: dict | None = None, projected: dict | None = None)
     elif isinstance(projected.get("milestone"), str):
         milestone = projected["milestone"]
 
-    md = f"""# CONTEXT — CMN + StrataMesh (shared desk pack)
+    md = f"""# CONTEXT — SMN + StrataMesh (shared desk pack)
 
 _regenerated {_now()} · read-only pointers · **no secrets** · not Bot-private memory_
 
@@ -557,7 +557,7 @@ _regenerated {_now()} · read-only pointers · **no secrets** · not Bot-private
 5. Daily reports: `desk-outbox/reports/latest.md`
 6. Your specialty work (self-queue from board)
 
-## CMN (Nó Calhegas Morais)
+## SMN (Spencer-Morais Node)
 
 - Mandate: Fog automation desk on **FOG-NODE-PT-CM-001**, identity `grok@calhegasmorais.pt`
 - Contract: `ops/EDGE-GROK-DESK-CONTRACT.md`
@@ -571,7 +571,7 @@ _regenerated {_now()} · read-only pointers · **no secrets** · not Bot-private
 
 - Spine: `docs/ROADMAP-VISION.md` (when present on origin)
 - Current desk milestone focus: **{milestone}**
-- Public origin: https://calhegasmorais.pt · fog · sandbox · bancada (account-required atelier)
+- Public origin: https://node.spencer-morais.pt/ · fog · sandbox · bancada (account-required atelier)
 - Repo: `StrataMesh-Laboratory/stratamesh-core`
 - Catalog/SCA rules: protocol `no_sca` + academy block in `protocol.json`
 - Deny: workers.dev · secrets in git/chat · Reddit · ENI geral@ mix
@@ -583,14 +583,14 @@ _regenerated {_now()} · read-only pointers · **no secrets** · not Bot-private
 | TODO board | `$FOG_HOME/data/desk-outbox/TODO.md` |
 | GH daily | `$FOG_HOME/data/desk-outbox/reports/gh-daily.md` |
 | Discourse daily | `$FOG_HOME/data/desk-outbox/reports/discourse-daily.md` |
-| Context (this) | `$FOG_HOME/data/desk-outbox/CONTEXT-CMN-STRATAMESH.md` |
+| Context (this) | `$FOG_HOME/data/desk-outbox/CONTEXT-SMN-STRATAMESH.md` |
 | Collegium state | `$FOG_HOME/data/desk-collegium/state.json` |
 | Meters | `$FOG_HOME/data/desk-meters/` |
 
 ## Fog vs EDGE (Archive roles)
 
-- **CMN FOG ASSISTANT:** Fog git+live (origin Pages, hops, auth/mw)
-- **CMN EDGE ASSISTANT:** EDGE **GET consume-only** — no origin write / no Fog bind
+- **SMN FOG ASSISTANT:** Fog git+live (origin Pages, hops, auth/mw)
+- **SMN EDGE ASSISTANT:** EDGE **GET consume-only** — no origin write / no Fog bind
 
 ## Hermes / OpenCode / OpenClaw
 
@@ -598,10 +598,10 @@ Native Mac desk (not Bot desktop). Hermes context ≥64k. Load this pack path ea
 """
     box = _fog() / "data" / "desk-outbox"
     box.mkdir(parents=True, exist_ok=True)
-    path = box / "CONTEXT-CMN-STRATAMESH.md"
+    path = box / "CONTEXT-SMN-STRATAMESH.md"
     path.write_text(md, encoding="utf-8")
     # repo template for tests / git
-    tmpl = HERE / "templates" / "CONTEXT-CMN-STRATAMESH.md"
+    tmpl = HERE / "templates" / "CONTEXT-SMN-STRATAMESH.md"
     try:
         tmpl.parent.mkdir(parents=True, exist_ok=True)
         if not tmpl.is_file():
@@ -667,7 +667,7 @@ def ensure_agent_journals() -> dict:
             nb.write_text(
                 f"# Notebook — {aid}\n\n"
                 f"## Mandatory wake order\n\n"
-                f"1. desk-outbox/CONTEXT-CMN-STRATAMESH.md\n"
+                f"1. desk-outbox/CONTEXT-SMN-STRATAMESH.md\n"
                 f"2. ops/desk-collegium/protocol.json\n"
                 f"3. docs/FOG-DESK-PROTOCOL.md + FOG-DESK-OPS.md (Eisenhower)\n"
                 f"4. desk-outbox/TODO.md\n"

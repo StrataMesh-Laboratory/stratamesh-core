@@ -1,7 +1,7 @@
 # AIOps Dev Team — continuous node development
 
 Whitepaper-aligned: AIOps are **essential**, not cosmetic health checks.  
-They operate under the **Hybrid Orchestrator** (federated meta-learning + QIGA, substrate-neutral ontology) to **develop and operate** the Calhegas Morais Fog Node on an ongoing basis.
+They operate under the **Hybrid Orchestrator** (federated meta-learning + QIGA, substrate-neutral ontology) to **develop and operate** the Spencer-Morais Node on an ongoing basis.
 
 ## Mandate
 

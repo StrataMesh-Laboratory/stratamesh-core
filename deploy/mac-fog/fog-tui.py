@@ -70,7 +70,7 @@ _DESK_LAST_KICK = 0.0
 _DESK_BUSY = False
 _DESK_CYCLE = 0
 DESK_PROBE_PERIOD = 60.0  # live /desk updates on r / auto-r (not g)
-MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no status.calhegasmorais.pt)
+MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no node.spencer-morais.pt/status)
 _PUB_LOCK = threading.Lock()
 _PUB_BUSY = False
 _PRINT = print
@@ -374,8 +374,8 @@ def kick_public_refresh() -> None:
     def _run() -> None:
         global _PUB_BUSY
         try:
-            pub = get("https://fog.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
-            edge = get("https://edge.calhegasmorais.pt/health", timeout=PUB_HTTP_TIMEOUT)
+            pub = get("https://node.spencer-morais.pt/fog/health", timeout=PUB_HTTP_TIMEOUT)
+            edge = get("https://node.spencer-morais.pt/edge/health", timeout=PUB_HTTP_TIMEOUT)
             if not isinstance(pub, dict):
                 pub = {"ok": False, "error": "bad"}
             if not isinstance(edge, dict):
@@ -1928,7 +1928,7 @@ def _optional_origin_toc() -> str:
     """Fail-open title/toc from public origin. Never secrets. Timeout 2s."""
     try:
         req = urllib.request.Request(
-            "https://calhegasmorais.pt/",
+            "https://node.spencer-morais.pt/",
             headers={"User-Agent": "fog-tui-wizard/1", "Accept": "text/html"},
             method="GET",
         )
@@ -2157,7 +2157,7 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
         else:
             notes.append("%s down %s" % (port, err or "no-health"))
     if not delivered:
-        origin = "https://calhegasmorais.pt/api/orchestrator/chat"
+        origin = "https://node.spencer-morais.pt/api/orchestrator/chat"
         opost = _http_json(origin, "POST", raw, 4.0)
         ohttp = int(opost.get("_http") or 0)
         if _orch_endpoint_live(opost) or (200 <= ohttp < 300):
@@ -2169,13 +2169,13 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
                 notes.append("origin GET ok %s" % (oget.get("version") or oget.get("_http") or "service"))
             else:
                 notes.append("origin POST %s" % (ohttp or opost.get("error") or "err"))
-                ai = _http_json("https://aiops.calhegasmorais.pt/chat", "POST", raw, 4.0)
+                ai = _http_json("https://node.spencer-morais.pt/aiops/chat", "POST", raw, 4.0)
                 ahttp = int(ai.get("_http") or 0)
                 if _orch_endpoint_live(ai) or (200 <= ahttp < 300):
                     notes.append("aiops POST %s" % (ahttp or 200))
                     delivered = True
                 else:
-                    aget = _http_json("https://aiops.calhegasmorais.pt/chat", "GET", None, 2.0)
+                    aget = _http_json("https://node.spencer-morais.pt/aiops/chat", "GET", None, 2.0)
                     if _orch_endpoint_live(aget):
                         notes.append("aiops GET ok")
                     elif not hop_live_any:

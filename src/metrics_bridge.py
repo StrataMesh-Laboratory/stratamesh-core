@@ -106,8 +106,8 @@ def build_status_payload(
         },
         "links": {
             "repo": "https://github.com/StrataMesh-Laboratory/stratamesh-core",
-            "status_worker": "https://status.calhegasmorais.pt/status",
-            "portal": "https://calhegasmorais.pt/dashboard",
+            "status_worker": "https://node.spencer-morais.pt/status/status",
+            "portal": "https://node.spencer-morais.pt/dashboard",
         },
         "progress": {
             "phase0": "complete",

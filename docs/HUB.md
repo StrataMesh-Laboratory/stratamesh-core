@@ -22,7 +22,7 @@ Desk split and renewal dates: [ops/EDGE-GROK-DESK-CONTRACT.md](../ops/EDGE-GROK-
 | same | [stratamesh/lab](https://huggingface.co/datasets/stratamesh/lab) | dataset | Public lab facts. No weights, no tokens, no secrets. |
 | git `src/academy/` | (catalog in git; Hub dataset later) | academy formations | Ollama pulls GGUF via `hf.co/…`. Worker does **not** infer. |
 | same | [stratamesh/edge-grok](https://huggingface.co/stratamesh/edge-grok) | model (private) | Desk means, not a being. |
-| [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node) | same org card | — | Node surface lives on GitHub + calhegasmorais.pt |
+| [spencer-morais-node](https://github.com/StrataMesh-Laboratory/spencer-morais-node) | same org card | — | Node surface lives on GitHub + calhegasmorais.pt |
 | [stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory) | same org card | — | Charter / posture |
 | [stratamesh-impact-fund](https://github.com/StrataMesh-Laboratory/stratamesh-impact-fund) | — | — | Fund is GitHub evidence, not Hub weights |
 | — | [stratamesh/RealworldQA-bucket](https://huggingface.co/buckets/stratamesh/RealworldQA-bucket) | bucket (public, Xet) | Catalog only (~297 GiB). Source [xai-org/RealworldQA](https://huggingface.co/datasets/xai-org/RealworldQA). **Never pull onto Fog.** |

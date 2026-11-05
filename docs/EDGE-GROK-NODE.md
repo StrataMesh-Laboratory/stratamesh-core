@@ -1,6 +1,6 @@
 # EDGE-GROK-CMN-001 — lab edge node on Cloudflare
 
-**Status:** Lab edge of the **n=2** CMN pair · **Linked fog:** `FOG-NODE-PT-CM-001`  
+**Status:** Lab edge of the **n=2** SMN pair · **Linked fog:** `FOG-NODE-PT-CM-001`  
 **Local:** EDGE-GROK process `EDGE-GROK-CMN-001` (counts as the second host).  
 **Public CF Worker** (`stratamesh-edge-grok`) is an observer/relay, not a third Fog and not a 6th host. Custom domain only — not workers.dev as origin.  
 **IDs:** not a physical FOG host, not mainnet. Current lab cut **v0.6.0-lab**, Adversarial P1.
@@ -9,9 +9,9 @@
 
 | URL | Role |
 |-----|------|
-| https://edge.calhegasmorais.pt/health | Health + identity |
-| https://edge.calhegasmorais.pt/status | Link probe to fog status + gossip |
-| https://edge.calhegasmorais.pt/ping-fog | Fog reachability only |
+| https://node.spencer-morais.pt/edge/health | Health + identity |
+| https://node.spencer-morais.pt/edge/status | Link probe to fog status + gossip |
+| https://node.spencer-morais.pt/edge/ping-fog | Fog reachability only |
 | https://stratamesh-edge-grok.stratamesh.workers.dev/* | Same worker (workers.dev) |
 
 ## Mesh membership
@@ -20,8 +20,8 @@
 If the edge is down, it disappears from `/api/v1/gossip/peers` (anti-stub).
 
 ```bash
-curl -s https://calhegasmorais.pt/api/v1/gossip/peers | jq .
-curl -s https://edge.calhegasmorais.pt/status | jq .
+curl -s https://node.spencer-morais.pt/api/v1/gossip/peers | jq .
+curl -s https://node.spencer-morais.pt/edge/status | jq .
 ```
 
 ## Capabilities (v1.0.0-edge-grok)

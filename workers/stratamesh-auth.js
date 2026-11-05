@@ -516,8 +516,8 @@ export default {
         if (kind === 'fog_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · Fog bootstrap 2FA'
-              : 'Nó Calhegas Morais · 2FA de instalação Fog',
+              ? 'Spencer-Morais Node · Fog bootstrap 2FA'
+              : 'Spencer-Morais Node · 2FA de instalação Fog',
             text: en
               ? ('Your Fog Node bootstrap code is: ' + code + '\n\nValid for 10 minutes. One use. Node install will not start without it.')
               : ('O código de instalação do Nó Fog é: ' + code + '\n\nVálido 10 minutos. Uma utilização. A instalação não começa sem ele.'),
@@ -529,8 +529,8 @@ export default {
         if (kind === 'staff_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · staff 2FA code'
-              : 'Nó Calhegas Morais · código 2FA (pessoal)',
+              ? 'Spencer-Morais Node · staff 2FA code'
+              : 'Spencer-Morais Node · código 2FA (pessoal)',
             text: en
               ? ('Your staff verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
               : ('O seu código de verificação (pessoal) é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
@@ -541,8 +541,8 @@ export default {
         if (kind === 'user_2fa') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · verification code'
-              : 'Nó Calhegas Morais · código de verificação',
+              ? 'Spencer-Morais Node · verification code'
+              : 'Spencer-Morais Node · código de verificação',
             text: en
               ? ('Your verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
               : ('O seu código de verificação é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
@@ -553,8 +553,8 @@ export default {
         if (kind === 'invite') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · set your password'
-              : 'Nó Calhegas Morais · definir a sua palavra-passe',
+              ? 'Spencer-Morais Node · set your password'
+              : 'Spencer-Morais Node · definir a sua palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set your password:\n\n' + code)
               : ('Abra este link no prazo de 1 hora para definir a palavra-passe:\n\n' + code),
@@ -565,8 +565,8 @@ export default {
         if (kind === 'reset') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · password reset'
-              : 'Nó Calhegas Morais · redefinição de palavra-passe',
+              ? 'Spencer-Morais Node · password reset'
+              : 'Spencer-Morais Node · redefinição de palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set a new password:\n\n' + code)
               : ('Abra este link no prazo de 1 hora para definir uma nova palavra-passe:\n\n' + code),
@@ -577,8 +577,8 @@ export default {
         if (kind === 'register') {
           return {
             subject: en
-              ? 'Calhegas Morais Node · registration received'
-              : 'Nó Calhegas Morais · confirmação de registo',
+              ? 'Spencer-Morais Node · registration received'
+              : 'Spencer-Morais Node · confirmação de registo',
             text: en
               ? ('Your registration has been received. KYC status: pending staff approval.\nEmail confirmation code: ' + code)
               : ('O seu registo foi recebido. Estado KYC: pendente de aprovação.\nCódigo de confirmação: ' + code),
@@ -586,7 +586,7 @@ export default {
             code,
           };
         }
-        return { subject: en ? 'Calhegas Morais Node' : 'Nó Calhegas Morais', text: String(code || ''), kind: 'system' };
+        return { subject: en ? 'Spencer-Morais Node' : 'Spencer-Morais Node', text: String(code || ''), kind: 'system' };
       }
 
       async function notifyOrchMail(env, subject, meta) {
@@ -1240,7 +1240,7 @@ export default {
       if ((path === '/notify/broadcast' || path === '/broadcast') && request.method === 'POST') {
         try {
           const body = await request.json();
-          const subject = body.subject || 'Aviso — Nó Calhegas Morais';
+          const subject = body.subject || 'Aviso — Spencer-Morais Node';
           const text = body.text || body.message || '';
           const clearance = body.clearance || body.clearance_level || null; // e.g. PUBLIC, INTERNAL, all
           if (!text) {
@@ -1884,29 +1884,29 @@ export default {
         const format = (u.searchParams.get('format') || '').toLowerCase();
         const version = 'node-1.0';
         const title = lang === 'en'
-          ? 'Calhegas Morais Node — Terms and Conditions'
-          : 'Nó Calhegas Morais — Termos e Condições';
+          ? 'Spencer-Morais Node: Terms and Conditions'
+          : 'Spencer-Morais Node: Termos e Condições';
         const sections_pt = [
-          ['1. Natureza do serviço', 'O domínio e os serviços associados operam o Nó Fog de referência Calhegas Morais (FOG-NODE-PT-CM-001), em versão de laboratório da StrataMesh (tecnologia de registo distribuído). O operador da infraestrutura de laboratório é a AMCM ENI (André Manuel Calhegas Morais, Empresário em Nome Individual). Nada aqui constitui aconselhamento financeiro, oferta de valores mobiliários ou serviço bancário.'],
+          ['1. Natureza do serviço e titularidade', 'O domínio e os serviços associados são servidos pelo Spencer-Morais Node (PT-SM-001; identificador de protocolo FOG-NODE-PT-CM-001), que executa, em regime de laboratório, a tecnologia de registo distribuído StrataMesh. O Spencer-Morais Node é projecto familiar e privado de André Manuel Calhegas Morais e da Casa Spencer-Morais, sem carácter comercial nem receita própria. Perante a ordem estadual, é representado pelos cidadãos que constituem o casal fundador e dirigido por André Manuel Calhegas Morais, pessoa singular, a quem cabe a responsabilidade pelo serviço. A Instituição Spencer-Morais Unipessoal, Lda., entidade ainda latente, só lhe sucederá na titularidade se houver actividade comercial. Na ordem interna da Casa, o Spencer-Morais Node é infra-estrutura experimental da Casa no projecto StrataMesh LAB, projecto tecnológico de associação livre igualmente fundado por André Manuel Calhegas Morais, do qual se distingue conceptualmente. Ambas as qualificações descrevem o estado actual, que é latente, e não determinam a forma por que o Spencer-Morais Node se venha a constituir na ordem da Casa ou perante a ordem estadual, a qual dependerá da progressão e do desenvolvimento do projecto. Nada do que aqui se dispõe constitui aconselhamento financeiro, oferta de valores mobiliários ou serviço bancário.'],
           ['2. Registo e credenciais', 'O registo exige aceitação expressa destes termos. Após o registo, a conta fica associada a um endereço de correio electrónico e a uma palavra-passe definida pelo utilizador através de ligação de uso único. O acesso quotidiano pode exigir autenticação de dois factores por e-mail.'],
           ['3. Identidade e verificação (KYC)', 'Para desbloquear ferramentas do painel, o Nó exige verificação de identidade documental soberana (passaporte internacional ou documento nacional oficial). A verificação automática baseia-se em padrões abertos, nomeadamente a zona de leitura óptica (MRZ) segundo ICAO 9303 e, quando aplicável, algoritmos públicos de validação estrutural (por exemplo checksums nacionais). O número de documento (identificador soberano) passa a ser o identificador de registo na StrataMesh ligado a esta conta no Nó.'],
-          ['4. Dados pessoais e privacidade', 'O nome legal completo e os números de documento são dados internos de verificação — não constituem perfil público. O nome de utilizador (username), escolhido dentro das regras do Nó, é a identidade pública no ambiente do Nó. O e-mail serve comunicações de sistema (2FA, segurança, avisos).'],
+          ['4. Dados pessoais e privacidade', 'O nome legal completo e os números de documento são dados internos de verificação e não constituem perfil público. O nome de utilizador (username), escolhido dentro das regras do Nó, é a identidade pública no ambiente do Nó. O e-mail serve comunicações de sistema (2FA, segurança, avisos).'],
           ['5. Conduta e sanções', 'É proibido o uso de documentos falsos, a usurpação de identidade, ataques à malha ou a exploração abusiva dos serviços. Em caso de abuso, o Nó pode suspender a conta. Tentativas de ataque não geram recompensa em STRATA; recursos capturados podem ser absorvidos pela malha segundo as regras anti-fragilidade do protocolo.'],
           ['6. STRATA e laboratório', 'STRATA e a Ágora, nesta fase, são mecanismos de protocolo em ensaio. Saldos ou emissões de laboratório que não resultem de Prova de Contributo efectiva do Nó não transitam automaticamente para uma eventual fase pós-laboratório, salvo regras expressas em contrário.'],
           ['7. Painel e clearance', 'As ferramentas do painel de utilizador comum desbloqueiam-se após verificação automática (ou elevação autorizada) bem-sucedida. O acesso de pessoal rege-se por clearance interna e autenticação própria, distinta do registo público.'],
           ['8. Alterações', 'A versão vigente destes termos é «' + version + '». Alterações relevantes podem ser comunicadas por e-mail de sistema ou aviso no portal. A continuação do uso após a entrada em vigor implica aceitação da versão actualizada, quando a lei aplicável o permitir.'],
-          ['9. Contacto', 'AMCM ENI · geral@eni.calhegasmorais.pt · +44 7404 796458 · https://eni.calhegasmorais.pt/ · https://calhegasmorais.pt/'],
+          ['9. Contacto', 'André Manuel Calhegas Morais, pelo Spencer-Morais Node · contacto da Casa: +351 308 800 218 · https://spencer-morais.pt/'],
         ];
         const sections_en = [
-          ['1. Nature of the service', 'The domain and related services operate the Calhegas Morais reference Fog Node (FOG-NODE-PT-CM-001), a laboratory version of StrataMesh (distributed ledger technology). Laboratory infrastructure is operated under AMCM ENI (André Manuel Calhegas Morais, sole trader). Nothing herein is financial advice, an offer of securities, or a banking service.'],
+          ['1. Nature of the service and ownership', 'The domain and related services are served by the Spencer-Morais Node (PT-SM-001; protocol identifier FOG-NODE-PT-CM-001), which runs StrataMesh distributed ledger technology on a laboratory basis. The Spencer-Morais Node is a family and private project of André Manuel Calhegas Morais and the Casa Spencer-Morais, with no commercial character and no revenue of its own. Before the State, it is represented by the citizens who form the founding couple and directed by André Manuel Calhegas Morais, a natural person, who is responsible for the service. Instituição Spencer-Morais Unipessoal, Lda., an entity that is still latent, will succeed to ownership only if there is commercial activity. Within the internal order of the Casa, the Spencer-Morais Node is experimental infrastructure of the Casa within the StrataMesh LAB, a technology project of free association likewise founded by André Manuel Calhegas Morais, from which it is conceptually distinct. Both descriptions reflect the current, latent state and do not determine the form the Spencer-Morais Node may take within the Casa or before the State, which will depend on the progress and development of the project. Nothing herein is financial advice, an offer of securities, or a banking service.'],
           ['2. Registration and credentials', 'Registration requires explicit acceptance of these terms. After registration, the account is bound to an email address and a password set by the user via a one-time link. Day-to-day access may require email two-factor authentication.'],
           ['3. Identity and verification (KYC)', 'To unlock panel tools, the Node requires sovereign document identity verification (international passport or official national ID). Automated checks rely on open standards, including the machine-readable zone (MRZ) under ICAO 9303 and, where applicable, public structural validation algorithms. The document number (sovereign identifier) becomes the StrataMesh registration identifier linked to this Node account.'],
-          ['4. Personal data and privacy', 'Legal full name and document numbers are internal verification data — not a public profile. The username, chosen within Node rules, is the public identity on the Node. Email is used for system communications (2FA, security, notices).'],
+          ['4. Personal data and privacy', 'Legal full name and document numbers are internal verification data and not a public profile. The username, chosen within Node rules, is the public identity on the Node. Email is used for system communications (2FA, security, notices).'],
           ['5. Conduct and sanctions', 'False documents, identity misuse, mesh attacks or abusive exploitation of services are prohibited. The Node may suspend accounts for abuse. Attack attempts do not earn STRATA rewards; captured resources may be absorbed under protocol anti-fragility rules.'],
           ['6. STRATA and laboratory status', 'STRATA and the Agora are protocol mechanisms under trial in this phase. Laboratory balances or issuances that do not result from effective Node Proof of Contribution do not automatically carry into a post-laboratory phase unless expressly stated otherwise.'],
           ['7. Panel and clearance', 'Common-user panel tools unlock after successful automated verification (or authorised elevation). Staff access is governed by internal clearance and separate authentication.'],
           ['8. Changes', 'The current terms version is «' + version + '». Material changes may be notified by system email or portal notice. Continued use after the effective date may constitute acceptance where applicable law allows.'],
-          ['9. Contact', 'AMCM ENI · geral@eni.calhegasmorais.pt · +44 7404 796458 · https://eni.calhegasmorais.pt/ · https://calhegasmorais.pt/'],
+          ['9. Contact', 'André Manuel Calhegas Morais, for the Spencer-Morais Node · Casa contact: +351 308 800 218 · https://spencer-morais.pt/'],
         ];
         const sections = lang === 'en' ? sections_en : sections_pt;
         const bodyPlain = sections.map(function (s) { return s[0] + '. ' + s[1]; }).join(' ');
@@ -1931,7 +1931,7 @@ export default {
         }).join('');
         const back = lang === 'en' ? 'Back to portal' : 'Voltar ao portal';
         const kicker = lang === 'en' ? 'Legal · laboratory' : 'Jurídico · laboratório';
-        const html = '<!DOCTYPE html><html lang="' + (lang === 'en' ? 'en-GB' : 'pt-PT') + '"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + esc(title) + '</title><style>body{margin:0;background:#0a0a0c;color:#e8e8ea;font-family:system-ui,-apple-system,sans-serif}a{color:#8b9cf7;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}.kicker{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:#71717a;margin-bottom:.75rem}h1{font-size:1.65rem;font-weight:500;margin:0 0 .35rem;letter-spacing:-.02em}.meta{font-size:.8rem;color:#71717a;margin-bottom:2rem}.foot{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid #27272a;font-size:.8rem;color:#71717a}</style></head><body><div class="wrap"><div class="kicker">' + esc(kicker) + '</div><h1>' + esc(title) + '</h1><p class="meta">Version ' + esc(version) + ' · AMCM ENI · FOG-NODE-PT-CM-001</p>' + articles + '<div class="foot"><a href="https://calhegasmorais.pt/dashboard">' + esc(back) + '</a> · <a href="https://eni.calhegasmorais.pt/">AMCM ENI</a></div></div></body></html>';
+        const html = '<!DOCTYPE html><html lang="' + (lang === 'en' ? 'en-GB' : 'pt-PT') + '"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>' + esc(title) + '</title><style>body{margin:0;background:#0a0a0c;color:#e8e8ea;font-family:system-ui,-apple-system,sans-serif}a{color:#8b9cf7;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}.kicker{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:#71717a;margin-bottom:.75rem}h1{font-size:1.65rem;font-weight:500;margin:0 0 .35rem;letter-spacing:-.02em}.meta{font-size:.8rem;color:#71717a;margin-bottom:2rem}.foot{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid #27272a;font-size:.8rem;color:#71717a}</style></head><body><div class="wrap"><div class="kicker">' + esc(kicker) + '</div><h1>' + esc(title) + '</h1><p class="meta">Version ' + esc(version) + ' · Spencer-Morais Node · PT-SM-001</p>' + articles + '<div class="foot"><a href="https://calhegasmorais.pt/dashboard">' + esc(back) + '</a></div></div></body></html>';
         return new Response(html, {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',

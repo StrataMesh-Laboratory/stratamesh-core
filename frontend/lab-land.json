@@ -3,7 +3,7 @@
   "bundle": {
     "id": "obj-lab-land-bundle",
     "kind": "bundle",
-    "name": "CMN Open World #1",
+    "name": "SMN Open World #1",
     "aspectos": [
       "par-lab-bancada",
       "par-lab-rua",
@@ -216,7 +216,7 @@
       "trade": ""
     }
   ],
-  "open_world_host_note": "CMN Open World #1 land bundle: parcels as unmovable aspectos under one macrohypervisor; mirrored microhypervisors by language player pool — CPLP (PT-PT) and International (EN-GB). Same bundle identity. See docs/OPEN-WORLD-HYPERVISORS.md",
+  "open_world_host_note": "SMN Open World #1 land bundle: parcels as unmovable aspectos under one macrohypervisor; mirrored microhypervisors by language player pool — CPLP (PT-PT) and International (EN-GB). Same bundle identity. See docs/OPEN-WORLD-HYPERVISORS.md",
   "macrohypervisor_id": "macrohv-cmn-main-open-world",
   "microhypervisor_ids": [
     "microhv-cmn-main-cplp-pt-pt",

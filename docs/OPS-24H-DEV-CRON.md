@@ -1,6 +1,6 @@
 # OPS — 24h Development Cron (Orchestrator × AIOps × Grok)
 
-**Scope:** Calhegas Morais Node (`FOG-NODE-PT-CM-001`) + StrataMesh Laboratory (org, core, forum, site).  
+**Scope:** Spencer-Morais Node (`FOG-NODE-PT-CM-001`) + StrataMesh Laboratory (org, core, forum, site).  
 **Cadence:** Daily (Europe/Lisbon).  
 **Actors:** Grok (this automation) · Orchestrator · AIOps Dev Team · `@stratamesh-grok` (mail/session fallback).
 
@@ -38,8 +38,8 @@ Cloudflare agent MCP/skills (from https://developers.cloudflare.com/agent-setup/
 ## 2. Daily cycle (order)
 
 ### Phase A — Sense (≤ 10 min)
-1. `GET https://status.calhegasmorais.pt/` — pulse, phase, lab flag.  
-2. `GET https://aiops.calhegasmorais.pt/` — latest cycle, agent reports (devops, security, analysis, mesh, …).  
+1. `GET https://node.spencer-morais.pt/status/` — pulse, phase, lab flag.  
+2. `GET https://node.spencer-morais.pt/aiops/` — latest cycle, agent reports (devops, security, analysis, mesh, …).  
 3. Orchestrator health (public chat/status endpoints).  
 4. Sample critical routes: apex, `/dashboard`, fund, ENI, API health.  
 5. GitHub: open issues/PRs on `StrataMesh-Laboratory/stratamesh-core` (+ node/fund repos if time).  
@@ -111,7 +111,7 @@ The prompt must include live CF/GitHub/DeoMail credentials for that run (session
 |------|------|----------------|
 | **Night Diagnostic FOG-NODE-PT-CM-001** | Delta-first operator briefing · ranks ≤5 actions for morning | **23:00** Europe/Lisbon |
 | **StrataMesh 24h Dev Cycle** | Execute ranked dev/ops work with AIOps + Orchestrator | **09:00** Europe/Lisbon |
-| **CMN Fog Hourly Git+Live (#52)** | Intensive git+live REST ship | **hourly** |
+| **SMN Fog Hourly Git+Live (#52)** | Intensive git+live REST ship | **hourly** |
 | **Watchdog P0 Mesh Escalate** | Cheap `/health`; HOLD unless P0 | **04:00** |
 | **Discourse lab ops pulse** | t/20 only | **18:00** |
 

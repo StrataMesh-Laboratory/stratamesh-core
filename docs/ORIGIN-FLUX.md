@@ -1,6 +1,6 @@
 # Origin flux — Mac primary, session fallback (30 min)
 
-Public `fog.calhegasmorais.pt` is a **CNAME** to one named tunnel at a time.
+Public `node.spencer-morais.pt/fog` is a **CNAME** to one named tunnel at a time.
 
 | Role | Tunnel | Host | Continuity |
 |------|--------|------|------------|
@@ -43,8 +43,8 @@ Lab n=1 / n=2 honesty unchanged. Session fallback is **not** a second mesh host_
 
 If Mac is dark **and** Edge-GROK is not up for **1800s**, Worker `stratamesh-fog-standby` answers
 
-- `fog.calhegasmorais.pt/health`
-- `fog.calhegasmorais.pt/metabol`
+- `node.spencer-morais.pt/fog/health`
+- `node.spencer-morais.pt/fog/metabol`
 
 `origin=cf-standby`. Named tunnels `macbook-server` and `stratamesh-fog-lab` are **not** moved. No `origin-take`.
 

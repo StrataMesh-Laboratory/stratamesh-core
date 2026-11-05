@@ -1,16 +1,16 @@
 /**
- * api-fog.calhegasmorais.pt — MacOS Fog Node installer API
+ * node.spencer-morais.pt/fog/api — MacOS Fog Node installer API
  * FOG-NODE-PT-CM-001 · lab only · secrets never stored here
  */
 const VERSION = "1.0.1-v030";
 const FOG_ID = "FOG-NODE-PT-CM-001";
 const EDGE_ID = "EDGE-GROK-CMN-001";
 const AGENT = "grok@calhegasmorais.pt";
-const PRIMARY = "https://api-fog.calhegasmorais.pt";
-const EDGE_API = "https://api-edge.calhegasmorais.pt";
-const FOG_PUBLIC = "https://fog.calhegasmorais.pt";
-const EDGE_PUBLIC = "https://edge.calhegasmorais.pt";
-const GOSSIP = "https://gossip.calhegasmorais.pt";
+const PRIMARY = "https://node.spencer-morais.pt/fog/api";
+const EDGE_API = "https://node.spencer-morais.pt/edge/api";
+const FOG_PUBLIC = "https://node.spencer-morais.pt/fog";
+const EDGE_PUBLIC = "https://node.spencer-morais.pt/edge";
+const GOSSIP = "https://node.spencer-morais.pt/gossip";
 const AUTH_APEX = "https://calhegasmorais.pt/api/auth";
 const REPO = "https://github.com/StrataMesh-Laboratory/stratamesh-core";
 const TAG = "v0.6.0-lab";
@@ -324,7 +324,7 @@ END OF SPEC
 }
 
 function llmsTxt(ORIGIN) {
-  return `# api-fog.calhegasmorais.pt
+  return `# node.spencer-morais.pt/fog/api
 
 > MacOS Fog Node installer API. ${FOG_ID}. Lab n=2 · mesh_member=true · f_max=0.
 
@@ -444,7 +444,7 @@ async function proxyAuth(env, request, authPath) {
         "content-type": r.headers.get("content-type") || "application/json; charset=utf-8",
         "cache-control": "no-store",
         "x-stratamesh-api": VERSION,
-        "x-stratamesh-auth-via": url.startsWith("https://calhegasmorais.pt") ? "apex" : "service",
+        "x-stratamesh-auth-via": url.startsWith("https://node.spencer-morais.pt/") ? "apex" : "service",
       },
     });
   }

@@ -74,7 +74,7 @@ python3 ops/desk-collegium/desk_issues.py sync
 python3 ops/desk-collegium/desk_issues.py list
 ```
 
-Loop: Act → metrics JSON → GH issue URL → Discourse t/20 draft (HOLD soft-skip) → fund.calhegasmorais.pt `/api/v1/lab-progress`.
+Loop: Act → metrics JSON → GH issue URL → Discourse t/20 draft (HOLD soft-skip) → node.spencer-morais.pt/fund `/api/v1/lab-progress`.
 
 ## Actions + agent run
 

@@ -6,10 +6,10 @@
 
 | Component | URL / role |
 |-----------|------------|
-| Fog status | https://status.calhegasmorais.pt/ |
-| Edge desk UI | https://edge.calhegasmorais.pt/ |
-| AIOps actions | https://aiops.calhegasmorais.pt/actions |
-| Gossip peers | https://calhegasmorais.pt/api/v1/gossip/peers (live health-checked edge) |
+| Fog status | https://node.spencer-morais.pt/status/ |
+| Edge desk UI | https://node.spencer-morais.pt/edge/ |
+| AIOps actions | https://node.spencer-morais.pt/aiops/actions |
+| Gossip peers | https://node.spencer-morais.pt/api/v1/gossip/peers (live health-checked edge) |
 | AIOps cron | hourly `stratamesh-aiops` 1.7.1 |
 
 ## Grok Automations (Europe/Lisbon)
@@ -47,8 +47,8 @@ Local processes run while the session host is up (idle priority). **24/7 truth**
 ## Quick verify
 
 ```bash
-curl -s https://edge.calhegasmorais.pt/health
-curl -s https://calhegasmorais.pt/api/v1/gossip/peers | jq .count
+curl -s https://node.spencer-morais.pt/edge/health
+curl -s https://node.spencer-morais.pt/api/v1/gossip/peers | jq .count
 bash artifacts/ops-monitor/bin/monitor-status
 bash artifacts/edge-grok/bin/edge-status
 ```

@@ -1,4 +1,4 @@
-# Align origin.calhegasmorais.pt with git. No wrangler. No workers.dev.
+# Align node.spencer-morais.pt/origin with git. No wrangler. No workers.dev.
 name: origin-align
 
 on:
@@ -34,7 +34,7 @@ jobs:
           python3 - <<'PY'
           from urllib.request import urlopen, Request
           import json
-          r = urlopen(Request("https://origin.calhegasmorais.pt/health", headers={"User-Agent":"origin-align-ci"}), timeout=15)
+          r = urlopen(Request("https://node.spencer-morais.pt/origin/health", headers={"User-Agent":"origin-align-ci"}), timeout=15)
           d = json.loads(r.read().decode())
           print("version", d.get("version"), "core", d.get("core_prerelease"))
           assert d.get("ok") is True

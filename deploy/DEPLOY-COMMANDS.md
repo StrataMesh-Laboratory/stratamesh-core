@@ -5,7 +5,7 @@
 2. Name it `stratamesh-status`
 3. Paste the contents of `cloudflare-worker-status.js`
 4. Deploy
-5. (Optional) Add a custom domain / route: status.calhegasmorais.pt
+5. (Optional) Add a custom domain / route: node.spencer-morais.pt/status
 
 ## Option B — Wrangler CLI
 ```bash
@@ -22,4 +22,4 @@ Upload `../status/index.html` and `../status/status.json` to the web root or `/s
 ## After deploy
 curl https://<worker-subdomain>.workers.dev/status
 # or
-curl https://status.calhegasmorais.pt/status
+curl https://node.spencer-morais.pt/status/status

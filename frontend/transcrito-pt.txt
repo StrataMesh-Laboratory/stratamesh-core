@@ -1,6 +1,6 @@
 Calhegas Morais · Nó de referência StrataMesh
 Calhegas Morais
-· Nó CMN
+· Nó SMN
 PT
 /
 EN
@@ -15,7 +15,7 @@ EN
 Laboratório · Lisboa, Portugal
 Calhegas Morais
 Porta de entrada pública do
-Nó de Névoa Calhegas Morais
+Spencer-Morais Node
 — nó de referência da
 StrataMesh
 , uma rede de registo distribuído orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.
@@ -86,7 +86,7 @@ STRATA entra em circulação sobretudo quando há contributo real (PdC), não po
 Circulação
 Quem precisa de recursos da rede paga em STRATA (incluindo a prova de subsistência dos agentes). Quem tem STRATA pode vendê-la na Ágora.
 03 · Este sítio
-O que é o Nó Calhegas Morais?
+O que é o Spencer-Morais Node?
 É um
 nó de Névoa de referência
 da StrataMesh, operado a partir de Lisboa. “Névoa” (Fog) significa capacidade na periferia da rede (perto de utilizadores e dispositivos), não só num centro de dados remoto.
@@ -179,7 +179,7 @@ Login staff com 2FA: tudo o do comum, mais KYC, utilizadores, sistema e vistas d
 Portal / painel
 Código (GitHub)
 Estado dos serviços
-Calhegas Morais Node · StrataMesh TRD · laboratório
+Spencer-Morais Node · StrataMesh TRD · laboratório
 FOG-NODE-PT-CM-001 · Lisboa · standing por função e acordo, não por substrato
 AMCM ENI
 — entidade legal do titular ·

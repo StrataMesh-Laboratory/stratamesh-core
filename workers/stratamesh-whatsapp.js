@@ -1,6 +1,6 @@
 /**
  * AMCM ENI — WhatsApp Business integration (Meta Cloud API)
- * Number: +44 7404 796458
+ * Number: +351 308 800 218
  *
  * Env (set in Cloudflare secrets when Meta app is linked):
  *   WA_ACCESS_TOKEN     — permanent/system user token
@@ -13,8 +13,8 @@
  * Without tokens: health + deep-links work; send/webhook return 503 with setup hints.
  */
 const VERSION = '1.2.1-sync-cmd';
-const E164 = '447404796458';
-const DISPLAY = '+44 7404 796458';
+const E164 = '351308800218';
+const DISPLAY = '+351 308 800 218';
 const ENTITY = 'AMCM ENI';
 const WA_ME = 'https://wa.me/' + E164;
 
@@ -111,7 +111,7 @@ async function routeToOrchestrator(env, text, from) {
 
 function extractReply(orch, text) {
   if (!orch || typeof orch !== 'object') {
-    return 'Nó Calhegas Morais online. Escreva «status», «resumo» ou a sua questão.';
+    return 'Spencer-Morais Node online. Escreva «status», «resumo» ou a sua questão.';
   }
   let reply =
     orch.reply || orch.message || orch.text || orch.response || '';
@@ -233,18 +233,18 @@ export default {
               let replyText = null;
               const low = String(text || '').toLowerCase().trim().replace(/[?!.,;:]+$/g, '').trim();
               if (low === 'ping' || low === 'pong' || low.startsWith('ping ')) {
-                replyText = 'pong — Nó Calhegas Morais · webhook OK · ' + new Date().toISOString();
+                replyText = 'pong — Spencer-Morais Node · webhook OK · ' + new Date().toISOString();
               } else if (low === 'status' || low === 'estado' || low.startsWith('status') || low.startsWith('estado')) {
-                replyText = 'Nó Calhegas Morais online. FOG-NODE-PT-CM-001 · lab. WhatsApp Cloud API operacional. Escreva a sua questão ou «resumo».';
+                replyText = 'Spencer-Morais Node online. FOG-NODE-PT-CM-001 · lab. WhatsApp Cloud API operacional. Escreva a sua questão ou «resumo».';
               } else if (low === 'ajuda' || low === 'help' || low === 'oi' || low === 'olá' || low === 'ola' || low === 'hello') {
-                replyText = 'Nó Calhegas Morais. Comandos: status · resumo · ping · ou escreva a sua pergunta.';
+                replyText = 'Spencer-Morais Node. Comandos: status · resumo · ping · ou escreva a sua pergunta.';
               }
               if (!replyText && text) {
                 const orch = await routeToOrchestrator(env, text, from);
                 replyText = extractReply(orch, text);
               }
               if (!replyText) {
-                replyText = 'Nó Calhegas Morais recebeu a mensagem. Escreva «status» ou a sua questão.';
+                replyText = 'Spencer-Morais Node recebeu a mensagem. Escreva «status» ou a sua questão.';
               }
               // Briefing keywords
               try {
@@ -271,7 +271,7 @@ export default {
             } catch (e) {
               console.error('wa job', e);
               try {
-                await cloudSend(env, from, 'Nó Calhegas Morais: erro temporário a processar. Tente «status».');
+                await cloudSend(env, from, 'Spencer-Morais Node: erro temporário a processar. Tente «status».');
               } catch (_) {}
             }
           }
@@ -295,11 +295,11 @@ export default {
                 let replyText = null;
                 const low = String(text || '').toLowerCase().trim().replace(/[?!.,;:]+$/g, '').trim();
                 if (low === 'ping' || low === 'pong' || low.startsWith('ping')) {
-                  replyText = 'pong — Nó Calhegas Morais · webhook OK · ' + new Date().toISOString();
+                  replyText = 'pong — Spencer-Morais Node · webhook OK · ' + new Date().toISOString();
                 } else if (low === 'status' || low === 'estado' || low.startsWith('status') || low.startsWith('estado')) {
-                  replyText = 'Nó Calhegas Morais online. FOG-NODE-PT-CM-001 · lab. WhatsApp Cloud API operacional. Escreva a sua questão ou «resumo».';
+                  replyText = 'Spencer-Morais Node online. FOG-NODE-PT-CM-001 · lab. WhatsApp Cloud API operacional. Escreva a sua questão ou «resumo».';
                 } else {
-                  replyText = 'Nó Calhegas Morais. Comandos: status · resumo · ping · ou a sua pergunta.';
+                  replyText = 'Spencer-Morais Node. Comandos: status · resumo · ping · ou a sua pergunta.';
                 }
                 if (configured(env) && replyText) {
                   const sent = await cloudSend(env, from, replyText);
@@ -320,7 +320,7 @@ export default {
                   const orch = await routeToOrchestrator(env, text, from);
                   replyText = extractReply(orch, text);
                 }
-                if (!replyText) replyText = 'Nó Calhegas Morais recebeu a mensagem. Escreva «status» ou a sua questão.';
+                if (!replyText) replyText = 'Spencer-Morais Node recebeu a mensagem. Escreva «status» ou a sua questão.';
                 try {
                   if (/\b(resumo|briefing|brief|voz|voice|audio|sumario|sumário)\b/i.test(low)) {
                     await fetch('https://stratamesh-briefing.stratamesh.workers.dev/wa-hook', {
@@ -333,7 +333,7 @@ export default {
                 if (configured(env) && replyText) await cloudSend(env, from, replyText);
               } catch (e) {
                 console.error('slow job', e);
-                try { await cloudSend(env, from, 'Nó Calhegas Morais: erro temporário. Tente «status».'); } catch (_) {}
+                try { await cloudSend(env, from, 'Spencer-Morais Node: erro temporário. Tente «status».'); } catch (_) {}
               }
             }
           })());

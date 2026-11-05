@@ -10,7 +10,7 @@ Lab. **Not mainnet.** Not a public offer of STRATA. `oracle_live=false`. `f_max=
 
 v0.3.0 made the Fog a product other operators can instantiate. v0.4.0-lab makes the **Orchestrator and AIOps ACBs trainable**:
 
-1. **Always-on academy** at [academy.calhegasmorais.pt](https://academy.calhegasmorais.pt/) — catalog + fail-closed grader, no cron, no workers.dev.
+1. **Always-on academy** at [node.spencer-morais.pt/academy](https://node.spencer-morais.pt/academy/) — catalog + fail-closed grader, no cron, no workers.dev.
 2. **Corrective + exploratory formations** for all six students (Vespera / Kael / Nyx / Solace / Reed / Mira). Unready is fail-closed. Invented handlers do not pass.
 3. **Ollama ← HF GGUF** on Fog residual capacity (`ollama pull hf.co/…`). Hugging Face stays a catalog of *means*. Inference Providers remain HOLD. Worker does not infer.
 4. **STRATA cost model** declared (`GET /v1/cost`) and **lab-waived**. Later: subsistence debit of the student ACB — transfer, never mint.
@@ -26,7 +26,7 @@ v0.3.0 made the Fog a product other operators can instantiate. v0.4.0-lab makes 
 ## Run
 
 ```bash
-curl -sS https://academy.calhegasmorais.pt/health
-curl -sS https://academy.calhegasmorais.pt/v1/formations
+curl -sS https://node.spencer-morais.pt/academy/health
+curl -sS https://node.spencer-morais.pt/academy/v1/formations
 cd src && python3 -m academy --list
 ```

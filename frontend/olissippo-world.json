@@ -4,8 +4,8 @@
   "not_main": true,
   "label_pt": "Aldeia de Olissippo",
   "label_en": "Olissippo village",
-  "subtitle_pt": "Pré-romana · lore (não é o mundo principal CMN onde vivem as sandboxes) · mesmas mecânicas",
-  "subtitle_en": "Pre-Roman · lore (not CMN main where sandboxes host) · same mechanics",
+  "subtitle_pt": "Pré-romana · lore (não é o mundo principal SMN onde vivem as sandboxes) · mesmas mecânicas",
+  "subtitle_en": "Pre-Roman · lore (not SMN main where sandboxes host) · same mechanics",
   "cache": "20260907d",
   "locations": [
     {
@@ -290,7 +290,7 @@
     "note": "Human or ACB Subject enters here; Subjects not seeded as Object rows"
   },
   "acb_note": "People here are Subjects (ACB) — never NFTs / objects.",
-  "identity_note": "Identity = StrataMesh Subject; world role = CMN. People ≠ NFT objects.",
+  "identity_note": "Identity = StrataMesh Subject; world role = SMN. People ≠ NFT objects.",
   "hosts_sandboxes": false,
   "same_mechanics_as_main": true,
   "realm_class": "lore",

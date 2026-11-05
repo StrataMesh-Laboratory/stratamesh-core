@@ -28,8 +28,8 @@
   "locks": [
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
     "Mentored by Boutius Subject \u2014 not owned as Object",
-    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
-    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
+    "Identity (subject_id) registered in StrataMesh \u2014 not SMN",
+    "World role (world_role_id) registered in SMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "Master Boutius is at the forge. I fetch what he needs.",

@@ -1,4 +1,4 @@
-# Hermes workspace — FOG-CMN-DESK (Mac)
+# Hermes workspace — FOG-SMN-DESK (Mac)
 
 Automation-desk map for native Hermes Desktop on MBPA. **New session is not enough** if cwd is detached from the project; `ensure_workspace.py` owns durability after update/reboot/recycle.
 
@@ -18,7 +18,7 @@ Automation-desk map for native Hermes Desktop on MBPA. **New session is not enou
 | StrataMesh root | `/Users/andremorais/StrataMesh` |
 | Hermes home | `~/.hermes` |
 | App | `~/.hermes/hermes-agent/apps/desktop/release/mac/Hermes.app` |
-| Project id | `fog-cmn-desk` (name FOG-CMN-DESK) |
+| Project id | `fog-cmn-desk` (name FOG-SMN-DESK) |
 | Outbox | `$FOG_HOME/data/desk-outbox` |
 
 ## Discovery (durable)
@@ -64,7 +64,7 @@ hermes desktop --cwd /Users/andremorais/StrataMesh/fog/repo --skip-build
 Desktop filters with `min_messages=1` and project-folder cwd match. Seed:
 
 ```bash
-hermes chat -q "FOG-CMN-DESK desk seed. Reply exactly: ACK" --oneshot -Q \
+hermes chat -q "FOG-SMN-DESK desk seed. Reply exactly: ACK" --oneshot -Q \
   --in /Users/andremorais/StrataMesh/fog/repo
 # Then ensure stamps cwd via SessionDB.update_session_cwd (chat --in alone may omit cwd).
 hermes sessions list --workspace fog
@@ -101,7 +101,7 @@ hermes config set model.context_length 131072
 1. `python3 deploy/mac-fog/hermes/ensure_workspace.py`
 2. `python3 deploy/mac-fog/hermes/test_ensure_workspace.py`
 3. Soft relaunch: `hermes desktop --cwd …/fog/repo --skip-build`
-4. Confirm sidebar shows ≥1 FOG-CMN-DESK session — if welcome only, one New session **with** fog/repo cwd, then re-run ensure so recycle keeps it.
+4. Confirm sidebar shows ≥1 FOG-SMN-DESK session — if welcome only, one New session **with** fog/repo cwd, then re-run ensure so recycle keeps it.
 
 Do **not** rely on one-shot chat seeds alone; ensure owns project + discovery + cwd-stamped session + model check.
 

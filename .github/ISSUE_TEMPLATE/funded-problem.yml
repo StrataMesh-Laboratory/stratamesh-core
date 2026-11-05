@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Problems stay **open** until grantee(s) accept and deliver against **objective metrics** agreed with the grantor.
-        Funding rails: [GitHub Sponsors](https://github.com/sponsors/amcmorais) · [Impact Fund](https://fund.calhegasmorais.pt) · [ENI /pagamentos](https://calhegasmorais.pt/pagamentos)
+        Funding rails: [GitHub Sponsors](https://github.com/sponsors/amcmorais) · [Impact Fund](https://node.spencer-morais.pt/fund) · [ENI /pagamentos](https://calhegasmorais.pt/pagamentos)
   - type: input
     id: grantor
     attributes:

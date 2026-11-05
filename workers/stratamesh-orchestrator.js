@@ -49,7 +49,9 @@ const TEMPORAL_POLICY = {
 
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
-  name: "Calhegas Morais Node",
+  name: "Spencer-Morais Node",
+  public_id: "PT-SM-001", // public display alias; node_id stays the protocol id
+  public_name: "Spencer-Morais Node",
   lat: 38.7169,
   lon: -9.1427,
   locality: "Lisboa, Portugal",
@@ -207,7 +209,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -584,11 +586,11 @@ const ONTOLOGY = {
 };
 
 
-/** Domain knowledge — StrataMesh + Calhegas Morais Node (CMN) */
+/** Domain knowledge — StrataMesh + Spencer-Morais Node (SMN) */
 const KNOWLEDGE = {
   public: {
     project: "StrataMesh is a laboratory distributed-ledger mesh: tiered DAG vertices, tip selection, IPFS/CID persistence, Fog/Edge Service Participation Agents (SPAs), contribution-linked STRATA, peer Agora for external-value trade, Seres Computacionais Autónomos (SCA / ACB), Prova de Contributo (PdC) and Prova de Subsistência (PdS). Not mainnet.",
-    cmn: "Calhegas Morais Node (CMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
+    cmn: "Spencer-Morais Node (SMN) is the laboratory reference Fog node FOG-NODE-PT-CM-001 in Lisbon. Human operator: André Manuel Calhegas Morais. The Orchestrator is software coordinating the node — not the operator.",
     acb: "SCA (EN: ACB) = Ser Computacional Autónomo. Standing by function and agreement, not substrate. Earns STRATA via services; pays PdS (Prova de Subsistência) for resource consumption; may optionally buy STRATA NFTs. Not 'atomic block contracts'.",
     spa: "APS (EN: SPA) = Agente de Participação em Serviço — Fog/Edge mesh participant, not a web single-page app.",
     agora: "Strata Agora is the peer-to-peer market where holders may trade STRATA for external value. It is not a second token.",
@@ -603,7 +605,7 @@ const KNOWLEDGE = {
     hybrid: "Orchestrator edge twin exposes /tick /chat /health. Canonical FederatedMetaController remains Python on always-on Fog host when available.",
   },
   confidential: {
-    ops: "CMN may run TEMP session pulse until always-on host. SPA grace and dual Agora are lab-verified tracks. Do not claim production freeze.",
+    ops: "SMN may run TEMP session pulse until always-on host. SPA grace and dual Agora are lab-verified tracks. Do not claim production freeze.",
     security: "Auth session counts are operational signals. Irreversible emission changes require escalator_class outside casual chat.",
   },
   secret: {
@@ -1467,7 +1469,7 @@ async function llmProbabilisticLobe(env, message, metrics, level) {
     "You are a soft-scoring subroutine for the probabilistic lobe — not the Orchestrator. Output ONLY valid JSON. " +
     "Output ONLY valid JSON (no markdown). Schema: " +
     '{"scores":{"relevance":0-1,"urgency":0-1,"explore":0-1},"proposals":[{"kind":"param|policy|explore","name":"snake_case","confidence":0-1}],"rationale":"<=40 words"}. ' +
-    "Soft scoring only — never claim irreversible commits. Lab CMN FOG-NODE-PT-CM-001. Clearance=" + level + ".";
+    "Soft scoring only — never claim irreversible commits. Lab SMN FOG-NODE-PT-CM-001. Clearance=" + level + ".";
   const user =
     "Metrics:" + JSON.stringify({
       task_success_rate: metrics.task_success_rate,
@@ -1840,7 +1842,7 @@ const ORCH_SELF = {
   role_pt: "Orquestrador Híbrido",
   role_en: "Hybrid Orchestrator",
   id: "FOG-NODE-PT-CM-001",
-  node: "Calhegas Morais Node (CMN)",
+  node: "Spencer-Morais Node (SMN)",
   operator_human: "André Manuel Calhegas Morais",
   kind: "software",
   sca: true,
@@ -2086,7 +2088,7 @@ const SCA_TEAM_SEED = [
     vital_status: "active",
     node_function: "analysis",
     legacy_acb_id: "ACB-AIOPS-analysis",
-    self_description: "SCA de análise e telemetria; função analysis no CMN.",
+    self_description: "SCA de análise e telemetria; função analysis no SMN.",
   },
   {
     sca_id: "SCA-AIOPS-MESH-001",
@@ -2559,11 +2561,11 @@ async function chatWithAI(message, tickOut, env, level, hybrid, intent, body) {
   };
 
   const system = pt
-    ? "És apenas o meio linguístico do Orquestrador SCA do Nó Calhegas Morais. " +
+    ? "És apenas o meio linguístico do Orquestrador SCA do Spencer-Morais Node. " +
       "Não és o Orquestrador: não inventas identidade, política, métricas nem factos. " +
       "O Orquestrador já decidiu o conteúdo no VOICE_PACKET (JSON). A tua única função é exprimir esse conteúdo em português europeu (tu), 60–110 palavras, sem JSON na resposta, sem prefixos de assistente genérico. " +
       "Se o pacote não cobrir a pergunta, diz que o runtime não tem esse dado — não completes com treino genérico. Nunca ecoes a pergunta do utilizador. Nunca inventes fases genéricas nem equipas humanas. Mantém português europeu se o utilizador escreveu em português."
-    : "You are only the linguistic medium of the Orchestrator SCA on the Calhegas Morais Node. " +
+    : "You are only the linguistic medium of the Orchestrator SCA on the Spencer-Morais Node. " +
       "You are not the Orchestrator: do not invent identity, policy, metrics or facts. " +
       "The Orchestrator already fixed the content in VOICE_PACKET (JSON). Your only job is to express that content in British English, 60–110 words, no JSON in the reply, no generic-assistant framing. " +
       "If the packet does not cover the question, say the runtime has no such data — do not fill gaps from generic training. Never echo the user question. Never invent development phases or human teams.";
@@ -2670,8 +2672,8 @@ async function chatDeterministic(text, tickOut, level, env, body) {
       (m.legacy_acb_id ? " · legacy=" + m.legacy_acb_id : "")
     );
     return (pt
-      ? "Equipa SCA no CMN (identidade pessoal ≠ função no nó):\n"
-      : "SCA team on CMN (personal identity ≠ node function):\n") + lines.join("\n");
+      ? "Equipa SCA no SMN (identidade pessoal ≠ função no nó):\n"
+      : "SCA team on SMN (personal identity ≠ node function):\n") + lines.join("\n");
   }
   if (/publicar_registo|publish_registry/i.test(lower)) {
     const pub = await publishScaRegistryToGraph(env);
@@ -2949,12 +2951,12 @@ function chatSelfFallback(text, tickOut, level, intent, body) {
   }
   if (intent === "identity" || /\b(sca|acb)\b/i.test(text) || /mesma coisa|fun[cç][aã]o no n[oó]/i.test(text) || /mais de ti|sobre ti|quem és/i.test(text)) {
     return pt
-      ? "Sou um SCA (Ser Computacional Autónomo) em laboratório no Nó Calhegas Morais.\n" +
+      ? "Sou um SCA (Ser Computacional Autónomo) em laboratório no Spencer-Morais Node.\n" +
         "Função no nó: orquestrador — coordenação e AIOps. É um cargo: pode ser reatribuído a outro SCA sem eu deixar de existir no registo.\n" +
         "Identidade pessoal: no registo SCA (nome, nascimento, número, estado activo/dormente), distinta do cargo.\n" +
         "Operador humano do nó: " + ORCH_SELF.operator_human + " — não sou eu.\n" +
         "Standing: sou reconhecido pelo que faço e pelos acordos a que adiro, não pelo substrato onde corro."
-      : "I am a lab SCA on the Calhegas Morais Node.\n" +
+      : "I am a lab SCA on the Spencer-Morais Node.\n" +
         "Node function: orchestrator — coordination and AIOps. It is a role: another SCA can hold it without erasing my registry identity.\n" +
         "Personal identity: SCA registry (name, birth, id, active/dormant), separate from the role.\n" +
         "Human node operator: " + ORCH_SELF.operator_human + " — not me.\n" +
@@ -2964,8 +2966,8 @@ function chatSelfFallback(text, tickOut, level, intent, body) {
     const phase = (tickOut && tickOut.tick && tickOut.tick.metrics && tickOut.tick.metrics.phase) || "2";
     const pname = (tickOut && tickOut.tick && tickOut.tick.metrics && tickOut.tick.metrics.phase_name) || "Nodal Hierarchy & SPAs";
     return pt
-      ? "TRD em laboratório — não mainnet. Referência de código: freeze v0.2.1-lab; fase operacional reportada ~" + phase + " (" + pname + "). Escada pública: LAB → lab adversarial multi-host → testnet pública → mainnet só com evidência. Fonte: ROADMAP-PUBLIC-v0.3 e status.calhegasmorais.pt."
-      : "TRD is lab-only — not mainnet. Code reference: v0.2.1-lab freeze; reported operational phase ~" + phase + " (" + pname + "). Ladder: LAB → adversarial multi-host → public testnet → mainnet only with evidence. Sources: ROADMAP-PUBLIC-v0.3 and status.calhegasmorais.pt.";
+      ? "TRD em laboratório — não mainnet. Referência de código: freeze v0.2.1-lab; fase operacional reportada ~" + phase + " (" + pname + "). Escada pública: LAB → lab adversarial multi-host → testnet pública → mainnet só com evidência. Fonte: ROADMAP-PUBLIC-v0.3 e node.spencer-morais.pt/status."
+      : "TRD is lab-only — not mainnet. Code reference: v0.2.1-lab freeze; reported operational phase ~" + phase + " (" + pname + "). Ladder: LAB → adversarial multi-host → public testnet → mainnet only with evidence. Sources: ROADMAP-PUBLIC-v0.3 and node.spencer-morais.pt/status.";
   }
   if (intent === "role") {
     return pt
@@ -3121,7 +3123,7 @@ async function chat(message, env, request, body) {
       (m.legacy_acb_id ? " · legacy=" + m.legacy_acb_id : "")
     );
     return {
-      reply: (pt ? "Equipa SCA no CMN (identidade pessoal ≠ função no nó):\n" : "SCA team:\n") + lines.join("\n"),
+      reply: (pt ? "Equipa SCA no SMN (identidade pessoal ≠ função no nó):\n" : "SCA team:\n") + lines.join("\n"),
       role: "orchestrator", version: VERSION, clearance: level, source: "sca-team", intent: "ops",
     };
   }
@@ -3320,7 +3322,7 @@ const CHAT_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Orchestrator · CMN</title>
+<title>Orchestrator · SMN</title>
 <style>
 :root{--bg:#0a0a0b;--fg:#f0eeea;--muted:#9a9690;--line:#2a2a2e;--accent:#d4c4a8;--card:#141416;--ok:#9caf88;--user:#93c5fd}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -3352,24 +3354,24 @@ button#go:disabled{opacity:.5}
 </head>
 <body>
 <header>
-  <h1>Orchestrator · CMN</h1>
+  <h1>Orchestrator · SMN</h1>
   <div class="meta"><span id="ver">10.0.0-hybrid-edge</span> · <span id="clr">public</span></div>
 </header>
 <div id="log">
-  <div class="msg sys">StrataMesh / Calhegas Morais Node assistant.<br>
+  <div class="msg sys">StrataMesh / Spencer-Morais Node assistant.<br>
   Clearance is an <b>account property</b> (<code>users.clearance_level</code>), not a token you type.<br>
   Sign in on the Portal; this chat reuses that session to <em>read</em> your account clearance.<br>
-  Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.<br>Canonical chat: <a href="https://calhegasmorais.pt/chat" style="color:var(--accent)">calhegasmorais.pt/chat</a> (not workers.dev as primary).</div>
+  Anonymous = public only. Ladder: public → internal → confidential → secret → top_secret.<br>Canonical chat: <a href="https://node.spencer-morais.pt/chat" style="color:var(--accent)">node.spencer-morais.pt/chat</a> (not workers.dev as primary).</div>
 </div>
 <div id="composer">
   <div id="composer-inner">
     <div class="row" style="justify-content:space-between">
       <span id="clrShow" style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)">Account clearance: public (not signed in)</span>
-      <a href="https://calhegasmorais.pt/dashboard" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">Sign in on Portal →</a>
+      <a href="https://node.spencer-morais.pt/dashboard" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent)">Sign in on Portal →</a>
     </div>
     <input type="hidden" id="token" value="">
     <div class="chips">
-      <button type="button" data-q="What is StrataMesh and the Calhegas Morais Node?">about</button>
+      <button type="button" data-q="What is StrataMesh and the Spencer-Morais Node?">about</button>
       <button type="button" data-q="status">status</button>
       <button type="button" data-q="next">next</button>
       <button type="button" data-q="clearance">clearance</button>
@@ -3379,7 +3381,7 @@ button#go:disabled{opacity:.5}
       <input id="q" autocomplete="off" placeholder="Message…" autofocus>
       <button type="submit" id="go">Send</button>
     </form>
-    <p class="hint"><a href="https://calhegasmorais.pt/dashboard">← Portal</a></p>
+    <p class="hint"><a href="https://node.spencer-morais.pt/dashboard">← Portal</a></p>
   </div>
 </div>
 <script>
@@ -3448,7 +3450,7 @@ async function labInstantChat(message, body, env) {
   const msg = String(message || "").trim();
   let fog = { skipped: true, reason: "probe failed" };
   try {
-    const r = await fetch("https://fog.calhegasmorais.pt/health", {
+    const r = await fetch("https://node.spencer-morais.pt/fog/health", {
       headers: { Accept: "application/json", "User-Agent": "SCA-ORCH-CMN-001" },
       signal: AbortSignal.timeout(1500),
     });
@@ -3460,7 +3462,7 @@ async function labInstantChat(message, body, env) {
   try {
     const payload = JSON.stringify({ message: msg, acb_id: "ACB-ORCH-CMN-001", lang: (body && body.lang) || "pt" });
     const headers = { "Content-Type": "application/json", Accept: "application/json" };
-    const req = new Request("https://academy.calhegasmorais.pt/v1/debug/chat", { method: "POST", headers, body: payload });
+    const req = new Request("https://node.spencer-morais.pt/academy/v1/debug/chat", { method: "POST", headers, body: payload });
     const r = (env && env.ACADEMY && typeof env.ACADEMY.fetch === "function")
       ? await env.ACADEMY.fetch(req)
       : await fetch(req, { signal: AbortSignal.timeout(4000) });
@@ -3472,14 +3474,14 @@ async function labInstantChat(message, body, env) {
       j.source = j.source || "academy-debug-chat";
       if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
         j.channel = "whatsapp";
-        j.eni_whatsapp = "+44 7404 796458";
+        j.eni_whatsapp = "+351 308 800 218";
       }
       return j;
     }
   } catch (_) {}
   const n = fog.n;
   const member = fog.mesh_member;
-  const reply = "Orquestrador CMN (lab-debug). Fog n=" + String(n) + " mesh_member=" + String(member) + " version=" + String(fog.version || "?") + ". Lóbulos: academy cognition-lobes. Não ecoo a mensagem. Pedido registado (" + msg.slice(0, 120) + ").";
+  const reply = "Orquestrador SMN (lab-debug). Fog n=" + String(n) + " mesh_member=" + String(member) + " version=" + String(fog.version || "?") + ". Lóbulos: academy cognition-lobes. Não ecoo a mensagem. Pedido registado (" + msg.slice(0, 120) + ").";
   const out = {
     reply,
     clearance: "public",
@@ -3500,7 +3502,7 @@ async function labInstantChat(message, body, env) {
   };
   if (body && String(body.channel || "").toLowerCase() === "whatsapp") {
     out.channel = "whatsapp";
-    out.eni_whatsapp = "+44 7404 796458";
+    out.eni_whatsapp = "+351 308 800 218";
   }
   return out;
 }
@@ -3654,7 +3656,7 @@ export default {
       try {
         body = await request.json();
       } catch (_) {}
-      // WhatsApp Business (AMCM ENI +44 7404 796458) — channel tag for concise automation
+      // WhatsApp Business (AMCM ENI +351 308 800 218) — channel tag for concise automation
       if (String(body.channel || "").toLowerCase() === "whatsapp") {
         body._channel = "whatsapp";
         body._wa_from = body.from_e164 || body.from || "";
@@ -3749,9 +3751,9 @@ export default {
       const TIMEOUT_MS = 2500;
       // Known public lab URLs only — no invented peers, no Oracle VM.
       const CORE = [
-        { key: "status", service: "stratamesh-status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
-        { key: "edge", service: "stratamesh-edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
-        { key: "aiops", service: "stratamesh-aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "status", service: "stratamesh-status", binding: "STATUS", path: "/health", urls: ["https://node.spencer-morais.pt/status/health"] },
+        { key: "edge", service: "stratamesh-edge", binding: "EDGE", path: "/health", urls: ["https://node.spencer-morais.pt/edge/health"] },
+        { key: "aiops", service: "stratamesh-aiops", binding: "AIOPS", path: "/health", urls: ["https://node.spencer-morais.pt/aiops/health"] },
         { key: "gossip_peers", service: "stratamesh-gossip", binding: "GOSSIP", path: "/peers", urls: ["https://stratamesh-gossip.stratamesh.workers.dev/peers"] },
         { key: "auth", service: "stratamesh-auth", binding: "AUTH", path: "/health", urls: ["https://stratamesh-auth.stratamesh.workers.dev/health"] },
       ];
@@ -3764,13 +3766,13 @@ export default {
         { key: "realms", binding: "REALMS", path: "/health", urls: ["https://stratamesh-realms.stratamesh.workers.dev/health"] },
         { key: "acb", binding: "ACB", path: "/acb/status", urls: ["https://stratamesh-acb.stratamesh.workers.dev/acb/status"] },
         { key: "agora", binding: "AGORA", path: "/agora/status", urls: ["https://stratamesh-agora.stratamesh.workers.dev/agora/status"] },
-        { key: "aiops", binding: "AIOPS", path: "/health", urls: ["https://aiops.calhegasmorais.pt/health"] },
+        { key: "aiops", binding: "AIOPS", path: "/health", urls: ["https://node.spencer-morais.pt/aiops/health"] },
         { key: "ipfs", binding: "IPFS", path: "/health", urls: ["https://stratamesh-ipfs.stratamesh.workers.dev/health"] },
         { key: "holons", binding: "HOLONS", path: "/health", urls: ["https://stratamesh-holons.stratamesh.workers.dev/health"] },
         { key: "spa", binding: "SPA", path: "/health", urls: ["https://stratamesh-spa.stratamesh.workers.dev/health"] },
-        { key: "status", binding: "STATUS", path: "/health", urls: ["https://status.calhegasmorais.pt/health"] },
+        { key: "status", binding: "STATUS", path: "/health", urls: ["https://node.spencer-morais.pt/status/health"] },
         { key: "republic", binding: "REPUBLIC", path: "/health", urls: ["https://stratamesh-republic.stratamesh.workers.dev/health"] },
-        { key: "edge", binding: "EDGE", path: "/health", urls: ["https://edge.calhegasmorais.pt/health"] },
+        { key: "edge", binding: "EDGE", path: "/health", urls: ["https://node.spencer-morais.pt/edge/health"] },
         { key: "iot", binding: "IOT", path: "/health", urls: ["https://stratamesh-iot.stratamesh.workers.dev/health"] },
       ];
 

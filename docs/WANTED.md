@@ -23,4 +23,4 @@ Short list of **contributor-shaped** problems. Expand into Issues with metrics b
 - [ ] Minimal open-world object pipeline using existing NFT ontology APIs.  
 
 Track labels: see [CONTRIBUTOR-TRACKS.md](./CONTRIBUTOR-TRACKS.md).  
-Fund: [fund.calhegasmorais.pt](https://fund.calhegasmorais.pt/).
+Fund: [node.spencer-morais.pt/fund](https://node.spencer-morais.pt/fund/).

@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 FALLBACK_AFTER = int(os.environ.get("FOG_FALLBACK_AFTER") or "1800")
-FOG_PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+FOG_PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog/health"
 FOG_LOCAL = os.environ.get("FOG_HEALTH") or "http://127.0.0.1:8787/health"
 STATE = Path(os.environ.get("FOG_DATA") or Path.home() / "StrataMesh/fog/data") / "mac_live.json"
 

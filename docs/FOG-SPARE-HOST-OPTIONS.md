@@ -20,7 +20,7 @@ Do **not** use: workers.dev, MariaDB `:3307`, EDGE on the Mac, GCP signup 2FA (s
 
 Recommended order if hardware is already in the house: **A then B**. Termux is last and labeled experimental.
 
-Peer `NODE_ID` must be **`FOG-NODE-HOME-001`** (or another id ≠ `FOG-NODE-PT-CM-001`). Own data dir. Tailscale to the same tailnet as mbpv / hermes-desk. No public `:8787` until an optional `fog-home.` tunnel exists. Mac keeps `fog.calhegasmorais.pt`.
+Peer `NODE_ID` must be **`FOG-NODE-HOME-001`** (or another id ≠ `FOG-NODE-PT-CM-001`). Own data dir. Tailscale to the same tailnet as mbpv / hermes-desk. No public `:8787` until an optional `fog-home.` tunnel exists. Mac keeps `node.spencer-morais.pt/fog`.
 
 ---
 

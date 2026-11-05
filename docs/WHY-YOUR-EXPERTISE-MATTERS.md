@@ -26,7 +26,7 @@ You do **not** need to learn “all of StrataMesh” first. Find the row that ma
 | Status? | Pre-testnet laboratory · reference node FOG-NODE-PT-CM-001 |
 | Code? | [StrataMesh-Laboratory](https://github.com/StrataMesh-Laboratory) · [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core) |
 | How to contribute? | [CONTRIBUTING.md](../CONTRIBUTING.md) · track issues · Discussions |
-| Funded? | [Impact Fund](https://fund.calhegasmorais.pt/) · [Sponsors](https://github.com/sponsors/amcmorais) |
+| Funded? | [Impact Fund](https://node.spencer-morais.pt/fund/) · [Sponsors](https://github.com/sponsors/amcmorais) |
 | Before testnet? | Shape architecture with evidence — not mainnet theatre |
 
 ## Message discipline

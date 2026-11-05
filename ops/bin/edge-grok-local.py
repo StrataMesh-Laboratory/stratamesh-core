@@ -22,7 +22,7 @@ from host_fingerprint import fingerprint  # noqa: E402
 from mesh_provision import EDGE_ID, FOG_ID, flags  # noqa: E402
 
 PORT = int(os.environ.get("EDGE_PORT") or "8789")
-FOG_HEALTH = os.environ.get("FOG_PUBLIC_HEALTH") or "https://fog.calhegasmorais.pt/health"
+FOG_HEALTH = os.environ.get("FOG_PUBLIC_HEALTH") or "https://node.spencer-morais.pt/fog/health"
 STATE = Path(os.environ.get("EDGE_STATE") or "/workspace/data/edge")
 STARTED = time.time()
 
@@ -117,7 +117,7 @@ code {{ color:var(--fg); }}
 <p>Continuity=<code>session</code> (expected). Linked Fog <code>FOG-NODE-PT-CM-001</code>. Distinct host from the Mac. <code>oracle_live=false</code>.</p>
 <ul>
 <li><a href="/health">/health</a> JSON</li>
-<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a> JSON</li>
+<li><a href="https://node.spencer-morais.pt/fog/health">Fog /health</a> JSON</li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab">tag v0.6.0-lab</a></li>
 </ul>
 </main>

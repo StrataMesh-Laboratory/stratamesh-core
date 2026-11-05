@@ -1,4 +1,4 @@
-# Ops runbook — Calhegas Morais Fog Node (lab)
+# Ops runbook — Spencer-Morais Node (lab)
 
 ## Quick start
 ```bash

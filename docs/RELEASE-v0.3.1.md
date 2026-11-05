@@ -5,7 +5,7 @@
 Lab. Not mainnet. Edges are **not Fogs**. Continuity = session (expected).
 
 - Canonical `C_mesh = f(1−U)` in `src/edge_usage.py`
-- PWA: https://api-edge.calhegasmorais.pt/app/ (Add to Home Screen)
+- PWA: https://node.spencer-morais.pt/edge/api/app/ (Add to Home Screen)
 - SwiftUI app: `deploy/ios-edge/StrataMeshEdge/`
 - Heartbeat `POST /v1/edge/heartbeat` on api-edge (bootstrap bearer)
 - Safety clamps: battery, Low Power, thermal, constrained path

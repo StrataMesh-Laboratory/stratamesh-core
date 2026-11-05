@@ -1,8 +1,8 @@
-# RCA: Hermes Desktop empty workspace (FOG-CMN-DESK)
+# RCA: Hermes Desktop empty workspace (FOG-SMN-DESK)
 
 **Date:** 2026-09-06 (~02:21–02:30 PT)  
 **Host:** MBPA (Intel Mac, SSH `hermes-desk`)  
-**Symptom:** Hermes.app Gateway ready, model shown, center welcome “HERMES AGENT”, sidebar Sessions: **“No sessions yet”**. Operator expected FOG-CMN-DESK usable.
+**Symptom:** Hermes.app Gateway ready, model shown, center welcome “HERMES AGENT”, sidebar Sessions: **“No sessions yet”**. Operator expected FOG-SMN-DESK usable.
 
 ## Official references (do not invent APIs)
 
@@ -16,7 +16,7 @@
 
 1. **Mid-quit / update** — Desktop update or quit left a `source=desktop` session with `message_count=0`, empty `cwd`/`git_repo_root`, `end_reason=ws_orphan_reap`.
 2. **Orphan reap** — Empty WS orphan is not listable; desktop `listSessions(min_messages=1)` hides it.
-3. **In-project empty copy** — With active project FOG-CMN-DESK, sidebar uses i18n `projectEmpty` (“No sessions yet”) when no in-project session passes the filter (cwd under a project folder **and** ≥1 message).
+3. **In-project empty copy** — With active project FOG-SMN-DESK, sidebar uses i18n `projectEmpty` (“No sessions yet”) when no in-project session passes the filter (cwd under a project folder **and** ≥1 message).
 4. **Discovery policy cache** — `projects.db` `project_meta.repo_discovery_policy.roots` is a **policy cache**, not the durable control. Bare SQLite JSON writes are **clobbered** when Hermes reconciles from config. Durable control is `config.yaml`:
    ```yaml
    desktop:
@@ -40,7 +40,7 @@ update/quit → desktop session orphan (0 msgs, no cwd)
 ## Why seeding the project alone is insufficient
 
 - `hermes project` folders + `active_id` only define **workspace membership**.
-- Sidebar sessions require a **listable session**: `message_count ≥ 1` and `cwd` under a FOG-CMN-DESK folder (typically `…/fog/repo`).
+- Sidebar sessions require a **listable session**: `message_count ≥ 1` and `cwd` under a FOG-SMN-DESK folder (typically `…/fog/repo`).
 - `hermes chat -q … --in <dir>` may create a message **without** stamping `cwd`/`git_repo_root`; must call SessionDB `update_session_cwd` (or equivalent) after seed.
 - “New session” in UI without `--cwd` / `HERMES_DESKTOP_CWD` can again detach from the project.
 
@@ -49,7 +49,7 @@ update/quit → desktop session orphan (0 msgs, no cwd)
 See `ensure_workspace.py` + `WORKSPACE.md`:
 
 1. `hermes config set` for `desktop.repo_scan_*`
-2. `hermes project use` / folders / primary for FOG-CMN-DESK
+2. `hermes project use` / folders / primary for FOG-SMN-DESK
 3. `HERMES_DESKTOP_CWD` in `~/.hermes/.env`
 4. Model default ∈ Ollama tags
 5. Delete empty orphans (`delete_empty_sessions` / prune 0-msg)
@@ -72,4 +72,4 @@ See `ensure_workspace.py` + `WORKSPACE.md`:
 
 ## Operator note
 
-After ensure + soft relaunch (`hermes desktop --cwd …/fog/repo --skip-build`), sidebar should show the seeded FOG-CMN-DESK session. If still welcome-only, one **New session** while workspace cwd is fog/repo is enough — ensure owns durability so the next recycle does not regress.
+After ensure + soft relaunch (`hermes desktop --cwd …/fog/repo --skip-build`), sidebar should show the seeded FOG-SMN-DESK session. If still welcome-only, one **New session** while workspace cwd is fog/repo is enough — ensure owns durability so the next recycle does not regress.

@@ -2,10 +2,10 @@
 
 **Fog Node:** Calhegas Morais (`FOG-NODE-PT-CM-001`)  
 **Location:** Lisboa, Portugal  
-**Domain:** [calhegasmorais.pt](https://calhegasmorais.pt/)  
+**Domain:** [calhegasmorais.pt](https://node.spencer-morais.pt/)  
 **Core:** [StrataMesh-Laboratory/stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)  
 **Laboratory:** [StrataMesh-Laboratory/stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory)  
-**Node registry:** [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node)  
+**Node registry:** [spencer-morais-node](https://github.com/StrataMesh-Laboratory/spencer-morais-node)  
 **Lab release baseline:** [v0.6.0-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab) · **Adversarial LAB phase P1** · mesh **n=2** (`FOG-NODE-PT-CM-001` + `EDGE-GROK-CMN-001`)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
 
@@ -19,7 +19,7 @@ Track A/B remain useful as *workstream labels inside a stage*.
 **Evidence before promotion. Protocol centre before application surface. In-process “done” is not multi-host done.**
 
 ```
-LAB (exited for CMN reference pair)
+LAB (exited for SMN reference pair)
   → ADVERSARIAL LAB (current · P1)
     → PUBLIC TESTNET
       → MAINNET (explicit decision — not scheduled here)
@@ -82,7 +82,7 @@ Legacy tables that marked A1–A3 / B0–B3 “done” mean **in-process / draft
 
 ## 3. Stages and gates
 
-### Stage 0 — LAB (exited for the CMN pair)
+### Stage 0 — LAB (exited for the SMN pair)
 
 **Purpose:** Single reference Fog node; normative docs; honest non-claims; single-process regression.
 

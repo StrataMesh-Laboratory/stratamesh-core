@@ -360,7 +360,7 @@
   "same_mechanics_as_main": true,
   "realm_class": "lore",
   "cmn_main_realm": "cmn-main-sandbox-host",
-  "mechanics_note": "Lore world separate from CMN main (where sandboxes are hosted). Uses the same Subject/Object, world-role, decide/validate/execute mechanics.",
+  "mechanics_note": "Lore world separate from SMN main (where sandboxes are hosted). Uses the same Subject/Object, world-role, decide/validate/execute mechanics.",
   "rite_effects": {
     "rite_offer": {
       "requires_object_template": "offering",

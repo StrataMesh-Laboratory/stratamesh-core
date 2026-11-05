@@ -39,7 +39,7 @@ GRADES_CSS = (
 
 def render() -> str:
     return f"""/**
- * academy.calhegasmorais.pt — ACB Academy (always-on)
+ * node.spencer-morais.pt/academy — ACB Academy (always-on)
  * Orchestrator + AIOps formations. Ollama←HF GGUF on Fog. No secrets. No workers.dev.
  * Catalog GET is free. HF Inference Providers HOLD. STRATA cost lab-waived.
  */

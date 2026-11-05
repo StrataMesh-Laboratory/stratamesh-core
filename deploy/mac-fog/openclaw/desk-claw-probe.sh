@@ -19,8 +19,8 @@ ok8787=0; curl -sf -m 2 http://127.0.0.1:8787/health >/dev/null && ok8787=1 || t
 ok8788=0; curl -sf -m 2 http://127.0.0.1:8788/health >/dev/null && ok8788=1 || true
 ok18789=0
 curl -sf -m 2 http://127.0.0.1:18789/ >/dev/null 2>&1 && ok18789=1 || true
-fog_public=0; curl -sf -m 10 -A "$UA" https://fog.calhegasmorais.pt/health >/dev/null && fog_public=1 || true
-edge_api=0; curl -sf -m 10 -A "$UA" https://api-edge.calhegasmorais.pt/health >/dev/null && edge_api=1 || true
+fog_public=0; curl -sf -m 10 -A "$UA" https://node.spencer-morais.pt/fog/health >/dev/null && fog_public=1 || true
+edge_api=0; curl -sf -m 10 -A "$UA" https://node.spencer-morais.pt/edge/api/health >/dev/null && edge_api=1 || true
 # ok only when PENDING schema hops all up
 ok=0
 if [[ "$fog_public" == 1 && "$edge_api" == 1 && "$ok8787" == 1 ]]; then ok=1; fi

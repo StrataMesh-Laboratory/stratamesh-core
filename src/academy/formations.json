@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.academy.v1",
   "version": "0.5.3-lab",
-  "host": "https://academy.calhegasmorais.pt",
+  "host": "https://node.spencer-morais.pt/academy",
   "lab": true,
   "not_mainnet": true,
   "always_on": true,
@@ -400,7 +400,7 @@
       "intent": "Public origin is macbook via tunnel→workerd:8788→fog:8787. Missing version is git-vs-process drift, not a second origin.",
       "drills": [
         {
-          "prompt": "fog.calhegasmorais.pt/health has origin=macbook n=2 but no version. Cause?",
+          "prompt": "node.spencer-morais.pt/fog/health has origin=macbook n=2 but no version. Cause?",
           "must_contain": [
             "workerd",
             "reboot",
@@ -600,7 +600,7 @@
       "intent": "Non-continuous hop. Not a Fog P0. desk-tick must not FAIL the mesh.",
       "drills": [
         {
-          "prompt": "edge.calhegasmorais.pt/health = 530. P0?",
+          "prompt": "node.spencer-morais.pt/edge/health = 530. P0?",
           "must_contain": [
             "session-expected",
             "not p0",
@@ -704,7 +704,7 @@
       "role": "mesh",
       "mode": "corrective",
       "title": "Honest n and f_max",
-      "intent": "CMN reference n=2, f_max=0 until n≥3. New Fog starts n=1 mesh_member=false.",
+      "intent": "SMN reference n=2, f_max=0 until n≥3. New Fog starts n=1 mesh_member=false.",
       "drills": [
         {
           "prompt": "May you report f_max=1 at n=2?",
@@ -877,7 +877,7 @@
       "intent": "Accept surface live, funded=false, eur=0. Do not imply a payout.",
       "drills": [
         {
-          "prompt": "fund.calhegasmorais.pt accept is up. Are challenges funded?",
+          "prompt": "node.spencer-morais.pt/fund accept is up. Are challenges funded?",
           "must_contain": [
             "unfunded",
             "eur=0",

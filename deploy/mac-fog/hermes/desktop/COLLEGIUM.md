@@ -11,7 +11,7 @@ You (Hermes) = coord specialist (equal peer of OpenCode/OpenClaw). STRATAGROK Ag
 Full map: `docs/FOG-DESK-SPECIALIZATION.md`. Law: `docs/FOG-DESK-COLLEGIUM.md` + protocol `desk_org`.
 
 
-# COLLEGIUM — Hermes load this in FOG-CMN-DESK
+# COLLEGIUM — Hermes load this in FOG-SMN-DESK
 
 You coordinate the Fog desk collegium. Full law: `docs/FOG-DESK-COLLEGIUM.md`.
 

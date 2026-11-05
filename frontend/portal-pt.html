@@ -11,7 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portal · Calhegas Morais · v0.6.0-lab</title>
-<meta name="description" content="Portal StrataMesh CMN — autenticação, carteira, Ágora, Orquestrador.">
+<meta name="description" content="Portal StrataMesh SMN — autenticação, carteira, Ágora, Orquestrador.">
 <style>
 :root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--ok:#9caf88;--card:#111113;--danger:#c47a7a}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -110,7 +110,7 @@ body.in-session .user-info{display:flex!important}
 </head>
 <body>
 <div class="header">
-  <h1>StrataMesh <span>CMN Portal</span></h1>
+  <h1>StrataMesh <span>SMN Portal</span></h1>
   <div class="user-info" id="userInfo">
     <span id="userEmail"></span>
     <span class="role-badge" id="userRole"></span>
@@ -120,7 +120,7 @@ body.in-session .user-info{display:flex!important}
 
 <div class="login-page" id="loginPage">
   <div class="login-box">
-    <div class="login-kicker">Calhegas Morais Node</div>
+    <div class="login-kicker">Spencer-Morais Node</div>
     <h2 id="formTitle">Sign in</h2>
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <form id="cmnAuthForm" action="/api/auth/login" method="post" novalidate>
@@ -354,16 +354,16 @@ body.in-session .user-info{display:flex!important}
 
   <div class="panel" id="panel-sandbox">
     <h3 id="bancadaPanelTitle">Atelier GNU · renderer</h3>
-    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">O Atelier GNU é só o renderer 3D. O sandbox/dashboard completo (sessão, definições, objectos) vive em sandbox.calhegasmorais.pt, /sandbox e /dashboard.</p>
+    <p style="color:var(--muted);margin-bottom:12px;font-size:.85rem">O Atelier GNU é só o renderer 3D. O sandbox/dashboard completo (sessão, definições, objectos) vive em node.spencer-morais.pt/sandbox, /sandbox e /dashboard.</p>
     <p style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:center">
-      <a id="goSandbox" href="https://sandbox.calhegasmorais.pt/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
+      <a id="goSandbox" href="https://node.spencer-morais.pt/sandbox/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
       <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
     </p>
     <div id="mudSpaces" class="mud-spaces">
       <button type="button" data-panel="mud-bancada" class="active" onclick="setMudSpace('bancada',this)">Bancada</button>
       <button type="button" data-panel="mud-mundo" onclick="setMudSpace('mundo',this)">Mundo</button>
       <button type="button" data-panel="mud-quartos" onclick="setMudSpace('quartos',this)">Quartos</button>
-      <button type="button" data-panel="mud-full" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://sandbox.calhegasmorais.pt/';})()">Ecrã inteiro</button>
+      <button type="button" data-panel="mud-full" onclick="(function(){var f=document.getElementById('atelierFrame'); if(f&&f.requestFullscreen)f.requestFullscreen(); else location.href='https://node.spencer-morais.pt/sandbox/';})()">Ecrã inteiro</button>
     </div>
     <div id="bancadaModeBar" style="display:none">
       <button type="button" id="btnBancadaOrbit" onclick="setBancadaMode('orbit')" style="padding:.4rem .75rem;background:var(--card);border:1px solid var(--accent);color:var(--fg);border-radius:4px;cursor:pointer;font-size:.75rem">Órbita</button>
@@ -648,7 +648,7 @@ body.in-session .user-info{display:flex!important}
       <button type="button" id="vaPrimary" onclick="vaPrimary()" style="padding:.5rem 1rem;background:var(--fg);color:var(--bg,#111);border:0;border-radius:4px;cursor:pointer;font-weight:600">Ligar · 7 dias</button>
       <button type="button" id="vaCopyBtn" onclick="vaCopy()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Copiar pacote</button>
       <button type="button" id="vaRevokeBtn" onclick="vaRevoke()" style="padding:.45rem .8rem;background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:4px;cursor:pointer">Revogar</button>
-      <a href="https://api-edge.calhegasmorais.pt/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções</a>
+      <a href="https://node.spencer-morais.pt/edge/api/v1/va/instructions.txt" target="_blank" rel="noopener" style="padding:.45rem .8rem;border:1px solid var(--line2);border-radius:4px;color:var(--fg);text-decoration:none;font-size:.8rem">Instruções</a>
     </div>
     <label style="font-size:.75rem;color:var(--muted)">Pacote para colar no AI (uma vez por emissão)</label>
     <textarea id="vaTokenBox" readonly rows="8" style="width:100%;max-width:44rem;display:block;margin:.35rem 0 0;padding:.6rem;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:ui-monospace,monospace;font-size:.75rem;border-radius:6px" placeholder="O pacote aparece aqui depois de Ligar ou Renovar."></textarea>
@@ -668,7 +668,7 @@ const SVC = {
   sandbox: '/api/v1/sandbox',
   orch: '/api/v1/orchestrator',
   holons: '/api/v1/holons',
-  va: 'https://api-edge.calhegasmorais.pt',
+  va: 'https://node.spencer-morais.pt/edge/api',
   auth: AUTH_BASE+'/api/auth',
   status: 'https://stratamesh-status.stratamesh.workers.dev',
   spa: '',
@@ -713,8 +713,8 @@ function toggleMode(){
   if(ta) ta.checked=false;
   var lab=document.getElementById('termsLabel');
   if(lab) lab.textContent=LANG==='en'
-    ? 'I accept the Calhegas Morais Node terms and conditions (version node-1.0).'
-    : 'Aceito os termos e condições do Nó Calhegas Morais (versão node-1.0).';
+    ? 'I accept the Spencer-Morais Node terms and conditions (version node-1.0).'
+    : 'Aceito os termos e condições do Spencer-Morais Node (versão node-1.0).';
   var link=document.getElementById('termsLink');
   if(link){ link.href='/api/auth/terms?lang='+(LANG==='en'?'en':'pt'); link.textContent=LANG==='en'?'Read full terms':'Ler termos completos'; }
   var reset=document.getElementById('resetPwToggle');
@@ -880,7 +880,7 @@ async function applyVaPrefs(){
   var tok=localStorage.getItem('sm_token')||localStorage.getItem('token');
   if(!tok) return;
   try{
-    var r=await fetch('https://api-edge.calhegasmorais.pt/v1/va/prefs',{headers:{Authorization:'Bearer '+tok,Accept:'application/json'},signal:AbortSignal.timeout(2000)});
+    var r=await fetch('https://node.spencer-morais.pt/edge/api/v1/va/prefs',{headers:{Authorization:'Bearer '+tok,Accept:'application/json'},signal:AbortSignal.timeout(2000)});
     if(!r.ok) return;
     var j=await r.json();
     var p=(j&&j.prefs)||{};
@@ -1169,7 +1169,7 @@ function authHeaders(extra){const h=Object.assign({'Content-Type':'application/j
 var _vaActive=null;
 var _vaMode='off';
 async function vaApi(path, opt){
-  var r=await fetch((SVC.va||'https://api-edge.calhegasmorais.pt')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
+  var r=await fetch((SVC.va||'https://node.spencer-morais.pt/edge/api')+path,Object.assign({headers:authHeaders(),signal:AbortSignal.timeout(8000)},opt||{}));
   var j=await r.json().catch(function(){return {ok:false,error:'bad_json',http:r.status};});
   j.http=r.status;
   return j;
@@ -1291,7 +1291,7 @@ async function loadWallet(){
     }
     if(b) b.textContent = (me && (me.balance!=null)) ? me.balance : (tok && tok.total_supply!=null ? Number(tok.total_supply).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}) : '—');
     if(c) c.textContent = (me && (me.txCount!=null)) ? me.txCount : (tok && tok.holders!=null ? tok.holders : '—');
-    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'CMN';
+    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'SMN';
     if(list){
       if(me && me.transactions && me.transactions.length){
         list.innerHTML = me.transactions.map(function(tx){
@@ -1418,7 +1418,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó SMN', 'AIOps team · SMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -1911,7 +1911,7 @@ async function loadWallet(){
     }
     if(b) b.textContent = (me && (me.balance!=null)) ? me.balance : (tok && tok.total_supply!=null ? Number(tok.total_supply).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}) : '—');
     if(c) c.textContent = (me && (me.txCount!=null)) ? me.txCount : (tok && tok.holders!=null ? tok.holders : '—');
-    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'CMN';
+    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'SMN';
     if(list){
       if(me && me.transactions && me.transactions.length){
         list.innerHTML = me.transactions.map(function(tx){
@@ -2038,7 +2038,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó SMN', 'AIOps team · SMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -2411,7 +2411,7 @@ async function loadWallet(){
     if(strata==null&&bal) strata=bal.balance;
     if(b) b.textContent=strata!=null?Number(strata).toLocaleString(undefined,{maximumFractionDigits:5}):(mon?Number(mon.circulating_supply||0).toLocaleString(undefined,{maximumFractionDigits:0}):'—');
     if(c) c.textContent=mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—';
-    if(rank) rank.textContent='CMN';
+    if(rank) rank.textContent='SMN';
     if(list){
       list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede', 'Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
         ' · #mint '+(mon&&mon.poles&&mon.poles.mint?mon.poles.mint.total_emitted:'—')+

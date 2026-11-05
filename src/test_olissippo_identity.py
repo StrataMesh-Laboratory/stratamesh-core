@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Identity (StrataMesh) ≠ world role (CMN); lore ≠ main sandbox host."""
+"""Identity (StrataMesh) ≠ world role (SMN); lore ≠ main sandbox host."""
 from __future__ import annotations
 
 import json

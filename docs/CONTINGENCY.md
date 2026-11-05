@@ -5,7 +5,7 @@ One public origin. Several insides. Nothing grabs the apex except **Pages**.
 ```
 Internet
   └─ Pages          HTML (home, sandbox, dashboard)
-       └─ Python :8790   auth/API fallback standard   mw.calhegasmorais.pt
+       └─ Python :8790   auth/API fallback standard   node.spencer-morais.pt/mw
             └─ Node :8791    peer                       auth.calhegasmorais.pt
                  └─ Workers     /api only, under rails cap
                       └─ workerd :8788   edge|fog runtime (not apex)

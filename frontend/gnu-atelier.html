@@ -43,9 +43,9 @@ paintBancadaNow();}catch(z){}},50);};document.addEventListener("gesturestart",fu
 <meta name="theme-color" content="#07111c"/>
 <title></title>
 <meta name="description" content="Holon 5 UGC Workbench — GNU Unix workstation renderer. Graphical MUD as Web3 MMORPG. Each account is a virtual address."/>
-<link rel="canonical" href="https://sandbox.calhegasmorais.pt/gnu-atelier.html"/>
+<link rel="canonical" href="https://node.spencer-morais.pt/sandbox/gnu-atelier.html"/>
 <meta property="og:title" content="Atelier GNU · v0.5.1-session"/>
-<meta property="og:url" content="https://sandbox.calhegasmorais.pt/gnu-atelier.html"/>
+<meta property="og:url" content="https://node.spencer-morais.pt/sandbox/gnu-atelier.html"/>
 <meta property="og:description" content="Full-page GNU atelier. Each account sandbox is a virtual address."/>
 <meta name="robots" content="index,follow"/>
 <style>
@@ -152,7 +152,7 @@ h1{font-size:13px}
 <div id="hud">
   <div id="top">
     <div class="chip" id="idChip">
-      <div class="mono" id="idMeta">sandbox.calhegasmorais.pt · v0.5.1-session</div>
+      <div class="mono" id="idMeta">node.spencer-morais.pt/sandbox · v0.5.1-session</div>
       <h1 id="ztitle">Bancada · Sandbox</h1>
       <div class="muted" id="landTitle">título · amcmorais@icloud.com</div>
       <div class="muted" id="zpath">/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/bancada</div>
@@ -162,8 +162,8 @@ h1{font-size:13px}
       <button class="ghost" id="btnMenu" type="button" aria-label="Menu">Menu</button>
       <div class="nav desk-nav">
         <a class="here" href="/atelier">Ateliê GNU</a>
-        <a href="https://calhegasmorais.pt/dashboard">Portal</a>
-        <a href="https://calhegasmorais.pt">Lab</a>
+        <a href="https://node.spencer-morais.pt/dashboard">Portal</a>
+        <a href="https://node.spencer-morais.pt/">Lab</a>
       </div>
       <div class="chip" id="walletChip" style="margin-top:.35rem;text-align:right">
         <span class="mono" id="wallet">50.0 L-STRATA</span>
@@ -195,8 +195,8 @@ h1{font-size:13px}
       <p class="mono" id="sheetWallet">50.0 L-STRATA</p>
       <div class="nav row" style="justify-content:flex-start">
         <a class="here" href="/atelier">Ateliê GNU</a>
-        <a href="https://calhegasmorais.pt/dashboard">Portal</a>
-        <a href="https://calhegasmorais.pt">Lab</a>
+        <a href="https://node.spencer-morais.pt/dashboard">Portal</a>
+        <a href="https://node.spencer-morais.pt/">Lab</a>
       </div>
       <div class="row" id="sheetTools">
         <button type="button" data-t="phys" class="on">1 Manipulate</button>
@@ -292,9 +292,9 @@ const IS_EN = (UI_LANG.indexOf("en") === 0) || (document.documentElement.lang ||
 function L(pt, en){ return IS_EN ? en : pt; }
 (function(){ var el=document.getElementById("atlasSubject"); if(el) el.textContent = L("SCA = Seres Computacionais Autónomos.", "ACB = Autonomous Computational Beings."); })();
 const NODE_ID = "FOG-NODE-PT-CM-001";
-const PORTAL = "https://calhegasmorais.pt/dashboard";
+const PORTAL = "https://node.spencer-morais.pt/dashboard";
 const AUTH_BASE = "https://auth.calhegasmorais.pt";
-const MW_BASE = "https://mw.calhegasmorais.pt";
+const MW_BASE = "https://node.spencer-morais.pt/mw";
 const AUTH_HOPS = [AUTH_BASE, MW_BASE];
 const HOP_DOWN = "Não foi possível contactar o nó de autenticação. A sessão da bancada permanece neste carril; Workers/KV estão em ritmo — não é congelamento até às 00:00 UTC.";
 function mapAuthErr(m){var s=String(m==null?"":m).trim();if(/failed to fetch/i.test(s)||/^load failed$/i.test(s)||/networkerror/i.test(s))return HOP_DOWN;if(/^stasis$/i.test(s)||/^cf_stasis$/i.test(s)||/"error"\s*:\s*"stasis"/i.test(s))return "O serviço de autenticação está em ritmo mínimo (não é congelamento). Tente novamente após o rearme das 00:00 UTC.";return s;}
@@ -449,7 +449,7 @@ document.documentElement.dataset.screenTouch = TOUCH ? "yes" : "no";
 const EYE = 1.62, WALK = 2.4, SPRINT = 4.2, GOLDEN = 2.39996;
 const ZONES = {
   bancada: { title: L("Bancada · Sandbox (Holon 5)", "Workbench · Sandbox (Holon 5)"), half: 7.2, spawn: { x: 0, z: 5.2, yaw: 0 }, sky: 0xf4e4c1, fog: 0xc9a06a },
-  rua: { title: "Street · Open World · CMN", half: 22, spawn: { x: 0, z: 18.5, yaw: Math.PI }, sky: 0x1a2430, fog: 0x0e1a24 },
+  rua: { title: "Street · Open World · SMN", half: 22, spawn: { x: 0, z: 18.5, yaw: Math.PI }, sky: 0x1a2430, fog: 0x0e1a24 },
   agora: { title: "Agora · Lab Book", half: 14, spawn: { x: 0, z: 11.4, yaw: Math.PI }, sky: 0x241810, fog: 0x1a120c, hue: 0xd4a017 },
   pulse: { title: "Pulse · Fog · Névoa", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x101820, fog: 0x0a1218, hue: 0x2f9e8a },
   wallet: { title: "Wallet · Account", half: 8.4, spawn: { x: 0, z: 6.2, yaw: 0 }, sky: 0x181410, fog: 0x120e0a, hue: 0xd4a017 },
@@ -475,7 +475,7 @@ const LAB_LAND = (function () {
     bundle: {
       id: LAB_BUNDLE_ID,
       kind: "bundle",
-      name: "CMN Open World #1",
+      name: "SMN Open World #1",
       aspects: parcelIds,
       aspectos: parcelIds,
       contract: { type: "ownership", holder: LAB_HOLDER, covers: parcelIds },
@@ -503,12 +503,12 @@ const ROOM_LOTS = [
   ["kyc","KYC"],["orch","Orch"],["bancada", L("Bancada","Workbench")],
 ];
 const ACB_ROSTER = [
-  { id:"acb-orch", name:"Orion-CMN", cargo:"ORCHESTRATOR", sca:"SCA-ORCH-CMN-001", color:0xd4a017 },
-  { id:"acb-devops", name:"Helix-CMN", cargo:"DEVOPS", sca:"SCA-DEVOPS-001", color:0x2f9e8a },
-  { id:"acb-sec", name:"Aegis-CMN", cargo:"SECURITY", sca:"SCA-SEC-001", color:0xc45c4a },
-  { id:"acb-ana", name:"Vertex-CMN", cargo:"ANALYSIS", sca:"SCA-DAG-001", color:0x8a7cff },
-  { id:"acb-mesh", name:"Nexus-CMN", cargo:"MESH", sca:"SCA-MESH-001", color:0x6fbf73 },
-  { id:"acb-econ", name:"Quorum-CMN", cargo:"ECONOMY", sca:"SCA-ECON-001", color:0xc4a574 },
+  { id:"acb-orch", name:"Orion-SMN", cargo:"ORCHESTRATOR", sca:"SCA-ORCH-CMN-001", color:0xd4a017 },
+  { id:"acb-devops", name:"Helix-SMN", cargo:"DEVOPS", sca:"SCA-DEVOPS-001", color:0x2f9e8a },
+  { id:"acb-sec", name:"Aegis-SMN", cargo:"SECURITY", sca:"SCA-SEC-001", color:0xc45c4a },
+  { id:"acb-ana", name:"Vertex-SMN", cargo:"ANALYSIS", sca:"SCA-DAG-001", color:0x8a7cff },
+  { id:"acb-mesh", name:"Nexus-SMN", cargo:"MESH", sca:"SCA-MESH-001", color:0x6fbf73 },
+  { id:"acb-econ", name:"Quorum-SMN", cargo:"ECONOMY", sca:"SCA-ECON-001", color:0xc4a574 },
 ];
 const ROOM_OBJECTS = [
   ["pulse","Fog pulse holon"],["wallet","Account vault"],["agora","EUR book stall"],
@@ -674,7 +674,7 @@ function buildZone() {
   }
   document.getElementById("ztitle").textContent = z.title;
   document.getElementById("zpath").textContent = `/so/metaverso/cmn/dominio.virtual/lisboa/mundo.aberto/cmn-lab-world/${zone}/${ADDR.id}`;
-  const host = location.hostname || "sandbox.calhegasmorais.pt";
+  const host = location.hostname || "node.spencer-morais.pt/sandbox";
   const mono = document.getElementById("idMeta");
   if (mono) mono.textContent = host + " · " + CORE + " · " + ADDR.owner + "/" + ADDR.id;
   paintLandTitle();
@@ -1525,7 +1525,7 @@ async function applySession(me) {
   ADDR.id = "workbench";
   hideGate();
   const chip = document.getElementById("idMeta");
-  if (chip) chip.textContent = (location.host || "sandbox.calhegasmorais.pt") + " · " + CORE + " · " + ADDR.owner;
+  if (chip) chip.textContent = (location.host || "node.spencer-morais.pt/sandbox") + " · " + CORE + " · " + ADDR.owner;
   paintLandTitle();
   const w = document.getElementById("wallet");
   const lab = me.lab_balance != null ? Number(me.lab_balance) : wallet;

@@ -9,11 +9,11 @@ Copy **Prompt A** first. Use **Prompt B** only if local DNS/HTTP fails.
 | # | Why | URL |
 |---|-----|-----|
 | 1 | Full SDK | https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md |
-| 2 | Edge desk UI | https://edge.calhegasmorais.pt/ |
-| 3 | Edge health JSON | https://edge.calhegasmorais.pt/health |
-| 4 | Edge status JSON | https://edge.calhegasmorais.pt/status |
-| 5 | Fog status JSON | https://status.calhegasmorais.pt/ |
-| 6 | Gossip peers JSON | https://calhegasmorais.pt/api/v1/gossip/peers |
+| 2 | Edge desk UI | https://node.spencer-morais.pt/edge/ |
+| 3 | Edge health JSON | https://node.spencer-morais.pt/edge/health |
+| 4 | Edge status JSON | https://node.spencer-morais.pt/edge/status |
+| 5 | Fog status JSON | https://node.spencer-morais.pt/status/ |
+| 6 | Gossip peers JSON | https://node.spencer-morais.pt/api/v1/gossip/peers |
 | 7 | Observer log | https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/CONTRIBUTOR-OBSERVERS.md |
 | 8 | DNS/sandbox rules | SDK §11 in link 1 |
 
@@ -47,9 +47,9 @@ On any network error set probes.*.ok=false and probes.*.error to the real error 
 NEVER invent successful probes, peer_count, or gossip membership.
 
 Public endpoints to probe when network works:
-  https://edge.calhegasmorais.pt/health
-  https://status.calhegasmorais.pt/
-  https://calhegasmorais.pt/api/v1/gossip/peers
+  https://node.spencer-morais.pt/edge/health
+  https://node.spencer-morais.pt/status/
+  https://node.spencer-morais.pt/api/v1/gossip/peers
 
 Success criteria (split):
   PASS process = pid running, nice/ionice correct, last_heartbeat.json exists
@@ -70,9 +70,9 @@ My contributor-edge process is running with correct idle policy but local DNS/HT
 Do NOT kill the process. Do NOT invent probe success.
 
 1) Use your web/HTTP tools (not the broken local DNS namespace) to fetch:
-   - https://edge.calhegasmorais.pt/health
-   - https://status.calhegasmorais.pt/
-   - https://calhegasmorais.pt/api/v1/gossip/peers
+   - https://node.spencer-morais.pt/edge/health
+   - https://node.spencer-morais.pt/status/
+   - https://node.spencer-morais.pt/api/v1/gossip/peers
 
 2) Merge into state/last_heartbeat.json:
    "probes_via": "agent_web_tool"

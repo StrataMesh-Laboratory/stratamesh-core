@@ -50,8 +50,8 @@ const PURPOSES = {
   service: { pt: "Pagamento por serviços da ENI", en: "Payment for ENI services" },
   asset: { pt: "Pagamento por activos disponibilizados pela ENI", en: "Payment for assets provided by the ENI" },
   donation: {
-    pt: "Donativo para o Projecto do Nó Calhegas Morais (StrataMesh)",
-    en: "Donation to the Calhegas Morais Node project (StrataMesh)",
+    pt: "Donativo para o Projecto do Spencer-Morais Node (StrataMesh)",
+    en: "Donation to the Spencer-Morais Node project (StrataMesh)",
   },
 };
 
@@ -116,17 +116,17 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </head>
 <body>
 <main class="wrap">
-  <p class="top"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a><a href="https://calhegasmorais.pt/">Nó CMN</a></p>
+  <p class="top"><a href="https://eni.calhegasmorais.pt/">AMCM ENI</a><a href="https://node.spencer-morais.pt/">Nó SMN</a></p>
   <p class="kicker">Portal de pagamentos · laboratório</p>
   <h1>Pagamentos AMCM ENI</h1>
-  <p class="lead">Serviços e activos da ENI, ou donativos ao projecto do Nó Calhegas Morais na StrataMesh. Os dados bancários não são publicados nesta página — são aplicados automaticamente na instrução de pagamento após o pedido.</p>
+  <p class="lead">Serviços e activos da ENI, ou donativos ao projecto do Spencer-Morais Node na StrataMesh. Os dados bancários não são publicados nesta página — são aplicados automaticamente na instrução de pagamento após o pedido.</p>
 
   <form id="payForm">
     <label for="purpose">Finalidade</label>
     <select id="purpose" name="purpose" required>
       <option value="service">Pagamento por serviços da ENI</option>
       <option value="asset">Pagamento por activos da ENI</option>
-      <option value="donation">Donativo — Projecto Nó Calhegas Morais (StrataMesh)</option>
+      <option value="donation">Donativo — Projecto Spencer-Morais Node (StrataMesh)</option>
     </select>
 
     <div class="row">

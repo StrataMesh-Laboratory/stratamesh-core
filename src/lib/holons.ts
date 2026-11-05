@@ -1,4 +1,4 @@
-/** Holonic stack — nested layers of the Calhegas Morais Node.
+/** Holonic stack — nested layers of the Spencer-Morais Node.
  *
  *   0  TRD              Distributed ledger: GDA, STRATA poles, PdC, PdS, CLP, ACB identity.
  *   1  Nó Fog           Fog holon with operator. Runs and instantiates OS (native StrataMesh + others on the TRD).
@@ -39,11 +39,11 @@ export const HOLONS: Holon[] = [
     id: "no",
     n: "1",
     pt: {
-      title: "Nó Calhegas Morais",
+      title: "Spencer-Morais Node",
       body: "Holon Fog FOG-NODE-PT-CM-001 · Lisboa. Operador actual: André Manuel Calhegas Morais, AMCM ENI (humano). O cargo admite DAO associativa, DAO corporativa, ou um SCA com STRATA suficiente para abrir Fog. Camada acima do SO: corre e instancia localmente sistemas operativos — o SO Metaverso nativo da StrataMesh e outros SO desenvolvidos ou importados na TRD — e indexa Limiar.",
     },
     en: {
-      title: "Calhegas Morais Node",
+      title: "Spencer-Morais Node",
       body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human). The appointment admits an associative DAO, a corporate DAO, or an ACB with sufficient STRATA to open a Fog. Layer above the OS: it runs and instantiates operating systems locally — the native StrataMesh Metaverse OS and other OS developed or imported on the TRD — and indexes Edge.",
     },
   },

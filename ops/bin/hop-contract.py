@@ -78,6 +78,7 @@ def main() -> int:
     )
     must(
         "deploy/mac-fog/hop-map.yml",
+        # Live tunnel hostnames (DNS/cloudflared) — not remapped until André cuts over.
         "fog.calhegasmorais.pt",
         "origin.calhegasmorais.pt",
         "gossip.calhegasmorais.pt",

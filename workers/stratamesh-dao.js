@@ -987,17 +987,17 @@ export default {
 
       if (path === '/dao/bootstrap' && request.method === 'POST') {
         const actor = await resolveActor(request, env);
-        // Create CMN associative (AIOps/community) + corporate (node ops) if missing
+        // Create SMN associative (AIOps/community) + corporate (node ops) if missing
         const created = [];
         for (const spec of [
           {
-            dao_id: 'DAO-CMN-ASSOCIATIVE',
+            dao_id: 'DAO-SMN-ASSOCIATIVE',
             kind: 'associative',
             name: 'Calhegas Morais Associative DAO',
             meta: { team: 'aiops-dev', realm: 'realm_1f20890b', commercial: false, quotas: 'equal', profit_distribution: false, composition: 'mixed_users_acbs' },
           },
           {
-            dao_id: 'DAO-CMN-CORPORATE',
+            dao_id: 'DAO-SMN-CORPORATE',
             kind: 'corporate',
             name: 'Calhegas Morais Corporate DAO',
             meta: { host_node: 'FOG-NODE-PT-CM-001', clearance: true, commercial: true, structure: 'unipersonal', profit_distribution: true, capital_social: 'external_registry' },
@@ -1038,7 +1038,7 @@ export default {
                 `INSERT OR REPLACE INTO dao_partners (dao_id, partner_id, capital_strata, share_pct, registry_ref, registry_jurisdiction, status, joined_at)
                  VALUES (?,?,?,?,?,?, 'active', datetime('now'))`
               )
-              .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', 1, 100, 'PT-CMN-UNIPERSONAL-PENDING', 'PT')
+              .bind(spec.dao_id, 'FOG-NODE-PT-CM-001', 1, 100, 'PT-SMN-UNIPERSONAL-PENDING', 'PT')
               .run();
           }
 

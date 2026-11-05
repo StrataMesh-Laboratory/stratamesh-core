@@ -1,15 +1,15 @@
 {
   "schema": "cmn.realm.index.v1",
   "registry": "cmn",
-  "note": "CMN hosts multiple realms. Main = sandbox-hosting world (Bancada/open-world sandboxes). Lore realms (e.g. lore-olissippo-lusitanian) are separate worlds with the SAME mechanics (Subject/Object, world roles, validate/execute) but are NOT main and do NOT host sandboxes.",
+  "note": "SMN hosts multiple realms. Main = sandbox-hosting world (Bancada/open-world sandboxes). Lore realms (e.g. lore-olissippo-lusitanian) are separate worlds with the SAME mechanics (Subject/Object, world roles, validate/execute) but are NOT main and do NOT host sandboxes.",
   "realms": [
     {
       "realm_id": "cmn-main-sandbox-host",
       "class": "main",
       "hosts_sandboxes": true,
-      "label_en": "CMN main (sandbox host)",
-      "label_pt": "CMN principal (anfitrião de sandboxes)",
-      "notes": "Bancada / open-world sandboxes live here. Primary CMN world.",
+      "label_en": "SMN main (sandbox host)",
+      "label_pt": "SMN principal (anfitrião de sandboxes)",
+      "notes": "Bancada / open-world sandboxes live here. Primary SMN world.",
       "macrohypervisor_id": "macrohv-cmn-main-open-world",
       "microhypervisor_ids": [
         "microhv-cmn-main-cplp-pt-pt",
@@ -42,7 +42,7 @@
       "same_mechanics_as_main": true,
       "label_en": "Olissippo (pre-Roman Lusitanian lore village)",
       "label_pt": "Aldeia de Olissippo (pré-romana, lore)",
-      "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, CMN world roles — same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main.",
+      "notes": "Separate lore world. Equal Subject play, Objects, rites, MemoryEvent, SMN world roles — same mechanics as main. Does NOT host sandboxes. Must never be treated as cmn-main.",
       "macrohypervisor_id": "macrohv-lusitania-olissippo",
       "microhypervisor_ids": [
         "microhv-lusitania-cplp-pt-pt",

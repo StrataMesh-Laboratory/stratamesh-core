@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Unit checks for the Oracle Always Free pack (no network required).
-# Optional: --dns  → probe fog.calhegasmorais.pt (NXDOMAIN is WARN, not FAIL).
+# Optional: --dns  → probe node.spencer-morais.pt (NXDOMAIN is WARN, not FAIL).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -120,10 +120,10 @@ if [[ $need_pub -eq 0 ]]; then
 fi
 
 if [[ $DNS_CHECK -eq 1 ]]; then
-  host="fog.calhegasmorais.pt"
+  host="node.spencer-morais.pt"
   resolved="$(python3 -c 'import socket,sys
 try:
-    print(socket.getaddrinfo("fog.calhegasmorais.pt", None)[0][4][0])
+    print(socket.getaddrinfo("node.spencer-morais.pt", None)[0][4][0])
 except socket.gaierror:
     pass
 ' 2>/dev/null || true)"

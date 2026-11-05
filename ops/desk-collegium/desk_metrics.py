@@ -30,7 +30,7 @@ DISCOURSE_TOPIC = (
     "https://stratamesh.discourse.group/t/"
     "edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20"
 )
-FUND_CANON = "https://fund.calhegasmorais.pt"
+FUND_CANON = "https://node.spencer-morais.pt/fund"
 PT = timezone(timedelta(hours=1))
 
 

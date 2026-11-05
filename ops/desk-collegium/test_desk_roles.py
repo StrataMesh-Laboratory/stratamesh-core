@@ -71,7 +71,7 @@ class DeskRolesAutonomy(unittest.TestCase):
         b = rep.ensure_desk_surfaces(limit=3, state=None, feed=False)
         self.assertTrue(a.get("ok") or a.get("steps"), a)
         todo = tmp / "data" / "desk-outbox" / "TODO.md"
-        ctx = tmp / "data" / "desk-outbox" / "CONTEXT-CMN-STRATAMESH.md"
+        ctx = tmp / "data" / "desk-outbox" / "CONTEXT-SMN-STRATAMESH.md"
         self.assertTrue(todo.is_file(), "TODO.md missing")
         self.assertTrue(ctx.is_file(), "CONTEXT pack missing")
         self.assertIn("dt-demo", todo.read_text())
@@ -91,11 +91,11 @@ class DeskRolesAutonomy(unittest.TestCase):
         self.assertTrue((tmp / "data" / "desk-meters" / "surfaces_ok.json").is_file())
 
     def test_context_template_in_repo(self):
-        tmpl = HERE / "templates" / "CONTEXT-CMN-STRATAMESH.md"
+        tmpl = HERE / "templates" / "CONTEXT-SMN-STRATAMESH.md"
         # ensure_desk_surfaces creates it; also write seed if missing for git
         if not tmpl.is_file():
             tmpl.parent.mkdir(parents=True, exist_ok=True)
-            tmpl.write_text("# CONTEXT — CMN + StrataMesh (template)\n\nWake order placeholder.\n")
+            tmpl.write_text("# CONTEXT — SMN + StrataMesh (template)\n\nWake order placeholder.\n")
         self.assertTrue(tmpl.is_file())
 
     def test_ship_metrics_and_auto(self):

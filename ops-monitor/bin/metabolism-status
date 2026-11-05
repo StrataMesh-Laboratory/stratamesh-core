@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sample live remaining into the metabolism ledger and print a snapshot.
 
-Never print secrets. Never GET workers.dev. Never GET https://calhegasmorais.pt/
+Never print secrets. Never GET workers.dev. Never GET https://node.spencer-morais.pt/
 (the refill one-shot owns that first GET). Never a 6th CF cron.
 """
 from __future__ import annotations

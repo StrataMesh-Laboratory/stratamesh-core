@@ -1,6 +1,6 @@
 {
   "schema": "desk.apps.v1",
-  "workspace": "FOG-CMN-DESK",
+  "workspace": "FOG-SMN-DESK",
   "browser": {
     "preferred": [
       "Google Chrome",
@@ -16,7 +16,7 @@
       },
       {
         "id": "fog-public",
-        "url": "https://fog.calhegasmorais.pt/health",
+        "url": "https://node.spencer-morais.pt/fog/health",
         "why": "Public Fog health"
       },
       {
@@ -36,7 +36,7 @@
       },
       {
         "id": "academy",
-        "url": "https://academy.calhegasmorais.pt",
+        "url": "https://node.spencer-morais.pt/academy",
         "why": "Academy"
       },
       {
@@ -107,7 +107,7 @@
     {
       "id": "hermes",
       "cmd": "hermes",
-      "why": "Coord specialty / FOG-CMN-DESK host"
+      "why": "Coord specialty / FOG-SMN-DESK host"
     },
     {
       "id": "desk-mail",

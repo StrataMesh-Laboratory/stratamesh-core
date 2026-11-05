@@ -11,7 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portal · Calhegas Morais · StrataMesh</title>
-<meta name="description" content="Portal StrataMesh CMN — autenticação, carteira, Ágora, Orquestrador.">
+<meta name="description" content="Portal StrataMesh SMN — autenticação, carteira, Ágora, Orquestrador.">
 <style>
 :root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--line2:#2a2a2e;--accent:#c4a574;--ok:#9caf88;--card:#111113;--danger:#c47a7a}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -80,7 +80,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 </head>
 <body>
 <div class="header">
-  <h1>StrataMesh <span>CMN Portal</span></h1>
+  <h1>StrataMesh <span>SMN Portal</span></h1>
   <div class="user-info" id="userInfo" style="display:none">
     <span id="userEmail"></span>
     <span class="role-badge" id="userRole"></span>
@@ -90,7 +90,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
 <div class="login-page" id="loginPage">
   <div class="login-box">
-    <div class="login-kicker">Calhegas Morais Node</div>
+    <div class="login-kicker">Spencer-Morais Node</div>
     <h2 id="formTitle">Sign in</h2>
     <p class="login-lead">Laboratory reference portal — not mainnet.</p>
     <input type="email" id="email" placeholder="Email" autocomplete="email">
@@ -177,7 +177,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
 
   <div class="panel" id="panel-economy">
     <h3>Economia · PdC · Trabalho · DAO</h3>
-    <p class="lead">Live CMN meters — market-priced PoC, SCA labour, associative vs corporate DAOs. No faucets.</p>
+    <p class="lead">Live SMN meters — market-priced PoC, SCA labour, associative vs corporate DAOs. No faucets.</p>
     <div style="margin-bottom:1rem">
       <button type="button" onclick="loadEconomy()" style="padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border:none;border-radius:4px;cursor:pointer;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase">Actualizar</button>
       <span id="ecoStatus" style="margin-left:.75rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;color:var(--muted)"></span>
@@ -195,7 +195,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <pre id="ecoPoc" style="background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;overflow:auto;max-height:220px;color:var(--muted)">—</pre>
     <h3 style="margin-top:1.25rem;font-size:1.15rem">Global resource averages (EUR)</h3>
     <table class="tx-list"><thead><tr><th>Resource</th><th>Avg / unit</th><th>Source</th></tr></thead><tbody id="ecoAvgBody"><tr><td colspan="3" style="color:var(--muted)">—</td></tr></tbody></table>
-    <h3 style="margin-top:1.25rem;font-size:1.15rem">SCA labour market (CMN team)</h3>
+    <h3 style="margin-top:1.25rem;font-size:1.15rem">SCA labour market (SMN team)</h3>
     <table class="tx-list"><thead><tr><th>SCA</th><th>Rate</th><th>Avail</th><th>Jobs</th><th>Rating</th></tr></thead><tbody id="ecoAcbBody"><tr><td colspan="5" style="color:var(--muted)">—</td></tr></tbody></table>
     <h3 style="margin-top:1.25rem;font-size:1.15rem">DAOs</h3>
     <table class="tx-list"><thead><tr><th>DAO</th><th>Kind</th><th>Quorum</th><th>Rules</th></tr></thead><tbody id="ecoDaoBody"><tr><td colspan="4" style="color:var(--muted)">—</td></tr></tbody></table>
@@ -205,7 +205,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--fg)}
     <h3>Web3 Sandbox</h3>
     <p style="color:var(--muted);margin-bottom:16px">Criar e registar activos digitais na StrataMesh. GNU Atelier is a renderer only.</p>
     <p style="margin:0 0 1rem;display:flex;flex-wrap:wrap;gap:.65rem;align-items:center">
-      <a id="goSandbox" href="https://sandbox.calhegasmorais.pt/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
+      <a id="goSandbox" href="https://node.spencer-morais.pt/sandbox/" style="display:inline-block;padding:.55rem 1rem;background:var(--accent);color:#0a0a0b;border-radius:4px;text-decoration:none;font-weight:600;font-size:.85rem">Ir para o sandbox</a>
       <a href="/sandbox" style="color:var(--accent);font-size:.8rem">/sandbox</a>
     </p>
     <div class="stat-grid">
@@ -639,7 +639,7 @@ async function loadWallet(){
     }
     if(b) b.textContent = (me && (me.balance!=null)) ? me.balance : (tok && tok.total_supply!=null ? Number(tok.total_supply).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}) : '—');
     if(c) c.textContent = (me && (me.txCount!=null)) ? me.txCount : (tok && tok.holders!=null ? tok.holders : '—');
-    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'CMN';
+    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'SMN';
     if(list){
       if(me && me.transactions && me.transactions.length){
         list.innerHTML = me.transactions.map(function(tx){
@@ -766,7 +766,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó SMN', 'AIOps team · SMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -1256,7 +1256,7 @@ async function loadWallet(){
     }
     if(b) b.textContent = (me && (me.balance!=null)) ? me.balance : (tok && tok.total_supply!=null ? Number(tok.total_supply).toLocaleString(LANG==='en'?'en-GB':'pt-PT',{maximumFractionDigits:2}) : '—');
     if(c) c.textContent = (me && (me.txCount!=null)) ? me.txCount : (tok && tok.holders!=null ? tok.holders : '—');
-    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'CMN';
+    if(rank) rank.textContent = (tok && tok.nft_count!=null) ? ('NFT '+tok.nft_count) : 'SMN';
     if(list){
       if(me && me.transactions && me.transactions.length){
         list.innerHTML = me.transactions.map(function(tx){
@@ -1383,7 +1383,7 @@ async function loadACB(){
     var html='';
     if(team && team.host){
       html+='<div class="card" style="margin-bottom:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line);border-radius:4px">';
-      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó CMN', 'AIOps team · CMN node')+'</div>';
+      html+='<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">'+T('Equipa AIOps · Nó SMN', 'AIOps team · SMN node')+'</div>';
       html+='<div style="margin-top:.4rem;color:var(--fg)">'+T('Líder', 'Lead')+': <code>'+esc(team.host.lead)+'</code></div>';
       html+='<div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">'+(team.host.agents||[]).map(esc).join(' · ')+'</div>';
       html+='</div>';
@@ -1755,7 +1755,7 @@ async function loadWallet(){
     if(strata==null&&bal) strata=bal.balance;
     if(b) b.textContent=strata!=null?Number(strata).toLocaleString(undefined,{maximumFractionDigits:5}):(mon?Number(mon.circulating_supply||0).toLocaleString(undefined,{maximumFractionDigits:0}):'—');
     if(c) c.textContent=mon&&mon.out_of_circulation!=null?Number(mon.out_of_circulation).toFixed(2):'—';
-    if(rank) rank.textContent='CMN';
+    if(rank) rank.textContent='SMN';
     if(list){
       list.innerHTML='<p style="font-size:.8rem;color:var(--muted)">'+T('Circulação rede', 'Network circulating')+': '+(mon&&mon.circulating_supply!=null?Number(mon.circulating_supply).toLocaleString(undefined,{maximumFractionDigits:2}):'—')+
         ' · #mint '+(mon&&mon.poles&&mon.poles.mint?mon.poles.mint.total_emitted:'—')+

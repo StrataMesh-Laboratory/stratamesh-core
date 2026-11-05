@@ -1,6 +1,6 @@
 # Proof of Contribution — Resource versus Function
 
-**Status:** Normative for CMN lab and intended production freeze  
+**Status:** Normative for SMN lab and intended production freeze  
 **Related:** `B0-EMISSION-POLICY.md`, `TOKENOMICS-WHITEPAPER.md`, `POC-DYNAMIC-MARKET.md`
 
 ---

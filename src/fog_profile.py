@@ -48,7 +48,7 @@ def load() -> dict:
         "origin": origin,
         "registry": str(data.get("registry") or os.environ.get("FOG_AUTH_BASE") or REGISTRY),
         "core_repo": str(data.get("core_repo") or CORE_REPO),
-        "public_fog": str(data.get("public_fog") or (os.environ.get("FOG_PUBLIC_URL") or ("https://fog.calhegasmorais.pt" if cmn else ""))),
+        "public_fog": str(data.get("public_fog") or (os.environ.get("FOG_PUBLIC_URL") or ("https://node.spencer-morais.pt/fog" if cmn else ""))),
         "label": str(data.get("label") or ("Calhegas Morais Fog" if cmn else "Fog Node")),
         "version": VERSION,
         "lab": True,

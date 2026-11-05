@@ -415,8 +415,8 @@ export function paceFailed({ prevCircuit, circuit, hourSpent, hourlyCap } = {}) 
 /** Named fail-open hops. Freeze is a temporary holding pattern until these exist. */
 export const DEFAULT_CONTINGENCY = {
   auth: { url: "https://auth.calhegasmorais.pt", note: "python :8790 JSON hop" },
-  "cf-worker-req": { url: "https://calhegasmorais.pt/", note: "Pages apex, not Worker SPA" },
-  sandbox: { url: "https://sandbox.calhegasmorais.pt/", note: "gnu-atelier Pages" },
+  "cf-worker-req": { url: "https://node.spencer-morais.pt/", note: "Pages apex, not Worker SPA" },
+  sandbox: { url: "https://node.spencer-morais.pt/sandbox/", note: "gnu-atelier Pages" },
 };
 
 function retryAfterSec(pack) {
@@ -495,7 +495,8 @@ export function admit(decisionPack, opts = {}) {
 
 export function coalesceIntents(intents, cfg = {}) {
   const dens = cfg.density || {};
-  const zone = (dens.zone_suffix || "calhegasmorais.pt").toLowerCase();
+  const zone = (dens.zone_suffix || "spencer-morais.pt").toLowerCase();
+  const zones = new Set([zone, "spencer-morais.pt", "calhegasmorais.pt", "node.spencer-morais.pt"]);
   const seen = new Set();
   const kept = [];
   const worker = [];
@@ -506,8 +507,8 @@ export function coalesceIntents(intents, cfg = {}) {
     const key = low.replace(/\/+$/, "");
     if (seen.has(key)) continue;
     seen.add(key);
-    const isPages = !!it.pages || key === `https://${zone}` || key === `https://www.${zone}`;
-    const isWorker = low.includes(zone) && !isPages && [null, undefined, "cf-worker-req", "local-monitor"].includes(it.rail);
+    const isPages = !!it.pages || [...zones].some(z => key === `https://${z}` || key === `https://www.${z}` || key === `https://node.${z}`);
+    const isWorker = [...zones].some(z => low.includes(z)) && !isPages && [null, undefined, "cf-worker-req", "local-monitor"].includes(it.rail);
     if (isWorker && !it.p1) {
       worker.push(it);
       continue;

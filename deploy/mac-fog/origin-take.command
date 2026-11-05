@@ -4,8 +4,8 @@
 # Does not use the Grok-session :8788. This Mac’s :8788 only.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-PUBLIC="${FOG_PUBLIC_URL:-https://fog.calhegasmorais.pt/health}"
-RECLAIM_URL="${FOG_RECLAIM_URL:-https://fog.calhegasmorais.pt/origin/reclaim}"
+PUBLIC="${FOG_PUBLIC_URL:-https://node.spencer-morais.pt/fog/health}"
+RECLAIM_URL="${FOG_RECLAIM_URL:-https://node.spencer-morais.pt/fog/origin/reclaim}"
 TOKFILE="${ORIGIN_TOKEN_FILE:-$HOME/.config/stratamesh/tunnel.token}"
 LEASE="$HOME/.config/stratamesh/origin.lease"
 

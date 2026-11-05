@@ -11,18 +11,18 @@ HEAD_MARK = os.environ.get("HEAD_MARK", "v0.6.0-lab")
 DEBUG = os.environ.get("DEBUG") == "1"
 
 HTML = [
-    {"url": "https://calhegasmorais.pt/", "marks": [HEAD_MARK]},
+    {"url": "https://node.spencer-morais.pt/", "marks": [HEAD_MARK]},
     {"url": "https://www.calhegasmorais.pt/", "marks": [HEAD_MARK]},
     {"url": "https://calhegasmorais-pt.pages.dev/", "marks": [HEAD_MARK]},
-    {"url": "https://calhegasmorais.pt/dashboard", "marks": [HEAD_MARK]},
-    {"url": "https://sandbox.calhegasmorais.pt/", "marks": [HEAD_MARK, "v0.5.1", "Atelier GNU"]},
+    {"url": "https://node.spencer-morais.pt/dashboard", "marks": [HEAD_MARK]},
+    {"url": "https://node.spencer-morais.pt/sandbox/", "marks": [HEAD_MARK, "v0.5.1", "Atelier GNU"]},
 ]
 
 # JSON /health — n/member must not follow ORIGIN=session (outdated P0 alias).
 HEALTH = [
-    {"url": "https://fog.calhegasmorais.pt/health", "n": 2, "member": True, "version": HEAD_MARK},
+    {"url": "https://node.spencer-morais.pt/fog/health", "n": 2, "member": True, "version": HEAD_MARK},
     {"url": "https://auth.calhegasmorais.pt/health", "n": 2, "member": True, "version": HEAD_MARK},
-    {"url": "https://mw.calhegasmorais.pt/health", "n": 2, "member": True, "version": HEAD_MARK},
+    {"url": "https://node.spencer-morais.pt/mw/health", "n": 2, "member": True, "version": HEAD_MARK},
     {"url": "http://127.0.0.1:8788/health", "n": 2, "member": True, "version": HEAD_MARK, "optional": True},
 ]
 

@@ -44,11 +44,11 @@ NODE_ID = os.environ.get("FOG_NODE_ID") or "FOG-NODE-PT-CM-001"
 PORT = int(os.environ.get("FOG_PORT") or "8787")
 HEALTH = f"http://127.0.0.1:{PORT}/health"
 WORKERD_HEALTH = os.environ.get("WORKERD_HEALTH") or "http://127.0.0.1:8788/health"
-PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog/health"
 ROLE = os.environ.get("FOG_ORIGIN") or "session"
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT") or "f3645fcb56675cf7250d8ba7358eb252"
 PUBLIC_UA = (
-    "Mozilla/5.0 (compatible; StrataMesh-origin-flux/2; +https://calhegasmorais.pt/)"
+    "Mozilla/5.0 (compatible; StrataMesh-origin-flux/2; +https://node.spencer-morais.pt/)"
 )
 
 

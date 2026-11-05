@@ -43,7 +43,7 @@ https://github.com/StrataMesh-Laboratory/stratamesh-core/discussions
 Best,
 André Morais
 StrataMesh Laboratory · AMCM ENI
-https://calhegasmorais.pt/
+https://node.spencer-morais.pt/
 ```
 
 ### Suggested `[specific problem]` by community
@@ -85,7 +85,7 @@ Environment — Virtual Domains, Open Worlds, CGU sandboxes
 Concrete entry: pick a track that matches your upstream work, comment on a track issue, or open a Discussion thread.
 
 https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/CONTRIBUTOR-TRACKS.md
-https://fund.calhegasmorais.pt/challenges
+https://node.spencer-morais.pt/fund/challenges
 
 Best,
 André

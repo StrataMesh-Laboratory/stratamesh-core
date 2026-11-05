@@ -286,7 +286,7 @@ def git_commit_push(clone: Path, copied: list[str], token: str | None) -> dict:
 def verify_live() -> dict:
     out = {}
     for path, lang in (("/", "pt"), ("/en", "en")):
-        url = "https://calhegasmorais.pt" + path
+        url = "https://node.spencer-morais.pt/" + path
         code, raw = http("GET", url, {"User-Agent": UA}, timeout=30)
         text = raw.decode("utf-8", "replace")
         out[path] = {
@@ -309,8 +309,8 @@ def publish_live(email: str, token: str, spa: Path | None) -> dict:
     arch = L.extract_arch(landing)
     rows = L.extract_holon_rows(diagrams)
     titles = {
-        "pt": "Pilha holónica — Nó Calhegas Morais",
-        "en": "Holonic stack — Calhegas Morais Node",
+        "pt": "Pilha holónica — Spencer-Morais Node",
+        "en": "Holonic stack — Spencer-Morais Node",
     }
     for lang, keys in (("pt", L.D1_KEYS_PT), ("en", L.D1_KEYS_EN)):
         src_key = keys[0]

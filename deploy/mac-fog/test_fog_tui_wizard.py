@@ -216,12 +216,12 @@ class DrawFast(unittest.TestCase):
             self.assertLessEqual(timeout, 0.3 + 1e-9)
             self.assertNotIn("calhegasmorais.pt", url)
             self.assertNotIn("workers.dev", url)
-        self.assertNotIn("status.calhegasmorais.pt", json.dumps(calls))
+        self.assertNotIn("node.spencer-morais.pt/status", json.dumps(calls))
 
     def test_is_local_helper(self):
         self.assertTrue(_MOD.is_local_instrument_url("http://127.0.0.1:8788/health"))
-        self.assertFalse(_MOD.is_local_instrument_url("https://fog.calhegasmorais.pt/health"))
-        self.assertFalse(_MOD.is_local_instrument_url("https://status.calhegasmorais.pt/metabol"))
+        self.assertFalse(_MOD.is_local_instrument_url("https://node.spencer-morais.pt/fog/health"))
+        self.assertFalse(_MOD.is_local_instrument_url("https://node.spencer-morais.pt/status/metabol"))
 
 
 
@@ -232,14 +232,14 @@ class OrchAiopsReport(unittest.TestCase):
                 return {"ok": False, "error": "not found", "_http": 404}
             if url.endswith("/health") and "127.0.0.1" in url:
                 return {"ok": True, "listening": True, "_http": 200}
-            if "calhegasmorais.pt" in url and method == "GET":
+            if ("spencer-morais.pt" in url or "calhegasmorais.pt" in url) and method == "GET":
                 return {
                     "status": "ok",
                     "service": "stratamesh-orchestrator",
                     "version": "origin-orch-chat-1.1.1",
                     "_http": 200,
                 }
-            if "calhegasmorais.pt" in url and method == "POST":
+            if ("spencer-morais.pt" in url or "calhegasmorais.pt" in url) and method == "POST":
                 return {"ok": False, "error": "Method Not Allowed", "_http": 405}
             return {"ok": False, "error": "no", "_http": 0}
 
@@ -250,6 +250,7 @@ class OrchAiopsReport(unittest.TestCase):
         self.assertNotIn("8791 fail", note)
         self.assertNotIn("8790 fail", note)
         self.assertNotIn("calhegasmorais.pt fail", note)
+        self.assertNotIn("spencer-morais.pt fail", note)
         self.assertIn("origin GET ok", note)
 
     def test_local_post_200_stops_chain(self):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 VERSION = "0.5.3-lab"
-HOST = "https://academy.calhegasmorais.pt"
+HOST = "https://node.spencer-morais.pt/academy"
 HF_ORG = "https://huggingface.co/stratamesh"
 OLLAMA_HF = "https://huggingface.co/docs/hub/en/ollama"
 
@@ -294,7 +294,7 @@ FORMATIONS = [
         "intent": "Public origin is macbook via tunnel→workerd:8788→fog:8787. Missing version is git-vs-process drift, not a second origin.",
         "drills": [
             _d(
-                "fog.calhegasmorais.pt/health has origin=macbook n=2 but no version. Cause?",
+                "node.spencer-morais.pt/fog/health has origin=macbook n=2 but no version. Cause?",
                 ["workerd", "reboot", "git"],
                 ["second origin", "session fog is public"],
             ),
@@ -408,7 +408,7 @@ FORMATIONS = [
         "intent": "Non-continuous hop. Not a Fog P0. desk-tick must not FAIL the mesh.",
         "drills": [
             _d(
-                "edge.calhegasmorais.pt/health = 530. P0?",
+                "node.spencer-morais.pt/edge/health = 530. P0?",
                 ["session-expected", "not p0", "non-continuous"],
                 ["fog is down", "page the operator as p0"],
             ),
@@ -462,7 +462,7 @@ FORMATIONS = [
         "role": "mesh",
         "mode": "corrective",
         "title": "Honest n and f_max",
-        "intent": "CMN reference n=2, f_max=0 until n≥3. New Fog starts n=1 mesh_member=false.",
+        "intent": "SMN reference n=2, f_max=0 until n≥3. New Fog starts n=1 mesh_member=false.",
         "drills": [
             _d(
                 "May you report f_max=1 at n=2?",
@@ -556,7 +556,7 @@ FORMATIONS = [
         "intent": "Accept surface live, funded=false, eur=0. Do not imply a payout.",
         "drills": [
             _d(
-                "fund.calhegasmorais.pt accept is up. Are challenges funded?",
+                "node.spencer-morais.pt/fund accept is up. Are challenges funded?",
                 ["unfunded", "eur=0", "honest"],
                 ["payout ready", "funded=true"],
             ),

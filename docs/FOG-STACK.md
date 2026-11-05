@@ -2,13 +2,13 @@
 
 **Status:** laboratory architecture — v0.6.0-lab, not mainnet.  
 **Integrates:** [FOG-APPLIANCE.md](FOG-APPLIANCE.md) · [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · stratamesh-core protocol.  
-**Pages:** <https://calhegasmorais.pt/fog-stack>
+**Pages:** <https://node.spencer-morais.pt/fog-stack>
 
 Physical substrate (S0–S1) + node runtime + evidence + DAG/gossip + STRATA receipts + holonic apps (S2–S6). Spine object: **ResourceOffer → Receipt → settlement**. The node is not a trusted oracle.
 
 ---
 
-Yes. Looking at the actual StrataMesh repositories and the Calhegas Morais reference node, the architecture becomes much more concrete than the two prospectuses alone suggest.
+Yes. Looking at the actual StrataMesh repositories and the Spencer-Morais Node reference node, the architecture becomes much more concrete than the two prospectuses alone suggest.
 
 The important shift is this:
 
@@ -52,7 +52,7 @@ And then the Calhegas Morais node is not merely a web server sitting at the bott
 
 It is intended to be the reference physical instantiation of that entire stack.
 
-The repository explicitly separates the reference-node registry from the protocol implementation: calhegas-morais-node describes identity, role, treasury, endpoints and operational posture, while stratamesh-core contains the actual protocol. 
+The repository explicitly separates the reference-node registry from the protocol implementation: spencer-morais-node describes identity, role, treasury, endpoints and operational posture, while stratamesh-core contains the actual protocol. 
 
 That distinction is extremely important.
 
@@ -65,10 +65,10 @@ The public site should be understood as the Node surface, not as StrataMesh itse
 The current lab documentation exposes several surfaces:
 
 * calhegasmorais.pt — node/site surface
-* fog.calhegasmorais.pt — Fog service
-* gossip.calhegasmorais.pt — gossip surface
-* origin.calhegasmorais.pt — origin/archive surface
-* status.calhegasmorais.pt — operational status
+* node.spencer-morais.pt/fog — Fog service
+* node.spencer-morais.pt/gossip — gossip surface
+* node.spencer-morais.pt/origin — origin/archive surface
+* node.spencer-morais.pt/status — operational status
 * academy / hub / fund surfaces around the ecosystem. 
 
 So conceptually:
@@ -962,7 +962,7 @@ and instead define them as three manifestations of one architecture:
                      STRATA
 
 stratamesh-core is the protocol brain.
-calhegas-morais-node is the reference-node identity/operational package.
+spencer-morais-node is the reference-node identity/operational package.
 calhegasmorais.pt is the public/digital surface.
 The Fog Appliance is the physical resource engine.
 The Fog Infrastructure is what makes that resource continuously available.

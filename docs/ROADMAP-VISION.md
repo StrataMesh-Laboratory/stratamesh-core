@@ -1,7 +1,7 @@
 # Roadmap milestone vision
 
 **Status:** technical vision — laboratory v0.6.0-lab, not mainnet.  
-**Pages:** <https://calhegasmorais.pt/en/roadmap> · spine <https://calhegasmorais.pt/fog-stack>  
+**Pages:** <https://node.spencer-morais.pt/en/roadmap> · spine <https://node.spencer-morais.pt/fog-stack>  
 **Pairs:** [FOG-APPLIANCE.md](FOG-APPLIANCE.md) · [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · [FOG-STACK.md](FOG-STACK.md)
 
 The terminal is not the computer. Computation is a property of the resource fabric.

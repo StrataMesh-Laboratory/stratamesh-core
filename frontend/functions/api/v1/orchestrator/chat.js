@@ -23,8 +23,8 @@ function json(data, status) {
 function localReply(message, extra) {
   const msg = String(message || '').trim();
   const reply = msg
-    ? ('Orquestrador CMN (Pages origin). Recebi: «' + msg.slice(0, 280) + '». SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.')
-    : 'Orquestrador CMN (Pages origin). Pulso vazio aceite. FOG-NODE-PT-CM-001 · n=1.';
+    ? ('Orquestrador SMN (Pages origin). Recebi: «' + msg.slice(0, 280) + '». SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false.')
+    : 'Orquestrador SMN (Pages origin). Pulso vazio aceite. FOG-NODE-PT-CM-001 · n=1.';
   return Object.assign({
     reply,
     clearance: 'public',
@@ -63,7 +63,7 @@ async function withTimeout(promise, ms, label) {
 async function probeFogHealth1500() {
   const a = abortAfter(1500);
   try {
-    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
+    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: a.signal,

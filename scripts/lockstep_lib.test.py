@@ -21,7 +21,7 @@ DIAGRAMS = r'''
   const rows = pt
     ? [
         "TRD StrataMesh · kernel CLP/PPC",
-        "Nó Calhegas Morais · Fog · instancia SO nativos e importados",
+        "Spencer-Morais Node · Fog · instancia SO nativos e importados",
         "SO Metaverso Web3 · nativo StrataMesh · nos Fog",
         "Domínio Virtual · VM hipervisor · servidores dos mundos",
         "Mundo Aberto · objectos NFT STRATA",
@@ -30,7 +30,7 @@ DIAGRAMS = r'''
       ]
     : [
         "StrataMesh DLT · CLP/PPC kernel",
-        "Calhegas Morais Node · Fog · instantiates native and imported OS",
+        "Spencer-Morais Node · Fog · instantiates native and imported OS",
         "Web3 Metaverse OS · StrataMesh native · on Fogs",
         "Virtual Realm · VM hypervisor · servers of the worlds",
         "Open World · STRATA NFT objects",
@@ -41,13 +41,13 @@ DIAGRAMS = r'''
 
 HTML_PT = (
     "<p>Holons aninhados e distintos: OLD Anfitrião (SO e VM do equipamento) END.</p>"
-    '<svg class="diagram" viewBox="0 0 640 430" role="img" aria-label="Pilha holónica — Nó Calhegas Morais">'
+    '<svg class="diagram" viewBox="0 0 640 430" role="img" aria-label="Pilha holónica — Spencer-Morais Node">'
     "<rect/><text>old</text></svg>"
 )
 
 HTML_PT_OLD_LABEL = (
     "<p>Holons aninhados e distintos: OLD.</p>"
-    '<svg class="diagram" viewBox="0 0 640 420" role="img" aria-label="Pilha holónica do Nó Calhegas Morais">'
+    '<svg class="diagram" viewBox="0 0 640 420" role="img" aria-label="Pilha holónica do Spencer-Morais Node">'
     "<rect/><text>old</text></svg>"
 )
 
@@ -90,7 +90,7 @@ class Parse(unittest.TestCase):
     def test_rows(self):
         r = L.extract_holon_rows(DIAGRAMS)
         self.assertEqual(len(r["pt"]), 7)
-        self.assertEqual(r["pt"][1], "Nó Calhegas Morais · Fog · instancia SO nativos e importados")
+        self.assertEqual(r["pt"][1], "Spencer-Morais Node · Fog · instancia SO nativos e importados")
         self.assertEqual(r["pt"][2], "SO Metaverso Web3 · nativo StrataMesh · nos Fog")
         self.assertEqual(r["pt"][3], "Domínio Virtual · VM hipervisor · servidores dos mundos")
         self.assertEqual(r["en"][3], "Virtual Realm · VM hypervisor · servers of the worlds")
@@ -114,7 +114,7 @@ class Parse(unittest.TestCase):
 class Patch(unittest.TestCase):
     def test_patch_pt(self):
         rows = L.extract_holon_rows(DIAGRAMS)["pt"]
-        svg = L.holon_svg("pt", rows, "Pilha holónica — Nó Calhegas Morais")
+        svg = L.holon_svg("pt", rows, "Pilha holónica — Spencer-Morais Node")
         out = L.patch_landing_html(HTML_PT, "pt", "Holons aninhados e distintos: VM = DV.", svg)
         self.assertIn("VM = DV", out)
         self.assertNotIn("Anfitrião", out)
@@ -125,7 +125,7 @@ class Patch(unittest.TestCase):
 
     def test_patch_old_aria_label(self):
         rows = L.extract_holon_rows(DIAGRAMS)["pt"]
-        svg = L.holon_svg("pt", rows, "Pilha holónica — Nó Calhegas Morais")
+        svg = L.holon_svg("pt", rows, "Pilha holónica — Spencer-Morais Node")
         out = L.patch_landing_html(HTML_PT_OLD_LABEL, "pt", "Holons aninhados e distintos: novo.", svg)
         self.assertIn("novo", out)
         self.assertIn("VM hipervisor", out)

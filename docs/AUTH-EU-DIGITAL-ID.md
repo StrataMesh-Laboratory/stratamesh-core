@@ -4,7 +4,7 @@
 
 ## Hierarchy of means
 
-| Means | Status for CMN | Notes |
+| Means | Status for SMN | Notes |
 |-------|----------------|--------|
 | **Email + password** | **Live** | Fallback; `POST /register`, `POST /login` |
 | **Portugal CMD (Autenticação.gov)** | **Scaffold — needs AMA onboarding** | OAuth 2.0 and/or SAML as **Service Provider** |

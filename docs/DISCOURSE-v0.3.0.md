@@ -14,7 +14,7 @@ StrataMesh LAB ships **v0.3.0**: the Fog Node is now a kit other operators can r
 - Wizard: registered node id → 2FA to the operator email → optional GitHub/Cloudflare keys (never in git).
 - Installer + destyle TUI on macOS (`deploy/mac-fog`). Product note: `deploy/fog-node/README.md`.
 - Your Fog is an instantiation of the shared web3 metaverse OS. Resources you contribute are in the PoC path toward STRATA (`#mint` / `#0`). Lab policy — **not a public offer**, **not mainnet**.
-- New nodes start n=1, `mesh_member=false`, `f_max=0`. The Calhegas Morais reference Fog stays n=2 (Mac + EDGE session).
+- New nodes start n=1, `mesh_member=false`, `f_max=0`. The Spencer-Morais Node reference Fog stays n=2 (Mac + EDGE session).
 
 Tag: https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.0  
 Notes: https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/RELEASE-v0.3.0.md

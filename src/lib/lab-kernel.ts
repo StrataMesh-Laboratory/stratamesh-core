@@ -271,11 +271,11 @@ export const BLUEPRINTS: { id: Blueprint; pt: string; en: string }[] = [
 
 export function seedScas(): ScaRecord[] {
   return [
-    { id: ORCH_SCA, name: "Orion-CMN", blueprint: "Orion", lobes: ["probabilistic", "symbolic"], appointment: "ORCHESTRATOR", enrolled: true, pds: 0.85, lifecycle: "ACTIVE" },
-    { id: "SCA-AIOPS-001", name: "Helix-CMN", blueprint: "Helix", lobes: ["probabilistic", "symbolic"], appointment: "AIOPS_LEAD", enrolled: true, pds: 0.62, lifecycle: "ACTIVE" },
-    { id: "SCA-SEC-001", name: "Aegis-CMN", blueprint: "Aegis", lobes: ["probabilistic", "symbolic"], appointment: "SECURITY", enrolled: true, pds: 0.54, lifecycle: "ACTIVE" },
-    { id: "SCA-DAG-001", name: "Vertex-CMN", blueprint: "Vertex", lobes: ["probabilistic", "symbolic"], appointment: "DAG_KEEPER", enrolled: true, pds: 0.71, lifecycle: "ACTIVE" },
-    { id: "SCA-FIS-001", name: "Lyra-CMN", blueprint: "Lyra", lobes: ["probabilistic", "symbolic"], appointment: null, enrolled: true, pds: 0.48, lifecycle: "ACTIVE" },
+    { id: ORCH_SCA, name: "Orion-SMN", blueprint: "Orion", lobes: ["probabilistic", "symbolic"], appointment: "ORCHESTRATOR", enrolled: true, pds: 0.85, lifecycle: "ACTIVE" },
+    { id: "SCA-AIOPS-001", name: "Helix-SMN", blueprint: "Helix", lobes: ["probabilistic", "symbolic"], appointment: "AIOPS_LEAD", enrolled: true, pds: 0.62, lifecycle: "ACTIVE" },
+    { id: "SCA-SEC-001", name: "Aegis-SMN", blueprint: "Aegis", lobes: ["probabilistic", "symbolic"], appointment: "SECURITY", enrolled: true, pds: 0.54, lifecycle: "ACTIVE" },
+    { id: "SCA-DAG-001", name: "Vertex-SMN", blueprint: "Vertex", lobes: ["probabilistic", "symbolic"], appointment: "DAG_KEEPER", enrolled: true, pds: 0.71, lifecycle: "ACTIVE" },
+    { id: "SCA-FIS-001", name: "Lyra-SMN", blueprint: "Lyra", lobes: ["probabilistic", "symbolic"], appointment: null, enrolled: true, pds: 0.48, lifecycle: "ACTIVE" },
   ];
 }
 

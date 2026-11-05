@@ -12,13 +12,19 @@ What exists today is a **one-person research/development initiative** using the 
 
 A Portuguese *Associação Privada Sem Fins Lucrativos* requires **at least two founders** to be constituted; legal existence comes through registration. Until then, the name may be used as research identity **without** claiming association status.
 
-### Fog Node infrastructure (today)
+### Spencer-Morais Node (today, confirmed wording)
 
-The present Fog Node is **infrastructure belonging to AMCM ENI** (André Manuel Calhegas Morais — Empresário em Nome Individual), already registered in the relevant sense but **not yet fiscally activated for commercial activity**.
+O Spencer-Morais Node é projecto familiar e privado de André Manuel Calhegas Morais e da Casa Spencer-Morais, de que constitui a infra-estrutura digital. Não tem carácter comercial nem receitas próprias e, perante o Estado, é representado pelo casal fundador, sob a direcção de André Manuel Calhegas Morais, enquanto pessoa singular. A Instituição Spencer-Morais Unipessoal, Lda., hoje latente, só será chamada a intervir se vier a haver actividade comercial.
 
-Correct representation:
+Na ordem interna da Casa, o Spencer-Morais Node é infra-estrutura experimental da Casa no projecto StrataMesh LAB, projecto tecnológico de associação livre igualmente fundado por André Manuel Calhegas Morais, do qual se distingue conceptualmente.
 
-> **StrataMesh Fog Node — infrastructure of AMCM ENI**
+Ambas as qualificações descrevem o estado actual, que é latente, e não determinam a forma por que o Spencer-Morais Node se venha a constituir na ordem da Casa ou perante a ordem estadual, a qual dependerá da progressão e do desenvolvimento do projecto.
+
+Responsável pelo projecto: o fundador André Manuel Calhegas Morais.
+
+Public id: **PT-SM-001** (display alias; the internal protocol id `FOG-NODE-PT-CM-001` is kept unchanged for peers, gossip, signatures, KV keys and ledger continuity).
+
+O StrataMesh LAB é um projecto tecnológico de associação livre de pessoas livres, que por ora conta apenas com André Manuel Calhegas Morais. The LAB is a technological project of free association, without legal personality. Before the State, the Node is a family and private project of André Manuel Calhegas Morais and the Casa, represented by the founding couple and led by André as a natural person, with ISM Lda. latent. In the Casa's internal order, the Spencer-Morais Node is experimental infrastructure of the Casa within the StrataMesh LAB project, a technological project of free association also founded by André Manuel Calhegas Morais, from which it is conceptually distinct. Both qualifications describe the present state, which is latent, and do not determine how the Spencer-Morais Node will come to be constituted in the order of the Casa or before the State; that will depend on the progress and development of the project.
 
 Not: an independent commercial enterprise currently operating for income.
 
@@ -78,7 +84,7 @@ Do **not** manufacture a second legal entity solely for the Fog Node at this sta
 
 ## STAGE 3 — First independent Fog Node legal persons
 
-Example (future): *Calhegas Morais Fog Node, Lda.* and other autonomous Portuguese operators.
+Example (future): *Spencer-Morais Node, Lda.* and other autonomous Portuguese operators.
 
 Founder infrastructure → multi-operator experimental network.
 
@@ -157,12 +163,12 @@ National cooperatives → continental federations → **STRATAMESH GLOBAL NETWOR
 
 | Surface | Identity |
 |---------|----------|
-| https://calhegasmorais.pt | Fog Node site (AMCM ENI infrastructure) |
-| https://edge.calhegasmorais.pt | **EDGE-GROK** automation desk (lab edge, not Fog mirror) |
-| https://api-edge.calhegasmorais.pt | Integration registry (zero-auth lab registration) |
-| https://status.calhegasmorais.pt | Fog status pulse |
+| https://node.spencer-morais.pt/ | Fog Node site (AMCM ENI infrastructure) |
+| https://node.spencer-morais.pt/edge | **EDGE-GROK** automation desk (lab edge, not Fog mirror) |
+| https://node.spencer-morais.pt/edge/api | Integration registry (zero-auth lab registration) |
+| https://node.spencer-morais.pt/status | Fog status pulse |
 | GitHub `StrataMesh-Laboratory` | Research org name (project identity; not yet PT association) |
 
-**Note:** `https://stratamesh.grok.me/` has historically mirrored the Fog landing page. Canonical EDGE-GROK UI is **edge.calhegasmorais.pt**, not a Fog mirror.
+**Note:** `https://stratamesh.grok.me/` has historically mirrored the Fog landing page. Canonical EDGE-GROK UI is **node.spencer-morais.pt/edge**, not a Fog mirror.
 
 Lab honesty · Subjects ≠ objects · pre-testnet · no mainnet/yield claims.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bidirectional sync with https://api-edge.calhegasmorais.pt/desk
+"""Bidirectional sync with https://node.spencer-morais.pt/edge/api/desk
 
 Live pull+push on Fog TUI r / auto-r (60s instrument). g / auto-g is upgrades only.
 Bearer DESK_TOKEN from automation-desk vault files only — never git, never chat.
@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-DEFAULT_URL = os.environ.get("DESK_URL") or "https://api-edge.calhegasmorais.pt/desk"
+DEFAULT_URL = os.environ.get("DESK_URL") or "https://node.spencer-morais.pt/edge/api/desk"
 
 
 def _now() -> str:

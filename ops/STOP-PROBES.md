@@ -4,7 +4,7 @@ Nothing stays paused across 00:00 UTC. Vendor remaining is 0 until refill; hourl
 
 ## Apex
 
-Fail-open catch-alls exposed origin PHP `SYSTEM LOGIN` (black / #0f0 Courier). Public `/` is now **Cloudflare Pages** (`calhegasmorais-pt`) — the Calhegas Morais landing, **zero Worker quota**. Origin PHP is `origin.calhegasmorais.pt`. SPA catch-alls `calhegasmorais.pt/*` removed; dashboard/tempo/chat/roadmap stay on SPA.
+Fail-open catch-alls exposed origin PHP `SYSTEM LOGIN` (black / #0f0 Courier). Public `/` is now **Cloudflare Pages** (`calhegasmorais-pt`) — the Calhegas Morais landing, **zero Worker quota**. Origin PHP is `node.spencer-morais.pt/origin`. SPA catch-alls `calhegasmorais.pt/*` removed; dashboard/tempo/chat/roadmap stay on SPA.
 
 ## Armed (not paused)
 

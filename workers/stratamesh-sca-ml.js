@@ -475,7 +475,7 @@ async function volitionTick(db, body) {
 function defaultBlueprint(sca_id) {
   return {
     sca_id,
-    identity_name: sca_id === 'SCA-ORCH-CMN-001' ? 'Orion-CMN' : sca_id,
+    identity_name: sca_id === 'SCA-ORCH-CMN-001' ? 'Orion-SMN' : sca_id,
     appointment: sca_id === 'SCA-ORCH-CMN-001' ? 'ORCHESTRATOR' : null,
     status: 'ACTIVE',
     pds: 1.0,
@@ -514,7 +514,7 @@ const EDGE_CATALOG = [
     id: 'flower',
     repo: 'https://github.com/adap/flower',
     license: 'Apache-2.0',
-    runtime: 'Python clients; CMN mirrors FedAvg/Krum in-worker',
+    runtime: 'Python clients; SMN mirrors FedAvg/Krum in-worker',
     use: 'Federated gene/lobe aggregation across SCA',
     npm: null,
   },
@@ -530,7 +530,7 @@ const EDGE_CATALOG = [
     id: 'open-autonomy',
     repo: 'https://github.com/valory-xyz/open-autonomy',
     license: 'Apache-2.0',
-    runtime: 'Python MAS; CMN blueprints mirror patterns',
+    runtime: 'Python MAS; SMN blueprints mirror patterns',
     use: 'SCA service + identity ≠ role',
     npm: null,
   },

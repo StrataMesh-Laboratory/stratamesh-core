@@ -635,14 +635,14 @@ def honest_result(*, ok: bool, done: bool, verb: str, result: str, evidence: boo
 
 def handler_claw(task: dict, *, dry: bool) -> dict:
     """Real openclaw agent exec. Hop curls may update meters; feed openclaw only on agent output."""
-    fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
+    fog_ok, _ = _http_ok("https://node.spencer-morais.pt/fog/health")
     if not fog_ok:
         time.sleep(0.3)
-        fog_ok, _ = _http_ok("https://fog.calhegasmorais.pt/health")
-    edge_ok, _ = _http_ok("https://api-edge.calhegasmorais.pt/health")
+        fog_ok, _ = _http_ok("https://node.spencer-morais.pt/fog/health")
+    edge_ok, _ = _http_ok("https://node.spencer-morais.pt/edge/api/health")
     if not edge_ok:
         time.sleep(0.3)
-        edge_ok, _ = _http_ok("https://api-edge.calhegasmorais.pt/health")
+        edge_ok, _ = _http_ok("https://node.spencer-morais.pt/edge/api/health")
     local8787, _ = _http_ok("http://127.0.0.1:8787/health", timeout=2.0)
     hop = f"hops fog={int(fog_ok)} edge={int(edge_ok)} :8787={int(local8787)}"
     if dry:
@@ -1329,8 +1329,8 @@ def handler_lead(task: dict, *, dry: bool) -> dict:
 
 def handler_edge(task: dict, *, dry: bool) -> dict:
     """Queue EDGE Assistant Act — NEVER done on Mac HTTP health alone."""
-    ok, detail = _http_ok("https://api-edge.calhegasmorais.pt/health", retries=2)
-    edge_ok, site_detail = _http_ok("https://edge.calhegasmorais.pt/", retries=2)
+    ok, detail = _http_ok("https://node.spencer-morais.pt/edge/api/health", retries=2)
+    edge_ok, site_detail = _http_ok("https://node.spencer-morais.pt/edge/", retries=2)
     rate = _is_rate_limited(detail) or _is_rate_limited(site_detail)
     result = f"edge api={int(ok)} site={int(edge_ok)}"
     if rate and not (ok or edge_ok):
@@ -1414,7 +1414,7 @@ def handler_edge(task: dict, *, dry: bool) -> dict:
 
 def handler_fog(task: dict, *, dry: bool) -> dict:
     """Queue Fog Assistant Act — NEVER done on Mac HTTP health alone."""
-    ok, detail = _http_ok("https://fog.calhegasmorais.pt/health")
+    ok, detail = _http_ok("https://node.spencer-morais.pt/fog/health")
     result = f"fog origin health={'ok' if ok else 'DOWN'}"
     if not ok and detail:
         result += f" | {detail[:50]}"
@@ -1490,9 +1490,9 @@ def handler_teach(task: dict, *, dry: bool) -> dict:
     not mere academy HTTP health. force_exam never overwrites teacher-scored
     trees unless task explicitly sets force_overwrite_teacher_scored.
     """
-    http_ok, detail = _http_ok("https://academy.calhegasmorais.pt/health")
+    http_ok, detail = _http_ok("https://node.spencer-morais.pt/academy/health")
     if not http_ok:
-        http_ok, detail = _http_ok("https://academy.calhegasmorais.pt/")
+        http_ok, detail = _http_ok("https://node.spencer-morais.pt/academy/")
     exam_bit = ""
     intent = (task.get("intent") or "").lower()
     force_exam = (
@@ -1723,8 +1723,8 @@ def write_apprenticeship_trail(task: dict, out: dict, *, agent: str) -> None:
             "intent": task.get("intent"),
             "deliverable": out.get("result"),
             "surfaces": {
-                "academy": "https://academy.calhegasmorais.pt",
-                "stratamesh_proper": "https://calhegasmorais.pt",
+                "academy": "https://node.spencer-morais.pt/academy",
+                "stratamesh_proper": "https://node.spencer-morais.pt/",
                 "repo": "StrataMesh-Laboratory/stratamesh-core",
             },
             "mode": "apprenticeship_by_doing",
@@ -1741,8 +1741,8 @@ def write_apprenticeship_trail(task: dict, out: dict, *, agent: str) -> None:
             f"**What we just did (learn by doing):**\n\n"
             f"{task.get('intent')}\n\n"
             f"**Deliverable:** {out.get('result')}\n\n"
-            f"**Link to StrataMesh proper:** https://calhegasmorais.pt · "
-            f"academy: https://academy.calhegasmorais.pt · "
+            f"**Link to StrataMesh proper:** https://node.spencer-morais.pt/ · "
+            f"academy: https://node.spencer-morais.pt/academy · "
             f"repo: stratamesh-core\n\n"
             f"Reflect: which specialty (claw/code/coord) owned this, which metabol lane, "
             f"and how propose→constrain→done applied.\n"

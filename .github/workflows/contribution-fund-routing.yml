@@ -1,7 +1,7 @@
 name: Contribution and Impact Fund routing
 
 # Routes PRs/issues onto Impact Fund + GitHub Sponsors rails.
-# Canonical fund: https://fund.calhegasmorais.pt
+# Canonical fund: https://node.spencer-morais.pt/fund
 # Alias host fund.calhegasmorais.com is recognised but comments use .pt.
 # Does NOT pay anyone, merge, or hit Workers / workers.dev.
 # V0: no STRATA, no on-chain settlement.
@@ -36,7 +36,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const MARKER = '<!-- stratamesh-fund-router -->';
-            const CANON = 'https://fund.calhegasmorais.pt';
+            const CANON = 'https://node.spencer-morais.pt/fund';
             const SPONSORS = 'https://github.com/sponsors/amcmorais';
             const PAGAMENTOS = 'https://calhegasmorais.pt/pagamentos';
             const IMPACT = 'StrataMesh-Laboratory/stratamesh-impact-fund';
@@ -95,7 +95,7 @@ jobs:
             }
 
             const text = [issueish.title || '', issueish.body || '', issueish.html_url || ''].join('\n').toLowerCase();
-            const fundHit = text.includes('fund.calhegasmorais.pt')
+            const fundHit = text.includes('node.spencer-morais.pt/fund')
               || text.includes('fund.calhegasmorais.com')
               || text.includes('stratamesh-impact-fund')
               || text.includes('impact-challenge')

@@ -150,7 +150,7 @@ struct ContentView: View {
                 "substrate": "ios-native",
                 "usage": ["C_mesh": r.C_mesh, "U": r.U, "why": r.why, "duty": r.duty, "foreground": true]
             ]
-            let res = try await post("https://api-edge.calhegasmorais.pt/v1/edge/heartbeat", body, token: token)
+            let res = try await post("https://node.spencer-morais.pt/edge/api/v1/edge/heartbeat", body, token: token)
             msg = (res["ok"] as? Bool) == true ? "heartbeat ok" : "\(res["error"] ?? "fail")"
         } catch { msg = error.localizedDescription }
     }

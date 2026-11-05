@@ -59,7 +59,7 @@ jobs:
           fi
           if gh release create "$TAG" "$TAR" \
               --title "Origin archive $DAY" \
-              --notes "Daily last-resort static pile for origin.calhegasmorais.pt. Staff-gated. Not a 6th CF cron." \
+              --notes "Daily last-resort static pile for node.spencer-morais.pt/origin. Staff-gated. Not a 6th CF cron." \
               --latest=false; then
             echo "created $TAG"
             exit 0

@@ -308,8 +308,8 @@ export function EdgeLab({ lang }: { lang: "pt" | "en" }) {
           : "Edge contributes only C_mesh = f(1−U), with audited quality, thermal and energy. No operator of its own: each Edge is indexed to this Fog. Settlement accrues to the Fog. SDL-lite locks STRATA in escrow and burns hour by hour to #0; the remainder is refunded."}
       </p>
       <div className="inner-grid two mt-3">
-        <Meter label="C_self CMN" value={fog.self.toFixed(3)} />
-        <Meter label="Σ C_Edge CMN" value={fog.residual.toFixed(3)} />
+        <Meter label="C_self SMN" value={fog.self.toFixed(3)} />
+        <Meter label="Σ C_Edge SMN" value={fog.residual.toFixed(3)} />
         <Meter label={pt ? "Circulante" : "Circulating"} value={money.circulating.toFixed(3)} />
         <Meter label="Escrow" value={money.escrow.toFixed(4)} />
       </div>

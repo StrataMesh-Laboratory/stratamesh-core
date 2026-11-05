@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(os.environ.get("FOG_SRC") or "/tmp/sm-core")
 DATA = Path(os.environ.get("EDGE_DATA") or "/workspace/data/edge")
 LOCAL = os.environ.get("EDGE_HOP_URL") or "http://127.0.0.1:8788/health"
-PUBLIC = os.environ.get("EDGE_PUBLIC_URL") or "https://edge.calhegasmorais.pt/health"
+PUBLIC = os.environ.get("EDGE_PUBLIC_URL") or "https://node.spencer-morais.pt/edge/health"
 POLL = int(os.environ.get("EDGE_POLL_SEC") or "15")
 LOG = DATA / "edge-watchdog.log"
 

@@ -1,6 +1,6 @@
 # StrataMesh LAB — Fog Node (macOS)
 
-**v0.6.0-lab** · destyle · lab · not mainnet · CMN **n=2** (new ids start n=1 until they peer)
+**v0.6.0-lab** · destyle · lab · not mainnet · SMN **n=2** (new ids start n=1 until they peer)
 
 Product entry: [`../fog-node/README.md`](../fog-node/README.md).
 
@@ -14,7 +14,7 @@ No secrets in this tree. Node id + 2FA + optional tokens live in `~/.config/stra
 python3 deploy/mac-fog/fog-bootstrap.py
 ```
 
-Reference CMN (`FOG-NODE-PT-CM-001`) keeps LaunchAgent `pt.calhegasmorais.fog`, origin `macbook`, n=2. Any other registered id uses `lab.stratamesh.fog`, origin `local`, n=1 until it peers.
+Reference SMN (`FOG-NODE-PT-CM-001`) keeps LaunchAgent `pt.calhegasmorais.fog`, origin `macbook`, n=2. Any other registered id uses `lab.stratamesh.fog`, origin `local`, n=1 until it peers.
 
 ## Manual node mw (:8791)
 

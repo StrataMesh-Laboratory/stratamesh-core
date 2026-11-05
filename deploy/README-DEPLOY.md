@@ -26,7 +26,7 @@ Options:
   npx wrangler deploy
   ```
 
-You can then attach a route such as `status.calhegasmorais.pt/*` or `calhegasmorais.pt/status*`.
+You can then attach a route such as `node.spencer-morais.pt/status/*` or `calhegasmorais.pt/status*`.
 
 ## 3. Static assets on origin
 

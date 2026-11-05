@@ -15,7 +15,7 @@ GOSSIP = "http://10.0.0.2:8787/gossip"
 GITHUB = "https://api.github.com/repos/x/y"
 CF = "https://api.cloudflare.com/client/v4/graphql"
 WORKERS = "https://example.workers.dev/health"
-APEX = "https://status.calhegasmorais.pt/"
+APEX = "https://node.spencer-morais.pt/status/"
 
 
 class UnsetEnv(unittest.TestCase):

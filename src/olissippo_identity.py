@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""ACB identity (StrataMesh) vs world role (CMN).
+"""ACB identity (StrataMesh) vs world role (SMN).
 
 Identity answers WHO the Subject is (registered in StrataMesh).
-World role answers WHAT they do in a realm (registered in CMN).
+World role answers WHAT they do in a realm (registered in SMN).
 They must not be conflated. ACB ≠ NFT either way.
 """
 from __future__ import annotations
@@ -89,7 +89,7 @@ def world_roles_for_subject(subject_id: str, *, realm: str | None = None) -> lis
 
 
 def join_persona(slug_or_sid: str) -> dict[str, Any]:
-    """Join StrataMesh identity + CMN Olissippo world role for a persona slug or id."""
+    """Join StrataMesh identity + SMN Olissippo world role for a persona slug or id."""
     from olissippo_personas import load_persona  # local cycle ok at call time
 
     # prefer slug via personas index

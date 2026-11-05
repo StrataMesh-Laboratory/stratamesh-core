@@ -5,7 +5,7 @@
 **Scope:** consensus-critical and settlement-critical message shapes  
 **Not in scope:** UI, Bancada chrome, marketing ontology, PQ marketing claims
 
-Reference Fog node: `FOG-NODE-PT-CM-001` · site: https://calhegasmorais.pt/  
+Reference Fog node: `FOG-NODE-PT-CM-001` · site: https://node.spencer-morais.pt/  
 Live workers implement subsets of this protocol; gaps are marked **LAB**.
 
 ---

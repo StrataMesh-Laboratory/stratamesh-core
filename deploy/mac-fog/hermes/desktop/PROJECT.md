@@ -1,4 +1,4 @@
-# Project FOG-CMN-DESK
+# Project FOG-SMN-DESK
 
 | Field | Value |
 |-------|-------|
@@ -8,7 +8,7 @@
 | Lead | STRATAGROK (Grok Bot) — meters/git/escalate; Bot desktop not shared |
 | Shared desk machine | Hermes desktop on Mac `mbpv` via SSH `hermes-desk` ([SSH.md](./SSH.md)) |
 | Fog health | http://127.0.0.1:8787/health |
-| Academy | https://academy.calhegasmorais.pt |
+| Academy | https://node.spencer-morais.pt/academy |
 | Ollama | http://127.0.0.1:11434 |
 | OpenClaw | ws://127.0.0.1:18789 (when running) |
 | Git | StrataMesh-Laboratory/stratamesh-core |

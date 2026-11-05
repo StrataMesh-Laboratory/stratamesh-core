@@ -26,7 +26,7 @@ const STATUS = {
   aiops: { orchestrator: "active", agents: ["security", "devops", "analysis"] },
   links: {
     repo: "https://github.com/StrataMesh-Laboratory/stratamesh-core",
-    portal: "https://aiops.calhegasmorais.pt/"
+    portal: "https://node.spencer-morais.pt/aiops/"
   }
 };
 
@@ -35,7 +35,7 @@ const HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StrataMesh · Calhegas Morais Fog Node</title>
+  <title>StrataMesh · Spencer-Morais Node</title>
   <style>
     :root { --bg:#0b0f14; --card:#141a22; --text:#e6edf3; --muted:#8b9bb4; --accent:#3b82f6; --ok:#22c55e; }
     * { box-sizing:border-box; margin:0; padding:0; }
@@ -55,7 +55,7 @@ const HTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="c">
-    <h1>Calhegas Morais Fog Node</h1>
+    <h1>Spencer-Morais Node</h1>
     <p class="motto">Intelligentia · Vigilantia · Veritas · FOG-NODE-PT-CM-001</p>
     <div class="card">
       <div class="label">Status</div>
@@ -79,7 +79,7 @@ const HTML = `<!DOCTYPE html>
     </div>
     <div class="card">
       <div class="label">Links</div>
-      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a> · <a href="https://aiops.calhegasmorais.pt/">Portal</a></p>
+      <p style="margin-top:.5rem"><a href="/status">JSON status</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a> · <a href="https://node.spencer-morais.pt/aiops/">Portal</a></p>
     </div>
     <footer>UNCLASSIFIED // FOG-NODE-PT-CM-001<br>© 2026 Calhegas Morais · StrataMesh DLT</footer>
   </div>

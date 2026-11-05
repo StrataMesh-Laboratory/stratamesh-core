@@ -14,9 +14,9 @@
 | **GitHub org** | Code, issues, PRs, releases | https://github.com/StrataMesh-Laboratory | **Live** |
 | **GitHub Discussions** | Optional async (code-adjacent) | https://github.com/StrataMesh-Laboratory/stratamesh-core/discussions | Live |
 | **Hugging Face Hub** | Catalog of means (not a subject) | https://huggingface.co/stratamesh | **Live (catalog)** |
-| **Reference node** | Public FOG node surface | https://calhegasmorais.pt | **Live** |
-| **Status** | Pulse / health JSON | https://status.calhegasmorais.pt | **Live** |
-| **Impact Fund** | Contributor grants (GitHub evidence) | https://fund.calhegasmorais.pt | Lab V0 |
+| **Reference node** | Public FOG node surface | https://node.spencer-morais.pt/ | **Live** |
+| **Status** | Pulse / health JSON | https://node.spencer-morais.pt/status | **Live** |
+| **Impact Fund** | Contributor grants (GitHub evidence) | https://node.spencer-morais.pt/fund | Lab V0 |
 | **ENI** | Legal entity | https://eni.calhegasmorais.pt | Live |
 | Contact | Professional | `geral@eni.calhegasmorais.pt` | Live |
 
@@ -66,7 +66,7 @@ Setup runbook: [DISCOURSE-SETUP.md](./DISCOURSE-SETUP.md)
 | Repo | Role |
 |------|------|
 | [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core) | Protocol / node reference |
-| [calhegas-morais-node](https://github.com/StrataMesh-Laboratory/calhegas-morais-node) | FOG-NODE-PT-CM-001 surface |
+| [spencer-morais-node](https://github.com/StrataMesh-Laboratory/spencer-morais-node) | FOG-NODE-PT-CM-001 surface |
 | [stratamesh-laboratory](https://github.com/StrataMesh-Laboratory/stratamesh-laboratory) | Lab meta |
 | [stratamesh-impact-fund](https://github.com/StrataMesh-Laboratory/stratamesh-impact-fund) | Fund app |
 | [.github](https://github.com/StrataMesh-Laboratory/.github) | Org profile / templates |
@@ -95,9 +95,9 @@ Full map: [HUB.md](./HUB.md).
 
 | Host | Role |
 |------|------|
-| https://calhegasmorais.pt | SPA / portal |
-| https://status.calhegasmorais.pt | Operational pulse |
-| https://fund.calhegasmorais.pt | Impact Fund V0 |
+| https://node.spencer-morais.pt/ | SPA / portal |
+| https://node.spencer-morais.pt/status | Operational pulse |
+| https://node.spencer-morais.pt/fund | Impact Fund V0 |
 | https://eni.calhegasmorais.pt | AMCM ENI |
 
 ---

@@ -32,7 +32,9 @@ const TEMPORAL_POLICY = {
 
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
-  name: "Calhegas Morais Node",
+  name: "Spencer-Morais Node",
+  public_id: "PT-SM-001", // public display alias; node_id stays the protocol id
+  public_name: "Spencer-Morais Node",
   lat: 38.7169,
   lon: -9.1427,
   locality: "Lisboa, Portugal",
@@ -190,7 +192,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -619,7 +621,7 @@ const SYSCALLS = {
   },
   garantir_reino_lab: {
     holon: "virtual_realm",
-    descricao: "Garante domínio virtual laboratorial CMN",
+    descricao: "Garante domínio virtual laboratorial SMN",
     emite: "realm.created",
     endpoint: "/ensure-lab",
     metodo: "GET",

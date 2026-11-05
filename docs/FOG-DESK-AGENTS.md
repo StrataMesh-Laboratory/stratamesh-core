@@ -11,8 +11,8 @@ None are SCA/ACB students — all teach/mentor.
 | hermes | Hermes | external_agent | coord | lane-hermes | `deploy/mac-fog/hermes/desktop/{SOUL,DESK}.md` | HERMES-FOG-AGENT.md |
 | opencode | OpenCode | external_agent | code | lane-opencode | `deploy/mac-fog/opencode/{SOUL,DESK}.md` | OPENCODE-FOG-AGENT.md |
 | openclaw | OpenClaw | external_agent | claw | lane-openclaw | `deploy/mac-fog/openclaw/{SOUL,DESK}.md` | OPENCLAW-FOG-AGENT.md |
-| fog-assistant | CMN FOG ASSISTANT | external_assistant | fog | lane-assistant | Archive Instructions | NO-CALHEGAS-MORAIS-INSTRUCTIONS.md |
-| edge-assistant | CMN EDGE ASSISTANT | external_assistant | edge | lane-assistant | Archive + EDGE prompt | CMN-EDGE-ASSISTANT-PROMPT.md |
+| fog-assistant | SMN FOG ASSISTANT | external_assistant | fog | lane-assistant | Archive Instructions | NO-CALHEGAS-MORAIS-INSTRUCTIONS.md |
+| edge-assistant | SMN EDGE ASSISTANT | external_assistant | edge | lane-assistant | Archive + EDGE prompt | SMN-EDGE-ASSISTANT-PROMPT.md |
 
 Coordination: [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md) · autonomy: [FOG-DESK-AUTONOMY.md](./FOG-DESK-AUTONOMY.md) · `ops/desk-collegium/`.
 
@@ -24,7 +24,7 @@ Coordination: [FOG-DESK-COLLEGIUM.md](./FOG-DESK-COLLEGIUM.md) · autonomy: [FOG
 - Wake: CONTEXT pack → protocol → Eisenhower → TODO.md → reports → specialty
 
 ## Cycle-owned surfaces (auto each TUI r)
-`ensure_desk_surfaces()` → journals/ · reports/ · TODO.md · CONTEXT-CMN-STRATAMESH.md · meters/surfaces_ok.json
+`ensure_desk_surfaces()` → journals/ · reports/ · TODO.md · CONTEXT-SMN-STRATAMESH.md · meters/surfaces_ok.json
 Bot never required to regenerate.
 
 ## Archive roles

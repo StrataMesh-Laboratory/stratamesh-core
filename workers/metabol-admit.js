@@ -25,11 +25,11 @@ export const AUTH_CONTINGENCY = {
   note: "python :8790 JSON hop",
 };
 export const PAGES_CONTINGENCY = {
-  url: "https://calhegasmorais.pt/",
+  url: "https://node.spencer-morais.pt/",
   note: "Pages apex, not Worker SPA",
 };
 export const SANDBOX_CONTINGENCY = {
-  url: "https://sandbox.calhegasmorais.pt/",
+  url: "https://node.spencer-morais.pt/sandbox/",
   note: "gnu-atelier Pages",
 };
 

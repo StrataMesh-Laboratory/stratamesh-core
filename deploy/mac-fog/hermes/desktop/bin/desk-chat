@@ -54,7 +54,7 @@ def cmd_status(_: argparse.Namespace) -> int:
     print(f"  access={WS / 'ACCESS.md'}")
     print(f"  desk_room=DESK feed (agent lines) via desk_feed / Fog TUI")
     print(f"  private_dm=consult threads under {fog / 'data/desk-collegium/consult'}")
-    print("  hermes_project=FOG-CMN-DESK (Hermes desktop project session; ensure_workspace.py)")
+    print("  hermes_project=FOG-SMN-DESK (Hermes desktop project session; ensure_workspace.py)")
     print("  discord_slack=lab allowlist ACK-path (MESSAGING.md) — not primary peer DM")
     print("  volition=external_agent may room say / dm open|reply as part of Act")
     # counts
@@ -189,7 +189,7 @@ def cmd_dm_close(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="FOG-CMN-DESK desk-chat (room + private DM)")
+    p = argparse.ArgumentParser(description="FOG-SMN-DESK desk-chat (room + private DM)")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status").set_defaults(func=cmd_status)
 

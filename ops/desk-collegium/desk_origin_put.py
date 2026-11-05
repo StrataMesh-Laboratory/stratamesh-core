@@ -205,7 +205,7 @@ def _put_fund_worker(*, dry: bool) -> dict[str, Any]:
         detail = f"fund PUT http={out.get('http')} success={int(success)}"
         if out.get("errors"):
             detail += f" errors={_scrub(json.dumps(out.get('errors')))}"
-        return {"ok": success, "detail": detail, "urls": ["https://fund.calhegasmorais.pt/"]}
+        return {"ok": success, "detail": detail, "urls": ["https://node.spencer-morais.pt/fund/"]}
     except SystemExit as e:
         return {"ok": False, "detail": f"fund_put_exit:{e}"}
     except Exception as e:

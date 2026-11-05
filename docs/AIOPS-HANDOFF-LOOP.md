@@ -36,18 +36,18 @@ Bootstrap placeholders are **forbidden**. Empty `mandatory_actions` under green 
 ## Endpoints (stable)
 
 ```
-GET  https://aiops.calhegasmorais.pt/health
-GET  https://aiops.calhegasmorais.pt/cycle
-GET  https://aiops.calhegasmorais.pt/actions
-GET  https://aiops.calhegasmorais.pt/handoff
-GET  https://aiops.calhegasmorais.pt/handoff/latest  (alias of GET /handoff; same JSON)
-POST https://aiops.calhegasmorais.pt/handoff
-POST https://aiops.calhegasmorais.pt/chat
+GET  https://node.spencer-morais.pt/aiops/health
+GET  https://node.spencer-morais.pt/aiops/cycle
+GET  https://node.spencer-morais.pt/aiops/actions
+GET  https://node.spencer-morais.pt/aiops/handoff
+GET  https://node.spencer-morais.pt/aiops/handoff/latest  (alias of GET /handoff; same JSON)
+POST https://node.spencer-morais.pt/aiops/handoff
+POST https://node.spencer-morais.pt/aiops/chat
 
 # Orchestrator consume (read-only JSON; not 09:00 fulfillment; torch HOLD)
-GET  https://calhegasmorais.pt/api/orchestrator/actions
-GET  https://calhegasmorais.pt/api/orchestrator/handoff
-GET  https://calhegasmorais.pt/api/orchestrator/handoff/latest
+GET  https://node.spencer-morais.pt/api/orchestrator/actions
+GET  https://node.spencer-morais.pt/api/orchestrator/handoff
+GET  https://node.spencer-morais.pt/api/orchestrator/handoff/latest
 ```
 
 ## `stratamesh.handoff.v1` (required fields)

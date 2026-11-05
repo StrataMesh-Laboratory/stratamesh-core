@@ -4,8 +4,8 @@
 **No public date.** Post-MacBook hardware track for FOG-NODE-PT-CM-001.  
 **Lab:** StrataMesh Laboratory · Lisbon · operator AMCM ENI · software today v0.6.0-lab.  
 **Spine:** [FOG-STACK.md](FOG-STACK.md)  
-**Pages:** <https://calhegasmorais.pt/fog-appliance>  
-**Pair:** [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · <https://calhegasmorais.pt/fog-infrastructure>
+**Pages:** <https://node.spencer-morais.pt/fog-appliance>  
+**Pair:** [FOG-INFRASTRUCTURE.md](FOG-INFRASTRUCTURE.md) · <https://node.spencer-morais.pt/fog-infrastructure>
 
 The MacBook remains the live laboratory host. This document is the hardware roadmap for a standalone always-on mini-server. Experimental thermal and energy modules are replaceable cartridges, never single points of failure.
 
@@ -1861,7 +1861,7 @@ Experimental objective: Demonstrate that advanced physical subsystems can increa
 
 36. Conclusion
 
-The proposed Calhegas Morais Fog Node should not be conceived merely as a futuristic replacement for a MacBook.
+The proposed Spencer-Morais Node should not be conceived merely as a futuristic replacement for a MacBook.
 
 It should be conceived as:
 

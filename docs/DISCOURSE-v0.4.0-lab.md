@@ -13,7 +13,7 @@ StrataMesh LAB ships **v0.4.0-lab**: the ACB Academy.
 
 The Orchestrator (Vespera) and the AIOps five (Kael, Nyx, Solace, Reed, Mira) now have **always-on** corrective and exploratory formations so they can actually fulfil their roles. Empty answers are unready. Invented handlers fail closed.
 
-- Catalog + grader: https://academy.calhegasmorais.pt/
+- Catalog + grader: https://node.spencer-morais.pt/academy/
 - Fog runtime: Ollama pulls GGUF from Hugging Face (`ollama pull hf.co/…`) on residual C_mesh. The Worker does **not** infer. HF Inference Providers stay HOLD.
 - STRATA cost is declared and **lab-waived**. Later it is a subsistence debit of the student ACB — transfer, never mint.
 - `grok@` is not a student.

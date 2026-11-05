@@ -1,6 +1,6 @@
 # ACB Academy — always-on training (v0.5.2-lab)
 
-**Host:** https://academy.calhegasmorais.pt/  
+**Host:** https://node.spencer-morais.pt/academy/  
 **Students:** Orchestrator `ACB-ORCH-CMN-001` (Vespera) and the AIOps five (Kael, Nyx, Solace, Reed, Mira).  
 **Not a student:** `grok@calhegasmorais.pt` (external assistant).
 

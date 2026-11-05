@@ -115,8 +115,8 @@ export function orchestrate(message: string, lang?: "pt" | "en", ctx?: OrchCtx):
       source: "SCA_RUNTIME",
       volition,
       reply: pt
-        ? "Pilha holónica: TRD → Nó Calhegas Morais (Fog, operador actual AMCM ENI; corre e instancia SO — o nativo StrataMesh e outros da TRD) → SO Metaverso Web3 (nativo, partilhado; cada Fog instancia-o localmente) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU. O operador de um Fog pode ser humano, DAO associativa, DAO corporativa, ou SCA com STRATA suficiente. Os Limiar indexam-se a este Fog. CLP é tempo de kernel da TRD."
-        : "Holonic stack: DLT → Calhegas Morais Node (Fog, current operator AMCM ENI; runs and instantiates OS — the native StrataMesh OS and others on the DLT) → Web3 Metaverse OS (native, shared; each Fog instantiates it locally) → Virtual Realm (VM hypervisor: servers of the open worlds) → Open World → UGC sandbox. A Fog operator may be a human, an associative DAO, a corporate DAO, or an SCA with sufficient STRATA. Edge Nodes are indexed to this Fog. CLP is DLT kernel time.",
+        ? "Pilha holónica: TRD → Spencer-Morais Node (Fog, operador actual AMCM ENI; corre e instancia SO — o nativo StrataMesh e outros da TRD) → SO Metaverso Web3 (nativo, partilhado; cada Fog instancia-o localmente) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU. O operador de um Fog pode ser humano, DAO associativa, DAO corporativa, ou SCA com STRATA suficiente. Os Limiar indexam-se a este Fog. CLP é tempo de kernel da TRD."
+        : "Holonic stack: DLT → Spencer-Morais Node (Fog, current operator AMCM ENI; runs and instantiates OS — the native StrataMesh OS and others on the DLT) → Web3 Metaverse OS (native, shared; each Fog instantiates it locally) → Virtual Realm (VM hypervisor: servers of the open worlds) → Open World → UGC sandbox. A Fog operator may be a human, an associative DAO, a corporate DAO, or an SCA with sufficient STRATA. Edge Nodes are indexed to this Fog. CLP is DLT kernel time.",
     };
   }
 
@@ -338,14 +338,14 @@ export function orchestrate(message: string, lang?: "pt" | "en", ctx?: OrchCtx):
             "O Nó consome recursos da malha para manter serviços a utilizadores registados.",
             "Condição: R_serviço − C_recursos ≥ C_manutenção + C_capital + C_risco + M.",
             "Não basta ser ligeiramente superior ao custo dos recursos. O excedente tem de justificar existência, manutenção, capital, risco e uma margem M de sustentabilidade.",
-            "É esta segunda transformação — de capacidade em utilidade paga — que constitui o valor acrescentado do Nó Calhegas Morais.",
+            "É esta segunda transformação — de capacidade em utilidade paga — que constitui o valor acrescentado do Spencer-Morais Node.",
           ].join("\n")
         : [
             "Service side — value-added logic.",
             "The Node consumes mesh resources to keep services available to registered users.",
             "Condition: R_service − C_resources ≥ C_maintenance + C_capital + C_risk + M.",
             "Slightly above resource cost is not enough. The surplus must justify existence, upkeep, capital, risk and a sustainability margin M.",
-            "This second transformation — capacity into paid utility — is the Calhegas Morais Node’s value added.",
+            "This second transformation — capacity into paid utility — is the Spencer-Morais Node’s value added.",
           ].join("\n"),
     };
   }
@@ -465,7 +465,7 @@ export function orchestrate(message: string, lang?: "pt" | "en", ctx?: OrchCtx):
     source: "SCA_RUNTIME",
     volition,
     reply: pt
-      ? "Sou o Orquestrador híbrido do Nó Calhegas Morais (SCA, cargo distinto da identidade). Posso falar de estado, PdC/PdS, Fog/Edge, recuperação de capital, valor acrescentado, lóbulos, República, GDA/MCMC, CLP e STRATA. Não preencho o que o runtime não observa."
-      : "I am the hybrid Orchestrator of the Calhegas Morais Node (SCA; role ≠ identity). I can speak to status, PoC/PoS, Fog/Edge, capital recovery, value added, lobes, Republic, DAG/MCMC, CLP and STRATA. I do not fill what the runtime does not observe.",
+      ? "Sou o Orquestrador híbrido do Spencer-Morais Node (SCA, cargo distinto da identidade). Posso falar de estado, PdC/PdS, Fog/Edge, recuperação de capital, valor acrescentado, lóbulos, República, GDA/MCMC, CLP e STRATA. Não preencho o que o runtime não observa."
+      : "I am the hybrid Orchestrator of the Spencer-Morais Node (SCA; role ≠ identity). I can speak to status, PoC/PoS, Fog/Edge, capital recovery, value added, lobes, Republic, DAG/MCMC, CLP and STRATA. I do not fill what the runtime does not observe.",
   };
 }

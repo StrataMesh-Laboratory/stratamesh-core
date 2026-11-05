@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""desk-open — allowlisted browser/app launcher for FOG-CMN-DESK (workspace-local).
+"""desk-open — allowlisted browser/app launcher for FOG-SMN-DESK (workspace-local).
 
 Prefer roster at (in order):
   1) $DESK_APPS_JSON
@@ -41,7 +41,7 @@ def roster_candidates() -> List[Path]:
     out: List[Path] = []
     if os.environ.get("DESK_APPS_JSON"):
         out.append(Path(os.environ["DESK_APPS_JSON"]))
-    # Workspace-local first (Hermes FOG-CMN-DESK)
+    # Workspace-local first (Hermes FOG-SMN-DESK)
     out.extend(
         [
             HERE / "desk-apps.json",
@@ -90,10 +90,10 @@ def url_prefixes_from_roster(roster: Dict[str, Any]) -> List[str]:
     prefixes = [
         "http://127.0.0.1:",
         "http://localhost:",
-        "https://academy.calhegasmorais.pt",
-        "https://calhegasmorais.pt",
-        "https://fog.calhegasmorais.pt",
-        "https://forum.calhegasmorais.pt",
+        "https://node.spencer-morais.pt/academy",
+        "https://node.spencer-morais.pt/",
+        "https://node.spencer-morais.pt/fog",
+        "https://node.spencer-morais.pt/forum",
         "https://discourse.stratamesh-laboratory.org",
         "https://github.com/StrataMesh-Laboratory",
         "https://console.cloud.google.com",
@@ -150,7 +150,7 @@ def cmd_status(_args: argparse.Namespace, roster: Dict[str, Any], path: Path) ->
     print("desk-open status")
     print(f"  roster: {path}")
     print(f"  schema: {roster.get('schema', '?')}")
-    print(f"  workspace: {roster.get('workspace', 'FOG-CMN-DESK')}")
+    print(f"  workspace: {roster.get('workspace', 'FOG-SMN-DESK')}")
     print(f"  browser_pick: {pick_browser_app(preferred if isinstance(preferred, list) else None)}")
     print(f"  browser_urls: {len(browsers)}")
     for k, v in sorted(browsers.items()):
@@ -234,7 +234,7 @@ def cmd_url(args: argparse.Namespace, roster: Dict[str, Any], _path: Path) -> in
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="desk-open",
-        description="FOG-CMN-DESK allowlisted app/URL opener (workspace-local)",
+        description="FOG-SMN-DESK allowlisted app/URL opener (workspace-local)",
     )
     p.add_argument("--dry-run", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)

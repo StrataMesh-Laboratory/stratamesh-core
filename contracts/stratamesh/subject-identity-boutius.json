@@ -9,8 +9,8 @@
     "acb-oli-boutius-001"
   ],
   "locks": [
-    "Identity is StrataMesh Subject registration \u2014 not a CMN world role",
+    "Identity is StrataMesh Subject registration \u2014 not a SMN world role",
     "kind=acb \u2014 NEVER Object / NFT / object_id",
-    "World role lives in CMN (contracts/cmn), linked by subject_id"
+    "World role lives in SMN (contracts/cmn), linked by subject_id"
   ]
 }

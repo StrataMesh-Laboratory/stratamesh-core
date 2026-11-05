@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Assert needles for FOG-CMN-DESK Hermes workspace ensure.
+"""Assert needles for FOG-SMN-DESK Hermes workspace ensure.
 
 Fails if:
 - desktop.repo_scan_roots == [] or missing StrataMesh / fog/repo
-- no active FOG-CMN-DESK / missing primary path
+- no active FOG-SMN-DESK / missing primary path
 - zero sessions with message_count>=1 and cwd under fog/repo
 - model.default not in ollama tags (when ollama available)
 """

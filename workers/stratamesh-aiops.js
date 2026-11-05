@@ -13,7 +13,7 @@
  */
 
 const ACB_ROSTER = {
-  lead: { acb_id: "ACB-ORCH-CMN-001", name: "Orchestrator CMN", role: "lead" },
+  lead: { acb_id: "ACB-ORCH-CMN-001", name: "Orchestrator SMN", role: "lead" },
   agents: [
     { acb_id: "ACB-AIOPS-devops", id: "devops", role: "DevOps" },
     { acb_id: "ACB-AIOPS-security", id: "security", role: "Security" },
@@ -185,7 +185,9 @@ const TEMPORAL_POLICY = {
 
 const NODE_CMN = {
   node_id: "FOG-NODE-PT-CM-001",
-  name: "Calhegas Morais Node",
+  name: "Spencer-Morais Node",
+  public_id: "PT-SM-001", // public display alias; node_id stays the protocol id
+  public_name: "Spencer-Morais Node",
   lat: 38.7169,
   lon: -9.1427,
   locality: "Lisboa, Portugal",
@@ -345,7 +347,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -1173,7 +1175,7 @@ async function escalateStratagrok(env, work, cycle) {
 
 async function verifyPulse() {
   try {
-    const r = await fetch("https://status.calhegasmorais.pt/", {
+    const r = await fetch("https://node.spencer-morais.pt/status/", {
       headers: { Accept: "application/json", "User-Agent": "aiops-verify" },
     });
     const j = await r.json().catch(() => null);
@@ -1461,7 +1463,7 @@ async function orchestratorChat(message, env) {
   if (env.AI && typeof env.AI.run === "function") {
     try {
       const system =
-        "You are the StrataMesh Hybrid Orchestrator assistant for the Calhegas Morais Fog Node. " +
+        "You are the StrataMesh Hybrid Orchestrator assistant for the Spencer-Morais Node. " +
         "Be concise, technical, substrate-neutral. Use the JSON context. Do not invent mainnet status. " +
         "Lab reference only. Prefer Portuguese if the user writes in Portuguese.";
       const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
@@ -1570,8 +1572,8 @@ code { color:var(--fg); }
 <ul>
 <li><a href="/health">/health</a> JSON</li>
 <li><a href="/status">/status</a> JSON</li>
-<li><a href="https://fog.calhegasmorais.pt/health">Fog /health</a></li>
-<li><a href="https://gossip.calhegasmorais.pt/health">Gossip /health</a></li>
+<li><a href="https://node.spencer-morais.pt/fog/health">Fog /health</a></li>
+<li><a href="https://node.spencer-morais.pt/gossip/health">Gossip /health</a></li>
 <li><a href="https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.1-lab">tag v0.5.1-lab</a></li>
 </ul>
 </main>
@@ -1652,7 +1654,7 @@ async function handleFetch(request, env, ctx) {
           f_max: 0,
           lab: true,
           pre_release: true,
-          host: "aiops.calhegasmorais.pt",
+          host: "node.spencer-morais.pt/aiops",
           acb_roster: ACB_ROSTER,
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
@@ -1682,12 +1684,12 @@ async function handleFetch(request, env, ctx) {
         team: TEAM,
         standing: "substrate-neutral",
         source: "whitepaper + Orchestrator mandate",
-        academy: "https://academy.calhegasmorais.pt/v1/syllabus",
+        academy: "https://node.spencer-morais.pt/academy/v1/syllabus",
         formations: TEAM.map((a) => ({
           id: a.id,
-          syllabus: "https://academy.calhegasmorais.pt/v1/syllabus?role=" + a.id,
+          syllabus: "https://node.spencer-morais.pt/academy/v1/syllabus?role=" + a.id,
         })),
-        orchestrator: "https://academy.calhegasmorais.pt/v1/syllabus?role=orchestrator",
+        orchestrator: "https://node.spencer-morais.pt/academy/v1/syllabus?role=orchestrator",
       });
     }
 
@@ -1736,7 +1738,7 @@ async function handleFetch(request, env, ctx) {
         return json({
           service: "StrataMesh AIOps Dev Team",
           version: AIOPS_VERSION,
-          mandate: "Continuous development and operations of the Calhegas Morais Fog Node — not health-check theatre",
+          mandate: "Continuous development and operations of the Spencer-Morais Node — not health-check theatre",
           note: "GET / serves last persisted cycle. POST or GET /cycle runs a live slice.",
           latest_cycle: last ? JSON.parse(last) : null,
           worklog_latest: work ? JSON.parse(work) : null,

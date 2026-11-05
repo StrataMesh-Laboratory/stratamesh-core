@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hermes desktop pulse — native desk on Mac (not STRATAGROK box).
-# Ensures FOG-CMN-DESK workspace (discovery roots, listable session, model) then runs desk agent.
+# Ensures FOG-SMN-DESK workspace (discovery roots, listable session, model) then runs desk agent.
 set -euo pipefail
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 export FOG_SRC="${FOG_SRC:-$HOME/StrataMesh/fog/repo}"

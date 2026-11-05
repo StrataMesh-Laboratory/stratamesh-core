@@ -171,7 +171,7 @@ def cycle(env):
     if vendor_stasis(env):
         # Apex is Pages (no Worker quota). Do not probe Worker hostnames until refill.
         timeout = min(float(env.get("HTTP_TIMEOUT_SEC", "6")), 6)
-        apex = get(env.get("APEX_URL") or "https://calhegasmorais.pt/", timeout)
+        apex = get(env.get("APEX_URL") or "https://node.spencer-morais.pt/", timeout)
         rails = load_rails()
         live, ledger = refresh_live(rails, datetime.now(timezone.utc))
         meta = metabolism_snapshot(live=live, ledger=ledger)
@@ -185,7 +185,7 @@ def cycle(env):
             "urgency": 0,
             "elapsed_ms": int((time.time() - t0) * 1000),
             "agent": "grok@calhegasmorais.pt",
-            "desk": "https://edge.calhegasmorais.pt/",
+            "desk": "https://node.spencer-morais.pt/edge/",
             "stasis": True,
             "stasis_until": env.get("STASIS_UNTIL"),
             "armed": True,
@@ -207,9 +207,9 @@ def cycle(env):
     timeout = float(env.get("HTTP_TIMEOUT_SEC", "6"))
     aiops_url = env.get("AIOPS_HEALTH_URL") or env.get("AIOPS_ACTIONS_URL")
     if "/actions" in (aiops_url or ""):
-        aiops_url = "https://aiops.calhegasmorais.pt/health"
+        aiops_url = "https://node.spencer-morais.pt/aiops/health"
     status_url = env.get("FOG_STATUS_URL") or ""
-    if status_url.rstrip("/").endswith("status.calhegasmorais.pt"):
+    if status_url.rstrip("/").endswith("node.spencer-morais.pt/status"):
         status_url = status_url.rstrip("/") + "/health"
     rails = load_rails()
     now = datetime.now(timezone.utc)
@@ -217,7 +217,7 @@ def cycle(env):
     cf_spec = (rails.get("rails") or {}).get("cf-worker-req") or {}
     cf_kw = live_decide_kwargs("cf-worker-req", cf_spec, live, ledger, now, rails)
     intents = [
-        {"rail": "cf-pages", "url": env.get("APEX_URL") or "https://calhegasmorais.pt/", "pages": True, "signal": 1},
+        {"rail": "cf-pages", "url": env.get("APEX_URL") or "https://node.spencer-morais.pt/", "pages": True, "signal": 1},
         {"rail": "cf-worker-req", "url": status_url, "signal": 1},
         {"rail": "cf-worker-req", "url": aiops_url, "signal": 1},
         {"rail": "cf-worker-req", "url": env.get("EDGE_HEALTH_URL"), "signal": 1},
@@ -293,7 +293,7 @@ def cycle(env):
         "urgency": {"P0": 100, "P1": 60, "P2": 30, "OK": 0}[level],
         "elapsed_ms": int((time.time() - t0) * 1000),
         "agent": "grok@calhegasmorais.pt",
-        "desk": "https://edge.calhegasmorais.pt/",
+        "desk": "https://node.spencer-morais.pt/edge/",
         "metabolism": {
             "schema": meta.get("schema"),
             "lisbon": meta.get("lisbon"),

@@ -1,5 +1,5 @@
 # Fog desk collegium — protocol + Actions plug-in (labor only; no CF PUT).
-# Also validates/refreshes committed lab progress JSON for fund.calhegasmorais.pt
+# Also validates/refreshes committed lab progress JSON for node.spencer-morais.pt/fund
 # (Worker fetches raw GitHub — no 6th CF cron).
 name: desk-collegium
 

@@ -402,7 +402,7 @@ export default {
         size_bytes: typeof content === 'string' ? content.length : content.length,
         content_type: meta.contentType,
         gateway_path: `/ipfs/${cid}`,
-        gateway_url: `https://calhegasmorais.pt/ipfs/${cid}`,
+        gateway_url: `https://node.spencer-morais.pt/ipfs/${cid}`,
         gateway_workers: `https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/${cid}`,
         public_gateways: [
           `https://ipfs.io/ipfs/${cid}`,
@@ -460,7 +460,7 @@ export default {
         name,
         cid,
         resolve: '/name/' + name,
-        gateway: 'https://calhegasmorais.pt/ipfs/' + cid,
+        gateway: 'https://node.spencer-morais.pt/ipfs/' + cid,
       });
     }
     if (path.startsWith('/name/') && request.method === 'GET') {
@@ -471,9 +471,9 @@ export default {
       if (!raw) return json({ error: 'name not found', name }, 404);
       const rec = JSON.parse(raw);
       if (url.searchParams.get('redirect') === '1' && rec.cid) {
-        return Response.redirect('https://calhegasmorais.pt/ipfs/' + rec.cid, 302);
+        return Response.redirect('https://node.spencer-morais.pt/ipfs/' + rec.cid, 302);
       }
-      return json({ success: true, ...rec, gateway: 'https://calhegasmorais.pt/ipfs/' + rec.cid });
+      return json({ success: true, ...rec, gateway: 'https://node.spencer-morais.pt/ipfs/' + rec.cid });
     }
 
     // Edge catalog of recently added CIDs
@@ -485,7 +485,7 @@ export default {
         success: true,
         count: keys.length,
         cids: keys,
-        gateway_base: 'https://calhegasmorais.pt/ipfs/',
+        gateway_base: 'https://node.spencer-morais.pt/ipfs/',
       });
     }
 
@@ -495,7 +495,7 @@ export default {
         status: 'ok',
         layer: 'edge',
         beyond_fog: true,
-        domain_gateway: 'https://calhegasmorais.pt/ipfs/{cid}',
+        domain_gateway: 'https://node.spencer-morais.pt/ipfs/{cid}',
         workers_gateway: 'https://stratamesh-ipfs.stratamesh.workers.dev/ipfs/{cid}',
         features: [
           'CIDv1 raw+sha2-256',

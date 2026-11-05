@@ -31,8 +31,8 @@ TEACHERS = [
     {"id": "hermes", "role": "external_agent", "label": "Hermes"},
     {"id": "opencode", "role": "external_agent", "label": "OpenCode"},
     {"id": "openclaw", "role": "external_agent", "label": "OpenClaw"},
-    {"id": "fog-assistant", "role": "external_assistant", "label": "CMN FOG ASSISTANT"},
-    {"id": "edge-assistant", "role": "external_assistant", "label": "CMN EDGE ASSISTANT"},
+    {"id": "fog-assistant", "role": "external_assistant", "label": "SMN FOG ASSISTANT"},
+    {"id": "edge-assistant", "role": "external_assistant", "label": "SMN EDGE ASSISTANT"},
     {"id": "stratagrok", "role": "external_assistant", "label": "STRATAGROK"},
 ]
 
@@ -358,7 +358,7 @@ def write_day(
             "scores": f"academy_scores/{d.isoformat()}/scores.json",
             "teachers": f"academy_scores/{d.isoformat()}/teachers.json",
         },
-        "grades_url": "https://academy.calhegasmorais.pt/grades",
+        "grades_url": "https://node.spencer-morais.pt/academy/grades",
         "git_raw_scores": (
             "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/"
             f"academy_scores/{d.isoformat()}/scores.json"

@@ -25,7 +25,7 @@ Canonical shortlist: [`docs/ORACLE-OSS-ALTS.md`](../../docs/ORACLE-OSS-ALTS.md) 
 2. Run `gcloud-create-example.sh` flags manually (edit project/zone).
 3. SSH via `gcloud compute ssh` (IAP) or Tailscale once joined.
 4. `bootstrap.sh` then install `stratamesh-fog.service`.
-5. Install Tailscale; optional cloudflared named tunnel for `fog-gcp.` hostname (do **not** steal `fog.calhegasmorais.pt` from Mac).
+5. Install Tailscale; optional cloudflared named tunnel for `fog-gcp.` hostname (do **not** steal `node.spencer-morais.pt/fog` from Mac).
 6. Prove per `docs/FOG-PEER-PROVE.md`.
 
 ## Hardening

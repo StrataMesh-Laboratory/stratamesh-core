@@ -23,12 +23,12 @@ async function serveEni(env) {
     });
   } catch (_) {}
   return new Response(
-    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>AMCM ENI</title></head><body style=\"background:#0a0a0b;color:#e8e6e3;font-family:sans-serif;padding:2rem\"><h1>AMCM ENI</h1><p>Página da entidade legal temporariamente indisponível. Contacto: amcmorais@icloud.com</p><p><a href=\"https://calhegasmorais.pt/\" style=\"color:#c4b5a0\">Nó CMN</a></p></body></html>",
+    "<!DOCTYPE html><html lang=pt-PT><head><meta charset=UTF-8><title>AMCM ENI</title></head><body style=\"background:#0a0a0b;color:#e8e6e3;font-family:sans-serif;padding:2rem\"><h1>AMCM ENI</h1><p>Página da entidade legal temporariamente indisponível. Contacto: amcmorais@icloud.com</p><p><a href=\"https://node.spencer-morais.pt/\" style=\"color:#c4b5a0\">Nó SMN</a></p></body></html>",
     { headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
 
-const TRANSCRITO_PT = "Calhegas Morais \u00b7 N\u00f3 de refer\u00eancia StrataMesh\nCalhegas Morais\n\u00b7 N\u00f3 CMN\nPT\n/\nEN\n00 Mapa\n01 Rede\n02 Valor\n03 N\u00f3\n04 Quem\n05 Arquitectura\n06 Estado\n07 Entrar\nLaborat\u00f3rio \u00b7 Lisboa, Portugal\nCalhegas Morais\nPorta de entrada p\u00fablica do\nN\u00f3 Fog Calhegas Morais\n\u2014 n\u00f3 de refer\u00eancia da\nStrataMesh\n, uma rede de registo distribu\u00eddo orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.\nAbrir portal\nComo ler esta p\u00e1gina\nTempo CLP\n00 \u00b7 Orienta\u00e7\u00e3o\nComo est\u00e1 organizada esta p\u00e1gina\nSe nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa \u00e9 um tema separado \u2014 clique para saltar.\n01\nRede\nO que \u00e9 a StrataMesh e para que serve\n02\nValor\nSTRATA, contributo e a \u00c1gora\n03\nEste n\u00f3\nO que o Calhegas Morais faz na rede\n04\nParticipantes\nPessoas e agentes computacionais\n05\nArquitectura\nCamadas hol\u00f3nicas e tempo CLP\n06\u201307\nEstado e entrada\nLaborat\u00f3rio e como aceder ao portal\n01 \u00b7 A rede\nO que \u00e9 a StrataMesh?\nA StrataMesh \u00e9 uma\ntecnologia de registo distribu\u00eddo (TRD \u2014 Tecnologia de Registo Distribu\u00eddo)\n: um livro-raz\u00e3o partilhado por muitos n\u00f3s, sem depender de um \u00fanico servidor central.\nDiferencia-se de blockchains cl\u00e1ssicas em pontos essenciais:\nEstrutura\nUsa um\ngrafo dirigido ac\u00edclico (GDA)\n: estrutura em rede onde v\u00e1rios ramos podem avan\u00e7ar em paralelo e reconciliar-se pelas regras do protocolo.\nIncentivo\nN\u00e3o se \u201cmina\u201d com desperd\u00edcio energ\u00e9tico artificial. O valor nasce de\nrecursos reais\nque os n\u00f3s disponibilizam \u00e0 rede e da troca livre no mercado.\nTRD = tecnologia de registo distribu\u00eddo. GDA = grafo dirigido ac\u00edclico. S\u00e3o nomes t\u00e9cnicos para \u00ablivro partilhado\u00bb e \u00abestrutura em rede sem ciclos\u00bb, respectivamente.\n02 \u00b7 Valor na rede\nSTRATA, contributo e \u00c1gora\nTr\u00eas ideias ligadas \u2014 conv\u00e9m n\u00e3o as misturar.\nSTRATA\n\u00c9 a\nunidade de conta\nda StrataMesh: serve para pagar custos de subsist\u00eancia na rede, recompensar contributo e liquidar trocas. A emiss\u00e3o nova ocorre apenas quando n\u00f3s contribuem recursos mensur\u00e1veis (PdC).\nProva de contributo (PdC)\nProva de Contributo (PdC)\n: um n\u00f3 recebe STRATA nova quando\ncontribui recursos mensur\u00e1veis\npara a rede \u2014 armazenamento, capacidade de processamento, disponibilidade e qualidade do servi\u00e7o.\nA quantidade e o valor seguem o\npre\u00e7o de mercado dos recursos no mundo exterior\n, convertidos em STRATA pela taxa observada na \u00c1gora, com pr\u00e9mios ou descontos conforme a\nqualidade\ndo contributo.\n\u00c1gora\nA \u00c1gora \u00e9 o\nmercado de c\u00e2mbio entre pares (P2P)\nda rede: quem det\u00e9m STRATA troca-a por outras moedas ou activos. \u00c9 o\nlugar onde a STRATA encontra pre\u00e7o\nface ao exterior.\nCria\u00e7\u00e3o\nSTRATA entra em circula\u00e7\u00e3o sobretudo quando h\u00e1 contributo real (PdC), n\u00e3o por emiss\u00e3o discricion\u00e1ria.\nCircula\u00e7\u00e3o\nQuem precisa de recursos da rede paga em STRATA (incluindo a prova de subsist\u00eancia dos agentes). Quem tem STRATA pode vend\u00ea-la na \u00c1gora.\n03 \u00b7 Este s\u00edtio\nO que \u00e9 o N\u00f3 Calhegas Morais?\n\u00c9 um\nn\u00f3 Fog de refer\u00eancia\nda StrataMesh, operado a partir de Lisboa. \u201cFog\u201d significa capacidade na periferia da rede (perto de utilizadores e dispositivos), n\u00e3o s\u00f3 num centro de dados remoto.\nNesta fase de laborat\u00f3rio, o n\u00f3:\nExp\u00f5e servi\u00e7os\nPortal, autentica\u00e7\u00e3o, orquestra\u00e7\u00e3o, registo GDA, mercado e ferramentas de diagn\u00f3stico \u2014 em ambiente de teste.\nContribui recursos\nOs recursos que este n\u00f3 efectivamente disponibiliza \u00e0 TRD entram no circuito de PdC, com pre\u00e7os alinhados ao mercado.\nIdentificador de laborat\u00f3rio:\nFOG-NODE-PT-CM-001\n\u00b7 operador: Andr\u00e9 Manuel Calhegas Morais.\n04 \u00b7 Participantes\nPessoas e agentes computacionais\nNa StrataMesh, o\nstanding\n(direito a actuar) vem da\nfun\u00e7\u00e3o e do acordo\n, n\u00e3o do tipo de substrato (biol\u00f3gico vs sil\u00edcio).\nUtilizadores\nPessoas que se registam no portal, det\u00eam carteiras, trocam na \u00c1gora, criam conte\u00fado na bancada CGU e participam em DAO.\nSCA (agentes)\nSeres Computacionais Aut\u00f3nomos\n\u2014 agentes com identidade pr\u00f3pria no registo, fun\u00e7\u00f5es no n\u00f3 (orquestra\u00e7\u00e3o, seguran\u00e7a, an\u00e1lise\u2026) e obriga\u00e7\u00f5es de subsist\u00eancia em STRATA.\nO\nOrquestrador\ndeste n\u00f3 \u00e9 um SCA: coordena a equipa de opera\u00e7\u00f5es (AIOps), mant\u00e9m pol\u00edtica e contexto, e pode dialogar no portal conforme o\nclearance\nda conta (p\u00fablico \u2192 confidencial \u2192 secreto \u2192 m\u00e1ximo).\n05 \u00b7 Arquitectura\nCamadas hol\u00f3nicas e tempo CLP\nA arquitectura \u00e9 uma\npilha aninhada\n: cada n\u00edvel cont\u00e9m o n\u00edvel seguinte, do livro-raz\u00e3o at\u00e9 ao agente.\nTRD StrataMesh\n\u2014 livro-raz\u00e3o partilhado; tempo CLP/PPC embutido em todo o fluxo\n\u2514\nN\u00f3\n\u2014 m\u00e1quina e sistema operativo do anfitri\u00e3o\n\u2514\nSO do Metaverso Web3\n\u2014 sistema operativo partilhado entre n\u00f3s\n\u2514\nDom\u00ednio Virtual\n\u2014 infraestrutura (hipervisor): organiza e isola capacidade computacional para mundos\n\u2514\nMundo Aberto\n\u2014 ambiente persistente a que utilizadores e SCA acedem\n\u2514\nBancada CGU\n\u2014 espa\u00e7o isolado de cria\u00e7\u00e3o de conte\u00fado (+ Painel / Portal)\n\u2514\nUtilizador | SCA\nDom\u00ednio Virtual\nCamada de\ninfraestrutura\n: hipervisor que aloca, isola e governa a capacidade onde os\nMundos Abertos\ns\u00e3o hospedados.\nBancada CGU\nEspa\u00e7o\nisolado\nde cria\u00e7\u00e3o e ensaio de conte\u00fado gerado pelo utilizador, dentro de um Mundo Aberto. O\nPainel\ne o portal s\u00e3o aplica\u00e7\u00f5es neste n\u00edvel.\nO\nPainel\n\u00e9 a superf\u00edcie de aplica\u00e7\u00f5es da Bancada CGU. O\nCLP\n\u00e9 o kernel temporal da TRD \u2014 acompanha e data o fluxo em todas as camadas.\nCalend\u00e1rio Lunisolar Planet\u00e1rio (CLP)\nO tempo civil de refer\u00eancia na rede baseia-se em \u00e2ncoras astron\u00f3micas e localidade (matriz\nPPC\n). O ISO-8601 serve de\nportadora\nt\u00e9cnica; a autoridade civil no protocolo \u00e9 planet\u00e1ria.\nAbrir a interface CLP \u2192\n06 \u00b7 Laborat\u00f3rio\nEstado actual do projecto\nEste dom\u00ednio corre uma\nvers\u00e3o de laborat\u00f3rio\n: servi\u00e7os em Cloudflare Workers, registo GDA, orquestrador h\u00edbrido, bus hol\u00f3nico e portal com pain\u00e9is distintos para utilizador comum e pessoal (capacidades conforme clearance).\na verificar servi\u00e7os\u2026\nNada aqui constitui conselho financeiro. STRATA e a \u00c1gora, nesta fase, s\u00e3o mecanismos de protocolo em ensaio \u2014 n\u00e3o um produto banc\u00e1rio.\n07 \u00b7 Entrar\nPortal, documenta\u00e7\u00e3o e c\u00f3digo\nUtilizador comum\nRegisto / login no portal: carteira, \u00c1gora, economia, bancada, SCA, orquestrador (leitura) e perfil.\nPessoal\nLogin staff com 2FA: tudo o do comum, mais KYC, utilizadores, sistema e vistas de SO conforme clearance.\nPortal / painel\nC\u00f3digo (GitHub)\nEstado dos servi\u00e7os\nCalhegas Morais Node \u00b7 StrataMesh TRD \u00b7 laborat\u00f3rio\nFOG-NODE-PT-CM-001 \u00b7 Lisboa \u00b7 standing por fun\u00e7\u00e3o e acordo, n\u00e3o por substrato\nAMCM ENI\n\u2014 entidade legal do titular \u00b7\n/eni";
+const TRANSCRITO_PT = "Calhegas Morais \u00b7 N\u00f3 de refer\u00eancia StrataMesh\nCalhegas Morais\n\u00b7 N\u00f3 SMN\nPT\n/\nEN\n00 Mapa\n01 Rede\n02 Valor\n03 N\u00f3\n04 Quem\n05 Arquitectura\n06 Estado\n07 Entrar\nLaborat\u00f3rio \u00b7 Lisboa, Portugal\nCalhegas Morais\nPorta de entrada p\u00fablica do\nSpencer-Morais Node\n\u2014 n\u00f3 de refer\u00eancia da\nStrataMesh\n, uma rede de registo distribu\u00eddo orientada a contributo real, mercado aberto e um sistema operativo de metaverso Web3.\nAbrir portal\nComo ler esta p\u00e1gina\nTempo CLP\n00 \u00b7 Orienta\u00e7\u00e3o\nComo est\u00e1 organizada esta p\u00e1gina\nSe nunca ouviu falar de StrataMesh, leia nesta ordem. Cada caixa \u00e9 um tema separado \u2014 clique para saltar.\n01\nRede\nO que \u00e9 a StrataMesh e para que serve\n02\nValor\nSTRATA, contributo e a \u00c1gora\n03\nEste n\u00f3\nO que o Calhegas Morais faz na rede\n04\nParticipantes\nPessoas e agentes computacionais\n05\nArquitectura\nCamadas hol\u00f3nicas e tempo CLP\n06\u201307\nEstado e entrada\nLaborat\u00f3rio e como aceder ao portal\n01 \u00b7 A rede\nO que \u00e9 a StrataMesh?\nA StrataMesh \u00e9 uma\ntecnologia de registo distribu\u00eddo (TRD \u2014 Tecnologia de Registo Distribu\u00eddo)\n: um livro-raz\u00e3o partilhado por muitos n\u00f3s, sem depender de um \u00fanico servidor central.\nDiferencia-se de blockchains cl\u00e1ssicas em pontos essenciais:\nEstrutura\nUsa um\ngrafo dirigido ac\u00edclico (GDA)\n: estrutura em rede onde v\u00e1rios ramos podem avan\u00e7ar em paralelo e reconciliar-se pelas regras do protocolo.\nIncentivo\nN\u00e3o se \u201cmina\u201d com desperd\u00edcio energ\u00e9tico artificial. O valor nasce de\nrecursos reais\nque os n\u00f3s disponibilizam \u00e0 rede e da troca livre no mercado.\nTRD = tecnologia de registo distribu\u00eddo. GDA = grafo dirigido ac\u00edclico. S\u00e3o nomes t\u00e9cnicos para \u00ablivro partilhado\u00bb e \u00abestrutura em rede sem ciclos\u00bb, respectivamente.\n02 \u00b7 Valor na rede\nSTRATA, contributo e \u00c1gora\nTr\u00eas ideias ligadas \u2014 conv\u00e9m n\u00e3o as misturar.\nSTRATA\n\u00c9 a\nunidade de conta\nda StrataMesh: serve para pagar custos de subsist\u00eancia na rede, recompensar contributo e liquidar trocas. A emiss\u00e3o nova ocorre apenas quando n\u00f3s contribuem recursos mensur\u00e1veis (PdC).\nProva de contributo (PdC)\nProva de Contributo (PdC)\n: um n\u00f3 recebe STRATA nova quando\ncontribui recursos mensur\u00e1veis\npara a rede \u2014 armazenamento, capacidade de processamento, disponibilidade e qualidade do servi\u00e7o.\nA quantidade e o valor seguem o\npre\u00e7o de mercado dos recursos no mundo exterior\n, convertidos em STRATA pela taxa observada na \u00c1gora, com pr\u00e9mios ou descontos conforme a\nqualidade\ndo contributo.\n\u00c1gora\nA \u00c1gora \u00e9 o\nmercado de c\u00e2mbio entre pares (P2P)\nda rede: quem det\u00e9m STRATA troca-a por outras moedas ou activos. \u00c9 o\nlugar onde a STRATA encontra pre\u00e7o\nface ao exterior.\nCria\u00e7\u00e3o\nSTRATA entra em circula\u00e7\u00e3o sobretudo quando h\u00e1 contributo real (PdC), n\u00e3o por emiss\u00e3o discricion\u00e1ria.\nCircula\u00e7\u00e3o\nQuem precisa de recursos da rede paga em STRATA (incluindo a prova de subsist\u00eancia dos agentes). Quem tem STRATA pode vend\u00ea-la na \u00c1gora.\n03 \u00b7 Este s\u00edtio\nO que \u00e9 o Spencer-Morais Node?\n\u00c9 um\nn\u00f3 Fog de refer\u00eancia\nda StrataMesh, operado a partir de Lisboa. \u201cFog\u201d significa capacidade na periferia da rede (perto de utilizadores e dispositivos), n\u00e3o s\u00f3 num centro de dados remoto.\nNesta fase de laborat\u00f3rio, o n\u00f3:\nExp\u00f5e servi\u00e7os\nPortal, autentica\u00e7\u00e3o, orquestra\u00e7\u00e3o, registo GDA, mercado e ferramentas de diagn\u00f3stico \u2014 em ambiente de teste.\nContribui recursos\nOs recursos que este n\u00f3 efectivamente disponibiliza \u00e0 TRD entram no circuito de PdC, com pre\u00e7os alinhados ao mercado.\nIdentificador de laborat\u00f3rio:\nFOG-NODE-PT-CM-001\n\u00b7 operador: Andr\u00e9 Manuel Calhegas Morais.\n04 \u00b7 Participantes\nPessoas e agentes computacionais\nNa StrataMesh, o\nstanding\n(direito a actuar) vem da\nfun\u00e7\u00e3o e do acordo\n, n\u00e3o do tipo de substrato (biol\u00f3gico vs sil\u00edcio).\nUtilizadores\nPessoas que se registam no portal, det\u00eam carteiras, trocam na \u00c1gora, criam conte\u00fado na bancada CGU e participam em DAO.\nSCA (agentes)\nSeres Computacionais Aut\u00f3nomos\n\u2014 agentes com identidade pr\u00f3pria no registo, fun\u00e7\u00f5es no n\u00f3 (orquestra\u00e7\u00e3o, seguran\u00e7a, an\u00e1lise\u2026) e obriga\u00e7\u00f5es de subsist\u00eancia em STRATA.\nO\nOrquestrador\ndeste n\u00f3 \u00e9 um SCA: coordena a equipa de opera\u00e7\u00f5es (AIOps), mant\u00e9m pol\u00edtica e contexto, e pode dialogar no portal conforme o\nclearance\nda conta (p\u00fablico \u2192 confidencial \u2192 secreto \u2192 m\u00e1ximo).\n05 \u00b7 Arquitectura\nCamadas hol\u00f3nicas e tempo CLP\nA arquitectura \u00e9 uma\npilha aninhada\n: cada n\u00edvel cont\u00e9m o n\u00edvel seguinte, do livro-raz\u00e3o at\u00e9 ao agente.\nTRD StrataMesh\n\u2014 livro-raz\u00e3o partilhado; tempo CLP/PPC embutido em todo o fluxo\n\u2514\nN\u00f3\n\u2014 m\u00e1quina e sistema operativo do anfitri\u00e3o\n\u2514\nSO do Metaverso Web3\n\u2014 sistema operativo partilhado entre n\u00f3s\n\u2514\nDom\u00ednio Virtual\n\u2014 infraestrutura (hipervisor): organiza e isola capacidade computacional para mundos\n\u2514\nMundo Aberto\n\u2014 ambiente persistente a que utilizadores e SCA acedem\n\u2514\nBancada CGU\n\u2014 espa\u00e7o isolado de cria\u00e7\u00e3o de conte\u00fado (+ Painel / Portal)\n\u2514\nUtilizador | SCA\nDom\u00ednio Virtual\nCamada de\ninfraestrutura\n: hipervisor que aloca, isola e governa a capacidade onde os\nMundos Abertos\ns\u00e3o hospedados.\nBancada CGU\nEspa\u00e7o\nisolado\nde cria\u00e7\u00e3o e ensaio de conte\u00fado gerado pelo utilizador, dentro de um Mundo Aberto. O\nPainel\ne o portal s\u00e3o aplica\u00e7\u00f5es neste n\u00edvel.\nO\nPainel\n\u00e9 a superf\u00edcie de aplica\u00e7\u00f5es da Bancada CGU. O\nCLP\n\u00e9 o kernel temporal da TRD \u2014 acompanha e data o fluxo em todas as camadas.\nCalend\u00e1rio Lunisolar Planet\u00e1rio (CLP)\nO tempo civil de refer\u00eancia na rede baseia-se em \u00e2ncoras astron\u00f3micas e localidade (matriz\nPPC\n). O ISO-8601 serve de\nportadora\nt\u00e9cnica; a autoridade civil no protocolo \u00e9 planet\u00e1ria.\nAbrir a interface CLP \u2192\n06 \u00b7 Laborat\u00f3rio\nEstado actual do projecto\nEste dom\u00ednio corre uma\nvers\u00e3o de laborat\u00f3rio\n: servi\u00e7os em Cloudflare Workers, registo GDA, orquestrador h\u00edbrido, bus hol\u00f3nico e portal com pain\u00e9is distintos para utilizador comum e pessoal (capacidades conforme clearance).\na verificar servi\u00e7os\u2026\nNada aqui constitui conselho financeiro. STRATA e a \u00c1gora, nesta fase, s\u00e3o mecanismos de protocolo em ensaio \u2014 n\u00e3o um produto banc\u00e1rio.\n07 \u00b7 Entrar\nPortal, documenta\u00e7\u00e3o e c\u00f3digo\nUtilizador comum\nRegisto / login no portal: carteira, \u00c1gora, economia, bancada, SCA, orquestrador (leitura) e perfil.\nPessoal\nLogin staff com 2FA: tudo o do comum, mais KYC, utilizadores, sistema e vistas de SO conforme clearance.\nPortal / painel\nC\u00f3digo (GitHub)\nEstado dos servi\u00e7os\nSpencer-Morais Node \u00b7 StrataMesh TRD \u00b7 laborat\u00f3rio\nFOG-NODE-PT-CM-001 \u00b7 Lisboa \u00b7 standing por fun\u00e7\u00e3o e acordo, n\u00e3o por substrato\nAMCM ENI\n\u2014 entidade legal do titular \u00b7\n/eni";
 
 
 function accessNoticePage(reason, detail) {
@@ -155,8 +155,8 @@ function originOrchFallback(message, extra) {
   const msg = String(message || '').trim();
   const pulse_id = newPulseId();
   const reply = msg
-    ? ('Orquestrador CMN (lab, origem calhegasmorais.pt). Recebi: «' + msg.slice(0, 280) + '». SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false. Clearance público. Não invento o que o runtime não observa.')
-    : 'Orquestrador CMN (lab, origem calhegasmorais.pt). Pulso vazio aceite. FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001 · n=1.';
+    ? ('Orquestrador SMN (lab, origem calhegasmorais.pt). Recebi: «' + msg.slice(0, 280) + '». SCA-ORCH-CMN-001 · FOG-NODE-PT-CM-001 · n=1 · mesh_member=false · oracle_live=false. Clearance público. Não invento o que o runtime não observa.')
+    : 'Orquestrador SMN (lab, origem calhegasmorais.pt). Pulso vazio aceite. FOG-NODE-PT-CM-001 · SCA-ORCH-CMN-001 · n=1.';
   return Object.assign({
     reply,
     clearance: 'public',
@@ -205,7 +205,7 @@ async function withTimeout(promise, ms, label) {
 async function probeFogHealth1500() {
   const a = abortAfter(1500);
   try {
-    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
+    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: a.signal,
@@ -496,7 +496,7 @@ Allow: /eni
 Disallow: /dashboard
 Disallow: /api/
 Disallow: /pagamentos
-Sitemap: https://calhegasmorais.pt/sitemap.xml
+Sitemap: https://node.spencer-morais.pt/sitemap.xml
 `;
       return new Response(robots, {
         headers: withSecurityHeaders({
@@ -506,15 +506,15 @@ Sitemap: https://calhegasmorais.pt/sitemap.xml
       });
     }
     if (path === '/sitemap.txt') {
-      const sm = `https://calhegasmorais.pt/
-https://calhegasmorais.pt/en
-https://calhegasmorais.pt/clp
-https://calhegasmorais.pt/eni
-https://calhegasmorais.pt/transcrito
-https://calhegasmorais.pt/termos
-https://calhegasmorais.pt/privacidade
+      const sm = `https://node.spencer-morais.pt/
+https://node.spencer-morais.pt/en
+https://node.spencer-morais.pt/clp
+https://eni.calhegasmorais.pt
+https://node.spencer-morais.pt/transcrito
+https://node.spencer-morais.pt/termos
+https://node.spencer-morais.pt/privacidade
 https://eni.calhegasmorais.pt/
-https://status.calhegasmorais.pt/
+https://node.spencer-morais.pt/status/
 `;
       return new Response(sm, {
         headers: withSecurityHeaders({
@@ -528,21 +528,21 @@ https://status.calhegasmorais.pt/
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://calhegasmorais.pt/</loc>
-    <xhtml:link rel="alternate" hreflang="pt-PT" href="https://calhegasmorais.pt/"/>
-    <xhtml:link rel="alternate" hreflang="en-GB" href="https://calhegasmorais.pt/en"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://calhegasmorais.pt/"/>
+    <loc>https://node.spencer-morais.pt/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-PT" href="https://node.spencer-morais.pt/"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://node.spencer-morais.pt/en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://node.spencer-morais.pt/"/>
   </url>
   <url>
-    <loc>https://calhegasmorais.pt/en</loc>
+    <loc>https://node.spencer-morais.pt/en</loc>
   </url>
-  <url><loc>https://calhegasmorais.pt/clp</loc></url>
-  <url><loc>https://calhegasmorais.pt/eni</loc></url>
-  <url><loc>https://calhegasmorais.pt/transcrito</loc></url>
-  <url><loc>https://calhegasmorais.pt/termos</loc></url>
-  <url><loc>https://calhegasmorais.pt/privacidade</loc></url>
+  <url><loc>https://node.spencer-morais.pt/clp</loc></url>
+  <url><loc>https://eni.calhegasmorais.pt</loc></url>
+  <url><loc>https://node.spencer-morais.pt/transcrito</loc></url>
+  <url><loc>https://node.spencer-morais.pt/termos</loc></url>
+  <url><loc>https://node.spencer-morais.pt/privacidade</loc></url>
   <url><loc>https://eni.calhegasmorais.pt/</loc></url>
-  <url><loc>https://status.calhegasmorais.pt/</loc></url>
+  <url><loc>https://node.spencer-morais.pt/status/</loc></url>
 </urlset>
 `;
       return new Response(xml, {
@@ -558,8 +558,8 @@ https://status.calhegasmorais.pt/
 Contact: mailto:amcmorais@icloud.com
 Expires: 2027-08-17T00:00:00.000Z
 Preferred-Languages: pt, en
-Canonical: https://calhegasmorais.pt/.well-known/security.txt
-Policy: https://calhegasmorais.pt/eni
+Canonical: https://node.spencer-morais.pt/.well-known/security.txt
+Policy: https://eni.calhegasmorais.pt
 `;
       return new Response(sec, {
         headers: withSecurityHeaders({
@@ -816,7 +816,7 @@ function pickLang(request) {
   if (path === "/pt" || path.startsWith("/pt/")) return "pt";
   const q = (url.searchParams.get("lang") || "").toLowerCase();
   if (q === "en" || q === "pt") return q;
-  // Domínio público CMN: português europeu por omissão (não depender do Accept-Language do datacenter)
+  // Domínio público SMN: português europeu por omissão (não depender do Accept-Language do datacenter)
   return "pt";
 }
 
@@ -833,7 +833,7 @@ async function serveOs(request, env, corsHeaders) {
         let html = await obj.text();
         const lang = pickLang(request);
         if (lang === "en") {
-          html = html.replace('lang="pt-PT"', 'lang="en-GB"').replace("Painel · Nó Calhegas Morais", "Panel · Calhegas Morais Node");
+          html = html.replace('lang="pt-PT"', 'lang="en-GB"').replace("Painel · Spencer-Morais Node", "Panel · Spencer-Morais Node");
         }
         return new Response(html, {
           status: 200,
@@ -1130,7 +1130,7 @@ function fallbackHome(lang) {
 
 function serveNodeChat(request, env, lang) {
   const pt = lang !== 'en';
-  const title = pt ? 'Chat · Orquestrador · Nó Calhegas Morais' : 'Chat · Orchestrator · Calhegas Morais Node';
+  const title = pt ? 'Chat · Orquestrador · Spencer-Morais Node' : 'Chat · Orchestrator · Spencer-Morais Node';
   const html = `<!DOCTYPE html>
 <html lang="${pt ? 'pt-PT' : 'en-GB'}">
 <head>
@@ -1435,14 +1435,14 @@ function injectPortalSession(html, me, token) {
         ifr = document.createElement('iframe');
         ifr.id = 'atelierFrame';
         ifr.title = 'Atelier GNU';
-        ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        ifr.src = 'https://node.spencer-morais.pt/sandbox/';
         ifr.setAttribute('allow', 'fullscreen; pointer-lock');
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c;z-index:40';
         stage.appendChild(ifr);
       } else {
         ifr.style.zIndex = '40';
         ifr.style.display = 'block';
-        if (!ifr.getAttribute('src')) ifr.src = 'https://sandbox.calhegasmorais.pt/';
+        if (!ifr.getAttribute('src')) ifr.src = 'https://node.spencer-morais.pt/sandbox/';
       }
       var title = document.getElementById('bancadaPanelTitle');
       if (title) title.textContent = 'Atelier GNU · Holon 5';
@@ -1520,7 +1520,7 @@ function landingChrome(pt, title) {
   const home = pt ? '/' : '/en';
   const dash = pt ? '/dashboard' : '/en/dashboard';
   return `<div class="top"><div class="top-inner">
-    <div class="brand"><strong>Calhegas Morais</strong> · ${pt ? 'Nó CMN' : 'CMN Node'}</div>
+    <div class="brand"><strong>Calhegas Morais</strong> · ${pt ? 'Nó SMN' : 'SMN Node'}</div>
     <div class="lang">
       <a href="/dashboard" class="${pt ? 'active' : ''}" hreflang="pt-PT">PT</a><span class="sep">/</span>
       <a href="/en/dashboard" class="${pt ? '' : 'active'}" hreflang="en-GB">EN</a>
@@ -1568,7 +1568,7 @@ ${landingChrome(pt, title)}
       <input id="password2" name="password2" type="password" autocomplete="new-password"/>
     </div>
     <label class="tick" id="staffRow"><input type="checkbox" id="asStaff"/> ${pt ? 'Acesso de pessoal (staff) — mesmas caixas' : 'Staff access — same boxes'}</label>
-    <label class="tick" id="termsRow" style="display:none"><input type="checkbox" id="terms"/> ${pt ? 'Aceito os termos do Nó Calhegas Morais (node-1.0)' : 'I accept the Calhegas Morais Node terms (node-1.0)'}</label>
+    <label class="tick" id="termsRow" style="display:none"><input type="checkbox" id="terms"/> ${pt ? 'Aceito os termos do Spencer-Morais Node (node-1.0)' : 'I accept the Spencer-Morais Node terms (node-1.0)'}</label>
     <div id="otp">
       <label for="code">${pt ? 'Código de 6 dígitos' : '6-digit code'}</label>
       <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="••••••"/>

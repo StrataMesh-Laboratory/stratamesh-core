@@ -1,4 +1,4 @@
-# Social login (Google / Microsoft / Apple) — CMN common users
+# Social login (Google / Microsoft / Apple) — SMN common users
 
 Lab-ready OAuth for **public users**. Staff stays on `/staff/login` + 2FA. CMD/EUDI remain pending.
 

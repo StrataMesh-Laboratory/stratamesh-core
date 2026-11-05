@@ -29,11 +29,11 @@ export const HOLONS: Holon[] = [
     id: "no",
     n: "1",
     pt: {
-      title: "Nó Calhegas Morais",
+      title: "Spencer-Morais Node",
       body: "Holon Fog FOG-NODE-PT-CM-001 · Lisboa. Operador actual: André Manuel Calhegas Morais, AMCM ENI (utilizador humano). O cargo de operador admite também DAO associativa, DAO corporativa, ou — futuro aberto — um SCA com STRATA suficiente para abrir Fog. Limiar indexado, sem operador próprio.",
     },
     en: {
-      title: "Calhegas Morais Node",
+      title: "Spencer-Morais Node",
       body: "Fog holon FOG-NODE-PT-CM-001 · Lisbon. Current operator: André Manuel Calhegas Morais, AMCM ENI (human user). The operator appointment also admits an associative DAO, a corporate DAO, or — future-open — an ACB with sufficient STRATA to open a Fog. Indexed Edge, no operator of its own.",
     },
   },

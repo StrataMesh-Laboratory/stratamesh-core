@@ -13,8 +13,8 @@ StrataMesh is a next-generation Distributed Ledger Technology that combines a hi
 
 ## Current State
 - Whitepaper published and frozen as specification baseline
-- Calhegas Morais Fog Node operational
-- Portal (aiops.calhegasmorais.pt) in sandbox / initializing mode
+- Spencer-Morais Node operational
+- Portal (node.spencer-morais.pt/aiops) in sandbox / initializing mode
 - IPFS DNSLink active
 - Zero public network activity metrics (expected at this stage)
 
@@ -39,7 +39,7 @@ StrataMesh is a next-generation Distributed Ledger Technology that combines a hi
 - Quantum-resistance and future node types treated as ongoing workstreams
 
 ## Immediate Priorities (Phase 0)
-1. Instrument the Calhegas Morais Fog Node and publish live status
+1. Instrument the Spencer-Morais Node and publish live status
 2. Establish private development testnet seeded by this node
 3. Extract and version tip-selection + CID-linkage logic
 4. Draft first Fog Node SPA template
@@ -56,7 +56,7 @@ StrataMesh is a next-generation Distributed Ledger Technology that combines a hi
 
 ---
 
-*This document is maintained by the Orchestrator under the Calhegas Morais Fog Node.  
+*This document is maintained by the Orchestrator under the Spencer-Morais Node.  
 Next revision will be issued at the close of Phase 0.*
 
 **UNCLASSIFIED // FOG-NODE-PT-CM-001**  

@@ -1,4 +1,4 @@
-# StrataMesh / CMN — Technological Parallels (Lab implementation)
+# StrataMesh / SMN — Technological Parallels (Lab implementation)
 
 This document maps external systems to **operational** StrataMesh mechanics.
 Parallels are inspirational, not forks: STRATA mint remains **PdC-only**; identity of SCA ≠ appointment; resource class ≠ function.
@@ -47,7 +47,7 @@ Parallels are inspirational, not forks: STRATA mint remains **PdC-only**; identi
 
 | Urbit idea | StrataMesh mapping |
 |------------|-------------------|
-| Ship as personal server | Fog Node (CMN) as sovereign operational point |
+| Ship as personal server | Fog Node (SMN) as sovereign operational point |
 | Moons / satellites | Edge nodes indexed under Fog |
 | Galaxy / sponsorship | Mesh-level naming & routing (holon hierarchy) |
 | Azimuth-like identity | Document KYC + username; legal name internal |
@@ -55,9 +55,9 @@ Parallels are inspirational, not forks: STRATA mint remains **PdC-only**; identi
 
 ## Endpoints (production domain)
 
-- `https://calhegasmorais.pt/api/v1/consensus/*`
-- `https://calhegasmorais.pt/api/v1/gossip/*`
-- `https://calhegasmorais.pt/api/v1/depin/*`
-- `https://calhegasmorais.pt/api/v1/agent-services/*`
+- `https://node.spencer-morais.pt/api/v1/consensus/*`
+- `https://node.spencer-morais.pt/api/v1/gossip/*`
+- `https://node.spencer-morais.pt/api/v1/depin/*`
+- `https://node.spencer-morais.pt/api/v1/agent-services/*`
 
 Workers: `stratamesh-consensus@3.0.0-virtual-vote-iota`, `stratamesh-gossip@2.0.0-hashgraph-fragment`, `stratamesh-depin@1.0.0-akash-render-parallel`, `stratamesh-agent-services@1.0.0-olas-fetch-parallel`.

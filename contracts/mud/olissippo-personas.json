@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.lore.olissippo.personas.index.v2",
   "realm": "lore-olissippo-lusitanian",
-  "note": "Phase 5+ identity/role split. Persona joins StrataMesh subject_id with CMN world_role_id. ACB \u2260 NFT. Realm not_main.",
+  "note": "Phase 5+ identity/role split. Persona joins StrataMesh subject_id with SMN world_role_id. ACB \u2260 NFT. Realm not_main.",
   "personas": [
     {
       "slug": "boutius",

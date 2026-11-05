@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotent FOG-CMN-DESK workspace ensure for Hermes Desktop on Mac.
+"""Idempotent FOG-SMN-DESK workspace ensure for Hermes Desktop on Mac.
 
 Uses official Hermes CLI + SessionDB APIs only (no bare discovery-policy sqlite writes).
 See WORKSPACE.md and RCA-HERMES-EMPTY-WORKSPACE.md.
@@ -19,7 +19,7 @@ FOG_REPO = Path(os.environ.get("FOG_SRC", Path.home() / "StrataMesh" / "fog" / "
 STRATAMESH = Path(os.environ.get("STRATAMESH_ROOT", Path.home() / "StrataMesh"))
 FOG_HOME = Path(os.environ.get("FOG_HOME", Path.home() / "StrataMesh" / "fog"))
 PROJECT_ID = "fog-cmn-desk"
-PROJECT_NAME = "FOG-CMN-DESK"
+PROJECT_NAME = "FOG-SMN-DESK"
 PRIMARY = FOG_REPO
 FOLDERS: List[Tuple[Path, str, bool]] = [
     (FOG_REPO, "stratamesh-core / Fog repo", True),
@@ -27,7 +27,7 @@ FOLDERS: List[Tuple[Path, str, bool]] = [
     (FOG_HOME / "data" / "desk-outbox", "desk outbox", False),
 ]
 SCAN_ROOTS = [str(STRATAMESH), str(FOG_REPO)]
-SEED_PROMPT = "FOG-CMN-DESK desk seed. Reply exactly: ACK"
+SEED_PROMPT = "FOG-SMN-DESK desk seed. Reply exactly: ACK"
 # Prefer installed open-source tags with Hermes-usable context (>=64k).
 # mistral/llava often report 32k and fail agent init; qwen only if pulled.
 PREFERRED_MODELS = (
@@ -369,7 +369,7 @@ def ensure_listable_session() -> None:
         if not target:
             sid = time.strftime("%Y%m%d_%H%M%S") + "_fogseed"
             db.create_session(
-                sid, "cli", cwd=str(PRIMARY), title="FOG-CMN-DESK desk seed"
+                sid, "cli", cwd=str(PRIMARY), title="FOG-SMN-DESK desk seed"
             )
             db.append_message(sid, "user", SEED_PROMPT)
             db.append_message(sid, "assistant", "ACK")
@@ -445,7 +445,7 @@ def ensure_fallback_providers(tags: list) -> None:
 
 
 def ensure_desk_apps() -> None:
-    """Seed FOG-CMN-DESK workspace-local bin/ + ~/.hermes desk-apps roster.
+    """Seed FOG-SMN-DESK workspace-local bin/ + ~/.hermes desk-apps roster.
 
     Canonical for agents: deploy/mac-fog/hermes/desktop/bin/{desk-mail,desk-open}.
     Also mirrors wrappers to ~/.local/bin. No secrets.
@@ -548,7 +548,7 @@ def ensure_desk_apps() -> None:
 
 
 def ensure_desk_mail() -> None:
-    """Shared automation.desk@ Maildir + desk-mail CLI for FOG-CMN-DESK agents.
+    """Shared automation.desk@ Maildir + desk-mail CLI for FOG-SMN-DESK agents.
 
     Paths/vault names only — never print IMAP_PASS/SMTP_PASS/tokens.
     See ops/desk-collegium/DESK-MAIL-AUTOMATION.md and hermes/desktop/MAIL.md.
@@ -687,7 +687,7 @@ def write_meter(ok: bool, extra: Optional[Dict[str, Any]] = None) -> None:
 
 
 def ensure_workspace_access_bins(repo: Path | None = None, home: Path | None = None) -> dict:
-    """Copy desk-mail/desk-open into FOG-CMN-DESK desktop/bin and ~/.hermes hints."""
+    """Copy desk-mail/desk-open into FOG-SMN-DESK desktop/bin and ~/.hermes hints."""
     home = home or Path.home()
     here = Path(__file__).resolve().parent
     repo = repo or here.parent.parent.parent  # deploy/mac-fog/hermes -> repo? 
@@ -716,7 +716,7 @@ def ensure_workspace_access_bins(repo: Path | None = None, home: Path | None = N
         (lb / name).chmod((lb / name).stat().st_mode | 0o755)
         out["bins"].append(str(dest))
     # point Hermes at ACCESS.md
-    hint = home / ".hermes" / "FOG-CMN-DESK-ACCESS.md"
+    hint = home / ".hermes" / "FOG-SMN-DESK-ACCESS.md"
     access = ws / "ACCESS.md"
     if access.is_file():
         hint.write_text(access.read_text(encoding="utf-8"), encoding="utf-8")
@@ -728,7 +728,7 @@ def ensure_workspace_access_bins(repo: Path | None = None, home: Path | None = N
 
 
 def main() -> int:
-    print("ensure_workspace: FOG-CMN-DESK")
+    print("ensure_workspace: FOG-SMN-DESK")
     ensure_discovery_config()
     ensure_project()
     ensure_desktop_cwd_env()
