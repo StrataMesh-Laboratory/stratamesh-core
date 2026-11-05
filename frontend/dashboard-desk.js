@@ -184,7 +184,7 @@
         ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#07111c';
         ifr.setAttribute('onload', 'typeof pushAtelierSession===\'function\'&&pushAtelierSession()');
         stage.appendChild(ifr);
-      } else if (ifr.src && ifr.src.indexOf('sandbox.calhegasmorais.pt') >= 0) {
+      } else if (ifr.src && ifr.src.indexOf('node.spencer-morais.pt/sandbox') >= 0) {
         ifr.src = 'https://gnu-atelier.pages.dev/';
       }
     }

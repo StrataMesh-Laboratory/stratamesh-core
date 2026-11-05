@@ -1,6 +1,6 @@
 # EDGE-GROK operator desk (live)
 
-Live Worker: `stratamesh-edge-grok` on https://edge.calhegasmorais.pt
+Live Worker: `stratamesh-edge-grok` on https://node.spencer-morais.pt/edge
 Version: `1.5.0-operator-desk`
 Lab only. grok@ is a Fog **user** / `external_assistant`, not SCA.
 
@@ -24,7 +24,7 @@ Allow `secret` or `top_secret`, including admin, SECRET staff, `external_assista
 - `GET /internal/v1/automations` desk catalog
 - `GET /internal/v1/torch` gates + capability
 
-CORS for `/ops` and `/internal/*`: `https://calhegasmorais.pt` and `https://edge.calhegasmorais.pt`.
+CORS for `/ops` and `/internal/*`: `https://node.spencer-morais.pt/` and `https://node.spencer-morais.pt/edge`.
 
 ## Automations (desk_owned)
 
@@ -42,4 +42,4 @@ Public ops pulse: https://stratamesh.discourse.group/t/20 (stratamesh-grok). Do 
 
 ## Nested SSL
 
-`api.edge.calhegasmorais.pt` handshake fails (Universal SSL one-level wildcard). Internal API stays on the desk host. Do not buy certs. Public integration API: `api-edge.calhegasmorais.pt`.
+`api.node.spencer-morais.pt/edge` handshake fails (Universal SSL one-level wildcard). Internal API stays on the desk host. Do not buy certs. Public integration API: `node.spencer-morais.pt/edge/api`.

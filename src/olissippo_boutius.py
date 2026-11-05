@@ -39,7 +39,7 @@ def load_persona() -> dict[str, Any]:
     assert data["kind"] == "acb"
     assert data["subject_id"].startswith("acb-")
     assert "object_id" not in data
-    # Identity (StrataMesh) ≠ world role (CMN)
+    # Identity (StrataMesh) ≠ world role (SMN)
     data["subject_id"] = oid.resolve_subject_id(data["subject_id"])
     assert data.get("identity_registry") == "stratamesh"
     assert data.get("world_role_registry") == "cmn"

@@ -1,5 +1,5 @@
 /**
- * api-fog.calhegasmorais.pt — MacOS Fog Node installer API
+ * node.spencer-morais.pt/fog/api — MacOS Fog Node installer API
  * FOG-NODE-PT-CM-001 · lab only · secrets never stored here
  */
 const VERSION = "1.0.1-v030";
@@ -324,7 +324,7 @@ END OF SPEC
 }
 
 function llmsTxt(ORIGIN) {
-  return `# api-fog.calhegasmorais.pt
+  return `# node.spencer-morais.pt/fog/api
 
 > MacOS Fog Node installer API. ${FOG_ID}. Lab n=2 · mesh_member=true · f_max=0.
 
@@ -444,7 +444,7 @@ async function proxyAuth(env, request, authPath) {
         "content-type": r.headers.get("content-type") || "application/json; charset=utf-8",
         "cache-control": "no-store",
         "x-stratamesh-api": VERSION,
-        "x-stratamesh-auth-via": url.startsWith("https://calhegasmorais.pt") ? "apex" : "service",
+        "x-stratamesh-auth-via": url.startsWith("https://node.spencer-morais.pt/") ? "apex" : "service",
       },
     });
   }

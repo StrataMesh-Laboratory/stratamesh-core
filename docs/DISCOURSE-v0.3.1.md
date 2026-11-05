@@ -9,7 +9,7 @@ After the v0.3.0 Fog kit, Edges get a phone.
 
 An Edge is not a Fog. The device keeps its primary job. Residual offer is **C_mesh = f(1−U)** (battery, thermal, Low Power, path). Background duty 0.25. Session expected.
 
-- Add to Home Screen: https://api-edge.calhegasmorais.pt/app/
+- Add to Home Screen: https://node.spencer-morais.pt/edge/api/app/
 - Native Swift: `deploy/ios-edge/` in [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)
 - Tag: https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.3.1
 

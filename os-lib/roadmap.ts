@@ -51,13 +51,13 @@ export const PHASES: Phase[] = [
     pt: {
       kicker: "Tempo e pilha",
       title: "CLP no kernel + holons",
-      body: "CLP embutido na TRD. Holons: TRD → Nó Calhegas Morais (operador AMCM ENI) → SO Metaverso → Domínio Virtual → Mundo Aberto → Bancada CGU. O Nó é holon. O Nó não é o SO. O CLP não é holon.",
+      body: "CLP embutido na TRD. Holons: TRD → Spencer-Morais Node (operador AMCM ENI) → SO Metaverso → Domínio Virtual → Mundo Aberto → Bancada CGU. O Nó é holon. O Nó não é o SO. O CLP não é holon.",
       items: ["PPC Lisboa / âncoras atlânticas", "Painel = interface do holon Nó na Bancada", "Um Nó neste laboratório, com operador"],
     },
     en: {
       kicker: "Time and stack",
       title: "CLP in the kernel + holons",
-      body: "CLP embedded in the DLT. Holons: DLT → Calhegas Morais Node (operator AMCM ENI) → Metaverse OS → Virtual Realm → Open World → UGC sandbox. The Node is a holon. The Node is not the OS. CLP is not a holon.",
+      body: "CLP embedded in the DLT. Holons: DLT → Spencer-Morais Node (operator AMCM ENI) → Metaverse OS → Virtual Realm → Open World → UGC sandbox. The Node is a holon. The Node is not the OS. CLP is not a holon.",
       items: ["PPC Lisbon / Atlantic anchors", "Panel = Node holon interface in the sandbox", "One Node in this laboratory, with an operator"],
     },
   },

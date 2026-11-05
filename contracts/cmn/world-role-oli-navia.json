@@ -13,11 +13,11 @@
   "culture_tag": "lusitanian_olissippo",
   "persona_file": "olissippo-persona-navia.json",
   "locks": [
-    "World role is CMN registration \u2014 not StrataMesh identity",
+    "World role is SMN registration \u2014 not StrataMesh identity",
     "subject_id must resolve in contracts/stratamesh",
     "ACB \u2260 NFT \u2014 role never mints object_id for the Subject",
     "Realm lore-olissippo-lusitanian is not_main",
-    "Realm is lore \u2014 NOT CMN main sandbox-host world",
+    "Realm is lore \u2014 NOT SMN main sandbox-host world",
     "Same mechanics as main (Subject/Object, roles, validate/execute) \u2014 separate world",
     "Must not host sandboxes"
   ],

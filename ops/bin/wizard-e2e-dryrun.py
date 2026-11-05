@@ -8,7 +8,7 @@ Fail-open path works WITHOUT Mac (Ollama absent / forced dead host).
 Never prints secrets. oracle_live stays false (Worker contract). TUI ? FAQ not touched.
 
 Env:
-  API_EDGE_BASE (preferred) or API_EDGE_ORIGIN — default https://api-edge.calhegasmorais.pt
+  API_EDGE_BASE (preferred) or API_EDGE_ORIGIN — default https://node.spencer-morais.pt/edge/api
   OLLAMA_HOST — default http://127.0.0.1:11434 (native loopback only)
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import ollama_local as ol  # noqa: E402
 API = (
     os.environ.get("API_EDGE_BASE")
     or os.environ.get("API_EDGE_ORIGIN")
-    or "https://api-edge.calhegasmorais.pt"
+    or "https://node.spencer-morais.pt/edge/api"
 ).rstrip("/")
 # Keep SDK module aligned when BASE was set first
 os.environ.setdefault("API_EDGE_ORIGIN", API)
@@ -187,7 +187,7 @@ def run_flow(flow: str, *, force_fail_open: bool, dry_run_sdk: bool) -> dict:
 
 def fog_public_pulse(timeout: float = 8.0) -> dict:
     """Observe public Fog /health. Not a gate. oracle_live stays whatever Fog emits (false)."""
-    url = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+    url = os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog/health"
     out = _http("GET", url, timeout=timeout)
     http = out.get("_http")
     origin = out.get("origin")

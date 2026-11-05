@@ -70,7 +70,7 @@ _DESK_LAST_KICK = 0.0
 _DESK_BUSY = False
 _DESK_CYCLE = 0
 DESK_PROBE_PERIOD = 60.0  # live /desk updates on r / auto-r (not g)
-MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no status.calhegasmorais.pt)
+MET_CF_CACHE: dict = {"ok": False}  # never filled from TUI (no node.spencer-morais.pt/status)
 _PUB_LOCK = threading.Lock()
 _PUB_BUSY = False
 _PRINT = print
@@ -1928,7 +1928,7 @@ def _optional_origin_toc() -> str:
     """Fail-open title/toc from public origin. Never secrets. Timeout 2s."""
     try:
         req = urllib.request.Request(
-            "https://calhegasmorais.pt/",
+            "https://node.spencer-morais.pt/",
             headers={"User-Agent": "fog-tui-wizard/1", "Accept": "text/html"},
             method="GET",
         )
@@ -2157,7 +2157,7 @@ def orch_aiops_report(headline: str, body: str, snap: dict | None = None) -> str
         else:
             notes.append("%s down %s" % (port, err or "no-health"))
     if not delivered:
-        origin = "https://calhegasmorais.pt/api/orchestrator/chat"
+        origin = "https://node.spencer-morais.pt/api/orchestrator/chat"
         opost = _http_json(origin, "POST", raw, 4.0)
         ohttp = int(opost.get("_http") or 0)
         if _orch_endpoint_live(opost) or (200 <= ohttp < 300):

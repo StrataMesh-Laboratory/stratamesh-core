@@ -1,7 +1,7 @@
 # automation.desk@ — general collegium desk mail
 
 **Address:** `automation.desk@calhegasmorais.pt`  
-**Standing:** `external_assistant` for the automation desk (CMN) — identity used by **all six** desk agents for collegium send/receive and for auth where an email identity is required.  
+**Standing:** `external_assistant` for the automation desk (SMN) — identity used by **all six** desk agents for collegium send/receive and for auth where an email identity is required.  
 **Not** Gmail. **Not** DeoMail / ENI `geral@eni`. **Not** workers.dev as an Assistant fetch target. Apex MX unchanged.
 
 ## Split vs `grok@`
@@ -95,7 +95,7 @@ KeePass `lab.kdbx` may materialize the above — never paste master password.
 5. If API cannot create the rule: André clicks **Email Routing → Create address/rule** in CF dashboard (do not invent tokens).
 6. Never point Assistants at `*.workers.dev` URLs.
 
-## Protocol / CMN
+## Protocol / SMN
 
 - `automation.desk@` holds **`external_assistant`** standing for collegium communications.
 - Used by desk agents for collegium mail and for **auth where email identity is required** (not ENI, not SCA enrollment).

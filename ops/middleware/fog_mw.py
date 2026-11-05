@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fog Python middleware — loopback CMN hop helper.
+"""Fog Python middleware — loopback SMN hop helper.
 
 Ports: 8790. Talks cap / metabol / plugin roster. Not public origin.
-Public aliases (macbook-server tunnel): auth.calhegasmorais.pt, mw.calhegasmorais.pt.
+Public aliases (macbook-server tunnel): auth.calhegasmorais.pt, node.spencer-morais.pt/mw.
 
 This hop is the contingency/no-cap rail for Workbench dynamic session/state.
 Workers/KV stay paced (KV 50% cap; Workers 100k/day; sandbox-host burned 1.2M,
@@ -25,8 +25,8 @@ from urllib.request import Request, urlopen
 PORT = int(os.environ.get("FOG_MW_PY_PORT") or "8790")
 WORKERD = os.environ.get("WORKERD_HEALTH") or "http://127.0.0.1:8788"
 FOG = os.environ.get("FOG_HEALTH") or "http://127.0.0.1:8787"
-EDGE = "https://edge.calhegasmorais.pt"
-FOG_PUB = "https://fog.calhegasmorais.pt"
+EDGE = "https://node.spencer-morais.pt/edge"
+FOG_PUB = "https://node.spencer-morais.pt/fog"
 SESS = {}  # token -> {email, exp, kind}
 WB = {}  # token -> {nfts, avatarId, at}  in-memory Workbench; not KV
 HOP = "python:8790"
@@ -441,7 +441,7 @@ def payload(kind: str):
 
 
 
-ORIGIN_ORCH = "https://calhegasmorais.pt/api/orchestrator/chat"
+ORIGIN_ORCH = "https://node.spencer-morais.pt/api/orchestrator/chat"
 
 
 def handle_orch_chat(method, body):

@@ -41,7 +41,7 @@ def test_html_chrome_has_no_object_id_jargon():
     assert "object_id" not in html
     assert "subject_id" not in html
     assert "Aldeia de Olissippo" in html or "Olissippo" in html
-    assert ("não principal" in html or "não CMN principal" in html or "not main" in html.lower() or "not cmn main" in html.lower())
+    assert ("não principal" in html or "não SMN principal" in html or "not main" in html.lower() or "not cmn main" in html.lower())
     assert "Pessoas aqui" in html
     # must not call people NFTs in chrome
     assert "NFT" not in html.split("aside")[0]  # header free of NFT pitch

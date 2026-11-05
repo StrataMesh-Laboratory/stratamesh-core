@@ -1,7 +1,7 @@
-# IoT Edge — StrataMesh / Nó Calhegas Morais
+# IoT Edge — StrataMesh / Spencer-Morais Node
 
 **Versão:** 2.1.0-universal  
-**Base:** `https://stratamesh-iot.stratamesh.workers.dev` · domínio `https://calhegasmorais.pt/iot`
+**Base:** `https://stratamesh-iot.stratamesh.workers.dev` · domínio `https://node.spencer-morais.pt/iot`
 
 ## Princípios
 

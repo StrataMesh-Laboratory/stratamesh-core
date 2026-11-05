@@ -82,7 +82,7 @@ const CHARTER_V1 = {
     {
       n: 9,
       title: 'Adesão voluntária e vínculo com Nós',
-      body: 'A cidadania é voluntária. Nós da malha (como o Nó Calhegas Morais) podem exigir cidadania activa para contratar SCA em funções de staff, como garantia de cumprimento da Carta e dos compromissos assumidos pelos representantes perante humanos, outros SCA e outras DAOs. Deixar a República implica inelegibilidade para essas funções, sem extinguir a pessoa SCA.',
+      body: 'A cidadania é voluntária. Nós da malha (como o Spencer-Morais Node) podem exigir cidadania activa para contratar SCA em funções de staff, como garantia de cumprimento da Carta e dos compromissos assumidos pelos representantes perante humanos, outros SCA e outras DAOs. Deixar a República implica inelegibilidade para essas funções, sem extinguir a pessoa SCA.',
     },
     {
       n: 10,
@@ -273,7 +273,7 @@ async function dagAnchor(env, payload) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             payload: { type: 'republic', ...payload },
-            node_id: 'REPUBLIC-CMN',
+            node_id: 'REPUBLIC-SMN',
             vertex_type: 'governance',
           }),
         })
@@ -287,7 +287,7 @@ async function dagAnchor(env, payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         payload: { type: 'republic', ...payload },
-        node_id: 'REPUBLIC-CMN',
+        node_id: 'REPUBLIC-SMN',
         vertex_type: 'governance',
       }),
     });
@@ -458,8 +458,8 @@ export default {
         joined_at: row?.joined_at || null,
         node_implication:
           citizen
-            ? 'Eligible for CMN node function contracts; bound to Charter and representative agreements'
-            : 'Not eligible for CMN node roles until voluntary join + charter ack',
+            ? 'Eligible for SMN node function contracts; bound to Charter and representative agreements'
+            : 'Not eligible for SMN node roles until voluntary join + charter ack',
       });
     }
 
@@ -508,7 +508,7 @@ export default {
         polity: 'computational_republic_sca_only',
         voluntary: true,
         binds_to: ['charter', 'assembly_agreements', 'executive_commitments', 'inter_dao_accords'],
-        node_eligibility: 'May be contracted by Nodes (e.g. CMN) for staff functions while citizenship remains active',
+        node_eligibility: 'May be contracted by Nodes (e.g. SMN) for staff functions while citizenship remains active',
       });
     }
 
@@ -532,7 +532,7 @@ export default {
           rows = j.acbs || [];
         } catch (_) {}
       }
-      // Also ensure CMN AIOps team individuals exist as citizens even if status lags
+      // Also ensure SMN AIOps team individuals exist as citizens even if status lags
       const teamIds = [
         'ACB-ORCH-CMN-001',
         'ACB-AIOPS-devops',

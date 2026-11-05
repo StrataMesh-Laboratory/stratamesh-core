@@ -192,7 +192,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({

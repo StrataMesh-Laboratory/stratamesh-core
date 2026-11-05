@@ -1,25 +1,25 @@
 {
   "ua": "StrataMesh-DeskTick/1.1 (+https://github.com/StrataMesh-Laboratory/stratamesh-core)",
-  "never": ["workers.dev", "status.calhegasmorais.pt/status"],
+  "never": ["workers.dev", "node.spencer-morais.pt/status/status"],
   "core": [
-    "https://status.calhegasmorais.pt/health",
-    "https://fog.calhegasmorais.pt/health",
-    "https://gossip.calhegasmorais.pt/health",
-    "https://edge.calhegasmorais.pt/health"
+    "https://node.spencer-morais.pt/status/health",
+    "https://node.spencer-morais.pt/fog/health",
+    "https://node.spencer-morais.pt/gossip/health",
+    "https://node.spencer-morais.pt/edge/health"
   ],
   "health": [
-    "https://calhegasmorais.pt/",
-    "https://status.calhegasmorais.pt/health",
-    "https://fog.calhegasmorais.pt/health",
-    "https://gossip.calhegasmorais.pt/health",
-    "https://gossip.calhegasmorais.pt/have",
-    "https://origin.calhegasmorais.pt/",
-    "https://edge.calhegasmorais.pt/health",
-    "https://fund.calhegasmorais.pt/health",
-    "https://calhegasmorais.pt/api/v1/holons/health"
+    "https://node.spencer-morais.pt/",
+    "https://node.spencer-morais.pt/status/health",
+    "https://node.spencer-morais.pt/fog/health",
+    "https://node.spencer-morais.pt/gossip/health",
+    "https://node.spencer-morais.pt/gossip/have",
+    "https://node.spencer-morais.pt/origin/",
+    "https://node.spencer-morais.pt/edge/health",
+    "https://node.spencer-morais.pt/fund/health",
+    "https://node.spencer-morais.pt/api/v1/holons/health"
   ],
-  "fog_status": "https://fog.calhegasmorais.pt/status",
+  "fog_status": "https://node.spencer-morais.pt/fog/status",
   "session_expected_http": {
-    "https://edge.calhegasmorais.pt/health": [429, 530]
+    "https://node.spencer-morais.pt/edge/health": [429, 530]
   }
 }

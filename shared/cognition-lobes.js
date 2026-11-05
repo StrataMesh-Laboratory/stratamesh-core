@@ -9,7 +9,7 @@ export const PACKAGE = {
   kind: "cognition_module",
   version: "0.1.0-lab",
   install_slot: "cognition",
-  host: "https://academy.calhegasmorais.pt/v1/packages/cognition-lobes",
+  host: "https://node.spencer-morais.pt/academy/v1/packages/cognition-lobes",
   lobes: ["probabilistic", "symbolic"],
   bus: "propose → constrain → revise → commit | escalate",
   workers_dev: false,

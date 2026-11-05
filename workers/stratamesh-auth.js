@@ -517,7 +517,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · Fog bootstrap 2FA'
-              : 'Nó Calhegas Morais · 2FA de instalação Fog',
+              : 'Spencer-Morais Node · 2FA de instalação Fog',
             text: en
               ? ('Your Fog Node bootstrap code is: ' + code + '\n\nValid for 10 minutes. One use. Node install will not start without it.')
               : ('O código de instalação do Nó Fog é: ' + code + '\n\nVálido 10 minutos. Uma utilização. A instalação não começa sem ele.'),
@@ -530,7 +530,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · staff 2FA code'
-              : 'Nó Calhegas Morais · código 2FA (pessoal)',
+              : 'Spencer-Morais Node · código 2FA (pessoal)',
             text: en
               ? ('Your staff verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
               : ('O seu código de verificação (pessoal) é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
@@ -542,7 +542,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · verification code'
-              : 'Nó Calhegas Morais · código de verificação',
+              : 'Spencer-Morais Node · código de verificação',
             text: en
               ? ('Your verification code is: ' + code + '\n\nValid for 10 minutes. One use.')
               : ('O seu código de verificação é: ' + code + '\n\nVálido 10 minutos. Uma utilização.'),
@@ -554,7 +554,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · set your password'
-              : 'Nó Calhegas Morais · definir a sua palavra-passe',
+              : 'Spencer-Morais Node · definir a sua palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set your password:\n\n' + code)
               : ('Abra este link no prazo de 1 hora para definir a palavra-passe:\n\n' + code),
@@ -566,7 +566,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · password reset'
-              : 'Nó Calhegas Morais · redefinição de palavra-passe',
+              : 'Spencer-Morais Node · redefinição de palavra-passe',
             text: en
               ? ('Open this link within 1 hour to set a new password:\n\n' + code)
               : ('Abra este link no prazo de 1 hora para definir uma nova palavra-passe:\n\n' + code),
@@ -578,7 +578,7 @@ export default {
           return {
             subject: en
               ? 'Spencer-Morais Node · registration received'
-              : 'Nó Calhegas Morais · confirmação de registo',
+              : 'Spencer-Morais Node · confirmação de registo',
             text: en
               ? ('Your registration has been received. KYC status: pending staff approval.\nEmail confirmation code: ' + code)
               : ('O seu registo foi recebido. Estado KYC: pendente de aprovação.\nCódigo de confirmação: ' + code),
@@ -586,7 +586,7 @@ export default {
             code,
           };
         }
-        return { subject: en ? 'Spencer-Morais Node' : 'Nó Calhegas Morais', text: String(code || ''), kind: 'system' };
+        return { subject: en ? 'Spencer-Morais Node' : 'Spencer-Morais Node', text: String(code || ''), kind: 'system' };
       }
 
       async function notifyOrchMail(env, subject, meta) {
@@ -1240,7 +1240,7 @@ export default {
       if ((path === '/notify/broadcast' || path === '/broadcast') && request.method === 'POST') {
         try {
           const body = await request.json();
-          const subject = body.subject || 'Aviso — Nó Calhegas Morais';
+          const subject = body.subject || 'Aviso — Spencer-Morais Node';
           const text = body.text || body.message || '';
           const clearance = body.clearance || body.clearance_level || null; // e.g. PUBLIC, INTERNAL, all
           if (!text) {

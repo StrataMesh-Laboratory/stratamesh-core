@@ -3,7 +3,7 @@
 Open-source foundational components of the StrataMesh Distributed Ledger Technology.
 
 **Status:** Phase 0 — Initial repository skeleton  
-**Node:** Calhegas Morais Fog Node (FOG-NODE-PT-CM-001)  
+**Node:** Spencer-Morais Node (FOG-NODE-PT-CM-001)  
 **Specification baseline:** Whitepaper + Public Roadmap v0.1
 
 ## Repository Layout (planned)

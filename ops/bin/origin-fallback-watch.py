@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health"
+PUBLIC = os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog/health"
 OUT = Path(os.environ.get("GITHUB_OUTPUT") or "/dev/null")
 MD = Path("origin-fallback.md")
 UA = "Mozilla/5.0 (compatible; StrataMesh-origin-fallback-watch/1)"

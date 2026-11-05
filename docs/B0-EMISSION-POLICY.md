@@ -1,7 +1,7 @@
 # B0 — STRATA Emission Policy
 
 **Status:** Active in laboratory; production freeze pending formal audit  
-**Node:** FOG-NODE-PT-CM-001 (Calhegas Morais Node)  
+**Node:** FOG-NODE-PT-CM-001 (Spencer-Morais Node)  
 **Related:** `POC-RESOURCE-VS-FUNCTION.md`, `TOKENOMICS-WHITEPAPER.md`
 
 ---

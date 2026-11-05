@@ -122,14 +122,14 @@
     },
     {
       "id": "fog-assistant",
-      "label": "CMN FOG ASSISTANT",
+      "label": "SMN FOG ASSISTANT",
       "owner": "cmn-fog-assistant",
       "role": "external_assistant",
       "specialty": "fog",
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; may propose next Act in-thread when idle",
-      "runtime": "grok.com N\u00f3 Calhegas Morais Fog thread (Archive Instructions)",
+      "runtime": "grok.com Spencer-Morais Node Fog thread (Archive Instructions)",
       "soul": null,
       "docs": [
         "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
@@ -137,7 +137,7 @@
         "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
       ],
       "receive_work": "Fog thread one-prompt; self-queue from projected/bus when idle; Bot feeds only if empty AND no self-queue | MUST read desk-outbox/TODO.md before acting",
-      "self_audit": "origin health: fog.calhegasmorais.pt/health + hops",
+      "self_audit": "origin health: node.spencer-morais.pt/fog/health + hops",
       "must": [
         "Fog/core git+live (origin Pages, fog hops, auth/mw)",
         "Land in-scope git+live without waiting for Bot",
@@ -208,17 +208,17 @@
     },
     {
       "id": "edge-assistant",
-      "label": "CMN EDGE ASSISTANT",
+      "label": "SMN EDGE ASSISTANT",
       "owner": "cmn-edge-assistant",
       "role": "external_assistant",
       "specialty": "edge",
       "lane": "lane-assistant",
       "metabol_pace_lane": "lane-assistant",
       "eisenhower": "one Act per prompt; consume-origin only",
-      "runtime": "grok.com N\u00f3 Calhegas Morais EDGE thread (same Archive Instructions)",
+      "runtime": "grok.com Spencer-Morais Node EDGE thread (same Archive Instructions)",
       "soul": null,
       "docs": [
-        "docs/CMN-EDGE-ASSISTANT-PROMPT.md",
+        "docs/SMN-EDGE-ASSISTANT-PROMPT.md",
         "docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md",
         "ops/EDGE-GROK-DESK-CONTRACT.md",
         "ops/desk-collegium/DESK-MAIL-AUTOMATION.md"
@@ -300,7 +300,7 @@
       "lane": "lane-hermes",
       "metabol_pace_lane": "lane-hermes",
       "eisenhower": "Act via bus; human_gates escalate to STRATAGROK",
-      "runtime": "Hermes Agent CLI + Ollama (native Mac FOG-CMN-DESK)",
+      "runtime": "Hermes Agent CLI + Ollama (native Mac FOG-SMN-DESK)",
       "soul": "deploy/mac-fog/hermes/desktop/SOUL.md",
       "desk": "deploy/mac-fog/hermes/desktop/DESK.md",
       "docs": [

@@ -1,4 +1,4 @@
-# Project FOG-CMN-DESK
+# Project FOG-SMN-DESK
 
 | Field | Value |
 |-------|-------|

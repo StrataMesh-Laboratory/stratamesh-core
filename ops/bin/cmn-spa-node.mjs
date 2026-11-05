@@ -12,7 +12,7 @@ const ROOT = process.env.FOG_SRC
   ? path.join(process.env.FOG_SRC, "frontend")
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../frontend");
 const PORT = Number(process.env.SPA_NODE_PORT || process.env.FOG_MW_NODE_PORT || 8791);
-const CF_AUTH = process.env.CF_AUTH_ORIGIN || "https://calhegasmorais.pt";
+const CF_AUTH = process.env.CF_AUTH_ORIGIN || "https://node.spencer-morais.pt/";
 const sessions = new Map();
 
 const MAP = {

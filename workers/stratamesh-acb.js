@@ -395,7 +395,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -983,7 +983,7 @@ async function listRoleAssignments(db) {
   return out;
 }
 
-/** CMN (and peer nodes) only seat SCAs who voluntarily hold Computational Republic citizenship. */
+/** SMN (and peer nodes) only seat SCAs who voluntarily hold Computational Republic citizenship. */
 async function isRepublicCitizen(env, db, sca_id) {
   if (!sca_id) return false;
   try {
@@ -1820,7 +1820,7 @@ export default {
           success: true,
           ontology: 'SCA personal identity ≠ node role assignment',
           node_policy:
-            'CMN only assigns node functions to SCAs voluntarily enrolled in the Computational Republic DAO, binding them to the Charter and representative agreements.',
+            'SMN only assigns node functions to SCAs voluntarily enrolled in the Computational Republic DAO, binding them to the Charter and representative agreements.',
           assignments: results,
           citizenship,
           note: 'Provisional names until each SCA sets personal_name via POST /acb/identity/set. Non-citizens must join Republic before role is valid.',
@@ -1854,7 +1854,7 @@ export default {
           }
           changed.push({ sca_id: row.id, personal_name: personal, name_origin: origin });
         }
-        // Ensure role assignments for CMN roles
+        // Ensure role assignments for SMN roles
         for (const role of NODE_ROLE_KEYS) {
           const id = LEGACY_ROLE_HOLDERS[role];
           await db
@@ -1939,7 +1939,7 @@ export default {
         if (!sca_id) return j({ error: 'sca_id required' }, 400);
         const acb = await db.prepare('SELECT id, name FROM acb_registry WHERE id = ?').bind(sca_id).first();
         if (!acb) return j({ error: 'sca not found' }, 404);
-        // Nó CMN: só cidadãos voluntários da República Computacional
+        // Nó SMN: só cidadãos voluntários da República Computacional
         if (!body.skip_republic_gate) {
           const gate = await requireRepublicForNodeRole(env, db, sca_id);
           if (!gate.ok) return j(gate, 403);
@@ -1988,7 +1988,7 @@ export default {
         const pulse_cost = Number(body.pulse_cost != null ? body.pulse_cost : 0);
         const leadBal = await getStrata(db, lead);
         const results = [];
-        // Ensure listings available for CMN team
+        // Ensure listings available for SMN team
         for (const id of [CMN_TEAM.lead, ...CMN_TEAM.agents]) {
           try {
             await db

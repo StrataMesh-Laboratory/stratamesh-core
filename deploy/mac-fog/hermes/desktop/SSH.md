@@ -2,7 +2,7 @@
 
 **Why:** André’s Fog Mac (`mbpv`) is **Intel** — Grok Bot app is **not** supported there. Desk agents must not depend on Bot Computers registration.
 
-**Shared desk machine** = Hermes desktop workspace on that Mac (FOG-CMN-DESK). STRATAGROK Bot computer stays separate (meters/git/escalation only).
+**Shared desk machine** = Hermes desktop workspace on that Mac (FOG-SMN-DESK). STRATAGROK Bot computer stays separate (meters/git/escalation only).
 
 ## Identity
 

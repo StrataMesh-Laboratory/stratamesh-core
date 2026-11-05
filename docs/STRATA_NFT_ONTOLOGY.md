@@ -1,6 +1,6 @@
 # Contrato de ontologia — STRATA NFT (1.0.0-object-economy)
 
-Live (lab): Fog ledger `GET /object/:id` and `GET /object/list` on the python hop (`:8790`) and custom domains (`fog.calhegasmorais.pt`, `mw.calhegasmorais.pt`).  
+Live (lab): Fog ledger `GET /object/:id` and `GET /object/list` on the python hop (`:8790`) and custom domains (`node.spencer-morais.pt/fog`, `node.spencer-morais.pt/mw`).  
 Not on workers.dev subdomains — custom domain and Fog hop only. STRATA economic mint stays reserved until `oracle_live`.
 
 ## Equação

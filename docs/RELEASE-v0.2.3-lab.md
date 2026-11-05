@@ -14,7 +14,7 @@ From `ops/EDGE-GROK-DESK-CONTRACT.md`, `docs/academy/2026-08-29-desk-lesson.md`,
 | Diary HOLD | Now |
 |---|---|
 | Gossip PR only when it records the **live Fog process** (#16 deferred from v0.2.2) | Live peers Fog+EDGE custom domains (`2.3.5-host`) |
-| `gossip.calhegasmorais.pt` did not exist (apex `/api/v1/gossip*` only) | Hostname + Worker routes (same pattern as origin/edge) |
+| `node.spencer-morais.pt/gossip` did not exist (apex `/api/v1/gossip*` only) | Hostname + Worker routes (same pattern as origin/edge) |
 | Fog `/` was JSON-only (browsers get a dump) | Git `public_html()` for `Accept: text/html`. Live temp process still JSON until restart |
 | Origin was staff-login-first (looked like a wall) | Public landing + `/login` for staff. Not PHP SYSTEM LOGIN |
 | Fog 530 / spa empty | Fog `/health` 200; `/spa` total=1 |
@@ -64,7 +64,7 @@ Size (80 files) is mostly **Worker snapshots + origin chat fail-open**, not a pr
 ## Added since v0.2.2-lab (origin / Workers — custom domain only)
 
 - Origin `POST /api/orchestrator/chat` → 200 JSON (`origin-orch-chat-1.1.0` AbortSignal 1500ms; orch `10.24.4-chat-budget`)
-- Gossip `2.3.4-custom-domain`: peers Fog + EDGE on `fog.calhegasmorais.pt` / `edge.calhegasmorais.pt` (never workers.dev)
+- Gossip `2.3.4-custom-domain`: peers Fog + EDGE on `node.spencer-morais.pt/fog` / `node.spencer-morais.pt/edge` (never workers.dev)
 - Status pulse `spa.source=fog_process` (Fog `/health` 200, not 530)
 - Impact Fund live `0.4.6-grantor-brief` (canonical repo `stratamesh-impact-fund`)
 - Unpublished live Workers snapshotted into git (fund, edge-api, sca-ml, scout, …)

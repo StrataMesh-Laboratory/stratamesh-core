@@ -1,6 +1,6 @@
 # Temporalidade CLP — Calendário Lunisolar Planetário
 
-**Kernel temporal canónico** do Web3 Metaverse OS na StrataMesh e no Nó Calhegas Morais (CMN).  
+**Kernel temporal canónico** do Web3 Metaverse OS na StrataMesh e no Spencer-Morais Node (SMN).  
 Não é um widget decorativo: é a **camada de tempo partilhada** entre nós, realms, worlds e sandboxes.
 
 ## Posição holónica
@@ -24,7 +24,7 @@ O Calendário Lunisolar Planetário (CLP) estrutura-se em unidades de tempo dist
 Sincronização Planetária 
 A coordenação normativa do CLP opera através de uma matriz de dupla referência que harmoniza o tempo relativo de cada localidade com um vetor temporal padronizado e universal. Para garantir a coerência civil, administrativa, legal e transacional à distância sem corromper o ritmo orgânico local, estipulou-se um conjunto de Pontos Padrão de Convenção (PPC) que, a nível interno, corresponde à capital da respectiva nação, sendo ancorado internacionalmente nas coordenadas astronómicas exatas dos observatórios primordiais da Europa Atlântica: Almendres (38°33′27″N, 8°03′40″W), Carnac (47°35′29″N, 3°04′43″W), Menga (37°01′27″N, 4°32′54″W), Newgrange (53°41′39″N, 6°28′30″W) e Stonehenge (51°10′44″N, 1°49′34″W); estabelecendo assim em cada PPC, por si só, uma métrica temporal inercial de referência que atua como âncora absoluta para a escala planetária. A matriz logarítmica de calibração do CLP assenta num protocolo de indexação topológica de penta-angulação discreta: os Pontos Padrão de Convenção (PPC) atuam como âncoras inerciais autónomas que, sem qualquer média agregativa, calibram em absoluto o seu ponto geolocalizado exato para projetar a matriz global, convertendo a relatividade orgânica da cronometria intra-diária num vetor cronológico padronizado que assegura a sincronização simultânea e inequívoca do registo padronizado e transacional à escala planetária.
 
-## Implementação lab (CMN)
+## Implementação lab (SMN)
 
 | Artefacto | Local |
 |-----------|--------|
@@ -37,7 +37,7 @@ A coordenação normativa do CLP opera através de uma matriz de dupla referênc
 ## Regras de uso na malha
 
 1. **Timestamps de DAG / diário / PdS** podem continuar em ISO-8601 técnico para interoperabilidade; a **experiência civil e narrativa** do nó e do metaverso usa **endereço temporal CLP**.
-2. A localidade do observador (GPS ou IP) calibra nascer/zénite/ocaso/nadir; sem fixação, o CMN usa coordenadas do nó de Lisboa.
+2. A localidade do observador (GPS ou IP) calibra nascer/zénite/ocaso/nadir; sem fixação, o SMN usa coordenadas do nó de Lisboa.
 3. PPC **não** substituem o tempo local orgânico — calibram a **matriz global** para coerência transacional.
 
-*Integrado 2026-08 — StrataMesh CMN.*
+*Integrado 2026-08 — StrataMesh SMN.*

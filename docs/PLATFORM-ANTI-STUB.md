@@ -32,9 +32,9 @@ Lab-honest replacements applied on Cloudflare Workers. Fake multi-host theatre r
 ## Verify
 
 ```bash
-curl -s https://calhegasmorais.pt/api/v1/gossip/peers | jq .
-curl -s https://status.calhegasmorais.pt/health | jq .version
-curl -s https://calhegasmorais.pt/api/v1/dag/tips | head
-curl -s https://calhegasmorais.pt/api/v1/poc/status | head
-curl -s https://calhegasmorais.pt/api/v1/acb/roster | head
+curl -s https://node.spencer-morais.pt/api/v1/gossip/peers | jq .
+curl -s https://node.spencer-morais.pt/status/health | jq .version
+curl -s https://node.spencer-morais.pt/api/v1/dag/tips | head
+curl -s https://node.spencer-morais.pt/api/v1/poc/status | head
+curl -s https://node.spencer-morais.pt/api/v1/acb/roster | head
 ```

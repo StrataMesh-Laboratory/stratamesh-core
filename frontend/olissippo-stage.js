@@ -252,7 +252,7 @@
       if (titleEl) titleEl.textContent = isPt ? world.label_pt : world.label_en;
       if (noteEl) {
         noteEl.textContent = (isPt ? world.subtitle_pt : world.subtitle_en) +
-          ' · ' + L('Pessoas ≠ objectos NFT · papel CMN ≠ identidade', 'People ≠ NFT objects · CMN role ≠ identity');
+          ' · ' + L('Pessoas ≠ objectos NFT · papel SMN ≠ identidade', 'People ≠ NFT objects · SMN role ≠ identity');
       }
       var runtimeUrl = (world.runtime_url || '/olissippo-runtime.json') + '?v=' + CACHE;
       fetch(runtimeUrl, { cache: 'no-cache' })

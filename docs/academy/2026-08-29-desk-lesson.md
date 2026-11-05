@@ -32,8 +32,8 @@ If a handler is missing for a `verb` you emit, drop the action and stay HOLD. In
 
 | Surface | Chat id (prefix) | Owns | Must not |
 |---------|------------------|------|----------|
-| **CMN FOG ASSISTANT** | `c765a597` (project Nó Calhegas Morais / STRATAMESH LAB) | Fog protocol, ingest-guard design, Fog MariaDB DSN (`fog_cmn`, `FOG_MYSQL_URL`), host fingerprint on `:8787` | EDGE desk UI, grok.me publish, mixing MariaDB into EDGE |
-| **CMN EDGE ASSISTANT** | `57f83a9d` | EDGE preview **consume-origin** of `https://edge.calhegasmorais.pt/` (unpublished) | Fog SQLite/MariaDB, `FOG_MYSQL_URL`, phpMyAdmin, ingest-guard |
+| **SMN FOG ASSISTANT** | `c765a597` (project Spencer-Morais Node / STRATAMESH LAB) | Fog protocol, ingest-guard design, Fog MariaDB DSN (`fog_cmn`, `FOG_MYSQL_URL`), host fingerprint on `:8787` | EDGE desk UI, grok.me publish, mixing MariaDB into EDGE |
+| **SMN EDGE ASSISTANT** | `57f83a9d` | EDGE preview **consume-origin** of `https://node.spencer-morais.pt/edge/` (unpublished) | Fog SQLite/MariaDB, `FOG_MYSQL_URL`, phpMyAdmin, ingest-guard |
 
 Rules you will enforce:
 
@@ -105,8 +105,8 @@ No `renovate create-all`. No concurrent PR storm (`prConcurrentLimit: 5` is alre
 
 ## 5. EDGE preview / grok.me
 
-- EDGE Assistant (`57f83a9d`) **consume-origin** of `https://edge.calhegasmorais.pt/`. Preview is **unpublished**.
-- `https://calhegasmorais.grok.me` is **HOLD** (unbound / 404). Do not click Publish. Pages origin `https://calhegasmorais.pt/` stays source of truth (fail-open).
+- EDGE Assistant (`57f83a9d`) **consume-origin** of `https://node.spencer-morais.pt/edge/`. Preview is **unpublished**.
+- `https://calhegasmorais.grok.me` is **HOLD** (unbound / 404). Do not click Publish. Pages origin `https://node.spencer-morais.pt/` stays source of truth (fail-open).
 - Do not probe Worker chat/API to "align" preview.
 
 ---

@@ -1,5 +1,5 @@
 /**
- * Independent validator node — tip weight contributor (not the CMN fog operator process).
+ * Independent validator node — tip weight contributor (not the SMN fog operator process).
  * node_id: NODE-VAL-PT-CM-002
  */
 const NODE_ID = 'NODE-VAL-PT-CM-002';

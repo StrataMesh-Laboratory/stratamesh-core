@@ -1,5 +1,5 @@
 /**
- * stratamesh-fund — fund.calhegasmorais.pt
+ * stratamesh-fund — node.spencer-morais.pt/fund
  * v0.4.9-lab-progress — + desk lab progress from status/desk-lab-progress.json (no EUR).
  * HTML chrome matches Fog/EDGE/Gossip destyle family (system-ui, --accent:#c4a574).
  * Roster/health stay JSON. No webfonts.
@@ -12,7 +12,7 @@ const ORG = "StrataMesh-Laboratory";
 const REPOS = [
   { owner: ORG, name: "stratamesh-core", role: "Protocol core" },
   { owner: ORG, name: "stratamesh-laboratory", role: "Lab charter & posture" },
-  { owner: ORG, name: "calhegas-morais-node", role: "Reference Fog Node registry" },
+  { owner: ORG, name: "spencer-morais-node", role: "Reference Fog Node registry" },
   { owner: ORG, name: "stratamesh-impact-fund", role: "This fund application" },
 ];
 
@@ -195,7 +195,7 @@ function shell({ lang, path, title, active, body }) {
       <span class="sep">·</span>
       <a href="${pt ? "/en" : "/"}">${pt ? "EN" : "PT"}</a>
       <span class="sep">·</span>
-      <a href="https://calhegasmorais.pt/">Nó</a>
+      <a href="https://node.spencer-morais.pt/">Nó</a>
       <span class="sep">·</span>
       <a href="https://github.com/StrataMesh-Laboratory/stratamesh-impact-fund">GitHub</a>
     </nav>`;

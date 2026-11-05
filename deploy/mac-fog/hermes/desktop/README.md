@@ -1,4 +1,4 @@
-# Hermes desktop workspace — FOG CMN desk
+# Hermes desktop workspace — FOG SMN desk
 
 Hermes Agent desktop is a FOG **external_agent** (not SCA).
 Pair with OpenCode + OpenClaw on the same Mac Fog desk.

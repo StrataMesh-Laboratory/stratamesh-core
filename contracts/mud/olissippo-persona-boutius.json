@@ -30,8 +30,8 @@
     "Persona chrome is not Subject.kind",
     "Fog node and desk external_assistant are not this Subject",
     "No LLM in Phase 2 \u2014 deterministic routine only",
-    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
-    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
+    "Identity (subject_id) registered in StrataMesh \u2014 not SMN",
+    "World role (world_role_id) registered in SMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "Speak your need. The forge is hot.",

@@ -17,7 +17,7 @@ from strata_token import StrataTokenLedger
 
 def test_refuse_workers_dev():
     assert refuse_workers_dev("https://x.workers.dev/health") is True
-    assert refuse_workers_dev("https://fog.calhegasmorais.pt/health") is False
+    assert refuse_workers_dev("https://node.spencer-morais.pt/fog/health") is False
 
 
 def test_ping_refuses_workers_dev():

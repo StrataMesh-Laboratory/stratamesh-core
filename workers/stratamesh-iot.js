@@ -302,7 +302,7 @@ async function backgroundToDag(env, accepted, batchId) {
         new Request('https://dag.internal/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payload, node_id: 'EDGE-IOT-CMN', vertex_type: 'iot' }),
+          body: JSON.stringify({ payload, node_id: 'EDGE-IOT-SMN', vertex_type: 'iot' }),
         })
       );
       const j = await r.json().catch(() => ({}));
@@ -313,7 +313,7 @@ async function backgroundToDag(env, accepted, batchId) {
     const r = await fetch('https://stratamesh-dag.stratamesh.workers.dev/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payload, node_id: 'EDGE-IOT-CMN', vertex_type: 'iot' }),
+      body: JSON.stringify({ payload, node_id: 'EDGE-IOT-SMN', vertex_type: 'iot' }),
     });
     return await r.json().catch(() => ({}));
   } catch (e) {
@@ -416,7 +416,7 @@ async function handleIngest(request, env, ctx, url) {
                 body: JSON.stringify({
                   content: JSON.stringify({ batch_id: batchId, n: accepted.length, dag_vertex: vid }),
                   name: 'iot-batch-' + batchId,
-                  node_id: 'EDGE-IOT-CMN',
+                  node_id: 'EDGE-IOT-SMN',
                 }),
               })
             );

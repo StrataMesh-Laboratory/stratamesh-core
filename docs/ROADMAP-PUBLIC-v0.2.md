@@ -2,7 +2,7 @@
 
 **Fog Node:** Calhegas Morais (`FOG-NODE-PT-CM-001`)  
 **Location:** 38.7169° N, 9.1427° W — Lisbon, Portugal  
-**Domain:** [calhegasmorais.pt](https://calhegasmorais.pt/)  
+**Domain:** [calhegasmorais.pt](https://node.spencer-morais.pt/)  
 **Core repo:** [StrataMesh-Laboratory/stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core)  
 **Lab release:** [v0.2.1-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.2.1-lab) (2026-08-10; supersedes v0.2.0-lab)  
 **Motto:** *Intelligentia · Vigilantia · Veritas*
@@ -190,7 +190,7 @@ Production host + external peers remain operator actions.
 | v0.1 | 2026-08 | Initial public roadmap (Phase 0 active) |
 | **v0.2** | **2026-08-10** | Post **v0.2.0-lab**: whitepaper alignment, lab vs prod split, Track A/B |
 
-Maintained by the Orchestrator under the Calhegas Morais Fog Node.  
+Maintained by the Orchestrator under the Spencer-Morais Node.  
 Next revision: close of **A0** (always-on status) or first external SPA.
 
 **UNCLASSIFIED // FOG-NODE-PT-CM-001**  

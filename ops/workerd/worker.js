@@ -10,7 +10,7 @@
  * ORIGIN binding is this process’s role (session | macbook | edge), not the other host.
  * Metabolic stasis v1.3: hourly_cap × pace_factor. Always-on burn_rate. No night freeze.
  */
-const CF_METABOL = "https://status.calhegasmorais.pt/metabol";
+const CF_METABOL = "https://node.spencer-morais.pt/status/metabol";
 const HOPMESH = true; // py/node/deno mutual; do not poll CF metabol on TUI tick
 
 const KV_WRITE_DAILY = 1000;
@@ -249,7 +249,7 @@ export default {
         try {
           const ac = new AbortController();
           const to = setTimeout(() => ac.abort(), 1500);
-          const er = await fetch("https://edge.calhegasmorais.pt/health", {
+          const er = await fetch("https://node.spencer-morais.pt/edge/health", {
             method: "GET",
             headers: { "user-agent": "stratamesh-fog-peer/1", "accept": "application/json" },
             signal: ac.signal,
@@ -294,7 +294,7 @@ export default {
           after_sec: 1800,
           primary: "macbook",
           standby: "session",
-          dns: "fog.calhegasmorais.pt CNAME → macbook-server | stratamesh-fog-lab",
+          dns: "node.spencer-morais.pt/fog CNAME → macbook-server | stratamesh-fog-lab",
         },
       }, { headers: cors });
     }

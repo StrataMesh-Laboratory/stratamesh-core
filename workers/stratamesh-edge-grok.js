@@ -122,7 +122,7 @@ function gossipBase(env) {
 
 function fogProcessOrigin(env) {
   const raw = env && env.FOG_STATUS_URL && String(env.FOG_STATUS_URL).trim();
-  if (raw && raw.includes("fog.calhegasmorais.pt")) return raw.replace(/\/+$/, "");
+  if (raw && raw.includes("node.spencer-morais.pt/fog")) return raw.replace(/\/+$/, "");
   return FOG_PROCESS_ORIGIN;
 }
 
@@ -294,7 +294,7 @@ function llmsTxt() {
 - version: ${VERSION}
 
 ## What this is
-Public automation desk for StrataMesh Laboratory linked to Calhegas Morais Fog Node.
+Public automation desk for StrataMesh Laboratory linked to Spencer-Morais Node.
 Humans and agents may read, probe, and optionally install a **local contributor edge** (observer) using the SDK.
 
 ## What this is NOT
@@ -321,7 +321,7 @@ Humans and agents may read, probe, and optionally install a **local contributor 
 - Fog process (real node_persistent): https://node.spencer-morais.pt/fog/health
 - Fog status pulse (Worker, not the Fog process): https://node.spencer-morais.pt/status/
 - Gossip peers: https://node.spencer-morais.pt/api/v1/gossip/peers
-- Site: https://calhegasmorais.pt/
+- Site: https://node.spencer-morais.pt/
 - AIOps actions: https://node.spencer-morais.pt/aiops/actions
 - Forum: https://stratamesh.discourse.group/
 - GitHub org: https://github.com/StrataMesh-Laboratory
@@ -497,7 +497,7 @@ function agentCatalog() {
       fog_process: "https://node.spencer-morais.pt/fog/health",
       fog_status_pulse: "https://node.spencer-morais.pt/status/",
       gossip_peers: "https://node.spencer-morais.pt/api/v1/gossip/peers",
-      site: "https://calhegasmorais.pt/",
+      site: "https://node.spencer-morais.pt/",
       discourse: "https://stratamesh.discourse.group/",
       github: "https://github.com/StrataMesh-Laboratory",
     },
@@ -543,9 +543,9 @@ function htmlPage(st) {
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<link rel="icon" href="https://calhegasmorais.pt/favicon.ico" sizes="any"/>
-<link rel="icon" type="image/png" href="https://calhegasmorais.pt/favicon-32.png" sizes="32x32"/>
-<link rel="apple-touch-icon" href="https://calhegasmorais.pt/apple-touch-icon.png"/>
+<link rel="icon" href="https://node.spencer-morais.pt/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" href="https://node.spencer-morais.pt/favicon-32.png" sizes="32x32"/>
+<link rel="apple-touch-icon" href="https://node.spencer-morais.pt/apple-touch-icon.png"/>
 <meta name="theme-color" content="#0b1220"/>
 
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -673,9 +673,9 @@ function wantsJson(request, url) {
 
 /* ===== 1.5.3-ping-real-fog (lab) — service-binding probes. No Worker crons. No secrets. ===== */
 const AUTH_ME = "https://stratamesh-auth.stratamesh.workers.dev/me";
-const LOGIN_URL = "https://calhegasmorais.pt/dashboard";
+const LOGIN_URL = "https://node.spencer-morais.pt/dashboard";
 const OPS_ORIGINS = new Set([
-  "https://calhegasmorais.pt",
+  "https://node.spencer-morais.pt/",
   "https://node.spencer-morais.pt/edge",
 ]);
 
@@ -1377,13 +1377,13 @@ async function buildPosture(env, me) {
     oracle_vm: {
       live: false,
       invented: false,
-      host: "fog.calhegasmorais.pt",
-      note: "fog.calhegasmorais.pt is the lab local-process Fog (named tunnel stratamesh-fog-lab). NOT an Oracle VM. oracle_live=false.",
+      host: "node.spencer-morais.pt/fog",
+      note: "node.spencer-morais.pt/fog is the lab local-process Fog (named tunnel stratamesh-fog-lab). NOT an Oracle VM. oracle_live=false.",
     },
     nested_wildcard: {
-      host: "api.edge.calhegasmorais.pt",
+      host: "api.node.spencer-morais.pt/edge",
       ssl: "handshake_failure_expected",
-      reason: "Universal SSL is one-level wildcard; internal API is on edge.calhegasmorais.pt. Do not buy certs.",
+      reason: "Universal SSL is one-level wildcard; internal API is on node.spencer-morais.pt/edge. Do not buy certs.",
     },
   };
 }
@@ -1542,7 +1542,7 @@ function render(b){
     "<p>Gossip peers (from live probe only, never invented): <code>"+peerLine+"</code> · count="+esc(gp.count)+"</p>" +
     "<p>gossip_via_binding (<code>"+esc(gb.via||"service:GOSSIP")+"</code>): <code>"+bindLine+"</code></p>" +
     "<p>gossip_via_public (<code>"+esc(gpub.via||"public")+"</code>): <code>"+pubLine+"</code></p>" +
-    "<p>Oracle VM: <span class='warn'>not live</span> · Fog process <code>fog.calhegasmorais.pt</code> is local-process / oracle_live=false (not the status pulse)</p>" +
+    "<p>Oracle VM: <span class='warn'>not live</span> · Fog process <code>node.spencer-morais.pt/fog</code> is local-process / oracle_live=false (not the status pulse)</p>" +
     "<table><tr><th>probe</th><th></th><th>http</th><th>url</th></tr>"+rows+"</table>";
   const autos = (b.automations && b.automations.automations) || [];
   document.getElementById("autos").innerHTML = "<h2>"+L.autos+"</h2>" +

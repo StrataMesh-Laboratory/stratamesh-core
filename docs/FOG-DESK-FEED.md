@@ -83,7 +83,7 @@ That updates collegium state **and** appends the desk feed in one step.
 
 ## Live sync cadence
 
-- **Updates (ongoing):** Fog TUI `r` / auto-r every **60s** → `kick_desk_refresh` → GET+POST `https://api-edge.calhegasmorais.pt/desk` (Bearer from vault).
+- **Updates (ongoing):** Fog TUI `r` / auto-r every **60s** → `kick_desk_refresh` → GET+POST `https://node.spencer-morais.pt/edge/api/desk` (Bearer from vault).
 - **Upgrades:** Fog TUI `g` / auto-g → git/brew/recycle only (not the live desk poll).
 - Merge-safe: local tasks in `constrain|revise|commit` are never overwritten by a pull.
 

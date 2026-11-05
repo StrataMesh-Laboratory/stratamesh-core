@@ -4,7 +4,7 @@
 **No public date.** Pair of [FOG-APPLIANCE.md](FOG-APPLIANCE.md).  
 **Reference:** FOG-NODE-PT-CM-001 · ~2 m × 2 m infrastructure hut.  
 **Spine:** [FOG-STACK.md](FOG-STACK.md)  
-**Pages:** <https://calhegasmorais.pt/fog-infrastructure>
+**Pages:** <https://node.spencer-morais.pt/fog-infrastructure>
 
 The appliance is the resource-producing machine. This document is the resource-enabling environment: grid, gas, fiber, Starlink, radio, generation, contingency. Utilities are optional inputs, not assumptions.
 

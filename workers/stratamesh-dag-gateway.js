@@ -262,7 +262,7 @@ export default {
         let msg = 'lab pulse';
         try { const b = await request.json(); msg = b.message || b.text || msg; } catch (_) {}
         return json({
-          reply: 'Orquestrador CMN (lab). Recebi: «' + String(msg).slice(0, 280) + '». FOG-NODE-PT-CM-001 · n=1.',
+          reply: 'Orquestrador SMN (lab). Recebi: «' + String(msg).slice(0, 280) + '». FOG-NODE-PT-CM-001 · n=1.',
           clearance: 'public',
           pulse_id,
           source: 'dag-gateway-orch-alias',

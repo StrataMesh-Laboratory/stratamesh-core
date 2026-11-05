@@ -20,7 +20,7 @@ Resume hourly only after the operator unpauses **and** quota has refilled. Do no
 
 - Fog public origin **macbook** (`n=2` `mesh_member=true` `f_max=0`)
 - EDGE session expected, non-continuous
-- Gossip host **exists**: `https://gossip.calhegasmorais.pt/` `2.3.11-destyle`
+- Gossip host **exists**: `https://node.spencer-morais.pt/gossip/` `2.3.11-destyle`
 - Session Fog is **30 min Mac-dark fallback**. Not a second public origin while Mac is live
 - Git via Git Data API (`ghp_` PAT). Live via CF `PUT .../workers/scripts/<name>/content`. **Never** GitHub MCP write. **Never** `workers.dev`. **Never** 6th CF cron
 - Repo: `StrataMesh-Laboratory/stratamesh-core`

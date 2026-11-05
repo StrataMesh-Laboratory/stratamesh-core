@@ -75,7 +75,7 @@ def fetch(url: str, timeout: int = 15, accept: str = "*/*") -> dict[str, Any]:
     low = url.lower()
     if "workers.dev" in low:
         return {"url": url, "ok": False, "error": "STASIS workers.dev forbidden", "http": 0}
-    if low.rstrip("/").endswith("status.calhegasmorais.pt/status"):
+    if low.rstrip("/").endswith("node.spencer-morais.pt/status/status"):
         return {"url": url, "ok": False, "error": "never status-worker /status", "http": 0}
     if accept == "*/*" and low.rstrip("/").endswith("/health"):
         accept = "application/json"

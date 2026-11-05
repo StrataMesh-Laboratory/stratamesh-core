@@ -4,7 +4,7 @@ import json, urllib.request
 from urllib.error import URLError, HTTPError
 
 LAYERS = [
-    ("pages", "https://calhegasmorais.pt/"),
+    ("pages", "https://node.spencer-morais.pt/"),
     ("python", "http://127.0.0.1:8790/health"),
     ("node", "http://127.0.0.1:8791/health"),
     ("workerd", "http://127.0.0.1:8788/health"),

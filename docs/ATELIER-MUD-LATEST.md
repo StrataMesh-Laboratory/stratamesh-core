@@ -10,10 +10,10 @@ This page is the **index**. Do not fork a second ontology.
 
 | URL | HTTP | What |
 |-----|------|------|
-| [/gnu-atelier.html](https://calhegasmorais.pt/gnu-atelier.html) | 200 | First-party GNU Atelier (Bancada). Not `gnu-atelier.pages.dev` as maker URL. |
-| [/oss-pass](https://calhegasmorais.pt/oss-pass) | 200 | PASS matrix HTML |
-| [/atelier](https://calhegasmorais.pt/atelier) | **404** | Honest — not a fake SPA 200. Hop or real HTML only. |
-| [sandbox.calhegasmorais.pt](https://sandbox.calhegasmorais.pt/) | 200 | Sandbox host `/` + `/sandbox` |
+| [/gnu-atelier.html](https://node.spencer-morais.pt/gnu-atelier.html) | 200 | First-party GNU Atelier (Bancada). Not `gnu-atelier.pages.dev` as maker URL. |
+| [/oss-pass](https://node.spencer-morais.pt/oss-pass) | 200 | PASS matrix HTML |
+| [/atelier](https://node.spencer-morais.pt/atelier) | **404** | Honest — not a fake SPA 200. Hop or real HTML only. |
+| [node.spencer-morais.pt/sandbox](https://node.spencer-morais.pt/sandbox/) | 200 | Sandbox host `/` + `/sandbox` |
 
 ## Git (frontend)
 

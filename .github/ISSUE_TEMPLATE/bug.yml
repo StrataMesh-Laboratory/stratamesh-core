@@ -19,7 +19,7 @@ body:
     id: surface
     attributes:
       label: Surface / repo path
-      placeholder: e.g. fund.calhegasmorais.pt / workers/stratamesh-spa
+      placeholder: e.g. node.spencer-morais.pt/fund / workers/stratamesh-spa
   - type: textarea
     id: repro
     attributes:

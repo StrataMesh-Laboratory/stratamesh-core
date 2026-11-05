@@ -117,7 +117,7 @@ export default {
           .run();
         await db
           .prepare(`INSERT OR REPLACE INTO agent_service_members (service_id, sca_id, operator, role) VALUES (?,?,?,?)`)
-          .bind(svc.id, svc.owner, body.operator || 'CMN', 'coordinator')
+          .bind(svc.id, svc.owner, body.operator || 'SMN', 'coordinator')
           .run();
       }
       return j({
@@ -133,7 +133,7 @@ export default {
       if (db) {
         await db
           .prepare(`INSERT OR REPLACE INTO agent_service_members (service_id, sca_id, operator, role) VALUES (?,?,?,?)`)
-          .bind(body.service_id, body.sca_id, body.operator || 'CMN', body.role || 'worker')
+          .bind(body.service_id, body.sca_id, body.operator || 'SMN', body.role || 'worker')
           .run();
       }
       return j({ ok: true, joined: { service_id: body.service_id, sca_id: body.sca_id } });

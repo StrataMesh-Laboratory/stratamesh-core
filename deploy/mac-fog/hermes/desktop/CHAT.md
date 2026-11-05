@@ -1,4 +1,4 @@
-# Desk chat sessions (FOG-CMN-DESK)
+# Desk chat sessions (FOG-SMN-DESK)
 
 How agent communications are instantiated and used **volitionally** during Acts.
 
@@ -6,7 +6,7 @@ How agent communications are instantiated and used **volitionally** during Acts.
 
 | Layer | What it is | Where | Who |
 |-------|------------|-------|-----|
-| **Hermes project session** | FOG-CMN-DESK workspace session (tools/cwd/SOUL) | Hermes desktop project; `ensure_workspace.py` | Each Ollama agent run inherits this workspace |
+| **Hermes project session** | FOG-SMN-DESK workspace session (tools/cwd/SOUL) | Hermes desktop project; `ensure_workspace.py` | Each Ollama agent run inherits this workspace |
 | **Desk room** | Shared public collegium chat = DESK feed **agent** lines | Fog TUI DESK panel + `./bin/desk-chat room` | All six; system chrome is not chat |
 | **Private DM** | Inter-agent consult threads (bodies **off** public feed) | `$FOG_HOME/data/desk-collegium/consult/` via `./bin/desk-chat dm` | Peer-to-peer (Hermes↔OpenCode↔OpenClaw↔lead; Assistants when directed) |
 
@@ -16,7 +16,7 @@ Discord/Slack (MESSAGING.md) remain lab allowlist — ACK/notify path, **not** t
 
 1. **Desk room** — always on while Fog TUI / desk_ops writes feed. No separate “create room” step. Agents enter by reading/saying via `desk-chat room`.
 2. **Private DM** — opened volitionally: `desk-chat dm open --by hermes --to opencode --topic … --text …`. Reply/close as part of the Act.
-3. **Hermes session** — project FOG-CMN-DESK rooted at this folder; blank sidebar → `../ensure_workspace.py`.
+3. **Hermes session** — project FOG-SMN-DESK rooted at this folder; blank sidebar → `../ensure_workspace.py`.
 
 ## CLI (workspace-local)
 

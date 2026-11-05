@@ -192,7 +192,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -621,7 +621,7 @@ const SYSCALLS = {
   },
   garantir_reino_lab: {
     holon: "virtual_realm",
-    descricao: "Garante domínio virtual laboratorial CMN",
+    descricao: "Garante domínio virtual laboratorial SMN",
     emite: "realm.created",
     endpoint: "/ensure-lab",
     metodo: "GET",

@@ -18,9 +18,9 @@
 4. Corporate votes ignore client-supplied weight; weight = capital share.
 5. Corporate partners: `POST /dao/partner` with `registry_ref` + `registry_jurisdiction`.
 
-## CMN instances
-- **DAO-CMN-ASSOCIATIVE** — mixed ACBs + FOG + operator; equal quotas
-- **DAO-CMN-CORPORATE** — FOG unipersonal partner; registry `PT-CMN-UNIPERSONAL-PENDING`
+## SMN instances
+- **DAO-SMN-ASSOCIATIVE** — mixed ACBs + FOG + operator; equal quotas
+- **DAO-SMN-CORPORATE** — FOG unipersonal partner; registry `PT-SMN-UNIPERSONAL-PENDING`
 
 ## API
 - `POST /dao/create` `{ kind: "associative"|"corporate" }`

@@ -1,6 +1,6 @@
 {
   "schema": "desk.apps.v1",
-  "workspace": "FOG-CMN-DESK",
+  "workspace": "FOG-SMN-DESK",
   "browser": {
     "preferred": [
       "Google Chrome",
@@ -107,7 +107,7 @@
     {
       "id": "hermes",
       "cmd": "hermes",
-      "why": "Coord specialty / FOG-CMN-DESK host"
+      "why": "Coord specialty / FOG-SMN-DESK host"
     },
     {
       "id": "desk-mail",

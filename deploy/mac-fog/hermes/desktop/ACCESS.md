@@ -1,4 +1,4 @@
-# ACCESS — FOG-CMN-DESK directed map (Hermes / OpenCode / OpenClaw)
+# ACCESS — FOG-SMN-DESK directed map (Hermes / OpenCode / OpenClaw)
 
 **Read this as mandate.** Tools live **inside this workspace** under `bin/` — do not wait for STRATAGROK PATH.
 

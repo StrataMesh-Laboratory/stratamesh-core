@@ -2,11 +2,11 @@
 
 **Rule:** absorb **mechanics**, not ontology. STRATA mint stays PdC-only. No USDC into #mint. No 6th cron. No workers.dev ingest. Lab n=1.
 
-Companion to [OPEN_SOURCE_SWEEP.md](./OPEN_SOURCE_SWEEP.md) (2026-08-20). This file is **what they shipped since then** and **what CMN should copy as structure**, not as tokens.
+Companion to [OPEN_SOURCE_SWEEP.md](./OPEN_SOURCE_SWEEP.md) (2026-08-20). This file is **what they shipped since then** and **what SMN should copy as structure**, not as tokens.
 
 ## Dimension matrix
 
-| Dim | Adjacent (recent) | Structural problem they closed | Do **not** copy | CMN surface | Ord |
+| Dim | Adjacent (recent) | Structural problem they closed | Do **not** copy | SMN surface | Ord |
 |---|---|---|---|---|---|
 | DAG / tips | IOTA **Rebased** (dPoS, storage fees, left Tangle 2.0) | Validator set + storage rent; feeless IoT DAG did not scale their org | Rebased chain, AKT/IOTA fees, abandoning GDA | Keep R-URTS + MCMC on `stratamesh-consensus`. Add **storage-rent analog** as PdS burn for D1/R2 bytes, not a second token | P1 |
 | Gossip | libp2p **gossipsub 0.49.5** (2026-07): mesh degree D≈6 (4–12); Holochain **0.5 kitsune2** gossip rewrite | Unbounded flood vs bounded mesh; wire-protocol break to get gossip cheap | Full libp2p on Workers; Holochain conductor | Bound gossip **fan-out** (already Cache API 60s on `/peers`). Next: **IHAVEs** (IDs only) not full events; D_lab=2 (Fog+EDGE) honest | P0 |
@@ -47,7 +47,7 @@ Cap 1–3 ships per Dev Cycle. Handler = `id, priority, owner, verb, success_che
 - **verb:** `GET /peers` stays cached; add `GET /events?have=` digest; no full graph on probe.
 - **success_check:** `/peers` cache hit; probe loop does not 2× EDGE Worker.
 - **owner:** mesh · **effort:** S
-- Already: Cache API 60s, custom domain `gossip.calhegasmorais.pt`.
+- Already: Cache API 60s, custom domain `node.spencer-morais.pt/gossip`.
 
 ### Slice D — P1 PdS-402 (x402 shape, STRATA rail)
 - **verb:** paid routes return `402` + `{burn_to:"#0"}`; client retries after PdS.

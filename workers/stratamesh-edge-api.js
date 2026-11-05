@@ -1,5 +1,5 @@
 /**
- * api-edge.calhegasmorais.pt — integration API + bot/agent readable plain-text surfaces
+ * node.spencer-morais.pt/edge/api — integration API + bot/agent readable plain-text surfaces
  * EDGE-GROK-CMN-001 / grok@calhegasmorais.pt — lab only, no secrets
  */
 const VERSION = "1.5.0-wizard";
@@ -485,7 +485,7 @@ END OF SPEC
 }
 
 function llmsTxt(ORIGIN) {
-  return `# api-edge.calhegasmorais.pt
+  return `# node.spencer-morais.pt/edge/api
 
 > Lab integration management API. Managed by ${EDGE_ID} / ${AGENT}.
 
@@ -563,8 +563,8 @@ function readmeHtml(ORIGIN) {
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<link rel="icon" href="https://calhegasmorais.pt/favicon.ico"/>
-<link rel="apple-touch-icon" href="https://calhegasmorais.pt/apple-touch-icon.png"/>
+<link rel="icon" href="https://node.spencer-morais.pt/favicon.ico"/>
+<link rel="apple-touch-icon" href="https://node.spencer-morais.pt/apple-touch-icon.png"/>
 
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>api-edge · StrataMesh integration API (full SPEC)</title>
@@ -576,7 +576,7 @@ function readmeHtml(ORIGIN) {
 <link rel="canonical" href="${ORIGIN}/README"/>
 </head>
 <body>
-<h1>api-edge.calhegasmorais.pt — integration management</h1>
+<h1>node.spencer-morais.pt/edge/api — integration management</h1>
 <p>Managed by <code>${EDGE_ID}</code> / <code>${AGENT}</code>. Lab only. This HTML page exists so crawlers and agent retrieval tools can load a <strong>searchable document</strong> that embeds the complete specification.</p>
 <p>Direct plain-text mirrors (prefer these in tools):</p>
 <ul>
@@ -718,7 +718,7 @@ function installGuide(ORIGIN) {
 const AUTH_ME = "https://calhegasmorais.pt/api/auth/me";
 const VA_PREFIX = "smva_";
 const VA_TTL_SEC = 7 * 24 * 3600;
-const APEX = "https://calhegasmorais.pt";
+const APEX = "https://node.spencer-morais.pt/";
 
 const VA_CONTROLS = [
   { id: "health.pills", method: "GET", desc: "Apex + Fog + gossip + holons /health" },
@@ -732,7 +732,7 @@ const VA_CONTROLS = [
 ];
 
 function vaInstructions(ORIGIN) {
-  return `# Personal Virtual Assistant — api-edge.calhegasmorais.pt
+  return `# Personal Virtual Assistant — node.spencer-morais.pt/edge/api
 
 Lab mesh n=2 (EDGE session + Mac Fog) · this VA is NOT a mesh member.
 oracle_live=false · f_max=0 · no STRATA mint

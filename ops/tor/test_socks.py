@@ -16,7 +16,7 @@ GOSSIP = "http://10.0.0.2:8787/gossip"
 GITHUB = "https://api.github.com/repos/StrataMesh-Laboratory/stratamesh-core"
 CF_GQL = "https://api.cloudflare.com/client/v4/graphql"
 WRANGLER = "https://api.cloudflare.com/client/v4/accounts/x/workers/scripts"
-APEX = "https://calhegasmorais.pt/api/v1/gossip/peers"
+APEX = "https://node.spencer-morais.pt/api/v1/gossip/peers"
 ONION = "http://exampleonionexampleonionexampleonionexampleonionexamp.onion/health"
 
 

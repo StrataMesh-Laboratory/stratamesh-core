@@ -229,15 +229,15 @@ class Density(unittest.TestCase):
 
     def test_coalesce_drops_workers_dev_and_dupes(self):
         plan = coalesce_intents([
-            {"rail": "cf-worker-req", "url": "https://status.calhegasmorais.pt/health", "signal": 1},
-            {"rail": "cf-worker-req", "url": "https://aiops.calhegasmorais.pt/health", "signal": 1},
-            {"rail": "cf-worker-req", "url": "https://edge.calhegasmorais.pt/health", "signal": 1},
-            {"rail": "cf-worker-req", "url": "https://status.calhegasmorais.pt/health", "signal": 1},
+            {"rail": "cf-worker-req", "url": "https://node.spencer-morais.pt/status/health", "signal": 1},
+            {"rail": "cf-worker-req", "url": "https://node.spencer-morais.pt/aiops/health", "signal": 1},
+            {"rail": "cf-worker-req", "url": "https://node.spencer-morais.pt/edge/health", "signal": 1},
+            {"rail": "cf-worker-req", "url": "https://node.spencer-morais.pt/status/health", "signal": 1},
             {"rail": "cf-worker-req", "url": "https://x.stratamesh.workers.dev/health", "signal": 1},
-            {"rail": "cf-pages", "url": "https://calhegasmorais.pt/", "pages": True, "signal": 1},
+            {"rail": "cf-pages", "url": "https://node.spencer-morais.pt/", "pages": True, "signal": 1},
         ], CFG)
         urls = [p.get("url") for p in plan]
-        self.assertTrue(any("calhegasmorais.pt/" == u.rstrip("/")[-20:] or "calhegasmorais.pt" in (u or "") and "/health" not in (u or "") for u in urls) or any(p.get("pages") for p in plan))
+        self.assertTrue(any(("spencer-morais.pt" in (u or "") or "calhegasmorais.pt" in (u or "")) and "/health" not in (u or "") for u in urls) or any(p.get("pages") for p in plan))
         self.assertFalse(any("workers.dev" in (u or "") for u in urls))
         worker = [p for p in plan if p.get("coalesced")]
         self.assertEqual(len(worker), 1)

@@ -26,7 +26,7 @@ circuit STASIS  if hour_spent ≥ 2 × hourly_cap      # unadjusted
 `decide()` may still label HOLD/STASIS. The request-path effector is `admit()`:
 
 1. Pace on the primary rail (HOLD: P(admit)=deflator; first STASIS: P=min(deflator, 0.5)). Retry-After, not HTTP 503.
-2. If `paceFailed` (previous circuit already HOLD/STASIS **and** still STASIS at ≥2× unadjusted cap): fail-open to a named contingency hop when `contingency_url` + `contingency_ok` — CF Workers auth → `https://auth.calhegasmorais.pt` (python :8790 JSON); apex HTML → Pages (`calhegasmorais-pt`), not Worker SPA; `/sandbox` → `https://sandbox.calhegasmorais.pt/`.
+2. If `paceFailed` (previous circuit already HOLD/STASIS **and** still STASIS at ≥2× unadjusted cap): fail-open to a named contingency hop when `contingency_url` + `contingency_ok` — CF Workers auth → `https://auth.calhegasmorais.pt` (python :8790 JSON); apex HTML → Pages (`calhegasmorais-pt`), not Worker SPA; `/sandbox` → `https://node.spencer-morais.pt/sandbox/`.
 3. **Freeze** (hard reject) only if pace already failed **and** no contingency is configured/healthy. Freeze is a **temporary holding pattern** until those routes recover.
 
 `env STASIS=1` → Worker 503 is a **bug**. Do not PATCH that binding from `metabolic-stasis-enforce.py`. Live `stratamesh-auth` 2.10.5-turnstile-lab is a different freeze; do not overwrite it blindly.

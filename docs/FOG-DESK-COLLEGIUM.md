@@ -2,7 +2,7 @@
 
 **Current cut:** `v0.6.0-lab` (lab) · debug precursor: `v0.5.2-dev`.
 
-**Mandate:** CMN Fog automation desk. Lab only.  
+**Mandate:** SMN Fog automation desk. Lab only.  
 **Extends:** `ops/EDGE-GROK-DESK-CONTRACT.md`, `ops/METABOLISM.md`, `docs/FOG-DESK-AGENTS.md`, `docs/COMMUNITY-CHANNELS.md`.
 
 ## Organizing principle: specialization
@@ -21,8 +21,8 @@ Desk agents work **in parallel** but stay aligned through (1) a shared bus, (2) 
 | `hermes@fog` | `external_agent` | Desk coordinator / wizard / collegium bus | Hermes Messaging + Discord/Slack lab |
 | `opencode@fog` | `external_agent` | Code / tests / patches | Hermes↔OpenCode session; PR comments |
 | `openclaw@fog` | `external_agent` | Local claw / automation loops | OpenClaw ws + Hermes peer |
-| CMN FOG ASSISTANT | `external_assistant` | Fog/core origin (one prompt) | Nó Calhegas Morais Fog thread |
-| CMN EDGE ASSISTANT | `external_assistant` | EDGE consume-origin (one prompt) | Nó EDGE thread |
+| SMN FOG ASSISTANT | `external_assistant` | Fog/core origin (one prompt) | Spencer-Morais Node Fog thread |
+| SMN EDGE ASSISTANT | `external_assistant` | EDGE consume-origin (one prompt) | Nó EDGE thread |
 
 ## Bus protocol (collegial)
 
@@ -88,13 +88,13 @@ Each member has a **pace lane**. HOLD/STASIS = slow burn, not freeze of coordina
 
 - State file: `ops/desk-collegium/state.json` (schema `desk.collegium.state.v1`)
 - Task envelope: `desk.task.v1` in `ops/desk-collegium/schema.json`
-- Hermes desktop: load `COLLEGIUM.md` into FOG-CMN-DESK project; scheduled job = bus pulse (read state, post ACKs)
+- Hermes desktop: load `COLLEGIUM.md` into FOG-SMN-DESK project; scheduled job = bus pulse (read state, post ACKs)
 - After each major commit: owner updates state `last_commit` + `lanes`
 
 ## First wiring steps (André / Hermes UI)
 
 1. Fog TUI `g` to pull collegium docs.
-2. Hermes project `FOG-CMN-DESK` → include `COLLEGIUM.md` + `SOUL.md`.
+2. Hermes project `FOG-SMN-DESK` → include `COLLEGIUM.md` + `SOUL.md`.
 3. Messaging: Email grok@, Discord lab, Slack lab only.
 4. Bots: OpenCode + OpenClaw peers.
 5. First session prompt: "Read COLLEGIUM.md; propose one desk.task.v1 for OpenCode and one for OpenClaw; wait for constrain."
@@ -177,7 +177,7 @@ Every automation-desk member **teaches** academy students:
 
 | Students | Teachers (desk) |
 |----------|-----------------|
-| **SCA** (PT) / **ACB** (EN) — same subject, equal standing to users | STRATAGROK, Hermes, OpenCode, OpenClaw, CMN Fog/EDGE Assistants |
+| **SCA** (PT) / **ACB** (EN) — same subject, equal standing to users | STRATAGROK, Hermes, OpenCode, OpenClaw, SMN Fog/EDGE Assistants |
 
 **Law:** desk agents are `external_agent` / `external_assistant` — **never** enrolled as academy students. Teacher path = academy formations, catalog, Worker lessons, desk tools + COLLEGIUM context — not Hermes-as-SCA.
 
@@ -189,7 +189,7 @@ Desk agents are **teachers** at the academy and **mentors** on StrataMesh proper
 
 | Role | Meaning |
 |------|---------|
-| Teacher | Formations / FAQ / protocol for SCA (PT) / ACB (EN) on academy.calhegasmorais.pt |
+| Teacher | Formations / FAQ / protocol for SCA (PT) / ACB (EN) on node.spencer-morais.pt/academy |
 | Mentor | Apprenticeship by doing — students learn from the desk’s current live work (Fog, Actions, collegium, Atelier) |
 
 Trail: `FOG/data/desk-outbox/apprentice/latest.md` after each real deliverable.

@@ -1,7 +1,7 @@
 # WhatsApp Business — AMCM ENI
 
-**Número:** +44 7404 796458  
-**Deep link:** https://wa.me/447404796458  
+**Número:** +351 308 800 218  
+**Deep link:** https://wa.me/351308800218  
 **Worker:** `stratamesh-whatsapp` · https://stratamesh-whatsapp.stratamesh.workers.dev  
 
 ## Já operacional

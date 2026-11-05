@@ -34,7 +34,7 @@ GraphQL 2026-09-01 00:00Z→12:30Z:
 ## Contingency sequence (DOWN)
 1. Detect 1027 / GraphQL hour_spent ≥ 2× hourly_cap → **STASIS**.
 2. Serve apex from **Pages** `calhegasmorais-pt` (already bound to the zone).
-3. Atelier: `sandbox.calhegasmorais.pt` only if under cap; else dashboard iframe → Pages copy / Node.
+3. Atelier: `node.spencer-morais.pt/sandbox` only if under cap; else dashboard iframe → Pages copy / Node.
 4. Auth `/me`: cache 60s in the browser; no poll.
 5. Intensive probes → Node `:8791`, never KV `RATE_LIMIT`.
 6. Human channel: daily Actions (`metabolic-stasis.yml`), not #52.
@@ -54,12 +54,12 @@ Static Pages assets do not consume the Workers 100k/plan bucket.
 
 ## Mutual mw channels (2026-09-02)
 
-Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and of CF (Workers 100k/day reset 00:00 UTC / 01:00 PT, KV 1000 writes/day, Pages HTML). Prefer first healthy: Deno (object/mail/resolve) · python (auth/wb) · node (compose) · CF paced API. Freeze last. Never workers.dev, never spa catch-all, never a 6th cron. workerd `:8788` metabol is local meter (`HOPMESH`); do not poll `status.calhegasmorais.pt` on the TUI tick. Inbound MX stays CF Email Routing.
+Python `:8790`, Node `:8791`, and Deno `:8792` are fallbacks of each other and of CF (Workers 100k/day reset 00:00 UTC / 01:00 PT, KV 1000 writes/day, Pages HTML). Prefer first healthy: Deno (object/mail/resolve) · python (auth/wb) · node (compose) · CF paced API. Freeze last. Never workers.dev, never spa catch-all, never a 6th cron. workerd `:8788` metabol is local meter (`HOPMESH`); do not poll `node.spencer-morais.pt/status` on the TUI tick. Inbound MX stays CF Email Routing.
 
 
 ## Hold HTML vs live hops (2026-09-02)
 
-`frontend/maintenance-1xxx.html` is **layer 5** (not CF, not workers.dev). Live `academy.` Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `sandbox.calhegasmorais.pt` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
+`frontend/maintenance-1xxx.html` is **layer 5** (not CF, not workers.dev). Live `academy.` Live `academy.` `aiops.` `fund.` `edge.` HTML (and `/health` on academy/edge) still serve that card. Apex `calhegasmorais.pt` and `node.spencer-morais.pt/sandbox` are live. Freeze-HTML leftover, not metabol pace. Restore from git Workers/Pages when ALLOW. No spa catch-all, no extra cron.
 
 
 ## /health outdated alias (2026-09-02)

@@ -33,7 +33,7 @@ permissions:
   pull-requests: write
 
 env:
-  EDGE_GROK_API: https://api-edge.calhegasmorais.pt
+  EDGE_GROK_API: https://node.spencer-morais.pt/edge/api
   EDGE_GROK_ENDPOINT: /automation/desk/tasks
 
 jobs:

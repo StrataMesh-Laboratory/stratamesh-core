@@ -1,4 +1,4 @@
-# automation.desk@ — ./bin/desk-mail CLI (FOG-CMN-DESK)
+# automation.desk@ — ./bin/desk-mail CLI (FOG-SMN-DESK)
 
 Shared collegium mailbox for **Hermes / OpenCode / OpenClaw** (and STRATAGROK on Mac).  
 Address: `automation.desk@calhegasmorais.pt`  

@@ -20,7 +20,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, sys, urllib.error, urllib.request
-          URL = "https://fog.calhegasmorais.pt/health"
+          URL = "https://node.spencer-morais.pt/fog/health"
           HOLD = "Laboratório em manutenção"
           req = urllib.request.Request(
               URL,

@@ -113,7 +113,7 @@ def default_targets() -> List[PingTarget]:
         PingTarget("workerd", f"http://127.0.0.1:{WORKERD_PORT}/health", required=True),
     ]
     if (os.environ.get("FOG_PING_PUBLIC") or "").strip().lower() in ("1", "true", "yes"):
-        pub = (os.environ.get("FOG_PUBLIC_URL") or "https://fog.calhegasmorais.pt/health").strip()
+        pub = (os.environ.get("FOG_PUBLIC_URL") or "https://node.spencer-morais.pt/fog/health").strip()
         if not refuse_workers_dev(pub):
             out.append(PingTarget("public", pub, required=False))
     return out

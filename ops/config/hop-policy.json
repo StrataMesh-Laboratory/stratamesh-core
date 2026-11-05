@@ -93,7 +93,7 @@
     "cf-auth:ALLOW": "metabol gate only; never workers.dev; never Worker PUT on hot path; skip on HOLD/STASIS; login/auth never 503",
     "cf-pages:ALLOW": "static Pages / pages.dev; outside Worker 100k; never SPA catch-all",
     "cf-deomail:ALLOW": "deomail API when ALLOW; inbound MX stays CF Email Routing; not a Worker",
-    "cf-metabol:ALLOW": "CF metabol gate only (HOPMESH local meter); do not poll status.calhegasmorais.pt on the TUI tick"
+    "cf-metabol:ALLOW": "CF metabol gate only (HOPMESH local meter); do not poll node.spencer-morais.pt/status on the TUI tick"
   },
   "hold_html": "frontend/maintenance-1xxx.html",
   "metabol_pace": "per-hop (own renewal/quota/burn_rate)",

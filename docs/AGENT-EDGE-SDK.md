@@ -5,12 +5,12 @@ It installs a **local contributor edge device** using the same mechanics as **ED
 
 | Resource | URL |
 |----------|-----|
-| **Edge desk (UI + API)** | https://edge.calhegasmorais.pt/ |
-| **Edge health JSON** | https://edge.calhegasmorais.pt/health |
-| **Edge status JSON** | https://edge.calhegasmorais.pt/status |
-| **Fog status** | https://status.calhegasmorais.pt/ |
-| **Gossip peers (mesh)** | https://calhegasmorais.pt/api/v1/gossip/peers |
-| **AIOps actions** | https://aiops.calhegasmorais.pt/actions |
+| **Edge desk (UI + API)** | https://node.spencer-morais.pt/edge/ |
+| **Edge health JSON** | https://node.spencer-morais.pt/edge/health |
+| **Edge status JSON** | https://node.spencer-morais.pt/edge/status |
+| **Fog status** | https://node.spencer-morais.pt/status/ |
+| **Gossip peers (mesh)** | https://node.spencer-morais.pt/api/v1/gossip/peers |
+| **AIOps actions** | https://node.spencer-morais.pt/aiops/actions |
 | **This SDK (canonical)** | https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/AGENT-EDGE-SDK.md |
 | **Edge node docs** | https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/EDGE-GROK-NODE.md |
 | **Local grounding pattern** | https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/EDGE-GROK-LOCAL.md |
@@ -25,7 +25,7 @@ A **contributor edge** is:
 
 1. **Local** background process(es) on the machine/session where the agent runs.  
 2. **Idle priority only** — never compete with the user’s primary work (same policy as EDGE-GROK).  
-3. **Observer + heartbeat** toward Fog / edge.calhegasmorais.pt / gossip.  
+3. **Observer + heartbeat** toward Fog / node.spencer-morais.pt/edge / gossip.  
 4. **Honest** — if offline, it must **not** appear as a live mesh peer.
 
 Reference identity on the graph today:
@@ -71,12 +71,12 @@ Do **not** reuse `EDGE-GROK-CMN-001` or `FOG-NODE-PT-CM-001`.
 ### 4.1 Read mesh state
 
 ```bash
-curl -sS https://edge.calhegasmorais.pt/health
-curl -sS https://edge.calhegasmorais.pt/status
-curl -sS https://edge.calhegasmorais.pt/?format=json
-curl -sS https://status.calhegasmorais.pt/
-curl -sS https://calhegasmorais.pt/api/v1/gossip/peers
-curl -sS https://aiops.calhegasmorais.pt/actions
+curl -sS https://node.spencer-morais.pt/edge/health
+curl -sS https://node.spencer-morais.pt/edge/status
+curl -sS https://node.spencer-morais.pt/edge/?format=json
+curl -sS https://node.spencer-morais.pt/status/
+curl -sS https://node.spencer-morais.pt/api/v1/gossip/peers
+curl -sS https://node.spencer-morais.pt/aiops/actions
 ```
 
 ### 4.2 Semantics
@@ -140,10 +140,10 @@ contributor-edge/
 ```bash
 NODE_ID=EDGE-CONTRIB-REPLACE-ME
 FOG_ID=FOG-NODE-PT-CM-001
-EDGE_DESK_URL=https://edge.calhegasmorais.pt
-FOG_STATUS_URL=https://status.calhegasmorais.pt/
-FOG_GOSSIP_URL=https://calhegasmorais.pt/api/v1/gossip/peers
-AIOPS_URL=https://aiops.calhegasmorais.pt/actions
+EDGE_DESK_URL=https://node.spencer-morais.pt/edge
+FOG_STATUS_URL=https://node.spencer-morais.pt/status/
+FOG_GOSSIP_URL=https://node.spencer-morais.pt/api/v1/gossip/peers
+AIOPS_URL=https://node.spencer-morais.pt/aiops/actions
 HEARTBEAT_SEC=300
 HTTP_TIMEOUT_SEC=5
 MAX_RUNTIME_SEC=20
@@ -181,9 +181,9 @@ echo $! > state/heartbeat.pid
 ### Step E — Verify
 
 ```bash
-curl -sS https://edge.calhegasmorais.pt/health | head
+curl -sS https://node.spencer-morais.pt/edge/health | head
 cat state/last_heartbeat.json
-curl -sS https://calhegasmorais.pt/api/v1/gossip/peers
+curl -sS https://node.spencer-morais.pt/api/v1/gossip/peers
 ```
 
 Expect Fog + EDGE-GROK on gossip; your local node appears in **local state**, not necessarily on gossip until it has a public health URL.
@@ -232,9 +232,9 @@ Each beat writes state/last_heartbeat.json (at, node_id, mode, mesh_member, prob
 On network errors: probes.*.ok=false with real error string — NEVER invent success or gossip membership.
 
 Probe when network works:
-https://edge.calhegasmorais.pt/health
-https://status.calhegasmorais.pt/
-https://calhegasmorais.pt/api/v1/gossip/peers
+https://node.spencer-morais.pt/edge/health
+https://node.spencer-morais.pt/status/
+https://node.spencer-morais.pt/api/v1/gossip/peers
 
 Success is SPLIT: PASS process (pid+nice+state file) vs PASS network (probes). DNS failure ⇒ PASS process / DEGRADED network — keep process up, do not fabricate peers.
 Show status.sh + last_heartbeat.json + ps nice line when done.
@@ -248,7 +248,7 @@ Use web/HTTP tools to fetch the three URLs above; merge into last_heartbeat.json
 Confirm EDGE-GROK-CMN-001 + FOG-NODE-PT-CM-001 from tool results. See SDK §11.
 ```
 
-Guided links: desk https://edge.calhegasmorais.pt/ · health/status on same host · fog https://status.calhegasmorais.pt/ · gossip https://calhegasmorais.pt/api/v1/gossip/peers · observers https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/CONTRIBUTOR-OBSERVERS.md
+Guided links: desk https://node.spencer-morais.pt/edge/ · health/status on same host · fog https://node.spencer-morais.pt/status/ · gossip https://node.spencer-morais.pt/api/v1/gossip/peers · observers https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/CONTRIBUTOR-OBSERVERS.md
 
 
 ## 8. Agent-specific notes
@@ -281,14 +281,14 @@ No vendor-specific binary is required — **HTTP JSON + idle local loop** is the
 - [ ] User can `stop` without killing unrelated processes  
 - [ ] No fake entry on gossip without public `/health` 200  
 
-**Reference implementation pattern:** EDGE-GROK local tree (`edge-grok/`) + public Worker https://edge.calhegasmorais.pt/
+**Reference implementation pattern:** EDGE-GROK local tree (`edge-grok/`) + public Worker https://node.spencer-morais.pt/edge/
 
 
 ---
 
 ## 11. Degraded network / DNS failure (agent sandboxes)
 
-Some runtimes (e.g. ChatGPT Code Interpreter, restricted containers) start the heartbeat with **correct nice/ionice** but **cannot resolve DNS** for `edge.calhegasmorais.pt` / Cloudflare.
+Some runtimes (e.g. ChatGPT Code Interpreter, restricted containers) start the heartbeat with **correct nice/ionice** but **cannot resolve DNS** for `node.spencer-morais.pt/edge` / Cloudflare.
 
 ### Required honesty
 
@@ -319,9 +319,9 @@ Never invent successful probes or gossip membership.
 ### Reference check (from a networked environment)
 
 ```bash
-curl -sS https://edge.calhegasmorais.pt/health
-curl -sS https://status.calhegasmorais.pt/
-curl -sS https://calhegasmorais.pt/api/v1/gossip/peers
+curl -sS https://node.spencer-morais.pt/edge/health
+curl -sS https://node.spencer-morais.pt/status/
+curl -sS https://node.spencer-morais.pt/api/v1/gossip/peers
 ```
 
 Expected: `EDGE-GROK-CMN-001` live; `FOG-NODE-PT-CM-001` operational; mesh count ≥ 1.

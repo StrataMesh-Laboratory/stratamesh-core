@@ -1,6 +1,6 @@
-# StrataMesh / CMN — Open-source sweep (free API / SDK paths)
+# StrataMesh / SMN — Open-source sweep (free API / SDK paths)
 
-Scope: GitHub projects whose **mechanics or free HTTP/JS APIs** can align with the Nó Calhegas Morais without paid add-ons.  
+Scope: GitHub projects whose **mechanics or free HTTP/JS APIs** can align with the Spencer-Morais Node without paid add-ons.  
 Rule: absorb **models**, not foreign ontology. STRATA mint stays **PdC-only**.
 
 ## Priority matrix
@@ -25,13 +25,13 @@ Rule: absorb **models**, not foreign ontology. STRATA mint stays **PdC-only**.
 
 ### IOTA → GDA
 - **Integrated:** cumulative weight, R-URTS-style non-lazy pool, MCMC α tip pick, tip-sample confidence module.
-- **Not integrated:** live attachment to IOTA mainnet (unnecessary; CMN is its own TRD).
+- **Not integrated:** live attachment to IOTA mainnet (unnecessary; SMN is its own TRD).
 - **Free OSS to reuse later:** algorithm text from [IOTA-2.0 tip selection](https://github.com/iotaledger/IOTA-2.0-Research-Specifications); visual ideas from tangle visualisers (UI only).
 
 ### Hedera → gossip + virtual voting
 - **Integrated:** event = (ts, txs, selfParent, otherParent, hash); lab 2/3 fame vote without vote messages.
 - **Not integrated:** full aBFT hashgraph (explicitly lab).
-- **Free:** protocol description only; no free production Hedera mirror required for CMN logic.
+- **Free:** protocol description only; no free production Hedera mirror required for SMN logic.
 
 ### Akash / Render → DePIN
 - **Integrated:** provider register, reverse auction, bid, lease, escrow book-entry, settle; resource **class** pricing.
@@ -50,7 +50,7 @@ Rule: absorb **models**, not foreign ontology. STRATA mint stays **PdC-only**.
 - **Free OSS:** [azimuth-js](https://github.com/urbit/azimuth-js) only if/when bridging external identity reads.
 
 ## IPFS (edge + fog)
-| Tool | Use on CMN |
+| Tool | Use on SMN |
 |------|------------|
 | Public gateways (`ipfs.io`, `dweb.link`, `cf-ipfs.com`) | Free read of CIDs |
 | Helia (browser) | Client-side verify later |
@@ -63,7 +63,7 @@ Rule: absorb **models**, not foreign ontology. STRATA mint stays **PdC-only**.
 - Running Urbit ship or Holochain conductor on CF free tier
 - Importing PoW or chain-native gas tokens into STRATA mint path
 
-## Live API (CMN)
+## Live API (SMN)
 - `/api/v1/consensus/*` — IOTA-inspired tips + modules  
 - `/api/v1/gossip/*` — Hedera-inspired events  
 - `/api/v1/depin/*` — Akash-inspired market (+ SDL-lite)  

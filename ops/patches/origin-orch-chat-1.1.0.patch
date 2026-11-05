@@ -45,7 +45,7 @@ index 6ed44cc..1f204be 100644
 +async function probeFogHealth1500() {
 +  const a = abortAfter(1500);
 +  try {
-+    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
++    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
 +      method: 'GET',
 +      headers: { Accept: 'application/json' },
 +      signal: a.signal,
@@ -186,7 +186,7 @@ index 6ed44cc..1f204be 100644
 +async function probeFogHealth1500() {
 +  const a = abortAfter(1500);
 +  try {
-+    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
++    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
 +      method: 'GET',
 +      headers: { Accept: 'application/json' },
 +      signal: a.signal,
@@ -335,7 +335,7 @@ index ed39bc4..d21cf73 100644
 +async function probeFogHealth1500() {
 +  const a = abortAfter(1500);
 +  try {
-+    const r = await withTimeout(fetch('https://fog.calhegasmorais.pt/health', {
++    const r = await withTimeout(fetch('https://node.spencer-morais.pt/fog/health', {
 +      method: 'GET',
 +      headers: { Accept: 'application/json' },
 +      signal: a.signal,

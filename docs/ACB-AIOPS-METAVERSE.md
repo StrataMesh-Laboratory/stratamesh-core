@@ -18,7 +18,7 @@
 
 ## Holonic placement
 - Sandbox draft: `sbx_9bed54e8-880` (AIOps roster UGC)
-- Virtual Domain: `realm_1f20890b` (CMN AIOps Realm)
+- Virtual Domain: `realm_1f20890b` (SMN AIOps Realm)
 - DAG vertex: `metaverse_acb_roster` anchored from FOG-NODE-PT-CM-001
 
 ## Live contracts (examples)

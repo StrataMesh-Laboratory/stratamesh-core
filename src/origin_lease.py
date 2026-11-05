@@ -1,6 +1,6 @@
 """Fog origin lease — Mac primary, session standby, 30-minute fallback.
 
-Public hostname fog.calhegasmorais.pt is a CNAME to one named tunnel:
+Public hostname node.spencer-morais.pt/fog is a CNAME to one named tunnel:
 
   macbook  → macbook-server   (primary, Mac :8788)
   session  → stratamesh-fog-lab (this Grok host :8788)
@@ -20,7 +20,7 @@ from pathlib import Path
 
 MAC_TUNNEL = "d1323a93-21e4-4ea2-bce8-8b74eece2e13"
 SESSION_TUNNEL = "9cff5878-0962-420f-ab46-9f6a42c3d307"
-FOG_HOST = "fog.calhegasmorais.pt"
+FOG_HOST = "node.spencer-morais.pt/fog"
 ZONE_ID = "cdd8ee56bba57bca8623a86b88c7b7b6"
 FALLBACK_AFTER_SEC = 1800  # 30 min
 ROLE_DEFAULT = "session"

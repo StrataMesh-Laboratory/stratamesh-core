@@ -12,8 +12,8 @@ export const NODE = [
   "http://127.0.0.1:8791/health",
 ];
 export const CF = [
-  "https://calhegasmorais.pt/health",
-  "https://fog.calhegasmorais.pt/health",
+  "https://node.spencer-morais.pt/health",
+  "https://node.spencer-morais.pt/fog/health",
 ];
 
 async function firstOk(urls: string[]): Promise<string> {

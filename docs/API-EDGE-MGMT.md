@@ -6,8 +6,8 @@
 
 | Host | Status |
 |------|--------|
-| https://api.edge.calhegasmorais.pt | DNS + route (propagate) |
-| https://api-edge.calhegasmorais.pt | Alias (propagate) |
+| https://api.node.spencer-morais.pt/edge | DNS + route (propagate) |
+| https://node.spencer-morais.pt/edge/api | Alias (propagate) |
 | https://stratamesh-edge-api.stratamesh.workers.dev | **Live now** |
 
 ## Endpoints
@@ -47,7 +47,7 @@ Rejected fields matching `secret|password|private_key|api_key|token` (except doc
 - Write = lab catalog only (`registered_lab`, `mesh_member: false`)
 - Mesh listing still requires fog health-check of public `/health`
 - KV TTL 90 days for voluntary registrations
-- Desk UI: https://edge.calhegasmorais.pt/
+- Desk UI: https://node.spencer-morais.pt/edge/
 
 ## Example
 

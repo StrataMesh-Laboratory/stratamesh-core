@@ -214,7 +214,7 @@
       var bundle = {
         id: "obj-lab-land-bundle",
         kind: "bundle",
-        name: "CMN Open World #1",
+        name: "SMN Open World #1",
         catalog_class: "open_world",
         aspectos: covers,
         contrato: { type: "ownership", holder: LAB_HOLDER, covers: covers },
@@ -239,7 +239,7 @@
           if (it.containedBy && !cur.containedBy) cur.containedBy = it.containedBy;
           if (it.unmovable) cur.unmovable = true;
           if (it.id === "obj-lab-land-bundle") {
-            cur.name = "CMN Open World #1";
+            cur.name = "SMN Open World #1";
             cur.kind = "bundle";
             cur.catalog_class = "open_world";
             if (it.aspectos) cur.aspectos = it.aspectos;
@@ -277,7 +277,7 @@
           it.unmovable = true;
         }
         if (it.id === "obj-lab-land-bundle") {
-          it.name = "CMN Open World #1";
+          it.name = "SMN Open World #1";
           it.kind = "bundle";
           it.catalog_class = "open_world";
         }
@@ -355,7 +355,7 @@
         var kind = kindLabel(it);
         var st = stateChip(it);
         var title = it.name || kind;
-        if (it.id === "obj-lab-land-bundle") title = "CMN Open World #1";
+        if (it.id === "obj-lab-land-bundle") title = "SMN Open World #1";
         li.innerHTML = "<strong>" + title + "</strong> <span class=\"chip\">" + kind + "</span>" +
           (it.deployed && it.kind !== "lot" ? "<span class=\"chip dep\">" + st + "</span>" : "<span class=\"chip\">" + st + "</span>") ;
         li.onclick = function () { sel = it.id; paintList(); paintDet(); };

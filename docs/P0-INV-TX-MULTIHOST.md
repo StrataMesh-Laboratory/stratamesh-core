@@ -29,7 +29,7 @@ This page is the honesty gate for **≥2 real hosts** exchanging INV/TX.
 | Resource-proof MVP | landed (`src/resource_proof.py`, class `compute`, in-process) |
 | Process-gossip CI | landed (PR #7 / `src/test_process_gossip.py`) — still one machine |
 | Oracle tenancy grok90 | incident `260826-001576` · second host waits |
-| Pages origin | https://calhegasmorais.pt/ · fail-open · source of truth |
+| Pages origin | https://node.spencer-morais.pt/ · fail-open · source of truth |
 | calhegasmorais.grok.me | **unbound** |
 
 Do not claim mesh. Do not treat Worker `stratamesh-gossip` peer lists as multi-host INV/TX.
@@ -171,7 +171,7 @@ Reserved peak `R = remaining / hours_left`. SuperGrok does **not** refill Cloudf
 
 | Rail | Now | Probe rule |
 |------|-----|------------|
-| `cf-worker-req` | **STASIS** consume=0 until **2026-08-29T00:00:00Z**, then Q-gated ALLOW, hold `R` through 31 Aug | Multi-host INV/TX **must not** GET/POST Workers (`edge.calhegasmorais.pt`, `*.workers.dev`, gossip/status/aiops ingest). After refill: **one** Orchestrator `/health` on Pages origin — never `/actions`, never workers.dev. |
+| `cf-worker-req` | **STASIS** consume=0 until **2026-08-29T00:00:00Z**, then Q-gated ALLOW, hold `R` through 31 Aug | Multi-host INV/TX **must not** GET/POST Workers (`node.spencer-morais.pt/edge`, `*.workers.dev`, gossip/status/aiops ingest). After refill: **one** Orchestrator `/health` on Pages origin — never `/actions`, never workers.dev. |
 | `hf-inference` | **HOLD** remaining 0, `canPay=false` until **2026-09-01T00:00:00Z** | No inference. No Worker `HF_TOKEN`. No AI Gateway. Hub whoami/catalog/static commits stay LIVE. |
 | `aiops-actions` | hard_cap **0** | Forbidden. |
 | `cf-cron` | 5/5 | No 6th. |
@@ -225,7 +225,7 @@ Oracle chase remains incident `260826-001576` (**optional**). Second host waits 
 Operator (André) provisions the VM. Bot then:
 
 1. **Record the host.** OCID, region, image, `uname -a`, public IP (or "tunnel-only"), `node_id`. Write GitHub first (`ops/HANDOFF-LATEST.md`, this page's status table).
-2. **Install Fog on the VM** per `HYBRID-ORACLE-CF-TUNNEL.md`: `node_persistent.py --port 8787`, systemd, SQLite on disk. Do not open 8787 to the world; cloudflared → `fog.calhegasmorais.pt` (or chosen hostname).
+2. **Install Fog on the VM** per `HYBRID-ORACLE-CF-TUNNEL.md`: `node_persistent.py --port 8787`, systemd, SQLite on disk. Do not open 8787 to the world; cloudflared → `node.spencer-morais.pt/fog` (or chosen hostname).
 3. **Clear temp markers** (`version: 0.2.1-lab-temp`, `source: Grok managed temporary Fog`) on the next honest publish. Local-process on this box may keep running as a different peer, not as a second name for the same Fog.
 4. **Wire INV/TX** between grok90 `:8787` and this box using `mesh_sync.sync_pair` over SSH/tunnel. Turn on `POST /gossip` only if the envelope is useful; HTTP INV/TX is enough for P0.
 5. **Run the honesty checks** in §2.3. Produce the evidence pack in §2.4. Post it to the PR and t/20 (Discourse cap 6/Lisbon day).

@@ -84,7 +84,7 @@ def load_persona(slug: str) -> dict[str, Any]:
     assert data.get("identity_registry") == "stratamesh"
     assert data.get("world_role_registry") == "cmn"
     assert data.get("world_role_id") == entry.get("world_role_id")
-    # role fields come from CMN world role; identity does not own them
+    # role fields come from SMN world role; identity does not own them
     role = oid.load_world_role(data["world_role_id"])
     assert role["subject_id"] == data["subject_id"]
     data["role"] = role["role"]

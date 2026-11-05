@@ -17,7 +17,7 @@ Agent mailbox: `grok@calhegasmorais.pt` (Cloudflare Email Routing → `geral@eni
 - Description: pre-testnet Fog/Edge lab · Subjects ≠ objects · GitHub + node links  
 - Contact: geral@eni.calhegasmorais.pt  
 - FAQ URL: https://github.com/StrataMesh-Laboratory/stratamesh-core  
-- ToS / Privacy URL: https://calhegasmorais.pt/  
+- ToS / Privacy URL: https://node.spencer-morais.pt/  
 - Login required: false · Invite only: false · Must approve users: false  
 
 ## Categories
@@ -38,7 +38,7 @@ Announcements · Architecture · Network & Fog · Agents & SCA · Economy & PoC 
 | GitHub | Links in About, welcome, COMMUNITY-CHANNELS.md |
 | calhegasmorais.pt | Forum URL on community / footer surfaces |
 | DeoMail | OTP and admin mail for staff accounts |
-| Fund | Contributors category + fund.calhegasmorais.pt |
+| Fund | Contributors category + node.spencer-morais.pt/fund |
 
 ## Ops login (automation)
 

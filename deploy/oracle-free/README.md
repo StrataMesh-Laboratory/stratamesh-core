@@ -1,6 +1,6 @@
 # Oracle Always Free pack (lab)
 
-**Lab only.** Operator-gated: the Oracle VM is **not** assumed live. Do **not** open public `:8787`. Do **not** create a dangling CNAME for `fog.calhegasmorais.pt` until a named Cloudflare Tunnel exists.
+**Lab only.** Operator-gated: the Oracle VM is **not** assumed live. Do **not** open public `:8787`. Do **not** create a dangling CNAME for `node.spencer-morais.pt/fog` until a named Cloudflare Tunnel exists.
 
 Canonical plan: [`docs/HYBRID-ORACLE-CF-TUNNEL.md`](../../docs/HYBRID-ORACLE-CF-TUNNEL.md)
 
@@ -10,7 +10,7 @@ Canonical plan: [`docs/HYBRID-ORACLE-CF-TUNNEL.md`](../../docs/HYBRID-ORACLE-CF-
 2. **bootstrap** — run `deploy/oracle-free/bootstrap.sh` (default `REPO_URL` is `https://github.com/StrataMesh-Laboratory/stratamesh-core.git`).
 3. **systemd** — install `stratamesh-fog.service` and `stratamesh-publish.service`. Copy `publish.env.example` to `/etc/stratamesh/publish.env` (mode `0600`) and set `STATUS_TOKEN` **on the VM only**.
 4. **cloudflared named tunnel** — `cloudflared tunnel create stratamesh-fog`, then config from `cloudflared.config.example.yml`.
-5. **DNS** `fog.calhegasmorais.pt` — only after the tunnel exists (`cloudflared tunnel route dns`). NXDOMAIN today is expected.
+5. **DNS** `node.spencer-morais.pt/fog` — only after the tunnel exists (`cloudflared tunnel route dns`). NXDOMAIN today is expected.
 
 ## Hardening / ARM
 

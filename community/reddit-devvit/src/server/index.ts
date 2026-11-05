@@ -13,8 +13,8 @@ const LAB_LINKS = [
   'GitHub org: https://github.com/StrataMesh-Laboratory',
   'Why your expertise matters: https://github.com/StrataMesh-Laboratory/stratamesh-core/blob/main/docs/WHY-YOUR-EXPERTISE-MATTERS.md',
   'Discussion: https://github.com/StrataMesh-Laboratory/stratamesh-core/discussions/4',
-  'Impact Fund: https://fund.calhegasmorais.pt/challenges',
-  'Site: https://calhegasmorais.pt/',
+  'Impact Fund: https://node.spencer-morais.pt/fund/challenges',
+  'Site: https://node.spencer-morais.pt/',
 ].join('\n');
 
 async function mirrorDiscord(webhook: string | undefined, content: string) {

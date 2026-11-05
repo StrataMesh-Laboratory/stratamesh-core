@@ -175,7 +175,7 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
     let origin: Record<string, unknown> = { forwarded: false };
     if (req.method === "POST") {
       try {
-        const r = await fetch("https://calhegasmorais.pt/api/orchestrator/chat", {
+        const r = await fetch("https://node.spencer-morais.pt/api/orchestrator/chat", {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json", "user-agent": "fog-mw-deno/orch" },
           body: JSON.stringify(body),
@@ -309,7 +309,7 @@ Deno.serve({ hostname: "0.0.0.0", port: 8792 }, async (req) => {
       hop: "deno",
       head: HEAD,
       pages: "calhegasmorais.pt",
-      auth: "mw.calhegasmorais.pt",
+      auth: "node.spencer-morais.pt/mw",
     });
   }
   if (path === "/api/mesh" || path === "/mesh") {

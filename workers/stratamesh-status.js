@@ -193,7 +193,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -568,7 +568,7 @@ function page(s) {
   const mon = s.monetary || {};
   const up = s.upstream || {};
   const upLine = Object.keys(up).map((k) => k + ':' + (up[k] ? 'ok' : '—')).join(' · ');
-  return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estado · ${s.name_pt||s.name||'CMN'}</title>
+  return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estado · ${s.name_pt||s.name||'SMN'}</title>
 <style>
 :root{--bg:#0a0a0b;--fg:#e8e6e3;--muted:#8a8780;--line:#1c1c1f;--acc:#c4a574;--card:#111113}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}main{max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
 h1{font-size:1.25rem;font-weight:600;margin:0 0 .5rem}p,li{color:var(--muted)}a{color:var(--acc)}code{color:var(--fg)}
@@ -598,7 +598,7 @@ pre{background:var(--card);padding:1rem;overflow:auto;font-size:.72rem;border:1p
 <p class="muted">L-STRATA (laboratório, não transitável) ≠ PdC STRATA (único mint de protocolo). O SUM do livro D1 não é circulação${mon.ledger_balance_sum!=null?' ('+Number(mon.ledger_balance_sum).toLocaleString('pt-PT',{maximumFractionDigits:0})+' unidades não classificadas).':'.'}</p>
 <p class="muted">${(mon.flow||'')}</p>
 <p class="muted">Roster is JSON (<code>/status</code>), not this page. Fog Mac continuous · EDGE session expected.</p>
-<p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://calhegasmorais.pt/dashboard">Portal</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
+<p><a href="/status">JSON</a> · <a href="/live">Live</a> · <a href="https://node.spencer-morais.pt/dashboard">Portal</a> · <a href="https://github.com/StrataMesh-Laboratory/stratamesh-core">GitHub</a></p>
 <details><summary class="muted">JSON completo</summary><pre>${JSON.stringify(s,null,2).replace(/</g,'&lt;')}</pre></details>
 </main></body></html>`;
 }
@@ -818,7 +818,7 @@ async function buildLiveStatus(env, opts) {
   return {
     node_id: 'FOG-NODE-PT-CM-001',
     name: 'Calhegas Morais',
-    name_pt: 'Nó de Névoa Calhegas Morais',
+    name_pt: 'Spencer-Morais Node',
     operator: 'André Manuel Calhegas Morais',
     location: { lat: 38.7169, lon: -9.1427, label: 'Lisbon, Portugal', locality_pt: 'Lisboa, Portugal' },
     version: '0.4.9-spa-pulse',
@@ -989,13 +989,13 @@ async function buildLiveStatus(env, opts) {
     },
     holonic_path: foundation && foundation.path,
     links: {
-      site: 'https://calhegasmorais.pt/',
-      portal: 'https://calhegasmorais.pt/dashboard',
+      site: 'https://node.spencer-morais.pt/',
+      portal: 'https://node.spencer-morais.pt/dashboard',
       tdra: 'https://stratamesh-orchestrator.stratamesh.workers.dev/tdra',
       monetary: 'https://stratamesh-token.stratamesh.workers.dev/monetary',
       repo: 'https://github.com/StrataMesh-Laboratory/stratamesh-core',
       laboratory: 'https://github.com/StrataMesh-Laboratory',
-      node_registry: 'https://github.com/StrataMesh-Laboratory/calhegas-morais-node',
+      node_registry: 'https://github.com/StrataMesh-Laboratory/spencer-morais-node',
       eni: 'https://github.com/amcmorais/amcm-eni',
     },
     kv_ingest_present: !!kv,

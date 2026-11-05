@@ -12,4 +12,4 @@ Add account **alongside** existing `grok@` — do not replace grok@.
 | SMTP | vaulted via `~/.config/stratagrok/automation.desk.smtp` |
 | Password | from vault file — **never** commit |
 
-Standing: `external_assistant` CMN collegium. Shared by all six desk agents.
+Standing: `external_assistant` SMN collegium. Shared by all six desk agents.

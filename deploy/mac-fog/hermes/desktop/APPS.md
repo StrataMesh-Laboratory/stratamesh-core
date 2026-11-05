@@ -1,4 +1,4 @@
-# FOG-CMN-DESK linked apps (Hermes / OpenCode / OpenClaw)
+# FOG-SMN-DESK linked apps (Hermes / OpenCode / OpenClaw)
 
 Roster of applications and URLs the shared desk workspace expects. **No secrets** — paths and public/local URLs only.  
 Launch via `desk-open` (allowlisted). See `~/.hermes/desk-apps.json` (written by `ensure_workspace`).
@@ -11,7 +11,7 @@ Launch via `desk-open` (allowlisted). See `~/.hermes/desk-apps.json` (written by
 | `fog-health` | URL | `http://127.0.0.1:8787/health` |
 | `academy` | URL | `https://node.spencer-morais.pt/academy` |
 | `github` | URL | `https://github.com/StrataMesh-Laboratory` |
-| `discourse` | URL | `https://forum.calhegasmorais.pt` |
+| `discourse` | URL | `https://node.spencer-morais.pt/forum` |
 | `gcp` | URL | `https://console.cloud.google.com/` |
 | `cloudflare` | URL | `https://dash.cloudflare.com/` |
 | `terminal` / `iterm` | `open -a` | Terminal / iTerm (iTerm optional) |

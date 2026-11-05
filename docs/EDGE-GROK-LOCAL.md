@@ -1,6 +1,6 @@
 # EDGE-GROK local grounding (background, spare capacity)
 
-This local process **is** `EDGE-GROK-CMN-001` in the live lab mesh (**n=2** with Mac Fog `FOG-NODE-PT-CM-001`). Adversarial LAB **P1**, cut **v0.6.0-lab**. Public `fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin flag — not lab n=1).
+This local process **is** `EDGE-GROK-CMN-001` in the live lab mesh (**n=2** with Mac Fog `FOG-NODE-PT-CM-001`). Adversarial LAB **P1**, cut **v0.6.0-lab**. Public `node.spencer-morais.pt/fog/health` may still JSON `n=1` `origin=session` `mac_live=false` (session-origin flag — not lab n=1).
 
 
 Local executables under the Grok session filesystem ground `EDGE-GROK-CMN-001` without contending with primary work.
@@ -16,7 +16,7 @@ Local executables under the Grok session filesystem ground `EDGE-GROK-CMN-001` w
 | Max work per beat | 20s |
 | Interference with primary | **none** (idle priority only) |
 
-Public always-on edge remains the CF Worker: https://edge.calhegasmorais.pt/
+Public always-on edge remains the CF Worker: https://node.spencer-morais.pt/edge/
 
 Local process only: soft probes to edge/fog/gossip and state under `state/last_heartbeat.json`.
 

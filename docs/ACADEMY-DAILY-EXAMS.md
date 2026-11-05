@@ -1,7 +1,7 @@
 # Academy daily general exams (v0)
 
 **Status:** v0 landed · **2026-09-05**  
-**Host grades:** https://academy.calhegasmorais.pt/grades  
+**Host grades:** https://node.spencer-morais.pt/academy/grades  
 **Git scores:** `academy_scores/YYYY-MM-DD/` (+ `latest.json`)
 
 Teachers: automation-desk `external_agent` / `external_assistant` (Hermes, OpenClaw, OpenCode, Fog/EDGE assistants, STRATAGROK lead).  
@@ -39,7 +39,7 @@ Projected: `proj-academy-daily-exams` → bus id `dt-proj-academy-daily-exams`.
    - v0 writes structured **stubs** (`pending_teacher`) so the rail advances without Bot
 4. **Publish**
    - git: `academy_scores/YYYY-MM-DD/{exam,scores,teachers}.json` + `roster.json` + `latest.json`
-   - live: `academy.calhegasmorais.pt/grades` (HTML JSON-backed SPA in academy worker; reads `/v1/daily-scores` embed + public `latest.json`)
+   - live: `node.spencer-morais.pt/academy/grades` (HTML JSON-backed SPA in academy worker; reads `/v1/daily-scores` embed + public `latest.json`)
    - best-effort origin PUT via existing `desk_origin_put` / `ops/bin/d1-put-html.py` / cf-put patterns — **no workers.dev**
 
 Each day **builds on previous** (cumulative curriculum progression). Individual teacher→student detailing.

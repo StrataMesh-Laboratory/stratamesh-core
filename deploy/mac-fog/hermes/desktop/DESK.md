@@ -1,4 +1,4 @@
-# Hermes native desk environment (FOG-CMN-DESK)
+# Hermes native desk environment (FOG-SMN-DESK)
 
 STRATAGROK’s **Bot computer** cannot be shared with Hermes/OpenCode/OpenClaw (and Grok Bot app is unsupported on Intel `mbpv`).
 This **Hermes desktop project** is the desk’s **shared desk machine** on André’s Mac — reach it via Tailscale SSH / Remote Login (`hermes-desk`). See [SSH.md](./SSH.md).
@@ -66,7 +66,7 @@ secrets in chat · workers.dev · enroll as SCA · Fog `g` from Bot computer · 
 Hermes (and peers) teach SCA/ACB on academy **and** mentor them via live desk/dev:
 
 - Academy: https://node.spencer-morais.pt/academy
-- StrataMesh proper: https://calhegasmorais.pt · fog · sandbox · stratamesh-core
+- StrataMesh proper: https://node.spencer-morais.pt/ · fog · sandbox · stratamesh-core
 - Trail after each deliverable: `$FOG_HOME/data/desk-outbox/apprentice/latest.md`
 
 Students learn what the desk is building **now** — not disconnected vapour lectures.
@@ -75,10 +75,10 @@ Students learn what the desk is building **now** — not disconnected vapour lec
 ## Cycle-owned surfaces (auto)
 
 Every TUI `r`/60s / `desk_ops cycle` / `desk-agent-run` runs `ensure_desk_surfaces()`:
-TODO.md · CONTEXT-CMN-STRATAMESH.md · reports/ · journals/ — Bot never required.
+TODO.md · CONTEXT-SMN-STRATAMESH.md · reports/ · journals/ — Bot never required.
 
 ## Mandatory wake order
-1. `$FOG_HOME/data/desk-outbox/CONTEXT-CMN-STRATAMESH.md` (shared CMN+StrataMesh pack)
+1. `$FOG_HOME/data/desk-outbox/CONTEXT-SMN-STRATAMESH.md` (shared SMN+StrataMesh pack)
 2. `ops/desk-collegium/protocol.json` (laws incl. agent_autonomy, bot_cap_contingency)
 3. Eisenhower: `docs/FOG-DESK-PROTOCOL.md` + `docs/FOG-DESK-OPS.md` — **one Act**; Plan/Note parked
 4. Live TODO board: `desk-outbox/TODO.md` (pick only your specialty; human_gates escalate)

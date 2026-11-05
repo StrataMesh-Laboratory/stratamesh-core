@@ -343,7 +343,7 @@ export default {
         mesh_member: true,
         oracle_live: false,
         version: "0.3.1",
-        layer: "cf-worker→edge.calhegasmorais.pt",
+        layer: "cf-worker→node.spencer-morais.pt/edge",
         metabol: meta,
         lease: { down_sec: lease.down_sec, mac_down_since: lease.mac_down_since },
       }, { headers: cors() });

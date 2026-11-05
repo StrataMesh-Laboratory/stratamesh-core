@@ -2,7 +2,7 @@
 
 While Oracle Always Free tenancy recovery is blocked (password / iCloud reset email), the **public status pulse** can be refreshed from a lab session:
 
-As of 2026-08-26, `fog.calhegasmorais.pt` has no DNS record; the public pulse is Workers aggregation until tenancy + tunnel.
+As of 2026-08-26, `node.spencer-morais.pt/fog` has no DNS record; the public pulse is Workers aggregation until tenancy + tunnel.
 
 1. Run Fog on any available host (sandbox, PC, later Oracle VM)
 2. `POST` status to `https://stratamesh-status.stratamesh.workers.dev/ingest`

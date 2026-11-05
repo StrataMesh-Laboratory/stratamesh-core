@@ -1,7 +1,7 @@
 {
   "schema": "stratamesh.subject.identity.index.v1",
   "registry": "stratamesh",
-  "note": "ACB/User identity lives here. World roles are CMN-registered and reference subject_id.",
+  "note": "ACB/User identity lives here. World roles are SMN-registered and reference subject_id.",
   "identities": [
     {
       "subject_id": "acb-boutius-001",

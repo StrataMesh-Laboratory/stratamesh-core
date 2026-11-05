@@ -1,7 +1,7 @@
 {
   "schema": "cmn.world.role.index.v1",
   "registry": "cmn",
-  "note": "World roles are CMN-registered and reference StrataMesh subject_id. Olissippo roles are lore realm (not_main, hosts_sandboxes=false) with same mechanics as main.",
+  "note": "World roles are SMN-registered and reference StrataMesh subject_id. Olissippo roles are lore realm (not_main, hosts_sandboxes=false) with same mechanics as main.",
   "roles": [
     {
       "role_id": "cmn-role-oli-smith-boutius",

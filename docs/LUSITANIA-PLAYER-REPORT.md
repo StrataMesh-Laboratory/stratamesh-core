@@ -229,7 +229,7 @@ Lusitania runs as an Open World on a **macrohypervisor** (Virtual Realm capacity
 
 ### Why Lusitania ≠ Main Open World
 
-| CMN Main Open World | Lusitania |
+| SMN Main Open World | Lusitania |
 |---------------------|-----------|
 | Creation and participation | Mortality and inheritance |
 | What can you create? | **What survives you?** |

@@ -30,8 +30,8 @@ STATE_PATH = Path(os.environ.get("STASIS_STATE", "stasis-state.json"))
 # Named fail-open hops (not Worker SPA / not workers.dev).
 CONTINGENCY = {
     "auth": "https://auth.calhegasmorais.pt",
-    "apex_html": "https://calhegasmorais.pt/",
-    "sandbox": "https://sandbox.calhegasmorais.pt/",
+    "apex_html": "https://node.spencer-morais.pt/",
+    "sandbox": "https://node.spencer-morais.pt/sandbox/",
 }
 
 

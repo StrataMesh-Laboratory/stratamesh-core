@@ -16,7 +16,7 @@ User / agent on Fog|EDGE host
         │
         ├─ Ollama SDK ──► 127.0.0.1:11434  (generate structured intent)
         │
-        └─ HTTPS ───────► api-edge.calhegasmorais.pt/v1/wizard/*
+        └─ HTTPS ───────► node.spencer-morais.pt/edge/api/v1/wizard/*
                               (steps, prompts, validate, commit side-effects)
 ```
 
@@ -85,13 +85,13 @@ When **mbpv** Tailscale is offline (expected sleep), do **not** ping André. See
 | Ollama + fail-open | `python3 ops/bin/wizard-e2e-dryrun.py --both` | Ollama leg needs Mac/host; fail-open leg works without |
 | Unit SDK | `python3 ops/lib/test_ollama_local.py` | No (mocks / fail-open) |
 
-Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → `https://api-edge.calhegasmorais.pt`.
+Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → `https://node.spencer-morais.pt/edge/api`.
 
 Live contract check (any host with egress):
 
 ```bash
-curl -sS https://api-edge.calhegasmorais.pt/health   # expect version 1.5.0-wizard, oracle_live=false
-curl -sS https://api-edge.calhegasmorais.pt/v1/wizard
+curl -sS https://node.spencer-morais.pt/edge/api/health   # expect version 1.5.0-wizard, oracle_live=false
+curl -sS https://node.spencer-morais.pt/edge/api/v1/wizard
 ```
 
 On Mac wake: `git pull`, confirm health, then `--both` for native Ollama proof.

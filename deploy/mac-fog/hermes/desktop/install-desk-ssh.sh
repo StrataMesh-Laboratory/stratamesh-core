@@ -32,7 +32,7 @@ if ! grep -q 'Host hermes-desk' "$CFG" 2>/dev/null; then
   TSIP=$(tailscale ip -4 2>/dev/null || echo mbpv.taild31dc1.ts.net)
   cat >> "$CFG" <<CFG
 
-# FOG-CMN-DESK shared machine (Hermes desktop)
+# FOG-SMN-DESK shared machine (Hermes desktop)
 Host hermes-desk
   HostName ${TSIP}
   User $(whoami)

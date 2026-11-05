@@ -145,9 +145,9 @@ footer{margin-top:2rem;font-size:.75rem;color:var(--muted)}
 __name(pageShell, "pageShell");
 function publicLanding() {
   return pageShell(
-    "Origin · Nó Calhegas Morais",
+    "Origin · Spencer-Morais Node",
     `<p class="badge">LAB · prerelease · not mainnet</p>
-     <p class="kicker">origin.calhegasmorais.pt · destyle</p>
+     <p class="kicker">node.spencer-morais.pt/origin · destyle</p>
      <h1>Origin archive</h1>
      <p>Staff-gated last-resort pile. Not the public Fog process. Not PHP SYSTEM LOGIN. Apex is Cloudflare Pages.</p>
      <div class="card">
@@ -163,12 +163,12 @@ function publicLanding() {
        <div class="row"><span class="mono">Token / Ágora / Status</span><span class="mono">3.5.5-fog-honest · 3.3.1-gold-spot · 0.4.8-circ-split</span></div>
      </div>
      <div class="card">
-       <div class="row"><span class="mono">Fog process</span><a href="https://node.spencer-morais.pt/fog/">fog.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Fog process</span><a href="https://node.spencer-morais.pt/fog/">node.spencer-morais.pt/fog</a></div>
        <div class="row"><span class="mono">Fog /health</span><a href="https://node.spencer-morais.pt/fog/health">origin probe</a></div>
-       <div class="row"><span class="mono">Gossip</span><a href="https://node.spencer-morais.pt/gossip/">gossip.calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">EDGE desk</span><a href="https://node.spencer-morais.pt/edge/">edge.calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">Apex / Pages</span><a href="https://calhegasmorais.pt/">calhegasmorais.pt</a></div>
-       <div class="row"><span class="mono">Status pulse</span><a href="https://node.spencer-morais.pt/status/status">status.calhegasmorais.pt</a></div>
+       <div class="row"><span class="mono">Gossip</span><a href="https://node.spencer-morais.pt/gossip/">node.spencer-morais.pt/gossip</a></div>
+       <div class="row"><span class="mono">EDGE desk</span><a href="https://node.spencer-morais.pt/edge/">node.spencer-morais.pt/edge</a></div>
+       <div class="row"><span class="mono">Apex / Pages</span><a href="https://node.spencer-morais.pt/">node.spencer-morais.pt</a></div>
+       <div class="row"><span class="mono">Status pulse</span><a href="https://node.spencer-morais.pt/status/status">node.spencer-morais.pt/status</a></div>
      </div>
      <p><a class="pill" href="/login">Staff login</a></p>
      <p class="mono">Lab · n=2 · mesh_member=true · f_max=0 · spa.source=fog_process · Challenge 0 unfunded</p>
@@ -190,7 +190,7 @@ __name(publicLanding, "publicLanding");
 function loginPage(err) {
   return pageShell(
     "Origin archive \xB7 staff",
-    `<p class="kicker">origin.calhegasmorais.pt</p>
+    `<p class="kicker">node.spencer-morais.pt/origin</p>
      <h1>Arquivo de recupera\xE7\xE3o</h1>
      <p>Last-resort static pile. Same staff table as the portal (email + password + 2FA). Not the public node.</p>
      <form class="card" method="post" action="/login">

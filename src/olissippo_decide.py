@@ -52,7 +52,7 @@ def build_prompt(persona: dict[str, Any], state: dict[str, Any], perc: dict[str,
     verbs = list(world.get("actions_mundane", [])) + list(world.get("actions_magic", [])) + list(world.get("actions_council", []))
     return (
         "You are {name}, an ACB Subject (not an NFT, not an Object) in Olissippo lore "
-        "(not CMN main sandbox-host). Return ONLY JSON: "
+        "(not SMN main sandbox-host). Return ONLY JSON: "
         "{{\"intention\": str, \"action\": {{\"type\": str, ...}}, \"speech\": str|null}}\n"
         "Allowed action types: {verbs}\n"
         "PERSONA: {persona}\n"

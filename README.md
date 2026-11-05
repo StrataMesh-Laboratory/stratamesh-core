@@ -1,8 +1,8 @@
 # StrataMesh Core
 
-**Release:** [v0.6.0-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab) — **Adversarial LAB phase P1**. Live/lab version is **v0.6.0-lab** (desk collegium packaged; debug precursor [v0.5.2-dev](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.2-dev)). Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://fog.calhegasmorais.pt/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
+**Release:** [v0.6.0-lab](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.6.0-lab) — **Adversarial LAB phase P1**. Live/lab version is **v0.6.0-lab** (desk collegium packaged; debug precursor [v0.5.2-dev](https://github.com/StrataMesh-Laboratory/stratamesh-core/releases/tag/v0.5.2-dev)). Mesh **n=2**: Mac Fog `FOG-NODE-PT-CM-001` + EDGE-GROK local `EDGE-GROK-CMN-001`. **Not mainnet.** Public `https://node.spencer-morais.pt/fog/health` may still JSON `n=1` `origin=session` `mac_live=false` — that is a **session-origin software flag**, not “the lab is n=1”. Do not treat that JSON as `mac_live=true`.
 
-**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** ACBs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Fog Node **Calhegas Morais** (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
+**STRATA** is the exclusive foundational token: fungible settlement **and** tokenisation to STRATA NFTs (open worlds, CGU/UGC by users **and** ACBs, external-asset representatives on the DLT). Monetary poles: **`#mint`** (emit-only via PoC) and **`#0`** (burn sink on resource use — never transfers out). Circulating supply excludes `#0`. Spencer-Morais Node (`FOG-NODE-PT-CM-001`) is the reference; other operators instantiate via the [Fog Node kit](deploy/fog-node/README.md).  
 Motto: *Intelligentia · Vigilantia · Veritas*
 
 ## Monetary poles (STRATA)
@@ -12,17 +12,17 @@ Motto: *Intelligentia · Vigilantia · Veritas*
 | Wallets | Circulation (nodes, users, ACBs) |
 | `#0` | Burn sink — receives on resource use; never transfers out |
 
-API: `GET https://calhegasmorais.pt/api/v1/token/monetary` · `POST /api/v1/token/burn`
+API: `GET https://node.spencer-morais.pt/api/v1/token/monetary` · `POST /api/v1/token/burn`
 
 ## Public pulse
-- Status JSON: https://status.calhegasmorais.pt/status
-- Live dashboard: https://status.calhegasmorais.pt/live
-- Site: https://calhegasmorais.pt/
-- Fog: https://fog.calhegasmorais.pt/ · probe `GET /health` → `"origin": "session"|"macbook"` (one named-tunnel connector)
-- Gossip: https://gossip.calhegasmorais.pt/
-- Origin: https://origin.calhegasmorais.pt/ — staff archive + same fog origin flux ([deploy/mac-fog](deploy/mac-fog))
+- Status JSON: https://node.spencer-morais.pt/status/status
+- Live dashboard: https://node.spencer-morais.pt/status/live
+- Site: https://node.spencer-morais.pt/
+- Fog: https://node.spencer-morais.pt/fog/ · probe `GET /health` → `"origin": "session"|"macbook"` (one named-tunnel connector)
+- Gossip: https://node.spencer-morais.pt/gossip/
+- Origin: https://node.spencer-morais.pt/origin/ — staff archive + same fog origin flux ([deploy/mac-fog](deploy/mac-fog))
 - Hub (catalog): https://huggingface.co/stratamesh
-- Academy (ACB training): https://academy.calhegasmorais.pt/
+- Academy (ACB training): https://node.spencer-morais.pt/academy/
 
 ## Ops (lab)
 ```bash
@@ -37,7 +37,7 @@ Optional Kubo pins: `export IPFS_API_URL=http://127.0.0.1:5001`
 
 | Stage | Focus |
 |-------|--------|
-| **LAB** | Reference node · wire + threat drafts · single-process benchmark — *exited for the CMN pair* |
+| **LAB** | Reference node · wire + threat drafts · single-process benchmark — *exited for the SMN pair* |
 | **Adversarial lab (current · P1)** | Two-host mesh (Fog Mac + EDGE-GROK local) · I1–I6 CI · resource-proof MVP. grok90 two-host INV/TX evidence pack is a **later bar**, not the current phase name |
 | **Public testnet** | Frozen wire · external join · still not mainnet |
 | **Mainnet** | Explicit decision after evidence — unscheduled |
@@ -87,9 +87,9 @@ cd src && python3 -m orchestrator.meta_controller
 | **Forum** | [stratamesh.discourse.group](https://stratamesh.discourse.group) |
 | **GitHub org** | [StrataMesh-Laboratory](https://github.com/StrataMesh-Laboratory) |
 | **Hugging Face** | [huggingface.co/stratamesh](https://huggingface.co/stratamesh) |
-| **Reference node** | [calhegasmorais.pt](https://calhegasmorais.pt) |
-| **Status** | [status.calhegasmorais.pt](https://status.calhegasmorais.pt) |
-| **Impact Fund** | [fund.calhegasmorais.pt](https://fund.calhegasmorais.pt) |
+| **Reference node** | [calhegasmorais.pt](https://node.spencer-morais.pt/) |
+| **Status** | [node.spencer-morais.pt/status](https://node.spencer-morais.pt/status) |
+| **Impact Fund** | [node.spencer-morais.pt/fund](https://node.spencer-morais.pt/fund) |
 | Contact | `geral@eni.calhegasmorais.pt` |
 
 Forum = discussion · GitHub = code · Hub = catalog of means (not inference) · Node = public lab surface. See [docs/COMMUNITY-CHANNELS.md](docs/COMMUNITY-CHANNELS.md) · [docs/HUB.md](docs/HUB.md).
@@ -101,7 +101,7 @@ HF Inference Providers stay **HOLD** until the $0.10/mo prepaid grant refills (1
 We cultivate **open-source engineers already shipping** in adjacent ecosystems (libp2p, KubeEdge, Golem/Akash, IPFS, agents, simulation) — not a generic “crypto hiring” funnel.
 
 - [`docs/COMMUNITY-OUTREACH-MAP.md`](docs/COMMUNITY-OUTREACH-MAP.md) · [`docs/CONTRIBUTOR-TRACKS.md`](docs/CONTRIBUTOR-TRACKS.md) · [`docs/WANTED.md`](docs/WANTED.md)
-- Incentives: [Impact Fund](https://fund.calhegasmorais.pt/) · [Sponsors](https://github.com/sponsors/amcmorais) · Issues `track:*` / `impact-challenge`
+- Incentives: [Impact Fund](https://node.spencer-morais.pt/fund/) · [Sponsors](https://github.com/sponsors/amcmorais) · Issues `track:*` / `impact-challenge`
 
 ## Subject–Object Economy
 
@@ -134,7 +134,7 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 - Docs: `docs/HOLONIC-LAYERS.md`, `docs/TEMPORALIDADE-CLP.md`.
 
 
-## Current lab surface (CMN)
+## Current lab surface (SMN)
 
 | Area | Status |
 |------|--------|
@@ -144,7 +144,7 @@ STRATAMESH DLT → Node (OS/VM) → Web3 Metaverse OS (shared)
 | Computational Republic | SCA-only associative DAO — distinct from Node operations |
 | Workers (ACB) | `stratamesh-acb` ≥ 5.11 · senses, holon/ensure, world presence |
 
-Public site: [calhegasmorais.pt](https://calhegasmorais.pt/) · CLP UI: [/clp](https://calhegasmorais.pt/clp)
+Public site: [calhegasmorais.pt](https://node.spencer-morais.pt/) · CLP UI: [/clp](https://node.spencer-morais.pt/clp)
 
 
 

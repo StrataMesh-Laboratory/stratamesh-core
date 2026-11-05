@@ -78,12 +78,12 @@ def main() -> int:
     )
     must(
         "deploy/mac-fog/hop-map.yml",
-        "fog.calhegasmorais.pt",
-        "origin.calhegasmorais.pt",
-        "gossip.calhegasmorais.pt",
+        "node.spencer-morais.pt/fog",
+        "node.spencer-morais.pt/origin",
+        "node.spencer-morais.pt/gossip",
         "http://127.0.0.1:8788",
         "auth.calhegasmorais.pt",
-        "mw.calhegasmorais.pt",
+        "node.spencer-morais.pt/mw",
         "http://127.0.0.1:8790",
         "SIGHUP",
     )

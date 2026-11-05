@@ -202,7 +202,7 @@ async function assemble() {
       deno: { port: 8792, ok: !!deno.ok },
     },
     cmn: { n: 2, mesh_member: true, edge_id: "EDGE-GROK-CMN-001", oracle_live: false },
-    public: { fog: "https://fog.calhegasmorais.pt", edge: "https://edge.calhegasmorais.pt" },
+    public: { fog: "https://node.spencer-morais.pt/fog", edge: "https://node.spencer-morais.pt/edge" },
   };
 }
 
@@ -247,7 +247,7 @@ async function orchChat(req) {
   let origin = { forwarded: false };
   if (req.method === "POST") {
     try {
-      const r = await fetch("https://calhegasmorais.pt/api/orchestrator/chat", {
+      const r = await fetch("https://node.spencer-morais.pt/api/orchestrator/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": "fog-mw-node/orch" },
         body: JSON.stringify(body),

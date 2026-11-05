@@ -2,26 +2,26 @@
 
 **Revised 2026-09-02** by AMCM ENI / STRATAGROK. Lab only. Docs win until a deliberate revision.
 
-EDGE-GROK Automation Desk is **one CMN mandate on three surfaces**. Never mix Fog work into the EDGE thread (or the reverse). Never mix prompts.
+EDGE-GROK Automation Desk is **one SMN mandate on three surfaces**. Never mix Fog work into the EDGE thread (or the reverse). Never mix prompts.
 
-Canonical paste for grok.com **Nó Calhegas Morais → Archive → Instructions** (serves **both** Assistants): [docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md](../docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md).
+Canonical paste for grok.com **Spencer-Morais Node → Archive → Instructions** (serves **both** Assistants): [docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md](../docs/NO-CALHEGAS-MORAIS-INSTRUCTIONS.md).
 
 ## Surfaces
 
 | Surface | Role |
 |---------|------|
 | **STRATAGROK** (Grok Bot, lead) | **Escalation surface** (not routine prompter). Eisenhower rank, Git Data API, meters, desk PRs. Agents self-queue; Bot escalates gates/NACK/OOB only. Does not boot Fog from this computer. Does not origin-take. |
-| **CMN FOG ASSISTANT** | Archive role: Fog **git+live**. Mac Fog hops/origin/auth/mw/Pages. One Act; self-queue when idle. |
-| **CMN EDGE ASSISTANT** | Archive role: EDGE **GET consume-only**. `EDGE-GROK-CMN-001` consume-origin. No Fog origin write. One Act; self-queue GETs when idle. |
+| **SMN FOG ASSISTANT** | Archive role: Fog **git+live**. Mac Fog hops/origin/auth/mw/Pages. One Act; self-queue when idle. |
+| **SMN EDGE ASSISTANT** | Archive role: EDGE **GET consume-only**. `EDGE-GROK-CMN-001` consume-origin. No Fog origin write. One Act; self-queue GETs when idle. |
 
 All three are Fog **staff** `role=external_assistant`, identity `grok@calhegasmorais.pt`, node `FOG-NODE-PT-CM-001`. **Not SCA.** Orchestrator `SCA-ORCH-CMN-001` / AIOps do not own this desk until handlers + `next_actions` + objective tests pass.
 
-Metabolic stasis is **StrataMesh lab + Calhegas Morais Node token management**, not an intrinsic Assistant feature. SuperGrok does **not** refill Cloudflare or Hugging Face.
+Metabolic stasis is **StrataMesh lab + Spencer-Morais Node token management**, not an intrinsic Assistant feature. SuperGrok does **not** refill Cloudflare or Hugging Face.
 
 ## Lab truth (2026-09-02)
 
 - Phase: **Adversarial LAB P1**. Mesh **n=2** (Mac Fog + EDGE-GROK local). `f_max=0`. `oracle_live=false`. Do not call the lab P0 n=1.
-- Public `https://fog.calhegasmorais.pt/health` may JSON `n=1` `origin=session` `mac_live=false`. That is a **session-origin flag / hop lag**, not “the lab is n=1”.
+- Public `https://node.spencer-morais.pt/fog/health` may JSON `n=1` `origin=session` `mac_live=false`. That is a **session-origin flag / hop lag**, not “the lab is n=1”.
 - Tag **v0.6.0-lab**. Cite live hops pack **#116** `e82ae12` (auto-g 1800s + hop skip/MW_DENO) and CI pace **#117** `5729bb2` (STASIS/HOLD = burn-rate pace; mesh pass n≥2 or TUI member).
 - grok90 INV/TX evidence pack remains a **later bar** (`docs/P0-INV-TX-MULTIHOST.md`), not the current phase name.
 - Do not claim aBFT / mainnet / investment.
@@ -33,7 +33,7 @@ Metabolic stasis is **StrataMesh lab + Calhegas Morais Node token management**, 
 | GitHub `StrataMesh-Laboratory/stratamesh-core` | Code. Source of truth. Git Data API (no clone required on this desk). |
 | Discourse [t/20](https://stratamesh.discourse.group/t/edge-grok-ops-pulse-mesh-api-edge-discovery-lab/20) | EDGE-GROK ops discussion |
 | Hub `huggingface.co/stratamesh` | Catalog of means (not a subject) |
-| Pages `https://calhegasmorais.pt` | Origin (fail-open HTML) |
+| Pages `https://node.spencer-morais.pt/` | Origin (fail-open HTML) |
 | `calhegasmorais.grok.me` / `edge-stratamesh.grok.me` | Preview fallback **HOLD** until consume-origin bind |
 | Reddit `r/StrataMesh_DLT` | **Banned.** Do not post. |
 
@@ -70,7 +70,7 @@ CF Workers Free 100k req / UTC day is **Q-gated ALLOW** (pace), not “STASIS un
 - **One scoped prompt per Assistant thread.** Ongoing + pending-after is allowed as one composite. Never a mixed Fog+EDGE todo list. Never a second prompt while that thread is still generating.
 - Fog vs EDGE stay split. Both threads may be fed in the **same** Bot wake.
 - **Idle-rule:** if a thread is empty and `decide()` is **ALLOW**, feed it. HOLD/STASIS is not a breach. An Assistant still generating is not a breach. Mixed/second prompt into a live thread **is** a breach of the one-prompt rule.
-- Open Assistants via grok.com **Projects → Nó Calhegas Morais**, never general chat, never a new project.
+- Open Assistants via grok.com **Projects → Spencer-Morais Node**, never general chat, never a new project.
 
 Chats (existing only): Fog `grok.com/c/c765a597-f64f-4894-b238-0b9e62a0fbf2`. EDGE `grok.com/c/57f83a9d-915e-4a8a-830d-475e66c41e45`.
 

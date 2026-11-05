@@ -28,8 +28,8 @@
   "locks": [
     "Subject kind=acb \u2014 NEVER an Object / NFT / object_id row",
     "oath_bandua is a rite verb \u2014 not free PvP win",
-    "Identity (subject_id) registered in StrataMesh \u2014 not CMN",
-    "World role (world_role_id) registered in CMN \u2014 not StrataMesh identity"
+    "Identity (subject_id) registered in StrataMesh \u2014 not SMN",
+    "World role (world_role_id) registered in SMN \u2014 not StrataMesh identity"
   ],
   "speech_lines": {
     "greet_stranger": "State your business before the gate.",

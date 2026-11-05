@@ -13,8 +13,8 @@ Related: [TAILSCALE-FOG.md](./TAILSCALE-FOG.md), [FOG-HOST-FALLBACK.md](./FOG-HO
 |---------|--------|
 | **Box git / `gh`** | `stratagrok-box` can fetch, commit, push to `StrataMesh-Laboratory/stratamesh-core` as `amcmorais` |
 | **Cloudflare Workers / Pages** | Public edge + api-edge stay up; deploy from box when metabol `cf-worker-req` ALLOW |
-| **api-edge wizard contract** | `https://api-edge.calhegasmorais.pt` — `/health`, `/v1/wizard/*` (Worker does **not** need Mac loopback) |
-| **Assistants / EDGE public** | `edge.calhegasmorais.pt`, Assistants feed lanes that do not require Mac SSH |
+| **api-edge wizard contract** | `https://node.spencer-morais.pt/edge/api` — `/health`, `/v1/wizard/*` (Worker does **not** need Mac loopback) |
+| **Assistants / EDGE public** | `node.spencer-morais.pt/edge`, Assistants feed lanes that do not require Mac SSH |
 | **Fail-open wizard e2e** | `ops/bin/wizard-e2e-dryrun.py --fail-open` (or `--both`) against live api-edge — **no Mac Ollama required** |
 | **Docs / desk handoff on box** | `/home/box/ops-monitor/DESK-HANDOFF.md`, contingency docs on origin |
 
@@ -56,7 +56,7 @@ git pull --ff-only origin main
 # ./deploy/mac-fog/fog-awake.sh   # if present
 
 # 4) api-edge still 1.5.0-wizard? (redeploy only on drift + metabol ALLOW)
-curl -sS https://api-edge.calhegasmorais.pt/health | grep -E 'version|oracle_live'
+curl -sS https://node.spencer-morais.pt/edge/api/health | grep -E 'version|oracle_live'
 
 # 5) Host SDK e2e (Ollama + fail-open)
 python3 ops/lib/test_ollama_local.py
@@ -78,7 +78,7 @@ python3 ops/bin/wizard-e2e-dryrun.py --fail-open
 # optional: --both (Ollama leg may fail_open on box; commit path must still pass)
 ```
 
-Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → default `https://api-edge.calhegasmorais.pt`.
+Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → default `https://node.spencer-morais.pt/edge/api`.
 
 ---
 
@@ -87,7 +87,7 @@ Env: `API_EDGE_BASE` (preferred) or `API_EDGE_ORIGIN` → default `https://api-e
 | Flag / surface | Meaning |
 |----------------|---------|
 | **`mac_live`** | Already on Fog workerd `/health` when `ORIGIN=macbook`. |
-| **`mac_fog_reachable`** | Same measurement from a public probe: `fog.calhegasmorais.pt/health` is 200 **and** `origin=macbook` / `mac_live`. Sleep → false. Not an André gate. Not `oracle_live`. |
+| **`mac_fog_reachable`** | Same measurement from a public probe: `node.spencer-morais.pt/fog/health` is 200 **and** `origin=macbook` / `mac_live`. Sleep → false. Not an André gate. Not `oracle_live`. |
 | **`metabol_pace`** | Pass-through of Fog metabol decision when the probe sees it. Offline Mac does not invent ALLOW/HOLD. |
 | **Desk board git mirror** | `ops/desk-collegium/state.json` on origin — box/EDGE can list open Acts while `$FOG_HOME` on mbpv is unreachable. Catch-up still happens on wake (`desk_bus` local). |
 

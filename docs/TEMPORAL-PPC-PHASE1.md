@@ -39,7 +39,7 @@ ISO is **not deleted**. It is demoted to a **carrier** so external systems still
 
 ## API (Orchestrator)
 
-- `GET /ppc` — issue current CMN stamp + self-validation
+- `GET /ppc` — issue current SMN stamp + self-validation
 - `POST /ppc` `{ iso?: string, lat?, lon?, locality? }` — ISO→PPC migration helper
 - `POST /ppc/validate` `{ stamp }` — recompute and verify
 

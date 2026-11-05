@@ -84,7 +84,7 @@ Do **not** manufacture a second legal entity solely for the Fog Node at this sta
 
 ## STAGE 3 — First independent Fog Node legal persons
 
-Example (future): *Calhegas Morais Fog Node, Lda.* and other autonomous Portuguese operators.
+Example (future): *Spencer-Morais Node, Lda.* and other autonomous Portuguese operators.
 
 Founder infrastructure → multi-operator experimental network.
 
@@ -163,12 +163,12 @@ National cooperatives → continental federations → **STRATAMESH GLOBAL NETWOR
 
 | Surface | Identity |
 |---------|----------|
-| https://calhegasmorais.pt | Fog Node site (AMCM ENI infrastructure) |
-| https://edge.calhegasmorais.pt | **EDGE-GROK** automation desk (lab edge, not Fog mirror) |
-| https://api-edge.calhegasmorais.pt | Integration registry (zero-auth lab registration) |
-| https://status.calhegasmorais.pt | Fog status pulse |
+| https://node.spencer-morais.pt/ | Fog Node site (AMCM ENI infrastructure) |
+| https://node.spencer-morais.pt/edge | **EDGE-GROK** automation desk (lab edge, not Fog mirror) |
+| https://node.spencer-morais.pt/edge/api | Integration registry (zero-auth lab registration) |
+| https://node.spencer-morais.pt/status | Fog status pulse |
 | GitHub `StrataMesh-Laboratory` | Research org name (project identity; not yet PT association) |
 
-**Note:** `https://stratamesh.grok.me/` has historically mirrored the Fog landing page. Canonical EDGE-GROK UI is **edge.calhegasmorais.pt**, not a Fog mirror.
+**Note:** `https://stratamesh.grok.me/` has historically mirrored the Fog landing page. Canonical EDGE-GROK UI is **node.spencer-morais.pt/edge**, not a Fog mirror.
 
 Lab honesty · Subjects ≠ objects · pre-testnet · no mainnet/yield claims.

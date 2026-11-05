@@ -15,7 +15,7 @@ Two distinct hosts, honest **n=2** / **mesh_member=true**:
 | `FOG-NODE-PT-CM-001` Mac | continuous | tunnel → workerd `:8788` ORIGIN=macbook → fog `:8787` |
 | `EDGE-GROK-CMN-001` | session (expected) | tunnel → workerd `:8788` ORIGIN=edge → edge `:8789` |
 
-Public: `fog.calhegasmorais.pt` `origin=macbook`; `edge.calhegasmorais.pt` `origin=edge`; gossip `2.3.9-n2-probe` lists both live.
+Public: `node.spencer-morais.pt/fog` `origin=macbook`; `node.spencer-morais.pt/edge` `origin=edge`; gossip `2.3.9-n2-probe` lists both live.
 
 ## Not in this cut
 

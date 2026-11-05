@@ -13,7 +13,7 @@
  */
 
 const ACB_ROSTER = {
-  lead: { acb_id: "ACB-ORCH-CMN-001", name: "Orchestrator CMN", role: "lead" },
+  lead: { acb_id: "ACB-ORCH-CMN-001", name: "Orchestrator SMN", role: "lead" },
   agents: [
     { acb_id: "ACB-AIOPS-devops", id: "devops", role: "DevOps" },
     { acb_id: "ACB-AIOPS-security", id: "security", role: "Security" },
@@ -347,7 +347,7 @@ function clpAddress(opts = {}) {
   };
 }
 
-/** Full holonic placement for CMN lab (or override). */
+/** Full holonic placement for SMN lab (or override). */
 function holonicContext(overrides = {}) {
   const n = { ...NODE_CMN, ...overrides };
   const clp = clpAddress({
@@ -1463,7 +1463,7 @@ async function orchestratorChat(message, env) {
   if (env.AI && typeof env.AI.run === "function") {
     try {
       const system =
-        "You are the StrataMesh Hybrid Orchestrator assistant for the Calhegas Morais Fog Node. " +
+        "You are the StrataMesh Hybrid Orchestrator assistant for the Spencer-Morais Node. " +
         "Be concise, technical, substrate-neutral. Use the JSON context. Do not invent mainnet status. " +
         "Lab reference only. Prefer Portuguese if the user writes in Portuguese.";
       const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
@@ -1654,7 +1654,7 @@ async function handleFetch(request, env, ctx) {
           f_max: 0,
           lab: true,
           pre_release: true,
-          host: "aiops.calhegasmorais.pt",
+          host: "node.spencer-morais.pt/aiops",
           acb_roster: ACB_ROSTER,
           team: TEAM.map((a) => a.id),
           mode: "continuous-development",
@@ -1738,7 +1738,7 @@ async function handleFetch(request, env, ctx) {
         return json({
           service: "StrataMesh AIOps Dev Team",
           version: AIOPS_VERSION,
-          mandate: "Continuous development and operations of the Calhegas Morais Fog Node — not health-check theatre",
+          mandate: "Continuous development and operations of the Spencer-Morais Node — not health-check theatre",
           note: "GET / serves last persisted cycle. POST or GET /cycle runs a live slice.",
           latest_cycle: last ? JSON.parse(last) : null,
           worklog_latest: work ? JSON.parse(work) : null,

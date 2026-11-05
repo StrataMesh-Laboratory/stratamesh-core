@@ -165,7 +165,7 @@ def test_semantic_map_docs():
     assert "elective" in doc.lower() and "absentee" in doc.lower()
     html = (ROOT / "frontend/lusitania.html").read_text()
     assert "gens" in html and "populus" in html and "Lusitani" in html
-    assert "canonical" in html and "sandbox.calhegasmorais.pt/lusitania" in html
+    assert "canonical" in html and "node.spencer-morais.pt/sandbox/lusitania" in html
     assert "LUSITANIA-NOMENCLATURE" in html
 
 

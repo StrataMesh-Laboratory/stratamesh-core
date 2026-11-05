@@ -36,21 +36,21 @@ function copy(lang) {
   const en = isEn(lang);
   return {
     en,
-    node: en ? "Spencer-Morais Node" : "Nó Calhegas Morais",
+    node: en ? "Spencer-Morais Node" : "Spencer-Morais Node",
     brand: "AMCM ENI · StrataMesh",
     fog: "FOG-NODE-PT-CM-001",
     orch: en
       ? "Orchestrator · SCA appointment on this Fog"
       : "Orquestrador · cargo SCA neste Fog",
     footer: en
-      ? "Automated message from the Node. Human ENI contact: geral@eni.calhegasmorais.pt · +44 7404 796458."
-      : "Mensagem automática do Nó. Contacto humano da ENI: geral@eni.calhegasmorais.pt · +44 7404 796458.",
+      ? "Automated message from the Node. Human ENI contact: geral@eni.calhegasmorais.pt · +351 308 800 218."
+      : "Mensagem automática do Nó. Contacto humano da ENI: geral@eni.calhegasmorais.pt · +351 308 800 218.",
     ignore: en
       ? "If you did not request this, ignore the message. The code expires in 10 minutes."
       : "Se não solicitou isto, ignore a mensagem. O código caduca em 10 minutos.",
     valid: en ? "Valid 10 minutes · one use" : "Válido 10 minutos · uma utilização",
-    portal: "https://calhegasmorais.pt/dashboard",
-    site: "https://calhegasmorais.pt/",
+    portal: "https://node.spencer-morais.pt/dashboard",
+    site: "https://node.spencer-morais.pt/",
   };
 }
 
@@ -142,7 +142,7 @@ function eniMail(opts) {
     inner += `<tr><td style="padding:0 0 8px;color:${T.muted};font-size:15px;line-height:1.6;">${
       c.en
         ? "Use this code to complete sign-in on the Spencer-Morais Node."
-        : "Use este código para concluir a sessão no Nó Calhegas Morais."
+        : "Use este código para concluir a sessão no Spencer-Morais Node."
     }</td></tr>`;
     inner += codeBlock(code);
     inner += `<tr><td style="padding:0 0 16px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${T.muted};">${c.valid}</td></tr>`;
@@ -180,7 +180,7 @@ function eniMail(opts) {
         </td></tr>
         <tr><td style="padding:18px 28px 22px;border-top:1px solid ${T.line};font-size:12px;line-height:1.55;color:${T.muted};">
           <div style="color:${T.fg};margin-bottom:6px;">${c.orch}</div>
-          <a href="${c.site}" style="color:${T.accent};text-decoration:none;">calhegasmorais.pt</a>
+          <a href="${c.site}" style="color:${T.accent};text-decoration:none;">node.spencer-morais.pt</a>
           · <a href="https://eni.calhegasmorais.pt/" style="color:${T.accent};text-decoration:none;">eni.calhegasmorais.pt</a><br/>
           <span style="color:${T.muted};">${DEFAULT_FROM}</span>
           <div style="margin-top:10px;font-size:11px;color:${T.muted};">${c.footer}</div>
@@ -429,7 +429,7 @@ function sampleLayout(kind, lang) {
         { kicker: en ? "08 · Today's plan" : "08 · Plano de acção — hoje", title: "P0 · T-026A", items: [en ? "ACTIVE — internal Meta checklist. Completion: validated checklist." : "ACTIVE — checklist interna Meta. Critério: checklist validada."] },
         { kicker: "11 · Node health", title: "FOG-NODE-PT-CM-001", kind: "health", items: ["Fog operational · Ágora active · PdC active"] },
       ],
-      cta: { label: en ? "Open portal" : "Abrir portal", href: "https://calhegasmorais.pt/dashboard" },
+      cta: { label: en ? "Open portal" : "Abrir portal", href: "https://node.spencer-morais.pt/dashboard" },
     });
   }
   return eniMail({
@@ -445,6 +445,6 @@ function sampleLayout(kind, lang) {
           : "A sua conta confirmada permanece na clearance interna. O Painel é a sandbox desta conta.",
       },
     ],
-    cta: { label: en ? "Open panel" : "Abrir painel", href: "https://calhegasmorais.pt/painel" },
+    cta: { label: en ? "Open panel" : "Abrir painel", href: "https://node.spencer-morais.pt/painel" },
   });
 }

@@ -96,12 +96,12 @@
     {
       "id": "academy_teach",
       "enforce": true,
-      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on academy.calhegasmorais.pt and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant \u2014 never enrolled as students."
+      "text": "Every automation-desk agent teaches academy students (PT SCA / EN ACB) on node.spencer-morais.pt/academy and StrataMesh proper (calhegasmorais.pt / origin). Desk members remain external_agent|assistant \u2014 never enrolled as students."
     },
     {
       "id": "academy_daily_exam",
       "enforce": true,
-      "text": "Daily general exams for Orchestrator + AIOps + registered ACB/SCA students. Draft/score/publish via Mac Fog desk_ops academy_teach_tick + academy_exams.py (and optional LaunchAgent). Bot/grok.com is contingency only \u2014 never the sole driver. Results: academy_scores/YYYY-MM-DD/ + academy.calhegasmorais.pt/grades. Protocolar SCA/ACB measurements + qualitative adjustments/recognitions. Desk agents teach; never enroll as students."
+      "text": "Daily general exams for Orchestrator + AIOps + registered ACB/SCA students. Draft/score/publish via Mac Fog desk_ops academy_teach_tick + academy_exams.py (and optional LaunchAgent). Bot/grok.com is contingency only \u2014 never the sole driver. Results: academy_scores/YYYY-MM-DD/ + node.spencer-morais.pt/academy/grades. Protocolar SCA/ACB measurements + qualitative adjustments/recognitions. Desk agents teach; never enroll as students."
     },
     {
       "id": "apprenticeship",
@@ -121,7 +121,7 @@
     {
       "id": "collegium_mail",
       "enforce": true,
-      "text": "automation.desk@calhegasmorais.pt is general collegium mail with external_assistant CMN standing for all six desk agents AND canonical general desk cloud auth (GCP/hyperscaler/new SaaS). Keep grok@ as private Bot+Fog+EDGE digest gateway only \u2014 not general desk cloud. Never Gmail, never DeoMail/ENI mix, never workers.dev as Assistant fetch, never secrets in git/chat. See docs/DESK-AUTH-MIGRATION.md."
+      "text": "automation.desk@calhegasmorais.pt is general collegium mail with external_assistant SMN standing for all six desk agents AND canonical general desk cloud auth (GCP/hyperscaler/new SaaS). Keep grok@ as private Bot+Fog+EDGE digest gateway only \u2014 not general desk cloud. Never Gmail, never DeoMail/ENI mix, never workers.dev as Assistant fetch, never secrets in git/chat. See docs/DESK-AUTH-MIGRATION.md."
     },
     {
       "id": "desk_cloud_auth",
@@ -191,15 +191,15 @@
       "opencode@fog",
       "openclaw@fog",
       "grok@",
-      "CMN FOG ASSISTANT",
-      "CMN EDGE ASSISTANT"
+      "SMN FOG ASSISTANT",
+      "SMN EDGE ASSISTANT"
     ],
     "surfaces": {
-      "academy": "https://academy.calhegasmorais.pt",
+      "academy": "https://node.spencer-morais.pt/academy",
       "stratamesh_proper": [
-        "https://calhegasmorais.pt",
-        "https://fog.calhegasmorais.pt",
-        "https://sandbox.calhegasmorais.pt",
+        "https://node.spencer-morais.pt/",
+        "https://node.spencer-morais.pt/fog",
+        "https://node.spencer-morais.pt/sandbox",
         "StrataMesh-Laboratory/stratamesh-core"
       ],
       "desk_live": [
@@ -217,7 +217,7 @@
     "daily_exams": {
       "module": "ops/desk-collegium/academy_exams.py",
       "scores_path": "academy_scores/",
-      "grades": "https://academy.calhegasmorais.pt/grades",
+      "grades": "https://node.spencer-morais.pt/academy/grades",
       "primary": [
         "desk_ops.academy_teach_tick",
         "handler_teach",

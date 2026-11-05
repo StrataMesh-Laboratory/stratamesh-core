@@ -26,7 +26,7 @@ class TestDeskOpen(unittest.TestCase):
         self.td = tempfile.TemporaryDirectory()
         roster = {
             "schema": "desk.apps.v1",
-            "workspace": "FOG-CMN-DESK",
+            "workspace": "FOG-SMN-DESK",
             "browser": {
                 "preferred": ["Safari"],
                 "allowlist_urls": [

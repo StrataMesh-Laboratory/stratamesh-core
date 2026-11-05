@@ -1,5 +1,5 @@
 /**
- * stratamesh-gossip — Hedera-inspired gossip-about-gossip for the CMN mesh
+ * stratamesh-gossip — Hedera-inspired gossip-about-gossip for the SMN mesh
  * Events form a local hashgraph fragment: each sync creates an event with
  * self-parent + other-parent hashes (DAG of communication history).
  * No PoW. Fan-out is opportunistic; virtual voting runs in stratamesh-consensus.
@@ -344,7 +344,7 @@ export default {
         lab: true,
         pre_release: true,
         role: 'gossip-about-gossip',
-        host: 'gossip.calhegasmorais.pt',
+        host: 'node.spencer-morais.pt/gossip',
         metabolic: 'health cheap; /peers 60s cache; /have IHAVE digest (no full graph on probe)',
         parallels: {
           hedera: 'event = (ts, txs[], selfParent, otherParent, sig); history = hashgraph fragment',

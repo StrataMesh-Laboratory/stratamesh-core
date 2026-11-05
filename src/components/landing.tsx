@@ -224,13 +224,13 @@ export function Landing({ lang }: { lang: "pt" | "en" }) {
         <p className="mx-auto max-w-lg text-[1.08rem] text-muted">
           {pt ? (
             <>
-              Porta de entrada pública do <strong className="font-medium text-fg">Nó de Névoa Calhegas Morais</strong> — um
+              Porta de entrada pública do <strong className="font-medium text-fg">Spencer-Morais Node</strong> — um
               Fog da <strong className="font-medium text-fg">StrataMesh</strong> que instancia o{" "}
               <G id="so">SO de metaverso Web3</G> nativo e outros SO da <G id="trd">TRD</G>.
             </>
           ) : (
             <>
-              Public door of the <strong className="font-medium text-fg">Calhegas Morais Fog Node</strong> — a{" "}
+              Public door of the <strong className="font-medium text-fg">Spencer-Morais Node</strong> — a{" "}
               <strong className="font-medium text-fg">StrataMesh</strong> Fog that instantiates the native{" "}
               <G id="so">Web3 metaverse OS</G> and other OS on the <G id="trd">DLT</G>.
             </>
@@ -382,7 +382,7 @@ export function Landing({ lang }: { lang: "pt" | "en" }) {
         </p>
       </Macro>
 
-      <Macro id="no" n="03" kicker={pt ? "Este sítio" : "This site"} title={pt ? "O que é o Nó Calhegas Morais?" : "What is the Calhegas Morais Node?"} defaultOpen={false}>
+      <Macro id="no" n="03" kicker={pt ? "Este sítio" : "This site"} title={pt ? "O que é o Spencer-Morais Node?" : "What is the Spencer-Morais Node?"} defaultOpen={false}>
         <p>
           {pt ? (
             <>
@@ -497,8 +497,8 @@ export function Landing({ lang }: { lang: "pt" | "en" }) {
       <Macro id="arquitectura" n="05" kicker={pt ? "Arquitectura" : "Architecture"} title={pt ? "Camadas holónicas e tempo CLP" : "Holonic layers and CLP time"} defaultOpen={false}>
         <p>
           {pt
-            ? "Holons aninhados e distintos: TRD → Nó Calhegas Morais (Fog, com operador; corre e instancia SO — o nativo StrataMesh e outros desenvolvidos ou importados na TRD) → SO Metaverso Web3 (nativo da StrataMesh, partilhado; cada Fog instancia-o localmente, sessão local do SO partilhado) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU (espaço privado de cada conta). O Nó fornece as contas de utilizadores e SCA; cada conta recebe o seu Painel e a sua Bancada. O Nó não é entidade: não tem conta. Tem carteira de Fog — o que produz e o que gasta passa por ela. Operador actual: AMCM ENI (humano). Limiar indexado a este Fog. CLP é kernel temporal da TRD. Locus civil: Lisboa. TanStack é o kit de interface do Painel."
-            : "Nested distinct holons: DLT → Calhegas Morais Node (Fog, with operator; runs and instantiates OS — the native StrataMesh OS and others developed or imported on the DLT) → Web3 Metaverse OS (StrataMesh native, shared; each Fog instantiates it locally, a local session of the shared OS) → Virtual Realm (VM hypervisor: servers of the open worlds) → Open World → UGC sandbox (private space of each account). The Node provides user and SCA accounts; each account is assigned its Panel and sandbox. The Node is not an entity: it has no account. It has a Fog wallet — what it produces and what it spends goes through that wallet. Current operator: AMCM ENI (human). Edge is indexed to this Fog. CLP is the DLT temporal kernel. Civil locus: Lisbon. TanStack is the Panel’s UI kit."}
+            ? "Holons aninhados e distintos: TRD → Spencer-Morais Node (Fog, com operador; corre e instancia SO — o nativo StrataMesh e outros desenvolvidos ou importados na TRD) → SO Metaverso Web3 (nativo da StrataMesh, partilhado; cada Fog instancia-o localmente, sessão local do SO partilhado) → Domínio Virtual (VM hipervisor: servidores dos mundos abertos) → Mundo Aberto → Bancada CGU (espaço privado de cada conta). O Nó fornece as contas de utilizadores e SCA; cada conta recebe o seu Painel e a sua Bancada. O Nó não é entidade: não tem conta. Tem carteira de Fog — o que produz e o que gasta passa por ela. Operador actual: AMCM ENI (humano). Limiar indexado a este Fog. CLP é kernel temporal da TRD. Locus civil: Lisboa. TanStack é o kit de interface do Painel."
+            : "Nested distinct holons: DLT → Spencer-Morais Node (Fog, with operator; runs and instantiates OS — the native StrataMesh OS and others developed or imported on the DLT) → Web3 Metaverse OS (StrataMesh native, shared; each Fog instantiates it locally, a local session of the shared OS) → Virtual Realm (VM hypervisor: servers of the open worlds) → Open World → UGC sandbox (private space of each account). The Node provides user and SCA accounts; each account is assigned its Panel and sandbox. The Node is not an entity: it has no account. It has a Fog wallet — what it produces and what it spends goes through that wallet. Current operator: AMCM ENI (human). Edge is indexed to this Fog. CLP is the DLT temporal kernel. Civil locus: Lisbon. TanStack is the Panel’s UI kit."}
         </p>
         <HolonSvg lang={lang} />
         <div className="inner-grid two">

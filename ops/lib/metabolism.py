@@ -252,8 +252,8 @@ def pace_failed(
 
 DEFAULT_CONTINGENCY = {
     "auth": {"url": "https://auth.calhegasmorais.pt", "note": "python :8790 JSON hop"},
-    "cf-worker-req": {"url": "https://calhegasmorais.pt/", "note": "Pages apex, not Worker SPA"},
-    "sandbox": {"url": "https://sandbox.calhegasmorais.pt/", "note": "gnu-atelier Pages"},
+    "cf-worker-req": {"url": "https://node.spencer-morais.pt/", "note": "Pages apex, not Worker SPA"},
+    "sandbox": {"url": "https://node.spencer-morais.pt/sandbox/", "note": "gnu-atelier Pages"},
 }
 
 
@@ -339,7 +339,9 @@ def coalesce_intents(intents: list[dict], cfg: Optional[dict] = None) -> list[di
     """
     cfg = cfg or {}
     dens = cfg.get("density") or {}
-    zone = (dens.get("zone_suffix") or "calhegasmorais.pt").lower()
+    zone = (dens.get("zone_suffix") or "spencer-morais.pt").lower()
+    # SMN rebrand: coalesce both legacy calhegasmorais.pt and node.spencer-morais.pt
+    zones = {zone, "spencer-morais.pt", "calhegasmorais.pt", "node.spencer-morais.pt"}
     seen = set()
     kept: list[dict] = []
     worker_health: list[dict] = []
@@ -352,12 +354,12 @@ def coalesce_intents(intents: list[dict], cfg: Optional[dict] = None) -> list[di
         if key in seen:
             continue
         seen.add(key)
-        is_pages = it.get("pages") or low.rstrip("/") in (
-            f"https://{zone}",
-            f"https://www.{zone}",
+        is_pages = it.get("pages") or any(
+            low.rstrip("/") in (f"https://{z}", f"https://www.{z}", f"https://node.{z}")
+            for z in zones
         )
         is_worker = (
-            zone in low
+            any(z in low for z in zones)
             and not is_pages
             and it.get("rail") in (None, "cf-worker-req", "local-monitor")
         )

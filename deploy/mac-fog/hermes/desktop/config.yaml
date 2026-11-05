@@ -104,7 +104,7 @@ workspace_tools:
   - ./bin/desk-mail
   - ./bin/desk-open
 hermes_project:
-  name: FOG-CMN-DESK
+  name: FOG-SMN-DESK
   root: deploy/mac-fog/hermes/desktop
   load:
     - SOUL.md

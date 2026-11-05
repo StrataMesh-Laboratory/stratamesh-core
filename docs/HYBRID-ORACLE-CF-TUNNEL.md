@@ -100,7 +100,7 @@ chmod +x cloudflared && sudo mv cloudflared /usr/local/bin/
 ```bash
 cloudflared tunnel login
 cloudflared tunnel create stratamesh-fog
-cloudflared tunnel route dns stratamesh-fog fog.calhegasmorais.pt   # or chosen hostname
+cloudflared tunnel route dns stratamesh-fog node.spencer-morais.pt/fog   # or chosen hostname
 ```
 
 ### Config `/etc/cloudflared/config.yml`
@@ -109,7 +109,7 @@ tunnel: <TUNNEL_ID>
 credentials-file: /etc/cloudflared/<TUNNEL_ID>.json
 
 ingress:
-  - hostname: fog.calhegasmorais.pt
+  - hostname: node.spencer-morais.pt/fog
     service: http://127.0.0.1:8787
   - service: http_status:404
 ```
@@ -120,7 +120,7 @@ sudo cloudflared service install
 sudo systemctl enable --now cloudflared
 ```
 
-DNS for `fog.calhegasmorais.pt` is managed by Cloudflare when using `tunnel route dns` (CNAME to tunnel).
+DNS for `node.spencer-morais.pt/fog` is managed by Cloudflare when using `tunnel route dns` (CNAME to tunnel).
 
 ---
 
@@ -166,7 +166,7 @@ Point tunnel at `8788` if you enable Caddy.
 Health:
 ```bash
 curl -s http://127.0.0.1:8787/health
-curl -s https://fog.calhegasmorais.pt/health    # via tunnel
+curl -s https://node.spencer-morais.pt/fog/health    # via tunnel
 curl -s https://stratamesh-status.stratamesh.workers.dev/status
 ```
 
@@ -216,7 +216,7 @@ The Oracle VM is **only** the Fog runtime + tunnel endpoint + optional IPFS.
 
 1. Oracle VM + SSH hardened  
 2. Clone repo, systemd fog + publish  
-3. cloudflared tunnel → `fog.calhegasmorais.pt`  
+3. cloudflared tunnel → `node.spencer-morais.pt/fog`  
 4. Optional Kubo + `IPFS_API_URL`  
 5. Verify `/health` via tunnel + status Worker ingest  
 

@@ -1,5 +1,5 @@
 # $0 Actions ping. Does not start localhost. EDGE assistant persist is the boot.
-# Hold HTML on edge.calhegasmorais.pt is FAIL (outdated alias), not healthy 200.
+# Hold HTML on node.spencer-morais.pt/edge is FAIL (outdated alias), not healthy 200.
 # WAF/timeout/530 remain session-expected (non-continuous hop). Not a Fog P0.
 # Was */15 (96/day). Twice hourly, offset from origin-fallback :03/:33 and desk-tick :00.
 name: edge-uptime
@@ -24,7 +24,7 @@ jobs:
             -A "EDGE-GROK-CMN-001-gha" \
             -H "Accept: application/json" \
             -o /tmp/e.body -w "%{http_code}" \
-            https://edge.calhegasmorais.pt/health)
+            https://node.spencer-morais.pt/edge/health)
           curl_ec=$?
           if [ "$curl_ec" -ne 0 ]; then code=000; fi
           echo "http=$code curl_ec=$curl_ec"
@@ -38,7 +38,7 @@ jobs:
           text = raw.decode("utf-8", "replace")
           HOLD = "Laboratório em manutenção"
           if HOLD in text or text.lstrip().startswith("<"):
-              print("EDGE FAIL: hold HTML on edge.calhegasmorais.pt is not healthy 200")
+              print("EDGE FAIL: hold HTML on node.spencer-morais.pt/edge is not healthy 200")
               sys.exit(1)
           try:
               d = json.loads(text or "{}")

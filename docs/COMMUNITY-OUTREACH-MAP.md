@@ -59,7 +59,7 @@ The ideal contributor often sits at an **intersection** (few people have all six
 
 | Mechanism | Where | Audience |
 |-----------|--------|----------|
-| **Impact challenges** (Issues + metrics) | [fund.calhegasmorais.pt/challenges](https://fund.calhegasmorais.pt/challenges) | Grantors + grantees |
+| **Impact challenges** (Issues + metrics) | [node.spencer-morais.pt/fund/challenges](https://node.spencer-morais.pt/fund/challenges) | Grantors + grantees |
 | **GitHub Sponsors** | [@amcmorais](https://github.com/sponsors/amcmorais) · org pending staff | Recurring / one-time |
 | **ENI /pagamentos** | [calhegasmorais.pt/pagamentos](https://calhegasmorais.pt/pagamentos) | EUR rail (AMCM ENI) |
 | **Evidence on GitHub** | PRs, commits, reviews | Fund statistics layer |

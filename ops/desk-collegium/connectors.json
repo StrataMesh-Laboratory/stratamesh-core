@@ -74,7 +74,7 @@
       "desc": "api-edge /desk snapshot Bearer API (desk.snapshot.v1)",
       "probe": {
         "type": "http",
-        "url": "https://api-edge.calhegasmorais.pt/desk",
+        "url": "https://node.spencer-morais.pt/edge/api/desk",
         "auth": "desk_token"
       },
       "ship_gate": true
@@ -154,7 +154,7 @@
     {
       "id": "hermes-desktop",
       "kind": "sdk",
-      "desc": "Hermes FOG-CMN-DESK native desktop (DESK.md, pulse script)",
+      "desc": "Hermes FOG-SMN-DESK native desktop (DESK.md, pulse script)",
       "probe": {
         "type": "repo_paths",
         "paths": [

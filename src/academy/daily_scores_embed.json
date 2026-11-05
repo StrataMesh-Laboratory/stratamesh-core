@@ -12,7 +12,7 @@
       "scores": "academy_scores/2026-09-13/scores.json",
       "teachers": "academy_scores/2026-09-13/teachers.json"
     },
-    "grades_url": "https://academy.calhegasmorais.pt/grades",
+    "grades_url": "https://node.spencer-morais.pt/academy/grades",
     "git_raw_scores": "https://raw.githubusercontent.com/StrataMesh-Laboratory/stratamesh-core/main/academy_scores/2026-09-13/scores.json",
     "summary": {
       "n_students": 6,
@@ -152,7 +152,7 @@
             "score": 1.0,
             "scale": "0..1",
             "status": "scored",
-            "evidence": "fog+academy.calhegasmorais.pt DNS CF + http=200 custom origin",
+            "evidence": "fog+node.spencer-morais.pt/academy DNS CF + http=200 custom origin",
             "scored_by": [
               "stratagrok",
               "hermes"

@@ -1,5 +1,5 @@
 /**
- * stratamesh-integrations — free OSS / public API catalog + probes for CMN
+ * stratamesh-integrations — free OSS / public API catalog + probes for SMN
  * Extended with SCA ML/NN deep integrations (Flower, QIGA, Kanren, Olas, edge).
  */
 const CORS = {
@@ -65,7 +65,7 @@ export default {
     if (path === '/catalog') {
       return j({
         version: VERSION,
-        note: 'Free OSS / public algorithm paths only. No paid RPC required for CMN core.',
+        note: 'Free OSS / public algorithm paths only. No paid RPC required for SMN core.',
         items: CATALOG,
         priors_refined: {
           iota: 'consensus tip modules',

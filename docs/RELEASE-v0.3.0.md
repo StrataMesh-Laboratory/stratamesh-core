@@ -10,12 +10,12 @@ This is the first cut that treats a Fog Node as a **product other operators can 
 
 ## Why this is a major lab release
 
-Until now the Fog lived as the Calhegas Morais reference process. v0.3.0 abstracts that into a kit:
+Until now the Fog lived as the Spencer-Morais Node reference process. v0.3.0 abstracts that into a kit:
 
 1. **Identity** — registered `node_id` + 2FA to the operator email (DeoMail via `POST /api/auth/fog/bootstrap/*`).
 2. **Keys stay local** — GitHub PAT and Cloudflare tokens optional, `0600` under `~/.config/stratamesh`. Account id is discovered from the Cloudflare API, never hardcoded.
 3. **Shared OS** — clone [stratamesh-core](https://github.com/StrataMesh-Laboratory/stratamesh-core), run the wizard, contribute **resources → PoC → STRATA** (`#mint` / `#0`).
-4. **Honest mesh** — a new node starts **n=1** `mesh_member=false`. The reference CMN Fog remains n=2 (Mac + EDGE session).
+4. **Honest mesh** — a new node starts **n=1** `mesh_member=false`. The reference SMN Fog remains n=2 (Mac + EDGE session).
 
 Kit: [`deploy/fog-node/README.md`](../deploy/fog-node/README.md) · macOS: [`deploy/mac-fog/`](../deploy/mac-fog/)
 

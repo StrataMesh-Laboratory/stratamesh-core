@@ -1,11 +1,11 @@
-# Add-ons e integrações open-source (GitHub) — StrataMesh / CMN
+# Add-ons e integrações open-source (GitHub) — StrataMesh / SMN
 
 Lista orientada a **custo zero** (self-host, Cloudflare Workers free, ou SaaS free tier).
 Prioridade: encaixe com Workers, D1, KV, TRD/GDA, auth e portal.
 
 ## Segurança e acesso
 
-| Projecto | Uso no CMN | Notas |
+| Projecto | Uso no SMN | Notas |
 |----------|------------|--------|
 | [cloudflare/turnstile](https://github.com/cloudflare/turnstile) | CAPTCHA no registo/login | Gratuito; CSP já permite challenges.cloudflare.com |
 | [panva/jose](https://github.com/panva/jose) | JWT / JWS no edge | Zero deps; Workers-friendly |
@@ -74,7 +74,7 @@ Prioridade: encaixe com Workers, D1, KV, TRD/GDA, auth e portal.
 - Bot Fight em *block* sem `/erro-acesso`
 - Módulos Node nativos (`fs`, `net`) em Workers
 
-*CMN lab · medidas gratuitas de zona + catálogo GitHub.*
+*SMN lab · medidas gratuitas de zona + catálogo GitHub.*
 
 
 ## Estado de integração (lab)
@@ -94,7 +94,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Identidade, consentimento e compliance
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [w3c/vc-data-model](https://github.com/w3c/vc-data-model) | Verifiable Credentials | Credenciais de clearance / PdC auditável |
 | [decentralized-identity/presentation-exchange](https://github.com/decentralized-identity/presentation-exchange) | Presentation Exchange | Pedidos de prova sem revelar excesso |
@@ -104,7 +104,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Pagamentos e settlement (sem custodiar chaves bancárias)
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [interledger/rafiki](https://github.com/interledger/rafiki) | Interledger node | Liquidação multi-moeda futura |
 | [Open-Invoice/standard](https://github.com/network-invoice) / [Invoice-Ninja](https://github.com/invoiceninja/invoiceninja) | Facturação | ENI: recibos/donativos (self-host) |
@@ -112,7 +112,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Tempo, calendário e dados astronómicos
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [mourner/suncalc](https://github.com/mourner/suncalc) | Nascer/pôr sol | Validar / substituir motor CLP |
 | [commenthol/date-holidays](https://github.com/commenthol/date-holidays) | Feriados por país | Calendário civil PT-PT |
@@ -120,7 +120,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Grafos, CRDT e sincronização
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [automerge/automerge](https://github.com/automerge/automerge) | CRDT | Bancada CGU offline-first |
 | [yjs/yjs](https://github.com/yjs/yjs) | CRDT colaboração | Mundo Aberto / edição partilhada |
@@ -130,7 +130,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### IA no edge e orquestração de agentes
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [cloudflare/ai](https://github.com/cloudflare/ai) | Workers AI bindings | Orquestrador / chat (já próximo) |
 | [langchain-ai/langgraphjs](https://github.com/langchain-ai/langgraphjs) | Grafos de agentes | AIOps Dev Team (cuidado com CPU free) |
@@ -139,7 +139,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Segurança e supply-chain
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [cisagov/ScubaGear](https://github.com/cisagov/ScubaGear) | Audit configs | Processo (não runtime) |
 | [google/capslock](https://github.com/google/capslock) | Capacidade Go | Se houver binários fog |
@@ -149,7 +149,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### Observabilidade e fiabilidade
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [open-telemetry/opentelemetry-js](https://github.com/open-telemetry/opentelemetry-js) | Traces | Amostragem baixa no free |
 | [fluent/fluent-bit](https://github.com/fluent/fluent-bit) | Logs fog | Nó local |
@@ -158,7 +158,7 @@ Além do já integrado (Turnstile, sessões hash, TOTP, CIDv1), candidatos útei
 
 ### UI / acessibilidade / i18n
 
-| Projecto | Função | Encaixe CMN |
+| Projecto | Função | Encaixe SMN |
 |----------|--------|-------------|
 | [formatjs/formatjs](https://github.com/formatjs/formatjs) | i18n robusto | PT-PT / EN-GB |
 | [kentcdodds/mdx-bundler](https://github.com/kentcdodds/mdx-bundler) | Docs MDX | Whitepaper no portal |
