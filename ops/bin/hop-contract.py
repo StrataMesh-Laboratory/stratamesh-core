@@ -78,12 +78,13 @@ def main() -> int:
     )
     must(
         "deploy/mac-fog/hop-map.yml",
-        "node.spencer-morais.pt/fog",
-        "node.spencer-morais.pt/origin",
-        "node.spencer-morais.pt/gossip",
+        # Live tunnel hostnames (DNS/cloudflared) — not remapped until André cuts over.
+        "fog.calhegasmorais.pt",
+        "origin.calhegasmorais.pt",
+        "gossip.calhegasmorais.pt",
         "http://127.0.0.1:8788",
         "auth.calhegasmorais.pt",
-        "node.spencer-morais.pt/mw",
+        "mw.calhegasmorais.pt",
         "http://127.0.0.1:8790",
         "SIGHUP",
     )
