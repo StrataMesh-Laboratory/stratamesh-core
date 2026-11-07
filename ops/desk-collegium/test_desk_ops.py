@@ -655,7 +655,10 @@ class TestHasToolEvidence(unittest.TestCase):
         finally:
             self.ops.REPO_ROOT = old
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 052841da58431d0becc6c7b584b070edd509211f
     def test_rejects_planning_chat_without_tool_residue(self):
         """P0 overnight: OpenCode planning chat must not count as evidence."""
         fn = self.ops._has_tool_evidence
