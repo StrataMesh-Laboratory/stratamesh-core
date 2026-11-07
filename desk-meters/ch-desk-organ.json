@@ -1,0 +1,11 @@
+{
+  "schema": "desk.meter.desk-organ.v1",
+  "ts_utc": "20261105T145554Z",
+  "pt": "2026-11-05 14:55 WEST",
+  "task": "ch-desk-organ",
+  "git_sha": "bf8ed5c",
+  "origin_main": "51bef64",
+  "evidence": true,
+  "done": true,
+  "note": "Meter evidencing Desk collegial organ—no fake done"
+}
