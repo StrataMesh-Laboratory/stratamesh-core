@@ -59,6 +59,24 @@ def make_getparents(tx_id: str) -> bytes:
     return encode(MsgType.GETPARENTS, {"tx_id": tx_id})
 
 
+def peer_list(peers: list) -> bytes:
+    """Return an INV message containing peer identifiers.
+
+    The function accepts a list of peer dictionaries with an ``id`` key
+    (as produced by :func:`node_persistent.gossip_view`). It extracts the
+    ``id`` field from each peer and encodes the list into a bytestring
+    suitable for network transmission.
+
+    Args:
+        peers: Iterable of dicts each having an ``id`` key.
+
+    Returns:
+        A bytes payload ready to be sent via a gossip channel.
+    """
+    ids = [p.get("id") for p in peers if p.get("id")]
+    return make_inv(ids)
+
+
 def make_parents(tx_id: str, parent_txs: List[Transaction]) -> bytes:
     return encode(MsgType.PARENTS, {
         "tx_id": tx_id,

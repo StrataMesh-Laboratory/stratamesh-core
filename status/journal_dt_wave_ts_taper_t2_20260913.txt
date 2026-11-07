@@ -1,0 +1,5 @@
+journal: T2 drain notes
+Inventory meter: fio_tunnel/wg-fog.json
+Task: dt-proj-ts-taper-t2
+Timestamp: 2026-09-13T18:00:00Z
+Dry‑run: inventory drained 100.x per plan.

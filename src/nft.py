@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -126,14 +127,31 @@ class ObjectRegistry:
         self._dag = dag
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.executescript(OBJECTS_SCHEMA)
-        self._conn.commit()
+        self._lock = threading.RLock()
+        with self._lock:
+            self._conn.executescript(OBJECTS_SCHEMA)
+            self._conn.commit()
         self.assets: Dict[str, DigitalObject] = {}
         self._load()
 
+    def _db_execute(self, sql, params=()):
+        with self._lock:
+            cur = self._conn.execute(sql, params)
+            if cur.description is None:
+                return cur
+            return list(cur.fetchall())
+
+    def _db_execute_one(self, sql, params=()):
+        with self._lock:
+            return self._conn.execute(sql, params).fetchone()
+
+    def _db_commit(self) -> None:
+        with self._lock:
+            self._conn.commit()
+
     def _load(self) -> None:
         self.assets.clear()
-        rows = self._conn.execute("SELECT * FROM objects").fetchall()
+        rows = self._db_execute("SELECT * FROM objects")
         for r in rows:
             obj = self._row_to_obj(r)
             self.assets[obj.object_id] = obj
@@ -165,7 +183,7 @@ class ObjectRegistry:
         )
 
     def _persist(self, obj: DigitalObject) -> None:
-        self._conn.execute(
+        self._db_execute(
             """INSERT OR REPLACE INTO objects
                (object_id, manifest_cid, owner, title, kind, renderer,
                 parts_json, meta_json, dag_tx, strata_units, created_at, updated_at)
@@ -185,7 +203,7 @@ class ObjectRegistry:
                 obj.updated_at,
             ),
         )
-        self._conn.commit()
+        self._db_commit()
         self.assets[obj.object_id] = obj
 
     def _ipfs_client(self):
@@ -250,7 +268,7 @@ class ObjectRegistry:
             pass
         # Fallback: write STANDARD row with cid=manifest_cid (same sqlite as Fog).
         try:
-            self._conn.execute(
+            self._db_execute(
                 """CREATE TABLE IF NOT EXISTS transactions (
                     tx_id TEXT PRIMARY KEY,
                     tx_type TEXT NOT NULL,
@@ -266,13 +284,13 @@ class ObjectRegistry:
                 f"{tx_kind}|{cid}|{sender}|{time.time()}".encode()
             ).hexdigest()[:16]
             now = time.time()
-            self._conn.execute(
+            self._db_execute(
                 """INSERT OR REPLACE INTO transactions
                    (tx_id, tx_type, parents, weight, cumulative_weight, timestamp, cid, sender)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (tx_id, tx_kind, json.dumps(["genesis"]), 1.0, 1.0, now, cid, sender),
             )
-            self._conn.commit()
+            self._db_commit()
             return tx_id
         except Exception:
             return None
@@ -414,9 +432,9 @@ class ObjectRegistry:
         hit = self.assets.get(object_id)
         if hit:
             return hit
-        row = self._conn.execute(
+        row = self._db_execute_one(
             "SELECT * FROM objects WHERE object_id = ?", (object_id,)
-        ).fetchone()
+        )
         if not row:
             return None
         obj = self._row_to_obj(row)
@@ -424,24 +442,24 @@ class ObjectRegistry:
         return obj
 
     def by_cid(self, manifest_cid: str) -> List[DigitalObject]:
-        rows = self._conn.execute(
+        rows = self._db_execute(
             "SELECT * FROM objects WHERE manifest_cid = ? ORDER BY created_at",
             (manifest_cid,),
-        ).fetchall()
+        )
         return [self._row_to_obj(r) for r in rows]
 
     def by_owner(self, owner: str) -> List[DigitalObject]:
-        rows = self._conn.execute(
+        rows = self._db_execute(
             "SELECT * FROM objects WHERE owner = ? ORDER BY created_at",
             (owner,),
-        ).fetchall()
+        )
         return [self._row_to_obj(r) for r in rows]
 
     def list(self, limit: int = 50) -> List[DigitalObject]:
-        rows = self._conn.execute(
+        rows = self._db_execute(
             "SELECT * FROM objects ORDER BY created_at DESC LIMIT ?",
             (int(limit),),
-        ).fetchall()
+        )
         return [self._row_to_obj(r) for r in rows]
 
     def transfer(self, object_id: str, new_owner: str) -> DigitalObject:
@@ -468,12 +486,13 @@ class ObjectRegistry:
         }
 
     def _count(self) -> int:
-        row = self._conn.execute("SELECT COUNT(*) AS n FROM objects").fetchone()
+        row = self._db_execute_one("SELECT COUNT(*) AS n FROM objects")
         return int(row["n"] if row else 0)
 
     def close(self) -> None:
         try:
-            self._conn.close()
+            with self._lock:
+                self._conn.close()
         except Exception:
             pass
 

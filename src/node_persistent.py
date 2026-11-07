@@ -95,6 +95,8 @@ class PersistentFogNode:
             self.keepup.attach()
         self.lifecycle = AccountGraph(dag=self.dag, token=self.token)
         self.payg = PaygRuntime(lab_ledger=self.lifecycle.lab, graph=self.lifecycle)
+        # Initialise peer list with an empty list; future peers can be appended.
+        self._gossip_peers: list[dict] = []
         # GH#178/#181: empty registry is honest until this live Fog asserts itself once.
         # Never invent EDGE/peers — only provider_id=self.node_id.
         self.ensure_self_spa()
@@ -404,26 +406,32 @@ code {{ color:var(--fg); }}
 """
 
     def gossip_view(self) -> dict:
-        """GET /gossip: live inventory + self as the only peer. lab_single_host_gossip."""
+        """GET /gossip: live inventory + self and any additional peers."""
         nid = self.node_id
         mf = mesh_flags()
+        # combine self with any peers added via add_peer
+        peers = [
+            {
+                "id": nid,
+                "role": self.lab_role(),
+                "substrate": "workerd-serverless" if mf.get("mac_live") else "local-process",
+                "trusted": bool(mf.get("trusted")),
+            }
+        ] + self._gossip_peers
         return {
             "protocol": "lab_two_host_mesh" if mf.get("mesh_member") else "lab_single_host_gossip",
             "ok": True,
             "node_id": nid,
             **mf,
-            "peers": [
-                {
-                    "id": nid,
-                    "role": self.lab_role(),
-                    "substrate": "workerd-serverless" if mf.get("mac_live") else "local-process",
-                    "trusted": bool(mf.get("trusted")),
-                }
-            ],
+            "peers": peers,
             "ids": self.inventory(),
             "accept": ["POST /gossip", "GET /inv", "GET /tx/{id}", "POST /submit"],
         }
-
+        
+    def add_peer(self, peer_id: str, role: str = "edge") -> None:
+        """Record a gossip peer. Store minimal dict with id and role."""
+        self._gossip_peers.append({"id": peer_id, "role": role})
+        
     def resources_view(self) -> dict:
         """GET /resources: live process sample + one lab host device (this host only).
 

@@ -741,8 +741,16 @@ class H(BaseHTTPRequestHandler):
         self._send(200, payload(kind))
 
 
+class _Srv(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        e = sys.exc_info()[1]
+        if isinstance(e, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return
+        super().handle_error(request, client_address)
+
+
 def main():
-    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
+    _Srv(("127.0.0.1", PORT), H).serve_forever()
 
 
 if __name__ == "__main__":
