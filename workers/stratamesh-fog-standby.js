@@ -5,7 +5,7 @@
  * Metabolic stasis deflates to 0.5x while origin=cf-standby (Workers burn).
  * metabol.remaining comes from live CF KV GraphQL (or HOLD) — never invent remaining=1000.
  */
-const MAC_TUNNEL = "https://d1323a93-21e4-4ea2-bce8-8b74eece2e13.cfargotunnel.com";
+const MAC_TUNNEL = "https://fog-origin.spencer-morais.pt"; // A1 (Andre 14 Nov): tunel macbook-server via spencer-morais.pt
 const EDGE = "https://edge.calhegasmorais.pt";
 const AFTER = 1800;
 const KV_KEY = "fog:origin:lease";
@@ -269,7 +269,7 @@ export default {
     const now = Date.now();
     const lease = await readLease(env);
     // Probe tunnel paths that this worker does NOT own — avoids a fetch loop on /health.
-    const mac = await probe("https://fog.calhegasmorais.pt/workerd");
+    const mac = await probe(MAC_TUNNEL + "/workerd");
     const mac2 = mac.ok ? mac : await probe(MAC_TUNNEL + "/health");
     const edge = await probe(EDGE + "/health");
     const macOk = (mac.ok && (mac.origin === "macbook" || mac.json.mac_live === true || mac.json.ok === true))

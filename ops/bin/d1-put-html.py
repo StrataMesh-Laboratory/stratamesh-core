@@ -105,6 +105,8 @@ def put_module_worker(script: str, source: bytes) -> None:
         {
             "main_module": "index.js",
             "compatibility_date": "2024-12-01",
+            # keep Worker secrets (CF_ACCOUNT, CLOUDFLARE_API_TOKEN) across git ships
+            "keep_bindings": ["secret_text", "secret_key"],
         }
     ).encode()
 
